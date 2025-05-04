@@ -5,12 +5,12 @@ import { animate, stagger } from 'framer-motion'
 // import arrowDown from "/assets/arrow-down-gray.svg";
 // import man from "/assets/man.jpg";
 import classNames from '@/shared/lib/helpers/classNames'
-import cls from './UsersPage.module.scss'
+import cls from './Users.module.scss'
 import Layout from '../Layout/Layout'
 import { Text } from '@/shared/ui'
-import UsersPageProps from './types'
+import UsersProps from './types'
 
-export default function UsersPage({ className }: UsersPageProps) {
+export default function Users({ className }: UsersProps) {
     const [isFilter, setIsFilter] = useState<number>(1)
 
     useEffect(() => {
@@ -25,7 +25,7 @@ export default function UsersPage({ className }: UsersPageProps) {
 
     return (
         <Layout>
-            <div className={classNames(cls.Users_page, {}, [className ?? ''])}>
+            <div className={classNames(cls.Users, {}, [className ?? ''])}>
                 <div className={cls.search}>
                     <Text type='h2' fz='24px'>
                         Всего пользователей - 3135

@@ -1,14 +1,14 @@
 import { useBackOnPrevPage } from '@/shared/lib/hooks/'
-import cls from './NotFoundPage.module.scss'
+import cls from './NotFound.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import { MOBILE } from '@/shared/utils'
 import { Btn, Text } from '@/shared/ui'
 
-interface NotFoundPageProps {
+interface NotFoundProps {
     className?: string
 }
 
-export default function NotFoundPage({ className }: NotFoundPageProps) {
+export default function NotFound({ className }: NotFoundProps) {
     const backOnPrevPage = useBackOnPrevPage
 
     return (

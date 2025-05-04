@@ -1,37 +1,33 @@
 import { lazy } from 'react'
 import { RouteProps } from 'react-router'
 
-const MainPage = lazy(() => import('@/pages/MainPage/MainPage'))
-const RegistrationPage = lazy(() => import('@/pages/RegistrationPage/RegistrationPage'))
-const LoginPage = lazy(() => import('@/pages/LoginPage/LoginPage'))
-const AboutPage = lazy(() => import('@/pages/AboutPage/AboutPage'))
-const NotFoundPage = lazy(() => import('@/pages/404Page/NotFoundPage'))
-const UsersPage = lazy(() => import('@/pages/Users/UsersPage'))
+const Main = lazy(() => import('@/pages/Main/Main'))
+const Registration = lazy(() => import('@/pages/Registration/Registration'))
+const Login = lazy(() => import('@/pages/Login/Login'))
+const About = lazy(() => import('@/pages/About/About'))
+const NotFound = lazy(() => import('@/pages/404/NotFound'))
+const Profile = lazy(() => import('@/pages/profile/Profile/ui/Profile'))
 
 export const routeConfig: RouteProps[] = [
     {
         path: '/',
-        element: <MainPage />
+        element: <Main />
     },
     {
         path: '/about',
-        element: <AboutPage />
+        element: <About />
     },
     {
         path: '/registration',
-        element: <RegistrationPage />
+        element: <Registration />
     },
     {
         path: '/login',
-        element: <LoginPage />
+        element: <Login />
     },
-    { path: '*', element: <NotFoundPage /> },
+    { path: '*', element: <NotFound /> },
     {
-        path: '/user/:id'
-        // element: <UserInfoPage />,
-    },
-    {
-        path: '/users',
-        element: <UsersPage />
+        path: '/profile',
+        element: <Profile />
     }
 ]

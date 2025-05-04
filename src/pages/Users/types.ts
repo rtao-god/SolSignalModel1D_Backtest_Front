@@ -1,3 +1,3 @@
-export default interface UsersPageProps {
+export default interface UsersProps {
     className?: string
 }

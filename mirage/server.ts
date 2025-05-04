@@ -29,7 +29,7 @@ export function makeServer({ environment = 'development' } = {}) {
             profile: Model.extend<Partial<UserProfile>>({})
         },
 
-        seeds(server) {
+        seeds(server: any) {
             server.create('user', { id: '1', identifier: 'admin@gmail.com', password: '1111' })
             server.create('user', { id: '2', identifier: 'admin2@gmail.com', password: '2222' })
             server.create('user', { id: '3', identifier: 'admin3@gmail.com', password: '3333' })

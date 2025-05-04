@@ -20,7 +20,6 @@ export default function UserLogin({ className }: LoginFormProps) {
     const identifier = useSelector(getLoginIdentifier)
 
     const [password, setPassword] = useState<string>('')
-    const confirmPassword = useSelector(getLoginConfirmPassword)
 
     const isLoading = useSelector(getLoginIsLoading)
     const error = useSelector(getLoginError)
@@ -80,11 +79,11 @@ export default function UserLogin({ className }: LoginFormProps) {
                 </Text>
                 <Rows gap={20} rows={['auto']}>
                     <Btn className={cls.login_btn} color='#0064FA' disabled={isLoading}>
-                        {t('login')}
+                        {t('Login')}
                     </Btn>
                     <div className={cls.register}>
                         <Text color='#7D7F82' fz='16px' type='p'>
-                            {t('DonTHaveAnAccount?')}
+                            {t("Don't have an account?")}
                         </Text>
                         <Link to='/registration' className={cls.register_text}>
                             <Text color='#0064FA' fz='16px' type='p'>
