@@ -1,12 +1,9 @@
-import { InputHTMLAttributes } from 'react'
 import cls from './Input.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
-import InputProps from './types'
+import { InputProps } from './types'
 
 export default function Input({
     type = 'text',
-    placeholder,
-    onClick = () => '',
     width = '100%',
     borderColor,
     bt,
@@ -18,22 +15,15 @@ export default function Input({
     btl,
     bbl,
     bgcolor,
-    disabled,
-    onChange,
-    onBlur,
-    value,
     height,
     borderRadius,
     padding,
-    name,
     className = '',
-    onFocus,
     fz,
     border,
-    readOnly,
     error = '',
     ...rest
-}: InputProps & InputHTMLAttributes<HTMLInputElement>) {
+}: InputProps) {
     const inputClassName = classNames(cls.Input, {
         [cls.error_border]: error,
         [cls[className]]: className
@@ -41,10 +31,9 @@ export default function Input({
 
     return (
         <input
+            {...rest}
             className={inputClassName}
             type={type}
-            placeholder={placeholder}
-            disabled={disabled}
             style={{
                 width,
                 borderRadius: borderRadius ?? `${btr ?? ''} ${bbr ?? ''} ${bbl ?? ''} ${btl ?? ''}`,
@@ -59,14 +48,6 @@ export default function Input({
                 fontSize: fz,
                 border
             }}
-            onChange={onChange}
-            onClick={onClick}
-            onBlur={onBlur}
-            onFocus={onFocus}
-            value={value}
-            name={name}
-            readOnly={readOnly}
-            {...rest}
         />
     )
 }

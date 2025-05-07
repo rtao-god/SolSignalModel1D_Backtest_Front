@@ -1,0 +1,32 @@
+.root {
+    display: flex;
+    cursor: pointer;
+}
+
+.input {
+    display: none;
+}
+
+.view {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: 2px solid var(--color-text-primary);
+    border-radius: 2px;
+    margin-right: 8px;
+    transition: border-color 0.2s, background-size 0.15s;
+    background-size: 0px 0px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M14.1667 7.5L8.43754 13.3333L5.83337 10.6818' stroke='%233265B1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.label {
+    @include text-size-body-1;
+    font-weight: 400;
+}
+
+.input:checked+.view {
+    border-color: var(--color-accent);
+    background-size: 20px 20px;
+}

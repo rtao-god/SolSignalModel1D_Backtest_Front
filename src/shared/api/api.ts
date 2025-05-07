@@ -5,7 +5,7 @@ import { UserData } from '@/shared/types/user.types'
 export const api = createApi({
     reducerPath: 'api',
     baseQuery: fetchBaseQuery({
-        baseUrl: '/api', // Замените на ваш базовый URL
+        baseUrl: '/api',
         prepareHeaders: (headers, { getState }) => {
             const token = (getState() as any).auth?.token
             if (token) {

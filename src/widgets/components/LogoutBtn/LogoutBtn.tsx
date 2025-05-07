@@ -2,9 +2,14 @@ import cls from './LogoutBtn.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import LogoutBtnProps from './types'
 import { Btn, Text } from '@/shared/ui'
+import { userActions } from '@/entities/User'
+import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 
 export default function LogoutBtn({ className }: LogoutBtnProps) {
-
+    const { t } = useTranslation('LogoutBtn')
+    
+    const dispatch = useDispatch()
     function handleLogout() {
         console.log()
         dispatch(userActions.logout())
@@ -12,7 +17,7 @@ export default function LogoutBtn({ className }: LogoutBtnProps) {
     return (
         <div className={classNames(cls.LogoutBtn, {}, [className ?? ''])}>
             <Btn onClick={handleLogout}>
-                <Text type='p'> t{'Войти'} </Text>
+                <Text type='p'> {t('Выйти')} </Text>
             </Btn>
         </div>
     )

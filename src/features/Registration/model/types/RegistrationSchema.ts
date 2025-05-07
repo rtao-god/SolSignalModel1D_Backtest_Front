@@ -5,4 +5,5 @@ export default interface RegistrationSchema {
     confirmPassword: string
     isChecked: boolean
     error: string
+    isAuthenticated
 }

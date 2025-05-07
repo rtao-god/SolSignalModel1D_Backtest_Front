@@ -24,6 +24,7 @@ import {
     setIsChecked
 } from '../../model/slice/registrationSlice'
 import { BIRTHDAY_COMPLETE, BIRTHDAY_REQUIRED, IDENTIFIER_INVALID, IDENTIFIER_REQUIRED, PASSWORD_MISMATCH, PASSWORD_REQUIRED, PASSWORD_SHORT, TERMS_REQUIRED } from '@/shared/const/authRegister'
+import Checkbox from '../Checkbox/Checkbox'
 
 export default function RegistrationForm({ className }: RegistrationFormProps) {
     const birthday = useSelector(getBirthday)
@@ -213,7 +214,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                                 [cls.errorBorder]: error.includes(PASSWORD_MISMATCH) || error.includes(PASSWORD_SHORT)
                             })}
                         />
-                        <div className={cls.checkbox_container}>
+                        <div className={cls.checkboxContainer}>
                             <Input
                                 type='checkbox'
                                 name='terms'
@@ -222,6 +223,9 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                             />
                             <label htmlFor='terms'>Я принимаю условия использования</label>
                         </div>
+
+                        <Checkbox />
+
                         <Text type='p' className={cls.error}>
                             {error}
                         </Text>

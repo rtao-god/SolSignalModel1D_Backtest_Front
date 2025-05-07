@@ -1,3 +1,1 @@
-import ShowPassword from './ui/ShowPassword'
-
-export { ShowPassword }
+export { default as ShowPassword } from './ui/ShowPassword'

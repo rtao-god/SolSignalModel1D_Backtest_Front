@@ -2,13 +2,13 @@ import { ChangeEvent } from 'react'
 
 import { Text } from '@/shared/ui'
 import { useAuth } from '@/shared/model/store/auth'
-/* import { getFullUsernameWithInitials } from "@/entities/User/lib/helpers/getFullUsernameWithInitials" */
 
 import noImageBlue from '../../assets/noImageRed.svg'
 import noImageRed from '../../assets/noImageRed.svg'
 import cls from './UserInfo.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import UserInfoProps from './types'
+import { getFullUsernameWithInitials } from '@/entities/User/model/selectors/getFullUsernameWithInitials'
 
 export default function UserInfo({ className }: UserInfoProps) {
     const { user } = useAuth()
@@ -17,24 +17,24 @@ export default function UserInfo({ className }: UserInfoProps) {
 
     return (
         <div
-            className={classNames(cls.UserInfo, {}, [className ?? ''])}
+            className={classNames(cls.User_info, {}, [className ?? ''])}
             /* style={{ borderColor: sick ? '#F7E6E8' : '#EBF3FF' }} */
         >
             <div className={cls.image}>
                 <img
-                   /*  src={
+                    src={
                         !user || (user && !user.image) ?
                             sick ?
                                 noImageRed
                             :   noImageBlue
                         :   user && user.image
-                    } */
+                    }
                     // src={
                     //     (user && user.image)
                     //         ? sick ? noImageRed : noImageBlue
                     //         : user && user.image || ""
                     // }
-                    alt='imgProfile'
+                    alt=''
                 />
                 <input
                     accept='.jpg, .png, jpeg'
@@ -50,11 +50,10 @@ export default function UserInfo({ className }: UserInfoProps) {
             </div>
             <div className={cls.data}>
                 <Text type='h2' color='#262626' fz='20px'>
-                    {/*  {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')} */}
-                    gf
+                     {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')}
                 </Text>
                 <Text type='p' color='#B1B2B4' fz='14px'>
-                    {/* {user && user.group.name} */} dffd
+                    {user && user.group.name}
                 </Text>
             </div>
         </div>
