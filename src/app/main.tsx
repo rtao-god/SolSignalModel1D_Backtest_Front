@@ -10,9 +10,9 @@ import { ErrorBoundaryFallback } from '@/widgets/components'
 import { makeServer } from '../../mirage/server'
 import { QueryClient, QueryClientProvider } from 'react-query'
 
-if (process.env.NODE_ENV === 'development') {
+/* if (process.env.NODE_ENV === 'development') {
     makeServer()
-}
+} */ // Моковый сервер. Теперь он не нжуен. Переходим полностью на настоязий бэкенд 
 
 const queryClient = new QueryClient()
 const rootElement = document.getElementById('root')

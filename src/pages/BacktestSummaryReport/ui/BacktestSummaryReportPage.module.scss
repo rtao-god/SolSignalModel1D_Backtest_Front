@@ -1,0 +1,76 @@
+.BacktestSummaryPage {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.section {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+}
+
+.kvList {
+    margin: 0;
+    padding: 0;
+}
+
+.kvRow {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) 1fr;
+    gap: 8px 16px;
+    margin-bottom: 8px;
+}
+
+.kvRow dt {
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.kvRow dd {
+    margin: 0;
+    opacity: 0.85;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.rawJson {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    white-space: pre;
+    max-height: 320px;
+    overflow: auto;
+}

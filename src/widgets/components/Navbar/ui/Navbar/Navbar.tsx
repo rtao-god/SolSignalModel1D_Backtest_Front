@@ -24,9 +24,9 @@ export default function Navbar({ className }: NavbarProps) {
                 </label>
             </div>
             <div className={cls.links}>
-                <Link to='/'>MainPage</Link>
+                <Link to='/'>Main</Link>
                 <Link to='/profile'>Profile</Link>
-                <Link to='/about'>AboutPage</Link>
+                <Link to='/about'>About</Link>
                 <AuthSection />
             </div>
         </div>

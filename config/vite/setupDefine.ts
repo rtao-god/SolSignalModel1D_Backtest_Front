@@ -1,4 +1,4 @@
-import { loadEnv } from 'vite'
+/* import { loadEnv } from 'vite'
 
 export default function setupDefine(mode: any) {
     const env = loadEnv(mode, process.cwd(), '')
@@ -7,3 +7,4 @@ export default function setupDefine(mode: any) {
         __APP_ENV__: JSON.stringify(env.APP_ENV)
     }
 }
+ */

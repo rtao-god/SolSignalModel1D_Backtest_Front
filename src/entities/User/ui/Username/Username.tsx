@@ -5,7 +5,7 @@ import UsernameProps from './types'
 
 export default function Username({ className, name, fz }: UsernameProps) {
     return (
-        <div className={classNames(cls.User, {}, [className ?? ''])}>
+        <div className={classNames(cls.Username, {}, [className ?? ''])}>
             <Text type='h2' fz={fz ?? '14px'}>
                 name: {name}
             </Text>

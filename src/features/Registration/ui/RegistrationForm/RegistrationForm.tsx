@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useCallback, useState } from 'react'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Btn, Rows, Input, Text } from '@/shared/ui'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -23,12 +23,23 @@ import {
     setIdentifier,
     setIsChecked
 } from '../../model/slice/registrationSlice'
-import { BIRTHDAY_COMPLETE, BIRTHDAY_REQUIRED, IDENTIFIER_INVALID, IDENTIFIER_REQUIRED, PASSWORD_MISMATCH, PASSWORD_REQUIRED, PASSWORD_SHORT, TERMS_REQUIRED } from '@/shared/const/authRegister'
+import {
+    BIRTHDAY_COMPLETE,
+    BIRTHDAY_REQUIRED,
+    IDENTIFIER_INVALID,
+    IDENTIFIER_REQUIRED,
+    PASSWORD_MISMATCH,
+    PASSWORD_REQUIRED,
+    PASSWORD_SHORT,
+    TERMS_REQUIRED
+} from '@/shared/const/authRegister'
 import Checkbox from '../Checkbox/Checkbox'
+import { useDebounce } from '@/shared/lib/hooks/useDebounce'
 
 export default function RegistrationForm({ className }: RegistrationFormProps) {
     const birthday = useSelector(getBirthday)
     const identifier = useSelector(getIdentifier)
+    const [localIdentifier, setLocalIdentifier] = useState<string>('')
     const password = useSelector(getPassword)
     const confirmPassword = useSelector(getConfirmPassword)
     const isChecked = useSelector(getIsChecked)
@@ -80,7 +91,9 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                 break
 
             case 'identifier':
-                dispatch(setIdentifier(value))
+                useCallback(() => {
+                    dispatch(setIdentifier(value))
+                }, [])
                 break
 
             case 'password':
@@ -143,6 +156,17 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
         await register(identifier, password)
     }
 
+    const debouncedSet = useDebounce(async (value: string) => {
+        dispatch(setIdentifier(value))
+    }, 500)
+
+    const handleChangeInput = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        setLocalIdentifier(value)
+        debouncedSet(value)
+    }
+    
     console.log('user: ', identifier, password)
     console.log('localStorage: ', localStorage.user)
     return (
@@ -171,8 +195,8 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                             type='text'
                             placeholder='Введите номер или почту'
                             name='identifier'
-                            onChange={handleChange}
-                            value={identifier}
+                            onChange={handleChangeInput}
+                            value={localIdentifier}
                             error={
                                 error.includes(IDENTIFIER_REQUIRED) || error.includes(IDENTIFIER_INVALID) ?
                                     'Ошибка в дате рождения'
@@ -224,7 +248,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                             <label htmlFor='terms'>Я принимаю условия использования</label>
                         </div>
 
-                        <Checkbox />
+                        <Checkbox label='Checkbox' />
 
                         <Text type='p' className={cls.error}>
                             {error}

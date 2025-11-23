@@ -8,10 +8,10 @@ import { useTranslation } from 'react-i18next'
 
 export default function LogoutBtn({ className }: LogoutBtnProps) {
     const { t } = useTranslation('LogoutBtn')
-    
+
     const dispatch = useDispatch()
     function handleLogout() {
-        console.log()
+        // console.log('userActions: ', dispatch(userActions))
         dispatch(userActions.logout())
     }
     return (

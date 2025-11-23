@@ -3,6 +3,8 @@ import { UserSchema } from '@/entities/User'
 import { RegistrationSchema } from '@/features/Registration'
 import { LoginSchema } from '@/features/UserLogin'
 import { authApi } from '@/shared/api/authApi'
+import { api } from '@/shared/api'
+import { registrationApi } from '@/shared/lib/hooks'
 import { Reducer, AnyAction, ReducersMapObject, EnhancedStore } from '@reduxjs/toolkit'
 
 export interface StateSchema {
@@ -10,7 +12,11 @@ export interface StateSchema {
     user?: UserSchema
     registration?: RegistrationSchema
     loginForm?: LoginSchema
-    [authApi.reducerPath]?: ReturnType<typeof authApi.reducer>
+
+    // RTK Query-слайсы — делаем НЕ опциональными, т.к. они всегда есть в store
+    [api.reducerPath]: ReturnType<typeof api.reducer>
+    [authApi.reducerPath]: ReturnType<typeof authApi.reducer>
+    [registrationApi.reducerPath]: ReturnType<typeof registrationApi.reducer>
 }
 
 export type StateSchemaKey = keyof StateSchema
