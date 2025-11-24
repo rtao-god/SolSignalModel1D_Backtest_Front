@@ -2,7 +2,12 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { TUserDataForPutRequest } from '@/entities/User/model/types/UserSchema'
 import { UserData } from '@/shared/types/user.types'
 import type { ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
-import type { BacktestConfigDto, BacktestSummaryDto, BacktestPreviewRequestDto } from '@/shared/types/backtest.types'
+import type {
+    BacktestConfigDto,
+    BacktestSummaryDto,
+    BacktestPreviewRequestDto,
+    BacktestBaselineSnapshotDto
+} from '@/shared/types/backtest.types'
 
 // Базовый env VITE_API_BASE_URL=http://localhost:5289/api
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -104,6 +109,14 @@ export const api = createApi({
             transformResponse: mapReportResponse
         }),
 
+        // ==== baseline-снимок бэктеста (лёгкий DTO, без секций) ====
+        getBacktestBaseline: builder.query<BacktestBaselineSnapshotDto, void>({
+            query: () => ({
+                url: '/backtest/baseline',
+                method: 'GET'
+            })
+        }),
+
         // ==== baseline-конфиг бэктеста ====
         getBacktestConfig: builder.query<BacktestConfigDto, void>({
             query: () => ({
@@ -129,6 +142,7 @@ export const {
     useChangeUserDetailsMutation,
     useGetCurrentPredictionQuery,
     useGetBacktestBaselineSummaryQuery,
+    useGetBacktestBaselineQuery,
     useGetBacktestConfigQuery,
     usePreviewBacktestMutation
 } = api

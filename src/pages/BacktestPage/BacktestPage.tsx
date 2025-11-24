@@ -13,8 +13,14 @@ import BacktestPageProps from './types'
 
 /**
  * Страница бэктеста:
- * - слева baseline (конфиг + summary);
+ * - слева baseline (конфиг + summary из консольного бэктеста);
  * - справа what-if preview по отредактированному конфигу.
+ *
+ * Базовая идея:
+ * - не дублировать логику конфига: baseline-конфиг тянем с бэка;
+ * - baseline-summary и preview-summary имеют одинаковый формат (ReportDocumentDto),
+ *   поэтому рендерим их одним и тем же компонентом BacktestSummaryView;
+ * - метрики типа BestTotalPnlPct считаем из KeyValue-секций через getMetricValue.
  */
 export default function BacktestPage({ className }: BacktestPageProps) {
     const { data: baselineConfig, isLoading: isConfigLoading, isError: isConfigError } = useGetBacktestConfigQuery()
@@ -39,6 +45,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
     // Текст ошибки по preview.
     const [previewError, setPreviewError] = useState<string | null>(null)
 
+    // Массив включённых политик (по имени), вычисляется из selectedPolicies.
     const enabledPolicyNames = useMemo(
         () =>
             Object.entries(selectedPolicies)
@@ -46,8 +53,9 @@ export default function BacktestPage({ className }: BacktestPageProps) {
                 .map(([name]) => name),
         [selectedPolicies]
     )
-    
+
     // Инициализация черновика при первом успешном получении baseline-конфига.
+    // Делаем это в useEffect, чтобы не затирать ручные изменения.
     useEffect(() => {
         if (!baselineConfig) return
         if (draftConfig) return
@@ -94,6 +102,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
 
         setDraftConfig({
             ...draftConfig,
+            // в UI редактируется процент, а в конфиге — доля
             dailyStopPct: value / 100
         })
     }
@@ -156,7 +165,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
             const result = await previewBacktest(body).unwrap()
             setPreviewSummary(result)
         } catch (err: any) {
-            // Бэк сейчас может возвращать 501 — обрабатываем это как обычную ошибку.
+            // Бэк сейчас может возвращать, например, 500/501 — обрабатываем это как обычную ошибку.
             const message = err?.data?.message ?? err?.error ?? 'Не удалось выполнить бэктест (previewBacktest).'
             setPreviewError(String(message))
         }
@@ -296,7 +305,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
 
 /**
  * Универсальный рендер сводки бэктеста (ReportDocumentDto).
- * Использует тот же подход, что и страница current-prediction.
+ * Использует тот же подход, что и страница current-prediction / BacktestSummaryReport.
  */
 interface BacktestSummaryViewProps {
     summary: BacktestSummaryDto
@@ -338,6 +347,9 @@ interface SectionRendererProps {
  * - если есть items → KeyValue;
  * - если есть columns/rows → таблица;
  * - иначе дамп JSON.
+ *
+ * Это та же логика, что и в BacktestSummaryReportPage, только с другими уровнями заголовков.
+ * Дублирование потом можно вынести в shared-компонент.
  */
 function SectionRenderer({ section }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto

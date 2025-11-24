@@ -1,9 +1,13 @@
 .Layout {
     display: flex;
     flex-direction: column;
-    height: 100%;
+
+    // Страница тянется минимум на высоту окна, но footer не фиксирован:
+    // при большом контенте он уезжает вверх как обычно.
+    min-height: 100vh;
 }
 
+/* Кастомные скроллбары можно оставить на body */
 body::-webkit-scrollbar {
     width: 10px;
 }
@@ -21,27 +25,20 @@ body::-webkit-scrollbar-thumb {
 
 .content {
     display: flex;
-    flex: 1;
+    flex: 1 1 auto;
 }
 
 .main {
-    position: relative;
-
-    flex: 1;
+    flex: 1 1 auto;
     padding: 12px 24px;
 
-    overflow-y: auto;
+    // Чтобы не разъезжалась ширина в flex-контейнере
+    min-width: 0;
+
+    // Скролл теперь у body, не у main
+    // overflow-y: auto;
 
     @media (max-width: 576px) {
         padding: 0;
-    }
-
-    @media (min-width: 768px)and (max-width: 1023px) {
-        top: 100px;
-    }
-
-    @media (min-width: 1024px) {
-        width: calc(100% - 256px);
-        height: calc(100% - 64px);
     }
 }

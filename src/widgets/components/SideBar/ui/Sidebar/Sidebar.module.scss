@@ -1,17 +1,38 @@
 .Sidebar {
-    position: relative;
+    // Делаем сайдбар «прилипшим» под навбаром:
+    // при скролле страницы он остаётся на месте.
+    position: sticky;
+    top: var(--navbar-height);
 
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     width: var(--sidebar-width);
-    min-height: 100vh;
+
+    // Растягиваем на всю высоту видимой области под навбаром
+    height: calc(100vh - var(--navbar-height));
+
+    // Внешние отступы убираем, чтобы не было зазоров до navbar/footer
+    margin: 0;
+
     padding: 12px;
 
     background: var(--inverted-bg-color);
     box-shadow: 5px 20px 20px 2px rgba(0, 0, 0, 0.2);
-
     transition: all 0.3s;
+
+    flex-shrink: 0;
+
+    // Нужно, чтобы вложенный flex-элемент со скроллом мог сжиматься
+    min-height: 0;
+
+    // Сам контейнер не скроллится; скролл только у .links
+    overflow: hidden;
+}
+
+/* Кнопка-бургер выравнивается по левому краю */
+.burgerBtn {
+    align-self: flex-start;
 }
 
 .switchers {
@@ -28,37 +49,88 @@
     display: flex;
 }
 
+/* Контейнер со ссылками: отдельная скроллируемая зона */
 .links {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 6px;
+    margin-top: 0;
 
-    .link {
-        display: flex;
-        gap: 10px;
+    // Только здесь включаем скролл:
+    // при наведении колёсико крутит именно этот блок.
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
 
-        align-items: center;
-    }
-
-    .label {
-        opacity: 1;
-
-        transition: all 0.2s;
-    }
+    // Чтобы при прокрутке внутри сайдбара колёсико не дергало страницу
+    overscroll-behavior: contain;
 }
 
+/* Заголовок группы ссылок (ML модель) */
+.sectionTitle {
+    margin: 10px 0 4px;
+    padding: 0 4px;
+
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+
+    color: #9ca3af;
+}
+
+/* Одна ссылка в сайдбаре */
+.link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 7px 8px;
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    color: #e5e7eb;
+    font-size: 13px;
+    font-weight: 500;
+
+    transition: background 0.16s ease-out, color 0.16s ease-out, transform 0.12s ease-out;
+}
+
+/* Маленький индикатор слева от текста */
+.linkBullet {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.8);
+}
+
+/* Ховер по ссылке */
+.link:hover {
+    background: rgba(15, 23, 42, 0.8);
+    color: #f9fafb;
+    transform: translateX(1px);
+}
+
+.label {
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+/* Свернутый сайдбар */
 .collapsed {
     width: var(--sidebar-collapsed-width);
     padding: 12px 4px;
 
     .links {
         .link {
-            padding: 16px 0 14px;
-            display: flex;
-            flex-direction: column;
+            padding: 10px 6px;
+            justify-content: center;
         }
     }
 
-
+    .label {
+        opacity: 0;
+    }
 }

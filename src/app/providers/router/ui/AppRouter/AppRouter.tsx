@@ -1,32 +1,24 @@
-import { Route, Routes, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { routeConfig } from '@/shared/config/routeConfig/routeConfig'
-import { Suspense } from '@/app/providers/SuspenseProvider'
+import { Routes, Route } from 'react-router-dom'
+import { routeConfig } from '../../config/routeConfig'
+import Layout from '@/pages/Layout/Layout'
 
 export default function AppRouter() {
-    const location = useLocation()
+    const routesWithLayout = routeConfig.filter(r => r.layout !== 'bare')
+    const routesWithoutLayout = routeConfig.filter(r => r.layout === 'bare')
 
     return (
-        <AnimatePresence mode='wait'>
-            <Routes location={location} key={location.pathname}>
-                {routeConfig.map((page, index) => (
-                    <Route
-                        key={index}
-                        path={page.path}
-                        element={
-                            <Suspense>
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.25 }}>
-                                    {page.element}
-                                </motion.div>
-                            </Suspense>
-                        }
-                    />
+        <Routes>
+            {/* Все "нормальные" страницы под общим Layout */}
+            <Route element={<Layout children={undefined} />}>
+                {routesWithLayout.map(route => (
+                    <Route key={route.id} path={route.path} element={route.element} />
                 ))}
-            </Routes>
-        </AnimatePresence>
+            </Route>
+
+            {/* "Голые" страницы без Layout */}
+            {routesWithoutLayout.map(route => (
+                <Route key={route.id} path={route.path} element={route.element} />
+            ))}
+        </Routes>
     )
 }

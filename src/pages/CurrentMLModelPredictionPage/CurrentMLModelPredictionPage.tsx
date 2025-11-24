@@ -79,39 +79,4 @@ function SectionRenderer({ section }: SectionRendererProps) {
             </section>
         )
     }
-
-    // Табличная секция
-    if (Array.isArray(tbl.columns) && Array.isArray(tbl.rows)) {
-        return (
-            <section className={cls.section}>
-                <Text type='h2'>{tbl.title}</Text>
-                <table className={cls.table}>
-                    <thead>
-                        <tr>
-                            {tbl.columns!.map(col => (
-                                <th key={col}>{col}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tbl.rows!.map((row, rowIdx) => (
-                            <tr key={rowIdx}>
-                                {row.map((cell, cellIdx) => (
-                                    <td key={cellIdx}>{cell}</td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </section>
-        )
-    }
-
-    // Фолбэк для будущих типов секций
-    return (
-        <section className={cls.section}>
-            <Text type='h2'>{section.title}</Text>
-            <pre className={cls.rawJson}>{JSON.stringify(section, null, 2)}</pre>
-        </section>
-    )
 }

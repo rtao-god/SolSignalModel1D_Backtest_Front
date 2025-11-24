@@ -38,3 +38,32 @@ export interface BacktestPreviewRequestDto {
  * Если потом появится более спец. DTO — можно будет расширить.
  */
 export type BacktestSummaryDto = ReportDocumentDto
+
+/**
+ * Краткая сводка по одной политике в baseline-снимке.
+ * Повторяет BacktestPolicySummary с бэка.
+ */
+export interface BacktestPolicySummaryDto {
+    policyName: string
+    marginMode: string
+    useAntiDirectionOverlay: boolean
+    totalPnlPct: number
+    maxDrawdownPct: number
+    hadLiquidation: boolean
+    withdrawnTotal: number
+    tradesCount: number
+}
+
+/**
+ * Baseline-снимок бэктеста:
+ * - лёгкий объект без сырых трейдов;
+ * - хранится и отдается через /api/backtest/baseline.
+ */
+export interface BacktestBaselineSnapshotDto {
+    id: string
+    generatedAtUtc: string
+    configName: string
+    dailyStopPct: number
+    dailyTpPct: number
+    policies: BacktestPolicySummaryDto[]
+}

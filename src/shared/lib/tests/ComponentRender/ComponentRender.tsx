@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { I18nextProvider } from 'react-i18next'
 import { StateSchema, StoreProvider } from '@/app/providers/StoreProvider'
-import i18nForTests from '@/shared/config/i18n/i18nForTests'
+import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 
 export interface ComponentRenderPropsOptions {
     children?: ReactNode

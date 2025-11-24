@@ -1,4 +1,10 @@
 .Navbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100; // чтобы быть поверх контента/теней
+
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -34,7 +40,6 @@
 
             &:hover {
                 box-shadow: 0 1px 3px rgb(255, 255, 255);
-
                 color: #000000;
             }
         }
