@@ -3,7 +3,8 @@ import { Btn, Link } from '@/shared/ui'
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import cls from './Sidebar.module.scss'
-import { sidebarNavItems, RouteSection } from '@/app/providers/router/config/routeConfig'
+import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
+import { SidebarNavItem } from '@/app/providers/router/config/types'
 
 interface SidebarProps {
     className?: string
@@ -17,19 +18,26 @@ export default function AppSidebar({ className }: SidebarProps) {
         setCollapsed(prev => !prev)
     }
 
-    // Группируем пункты меню по секциям (root / ml / system)
+    // Группируем пункты меню по секциям
     const grouped = useMemo(() => {
-        const bySection = new Map<RouteSection | undefined, typeof sidebarNavItems>()
-        sidebarNavItems.forEach(item => {
+        const bySection = new Map<RouteSection, SidebarNavItem[]>()
+
+        SIDEBAR_NAV_ITEMS.forEach(item => {
             const section = item.section
+            if (!section) {
+                return
+            }
             const list = bySection.get(section) ?? []
             list.push(item)
             bySection.set(section, list)
         })
+
         return bySection
     }, [])
 
-    const mlItems = grouped.get('ml') ?? []
+    const modelsItems = grouped.get('models') ?? []
+    const backtestItems = grouped.get('backtest') ?? []
+    const featuresItems = grouped.get('features') ?? []
 
     return (
         <div
@@ -49,11 +57,37 @@ export default function AppSidebar({ className }: SidebarProps) {
             </Btn>
 
             <div className={cls.links}>
-                {/* ML-секция, если есть элементы */}
-                {mlItems.length > 0 && (
+                {/* Модели */}
+                {modelsItems.length > 0 && (
                     <>
-                        <div className={cls.sectionTitle}>{t('ML модель')}</div>
-                        {mlItems.map(item => (
+                        <div className={cls.sectionTitle}>{t('Модели')}</div>
+                        {modelsItems.map(item => (
+                            <Link key={item.id} to={item.path} className={cls.link}>
+                                <span className={cls.linkBullet} />
+                                <span className={cls.label}>{t(item.label)}</span>
+                            </Link>
+                        ))}
+                    </>
+                )}
+
+                {/* Бэктест */}
+                {backtestItems.length > 0 && (
+                    <>
+                        <div className={cls.sectionTitle}>{t('Бэктест')}</div>
+                        {backtestItems.map(item => (
+                            <Link key={item.id} to={item.path} className={cls.link}>
+                                <span className={cls.linkBullet} />
+                                <span className={cls.label}>{t(item.label)}</span>
+                            </Link>
+                        ))}
+                    </>
+                )}
+
+                {/* Фичи */}
+                {featuresItems.length > 0 && (
+                    <>
+                        <div className={cls.sectionTitle}>{t('Фичи')}</div>
+                        {featuresItems.map(item => (
                             <Link key={item.id} to={item.path} className={cls.link}>
                                 <span className={cls.linkBullet} />
                                 <span className={cls.label}>{t(item.label)}</span>

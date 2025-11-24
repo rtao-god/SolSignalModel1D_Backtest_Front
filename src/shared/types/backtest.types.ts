@@ -22,6 +22,67 @@ export interface BacktestConfigDto {
 }
 
 /**
+ * Профиль бэктеста.
+ * Оборачивает BacktestConfigDto + метаданные.
+ */
+export type BacktestProfileCategory = 'system' | 'user' | 'scratch' | string
+
+export interface BacktestProfileDto {
+    id: string
+    name: string
+    description?: string | null
+    isSystem: boolean
+    category?: BacktestProfileCategory
+    isFavorite?: boolean
+    config: BacktestConfigDto | null
+}
+
+export interface BacktestProfileCreateDto {
+    name: string
+    description?: string | null
+    category?: BacktestProfileCategory
+    isFavorite?: boolean
+    config: BacktestConfigDto
+}
+
+export interface BacktestProfileUpdateDto {
+    name?: string
+    category?: BacktestProfileCategory
+    isFavorite?: boolean
+}
+
+
+/**
+ * Лёгкая сводка по одной политике в baseline-снимке.
+ */
+export interface BacktestPolicySummaryDto {
+    policyName: string
+    marginMode: string // 'Cross' | 'Isolated'
+    useAntiDirectionOverlay: boolean
+
+    totalPnlPct: number
+    maxDrawdownPct: number
+    hadLiquidation: boolean
+    withdrawnTotal: number
+
+    tradesCount: number
+}
+
+/**
+ * Лёгкий baseline-снимок бэктеста (DTO под /api/backtest/baseline).
+ */
+export interface BacktestBaselineSnapshotDto {
+    id: string
+    generatedAtUtc: string
+    configName: string
+
+    dailyStopPct: number
+    dailyTpPct: number
+
+    policies: BacktestPolicySummaryDto[]
+}
+
+/**
  * DTO для one-shot preview.
  * Соответствует BacktestPreviewRequestDto на бэке:
  * - config: конфиг бэктеста;
@@ -35,35 +96,5 @@ export interface BacktestPreviewRequestDto {
 /**
  * Сводка бэктеста с точки зрения фронта.
  * Сейчас это просто ReportDocumentDto (keyValue + таблицы).
- * Если потом появится более спец. DTO — можно будет расширить.
  */
 export type BacktestSummaryDto = ReportDocumentDto
-
-/**
- * Краткая сводка по одной политике в baseline-снимке.
- * Повторяет BacktestPolicySummary с бэка.
- */
-export interface BacktestPolicySummaryDto {
-    policyName: string
-    marginMode: string
-    useAntiDirectionOverlay: boolean
-    totalPnlPct: number
-    maxDrawdownPct: number
-    hadLiquidation: boolean
-    withdrawnTotal: number
-    tradesCount: number
-}
-
-/**
- * Baseline-снимок бэктеста:
- * - лёгкий объект без сырых трейдов;
- * - хранится и отдается через /api/backtest/baseline.
- */
-export interface BacktestBaselineSnapshotDto {
-    id: string
-    generatedAtUtc: string
-    configName: string
-    dailyStopPct: number
-    dailyTpPct: number
-    policies: BacktestPolicySummaryDto[]
-}

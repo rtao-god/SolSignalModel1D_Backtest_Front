@@ -1,10 +1,10 @@
 import { Routes, Route } from 'react-router-dom'
-import { routeConfig } from '../../config/routeConfig'
+import { ROUTE_CONFIG } from '../../config/routeConfig'
 import Layout from '@/pages/Layout/Layout'
 
 export default function AppRouter() {
-    const routesWithLayout = routeConfig.filter(r => r.layout !== 'bare')
-    const routesWithoutLayout = routeConfig.filter(r => r.layout === 'bare')
+    const routesWithLayout = ROUTE_CONFIG.filter(r => r.layout !== 'bare')
+    const routesWithoutLayout = ROUTE_CONFIG.filter(r => r.layout === 'bare')
 
     return (
         <Routes>

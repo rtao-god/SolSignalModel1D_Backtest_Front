@@ -1,57 +1,8 @@
-import { ComponentType, lazy } from 'react'
-import type { RouteProps } from 'react-router'
+import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection } from './types'
+import { ROUTE_PATH } from './consts'
+import { lazyPage, buildSidebarNavItems } from './utils'
 
-// Логические идентификаторы маршрутов
-export enum AppRoute {
-    MAIN = 'MAIN',
-    CURRENT_PREDICTION = 'CURRENT_PREDICTION',
-    BACKTEST_BASELINE = 'BACKTEST_BASELINE',
-    BACKTEST_SUMMARY = 'BACKTEST_SUMMARY',
-    BACKTEST_FULL = 'BACKTEST_FULL',
-    ABOUT = 'ABOUT',
-    REGISTRATION = 'REGISTRATION',
-    LOGIN = 'LOGIN',
-    PROFILE = 'PROFILE',
-    NOT_FOUND = 'NOT_FOUND'
-}
-
-// Карта id → реальный path
-export const RoutePath: Record<AppRoute, string> = {
-    [AppRoute.MAIN]: '/',
-    [AppRoute.CURRENT_PREDICTION]: '/current-prediction',
-    [AppRoute.BACKTEST_BASELINE]: '/backtest/baseline',
-    [AppRoute.BACKTEST_SUMMARY]: '/backtest/summary',
-    [AppRoute.BACKTEST_FULL]: '/backtest/full',
-    [AppRoute.ABOUT]: '/about',
-    [AppRoute.REGISTRATION]: '/registration',
-    [AppRoute.LOGIN]: '/login',
-    [AppRoute.PROFILE]: '/profile',
-    [AppRoute.NOT_FOUND]: '*'
-}
-
-// Утилита для ленивых страниц
-const lazyPage = <T extends ComponentType<any>>(importer: () => Promise<{ default: T }>) => lazy(importer)
-
-export type RouteSection = 'root' | 'ml' | 'system'
-export type RouteLayout = 'app' | 'bare'
-
-export interface RouteNavMeta {
-    sidebar?: boolean
-    label: string
-    section?: RouteSection
-    order?: number
-}
-
-// Базовый тип маршрута приложения
-export type AppRouteConfig = RouteProps & {
-    id: AppRoute
-    path: string
-    element: JSX.Element
-    nav?: RouteNavMeta
-    layout?: RouteLayout // 'app' (по умолчанию) или 'bare'
-}
-
-// Страницы
+// Основные страницы
 const MainPage = lazyPage(() => import('@/pages/Main/Main'))
 
 const RegistrationPage = lazyPage(() => import('@/pages/Registration/Registration'))
@@ -60,6 +11,7 @@ const AboutPage = lazyPage(() => import('@/pages/About/About'))
 const NotFoundPage = lazyPage(() => import('@/pages/404/NotFound'))
 const ProfilePage = lazyPage(() => import('@/pages/profile/Profile/ui/Profile'))
 
+// Backtest / ML
 const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage/ui/BacktestBaselinePage'))
 const BacktestPage = lazyPage(() => import('@/pages/BacktestPage/BacktestPage'))
 const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport/ui/BacktestSummaryReportPage'))
@@ -67,135 +19,159 @@ const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/CurrentMLModelPredictionPage/CurrentMLModelPredictionPage')
 )
 
-// Конфигурация маршрутов
-export const routeConfig: AppRouteConfig[] = [
+// TODO-заглушки для будущих страниц статистики моделей и фич
+const ModelsStatsPlaceholder = () => <div>TODO: Статистика по моделям (дейли, micro, SL, delayed и т.д.)</div>
+
+const FeaturesStatsPlaceholder = () => <div>TODO: Общая статистика по фичам (влияние, важность, распределения)</div>
+
+// Основная конфигурация маршрутов
+export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MAIN,
-        path: RoutePath.MAIN,
+        path: ROUTE_PATH[AppRoute.MAIN],
         element: <MainPage />,
         layout: 'app',
         nav: {
-            sidebar: true,
-            label: 'Главная',
-            section: 'root',
-            order: 1
+            sidebar: false, // главную из сайдбара пока не показываем
+            label: 'Главная'
         }
     },
+
+    // ===== МОДЕЛИ =====
     {
         id: AppRoute.CURRENT_PREDICTION,
-        path: RoutePath.CURRENT_PREDICTION,
+        path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
         element: <CurrentMLModelPredictionPage />,
         layout: 'app',
         nav: {
             sidebar: true,
             label: 'Текущий прогноз',
-            section: 'ml',
+            section: 'models',
             order: 1
         }
     },
     {
+        id: AppRoute.MODELS_STATS,
+        path: ROUTE_PATH[AppRoute.MODELS_STATS],
+        element: <ModelsStatsPlaceholder />,
+        layout: 'app',
+        nav: {
+            sidebar: true,
+            label: 'Статистика моделей',
+            section: 'models',
+            order: 2
+        }
+    },
+
+    // ===== БЭКТЕСТ =====
+    {
         id: AppRoute.BACKTEST_BASELINE,
-        path: RoutePath.BACKTEST_BASELINE,
+        path: ROUTE_PATH[AppRoute.BACKTEST_BASELINE],
         element: <BacktestBaselinePage />,
         layout: 'app',
         nav: {
             sidebar: true,
             label: 'Baseline бэктест',
-            section: 'ml',
-            order: 2
+            section: 'backtest',
+            order: 1
         }
     },
     {
         id: AppRoute.BACKTEST_SUMMARY,
-        path: RoutePath.BACKTEST_SUMMARY,
+        path: ROUTE_PATH[AppRoute.BACKTEST_SUMMARY],
         element: <BacktestSummaryReportPage />,
         layout: 'app',
         nav: {
             sidebar: true,
             label: 'Сводка бэктеста',
-            section: 'ml',
-            order: 3
+            section: 'backtest',
+            order: 2
         }
     },
     {
         id: AppRoute.BACKTEST_FULL,
-        path: RoutePath.BACKTEST_FULL,
+        path: ROUTE_PATH[AppRoute.BACKTEST_FULL],
         element: <BacktestPage />,
         layout: 'app',
         nav: {
             sidebar: true,
             label: 'Экспериментальный бэктест',
-            section: 'ml',
-            order: 4
+            section: 'backtest',
+            order: 3
         }
     },
+
+    // ===== ФИЧИ =====
+    {
+        id: AppRoute.FEATURES_STATS,
+        path: ROUTE_PATH[AppRoute.FEATURES_STATS],
+        element: <FeaturesStatsPlaceholder />,
+        layout: 'app',
+        nav: {
+            sidebar: true,
+            label: 'Статистика фич',
+            section: 'features',
+            order: 1
+        }
+    },
+
+    // ===== ПРОЧЕЕ =====
     {
         id: AppRoute.ABOUT,
-        path: RoutePath.ABOUT,
+        path: ROUTE_PATH[AppRoute.ABOUT],
         element: <AboutPage />,
         layout: 'app',
         nav: {
             sidebar: false,
-            label: 'О проекте'
+            label: 'О проекте',
+            section: 'system'
         }
     },
 
-    // Эти две страницы хотим "голыми" — layout: 'bare'
+    // "Голые" страницы (без layout)
     {
         id: AppRoute.REGISTRATION,
-        path: RoutePath.REGISTRATION,
+        path: ROUTE_PATH[AppRoute.REGISTRATION],
         element: <RegistrationPage />,
         layout: 'bare',
         nav: {
             sidebar: false,
-            label: 'Регистрация'
+            label: 'Регистрация',
+            section: 'system'
         }
     },
     {
         id: AppRoute.LOGIN,
-        path: RoutePath.LOGIN,
+        path: ROUTE_PATH[AppRoute.LOGIN],
         element: <LoginPage />,
         layout: 'bare',
         nav: {
             sidebar: false,
-            label: 'Вход'
+            label: 'Вход',
+            section: 'system'
         }
     },
 
     {
         id: AppRoute.PROFILE,
-        path: RoutePath.PROFILE,
+        path: ROUTE_PATH[AppRoute.PROFILE],
         element: <ProfilePage />,
         layout: 'app',
         nav: {
             sidebar: false,
-            label: 'Профиль'
+            label: 'Профиль',
+            section: 'system'
         }
     },
     {
         id: AppRoute.NOT_FOUND,
-        path: RoutePath.NOT_FOUND,
+        path: ROUTE_PATH[AppRoute.NOT_FOUND],
         element: <NotFoundPage />,
         layout: 'app'
     }
 ]
 
-// Элементы навигации в сайдбаре
-export interface SidebarNavItem {
-    id: AppRoute
-    path: string
-    label: string
-    section?: RouteSection
-    order: number
-}
+// Навигация для сайдбара
+export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = buildSidebarNavItems(ROUTE_CONFIG)
 
-export const sidebarNavItems: SidebarNavItem[] = routeConfig
-    .filter(route => route.nav?.sidebar)
-    .map(route => ({
-        id: route.id,
-        path: route.path,
-        label: route.nav!.label,
-        section: route.nav?.section,
-        order: route.nav?.order ?? 0
-    }))
-    .sort((a, b) => a.order - b.order)
+export type { RouteSection }

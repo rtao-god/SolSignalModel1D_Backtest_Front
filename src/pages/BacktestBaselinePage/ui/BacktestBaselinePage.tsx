@@ -1,9 +1,7 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestBaselinePage.module.scss'
 import { Text } from '@/shared/ui'
-import {
-    useGetBacktestBaselineQuery,
-} from '@/shared/api/api'
+import { useGetBacktestBaselineSnapshotQuery } from '@/shared/api/api'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
 
 interface BacktestBaselinePageProps {
@@ -16,7 +14,7 @@ interface BacktestBaselinePageProps {
  * - таблицу политик с PnL, просадкой и ликвидациями.
  */
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
-    const { data, isLoading, isError } = useGetBacktestBaselineQuery()
+    const { data, isLoading, isError } = useGetBacktestBaselineSnapshotQuery()
 
     if (isLoading) {
         return (
@@ -104,8 +102,6 @@ interface PoliciesTableProps {
  * - имя, режим маржи, base/anti;
  * - итоговый PnL, max DD, ликвидации;
  * - суммарный withdraw и количество сделок.
- *
- * Это компактный обзор, без деталей по трейдам.
  */
 function PoliciesTable({ policies }: PoliciesTableProps) {
     if (!Array.isArray(policies) || policies.length === 0) {
