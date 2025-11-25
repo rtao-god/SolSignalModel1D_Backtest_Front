@@ -14,13 +14,15 @@ export interface KeyValueItemDto {
 }
 
 // Секция "ключ-значение"
-// items могут отсутствовать, поэтому помечаем как optional.
 export interface KeyValueSectionDto extends BaseSectionDto {
     items?: KeyValueItemDto[]
 }
 
 // Табличная секция
 export interface TableSectionDto extends BaseSectionDto {
+    title: string
+    // Можно дополнительно ввести level, если решим добавить его на бэке.
+    detailLevel?: TableDetailLevel
     columns?: string[]
     rows?: string[][]
 }
@@ -36,3 +38,5 @@ export interface ReportDocumentDto {
     generatedAtUtc: string // DateTime → ISO-строка
     sections: ReportSectionDto[]
 }
+
+export type TableDetailLevel = 'simple' | 'technical';
