@@ -1,0 +1,129 @@
+.PfiPage {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    padding: 24px;
+
+    // Немного ограничиваем ширину на очень широких мониторах,
+    // чтобы таблицы не растягивались бесконечно.
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+
+    flex-wrap: wrap;
+}
+
+.subtitle {
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.tablesGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Карточка для одной таблицы (одна модель) */
+.tableCard {
+    border-radius: 12px;
+    padding: 16px 20px;
+
+    background-color: var(--bg-color-elevated, #171a20);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+    // Добавляет отступ при пагинации, чтобы секция оказывалась чуть ниже фиксированного хедера.
+    scroll-margin-top: calc(var(--navbar-height, 64px) + 16px);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cardTitle {
+    font-weight: 600;
+}
+
+/* Переключатель режимов (кнопка на "вкладке") */
+.modeToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 2px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.modeButton {
+    min-width: 80px;
+    padding: 4px 10px;
+
+    border-radius: 999px;
+    border: 1px solid transparent;
+
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* Активный режим — слегка подсвечиваем и даём рамку */
+.modeButtonActive {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Таблица с горизонтальным скроллом, чтобы не ломать layout на узких экранах */
+.tableScroll {
+    width: 100%;
+    overflow-x: auto;
+
+    /* чуть сглаживаем скролл */
+    scrollbar-width: thin;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.table thead {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.table th,
+.table td {
+    padding: 6px 8px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+    text-align: left;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}

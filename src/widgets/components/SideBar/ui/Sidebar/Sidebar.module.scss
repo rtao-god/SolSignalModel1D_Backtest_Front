@@ -1,6 +1,4 @@
 .Sidebar {
-    // Делаем сайдбар «прилипшим» под навбаром:
-    // при скролле страницы он остаётся на месте.
     position: sticky;
     top: var(--navbar-height);
 
@@ -9,24 +7,19 @@
     align-items: stretch;
     width: var(--sidebar-width);
 
-    // Растягиваем на всю высоту видимой области под навбаром
     height: calc(100vh - var(--navbar-height));
-
-    // Внешние отступы убираем, чтобы не было зазоров до navbar/footer
     margin: 0;
 
     padding: 12px;
 
-    background: var(--inverted-bg-color);
-    box-shadow: 5px 20px 20px 2px rgba(0, 0, 0, 0.2);
+    /* Премиальный тёмный градиент для всего фона сайдбара */
+    background:
+        radial-gradient(circle at top left, #0b1220 0%, #020617 40%, #000000 100%);
+    box-shadow: 5px 20px 20px 2px rgba(0, 0, 0, 0.35);
     transition: all 0.3s;
 
     flex-shrink: 0;
-
-    // Нужно, чтобы вложенный flex-элемент со скроллом мог сжиматься
     min-height: 0;
-
-    // Сам контейнер не скроллится; скролл только у .links
     overflow: hidden;
 }
 
@@ -56,17 +49,14 @@
     gap: 6px;
     margin-top: 0;
 
-    // Только здесь включаем скролл:
-    // при наведении колёсико крутит именно этот блок.
     overflow-y: auto;
     flex: 1 1 auto;
     min-height: 0;
 
-    // Чтобы при прокрутке внутри сайдбара колёсико не дергало страницу
     overscroll-behavior: contain;
 }
 
-/* Заголовок группы ссылок (ML модель) */
+/* Заголовок группы ссылок (Модели / Бэктест / Фичи) */
 .sectionTitle {
     margin: 10px 0 4px;
     padding: 0 4px;
@@ -77,16 +67,61 @@
     letter-spacing: 0.06em;
 
     color: #9ca3af;
+    opacity: 0.9;
 }
 
-/* Одна ссылка в сайдбаре */
+.sectionBlock {
+    margin-bottom: 16px;
+}
+
+.itemBlock {
+    margin-bottom: 4px;
+}
+
+/* Групповая карточка для пунктов с подвкладками */
+.itemBlockGroup {
+    margin-bottom: 4px;
+    padding: 6px 8px;
+    border-radius: 18px;
+    background: radial-gradient(circle at top left,
+            rgba(15, 23, 42, 0.98),
+            rgba(15, 23, 42, 1));
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    transition:
+        background-color 0.2s ease-out,
+        border-color 0.2s ease-out,
+        box-shadow 0.2s ease-out,
+        transform 0.15s ease-out;
+}
+
+/* Активная карточка (есть подвкладки и роут активен) */
+.itemBlockGroupActive {
+    background: radial-gradient(circle at top left,
+            rgba(15, 23, 42, 1),
+            rgba(15, 23, 42, 1));
+    border-color: rgba(56, 189, 248, 0.7);
+    box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.5),
+        0 10px 20px rgba(15, 23, 42, 0.9);
+    transform: translateX(1px);
+}
+
+/* Единый лёгкий hover по карточке */
+.itemBlockGroup:hover {
+    border-color: rgba(148, 163, 184, 0.5);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.6);
+}
+
+/* ===== Основные ссылки сайдбара ===== */
+
 .link {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
 
-    padding: 7px 8px;
-    border-radius: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
 
     text-decoration: none;
 
@@ -94,28 +129,56 @@
     font-size: 13px;
     font-weight: 500;
 
-    transition: background 0.16s ease-out, color 0.16s ease-out, transform 0.12s ease-out;
+    background: transparent;
+    cursor: pointer;
+    caret-color: transparent;
+
+    transition:
+        background-color 0.18s ease-out,
+        color 0.18s ease-out,
+        transform 0.14s ease-out,
+        box-shadow 0.18s ease-out,
+        opacity 0.18s ease-out;
 }
 
-/* Маленький индикатор слева от текста */
+/* Родитель внутри групповой карточки — чуть компактнее */
+.linkGroup {
+    padding: 6px 6px;
+}
+
+/* Активная основная ссылка (только для пунктов БЕЗ подвкладок) */
+.linkActive {
+    background: radial-gradient(circle at left center,
+            rgba(0, 200, 255, 0.2),
+            rgba(15, 23, 42, 0.95));
+    color: #f9fafb;
+    box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.65),
+        0 8px 18px rgba(15, 23, 42, 0.8);
+    transform: translateX(3px);
+}
+
 .linkBullet {
     flex-shrink: 0;
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.8);
-}
-
-/* Ховер по ссылке */
-.link:hover {
-    background: rgba(15, 23, 42, 0.8);
-    color: #f9fafb;
-    transform: translateX(1px);
+    background: rgba(148, 163, 184, 0.9);
 }
 
 .label {
     opacity: 1;
     transition: opacity 0.2s;
+    cursor: pointer;
+    caret-color: transparent;
+}
+
+/* Ховер по основной ссылке */
+.link:hover {
+    background: rgba(15, 23, 42, 0.9);
+    color: #f9fafb;
+    transform: translateX(2px);
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.35);
 }
 
 /* Свернутый сайдбар */
@@ -133,4 +196,123 @@
     .label {
         opacity: 0;
     }
+
+    .itemBlockGroup {
+        padding: 4px;
+    }
+}
+
+/* ===== Подвкладки (универсальный стиль для пунктов с hasSubNav) ===== */
+
+.subNav {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 4px;
+    padding-left: 4px;
+}
+
+.subNavLine {
+    width: 1px;
+    height: 100%;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: linear-gradient(180deg,
+            rgba(148, 163, 184, 0.6),
+            rgba(148, 163, 184, 0.06));
+    opacity: 0.9;
+}
+
+.subNavList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Подвкладка */
+.subLink {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--text-secondary, #a0a0a0);
+    text-decoration: none;
+    overflow: hidden;
+
+    cursor: pointer;
+    caret-color: transparent;
+    transform: translateX(0);
+    opacity: 0.9;
+    transition:
+        background-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.subLink:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary, #ffffff);
+    transform: translateX(2px);
+    opacity: 1;
+}
+
+.subLinkActive {
+    background: linear-gradient(120deg,
+            rgba(0, 200, 255, 0.18),
+            rgba(120, 80, 255, 0.26));
+    color: var(--text-primary, #ffffff);
+    transform: translateX(4px);
+    opacity: 1;
+}
+
+.subIcon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+}
+
+.subIcon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+}
+
+.subLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    caret-color: transparent;
+}
+
+/* Лёгкий “ripple” внутри под-пункта при hover/active */
+.subRipple {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at left center,
+            rgba(255, 255, 255, 0.18),
+            transparent 60%);
+    opacity: 0;
+    transform: translateX(-20%);
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+
+.subLink:hover .subRipple {
+    opacity: 0.28;
+    transform: translateX(0);
+}
+
+.subLinkActive .subRipple {
+    opacity: 0.35;
+    transform: translateX(0);
 }

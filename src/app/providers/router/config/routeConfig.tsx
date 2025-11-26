@@ -19,10 +19,11 @@ const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/CurrentMLModelPredictionPage/CurrentMLModelPredictionPage')
 )
 
+// PFI
+const PfiPage = lazyPage(() => import('@/pages/PfiPage/ui/PfiPage'))
+
 // TODO-заглушки для будущих страниц статистики моделей и фич
 const ModelsStatsPlaceholder = () => <div>TODO: Статистика по моделям (дейли, micro, SL, delayed и т.д.)</div>
-
-const FeaturesStatsPlaceholder = () => <div>TODO: Общая статистика по фичам (влияние, важность, распределения)</div>
 
 // Основная конфигурация маршрутов
 export const ROUTE_CONFIG: AppRouteConfig[] = [
@@ -101,17 +102,17 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
 
-    // ===== ФИЧИ =====
+    // ===== PFI =====
     {
-        id: AppRoute.FEATURES_STATS,
-        path: ROUTE_PATH[AppRoute.FEATURES_STATS],
-        element: <FeaturesStatsPlaceholder />,
+        id: AppRoute.PFI_PER_MODEL,
+        path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
+        element: <PfiPage />,
         layout: 'app',
         nav: {
             sidebar: true,
-            label: 'Статистика фич',
+            label: 'PFI по моделям',
             section: 'features',
-            order: 1
+            order: 2
         }
     },
 

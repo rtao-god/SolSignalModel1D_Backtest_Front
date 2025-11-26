@@ -1,10 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { TUserDataForPutRequest } from '@/entities/User/model/types/UserSchema'
-import type { UserData } from '@/shared/types/user.types'
-import type { ReportDocumentDto } from '@/shared/types/report.types'
-import type { BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
-import { mapReportResponse } from './utils/mapReportResponse'
 import { buildBacktestEndpoints } from './endpoints/buildBacktestEndpoints'
+import { ApiEndpointBuilder } from './types'
+import { buildUserEndpoints } from './endpoints/userEndpoints'
+import { buildReportEndpoints } from './endpoints/reportEndpoints'
+import { pfiEndpoints } from './endpoints/pfiEndpoints'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -21,50 +20,23 @@ export const api = createApi({
         }
     }),
     tagTypes: ['BacktestProfiles'],
-    endpoints: builder => ({
-        // ==== user ====
-        getUser: builder.query<UserData, void>({
-            query: () => ({
-                url: '/users-detail/',
-                method: 'GET'
-            })
-        }),
+    endpoints: builder => {
+        const b = builder as unknown as ApiEndpointBuilder
 
-        changeUserDetails: builder.mutation<UserData, TUserDataForPutRequest>({
-            query: data => ({
-                url: '/users-detail/',
-                method: 'PUT',
-                body: data
-            })
-        }),
+        return {
+            // ==== user ====
+            ...buildUserEndpoints(b),
 
-        // ==== reports: current-prediction, backtest summary, baseline snapshot ====
-        getCurrentPrediction: builder.query<ReportDocumentDto, void>({
-            query: () => ({
-                url: '/current-prediction',
-                method: 'GET'
-            }),
-            transformResponse: mapReportResponse
-        }),
+            // ==== reports ====
+            ...buildReportEndpoints(b),
 
-        getBacktestBaselineSummary: builder.query<ReportDocumentDto, void>({
-            query: () => ({
-                url: '/backtest/summary',
-                method: 'GET'
-            }),
-            transformResponse: mapReportResponse
-        }),
+            // ==== backtest ====
+            ...buildBacktestEndpoints(b),
 
-        getBacktestBaselineSnapshot: builder.query<BacktestBaselineSnapshotDto, void>({
-            query: () => ({
-                url: '/backtest/baseline',
-                method: 'GET'
-            })
-        }),
-
-        // ==== backtest (config / profiles / preview) ====
-        ...buildBacktestEndpoints(builder)
-    })
+            // ==== PFI ====
+            ...pfiEndpoints(b)
+        }
+    }
 })
 
 export const {
@@ -83,5 +55,7 @@ export const {
     useGetBacktestProfileByIdQuery,
     useCreateBacktestProfileMutation,
     useUpdateBacktestProfileMutation,
-    usePreviewBacktestMutation
+    usePreviewBacktestMutation,
+
+    useGetPfiPerModelReportQuery
 } = api

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestPage.module.scss'
 import { Text } from '@/shared/ui'
@@ -15,12 +16,17 @@ import {
     usePreviewBacktestMutation
 } from '@/shared/api/api'
 import BacktestPageProps from './types'
+import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
+import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 
 /**
  * Страница бэктеста:
  * - baseline summary (консольный бэктест);
  * - профили бэктеста (BacktestProfileDto) и форма what-if по конфигу профиля;
  * - сравнение любых двух профилей через preview (A/B).
+ * Плюс:
+ * - секции с якорями (baseline / whatif / compare) для локальной навигации;
+ * - стрелочная пагинация (SectionPager), завязанная на те же секции.
  */
 export default function BacktestPage({ className }: BacktestPageProps) {
     // baseline summary (как и раньше)
@@ -61,6 +67,11 @@ export default function BacktestPage({ className }: BacktestPageProps) {
     // Состояние сравнения профилей A/B.
     const [isCompareLoading, setIsCompareLoading] = useState(false)
     const [compareError, setCompareError] = useState<string | null>(null)
+
+    // Локальная навигация по секциям (baseline / whatif / compare).
+    const location = useLocation()
+    const navigate = useNavigate()
+    const [activeIndex, setActiveIndex] = useState(0)
 
     // Текущий профиль для формы по selectedProfileId + fallback на baseline/первый в списке.
     const currentProfile: BacktestProfileDto | null = useMemo(() => {
@@ -152,6 +163,47 @@ export default function BacktestPage({ className }: BacktestPageProps) {
         setPreviewSummary(null)
         setPreviewError(null)
     }, [currentProfile])
+
+    // Синхронизация активной секции с hash в URL (когда пришли с сайдбара или обновили страницу).
+    useEffect(() => {
+        const hash = location.hash.replace('#', '')
+        if (!hash) {
+            return
+        }
+
+        const index = BACKTEST_FULL_TABS.findIndex(tab => tab.anchor === hash)
+        if (index === -1) {
+            return
+        }
+
+        setActiveIndex(index)
+
+        const target = document.getElementById(hash)
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+    }, [location.hash])
+
+    // Обработчик для стрелочной пагинации: меняет секцию и скроллит к ней.
+    const handleSectionNavigate = useCallback(
+        (index: number) => {
+            setActiveIndex(index)
+
+            const anchor = BACKTEST_FULL_TABS[index]?.anchor
+            if (!anchor) {
+                return
+            }
+
+            const target = document.getElementById(anchor)
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+
+            // Обновляем hash, чтобы можно было поделиться ссылкой и подсветить подвкладку в сайдбаре.
+            navigate(`#${anchor}`)
+        },
+        [navigate]
+    )
 
     const isLoadingAll =
         isBaselineLoading ||
@@ -338,7 +390,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
             </header>
 
             {/* Быстрая метрика сравнения по лучшей политике baseline vs preview формы. */}
-            <section className={cls.metricsRow}>
+            <section id='baseline' className={cls.metricsRow}>
                 <Text type='h2'>Итог по лучшей политике (BestTotalPnlPct)</Text>
                 <div className={cls.metricsValues}>
                     <Text type='p'>Baseline: {baselineBestPnl !== null ? `${baselineBestPnl.toFixed(2)} %` : '—'}</Text>
@@ -362,7 +414,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
                     <Text type='h2'>What-if конфигурация профиля</Text>
 
                     {/* Редактор конфига выбранного профиля */}
-                    <section className={cls.configEditor}>
+                    <section id='whatif' className={cls.configEditor}>
                         <Text type='p'>
                             Основа: конфиг выбранного профиля
                             {currentProfile ? ` (${currentProfile.name})` : ''}.
@@ -464,7 +516,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
             </div>
 
             {/* Секция сравнения двух профилей A/B по результатам preview. */}
-            <section className={cls.compareSection}>
+            <section id='compare' className={cls.compareSection}>
                 <Text type='h2'>Сравнение профилей A / B</Text>
 
                 {/* Выбор профилей для слотов A и B */}
@@ -543,6 +595,9 @@ export default function BacktestPage({ className }: BacktestPageProps) {
                     </div>
                 </div>
             </section>
+
+            {/* Стрелочная пагинация по секциям baseline / whatif / compare. */}
+            <SectionPager sections={BACKTEST_FULL_TABS} currentIndex={activeIndex} onNavigate={handleSectionNavigate} />
         </div>
     )
 }
@@ -558,7 +613,8 @@ interface BacktestSummaryViewProps {
 
 function BacktestSummaryView({ summary, title }: BacktestSummaryViewProps) {
     const generatedUtc = summary.generatedAtUtc ? new Date(summary.generatedAtUtc) : null
-    const generatedUtcStr = generatedUtc ? generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
+    const generatedUtcStr =
+        generatedUtc ? new Date(generatedUtc).toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
     const generatedLocalStr = generatedUtc ? generatedUtc.toLocaleString() : '—'
 
     const hasSections = Array.isArray(summary.sections) && summary.sections.length > 0
