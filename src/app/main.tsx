@@ -3,7 +3,6 @@ import App from './App'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { StoreProvider } from './providers/StoreProvider'
-import { Theme } from './providers/ThemeProvider/lib/ThemeContext'
 import { ErrorBoundary } from 'react-error-boundary'
 import './styles/_include.scss'
 import { ErrorBoundaryFallback } from '@/widgets/components'
@@ -17,7 +16,7 @@ if (rootElement) {
         <StoreProvider>
             <QueryClientProvider client={queryClient}>
                 <BrowserRouter>
-                    <ThemeProvider initialTheme={Theme.DARK}>
+                    <ThemeProvider>
                         <ErrorBoundary fallback={<ErrorBoundaryFallback />}>
                             <App />
                         </ErrorBoundary>

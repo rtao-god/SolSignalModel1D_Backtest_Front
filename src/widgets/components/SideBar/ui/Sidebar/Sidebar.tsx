@@ -1,13 +1,15 @@
 import classNames from '@/shared/lib/helpers/classNames'
-import { Btn, Link } from '@/shared/ui'
-import { useState, useMemo } from 'react'
+import { Link } from '@/shared/ui'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
-import { PFI_TABS } from '@/shared/utils/pfiTabs'
+import { useGetPfiPerModelReportQuery } from '@/shared/api/api'
+import type { TableSectionDto } from '@/shared/types/report.types'
+import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 
 interface SidebarProps {
     className?: string
@@ -21,17 +23,37 @@ const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
     models: 'Модели',
     backtest: 'Бэктест',
     features: 'Фичи'
-    // system выводить не нужно — там служебные вещи (login/profile и т.п.)
+    // system выводить не нужно — там служебные вещи
 }
 
 export default function AppSidebar({ className }: SidebarProps) {
     const { t } = useTranslation('')
-    const [collapsed, setCollapsed] = useState(true)
     const location = useLocation()
 
-    const onToggle = () => {
-        setCollapsed(prev => !prev)
-    }
+    // Путь до PFI-страницы для skip-логики запроса
+    const pfiRoutePath = useMemo(
+        () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.PFI_PER_MODEL)?.path ?? null,
+        []
+    )
+
+    const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
+
+    // Тянем PFI-отчёт только когда реально находимся на PFI-странице,
+    // дальше RTK Query кэширует результат и он доступен и для страницы, и для сайдбара.
+    const { data: pfiReport } = useGetPfiPerModelReportQuery(undefined, {
+        skip: !isOnPfiPage
+    })
+
+    const pfiTabs: PfiTabConfig[] = useMemo(() => {
+        if (!pfiReport) return []
+
+        const tableSections = (pfiReport.sections ?? []).filter(
+            (section): section is TableSectionDto =>
+                Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
+        )
+
+        return buildPfiTabsFromSections(tableSections)
+    }, [pfiReport])
 
     // Группируем пункты меню по секциям
     const grouped = useMemo(() => {
@@ -47,8 +69,6 @@ export default function AppSidebar({ className }: SidebarProps) {
             bySection.set(section, list)
         })
 
-        // Сортируем элементы внутри секции по order / label,
-        // чтобы порядок контролировался маршрутом.
         for (const [section, items] of bySection) {
             items.sort((a, b) => {
                 const ao = a.order ?? 0
@@ -62,9 +82,6 @@ export default function AppSidebar({ className }: SidebarProps) {
         return bySection
     }, [])
 
-    // Формируем список секций в нужном порядке:
-    // сначала те, которые явно заданы в SECTION_ORDER,
-    // затем любые остальные (если появятся новые).
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())
 
@@ -77,22 +94,7 @@ export default function AppSidebar({ className }: SidebarProps) {
     const currentHash = location.hash.replace('#', '')
 
     return (
-        <div
-            data-testid='sidebar'
-            className={classNames(cls.Sidebar, { [cls.collapsed]: collapsed }, [className ?? ''])}>
-            <Btn data-testid='sidebar-toggle' onClick={onToggle} size='medium' className={cls.burgerBtn}>
-                <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    width='24'
-                    height='24'
-                    viewBox='0 0 24 24'
-                    focusable='false'
-                    style={{ pointerEvents: 'none', display: 'inherit' }}
-                    aria-hidden='true'>
-                    <path d='M21 6H3V5h18v1zm0 5H3v1h18v-1zm0 6H3v1h18v-1z'></path>
-                </svg>
-            </Btn>
-
+        <div data-testid='sidebar' className={classNames(cls.Sidebar, {}, [className ?? ''])}>
             <div className={cls.links}>
                 {orderedSections.map(section => {
                     const items = grouped.get(section) ?? []
@@ -125,7 +127,7 @@ export default function AppSidebar({ className }: SidebarProps) {
 
                                 const tabs =
                                     isBacktestFull ? BACKTEST_FULL_TABS
-                                    : isPfiPerModel ? PFI_TABS
+                                    : isPfiPerModel ? pfiTabs
                                     : []
 
                                 const subNavAriaLabel =
@@ -148,7 +150,7 @@ export default function AppSidebar({ className }: SidebarProps) {
 
                                         {/* Подвкладки:
                                             - для backtest/full → BACKTEST_FULL_TABS
-                                            - для PFI по моделям → PFI_TABS
+                                            - для PFI по моделям → pfiTabs (динамика из бэкенда)
                                         */}
                                         {hasSubNav && tabs.length > 0 && (
                                             <nav className={cls.subNav} aria-label={subNavAriaLabel}>
@@ -170,7 +172,6 @@ export default function AppSidebar({ className }: SidebarProps) {
                                                                     [cls.subLinkActive]: isActiveTab
                                                                 })}>
                                                                 <span className={cls.subIcon}>
-                                                                    {/* Мини-иконка графика / сценария */}
                                                                     <svg
                                                                         xmlns='http://www.w3.org/2000/svg'
                                                                         viewBox='0 0 24 24'

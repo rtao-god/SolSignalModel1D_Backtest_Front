@@ -5,6 +5,7 @@ import { lazyPage, buildSidebarNavItems } from './utils'
 // Основные страницы
 const MainPage = lazyPage(() => import('@/pages/Main/Main'))
 
+const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage/ui/ModelStatsPage'))
 const RegistrationPage = lazyPage(() => import('@/pages/Registration/Registration'))
 const LoginPage = lazyPage(() => import('@/pages/Login/Login'))
 const AboutPage = lazyPage(() => import('@/pages/About/About'))
@@ -21,9 +22,6 @@ const CurrentMLModelPredictionPage = lazyPage(
 
 // PFI
 const PfiPage = lazyPage(() => import('@/pages/PfiPage/ui/PfiPage'))
-
-// TODO-заглушки для будущих страниц статистики моделей и фич
-const ModelsStatsPlaceholder = () => <div>TODO: Статистика по моделям (дейли, micro, SL, delayed и т.д.)</div>
 
 // Основная конфигурация маршрутов
 export const ROUTE_CONFIG: AppRouteConfig[] = [
@@ -54,7 +52,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MODELS_STATS,
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
-        element: <ModelsStatsPlaceholder />,
+        element: <ModelStatsPage />,
         layout: 'app',
         nav: {
             sidebar: true,

@@ -1,3 +1,4 @@
+/* === Универсальный миксин для локальных скроллбаров (например, Sidebar.links) === */
 @mixin Scrollbar($size: 1em, $thumbColor: rebeccapurple, $trackColor: white) {
 
     /* Firefox */
@@ -20,5 +21,107 @@
         background-color: $thumbColor;
         border-radius: 0.5em;
         border: 3px solid $trackColor;
+    }
+}
+
+/* === ГЛОБАЛЬНЫЙ СКРОЛЛБАР ДЛЯ ВЕСЬ СТРАНИЦЫ === */
+/* Цвета скроллбара страницы задаём через CSS-переменные на body
+   и переопределяем их в зависимости от темы. */
+
+/* Значения по умолчанию (светлая тема) */
+body {
+    /* фон дорожки скроллбара страницы */
+    --scrollbar-page-track-bg: var(--color-bg-primary);
+
+    /* базовый цвет ручки (для Firefox) */
+    --scrollbar-page-thumb-color: var(--color-gradient-scrollbar-blue-secondary);
+
+    /* градиент ручки для WebKit-браузеров (Chrome/Edge/Safari) */
+    --scrollbar-page-thumb-bg: linear-gradient(180deg,
+            var(--color-gradient-scrollbar-blue-first),
+            var(--color-gradient-scrollbar-blue-secondary));
+
+    /* градиент ручки при hover */
+    --scrollbar-page-thumb-hover-bg: linear-gradient(180deg,
+            var(--color-gradient-scrollbar-blue-secondary),
+            var(--color-gradient-scrollbar-blue-first));
+}
+
+/* Тёмная тема: переопределяем только цвета скроллбара страницы */
+body.dark_theme {
+    --scrollbar-page-track-bg: var(--color-black-90);
+
+    --scrollbar-page-thumb-color: var(--color-gradient-scrollbar-green-secondary);
+
+    --scrollbar-page-thumb-bg: linear-gradient(180deg,
+            var(--color-gradient-scrollbar-green-first),
+            var(--color-gradient-scrollbar-green-secondary));
+
+    --scrollbar-page-thumb-hover-bg: linear-gradient(180deg,
+            var(--color-gradient-scrollbar-green-secondary),
+            var(--color-gradient-scrollbar-green-first));
+}
+
+/* Firefox: скроллбар у body/html */
+html,
+body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-page-thumb-color) var(--scrollbar-page-track-bg);
+}
+
+/* Chrome / Edge / Safari: скроллбар у body/html */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 10px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+    background: var(--scrollbar-page-track-bg);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-page-thumb-bg);
+    border-radius: 10px;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-page-thumb-hover-bg);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+}
+
+/* === ПУЛЬСАЦИЯ ФОНА ПРИ ПАГИНАЦИИ === */
+
+body.scroll-transition-pulse::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+
+    /* Более заметный “кровавый” оверлей */
+    background: radial-gradient(circle at center,
+            rgba(203, 65, 35, 0.45),
+            rgba(203, 65, 35, 0.0) 70%);
+
+    opacity: 0;
+    animation: scrollTransitionPulse 850ms ease-out;
+    z-index: 9999;
+}
+
+@keyframes scrollTransitionPulse {
+    0% {
+        opacity: 0;
+    }
+
+    25% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
     }
 }

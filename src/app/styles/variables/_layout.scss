@@ -1,6 +1,7 @@
 :root {
+    --sidebar-width: 310px;
     --navbar-height: 72px;
-
-    --sidebar-width: 240px;
-    --sidebar-collapsed-width: 110px;
+    
+    // Единое смещение для всех якорей (navbar + небольшой отступ). Нужен, чтобы при пагинации был виден заголовок таблиц и проочего, а не только сама таблица.
+    --anchor-offset: calc(var(--navbar-height) + 18px);
 }

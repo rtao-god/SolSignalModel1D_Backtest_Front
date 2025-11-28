@@ -4,6 +4,7 @@ import { ApiEndpointBuilder } from './types'
 import { buildUserEndpoints } from './endpoints/userEndpoints'
 import { buildReportEndpoints } from './endpoints/reportEndpoints'
 import { pfiEndpoints } from './endpoints/pfiEndpoints'
+import { modelStatsEndpoints } from './endpoints/modelStatsEndpoints'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -34,7 +35,10 @@ export const api = createApi({
             ...buildBacktestEndpoints(b),
 
             // ==== PFI ====
-            ...pfiEndpoints(b)
+            ...pfiEndpoints(b),
+
+            // ==== ML model stats ====
+            ...modelStatsEndpoints(b)
         }
     }
 })
@@ -57,5 +61,9 @@ export const {
     useUpdateBacktestProfileMutation,
     usePreviewBacktestMutation,
 
-    useGetPfiPerModelReportQuery
+    // PFI
+    useGetPfiPerModelReportQuery,
+
+    // ML model stats
+    useGetModelStatsReportQuery
 } = api

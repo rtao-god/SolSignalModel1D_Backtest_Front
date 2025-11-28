@@ -48,9 +48,6 @@
 
     background-color: var(--bg-color-elevated, #171a20);
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
-
-    // Добавляет отступ при пагинации, чтобы секция оказывалась чуть ниже фиксированного хедера.
-    scroll-margin-top: calc(var(--navbar-height, 64px) + 16px);
 }
 
 .cardHeader {
