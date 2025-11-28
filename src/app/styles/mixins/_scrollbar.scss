@@ -24,77 +24,121 @@
     }
 }
 
-/* === ГЛОБАЛЬНЫЙ СКРОЛЛБАР ДЛЯ ВЕСЬ СТРАНИЦЫ === */
-/* Цвета скроллбара страницы задаём через CSS-переменные на body
-   и переопределяем их в зависимости от темы. */
+/* === ЦВЕТА СКРОЛЛБАРА СТРАНИЦЫ ЧЕРЕЗ CSS-ПЕРЕМЕННЫЕ === */
+/* Базовые значения (по темам) + лёгкий "пульс" при пагинации. */
 
-/* Значения по умолчанию (светлая тема) */
+/* LIGHT THEME по умолчанию */
 body {
-    /* фон дорожки скроллбара страницы */
-    --scrollbar-page-track-bg: var(--color-bg-primary);
+    /* БАЗА: спокойный голубой скролл */
+    --scrollbar-page-track-bg-base: var(--color-bg-primary); // фон дорожки
+    --scrollbar-page-thumb-bg-base: linear-gradient(180deg,
+            var(--color-blue-light),
+            var(--color-blue)); // градиент ручки
+    --scrollbar-page-thumb-color-base: var(--color-blue); // для Firefox
 
-    /* базовый цвет ручки (для Firefox) */
-    --scrollbar-page-thumb-color: var(--color-gradient-scrollbar-blue-secondary);
+    /* ПУЛЬС для светлой темы: чуть более заметный голубой */
+    --scrollbar-page-track-bg-pulse-light: rgba(61, 139, 255, 0.18); // лёгкая голубая вуаль
+    --scrollbar-page-thumb-bg-pulse-light: linear-gradient(180deg,
+            var(--color-blue-light),
+            var(--color-blue-dark));
+    --scrollbar-page-thumb-color-pulse-light: var(--color-blue-dark);
 
-    /* градиент ручки для WebKit-браузеров (Chrome/Edge/Safari) */
-    --scrollbar-page-thumb-bg: linear-gradient(180deg,
-            var(--color-gradient-scrollbar-blue-first),
-            var(--color-gradient-scrollbar-blue-secondary));
-
-    /* градиент ручки при hover */
-    --scrollbar-page-thumb-hover-bg: linear-gradient(180deg,
-            var(--color-gradient-scrollbar-blue-secondary),
-            var(--color-gradient-scrollbar-blue-first));
+    /* АКТИВНЫЕ (то, что реально читает скроллбар) */
+    --scrollbar-page-track-bg: var(--scrollbar-page-track-bg-base);
+    --scrollbar-page-thumb-bg: var(--scrollbar-page-thumb-bg-base);
+    --scrollbar-page-thumb-color: var(--scrollbar-page-thumb-color-base);
 }
 
-/* Тёмная тема: переопределяем только цвета скроллбара страницы */
+/* DARK THEME: своя база + свой мягкий пульс */
 body.dark_theme {
-    --scrollbar-page-track-bg: var(--color-black-90);
+    /* БАЗА: мягкий зелёный скролл на тёмном фоне */
+    --scrollbar-page-track-bg-base: var(--color-black-90);
+    --scrollbar-page-thumb-bg-base: linear-gradient(180deg,
+            var(--color-green-light),
+            var(--color-green));
+    --scrollbar-page-thumb-color-base: var(--color-green-light);
 
-    --scrollbar-page-thumb-color: var(--color-gradient-scrollbar-green-secondary);
-
-    --scrollbar-page-thumb-bg: linear-gradient(180deg,
-            var(--color-gradient-scrollbar-green-first),
-            var(--color-gradient-scrollbar-green-secondary));
-
-    --scrollbar-page-thumb-hover-bg: linear-gradient(180deg,
-            var(--color-gradient-scrollbar-green-secondary),
-            var(--color-gradient-scrollbar-green-first));
+    /* ПУЛЬС для тёмной темы: чуть более яркий зелёный */
+    --scrollbar-page-track-bg-pulse-dark: rgba(20, 175, 138, 0.25);
+    --scrollbar-page-thumb-bg-pulse-dark: linear-gradient(180deg,
+            var(--color-green-light),
+            var(--color-green-black));
+    --scrollbar-page-thumb-color-pulse-dark: var(--color-green-light);
 }
 
-/* Firefox: скроллбар у body/html */
+/* Во время пульса подменяем АКТИВНЫЕ переменные.
+   LIGHT THEME */
+body.scroll-transition-pulse {
+    --scrollbar-page-track-bg: var(--scrollbar-page-track-bg-pulse-light);
+    --scrollbar-page-thumb-bg: var(--scrollbar-page-thumb-bg-pulse-light);
+    --scrollbar-page-thumb-color: var(--scrollbar-page-thumb-color-pulse-light);
+}
+
+/* DARK THEME: более специфичный селектор перекроет light-вариант */
+body.dark_theme.scroll-transition-pulse {
+    --scrollbar-page-track-bg: var(--scrollbar-page-track-bg-pulse-dark);
+    --scrollbar-page-thumb-bg: var(--scrollbar-page-thumb-bg-pulse-dark);
+    --scrollbar-page-thumb-color: var(--scrollbar-page-thumb-color-pulse-dark);
+}
+
+/* === СКРОЛЛ-РУТ: .app === */
+
 html,
 body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    /* чтобы не было двойного скролла */
+}
+
+/* #root тянется на весь вьюпорт */
+#root {
+    height: 100%;
+}
+
+/* .app — единственный скроллируемый контейнер страницы */
+.app {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+
+    /* Firefox */
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-page-thumb-color) var(--scrollbar-page-track-bg);
+
+    /* Chrome / Edge / Safari */
+    &::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    /* трек — всегда один цвет, без градиента */
+    &::-webkit-scrollbar-track {
+        background-color: var(--scrollbar-page-track-bg);
+        transition: background-color 420ms ease-in-out;
+    }
+
+    /* ручка — градиентная, с лёгким шароу */
+    &::-webkit-scrollbar-thumb {
+        background-image: var(--scrollbar-page-thumb-bg);
+        background-color: var(--scrollbar-page-track-bg);
+        /* fallback */
+        border-radius: 10px;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+        transition:
+            background-image 420ms ease-in-out,
+            background-color 420ms ease-in-out,
+            box-shadow 420ms ease-in-out;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+    }
 }
 
-/* Chrome / Edge / Safari: скроллбар у body/html */
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-    width: 10px;
-}
-
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-    background: var(--scrollbar-page-track-bg);
-}
-
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-page-thumb-bg);
-    border-radius: 10px;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
-    transition: background 0.25s ease, box-shadow 0.25s ease;
-}
-
-html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-page-thumb-hover-bg);
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
-}
-
-/* === ПУЛЬСАЦИЯ ФОНА ПРИ ПАГИНАЦИИ === */
+/* === ОЧЕНЬ ЛЁГКИЙ ПУЛЬС ФОНА СТРАНИЦЫ ПРИ ПАГИНАЦИИ === */
+/* Цвет — ближе к акценту (голубой/зелёный), но сильно приглушён. */
 
 body.scroll-transition-pulse::before {
     content: '';
@@ -102,22 +146,29 @@ body.scroll-transition-pulse::before {
     inset: 0;
     pointer-events: none;
 
-    /* Более заметный “кровавый” оверлей */
     background: radial-gradient(circle at center,
-            rgba(203, 65, 35, 0.45),
-            rgba(203, 65, 35, 0.0) 70%);
+            rgba(61, 139, 255, 0.22),
+            /* light голубой */
+            rgba(61, 139, 255, 0.0) 70%);
 
     opacity: 0;
-    animation: scrollTransitionPulse 850ms ease-out;
+    animation: scrollTransitionPulseOverlay 420ms ease-out;
     z-index: 9999;
 }
 
-@keyframes scrollTransitionPulse {
+/* Для тёмной темы — чуть более зелёный оттенок */
+body.dark_theme.scroll-transition-pulse::before {
+    background: radial-gradient(circle at center,
+            rgba(16, 101, 82, 0.096),
+            rgba(20, 175, 138, 0.0) 70%);
+}
+
+@keyframes scrollTransitionPulseOverlay {
     0% {
         opacity: 0;
     }
 
-    25% {
+    35% {
         opacity: 1;
     }
 
