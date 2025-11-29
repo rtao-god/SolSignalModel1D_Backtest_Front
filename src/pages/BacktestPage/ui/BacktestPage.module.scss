@@ -1,0 +1,88 @@
+.BacktestPage {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 24px 24px 56px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    /* лёгкий card-эффект для всей страницы */
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    margin-bottom: 4px;
+
+    &>h1,
+    &>.title {
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+
+    &>p {
+        opacity: 0.85;
+        font-size: 0.95rem;
+        max-width: 720px;
+    }
+
+    select {
+        margin-top: 8px;
+    }
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Карточка результата preview справа под формой */
+.previewSection {
+    border-radius: 16px;
+    padding: 16px 18px;
+
+    background: radial-gradient(circle at top left, rgba(79, 209, 197, 0.14), transparent 55%),
+        rgba(12, 12, 20, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    backdrop-filter: blur(18px);
+}
+
+/* Адаптив */
+@media (max-width: 1100px) {
+    .BacktestPage {
+        padding: 16px 16px 40px;
+    }
+
+    .columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .BacktestPage {
+        padding: 12px 12px 32px;
+        gap: 20px;
+    }
+
+    .header {
+        gap: 6px;
+    }
+}

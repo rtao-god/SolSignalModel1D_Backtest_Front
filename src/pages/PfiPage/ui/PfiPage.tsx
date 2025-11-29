@@ -7,6 +7,7 @@ import type { TableSectionDto } from '@/shared/types/report.types'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
+import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import cls from './PfiPage.module.scss'
 
 type ViewMode = 'business' | 'technical'
@@ -56,6 +57,8 @@ interface PfiTableCardProps {
     domId: string
 }
 
+// Индексы колонок, которые показываются в бизнес-режиме.
+// Важно: при экспорте в бизнес-режиме выгружается именно этот поднабор колонок.
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
@@ -81,13 +84,31 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
         return null
     }
 
+    // Подготовка данных для экспорта:
+    // экспортируем именно то, что сейчас видно (учитывая режим и подмножество колонок).
+    const exportColumns = visibleColumnIndexes.map(colIdx => columns[colIdx] ?? `col_${colIdx}`)
+    const exportRows = section.rows?.map(row => visibleColumnIndexes.map(colIdx => (row ? row[colIdx] : ''))) ?? []
+
+    const fileBaseName = section.title || domId
+
     return (
         <section id={domId} className={cls.tableCard}>
             <header className={cls.cardHeader}>
-                <Text type='h3' className={cls.cardTitle}>
-                    {section.title}
-                </Text>
-                <PfiModeToggle mode={mode} onChange={setMode} />
+                {/* Левая часть: заголовок + переключатель режима */}
+                <div>
+                    <Text type='h3' className={cls.cardTitle}>
+                        {section.title}
+                    </Text>
+                    <PfiModeToggle mode={mode} onChange={setMode} />
+                </div>
+
+                {/* Правая часть: иконка экспорта таблицы */}
+                <TableExportButton
+                    columns={exportColumns}
+                    rows={exportRows}
+                    fileBaseName={fileBaseName}
+                    defaultFormat='pdf'
+                />
             </header>
 
             <div className={cls.tableScroll}>
@@ -104,7 +125,7 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
                         {section.rows?.map((row, rowIndex) => (
                             <tr key={rowIndex}>
                                 {visibleColumnIndexes.map(colIdx => (
-                                    <td key={colIdx}>{row[colIdx]}</td>
+                                    <td key={colIdx}>{row ? row[colIdx] : ''}</td>
                                 ))}
                             </tr>
                         ))}

@@ -14,7 +14,7 @@ const ProfilePage = lazyPage(() => import('@/pages/profile/Profile/ui/Profile'))
 
 // Backtest / ML
 const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage/ui/BacktestBaselinePage'))
-const BacktestPage = lazyPage(() => import('@/pages/BacktestPage/BacktestPage'))
+const BacktestPage = lazyPage(() => import('@/pages/BacktestPage/ui/BacktestPage'))
 const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport/ui/BacktestSummaryReportPage'))
 const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/CurrentMLModelPredictionPage/CurrentMLModelPredictionPage')

@@ -1,0 +1,105 @@
+.TableExportButton {
+    position: relative;
+    margin-left: auto; // если родитель - flex, кнопка уедет вправо
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+
+    border-radius: 55px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    background: rgba(15, 16, 24, 0.9);
+
+    cursor: pointer;
+    outline: none;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.08s ease,
+        box-shadow 0.15s ease;
+
+    svg {
+        display: block;
+    }
+
+    &:hover {
+        background: rgba(40, 42, 58, 0.95);
+        border-color: rgba(255, 255, 255, 0.32);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    &:active {
+        transform: translateY(1px) scale(0.97);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+}
+
+.menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+
+    min-width: 140px;
+    padding: 4px;
+
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    background: rgba(15, 16, 24, 0.96);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.02),
+        0 14px 35px rgba(0, 0, 0, 0.65);
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 20;
+
+    @supports (backdrop-filter: blur(10px)) {
+        backdrop-filter: blur(10px);
+        background: rgba(15, 16, 24, 0.86);
+    }
+}
+
+.menuItem {
+    width: 100%;
+    padding: 6px 10px;
+
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+
+    color: inherit;
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.4;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.12s ease,
+        color 0.12s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    &:active {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}

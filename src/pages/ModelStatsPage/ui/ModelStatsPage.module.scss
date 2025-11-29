@@ -1,0 +1,27 @@
+/* Переключатель режимов (кнопка на "вкладке") */
+.modeToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 2px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.modeButton {
+    min-width: 80px;
+    padding: 4px 10px;
+
+    border-radius: 999px;
+    border: 1px solid transparent;
+
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* Активный режим — слегка подсвечиваем и даём рамку */
+.modeButtonActive {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}

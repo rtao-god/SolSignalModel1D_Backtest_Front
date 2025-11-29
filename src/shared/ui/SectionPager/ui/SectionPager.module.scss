@@ -1,45 +1,78 @@
 .pager {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+
     display: flex;
     flex-direction: column;
     gap: 10px;
     z-index: 50;
 
-    /* лёгкое появление при монтировании */
-    animation: pager-fade-in 0.25s ease-out;
-    pointer-events: none; // чтобы не блокировать клики по странице
+    pointer-events: none;
+    /* чтобы клики шли только по кнопкам */
+
+    @media (max-width: 900px) {
+        right: 16px;
+    }
+
+    @media (max-width: 640px) {
+        right: 50%;
+        transform: translate(50%, 0);
+        top: auto;
+        bottom: 16px;
+        flex-direction: row;
+    }
 }
 
 .btn {
     pointer-events: auto;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
+
     border-radius: 999px;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: radial-gradient(circle at top, rgba(79, 209, 197, 0.3), rgba(0, 0, 0, 0.9));
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.14), transparent 60%),
-        linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92));
-    color: #f9fafb;
-
-    opacity: 0.7;
     cursor: pointer;
 
-    box-shadow:
-        0 0 0 1px rgba(148, 163, 184, 0.4),
-        0 12px 26px rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(8px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(14px);
 
     transition:
-        opacity 0.22s ease,
-        transform 0.18s ease,
-        box-shadow 0.22s ease,
-        background 0.22s ease;
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        border-color 0.12s ease-out,
+        background 0.12s ease-out,
+        opacity 0.12s ease-out;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85);
+        border-color: rgba(79, 209, 197, 0.9);
+        background: radial-gradient(circle at top, rgba(79, 209, 197, 0.52), rgba(0, 0, 0, 0.95));
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(79, 209, 197, 0.9);
+        outline-offset: 2px;
+    }
+}
+
+.arrow {
+    color: white;
+    font-size: 1.05rem;
+    line-height: 1;
+    user-select: none;
 }
 
 .btn:hover {
@@ -55,11 +88,6 @@
     box-shadow:
         0 0 0 1px rgba(148, 163, 184, 0.9),
         0 8px 18px rgba(0, 0, 0, 0.5);
-}
-
-.arrow {
-    font-size: 18px;
-    line-height: 1;
 }
 
 /* появление блока пагинации */

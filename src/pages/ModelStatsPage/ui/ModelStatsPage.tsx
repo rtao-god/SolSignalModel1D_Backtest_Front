@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import { Btn, Text } from '@/shared/ui'
 import { useGetModelStatsReportQuery } from '@/shared/api/api'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
@@ -16,9 +16,49 @@ interface ModelStatsTableCardProps {
     domId: string
 }
 
+type ViewMode = 'business' | 'technical'
+
+interface ModelStatsModeToggleProps {
+    mode: ViewMode
+    onChange: (mode: ViewMode) => void
+}
+
+function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeToggleProps) {
+    const handleBusinessClick = () => {
+        if (mode !== 'business') {
+            onChange('business')
+        }
+    }
+
+    const handleTechnicalClick = () => {
+        if (mode !== 'technical') {
+            onChange('technical')
+        }
+    }
+
+    return (
+        <div className={cls.modeToggle}>
+            <Btn
+                size='small'
+                className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
+                onClick={handleBusinessClick}>
+                Бизнес
+            </Btn>
+            <Btn
+                size='small'
+                className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
+                onClick={handleTechnicalClick}>
+                Технарь
+            </Btn>
+        </div>
+    )
+}
+
 /**
  * Простейшая карточка таблицы статистики модели.
- * Показываем все колонки как есть (без бизнес/тех режимов).
+ * Показываем все колонки как есть (без локального бизнес/тех режима).
+ * Глобальный режим (business/technical) влияет только на то,
+ * какие секции вообще попадают в tableSections.
  */
 function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     if (!section.columns || section.columns.length === 0) {
@@ -59,14 +99,19 @@ function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
 
 /**
  * Страница статистики моделей:
- * - тянет ReportDocument kind="ml_model_stats";
+ * - тянет ReportDocument kind="backtest_model_stats" (через API);
  * - строит табы по секциям (SectionPager + hash в URL);
- * - каждая секция = отдельная таблица по модели/группе моделей.
+ * - глобальный режим business/technical управляет тем,
+ *   какую версию daily confusion показать: summary vs matrix.
  */
 export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     const { data, isLoading, isError } = useGetModelStatsReportQuery()
 
-    const tableSections = useMemo(
+    // Глобальный режим: по умолчанию "человеческий" (business).
+    const [mode, setMode] = useState<ViewMode>('business')
+
+    // Все табличные секции как есть из репорта.
+    const rawTableSections = useMemo(
         () =>
             (data?.sections ?? []).filter(
                 (section): section is TableSectionDto =>
@@ -76,10 +121,37 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         [data]
     )
 
+    // Функция, которая решает, нужно ли показывать секцию в текущем режиме.
+    const tableSections = useMemo(() => {
+        if (!rawTableSections.length) {
+            return [] as TableSectionDto[]
+        }
+
+        return rawTableSections.filter(section => {
+            const title = section.title ?? ''
+
+            const isDailyBusiness = title.startsWith('Daily label summary (business)')
+            const isDailyTechnical = title.startsWith('Daily label confusion (3-class, technical)')
+
+            // В бизнес-режиме скрываем технарскую матрицу, оставляем summary.
+            if (mode === 'business' && isDailyTechnical) {
+                return false
+            }
+
+            // В технарском режиме наоборот: скрываем summary, показываем матрицу.
+            if (mode === 'technical' && isDailyBusiness) {
+                return false
+            }
+
+            // Все остальные секции (trend, SL, thresholds и т.п.) показываем всегда.
+            return true
+        })
+    }, [rawTableSections, mode])
+
     const tabs = useMemo(
         () =>
             tableSections.map((section, index) => {
-                const label = section.title || `Модель ${index + 1}`
+                const label = section.title || `Секция ${index + 1}`
 
                 return {
                     id: `model-${index + 1}`,
@@ -126,6 +198,9 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                     <Text type='p'>Kind: {data.kind}</Text>
                 </div>
             </header>
+
+            {/* Глобальный переключатель режимов для всей страницы */}
+            <ModelStatsModeToggle mode={mode} onChange={setMode} />
 
             <div className={cls.tablesGrid}>
                 {tableSections.map((section, index) => {
