@@ -15,6 +15,7 @@ export enum AppRoute {
     FEATURES_STATS = 'FEATURES_STATS',
 
     ABOUT = 'ABOUT',
+    CONTACT = 'CONTACT',
     REGISTRATION = 'REGISTRATION',
     LOGIN = 'LOGIN',
     PROFILE = 'PROFILE',
@@ -29,9 +30,11 @@ export type RouteSection = 'models' | 'backtest' | 'features' | 'system'
 
 export interface RouteNavMeta {
     sidebar?: boolean // показывать ли в сайдбаре
+    navbar?: boolean // показывать ли в верхнем navbar
     label: string // подпись в меню
     section?: RouteSection // группа (Модели / Бэктест / Фичи / System)
-    order?: number // порядок внутри группы
+    order?: number // порядок внутри группы (сайдбар)
+    navbarOrder?: number // порядок в navbar
 }
 
 // Базовый тип конфигурации маршрута
@@ -49,5 +52,13 @@ export interface SidebarNavItem {
     path: string
     label: string
     section?: RouteSection
+    order: number
+}
+
+// Элемент навигации navbar
+export interface NavbarNavItem {
+    id: AppRoute
+    path: string
+    label: string
     order: number
 }

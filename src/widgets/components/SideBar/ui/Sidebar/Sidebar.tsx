@@ -1,6 +1,6 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { Link } from '@/shared/ui'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import cls from './Sidebar.module.scss'
@@ -10,6 +10,7 @@ import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
 import { useGetPfiPerModelReportQuery } from '@/shared/api/api'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
+import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 
 interface SidebarProps {
     className?: string
@@ -29,6 +30,24 @@ const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
 export default function AppSidebar({ className }: SidebarProps) {
     const { t } = useTranslation('')
     const location = useLocation()
+
+    // ===== Хук: если hash был, а стал пустой — скроллим в самый верх =====
+    const prevHashRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        const prevHash = prevHashRef.current ?? ''
+        const currentHash = location.hash ?? ''
+
+        // Был какой-то #anchor, теперь hash пустой → едем наверх.
+        if (prevHash && !currentHash) {
+            scrollToTop({
+                behavior: 'smooth',
+                withTransitionPulse: true
+            })
+        }
+
+        prevHashRef.current = currentHash
+    }, [location.hash])
 
     // Путь до PFI-страницы для skip-логики запроса
     const pfiRoutePath = useMemo(

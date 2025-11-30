@@ -1,4 +1,3 @@
-// app/providers/router/config/routeConsts.ts
 import { AppRoute, RouteSection } from './types'
 
 // Карта id → путь
@@ -17,6 +16,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.FEATURES_STATS]: '/features/stats',
 
     [AppRoute.ABOUT]: '/about',
+    [AppRoute.CONTACT]: '/contact',
     [AppRoute.REGISTRATION]: '/registration',
     [AppRoute.LOGIN]: '/login',
     [AppRoute.PROFILE]: '/profile',

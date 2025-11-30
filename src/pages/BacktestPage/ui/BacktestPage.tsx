@@ -17,6 +17,7 @@ import { BacktestBaselineMetrics } from './BacktestBaselineMetrics/BacktestBasel
 import { BacktestSummaryView } from './BacktestSummaryView/BacktestSummaryView'
 import { BacktestConfigEditor } from './BacktestConfigEditor/BacktestConfigEditor'
 import { BacktestCompareSection } from './BacktestCompareSection/BacktestCompareSection'
+import { BacktestPolicyRatiosSection } from './BacktestPolicyRatiosSection/BacktestPolicyRatiosSection'
 
 /**
  * Страница бэктеста:
@@ -66,12 +67,6 @@ export default function BacktestPage({ className }: BacktestPageProps) {
     // Состояние сравнения профилей A/B.
     const [isCompareLoading, setIsCompareLoading] = useState(false)
     const [compareError, setCompareError] = useState<string | null>(null)
-
-    // Локальная навигация по секциям (baseline / whatif / compare) через общий useSectionPager.
-    const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
-        sections: BACKTEST_FULL_TABS,
-        syncHash: true
-    })
 
     // Текущий профиль для формы по selectedProfileId + fallback на baseline/первый в списке.
     const currentProfile: BacktestProfileDto | null = useMemo(() => {
@@ -145,6 +140,9 @@ export default function BacktestPage({ className }: BacktestPageProps) {
         setPreviewError(null)
     }, [currentProfile])
 
+    // Глобовый флаг загрузки для страницы:
+    // - нужен и для отображения "Загружаю...",
+    // - и для того, чтобы не запускать якорный скролл, пока разметка секций не готова.
     const isLoadingAll =
         isBaselineLoading ||
         isProfilesLoading ||
@@ -152,6 +150,17 @@ export default function BacktestPage({ className }: BacktestPageProps) {
         !currentProfile ||
         !currentProfile.config ||
         !draftConfig
+
+    // Секции для useSectionPager:
+    // - пока страница в загрузке → пустой массив (никакого скролла по hash);
+    // - когда всё готово → реальный BACKTEST_FULL_TABS.
+    const pagerSections = isLoadingAll ? [] : BACKTEST_FULL_TABS
+
+    // Локальная навигация по секциям (baseline / whatif / compare) через общий useSectionPager.
+    const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
+        sections: pagerSections,
+        syncHash: true
+    })
 
     if (isBaselineError || isProfilesError) {
         return (
@@ -170,6 +179,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
     }
 
     // К этому моменту baselineSummary, currentProfile и draftConfig уже должны быть.
+
     const handleStopPctChange = (valueStr: string) => {
         if (!draftConfig) return
         const normalized = valueStr.replace(',', '.')
@@ -326,6 +336,9 @@ export default function BacktestPage({ className }: BacktestPageProps) {
                 <div className={cls.column}>
                     <Text type='h2'>Baseline (консольный бэктест)</Text>
                     <BacktestSummaryView summary={baselineSummary!} title='Baseline summary' />
+
+                    {/* Метрики политик baseline-профиля: график/таблица. */}
+                    <BacktestPolicyRatiosSection profileId='baseline' />
                 </div>
 
                 {/* Правая колонка: редактор конфига + preview формы. */}
@@ -371,7 +384,7 @@ export default function BacktestPage({ className }: BacktestPageProps) {
 
             {/* Стрелочная пагинация по секциям baseline / whatif / compare. */}
             <SectionPager
-                sections={BACKTEST_FULL_TABS}
+                sections={pagerSections}
                 currentIndex={currentIndex}
                 canPrev={canPrev}
                 canNext={canNext}

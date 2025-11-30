@@ -21,6 +21,40 @@ export interface ScrollToAnchorOptions {
 let scrollTransitionTimeoutId: number | null = null
 
 /**
+ * Разрешает нижний guard (чтобы при якорном скролле не показывать футер):
+ * - читаем CSS-переменную --anchor-bottom-guard;
+ * - поддерживает значения вроде "40px" или "calc(40px + 8px)".
+ */
+function resolveBottomGuard(): number {
+    if (typeof document === 'undefined') {
+        return 0
+    }
+
+    try {
+        const root = document.documentElement
+        const cssValue = getComputedStyle(root).getPropertyValue('--anchor-bottom-guard').trim()
+
+        if (!cssValue) {
+            return 0
+        }
+
+        const probe = document.createElement('div')
+        probe.style.position = 'absolute'
+        probe.style.visibility = 'hidden'
+        probe.style.height = cssValue
+
+        document.body.appendChild(probe)
+        const computedHeight = getComputedStyle(probe).height
+        document.body.removeChild(probe)
+
+        const value = parseFloat(computedHeight || '')
+        return Number.isFinite(value) ? value : 0
+    } catch {
+        return 0
+    }
+}
+
+/**
  * Разрешает offsetTop:
  * - если передан явно — используем его;
  * - иначе читаем CSS-переменную --anchor-offset
@@ -127,25 +161,32 @@ export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) 
 
     const behavior: ScrollBehavior = options?.behavior ?? 'smooth'
     const offsetTop = resolveOffsetTop(options?.offsetTop)
+    const bottomGuard = resolveBottomGuard()
 
-    // Реальный scroll-root — .app (overflow-y: auto на .app).
     const scrollRoot = document.querySelector('.app') as HTMLElement | null
 
-    // Визуальный эффект перехода (пульс фона/скроллбара).
     if (options?.withTransitionPulse) {
         triggerScrollTransitionPulse()
     }
 
     if (scrollRoot) {
-        // Координаты контейнера и целевого элемента относительно окна.
         const containerRect = scrollRoot.getBoundingClientRect()
         const targetRect = element.getBoundingClientRect()
 
-        // Позиция элемента относительно видимой области внутри .app.
         const relativeTop = targetRect.top - containerRect.top
 
-        // Финальная позиция скролла внутри .app, с учётом offsetTop.
-        const targetTop = scrollRoot.scrollTop + relativeTop - offsetTop
+        // желаемая позиция с учётом offsetTop
+        let targetTop = scrollRoot.scrollTop + relativeTop - offsetTop
+
+        // максимум: не доезжать до самого низа на bottomGuard пикселей
+        const maxScrollTop = Math.max(0, scrollRoot.scrollHeight - scrollRoot.clientHeight - bottomGuard)
+
+        if (targetTop > maxScrollTop) {
+            targetTop = maxScrollTop
+        }
+        if (targetTop < 0) {
+            targetTop = 0
+        }
 
         scrollRoot.scrollTo({
             top: targetTop,
@@ -155,16 +196,63 @@ export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) 
         return
     }
 
-    // Fallback: если по какой-то причине .app не найден — скроллим окно.
+    // fallback для случая, если по какой-то причине .app не найден
     if (typeof window === 'undefined') {
         return
     }
 
     const rect = element.getBoundingClientRect()
-    const targetTop = window.scrollY + rect.top - offsetTop
+    let targetTop = window.scrollY + rect.top - offsetTop
+
+    const doc = document.documentElement
+    const docScrollHeight = Math.max(doc.scrollHeight, document.body.scrollHeight)
+    const maxScrollTop = Math.max(0, docScrollHeight - window.innerHeight - bottomGuard)
+
+    if (targetTop > maxScrollTop) {
+        targetTop = maxScrollTop
+    }
+    if (targetTop < 0) {
+        targetTop = 0
+    }
 
     window.scrollTo({
         top: targetTop,
+        behavior
+    })
+}
+
+/**
+ * Универсальный скролл страницы в самый верх:
+ * - скроллит .app как единый scroll-root;
+ * - если .app нет — fallback на window;
+ * - опционально включает тот же "пульс", что и якорная пагинация.
+ */
+export function scrollToTop(options?: { behavior?: ScrollBehavior; withTransitionPulse?: boolean }) {
+    if (typeof document === 'undefined') {
+        return
+    }
+
+    const behavior: ScrollBehavior = options?.behavior ?? 'smooth'
+    const scrollRoot = document.querySelector('.app') as HTMLElement | null
+
+    if (options?.withTransitionPulse) {
+        triggerScrollTransitionPulse()
+    }
+
+    if (scrollRoot) {
+        scrollRoot.scrollTo({
+            top: 0,
+            behavior
+        })
+        return
+    }
+
+    if (typeof window === 'undefined') {
+        return
+    }
+
+    window.scrollTo({
+        top: 0,
         behavior
     })
 }

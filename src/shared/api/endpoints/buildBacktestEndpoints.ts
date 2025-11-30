@@ -8,6 +8,7 @@ import type {
 } from '@/shared/types/backtest.types'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import type { ApiEndpointBuilder } from '../types'
+import type { PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
 
 /**
  * Эндпоинты домена бэктеста:
@@ -73,5 +74,14 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => ({
             body
         }),
         transformResponse: mapReportResponse
+    }),
+
+    // ==== policy ratios по профилю бэктеста ====
+    // По умолчанию тянем baseline-профиль.
+    getBacktestPolicyRatios: builder.query<PolicyRatiosReportDto, string | void>({
+        query: (profileId: string | void = 'baseline') => ({
+            url: `/backtest/policy-ratios/${encodeURIComponent(profileId)}`,
+            method: 'GET'
+        })
     })
 })

@@ -60,6 +60,7 @@ export const {
     useCreateBacktestProfileMutation,
     useUpdateBacktestProfileMutation,
     usePreviewBacktestMutation,
+    useGetBacktestPolicyRatiosQuery,
 
     // PFI
     useGetPfiPerModelReportQuery,

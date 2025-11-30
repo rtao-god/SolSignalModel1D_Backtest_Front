@@ -1,4 +1,4 @@
-import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection } from './types'
+import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection, NavbarNavItem } from './types'
 import { ROUTE_PATH } from './consts'
 import { lazyPage, buildSidebarNavItems } from './utils'
 
@@ -9,6 +9,7 @@ const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage/ui/ModelSta
 const RegistrationPage = lazyPage(() => import('@/pages/Registration/Registration'))
 const LoginPage = lazyPage(() => import('@/pages/Login/Login'))
 const AboutPage = lazyPage(() => import('@/pages/About/About'))
+const ContactPage = lazyPage(() => import('@/pages/ContactPage/ui/ContactPage'))
 const NotFoundPage = lazyPage(() => import('@/pages/404/NotFound'))
 const ProfilePage = lazyPage(() => import('@/pages/profile/Profile/ui/Profile'))
 
@@ -32,7 +33,9 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         layout: 'app',
         nav: {
             sidebar: false, // главную из сайдбара пока не показываем
-            label: 'Главная'
+            navbar: true,
+            label: 'Main',
+            navbarOrder: 0
         }
     },
 
@@ -122,8 +125,23 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         layout: 'app',
         nav: {
             sidebar: false,
-            label: 'О проекте',
-            section: 'system'
+            navbar: true,
+            label: 'About',
+            section: 'system',
+            navbarOrder: 2
+        }
+    },
+    {
+        id: AppRoute.CONTACT,
+        path: ROUTE_PATH[AppRoute.CONTACT],
+        element: <ContactPage />,
+        layout: 'app',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Contact',
+            section: 'system',
+            navbarOrder: 3
         }
     },
 
@@ -158,8 +176,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         layout: 'app',
         nav: {
             sidebar: false,
-            label: 'Профиль',
-            section: 'system'
+            navbar: true,
+            label: 'Profile',
+            section: 'system',
+            navbarOrder: 1
         }
     },
     {
@@ -172,5 +192,20 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
 
 // Навигация для сайдбара
 export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = buildSidebarNavItems(ROUTE_CONFIG)
+
+// Навигация для navbar (верхнее меню)
+export const NAVBAR_ITEMS: NavbarNavItem[] = ROUTE_CONFIG.filter(route => route.nav && route.nav.navbar)
+    .map(route => ({
+        id: route.id,
+        path: route.path,
+        label: route.nav!.label,
+        order: route.nav!.navbarOrder ?? route.nav!.order ?? 0
+    }))
+    .sort((a, b) => {
+        if (a.order !== b.order) {
+            return a.order - b.order
+        }
+        return a.label.localeCompare(b.label)
+    })
 
 export type { RouteSection }

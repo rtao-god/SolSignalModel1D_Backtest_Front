@@ -1,0 +1,247 @@
+.ContactPage {
+    position: relative;
+    padding: 32px 24px 40px;
+    min-height: 100%;
+    display: flex;
+    justify-content: center;
+
+    // Лёгкий градиент и "glow" под тёмную тему
+    background:
+        radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.12), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.12), transparent 55%);
+}
+
+.inner {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Шапка */
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.subtitle {
+    max-width: 640px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* Профиль */
+
+.profileCard {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 20px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(18px);
+}
+
+.avatarStub {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 0, #22d3ee, #0f172a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.6);
+}
+
+.avatarInitials {
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.profileInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profileName {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.profileRole {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.profileNote {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+/* Сетка карточек */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 960px) {
+    .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .ContactPage {
+        padding: 24px 16px 32px;
+    }
+
+    .grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .profileCard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Карточка контакта */
+
+.contactCard {
+    position: relative;
+    padding: 16px 16px 18px;
+    border-radius: 18px;
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.16), transparent 55%),
+        rgba(15, 23, 42, 0.96);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    display: flex;
+    gap: 12px;
+    transition:
+        transform 0.18s ease-out,
+        box-shadow 0.18s ease-out,
+        border-color 0.18s ease-out,
+        background 0.18s ease-out;
+}
+
+.contactCard::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background:
+        linear-gradient(120deg, rgba(56, 189, 248, 0.35), rgba(129, 140, 248, 0.35)) border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease-out;
+    mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+}
+
+.contactCard:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 26px 56px rgba(15, 23, 42, 0.95),
+        0 0 0 1px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.contactCard:hover::after {
+    opacity: 1;
+}
+
+.cardIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 0, rgba(34, 211, 238, 0.4), rgba(15, 23, 42, 0.9));
+    flex-shrink: 0;
+}
+
+.cardIcon svg {
+    width: 22px;
+    height: 22px;
+    fill: #e5e7eb;
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cardTitle {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.cardDescription {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.cardLink {
+    margin-top: 4px;
+    align-self: flex-start;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.75);
+    background: rgba(15, 23, 42, 0.9);
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+    transition:
+        background 0.16s ease-out,
+        color 0.16s ease-out,
+        box-shadow 0.16s ease-out,
+        transform 0.12s ease-out;
+}
+
+.cardLink:hover {
+    background: rgba(56, 189, 248, 0.18);
+    box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.95),
+        0 0 0 1px rgba(56, 189, 248, 0.6);
+    transform: translateY(-1px);
+}
+
+.cardTag {
+    margin-top: 2px;
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+/* Футер */
+
+.footer {
+    margin-top: 8px;
+}
+
+.footerText {
+    font-size: 12px;
+    opacity: 0.7;
+}
