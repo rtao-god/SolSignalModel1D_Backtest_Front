@@ -15,6 +15,11 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.MODELS_STATS]: '/models/stats',
     [AppRoute.FEATURES_STATS]: '/features/stats',
 
+    // Документация
+    [AppRoute.DOCS]: '/docs',
+    [AppRoute.DOCS_MODELS]: '/docs/models',
+    [AppRoute.DOCS_TESTS]: '/docs/tests',
+
     [AppRoute.ABOUT]: '/about',
     [AppRoute.CONTACT]: '/contact',
     [AppRoute.REGISTRATION]: '/registration',
@@ -24,4 +29,4 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
 }
 
 // Порядок секций в сайдбаре
-export const ROUTE_SECTION_ORDER: RouteSection[] = ['models', 'backtest', 'features', 'system']
+export const ROUTE_SECTION_ORDER: RouteSection[] = ['models', 'backtest', 'features', 'docs', 'system']

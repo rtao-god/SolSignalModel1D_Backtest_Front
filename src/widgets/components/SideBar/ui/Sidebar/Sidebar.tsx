@@ -11,25 +11,29 @@ import { useGetPfiPerModelReportQuery } from '@/shared/api/api'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
+import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 
 interface SidebarProps {
     className?: string
 }
 
-// Порядок секций в сайдбаре
+// Порядок секций в сайдбаре для "боевого" режима
 const SECTION_ORDER: RouteSection[] = ['models', 'backtest', 'features']
 
 // Человеко-читаемые заголовки секций
 const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
     models: 'Модели',
     backtest: 'Бэктест',
-    features: 'Фичи'
+    features: 'Фичи',
+    docs: 'Документация'
     // system выводить не нужно — там служебные вещи
 }
 
 export default function AppSidebar({ className }: SidebarProps) {
     const { t } = useTranslation('')
     const location = useLocation()
+
+    const isDocsRoute = location.pathname.startsWith('/docs')
 
     // ===== Хук: если hash был, а стал пустой — скроллим в самый верх =====
     const prevHashRef = useRef<string | null>(null)
@@ -57,8 +61,7 @@ export default function AppSidebar({ className }: SidebarProps) {
 
     const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
 
-    // Тянем PFI-отчёт только когда реально находимся на PFI-странице,
-    // дальше RTK Query кэширует результат и он доступен и для страницы, и для сайдбара.
+    // Тянем PFI-отчёт только когда реально находимся на PFI-странице
     const { data: pfiReport } = useGetPfiPerModelReportQuery(undefined, {
         skip: !isOnPfiPage
     })
@@ -74,7 +77,7 @@ export default function AppSidebar({ className }: SidebarProps) {
         return buildPfiTabsFromSections(tableSections)
     }, [pfiReport])
 
-    // Группируем пункты меню по секциям
+    // Группируем пункты меню по секциям с учётом docs-режима
     const grouped = useMemo(() => {
         const bySection = new Map<RouteSection, SidebarNavItem[]>()
 
@@ -83,6 +86,19 @@ export default function AppSidebar({ className }: SidebarProps) {
             if (!section) {
                 return
             }
+
+            const isDocsItem = section === 'docs'
+
+            // Если мы на docs-странице → показываем только docs-секцию.
+            if (isDocsRoute && !isDocsItem) {
+                return
+            }
+
+            // Если мы НЕ на docs-странице → скрываем docs-секцию.
+            if (!isDocsRoute && isDocsItem) {
+                return
+            }
+
             const list = bySection.get(section) ?? []
             list.push(item)
             bySection.set(section, list)
@@ -99,7 +115,7 @@ export default function AppSidebar({ className }: SidebarProps) {
         }
 
         return bySection
-    }, [])
+    }, [isDocsRoute])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())
@@ -130,11 +146,15 @@ export default function AppSidebar({ className }: SidebarProps) {
                             {items.map(item => {
                                 const isBacktestFull = item.id === AppRoute.BACKTEST_FULL
                                 const isPfiPerModel = item.id === AppRoute.PFI_PER_MODEL
+                                const isDocsModels = item.id === AppRoute.DOCS_MODELS
+                                const isDocsTests = item.id === AppRoute.DOCS_TESTS
 
-                                const hasSubNav = isBacktestFull || isPfiPerModel
+                                const hasSubNav = isBacktestFull || isPfiPerModel || isDocsModels || isDocsTests
 
                                 const isBacktestRouteActive = isBacktestFull && location.pathname.startsWith(item.path)
                                 const isPfiRouteActive = isPfiPerModel && location.pathname.startsWith(item.path)
+                                const isDocsModelsRouteActive = isDocsModels && location.pathname.startsWith(item.path)
+                                const isDocsTestsRouteActive = isDocsTests && location.pathname.startsWith(item.path)
 
                                 const isRouteActiveBase =
                                     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -147,11 +167,15 @@ export default function AppSidebar({ className }: SidebarProps) {
                                 const tabs =
                                     isBacktestFull ? BACKTEST_FULL_TABS
                                     : isPfiPerModel ? pfiTabs
+                                    : isDocsModels ? DOCS_MODELS_TABS
+                                    : isDocsTests ? DOCS_TESTS_TABS
                                     : []
 
                                 const subNavAriaLabel =
                                     isBacktestFull ? t('Разделы бэктеста')
                                     : isPfiPerModel ? t('Модели PFI')
+                                    : isDocsModels ? t('Описание моделей')
+                                    : isDocsTests ? t('Описание тестов')
                                     : undefined
 
                                 return (
@@ -167,10 +191,7 @@ export default function AppSidebar({ className }: SidebarProps) {
                                             <span className={cls.label}>{t(item.label)}</span>
                                         </Link>
 
-                                        {/* Подвкладки:
-                                            - для backtest/full → BACKTEST_FULL_TABS
-                                            - для PFI по моделям → pfiTabs (динамика из бэкенда)
-                                        */}
+                                        {/* Подвкладки для backtest / PFI / Docs-* */}
                                         {hasSubNav && tabs.length > 0 && (
                                             <nav className={cls.subNav} aria-label={subNavAriaLabel}>
                                                 <div className={cls.subNavLine} />
@@ -178,7 +199,9 @@ export default function AppSidebar({ className }: SidebarProps) {
                                                     {tabs.map(tab => {
                                                         const isRouteActiveWithTabs =
                                                             (isBacktestFull && isBacktestRouteActive) ||
-                                                            (isPfiPerModel && isPfiRouteActive)
+                                                            (isPfiPerModel && isPfiRouteActive) ||
+                                                            (isDocsModels && isDocsModelsRouteActive) ||
+                                                            (isDocsTests && isDocsTestsRouteActive)
 
                                                         const isActiveTab =
                                                             isRouteActiveWithTabs && currentHash === tab.anchor

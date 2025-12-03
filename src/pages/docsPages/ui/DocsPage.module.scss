@@ -1,0 +1,97 @@
+.DocsPageRoot {
+    display: block;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 24px 8px;
+}
+
+.heroTitle {
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.heroSubtitle {
+    max-width: 800px;
+    font-size: 16px;
+    line-height: 1.6;
+    opacity: 0.9;
+}
+
+.heroMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.metaPill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.sections {
+    padding: 16px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionsTitle {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.cardLink {
+    text-decoration: none;
+    color: inherit;
+}
+
+.card {
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out,
+        background 0.15s ease-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+}
+
+.cardTitle {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.cardText {
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+.cardHint {
+    margin-top: 4px;
+    font-size: 13px;
+    opacity: 0.85;
+}

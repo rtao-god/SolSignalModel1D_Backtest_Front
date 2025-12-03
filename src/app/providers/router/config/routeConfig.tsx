@@ -24,6 +24,11 @@ const CurrentMLModelPredictionPage = lazyPage(
 // PFI
 const PfiPage = lazyPage(() => import('@/pages/PfiPage/ui/PfiPage'))
 
+// Docs / описания — структура, как ты попросил
+const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
+const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage/ui/DocsModelsPage'))
+const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage/ui/DocsTestsPage'))
+
 // Основная конфигурация маршрутов
 export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
@@ -113,6 +118,45 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             sidebar: true,
             label: 'PFI по моделям',
             section: 'features',
+            order: 2
+        }
+    },
+
+    // ===== ДОКУМЕНТАЦИЯ / ОПИСАНИЯ =====
+    {
+        id: AppRoute.DOCS,
+        path: ROUTE_PATH[AppRoute.DOCS],
+        element: <DocsPage />,
+        layout: 'app',
+        nav: {
+            sidebar: false, // ВАЖНО: НЕ показываем /docs в сайдбаре, только в navbar
+            navbar: true,
+            label: 'Docs',
+            section: 'docs',
+            navbarOrder: 4
+        }
+    },
+    {
+        id: AppRoute.DOCS_MODELS,
+        path: ROUTE_PATH[AppRoute.DOCS_MODELS],
+        element: <DocsModelsPage />,
+        layout: 'app',
+        nav: {
+            sidebar: true,
+            label: 'Модели',
+            section: 'docs',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.DOCS_TESTS,
+        path: ROUTE_PATH[AppRoute.DOCS_TESTS],
+        element: <DocsTestsPage />,
+        layout: 'app',
+        nav: {
+            sidebar: true,
+            label: 'Тесты',
+            section: 'docs',
             order: 2
         }
     },

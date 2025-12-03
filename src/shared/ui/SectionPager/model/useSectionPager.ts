@@ -29,10 +29,9 @@ interface UseSectionPagerOptions {
 
 interface UseSectionPagerResult {
     /**
-     * Текущий индекс активной секции.
-     * Для UI это единственный источник правды:
-     *   - подсветка секции;
-     *   - состояния стрелок (canPrev/canNext).
+     * Текущий индекс активной секции:
+     * - отражает фактическое положение скролла;
+     * - используется для подсветки и для стрелок.
      */
     currentIndex: number
     canPrev: boolean
@@ -42,8 +41,7 @@ interface UseSectionPagerResult {
 }
 
 /**
- * Локальное разрешение anchor-отступа для логики
- * "какая секция активна при скролле".
+ * Локальное чтение anchor-отступа для расчёта "линии якоря" при скролле.
  * Логика аналогична resolveOffsetTop из scrollToAnchor.
  */
 function resolveAnchorOffsetForScroll(offsetTop?: number): number {
@@ -81,13 +79,11 @@ function resolveAnchorOffsetForScroll(offsetTop?: number): number {
 
 /**
  * Общая логика пагинации по секциям:
- * - хранит currentIndex, основанный на реальной позиции скролла;
- * - при программных переходах (стрелки / подвкладки / hash) отмечает
- *   целевой индекс и не даёт scroll-обработчику дёргать currentIndex,
- *   пока не доедем до цели или пользователь не сорвёт анимацию;
- * - стрелки (handlePrev/handleNext) и canPrev/canNext работают ТОЛЬКО
- *   от currentIndex, без оглядки на "целевую" позицию, чтобы не было
- *   ситуации "первый клик ничего не делает".
+ * - currentIndex всегда обновляется от реального скролла;
+ * - programmaticTargetIndexRef используется ТОЛЬКО как "цель" для UI,
+ *   чтобы стрелки не мигали во время плавного перехода;
+ * - стрелки всегда опираются на "эффективный" индекс
+ *   (целевой, если переход в пути, иначе текущий).
  */
 export function useSectionPager({
     sections,
@@ -97,25 +93,19 @@ export function useSectionPager({
     const location = useLocation()
     const navigate = useNavigate()
 
-    /**
-     * Логический текущий индекс (по факту позиции на странице).
-     * Обновляется:
-     * - из scroll-обработчика;
-     * - из hash-эффекта при прямом переходе по якорю.
-     */
+    // Индекс секции, ближайшей к "линии якоря" (scrollTop + anchorOffset).
     const [currentIndex, setCurrentIndex] = useState(0)
 
     /**
-     * Цель программного перехода:
-     * - не null → сейчас идёт программный скролл к этой секции;
-     * - null     → программного скролла нет, можно свободно доверять scroll-позиции.
-     *
-     * ВАЖНО: это состояние используется ТОЛЬКО внутри scroll-обработчика
-     * и hash-эффекта, стрелки на него не смотрят.
+     * Целевой индекс при программном переходе (стрелки / hash / подвкладки).
+     * Используется:
+     * - чтобы UI показывал "куда едем" (effectiveIndex);
+     * - чтобы понять, когда мы доехали и можно сбрасывать цель.
+     * НЕ блокирует обновление currentIndex.
      */
     const programmaticTargetIndexRef = useRef<number | null>(null)
 
-    // Держим currentIndex в допустимых границах при изменении списка секций.
+    // Страхуемся от выхода currentIndex за границы при смене списка секций.
     useEffect(() => {
         if (sections.length === 0) {
             if (currentIndex !== 0) {
@@ -132,8 +122,14 @@ export function useSectionPager({
 
     /**
      * Реакция на изменение hash (подвкладки / прямые ссылки):
-     * - выставляем целевой индекс программного перехода;
-     * - запускаем плавный скролл к якорю.
+     * - вычисляем индекс секции по anchor;
+     * - выставляем целевой индекс;
+     * - запускаем scrollToAnchor.
+     *
+     * Важный момент:
+     * - даже если роутер не перерисовал hash (navigate на тот же самый),
+     *   переход по якорю для стрелок мы делаем напрямую (в goToIndex),
+     *   а тут — по "внешним" изменениям hash (клики по Link'ам).
      */
     useEffect(() => {
         if (!syncHash || sections.length === 0) return
@@ -154,14 +150,15 @@ export function useSectionPager({
     }, [location.hash, sections, syncHash, offsetTop])
 
     /**
-     * Синхронизация currentIndex с РУЧНЫМ скроллом:
-     * - слушаем scroll на .app (глобальный scroll-root);
-     * - вычисляем линию якоря: scrollTop + anchorOffset;
-     * - если есть активный программный переход:
-     *     • пока мы "в пути" — не дёргаем currentIndex, чтобы стрелки не мигали;
-     *     • как только доехали до цели или сильно уехали — сбрасываем цель;
-     * - если цели нет — выбираем секцию, чей якорь ближе всего к anchorLine,
-     *   и обновляем currentIndex.
+     * Синхронизация currentIndex с РУЧНЫМ и программным скроллом:
+     * - слушаем scroll на .app;
+     * - считаем "линию якоря" (scrollTop + anchorOffset);
+     * - находим секцию, чей top ближе всего к этой линии;
+     * - обновляем currentIndex.
+     *
+     * Никаких early-return'ов из-за programmaticTargetIndexRef здесь нет:
+     * currentIndex всегда описывает фактическую позицию.
+     * Это гарантирует, что стрелки никогда не будут "зависать".
      */
     useEffect(() => {
         if (!syncHash || sections.length === 0) {
@@ -188,49 +185,6 @@ export function useSectionPager({
             const containerRect = scrollRoot.getBoundingClientRect()
             const anchorLine = scrollTop + anchorOffset
 
-            const targetIndex = programmaticTargetIndexRef.current
-
-            if (targetIndex !== null && targetIndex >= 0 && targetIndex < sections.length) {
-                // Пока есть целевая секция — проверяем, не доехали ли до неё.
-                const targetSection = sections[targetIndex]
-                const targetEl = targetSection.anchor ? document.getElementById(targetSection.anchor) : null
-
-                if (targetEl) {
-                    const rectTarget = targetEl.getBoundingClientRect()
-                    const elementTopTarget = rectTarget.top - containerRect.top + scrollTop
-                    const distanceToTarget = Math.abs(elementTopTarget - anchorLine)
-
-                    // Порог "приехали" — несколько пикселей.
-                    const EPS = 4
-                    // Порог "пользователь сорвал анимацию" — далеко от цели.
-                    const CANCEL_DIST = scrollRoot.clientHeight * 1.5
-
-                    if (distanceToTarget <= EPS) {
-                        // Считаем, что доехали: фиксируем индекс и снимаем флаг.
-                        programmaticTargetIndexRef.current = null
-                        setCurrentIndex(prev => (prev === targetIndex ? prev : targetIndex))
-                        return
-                    }
-
-                    if (distanceToTarget > CANCEL_DIST) {
-                        // Пользователь сильно уехал от целевой секции —
-                        // больше не считаем скролл программным.
-                        programmaticTargetIndexRef.current = null
-                        // Ниже отработает обычная логика и выберет ближайшую секцию.
-                    } else {
-                        // Программный скролл ещё в пути — не дёргаем currentIndex,
-                        // чтобы стрелки не мигали.
-                        return
-                    }
-                } else {
-                    // Якорь целевой секции не найден (DOM ещё не смонтировался
-                    // или секцию скрыли). Сбрасываем программное состояние.
-                    programmaticTargetIndexRef.current = null
-                    // Далее — обычная логика выбора секции.
-                }
-            }
-
-            // Обычная логика: выбираем секцию, чья "линия якоря" ближе всего к anchorLine.
             let bestIndex = 0
             let bestDistance = Number.POSITIVE_INFINITY
 
@@ -258,18 +212,38 @@ export function useSectionPager({
 
         scrollRoot.addEventListener('scroll', handleScroll, { passive: true })
 
+        // Синхронизация при первом рендере (если страница уже проскроллена).
+        handleScroll()
+
         return () => {
             scrollRoot.removeEventListener('scroll', handleScroll)
         }
     }, [sections, syncHash, offsetTop])
 
     /**
-     * Программный переход по секциям (стрелки).
-     * Важно:
-     * - база для расчёта nextIndex — ТОЛЬКО currentIndex;
-     * - programmaticTargetIndexRef используется только для того,
-     *   чтобы scroll-обработчик не дёргал currentIndex во время
-     *   плавного скролла.
+     * Сбрасываем "целевой" индекс, когда фактический currentIndex доехал до него.
+     * Это нужно, чтобы effectiveIndex в UI переключился обратно
+     * на обычный currentIndex после окончания анимации.
+     */
+    useEffect(() => {
+        const target = programmaticTargetIndexRef.current
+        if (target === null) return
+
+        if (target === currentIndex) {
+            programmaticTargetIndexRef.current = null
+        }
+    }, [currentIndex])
+
+    /**
+     * Программный переход по секциям (стрелки):
+     * - база всегда currentIndex (эффективный индекс мы считаем отдельно);
+     * - выставляем целевой индекс;
+     * - обязательно вызываем scrollToAnchor НАПРЯМУЮ;
+     * - при syncHash также обновляем hash через navigate, чтобы
+     *   URL / подсветки в сайдбаре были в консистентном состоянии.
+     *
+     * Таким образом, даже если navigate на тот же hash не триггерит
+     * rerender location, переход не "ломается" — scrollToAnchor уже вызван.
      */
     const goToIndex = useCallback(
         (nextIndex: number) => {
@@ -281,10 +255,16 @@ export function useSectionPager({
             programmaticTargetIndexRef.current = nextIndex
 
             if (syncHash) {
-                // Меняем hash — hash-эффект выше сделает scrollToAnchor.
+                // Обновляем hash (для URL/сайдбара)...
                 navigate(`#${section.anchor}`)
+                // ...но НЕ полагаемся на useEffect по hash,
+                // сразу делаем реальный скролл.
+                scrollToAnchor(section.anchor, {
+                    behavior: 'smooth',
+                    offsetTop,
+                    withTransitionPulse: true
+                })
             } else {
-                // Локальная пагинация без hash — сразу скроллим.
                 scrollToAnchor(section.anchor, {
                     behavior: 'smooth',
                     offsetTop,
@@ -296,6 +276,7 @@ export function useSectionPager({
     )
 
     const handlePrev = useCallback(() => {
+        // База — currentIndex, который всегда описывает реальное положение.
         goToIndex(currentIndex - 1)
     }, [currentIndex, goToIndex])
 
@@ -303,11 +284,20 @@ export function useSectionPager({
         goToIndex(currentIndex + 1)
     }, [currentIndex, goToIndex])
 
-    const canPrev = sections.length > 1 && currentIndex > 0
-    const canNext = sections.length > 1 && currentIndex < sections.length - 1
+    /**
+     * Эффективный индекс:
+     * - если есть целевой программный переход → показываем его (стрелки/подсветка),
+     * - иначе → обычный currentIndex.
+     *
+     * Это убирает мигание стрелок во время анимации: UI "знает", что цель уже другая.
+     */
+    const effectiveIndex = programmaticTargetIndexRef.current ?? currentIndex
+
+    const canPrev = sections.length > 1 && effectiveIndex > 0
+    const canNext = sections.length > 1 && effectiveIndex < sections.length - 1
 
     return {
-        currentIndex,
+        currentIndex: effectiveIndex,
         canPrev,
         canNext,
         handlePrev,

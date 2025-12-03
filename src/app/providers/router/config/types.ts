@@ -14,6 +14,11 @@ export enum AppRoute {
     MODELS_STATS = 'MODELS_STATS',
     FEATURES_STATS = 'FEATURES_STATS',
 
+    // Документация / описания
+    DOCS = 'DOCS',
+    DOCS_MODELS = 'DOCS_MODELS',
+    DOCS_TESTS = 'DOCS_TESTS',
+
     ABOUT = 'ABOUT',
     CONTACT = 'CONTACT',
     REGISTRATION = 'REGISTRATION',
@@ -26,13 +31,13 @@ export enum AppRoute {
 export type RouteLayout = 'app' | 'bare'
 
 // Логические группы для сайдбара
-export type RouteSection = 'models' | 'backtest' | 'features' | 'system'
+export type RouteSection = 'models' | 'backtest' | 'features' | 'docs' | 'system'
 
 export interface RouteNavMeta {
     sidebar?: boolean // показывать ли в сайдбаре
     navbar?: boolean // показывать ли в верхнем navbar
     label: string // подпись в меню
-    section?: RouteSection // группа (Модели / Бэктест / Фичи / System)
+    section?: RouteSection // группа (Модели / Бэктест / Фичи / Docs / System)
     order?: number // порядок внутри группы (сайдбар)
     navbarOrder?: number // порядок в navbar
 }

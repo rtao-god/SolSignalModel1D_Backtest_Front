@@ -1,0 +1,65 @@
+.DocsModelsPage {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.headerRow {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.subtitle {
+    margin-top: 8px;
+    max-width: 720px;
+    opacity: 0.8;
+}
+
+.modeToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.modeButton {
+    min-width: 80px;
+    padding-inline: 12px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.modeButtonActive {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.sectionsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 960px;
+}
+
+.sectionCard {
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.sectionTitle {
+    margin-bottom: 8px;
+}
+
+.sectionText {
+    opacity: 0.9;
+    line-height: 1.6;
+}

@@ -75,6 +75,47 @@ function isTableSection(section: ReportSectionDto): section is TableSectionDto {
 }
 
 /**
+ * Представление метаданных по выбранному сегменту в одном месте.
+ * Это упрощает отображение и переиспользуется и для бейджа, и для текста под переключателями.
+ */
+interface ResolvedSegmentMeta {
+    label: string
+    description: string
+}
+
+function resolveSegmentMeta(segment: SegmentKey, meta: GlobalMeta | null): ResolvedSegmentMeta | null {
+    // Если глобальные метаданные ещё не успели приехать — ничего не показываем.
+    if (!meta) {
+        return null
+    }
+
+    switch (segment) {
+        case 'OOS': {
+            const label = 'OOS (честная проверка)'
+            const description = `${label}: записей ${meta.oosRecordsCount}. Используется для оценки качества на данных, которых модель не видела при обучении.`
+            return { label, description }
+        }
+        case 'TRAIN': {
+            const label = 'Train (обучение)'
+            const description = `${label}: записей ${meta.trainRecordsCount}. Показывает, как модель ведёт себя на обучающей выборке.`
+            return { label, description }
+        }
+        case 'FULL': {
+            const label = 'Full history'
+            const description = `${label}: записей ${meta.totalRecordsCount}. Вся доступная история данных.`
+            return { label, description }
+        }
+        case 'RECENT': {
+            const label = `Recent (${meta.recentDays} d)`
+            const description = `${label}: записей ${meta.recentRecordsCount}. Свежий отрезок данных за последние дни.`
+            return { label, description }
+        }
+        default:
+            return null
+    }
+}
+
+/**
  * Переключатель бизнес/тех-режима.
  * Управляет только выбором daily confusion summary vs technical matrix.
  */
@@ -163,6 +204,7 @@ function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
 /**
  * Карточка табличной секции.
  * Заголовок очищается от префикса сегмента.
+ * Добавлен aria-labelledby, чтобы экранные дикторы корректно зачитывали подпись таблицы.
  */
 function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     if (!section.columns || section.columns.length === 0) {
@@ -170,11 +212,12 @@ function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     }
 
     const visibleTitle = stripSegmentPrefix(section.title)
+    const headingId = `${domId}-title`
 
     return (
-        <section id={domId} className={cls.tableCard}>
+        <section id={domId} aria-labelledby={headingId} className={cls.tableCard}>
             <header className={cls.cardHeader}>
-                <Text type='h3' className={cls.cardTitle}>
+                <Text type='h3' className={cls.cardTitle} id={headingId}>
                     {visibleTitle}
                 </Text>
             </header>
@@ -209,6 +252,10 @@ function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
  * - читает global-meta (RunKind, HasOos, размеры выборок);
  * - даёт выбрать сегмент (OOS / Train / Full / Recent);
  * - бизнес/тех-режим управляет версией daily confusion.
+ *
+ * Вёрстка и тексты подстроены под тёмную тему и сценарий:
+ * "быстро понять, что за отчёт, какой сегмент и режим сейчас выбраны
+ *  и какие данные лежат под каждой карточкой".
  */
 export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     const { data, isLoading, isError } = useGetModelStatsReportQuery()
@@ -374,39 +421,13 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         // offsetTop берётся из CSS-переменной внутри scrollToAnchor
     })
 
-    // Краткое описание выбранного сегмента с размером выборки.
-    const segmentDescription = useMemo(() => {
-        if (!segment || !globalMeta) {
-            return ''
-        }
+    // Метаданные для текущего сегмента: единый источник правды и для бейджа, и для описания.
+    const currentSegmentMeta = useMemo(
+        () => (segment ? resolveSegmentMeta(segment, globalMeta) : null),
+        [segment, globalMeta]
+    )
 
-        let segmentLabel: string
-        let recordsCount: number
-
-        switch (segment) {
-            case 'OOS':
-                segmentLabel = 'OOS (честный)'
-                recordsCount = globalMeta.oosRecordsCount
-                break
-            case 'TRAIN':
-                segmentLabel = 'Train'
-                recordsCount = globalMeta.trainRecordsCount
-                break
-            case 'FULL':
-                segmentLabel = 'Full history'
-                recordsCount = globalMeta.totalRecordsCount
-                break
-            case 'RECENT':
-                segmentLabel = `Recent (${globalMeta.recentDays} d)`
-                recordsCount = globalMeta.recentRecordsCount
-                break
-            default:
-                segmentLabel = segment
-                recordsCount = 0
-        }
-
-        return `${segmentLabel}: записей ${recordsCount}`
-    }, [segment, globalMeta])
+    const segmentDescription = currentSegmentMeta?.description ?? ''
 
     if (isLoading) {
         return (
@@ -427,26 +448,47 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     return (
         <div className={classNames(cls.ModelStatsPage, {}, [className ?? ''])}>
             <header className={cls.headerRow}>
-                <div>
+                <div className={cls.headerMain}>
                     <Text type='h2'>{data.title || 'Статистика моделей'}</Text>
                     <Text type='p' className={cls.subtitle}>
                         Сводный отчёт по качеству и поведению ML-моделей на разных выборках (train / OOS / full /
-                        recent).
+                        recent). Сначала выберите сегмент данных и режим отчёта, ниже — детальные карточки с метриками.
                     </Text>
+
+                    <div className={cls.badgesRow}>
+                        {currentSegmentMeta && <span className={cls.badge}>Сегмент: {currentSegmentMeta.label}</span>}
+                        <span className={cls.badge}>
+                            Режим:{' '}
+                            {mode === 'business' ?
+                                'Бизнес-представление (агрегированные показатели)'
+                            :   'Технический (подробные матрицы ошибок)'}
+                        </span>
+                        {globalMeta?.runKind && <span className={cls.badge}>Тип запуска: {globalMeta.runKind}</span>}
+                    </div>
                 </div>
+
                 <div className={cls.meta}>
-                    <Text type='p'>Generated at: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
-                    <Text type='p'>Kind: {data.kind}</Text>
+                    <Text type='p' className={cls.metaTitle}>
+                        Параметры прогона
+                    </Text>
+                    <Text type='p' className={cls.metaLine}>
+                        Сформирован: {new Date(data.generatedAtUtc).toLocaleString()}
+                    </Text>
+                    <Text type='p' className={cls.metaLine}>
+                        Тип отчёта: {data.kind}
+                    </Text>
                     {globalMeta && (
                         <>
-                            <Text type='p'>Run kind: {globalMeta.runKind || 'n/a'}</Text>
-                            <Text type='p'>
+                            <Text type='p' className={cls.metaLine}>
+                                Run kind: {globalMeta.runKind || 'n/a'}
+                            </Text>
+                            <Text type='p' className={classNames(cls.metaLine, {}, [cls.metaLineStrong])}>
                                 OOS:{' '}
                                 {globalMeta.hasOos ?
                                     `есть, записей ${globalMeta.oosRecordsCount}`
                                 :   'нет (используется только train)'}
                             </Text>
-                            <Text type='p'>
+                            <Text type='p' className={cls.metaLine}>
                                 Train: {globalMeta.trainRecordsCount}, Recent ({globalMeta.recentDays} d):{' '}
                                 {globalMeta.recentRecordsCount}
                             </Text>
@@ -455,12 +497,26 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 </div>
             </header>
 
-            {/* Переключатели сегмента и бизнес/тех-режима */}
-            <SegmentToggle segments={availableSegments} value={segment} onChange={setSegment} />
-            <ModelStatsModeToggle mode={mode} onChange={setMode} />
+            {/* Переключатели сегмента и бизнес/тех-режима + пояснение как читать отчёт */}
+            <section className={cls.controlBar}>
+                <div className={cls.controlBarMain}>
+                    <SegmentToggle segments={availableSegments} value={segment} onChange={setSegment} />
+                    <ModelStatsModeToggle mode={mode} onChange={setMode} />
+                </div>
+                <div className={cls.controlBarInfo}>
+                    <Text type='p' className={cls.controlTitle}>
+                        Как читать этот отчёт
+                    </Text>
+                    <Text type='p' className={cls.controlText}>
+                        Сегменты (OOS / Train / Full / Recent) задают, на каких данных считаются метрики. Режим
+                        &quot;Бизнес&quot; показывает агрегированные показатели, &quot;Технарь&quot; — детальные матрицы
+                        ошибок и распределения для анализа модели.
+                    </Text>
+                </div>
+            </section>
 
             {segmentDescription && (
-                <Text type='p' className={cls.subtitle}>
+                <Text type='p' className={cls.segmentSubtitle}>
                     {segmentDescription}
                 </Text>
             )}

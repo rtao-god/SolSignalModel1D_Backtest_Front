@@ -8,33 +8,36 @@ interface LangSwitcherProps {
 }
 
 export default function LangSwitcher({ className }: LangSwitcherProps) {
-    // Берём только i18n, t здесь не нужен
     const { i18n } = useTranslation('LangSwitcher')
 
-    // Вычисляем, на какой язык переключаться
-    // Зачем: логика переключения в одном месте, чтобы можно было легко расширить (например, добавить 'ka')
-    const nextLang = i18n.language.startsWith('ru') ? 'en' : 'ru'
+    // Оставляем логику "двух языков" в одном месте.
+    // При появлении третьего (например, 'ka') будет одна точка расширения.
+    const isRu = i18n.language.startsWith('ru')
+    const currentLang = (isRu ? 'ru' : 'en') as 'ru' | 'en'
+    const nextLang = isRu ? 'en' : 'ru'
 
-    // Асинхронный переключатель языка
-    // Зачем: i18next.changeLanguage возвращает промис, можно потом добавить обработку ошибок/лоадер
+    const currentLabel = currentLang.toUpperCase()
+    const nextLabel = nextLang.toUpperCase()
+
+    // Делаем переключатель async, чтобы при необходимости можно было
+    // навесить обработку ошибок/лоадер/метрику вокруг одной точки входа.
     const toggle = async () => {
         await i18n.changeLanguage(nextLang)
     }
 
-    // Текущий язык в виде RU / EN (на случай ru-RU, en-US и т.п. берём первые 2 буквы)
-    const currentLang = i18n.language.slice(0, 2).toUpperCase()
-
     return (
         <Btn
             className={classNames(cls.Lang_switcher, {}, [className ?? ''])}
-            // ВАЖНО: передаём сам колбэк, а не () => toggle
             onClick={toggle}
-            // Можно сразу подумать про a11y
-            aria-label={`Switch language to ${nextLang.toUpperCase()}`}
-            title={`Switch language to ${nextLang.toUpperCase()}`}>
-            {/* Показываем текущий и целевой язык: RU / EN */}
-            {currentLang} / {nextLang.toUpperCase()}
+            data-lang={currentLang}
+            aria-label={`Switch language to ${nextLabel}`}
+            title={`Switch language to ${nextLabel}`}>
+            {/* Визуально показываем только текущий язык, а состояние переключения
+                — через цвет/акцент и подсказку (title/aria). */}
+            <span className={cls.Lang_switcherInner}>
+                <span className={cls.Lang_switcherDot} />
+                <span className={cls.Lang_switcherCode}>{currentLabel}</span>
+            </span>
         </Btn>
     )
 }
-

@@ -1,4 +1,1 @@
-@import 'mixins';
-@import 'variables';
-@import 'fonts/_fonts';
-@import 'themes';
+@import 'mixins'; // ВАЖНО: в mixins не должно быть ни одного css класса. Все классы должны начинатсья только с @mixin.
