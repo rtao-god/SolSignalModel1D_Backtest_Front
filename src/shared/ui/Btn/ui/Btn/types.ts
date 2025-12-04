@@ -1,18 +1,19 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react'
 
-export interface CustomBtnProps {
+export type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'chip'
+export type BtnSize = 'sm' | 'md' | 'lg'
+export type BtnColorScheme = 'blue' | 'green' | 'accent' | 'danger' | 'neutral'
+
+/**
+ * Публичный API кнопки: декларативные варианты
+ */
+export interface BtnOwnProps {
     children: ReactNode
-    color?: string
-    width?: string
-    height?: string
-    br?: string
-    padding?: string
-    border?: string
-    fz?: string
-    minW?: string
+    variant?: BtnVariant
+    size?: BtnSize
+    colorScheme?: BtnColorScheme
     className?: string
-    size?: 'small' | 'medium' | 'large'
     dataTestid?: string
 }
 
-export type BtnProps = CustomBtnProps & ButtonHTMLAttributes<HTMLButtonElement>
+export type BtnProps = BtnOwnProps & ButtonHTMLAttributes<HTMLButtonElement>
