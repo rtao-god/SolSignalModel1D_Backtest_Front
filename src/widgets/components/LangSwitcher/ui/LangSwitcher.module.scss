@@ -4,7 +4,7 @@
     align-items: center;
 
     padding: 4px 10px;
-    border-radius: 9999px;
+    border-radius: 50px;
 
     // Минимальная ширина, чтобы не прыгает layout при смене языка.
     min-width: 40px;
@@ -88,5 +88,66 @@
     .Lang_switcherDot {
         background: radial-gradient(circle at 30% 30%, #bfdbfe, transparent 70%);
         box-shadow: 0 0 10px rgba(59, 130, 246, 0.9);
+    }
+}
+
+/* Адаптация под более мелкие экраны:
+ * - уменьшаем отступы и шрифт;
+ * - убираем лишний "декор" (точку) на совсем маленьких, оставляя только код языка.
+ */
+
+@media (max-width: 768px) {
+    .Lang_switcher {
+        padding: 3px 8px;
+        min-width: 36px;
+        box-shadow:
+            0 0 0 1px rgba(15, 23, 42, 0.9),
+            0 8px 14px rgba(15, 23, 42, 0.9);
+    }
+
+    .Lang_switcherCode {
+        font-size: 11px;
+        letter-spacing: 0.07em;
+    }
+
+    .Lang_switcherInner {
+        gap: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .Lang_switcher {
+        padding: 2px 8px !important;
+        min-width: 32px;
+        box-shadow:
+            0 0 0 1px rgba(15, 23, 42, 0.9),
+            0 6px 12px rgba(15, 23, 42, 0.9);
+    }
+
+    .Lang_switcherInner {
+        gap: 2px;
+    }
+
+    // На очень маленьких экранах убираем декоративную точку,
+    // оставляя только читаемый код языка — экономим горизонтальное место.
+    .Lang_switcherDot {
+        display: none;
+    }
+
+    .Lang_switcherCode {
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
+}
+
+@media (max-width: 360px) {
+    .Lang_switcher {
+        min-width: 30px;
+        padding: 2px 6px;
+    }
+
+    .Lang_switcherCode {
+        font-size: 9px;
+        letter-spacing: 0.05em;
     }
 }

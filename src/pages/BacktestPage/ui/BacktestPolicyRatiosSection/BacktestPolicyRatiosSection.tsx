@@ -3,7 +3,7 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import { useGetBacktestPolicyRatiosQuery } from '@/shared/api/api'
 import type { PolicyRatiosReportDto, PolicyRatiosPerPolicyDto } from '@/shared/types/policyRatios.types'
-import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
+import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from 'recharts'
 import cls from './BacktestPolicyRatiosSection.module.scss'
 
 interface BacktestPolicyRatiosSectionProps {
@@ -12,6 +12,22 @@ interface BacktestPolicyRatiosSectionProps {
     /** Заголовок секции. */
     title?: string
 }
+
+/** Доступные метрики для графика и таблицы. */
+type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
+
+/**
+ * Конфигурация метрик:
+ * - label используется в селекте и легенде графика,
+ * - isPercent определяет форматирование оси и tooltip.
+ */
+const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = [
+    { key: 'totalPnlPct', label: 'PnL %', isPercent: true },
+    { key: 'sharpe', label: 'Sharpe' },
+    { key: 'sortino', label: 'Sortino' },
+    { key: 'calmar', label: 'Calmar' },
+    { key: 'winRatePct', label: 'WinRate %', isPercent: true }
+]
 
 /**
  * Секция метрик политик:
@@ -28,21 +44,15 @@ export function BacktestPolicyRatiosSection({
     const { data, isLoading, isError, error } = useGetBacktestPolicyRatiosQuery(profileId)
 
     const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
-
-    type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
-
     const [metricKey, setMetricKey] = useState<MetricKey>('totalPnlPct')
 
-    const metricOptions: { key: MetricKey; label: string }[] = [
-        { key: 'totalPnlPct', label: 'PnL %' },
-        { key: 'sharpe', label: 'Sharpe' },
-        { key: 'sortino', label: 'Sortino' },
-        { key: 'calmar', label: 'Calmar' },
-        { key: 'winRatePct', label: 'WinRate %' }
-    ]
-
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
+    const isPercentMetric = Boolean(currentMetric.isPercent)
 
+    /**
+     * Унифицированный доступ к значениям метрик.
+     * Здесь только извлечение значения, без форматирования и без фильтрации NaN/Infinity.
+     */
     const selectMetric = (row: PolicyRatiosPerPolicyDto, key: MetricKey): number => {
         switch (key) {
             case 'totalPnlPct':
@@ -60,14 +70,26 @@ export function BacktestPolicyRatiosSection({
         }
     }
 
+    /**
+     * Данные для графика:
+     * - приводим значения к числу или null (если NaN/Infinity),
+     * - график не будет ломаться на проблемных значениях (например, Sharpe при отсутствии сделок).
+     */
     const chartData = useMemo(
         () =>
-            (data?.policies ?? []).map(row => ({
-                policyName: row.policyName,
-                value: selectMetric(row, metricKey)
-            })),
+            (data?.policies ?? []).map(row => {
+                const raw = selectMetric(row, metricKey)
+                const value = Number.isFinite(raw) ? raw : null
+
+                return {
+                    policyName: row.policyName,
+                    value
+                }
+            }),
         [data, metricKey]
     )
+
+    const hasValidChartValues = chartData.some(d => d.value !== null)
 
     if (isLoading) {
         return (
@@ -161,15 +183,87 @@ export function BacktestPolicyRatiosSection({
 
             {viewMode === 'chart' ?
                 <div className={cls.chartContainer}>
-                    <ResponsiveContainer width='100%' height='100%'>
-                        <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray='3 3' />
-                            <XAxis dataKey='policyName' />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey='value' name={currentMetric.label} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {hasValidChartValues ?
+                        <ResponsiveContainer width='100%' height='100%'>
+                            <BarChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 40 }}>
+                                <CartesianGrid strokeDasharray='3 3' vertical={false} />
+
+                                <XAxis
+                                    dataKey='policyName'
+                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
+                                    angle={-35}
+                                    textAnchor='end'
+                                    height={50}
+                                />
+
+                                <YAxis
+                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
+                                    width={60}
+                                    tickFormatter={value => {
+                                        if (typeof value !== 'number') {
+                                            return value
+                                        }
+
+                                        if (isPercentMetric) {
+                                            // Для процентов на оси достаточно целых значений (0%, 10%, 20%, ...)
+                                            return `${value.toFixed(0)}%`
+                                        }
+
+                                        // Для коэффициентов показываем целые значения на оси,
+                                        // детализация уходит в tooltip.
+                                        return value.toFixed(0)
+                                    }}
+                                />
+
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(255, 255, 255, 0.16)',
+                                        padding: '8px 10px',
+                                        fontSize: 12
+                                    }}
+                                    labelStyle={{
+                                        fontWeight: 500,
+                                        marginBottom: 4
+                                    }}
+                                    formatter={(value: any) => {
+                                        if (typeof value !== 'number') {
+                                            return value
+                                        }
+
+                                        const formatted = isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(2)
+
+                                        return [formatted, currentMetric.label]
+                                    }}
+                                    labelFormatter={label => `Политика: ${label}`}
+                                />
+
+                                {/* Линия нулевого уровня — визуальное разделение "плюс/минус" */}
+                                <ReferenceLine y={0} stroke='rgba(255, 255, 255, 0.4)' strokeDasharray='3 3' />
+
+                                <Bar dataKey='value' name={currentMetric.label} radius={[4, 4, 0, 0]} barSize={28}>
+                                    {chartData.map(entry => (
+                                        <Cell
+                                            key={entry.policyName}
+                                            fill={
+                                                entry.value == null ? 'rgba(255, 255, 255, 0.3)'
+                                                : entry.value >= 0 ?
+                                                    '#4caf50'
+                                                :   '#ff6b6b'
+                                            }
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    :   <div className={cls.chartEmptyState}>
+                            <Text type='p'>
+                                Нет валидных значений для выбранной метрики. Попробуйте выбрать другую метрику или
+                                изменить окно бэктеста.
+                            </Text>
+                        </div>
+                    }
                 </div>
             :   <div className={cls.tableWrapper}>
                     <table className={cls.table}>

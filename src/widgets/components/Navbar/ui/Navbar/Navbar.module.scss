@@ -12,7 +12,6 @@
     height: var(--navbar-height);
     padding: 4px 22px;
 
-    // Градиентный фон вместо плоского цвета, но не ломаем переменную var(--inverted-bg-color).
     background:
         radial-gradient(circle at 0% 0%, rgba(148, 163, 255, 0.2), transparent 55%),
         radial-gradient(circle at 100% 0%, rgba(248, 113, 113, 0.18), transparent 55%),
@@ -24,177 +23,263 @@
         background 0.3s ease,
         box-shadow 0.3s ease,
         height 0.3s ease;
-
-    .controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        flex-shrink: 0;
-    }
-
-    .links {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-
-        text-decoration: none;
-
-        a {
-            // Твои исходные кнопки: возвращаем ровно такую же визуалку.
-            padding: 8px 16px;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgb(0, 0, 0);
-
-            text-decoration: none;
-            color: white;
-
-            transition: all 0.3s ease;
-
-            &:hover {
-                box-shadow: 0 1px 3px rgb(255, 255, 255);
-                color: #000000;
-            }
-        }
-    }
-
-    .menuToggle {
-        // По умолчанию бургер спрятан — виден только на мобильных через media-query.
-        display: none;
-
-        position: relative;
-        width: 40px;
-        height: 40px;
-        border-radius: 9999px;
-        border: 1px solid rgba(248, 250, 252, 0.25);
-        background:
-            radial-gradient(circle at 30% 30%, rgba(248, 250, 252, 0.4), rgba(148, 163, 255, 0.05));
-        box-shadow:
-            0 0 0 1px rgba(15, 23, 42, 0.7),
-            0 14px 30px rgba(15, 23, 42, 0.9);
-        cursor: pointer;
-        padding: 0;
-
-        // Настройки выравнивания оставляем, чтобы они применялись,
-        // когда display станет inline-flex на мобильных.
-        flex-wrap: wrap;
-        flex-direction: column;
-        align-content: center;
-        justify-content: center;
-        align-items: center;
-
-        transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            background 0.18s ease;
-
-        &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 1);
-        }
-
-        &:active {
-            transform: translateY(0);
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
-        }
-
-        &:focus-visible {
-            outline: 2px solid rgba(148, 163, 255, 0.8);
-            outline-offset: 2px;
-        }
-    }
-
-    .menuToggleIcon {
-        position: relative;
-        width: 18px;
-        height: 18px;
-    }
-
-    .menuToggleIcon::before,
-    .menuToggleIcon::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        margin: auto;
-        background-color: rgba(248, 250, 252, 0.9);
-        border-radius: 9999px;
-        transition: transform 0.25s ease;
-    }
-
-    .menuToggleIcon::before {
-        width: 2px;
-        height: 100%;
-        transform-origin: center;
-    }
-
-    .menuToggleIcon::after {
-        width: 100%;
-        height: 2px;
-        transform-origin: center;
-    }
 }
 
 .Navbar_open {
     box-shadow: 0 0 25px 14px rgba(15, 23, 42, 0.9);
 }
 
-.menuToggle_open .menuToggleIcon::before {
-    transform: rotate(45deg);
+.Navbar_overflow {
+    height: auto;
 }
 
-.menuToggle_open .menuToggleIcon::after {
-    transform: rotate(-45deg);
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
 }
 
-.links_open {
-    display: flex !important;
+.linksWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex: 0 0 auto;
 }
 
-@media (max-width: 768px) {
+.linksRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.linksRow a,
+.secondaryLinks a {
+    padding: 8px 16px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgb(0, 0, 0);
+
+    text-decoration: none;
+    color: #ffffff;
+
+    transition: all 0.3s ease;
+    white-space: nowrap;
+
+    &:hover {
+        box-shadow: 0 1px 3px rgb(255, 255, 255);
+        color: #000000;
+    }
+}
+
+.secondaryLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+
+    transition:
+        max-height 0.22s ease,
+        opacity 0.18s ease,
+        margin-top 0.18s ease;
+}
+
+.secondaryLinks_open {
+    max-height: 260px;
+    opacity: 1;
+    pointer-events: auto;
+    margin-top: 6px;
+}
+
+/* Премиальная стрелка, под которой "появляются" дополнительные ссылки */
+
+.expandToggle {
+    position: relative;
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    padding: 0;
+
+    border: 1px solid rgba(148, 163, 255, 0.7);
+    background:
+        radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.55), transparent 55%),
+        linear-gradient(135deg, rgba(30, 64, 175, 0.98), rgba(147, 51, 234, 0.94));
+    box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 1),
+        0 10px 20px rgba(15, 23, 42, 0.9);
+
+    cursor: pointer;
+
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease,
+        background 0.22s ease,
+        opacity 0.22s ease;
+}
+
+.expandToggle:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 1),
+        0 14px 26px rgba(15, 23, 42, 1);
+    border-color: rgba(248, 250, 252, 0.95);
+}
+
+.expandToggle:active {
+    transform: translateY(0);
+    box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 1),
+        0 8px 16px rgba(15, 23, 42, 0.9);
+}
+
+.expandToggle:focus-visible {
+    outline: 2px solid rgba(191, 219, 254, 0.9);
+    outline-offset: 2px;
+}
+
+.expandToggleIcon {
+    position: relative;
+    width: 13px;
+    height: 13px;
+}
+
+.expandToggleIcon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+
+    width: 7px;
+    height: 7px;
+
+    border-right: 2px solid rgba(248, 250, 252, 0.97);
+    border-bottom: 2px solid rgba(248, 250, 252, 0.97);
+
+    border-radius: 2px;
+
+    transform: translateX(0) rotate(-45deg);
+    transform-origin: center;
+
+    transition: transform 0.22s ease;
+}
+
+.expandToggle_open {
+    transform: translateX(10px);
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: none;
+    border-color: transparent;
+}
+
+.expandToggle_open .expandToggleIcon::before {
+    transform: translateX(10px) rotate(-45deg);
+}
+
+/* Скрытый контейнер для измерения ширины ссылок */
+
+.measureRow {
+    position: absolute;
+    top: 0;
+    left: -9999px;
+    display: flex;
+    flex-direction: row;
+}
+
+.measureItem {
+    padding: 8px 16px;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+/* Десктоп: поведение максимально близко к исходному */
+
+@media (min-width: 1024px) {
     .Navbar {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .linksWrapper {
+        align-items: flex-end;
+    }
+
+    .secondaryLinks {
+        display: none;
+    }
+
+    .expandToggle {
+        display: none;
+    }
+}
+
+/* Планшеты и телефоны: включаем стрелку и компактные размеры */
+
+@media (max-width: 1023px) {
+    .Navbar {
         height: auto;
         padding: 8px 16px;
+    }
 
-        .controls {
-            width: 100%;
-            justify-content: space-between;
-        }
+    .Navbar_overflow .linksWrapper {
+        align-items: flex-start;
+        flex: 1 1 auto;
+    }
 
-        .links {
-            display: none;
-            width: 100%;
-            margin-top: 10px;
+    .linksRow {
+        justify-content: flex-start;
+        gap: 8px;
+    }
 
-            justify-content: center;
-            flex-wrap: wrap;
+    .linksRow a,
+    .secondaryLinks a {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
 
-            a {
-                white-space: nowrap;
-            }
-        }
-
-        // Только на мобильных бургер становится видимым.
-        .menuToggle {
-            display: inline-flex;
-        }
+    .expandToggle {
+        display: inline-flex;
+        flex-shrink: 0;
     }
 }
 
 @media (max-width: 480px) {
     .Navbar {
         padding-inline: 12px;
+    }
 
-        .links a {
-            padding: 8px 12px;
-            font-size: 13px;
-        }
+    .linksRow a,
+    .secondaryLinks a {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
 
-        .controls {
-            gap: 10px;
-        }
+    .expandToggle {
+        width: 28px;
+        height: 28px;
+    }
+
+    .expandToggleIcon {
+        width: 11px;
+        height: 11px;
     }
 }
+
+/* Старый switch оставлен на будущее, если понадобится */
 
 .switch {
     position: relative;
