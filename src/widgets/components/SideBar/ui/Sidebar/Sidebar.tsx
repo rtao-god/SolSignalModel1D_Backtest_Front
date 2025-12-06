@@ -15,6 +15,17 @@ import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 
 interface SidebarProps {
     className?: string
+    /**
+     * Режим отображения:
+     * - default — обычный сайдбар в лэйауте (ПК)
+     * - modal   — тот же контент, но внутри модалки (мобилка/планшет)
+     */
+    mode?: 'default' | 'modal'
+    /**
+     * Коллбек на клик по пункту меню (основному или подвкладке).
+     * В моб. режиме используется для закрытия модалки.
+     */
+    onItemClick?: () => void
 }
 
 // Порядок секций в сайдбаре для "боевого" режима
@@ -29,10 +40,11 @@ const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
     // system выводить не нужно — там служебные вещи
 }
 
-export default function AppSidebar({ className }: SidebarProps) {
+export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t } = useTranslation('')
     const location = useLocation()
 
+    const isModal = mode === 'modal'
     const isDocsRoute = location.pathname.startsWith('/docs')
 
     // ===== Хук: если hash был, а стал пустой — скроллим в самый верх =====
@@ -129,7 +141,15 @@ export default function AppSidebar({ className }: SidebarProps) {
     const currentHash = location.hash.replace('#', '')
 
     return (
-        <div data-testid='sidebar' className={classNames(cls.Sidebar, {}, [className ?? ''])}>
+        <div
+            data-testid='sidebar'
+            className={classNames(
+                cls.Sidebar,
+                {
+                    [cls.Sidebar_modal]: isModal
+                },
+                [className ?? '']
+            )}>
             <div className={cls.links}>
                 {orderedSections.map(section => {
                     const items = grouped.get(section) ?? []
@@ -183,6 +203,7 @@ export default function AppSidebar({ className }: SidebarProps) {
                                         {/* Основная вкладка */}
                                         <Link
                                             to={item.path}
+                                            onClick={onItemClick}
                                             className={classNames(cls.link, {
                                                 [cls.linkActive]: isRouteActiveBase && !hasSubNav,
                                                 [cls.linkGroup]: hasSubNav
@@ -210,6 +231,7 @@ export default function AppSidebar({ className }: SidebarProps) {
                                                             <Link
                                                                 key={tab.id}
                                                                 to={`${item.path}#${tab.anchor}`}
+                                                                onClick={onItemClick}
                                                                 className={classNames(cls.subLink, {
                                                                     [cls.subLinkActive]: isActiveTab
                                                                 })}>

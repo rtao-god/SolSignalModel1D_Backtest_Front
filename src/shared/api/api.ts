@@ -50,6 +50,8 @@ export const {
 
     // reports
     useGetCurrentPredictionQuery,
+    useGetCurrentPredictionIndexQuery,
+    useGetCurrentPredictionByDateQuery,
     useGetBacktestBaselineSummaryQuery,
     useGetBacktestBaselineSnapshotQuery,
 

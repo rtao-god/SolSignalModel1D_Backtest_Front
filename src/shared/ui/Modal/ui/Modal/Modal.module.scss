@@ -1,23 +1,44 @@
 .overlay {
     position: fixed;
-    top: 50%;
-    left: 50%;
+    inset: 0;
     z-index: var(--z-index-modal);
 
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 20px;
-    border-radius: 8px;
-    background-color: white;
 
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-    transform: translate(-50%, -50%) scale(1);
+    /* затемнение фона + лёгкий blur */
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+}
 
-    &.active {
-        transform: translate(-50%, -50%) scale(1);
+/* Карточка модалки */
+.Modal {
+    position: relative;
 
-        opacity: 1;
-    }
+    max-width: 100%;
+    max-height: 90vh;
+
+    border-radius: 12px;
+    background-color: var(--inverted-bg-color, #020617);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.8);
+
+    overflow: hidden;
+
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+    transition:
+        opacity 0.3s ease-out,
+        transform 0.3s ease-out;
+}
+
+/* Активное состояние (после монтирования) */
+.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+// Внутренний контент модалки
+.content {
+    padding: 0;
 }

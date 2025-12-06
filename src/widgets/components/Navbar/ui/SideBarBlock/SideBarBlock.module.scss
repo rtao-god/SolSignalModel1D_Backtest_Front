@@ -1,0 +1,52 @@
+.SideBarBlock {
+    position: fixed;
+    left: 4px;
+    top: calc(var(--navbar-height) + 10px);
+    z-index: 90;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    /* убираем визуальный фон/рамку/тень у Btn */
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    width: auto;
+    height: auto;
+    min-width: auto;
+
+    color: inherit;
+}
+
+.SideBarBlock svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* глушим hover-анимации Btn, чтобы не прыгало и не мутнело */
+.SideBarBlock:not(:disabled):hover {
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+/* на десктопе кнопка не нужна */
+@media (min-width: 1024px) {
+    .SideBarBlock {
+        display: none;
+    }
+}
+
+/* на очень маленьких экранах ещё чуть уменьшаем иконку */
+@media (max-width: 480px) {
+    .SideBarBlock {
+        left: 7px;
+    }
+
+    .SideBarBlock svg {
+        width: 16px;
+        height: 16px;
+    }
+}

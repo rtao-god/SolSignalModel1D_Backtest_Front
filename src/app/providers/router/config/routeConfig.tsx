@@ -18,13 +18,16 @@ const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage
 const BacktestPage = lazyPage(() => import('@/pages/BacktestPage/ui/BacktestPage'))
 const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport/ui/BacktestSummaryReportPage'))
 const CurrentMLModelPredictionPage = lazyPage(
-    () => import('@/pages/CurrentMLModelPredictionPage/CurrentMLModelPredictionPage')
+    () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage/ui/CurrentMLModelPredictionPage')
+)
+const PredictionHistoryPage = lazyPage(
+    () => import('@/pages/predictions/ui/PredictionHistoryPage/ui/PredictionHistoryPage')
 )
 
 // PFI
 const PfiPage = lazyPage(() => import('@/pages/PfiPage/ui/PfiPage'))
 
-// Docs / описания — структура, как ты попросил
+// Docs / описания — структура, как ты просил
 const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
 const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage/ui/DocsModelsPage'))
 const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage/ui/DocsTestsPage'))
@@ -44,7 +47,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
 
-    // ===== МОДЕЛИ =====
+    // ===== ПРОГНОЗЫ =====
     {
         id: AppRoute.CURRENT_PREDICTION,
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
@@ -53,10 +56,24 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         nav: {
             sidebar: true,
             label: 'Текущий прогноз',
-            section: 'models',
+            section: 'predictions',
             order: 1
         }
     },
+    {
+        id: AppRoute.CURRENT_PREDICTION_HISTORY,
+        path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_HISTORY],
+        element: <PredictionHistoryPage />,
+        layout: 'app',
+        nav: {
+            sidebar: true,
+            label: 'История прогнозов',
+            section: 'predictions',
+            order: 2
+        }
+    },
+
+    // ===== МОДЕЛИ =====
     {
         id: AppRoute.MODELS_STATS,
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
@@ -66,7 +83,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             sidebar: true,
             label: 'Статистика моделей',
             section: 'models',
-            order: 2
+            order: 1
         }
     },
 
@@ -129,7 +146,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         element: <DocsPage />,
         layout: 'app',
         nav: {
-            sidebar: false, // ВАЖНО: НЕ показываем /docs в сайдбаре, только в navbar
+            sidebar: false, // НЕ показываем /docs в сайдбаре, только в navbar
             navbar: true,
             label: 'Docs',
             section: 'docs',

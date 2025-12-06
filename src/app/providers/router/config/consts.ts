@@ -5,6 +5,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.MAIN]: '/',
 
     [AppRoute.CURRENT_PREDICTION]: '/current-prediction',
+    [AppRoute.CURRENT_PREDICTION_HISTORY]: '/current-prediction/history',
 
     [AppRoute.BACKTEST_BASELINE]: '/backtest/baseline',
     [AppRoute.BACKTEST_SUMMARY]: '/backtest/summary',
@@ -29,4 +30,4 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
 }
 
 // Порядок секций в сайдбаре
-export const ROUTE_SECTION_ORDER: RouteSection[] = ['models', 'backtest', 'features', 'docs', 'system']
+export const ROUTE_SECTION_ORDER: RouteSection[] = ['predictions', 'models', 'backtest', 'features', 'docs', 'system']

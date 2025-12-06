@@ -4,6 +4,7 @@ import type { RouteProps } from 'react-router'
 export enum AppRoute {
     MAIN = 'MAIN',
     CURRENT_PREDICTION = 'CURRENT_PREDICTION',
+    CURRENT_PREDICTION_HISTORY = 'CURRENT_PREDICTION_HISTORY',
 
     BACKTEST_BASELINE = 'BACKTEST_BASELINE',
     BACKTEST_SUMMARY = 'BACKTEST_SUMMARY',
@@ -31,13 +32,13 @@ export enum AppRoute {
 export type RouteLayout = 'app' | 'bare'
 
 // Логические группы для сайдбара
-export type RouteSection = 'models' | 'backtest' | 'features' | 'docs' | 'system'
+export type RouteSection = 'predictions' | 'models' | 'backtest' | 'features' | 'docs' | 'system'
 
 export interface RouteNavMeta {
     sidebar?: boolean // показывать ли в сайдбаре
     navbar?: boolean // показывать ли в верхнем navbar
     label: string // подпись в меню
-    section?: RouteSection // группа (Модели / Бэктест / Фичи / Docs / System)
+    section?: RouteSection // группа (Прогнозы / Модели / Бэктест / Фичи / Docs / System)
     order?: number // порядок внутри группы (сайдбар)
     navbarOrder?: number // порядок в navbar
 }

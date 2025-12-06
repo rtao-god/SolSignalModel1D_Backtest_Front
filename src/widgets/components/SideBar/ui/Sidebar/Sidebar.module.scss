@@ -79,7 +79,7 @@
 
 /* Групповая карточка для пунктов с подвкладками */
 .itemBlockGroup {
-    margin-top: 14px; 
+    margin-top: 14px;
     margin-bottom: 20px;
     padding: 6px 8px;
     border-radius: 18px;
@@ -316,4 +316,25 @@
 .subLinkActive .subRipple {
     opacity: 0.35;
     transform: translateX(0);
+}
+
+/* ===== Режим сайдбара внутри модалки (мобилки/планшеты) ===== */
+
+.Sidebar_modal {
+    position: static;
+    top: auto;
+
+    width: 100%;
+    max-width: 100%;
+
+    height: auto;
+    max-height: 70vh;
+
+    margin: 0;
+    padding: 12px 10px;
+
+    box-shadow: none;
+    border-radius: 14px;
+
+    overflow: auto;
 }

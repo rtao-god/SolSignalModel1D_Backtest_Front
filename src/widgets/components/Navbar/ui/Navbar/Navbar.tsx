@@ -6,13 +6,12 @@ import NavbarProps from './types'
 import { LangSwitcher } from '@/widgets/components'
 import { Link } from '@/shared/ui'
 import { NAVBAR_ITEMS } from '@/app/providers/router/config/routeConfig'
+import SideBarBlock from '../SideBarBlock/SideBarBlock'
 
-export default function Navbar({ className }: NavbarProps) {
+export default function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
     const { i18n } = useTranslation()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-    // Количество ссылок в первой строке (рядом со стрелкой).
-    // По умолчанию — все, чтобы не ломать поведение при первой отрисовке.
     const [primaryCount, setPrimaryCount] = useState(NAVBAR_ITEMS.length)
     const [hasOverflow, setHasOverflow] = useState(false)
 
@@ -38,7 +37,6 @@ export default function Navbar({ className }: NavbarProps) {
         }
     }, [])
 
-    // Реальный расчёт того, сколько ссылок помещается в первую строку.
     useEffect(() => {
         if (typeof window === 'undefined') {
             return
@@ -57,7 +55,6 @@ export default function Navbar({ className }: NavbarProps) {
             const navbarWidth = navbarEl.clientWidth
             const controlsWidth = controlsEl.getBoundingClientRect().width
 
-            // На десктопе ведём себя как классический навбар: все ссылки в один ряд, без стрелки.
             if (navbarWidth >= 1024) {
                 setPrimaryCount(total)
                 setHasOverflow(false)
@@ -65,7 +62,6 @@ export default function Navbar({ className }: NavbarProps) {
                 return
             }
 
-            // Доступная ширина под ссылки с учётом блока смены языка и небольшого зазора.
             const availableWidth = Math.max(0, navbarWidth - controlsWidth - 24)
 
             const children = Array.from(measureEl.children) as HTMLElement[]
@@ -75,7 +71,6 @@ export default function Navbar({ className }: NavbarProps) {
 
             const totalItemsWidth = itemWidths.reduce((sum, w, index) => sum + w + (index > 0 ? linkGap : 0), 0)
 
-            // Если все ссылки помещаются — нет стрелки, всё в один ряд.
             if (availableWidth <= 0 || totalItemsWidth <= availableWidth) {
                 setPrimaryCount(total)
                 setHasOverflow(false)
@@ -87,8 +82,6 @@ export default function Navbar({ className }: NavbarProps) {
             let used = 0
             let count = 0
 
-            // Заполняем первую строку ссылками до тех пор,
-            // пока помещаются ссылки + стрелка.
             for (let i = 0; i < itemWidths.length; i += 1) {
                 const widthWithGap = itemWidths[i] + (count > 0 ? linkGap : 0)
 
@@ -100,7 +93,6 @@ export default function Navbar({ className }: NavbarProps) {
                 }
             }
 
-            // Гарантируем, что хотя бы одна ссылка останется в первой строке.
             if (count === 0) {
                 count = 1
             }
@@ -166,7 +158,6 @@ export default function Navbar({ className }: NavbarProps) {
                 )}
             </div>
 
-            {/* Скрытый ряд для измерения реальных ширин ссылок */}
             <div ref={measureRef} className={cls.measureRow} aria-hidden='true'>
                 {NAVBAR_ITEMS.map(item => (
                     <span key={item.id} className={cls.measureItem}>
@@ -174,6 +165,8 @@ export default function Navbar({ className }: NavbarProps) {
                     </span>
                 ))}
             </div>
+
+            <SideBarBlock show={showSidebarToggle} onClick={onSidebarToggleClick} />
         </div>
     )
 }

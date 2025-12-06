@@ -23,8 +23,11 @@ export default function Modal({ width = '50vw', height = '50vh', className, chil
 
     return (
         <Portal>
-            <div className={cls.overlay} style={{ width: width, height: height }}>
-                <div ref={modalRef} className={classNames(cls.Modal, { [cls.active]: isActive }, [className ?? ''])}>
+            <div className={cls.overlay}>
+                <div
+                    ref={modalRef}
+                    className={classNames(cls.Modal, { [cls.active]: isActive }, [className ?? ''])}
+                    style={{ width, height }}>
                     <div className={cls.content}>{children}</div>
                 </div>
             </div>
