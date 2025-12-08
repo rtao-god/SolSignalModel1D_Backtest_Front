@@ -3,10 +3,9 @@ import { buildBacktestEndpoints } from './endpoints/buildBacktestEndpoints'
 import { ApiEndpointBuilder } from './types'
 import { buildUserEndpoints } from './endpoints/userEndpoints'
 import { buildReportEndpoints } from './endpoints/reportEndpoints'
-import { pfiEndpoints } from './endpoints/pfiEndpoints'
 import { modelStatsEndpoints } from './endpoints/modelStatsEndpoints'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+import { pfiEndpoints } from './endpoints/pfiEndpoints'
+import { API_BASE_URL } from './config'
 
 export const api = createApi({
     reducerPath: 'api',
@@ -25,19 +24,19 @@ export const api = createApi({
         const b = builder as unknown as ApiEndpointBuilder
 
         return {
-            // ==== user ====
+            // user
             ...buildUserEndpoints(b),
 
-            // ==== reports ====
+            // reports
             ...buildReportEndpoints(b),
 
-            // ==== backtest ====
+            // backtest
             ...buildBacktestEndpoints(b),
 
-            // ==== PFI ====
+            // PFI
             ...pfiEndpoints(b),
 
-            // ==== ML model stats ====
+            // ML model stats
             ...modelStatsEndpoints(b)
         }
     }

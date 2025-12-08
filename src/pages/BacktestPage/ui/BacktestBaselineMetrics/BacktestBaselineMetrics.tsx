@@ -20,11 +20,9 @@ export function BacktestBaselineMetrics({ baselineSummary, previewSummary }: Bac
         <section id='baseline' className={cls.metricsRow}>
             <Text type='h2'>Итог по лучшей политике (BestTotalPnlPct)</Text>
             <div className={cls.metricsValues}>
-                <Text type='p'>Baseline: {baselineBestPnl !== null ? `${baselineBestPnl.toFixed(2)} %` : '—'}</Text>
-                <Text type='p'>Preview: {previewBestPnl !== null ? `${previewBestPnl.toFixed(2)} %` : '—'}</Text>
-                <Text type='p'>
-                    Δ: {deltaPnl !== null ? `${deltaPnl >= 0 ? '+' : ''}${deltaPnl.toFixed(2)} %` : '—'}
-                </Text>
+                <Text>Baseline: {baselineBestPnl !== null ? `${baselineBestPnl.toFixed(2)} %` : '—'}</Text>
+                <Text>Preview: {previewBestPnl !== null ? `${previewBestPnl.toFixed(2)} %` : '—'}</Text>
+                <Text>Δ: {deltaPnl !== null ? `${deltaPnl >= 0 ? '+' : ''}${deltaPnl.toFixed(2)} %` : '—'}</Text>
             </div>
         </section>
     )

@@ -3,7 +3,7 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Calendar.module.scss'
 import CalendarProps from '../Calendar/types'
 import Month from '../Month/Month'
-import { date, THIS_MONTH } from '@/shared/const/date'
+import { date, THIS_MONTH } from '@/shared/consts/date'
 
 export default function Calendar({ className }: CalendarProps) {
     const today = new Date()

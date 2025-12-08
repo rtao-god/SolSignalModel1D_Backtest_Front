@@ -2,7 +2,7 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './PageError.module.scss'
 import { useTranslation } from 'react-i18next'
 import { useBackOnPrevPage } from '@/shared/lib/hooks/useBackOnPrevPage'
-import {Btn} from '@/shared/ui'
+import { Btn, Text } from '@/shared/ui'
 
 interface PageErrorProps {
     className?: string
@@ -27,13 +27,13 @@ export default function PageError({ className, errorMessage, errorStack, errorIn
             <div className={cls.container}>
                 <h2>Неправильно набран адрес или такой страницы не существует</h2>
                 {errorMessage && (
-                    <p>
+                    <Text>
                         <strong>Error:</strong> {errorMessage}
-                    </p>
+                    </Text>
                 )}
                 {errorStack && (
                     <div>
-                        <h3>Error Stack:</h3>
+                        <Text type='h3'>Error Stack:</Text>
                         <pre>{errorStack}</pre>
                     </div>
                 )}

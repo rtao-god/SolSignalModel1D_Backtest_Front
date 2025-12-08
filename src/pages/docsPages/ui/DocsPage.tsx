@@ -1,64 +1,61 @@
+import { useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Link } from '@/shared/ui'
-import cls from './DocsPage.module.scss'
+import { Text } from '@/shared/ui'
+import { DOCS_MODELS_TABS } from '@/shared/utils/docsTabs'
+import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/ViewModeToggle'
+import cls from './DocsModelsPage.module.scss'
 
-interface DocsPageProps {
+interface DocsModelsPageProps {
     className?: string
 }
 
-export default function DocsPage({ className }: DocsPageProps) {
+/**
+ * Страница описания моделей и пайплайна:
+ * - маршрут /docs/models;
+ * - подвкладки управляются DOCS_MODELS_TABS (+ сайдбар);
+ * - сверху глобальный переключатель бизнес/тех режима (ViewModeToggle).
+ */
+export default function DocsModelsPage({ className }: DocsModelsPageProps) {
+    const [mode, setMode] = useState<ViewMode>('business')
+
+    const sections = useMemo(() => DOCS_MODELS_TABS, [])
+
     return (
-        <span className={classNames(cls.DocsPageRoot, {}, [className ?? ''])}>
-            <section className={cls.hero}>
-                <h1 className={cls.heroTitle}>Документация SolSignal 1D</h1>
-                <p className={cls.heroSubtitle}>
-                    Подробное описание дневной модели, микро-слоя, SL-модели, пайплайна данных, тестов и метрик. Всё,
-                    что нужно, чтобы понять внутреннюю логику проекта и оценить качество сигналов.
-                </p>
-                <div className={cls.heroMeta}>
-                    <div className={cls.metaPill}>Daily / Micro / SL-слой</div>
-                    <div className={cls.metaPill}>Path-based labeling</div>
-                    <div className={cls.metaPill}>Sanity-checks и leakage-тесты</div>
+        <div className={classNames(cls.DocsModelsPage, {}, [className ?? ''])}>
+            <header className={cls.headerRow}>
+                <div>
+                    <Text type='h2'>Модели и пайплайн</Text>
+                    <Text className={cls.subtitle}>
+                        Здесь позже будет детальное текстовое описание дневной модели (move/dir), микро-слоя, SL-модели
+                        и пайплайна данных. Сейчас текст заглушечный, фокус на структуре и якорях.
+                    </Text>
                 </div>
-            </section>
 
-            <section className={cls.sections}>
-                <h2 className={cls.sectionsTitle}>Разделы документации</h2>
-                <div className={cls.cards}>
-                    <Link to='/docs/models' className={cls.cardLink}>
-                        <article className={cls.card}>
-                            <h3 className={cls.cardTitle}>Модели и пайплайн</h3>
-                            <p className={cls.cardText}>
-                                Архитектура дневной модели (move/dir), микро-слоя и SL-уровня, используемые фичи и
-                                полный путь данных: от свечей до финального решения.
-                            </p>
-                            <span className={cls.cardHint}>К описанию моделей →</span>
-                        </article>
-                    </Link>
+                <ViewModeToggle mode={mode} onChange={setMode} className={cls.modeToggle} />
+            </header>
 
-                    <Link to='/docs/tests' className={cls.cardLink}>
-                        <article className={cls.card}>
-                            <h3 className={cls.cardTitle}>Тесты и self-check&apos;и</h3>
-                            <p className={cls.cardText}>
-                                Набор sanity-check&apos;ов, leakage-тестов и проверок стабильности, которые защищают от
-                                утечек данных и некорректной работы пайплайна.
-                            </p>
-                            <span className={cls.cardHint}>К описанию тестов →</span>
-                        </article>
-                    </Link>
+            <div className={cls.sectionsGrid}>
+                {sections.map(section => (
+                    <section key={section.id} id={section.anchor} className={cls.sectionCard}>
+                        <Text type='h3' className={cls.sectionTitle}>
+                            {section.label}
+                        </Text>
 
-                    <Link to='/backtest/summary' className={cls.cardLink}>
-                        <article className={cls.card}>
-                            <h3 className={cls.cardTitle}>Интерпретация статистики</h3>
-                            <p className={cls.cardText}>
-                                Как читать отчёты бэктеста и профили: PnL, просадки, ликвидации, risk-прослойка и
-                                типичные сценарии A/B-сравнения (будет вынесено в отдельный docs-раздел).
-                            </p>
-                            <span className={cls.cardHint}>Смотреть сводку бэктеста →</span>
-                        </article>
-                    </Link>
-                </div>
-            </section>
-        </span>
+                        {mode === 'business' ?
+                            <Text className={cls.sectionText}>
+                                Здесь будет бизнес-описание блока «{section.label}»: какую задачу решает, какие риски
+                                закрывает, как влияет на устойчивость профиля и какие ключевые метрики стоит показывать
+                                пользователю.
+                            </Text>
+                        :   <Text className={cls.sectionText}>
+                                Здесь будет техническое описание блока «{section.label}»: используемые фичи, схема
+                                лейблинга (в том числе path-based), ограничения по данным, типы моделей и способы
+                                контроля утечек данных.
+                            </Text>
+                        }
+                    </section>
+                ))}
+            </div>
+        </div>
     )
 }

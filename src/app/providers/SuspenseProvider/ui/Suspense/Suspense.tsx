@@ -1,8 +1,8 @@
-import { Loader } from '@/widgets/components'
 import { Suspense, useEffect, useState } from 'react'
 import SuspenseProps from './types'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Suspense.module.scss'
+import { Loader } from '@/shared/ui'
 
 export default function AppSuspense({ className, children, fallback = <Loader /> }: SuspenseProps) {
     // Checking the loader operation

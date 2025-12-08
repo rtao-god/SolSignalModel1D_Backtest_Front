@@ -1,10 +1,5 @@
-import { ComponentType, lazy } from 'react'
-import { AppRouteConfig, SidebarNavItem } from './types'
+import { AppRouteConfig, SidebarNavItem } from '../types'
 
-// Обёртка над lazy
-export const lazyPage = <T extends ComponentType<any>>(importer: () => Promise<{ default: T }>) => lazy(importer)
-
-// Строим элементы навигации в сайдбаре из routeConfig
 export const buildSidebarNavItems = (routes: AppRouteConfig[]): SidebarNavItem[] =>
     routes
         .filter(route => route.nav?.sidebar)

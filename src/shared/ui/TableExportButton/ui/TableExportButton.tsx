@@ -2,15 +2,8 @@ import { useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { exportTable, type TableExportFormat } from '@/shared/lib/tableExport/tableExport'
 import cls from './TableExportButton.module.scss'
-
-interface TableExportButtonProps {
-    className?: string
-    columns: string[]
-    rows: Array<Array<string | number | boolean | null | undefined>>
-    fileBaseName: string
-    // По дефолту — pdf, но можно переопределить при переиспользовании.
-    defaultFormat?: TableExportFormat
-}
+import TableExportButtonProps from './types'
+import { Btn } from '../../Btn'
 
 /**
  * Универсальная кнопка-иконка экспорта таблицы.
@@ -49,7 +42,7 @@ export default function TableExportButton({
 
     return (
         <div className={classNames(cls.TableExportButton, {}, [className ?? ''])}>
-            <button type='button' className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу'>
+            <Btn className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу'>
                 {/* Простейшая иконка "download" через SVG, чтобы не тянуть сторонние пакеты */}
                 <svg className={cls.icon} viewBox='0 0 24 24' aria-hidden='true'>
                     <path
@@ -61,22 +54,19 @@ export default function TableExportButton({
                         fill='currentColor'
                     />
                 </svg>
-            </button>
+            </Btn>
 
             {open && (
                 <div
                     className={cls.menu}
                     // Простейшая закрывашка при уходе фокуса: можно улучшить позже за счёт глобального слушателя кликов.
                     onMouseLeave={handleClose}>
-                    <button type='button' className={cls.menuItem} onClick={() => handleExport(defaultFormat)}>
+                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat)}>
                         Скачать как {defaultFormat.toUpperCase()}
-                    </button>
-                    <button
-                        type='button'
-                        className={cls.menuItem}
-                        onClick={() => handleExport(defaultFormat === 'pdf' ? 'csv' : 'pdf')}>
+                    </Btn>
+                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat === 'pdf' ? 'csv' : 'pdf')}>
                         Скачать как {defaultFormat === 'pdf' ? 'CSV' : 'PDF'}
-                    </button>
+                    </Btn>
                 </div>
             )}
         </div>

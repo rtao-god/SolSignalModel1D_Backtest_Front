@@ -12,7 +12,7 @@ export default function Login({ className }: LoginProps) {
                 <UserLogin />
                 <Row gap={20}>
                     <Line color='#D6E7FF' />
-                    <Text type='p' fz='14px' color='#D6E7FF'>
+                    <Text fz='14px' color='#D6E7FF'>
                         Или
                     </Text>
                     <Line color='#D6E7FF' />

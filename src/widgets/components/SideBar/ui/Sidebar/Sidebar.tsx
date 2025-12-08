@@ -7,11 +7,11 @@ import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
-import { useGetPfiPerModelReportQuery } from '@/shared/api/api'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
+import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 
 interface SidebarProps {
     className?: string
@@ -74,8 +74,9 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
 
     // Тянем PFI-отчёт только когда реально находимся на PFI-странице
-    const { data: pfiReport } = useGetPfiPerModelReportQuery(undefined, {
-        skip: !isOnPfiPage
+    // TanStack-хук: запрос активен только на PFI-странице.
+    const { data: pfiReport } = usePfiPerModelReportNavQuery({
+        enabled: isOnPfiPage
     })
 
     const pfiTabs: PfiTabConfig[] = useMemo(() => {

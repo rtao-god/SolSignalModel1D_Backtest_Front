@@ -4,9 +4,10 @@ import cls from './Navbar.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import NavbarProps from './types'
 import { LangSwitcher } from '@/widgets/components'
-import { Link } from '@/shared/ui'
+import { Btn, Link } from '@/shared/ui'
 import { NAVBAR_ITEMS } from '@/app/providers/router/config/routeConfig'
 import SideBarBlock from '../SideBarBlock/SideBarBlock'
+import { BugBtn } from '@/app/providers'
 
 export default function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
     const { i18n } = useTranslation()
@@ -126,7 +127,6 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
             <div ref={controlsRef} className={cls.controls}>
                 <LangSwitcher />
             </div>
-
             <div className={cls.linksWrapper}>
                 <div className={cls.linksRow}>
                     {primaryItems.map(item => (
@@ -136,14 +136,13 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
                     ))}
 
                     {secondaryItems.length > 0 && (
-                        <button
-                            type='button'
+                        <Btn
                             className={classNames(cls.expandToggle, { [cls.expandToggle_open]: isMenuOpen }, [])}
                             aria-label={isMenuOpen ? 'Свернуть разделы' : 'Показать дополнительные разделы'}
                             aria-expanded={isMenuOpen}
                             onClick={handleMenuToggle}>
                             <span className={cls.expandToggleIcon} />
-                        </button>
+                        </Btn>
                     )}
                 </div>
 
@@ -157,7 +156,6 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
                     </div>
                 )}
             </div>
-
             <div ref={measureRef} className={cls.measureRow} aria-hidden='true'>
                 {NAVBAR_ITEMS.map(item => (
                     <span key={item.id} className={cls.measureItem}>
@@ -165,7 +163,6 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
                     </span>
                 ))}
             </div>
-
             <SideBarBlock show={showSidebarToggle} onClick={onSidebarToggleClick} />
         </div>
     )

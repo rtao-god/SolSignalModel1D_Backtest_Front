@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
-import { useGetCurrentPredictionIndexQuery, useGetCurrentPredictionByDateQuery } from '@/shared/api/api'
-import type {
-    ReportDocumentDto,
-    ReportSectionDto,
-    KeyValueSectionDto,
-    TableSectionDto
-} from '@/shared/types/report.types'
+import { useGetCurrentPredictionByDateQuery } from '@/shared/api/api'
 import { selectArrivalDate, selectDepartureDate } from '@/entities/date'
 import cls from './PredictionHistoryPage.module.scss'
 import DatePicker from '@/features/datePicker/ui/DatePicker/DatePicker'
+import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
+import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
+import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
+import { useCurrentPredictionIndexQuery } from '@/shared/api/tanstackQueries/currentPrediction'
+import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
+import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 
 const PAGE_SIZE = 10
 
@@ -19,28 +19,21 @@ interface PredictionHistoryPageProps {
     className?: string
 }
 
-export default function PredictionHistoryPage({ className }: PredictionHistoryPageProps) {
-    // 1) Индекс доступных прогнозов (только даты / id, без тяжёлых отчётов).
-    // Берём достаточно широкий диапазон (например, 365 дней), чтобы не дёргать бэкенд лишний раз.
-    const {
-        data: index,
-        isLoading: isIndexLoading,
-        isError: isIndexError
-    } = useGetCurrentPredictionIndexQuery({ days: 365 })
+/**
+ * Внутренний контент страницы истории прогнозов.
+ * Индекс дат тянется через Suspense-хук useCurrentPredictionIndexQuery.
+ */
+function PredictionHistoryPageContent({ className }: PredictionHistoryPageProps) {
+    const { data: index } = useCurrentPredictionIndexQuery(365)
 
-    // 2) Диапазон дат из Redux-слайса date, который управляется DatePicker/Calendar.
-    // Предполагается, что .value уже в формате YYYY-MM-DD.
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
     const fromDate = departure?.value ?? null
     const toDate = arrival?.value ?? null
 
-    // 3) Сколько дней (отчётов) показываем на странице.
-    // По умолчанию 10, при "Показать ещё" увеличиваем на PAGE_SIZE.
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
-    // 4) Все уникальные даты (YYYY-MM-DD), отсортированные по убыванию.
     const allDatesDesc = useMemo(() => {
         if (!index || index.length === 0) {
             return [] as string[]
@@ -49,13 +42,11 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
         const dateSet = new Set<string>()
 
         for (const item of index) {
-            // predictionDateUtc ожидается в ISO-формате, первые 10 символов — yyyy-MM-dd
             const dateKey = item.predictionDateUtc.substring(0, 10)
             dateSet.add(dateKey)
         }
 
         const dates = Array.from(dateSet)
-        // Сортируем по убыванию: от новых дат к старым
         dates.sort((a, b) =>
             a < b ? 1
             : a > b ? -1
@@ -65,7 +56,6 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
         return dates
     }, [index])
 
-    // 5) Фильтрация дат по диапазону fromDate / toDate, если они заданы.
     const filteredDates = useMemo(() => {
         if (!allDatesDesc.length) {
             return [] as string[]
@@ -82,15 +72,12 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
         })
     }, [allDatesDesc, fromDate, toDate])
 
-    // 6) При изменении фильтра/набора дат — сбрасываем пагинацию на первую "страницу".
     useEffect(() => {
         if (!filteredDates.length) {
             setVisibleCount(PAGE_SIZE)
             return
         }
 
-        // Если после фильтрации доступно меньше дней, чем было показано —
-        // подрезаем visibleCount до разумного минимума (но не меньше PAGE_SIZE).
         setVisibleCount(prev => {
             if (prev <= PAGE_SIZE) {
                 return PAGE_SIZE
@@ -99,7 +86,6 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
         })
     }, [filteredDates])
 
-    // 7) Даты, которые реально выводим сейчас (учитывая пагинацию).
     const visibleDates = useMemo(() => filteredDates.slice(0, visibleCount), [filteredDates, visibleCount])
 
     const canLoadMore = visibleDates.length < filteredDates.length
@@ -107,23 +93,15 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
 
     const rootClassName = classNames(cls.HistoryPage, {}, [className ?? ''])
 
-    if (isIndexLoading) {
+    // Семантический кейс "нет данных": бэкенд вернул пустой индекс.
+    if (!allDatesDesc.length) {
         return (
             <div className={rootClassName}>
-                <Text type='h2'>Загружаю индекс исторических прогнозов…</Text>
-            </div>
-        )
-    }
-
-    if (isIndexError || !allDatesDesc.length) {
-        return (
-            <div className={rootClassName}>
-                <div className={cls.errorCard}>
-                    <Text type='h2'>Не удалось загрузить историю прогнозов</Text>
-                    <Text type='p'>
-                        Проверьте, что бэкенд запущен и endpoint /current-prediction/dates отдаёт данные.
-                    </Text>
-                </div>
+                <Text type='h2'>История прогнозов пуста</Text>
+                <Text type='p'>
+                    Бэкенд вернул пустой список дат по current_prediction. Проверь конфигурацию генерации отчётов или
+                    период хранения.
+                </Text>
             </div>
         )
     }
@@ -133,7 +111,6 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
 
     return (
         <div className={rootClassName}>
-            {/* Шапка страницы с общей информацией о количестве прогнозов */}
             <header className={cls.header}>
                 <div className={cls.headerMain}>
                     <Text type='h1'>История прогнозов</Text>
@@ -146,7 +123,6 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
                 </div>
             </header>
 
-            {/* Фильтры: DatePicker управляет Redux-слайсом date, который мы используем как диапазон */}
             <section className={cls.filters}>
                 <div className={cls.filtersRow}>
                     <DatePicker className={cls.datePicker} />
@@ -164,7 +140,6 @@ export default function PredictionHistoryPage({ className }: PredictionHistoryPa
                 </div>
             </section>
 
-            {/* Контент: список отчётов по дням + пагинация "Показать ещё" */}
             <section className={cls.content}>
                 {filteredCount === 0 && (
                     <Text type='p'>В выбранном диапазоне нет прогнозов. Попробуйте изменить даты.</Text>
@@ -202,11 +177,13 @@ interface PredictionHistoryReportCardProps {
 }
 
 /**
- * Карточка одного отчёта за конкретный день.
- * Здесь происходит запрос тяжёлого ReportDocumentDto, но только для видимых дат.
+ * Карточка отчёта за конкретный день:
+ * - делает отдельный запрос для каждой видимой даты;
+ * - ErrorBlock для сетевых ошибок;
+ * - SectionErrorBoundary для ошибок отрисовки ReportDocumentView.
  */
 function PredictionHistoryReportCard({ dateUtc }: PredictionHistoryReportCardProps) {
-    const { data, isLoading, isError } = useGetCurrentPredictionByDateQuery({ dateUtc })
+    const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery({ dateUtc })
 
     if (isLoading) {
         return (
@@ -217,248 +194,50 @@ function PredictionHistoryReportCard({ dateUtc }: PredictionHistoryReportCardPro
     }
 
     if (isError || !data) {
+        const resolved = isError ? resolveAppError(error) : undefined
+
         return (
             <div className={cls.reportCard}>
-                <div className={cls.errorCard}>
-                    <Text type='h3'>Не удалось загрузить отчёт</Text>
-                    <Text type='p'>Проверьте endpoint /current-prediction/by-date для даты {dateUtc}.</Text>
-                </div>
+                <ErrorBlock
+                    code={resolved?.code ?? 'UNKNOWN'}
+                    title={resolved?.title ?? 'Не удалось загрузить отчёт'}
+                    description={
+                        resolved?.description ?? `Проверьте endpoint /current-prediction/by-date для даты ${dateUtc}.`
+                    }
+                    details={resolved?.rawMessage}
+                    compact
+                />
             </div>
         )
     }
 
     return (
         <div className={cls.reportCard}>
-            <PredictionReportView report={data} />
+            <SectionErrorBoundary
+                name={`PredictionHistoryReport_${dateUtc}`}
+                fallback={({ error: sectionError, reset }) => (
+                    <ErrorBlock
+                        code='CLIENT'
+                        title={`Ошибка при отображении отчёта за ${dateUtc}`}
+                        description='При отрисовке отчёта произошла ошибка на клиенте. Остальная часть страницы продолжает работать.'
+                        details={sectionError.message}
+                        onRetry={reset}
+                        compact
+                    />
+                )}>
+                <ReportDocumentView report={data} />
+            </SectionErrorBoundary>
         </div>
     )
 }
 
-/* ===== Ниже — общий рендер ReportDocumentDto (аналогичный текущему прогнозу) ===== */
-
-interface PredictionReportViewProps {
-    report: ReportDocumentDto
-}
-
-interface SectionRendererProps {
-    section: ReportSectionDto
-}
-
-// Определение, является ли секция KeyValue-форматом.
-function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
-    return Array.isArray((section as KeyValueSectionDto).items)
-}
-
-// Определение, является ли секция табличной.
-function isTableSection(section: ReportSectionDto): section is TableSectionDto {
-    const tbl = section as TableSectionDto
-    return Array.isArray(tbl.columns) && Array.isArray(tbl.rows)
-}
-
-type DirectionKind = 'long' | 'short' | 'flat'
-
-// Эвристика для определения направления (лонг/шорт/флэт) по строковому значению.
-function detectDirection(value: unknown): DirectionKind | null {
-    if (value === null || value === undefined) {
-        return null
-    }
-
-    const v = String(value).toLowerCase()
-
-    if (v.includes('long') || v.includes('лонг') || v.includes('bull')) {
-        return 'long'
-    }
-
-    if (v.includes('short') || v.includes('шорт') || v.includes('bear')) {
-        return 'short'
-    }
-
-    if (v.includes('flat') || v.includes('флэт') || v.includes('боковик') || v.includes('sideways')) {
-        return 'flat'
-    }
-
-    return null
-}
-
-// Парсинг числовых значений для подсветки плюса/минуса.
-function parseNumericCell(raw: string): number | null {
-    if (!raw) {
-        return null
-    }
-
-    const cleaned = raw.replace(/\s/g, '').replace('%', '').replace(',', '.')
-    const num = Number.parseFloat(cleaned)
-
-    if (Number.isNaN(num)) {
-        return null
-    }
-
-    return num
-}
-
-// Рендер одного отчёта: шапка + секции.
-function PredictionReportView({ report }: PredictionReportViewProps) {
-    const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
-
-    const formatUtc = (date: Date): string => {
-        const year = date.getUTCFullYear()
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-        const day = String(date.getUTCDate()).padStart(2, '0')
-        const hour = String(date.getUTCHours()).padStart(2, '0')
-        const minute = String(date.getUTCMinutes()).padStart(2, '0')
-
-        return `${year}-${month}-${day} ${hour}:${minute} UTC`
-    }
-
-    const generatedUtcStr = generatedUtc ? formatUtc(generatedUtc) : '—'
-
-    const generatedLocalStr =
-        generatedUtc ?
-            generatedUtc.toLocaleString(undefined, {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-        :   '—'
-
-    const hasSections = Array.isArray(report.sections) && report.sections.length > 0
-
+/**
+ * Внешний экспорт страницы: обёртка в PageSuspense.
+ */
+export default function PredictionHistoryPage(props: PredictionHistoryPageProps) {
     return (
-        <div className={cls.reportRoot}>
-            <header className={cls.reportHeader}>
-                <div className={cls.reportHeaderMain}>
-                    <Text type='h2'>{report.title}</Text>
-                    <span className={cls.kindTag}>{report.kind}</span>
-                </div>
-
-                <div className={cls.meta}>
-                    <span className={cls.metaItem}>ID отчёта: {report.id}</span>
-                    <span className={cls.metaItem}>Сгенерировано (UTC): {generatedUtcStr}</span>
-                    <span className={cls.metaItem}>Сгенерировано (локальное время): {generatedLocalStr}</span>
-                </div>
-            </header>
-
-            <div className={cls.sections}>
-                {hasSections ?
-                    report.sections.map((section, index) => <SectionRenderer key={index} section={section} />)
-                :   <Text type='p'>Нет секций отчёта для отображения.</Text>}
-            </div>
-        </div>
-    )
-}
-
-// Рендер одной секции отчёта (KeyValue, таблица или JSON-фолбэк).
-function SectionRenderer({ section }: SectionRendererProps) {
-    const kv = section as KeyValueSectionDto
-    const tbl = section as TableSectionDto
-    const description = (section as any)?.description as string | undefined
-
-    if (isKeyValueSection(section)) {
-        return (
-            <section className={cls.section}>
-                <div className={cls.sectionHeader}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {kv.title}
-                    </Text>
-
-                    {description && (
-                        <Text type='p' className={cls.sectionSubtitle}>
-                            {description}
-                        </Text>
-                    )}
-                </div>
-
-                <dl className={cls.kvList}>
-                    {kv.items!.map(item => {
-                        const direction = detectDirection(item.value)
-
-                        return (
-                            <div key={item.key} className={cls.kvRow}>
-                                <dt className={cls.kvKey}>{item.key}</dt>
-
-                                <dd
-                                    className={classNames(
-                                        cls.kvValue,
-                                        {
-                                            [cls.valueLong]: direction === 'long',
-                                            [cls.valueShort]: direction === 'short',
-                                            [cls.valueFlat]: direction === 'flat'
-                                        },
-                                        []
-                                    )}>
-                                    {item.value}
-                                </dd>
-                            </div>
-                        )
-                    })}
-                </dl>
-            </section>
-        )
-    }
-
-    if (isTableSection(section)) {
-        return (
-            <section className={cls.section}>
-                <div className={cls.sectionHeader}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {tbl.title}
-                    </Text>
-
-                    {description && (
-                        <Text type='p' className={cls.sectionSubtitle}>
-                            {description}
-                        </Text>
-                    )}
-                </div>
-
-                <div className={cls.tableWrapper}>
-                    <table className={cls.table}>
-                        <thead>
-                            <tr>
-                                {tbl.columns?.map(column => (
-                                    <th key={column} className={cls.tableHeaderCell}>
-                                        {column}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tbl.rows?.map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                    {row.map((cell, cellIndex) => {
-                                        const numeric = parseNumericCell(cell)
-                                        const isPositive = numeric !== null && numeric > 0
-                                        const isNegative = numeric !== null && numeric < 0
-
-                                        return (
-                                            <td
-                                                key={cellIndex}
-                                                className={classNames(
-                                                    cls.tableCell,
-                                                    {
-                                                        [cls.positive]: isPositive,
-                                                        [cls.negative]: isNegative
-                                                    },
-                                                    []
-                                                )}>
-                                                {cell}
-                                            </td>
-                                        )
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        )
-    }
-
-    return (
-        <section className={cls.section}>
-            <pre className={cls.jsonDump}>{JSON.stringify(section, null, 2)}</pre>
-        </section>
+        <PageSuspense title='Загружаю историю прогнозов…'>
+            <PredictionHistoryPageContent {...props} />
+        </PageSuspense>
     )
 }

@@ -9,7 +9,7 @@ import PasswordInputField from '../PasswordInputField/PasswordInputField'
 import LoginFormProps from './types'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 import { useLogin } from '@/shared/lib/hooks'
-import { IDENTIFIER_INVALID, IDENTIFIER_REQUIRED } from '@/shared/const/authLogin'
+import { IDENTIFIER_INVALID, IDENTIFIER_REQUIRED } from '@/shared/consts/authLogin'
 import { getIsAuthenticated } from '@/shared/ui/auth/AuthSection/model/getIsAuthenticated'
 
 export default function UserLogin({ className }: LoginFormProps) {
@@ -74,7 +74,7 @@ export default function UserLogin({ className }: LoginFormProps) {
                       [cls.errorBorder]: loginError.includes(PASSWORD_REQUIRED)
                   })} */
                 />
-                <Text type='p' color='#d64657' position='center'>
+                <Text color='#d64657' position='center'>
                     {error}
                 </Text>
                 <Rows gap={20} rows={['auto']}>

@@ -19,7 +19,7 @@ export default function Btn({
     const resolvedColorScheme: BtnColorScheme = colorScheme ?? (theme === Theme.DARK ? 'green' : 'blue')
 
     return (
-        <button
+        <Btn
             {...rest}
             className={classNames(cls.Btn, {}, [className ?? ''])}
             data-variant={variant}
@@ -27,6 +27,6 @@ export default function Btn({
             data-color-scheme={resolvedColorScheme}
             data-testid={dataTestid}>
             {children}
-        </button>
+        </Btn>
     )
 }

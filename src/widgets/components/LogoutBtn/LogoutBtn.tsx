@@ -17,7 +17,7 @@ export default function LogoutBtn({ className }: LogoutBtnProps) {
     return (
         <div className={classNames(cls.LogoutBtn, {}, [className ?? ''])}>
             <Btn onClick={handleLogout}>
-                <Text type='p'> {t('Выйти')} </Text>
+                <Text> {t('Выйти')} </Text>
             </Btn>
         </div>
     )

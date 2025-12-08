@@ -49,25 +49,25 @@ export default function Users({ className }: UsersProps) {
             <div className={cls.table}>
                 <div className={cls.tableFilters}>
                     <div className={cls.tableFilter} style={{ marginLeft: '36px' }}>
-                        <Text type='p' fz='17px' color='#7D7F82'>
+                        <Text fz='17px' color='#7D7F82'>
                             Имя Фамилия
                         </Text>
                         {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'center' }}>
-                        <Text type='p' fz='17px' color='#7D7F82'>
+                        <Text fz='17px' color='#7D7F82'>
                             Дата Рождения
                         </Text>
                         {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'center' }}>
-                        <Text type='p' fz='17px' color='#7D7F82'>
+                        <Text fz='17px' color='#7D7F82'>
                             Болезнь · Проблема · Недуг
                         </Text>
                         {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'flex-end' }}>
-                        <Text type='p' fz='17px' color='#7D7F82'>
+                        <Text fz='17px' color='#7D7F82'>
                             Дата Поступления
                         </Text>
                         {/* <img src={arrowDown} alt="" /> */}
@@ -86,14 +86,14 @@ export default function Users({ className }: UsersProps) {
                                         <Text type='h2' fz='19px'>
                                             Яковенко А. С.
                                         </Text>
-                                        <Text type='p' fz='17px' color='#B1B2B4'>
+                                        <Text fz='17px' color='#B1B2B4'>
                                             Пользователь
                                         </Text>
                                     </div>
                                 </div>
                             </div>
                             <div className={cls.col}>
-                                <Text type='p' fz='19px' position='center'>
+                                <Text fz='19px' position='center'>
                                     24 Фев, 1994
                                 </Text>
                             </div>
@@ -117,7 +117,7 @@ export default function Users({ className }: UsersProps) {
                                 </div>
                             </div>
                             <div className={cls.col}>
-                                <Text type='p' fz='19px' position='end'>
+                                <Text fz='19px' position='end'>
                                     24 Фев, 1994
                                 </Text>
                             </div>

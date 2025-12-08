@@ -12,7 +12,7 @@ export default function AuthWith({ img, text }: AuthWithProps) {
             }}>
             <Row gap={10}>
                 {img}
-                <Text type='p'>{text}</Text>
+                <Text>{text}</Text>
             </Row>
         </BlueBox>
     )

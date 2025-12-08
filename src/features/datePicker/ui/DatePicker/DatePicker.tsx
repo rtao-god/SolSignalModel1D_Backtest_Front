@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './DatePicker.module.scss'
 import DatePickerProps from './types'
-import { selectArrivalDate, selectDepartureDate, dateActions } from '@/entities/date'
+import { selectArrivalDate, selectDepartureDate, selectIsSelectingDepartureDate, dateActions } from '@/entities/date'
 import { Input, Modal } from '@/shared/ui'
 import useModal from '@/shared/lib/hooks/useModal'
 import Calendar from '../Calendar/Calendar'
@@ -13,15 +13,24 @@ export default function DatePicker({ className }: DatePickerProps) {
     const dispatch = useDispatch()
     const departureDate = useSelector(selectDepartureDate)
     const arrivalDate = useSelector(selectArrivalDate)
+    const isSelectingDepartureDate = useSelector(selectIsSelectingDepartureDate)
+
+    console.log('[DatePicker] state', {
+        departureDate,
+        arrivalDate,
+        isSelectingDepartureDate
+    })
 
     function handleDepartureDateClick(): void {
         openModal()
         dispatch(dateActions.setIsSelectingDepartureDate(true))
+        console.log('[DatePicker] click departure')
     }
 
     function handleArrivalDateClick(): void {
         openModal()
         dispatch(dateActions.setIsSelectingDepartureDate(false))
+        console.log('[DatePicker] click arrival')
     }
 
     return (
@@ -29,7 +38,7 @@ export default function DatePicker({ className }: DatePickerProps) {
             <Input
                 type='text'
                 placeholder='Departure Date'
-                value={departureDate?.value}
+                value={departureDate?.value ?? ''}
                 onClick={handleDepartureDateClick}
                 readOnly
             />
@@ -43,12 +52,12 @@ export default function DatePicker({ className }: DatePickerProps) {
             <Input
                 type='text'
                 placeholder='Arrival Date'
-                value={arrivalDate?.value}
+                value={arrivalDate?.value ?? ''}
                 onClick={handleArrivalDateClick}
                 readOnly
             />
             {isOpen && (
-                <Modal onClose={closeModal} width='0' height='0'>
+                <Modal onClose={closeModal}>
                     <Calendar />
                 </Modal>
             )}

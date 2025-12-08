@@ -8,16 +8,15 @@ interface DocsTestsPageProps {
 }
 
 /**
- * Страница с описанием тестов и self-check'ов проекта.
- * - маршрут /docs/tests;
- * - якоря совпадают с DOCS_TESTS_TABS (и с подвкладками в сайдбаре).
+ * Страница с описанием тестов и self-check'ов пайплайна:
+ * якоря синхронизированы с DOCS_TESTS_TABS и сайдбаром.
  */
 export default function DocsTestsPage({ className }: DocsTestsPageProps) {
     return (
         <div className={classNames(cls.DocsTestsPage, {}, [className ?? ''])}>
             <header className={cls.headerRow}>
                 <Text type='h2'>Тесты и self-check&apos;и</Text>
-                <Text type='p' className={cls.subtitle}>
+                <Text className={cls.subtitle}>
                     Здесь будет описание leakage-тестов, sanity-check&apos;ов, перфоманс-проверок и того, как результаты
                     тестов влияют на допуск модели до боевого запуска. Сейчас текст заглушечный.
                 </Text>
@@ -29,10 +28,10 @@ export default function DocsTestsPage({ className }: DocsTestsPageProps) {
                         <Text type='h3' className={cls.sectionTitle}>
                             {section.label}
                         </Text>
-                        <Text type='p' className={cls.sectionText}>
-                            Сюда позже можно вынести, какие именно части пайплайна покрываются этим набором тестов,
-                            какие типичные баги они ловят (утечки, неконсистентные окна, сломанный baseline exit) и
-                            какие инварианты считаются критичными.
+                        <Text className={cls.sectionText}>
+                            Сюда позже можно вынести, какие части пайплайна покрываются этим набором тестов, какие
+                            типичные баги они ловят (утечки, неконсистентные окна, сломанный baseline exit) и какие
+                            инварианты считаются критичными.
                         </Text>
                     </section>
                 ))}

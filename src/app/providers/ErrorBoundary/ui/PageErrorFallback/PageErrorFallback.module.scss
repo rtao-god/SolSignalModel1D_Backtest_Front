@@ -1,0 +1,97 @@
+.PageErrorFallback {
+    width: 100%;
+    padding: 16px 0;
+
+    display: flex;
+    justify-content: center;
+}
+
+.card {
+    width: 100%;
+    max-width: 720px;
+
+    padding: 14px 16px;
+    border-radius: 14px;
+
+    background: rgba(17, 19, 25, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pill {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    background: rgba(255, 193, 79, 0.16);
+    color: rgba(255, 221, 159, 0.9);
+}
+
+.title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.message {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.4);
+
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 8px;
+}
+
+.messageLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.56);
+}
+
+.messageText {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.actions {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.primary {
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+
+    border: none;
+    background: rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.primary:hover {
+    background: rgba(255, 255, 255, 0.16);
+}

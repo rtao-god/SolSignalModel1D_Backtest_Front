@@ -20,16 +20,16 @@ export function BacktestSummaryView({ summary, title }: BacktestSummaryViewProps
         <div className={cls.summaryCard}>
             <header className={cls.summaryHeader}>
                 <Text type='h3'>{title}</Text>
-                <Text type='p'>ID отчёта: {summary.id}</Text>
-                <Text type='p'>Тип: {summary.kind}</Text>
-                <Text type='p'>Сгенерировано (UTC): {generatedUtcStr}</Text>
-                <Text type='p'>Сгенерировано (локальное время): {generatedLocalStr}</Text>
+                <Text>ID отчёта: {summary.id}</Text>
+                <Text>Тип: {summary.kind}</Text>
+                <Text>Сгенерировано (UTC): {generatedUtcStr}</Text>
+                <Text>Сгенерировано (локальное время): {generatedLocalStr}</Text>
             </header>
 
             <div className={cls.sections}>
                 {hasSections ?
                     summary.sections.map((section, index) => <SectionRenderer key={index} section={section} />)
-                :   <Text type='p'>Нет секций отчёта для отображения.</Text>}
+                :   <Text>Нет секций отчёта для отображения.</Text>}
             </div>
         </div>
     )

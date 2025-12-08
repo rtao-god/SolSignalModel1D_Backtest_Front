@@ -1,19 +1,7 @@
-import { Text } from '@/shared/ui'
-import type { BacktestConfigDto, BacktestPolicyConfigDto, BacktestProfileDto } from '@/shared/types/backtest.types'
+import { Btn, Input, Text } from '@/shared/ui'
+import type { BacktestPolicyConfigDto } from '@/shared/types/backtest.types'
 import cls from './BacktestConfigEditor.module.scss'
-
-interface BacktestConfigEditorProps {
-    currentProfile: BacktestProfileDto | null
-    draftConfig: BacktestConfigDto
-    selectedPolicies: Record<string, boolean>
-    isPreviewLoading: boolean
-    previewError: string | null
-    onStopPctChange: (valueStr: string) => void
-    onTpPctChange: (valueStr: string) => void
-    onPolicyEnabledChange: (name: string, checked: boolean) => void
-    onPolicyLeverageChange: (name: string, valueStr: string) => void
-    onRunPreview: () => void
-}
+import BacktestConfigEditorProps from './types'
 
 /**
  * Редактор what-if конфига выбранного профиля:
@@ -36,7 +24,7 @@ export function BacktestConfigEditor({
 }: BacktestConfigEditorProps) {
     return (
         <section id='whatif' className={cls.configEditor}>
-            <Text type='p'>
+            <Text>
                 Основа: конфиг выбранного профиля
                 {currentProfile ? ` (${currentProfile.name})` : ''}.
             </Text>
@@ -44,7 +32,7 @@ export function BacktestConfigEditor({
             <div className={cls.configRow}>
                 <label className={cls.label}>
                     Daily SL (%):
-                    <input
+                    <Input
                         type='number'
                         className={cls.input}
                         value={(draftConfig.dailyStopPct * 100).toFixed(2)}
@@ -54,7 +42,7 @@ export function BacktestConfigEditor({
 
                 <label className={cls.label}>
                     Daily TP (%):
-                    <input
+                    <Input
                         type='number'
                         className={cls.input}
                         value={(draftConfig.dailyTpPct * 100).toFixed(2)}
@@ -83,7 +71,7 @@ export function BacktestConfigEditor({
                             return (
                                 <tr key={p.name}>
                                     <td>
-                                        <input
+                                        <Input
                                             type='checkbox'
                                             checked={enabled}
                                             onChange={e => onPolicyEnabledChange(p.name, e.target.checked)}
@@ -92,7 +80,7 @@ export function BacktestConfigEditor({
                                     <td>{p.name}</td>
                                     <td>{p.policyType}</td>
                                     <td>
-                                        <input
+                                        <Input
                                             type='number'
                                             className={cls.input}
                                             value={p.leverage != null ? String(p.leverage) : ''}
@@ -108,15 +96,11 @@ export function BacktestConfigEditor({
                 </table>
             </div>
 
-            <button type='button' className={cls.runButton} onClick={onRunPreview} disabled={isPreviewLoading}>
+            <Btn className={cls.runButton} onClick={onRunPreview} disabled={isPreviewLoading}>
                 {isPreviewLoading ? 'Запускаю тест...' : 'Запустить тест'}
-            </button>
+            </Btn>
 
-            {previewError && (
-                <Text type='p' className={cls.errorText}>
-                    {previewError}
-                </Text>
-            )}
+            {previewError && <Text className={cls.errorText}>{previewError}</Text>}
         </section>
     )
 }

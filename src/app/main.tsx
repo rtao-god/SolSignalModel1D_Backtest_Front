@@ -1,30 +1,72 @@
 import ReactDOM from 'react-dom/client'
-import App from './App'
-import { BrowserRouter } from 'react-router-dom'
+import { StrictMode } from 'react'
+import { BrowserRouter, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { StoreProvider } from './providers/StoreProvider'
-import { ErrorBoundary } from 'react-error-boundary'
 import './styles/_include.scss'
-import { ErrorBoundaryFallback } from '@/widgets/components'
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import GlobalErrorFallback from './providers/ErrorBoundary/ui/GlobalErrorFallback/GlobalErrorFallback'
+import { logError } from '@/shared/lib/logging/logError'
+import { setupGlobalErrorHandlers } from '@/shared/lib/logging/setupGlobalErrorHandlers'
+import { ErrorBoundary } from './providers/ErrorBoundary/ErrorBoundary'
+import App from './App'
 
-const queryClient = new QueryClient()
+// Общий QueryClient для TanStack Query.
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            // Эти флаги включать, когда начнём писать useQuery с Suspense:
+            // suspense: true,
+            // useErrorBoundary: true,
+            retry: 1,
+            refetchOnWindowFocus: false
+        }
+    }
+})
+
+// Настраиваем глобальные обработчики window.onerror / unhandledrejection один раз
+setupGlobalErrorHandlers()
+
+function AppWithGlobalErrorBoundary() {
+    const location = useLocation()
+
+    return (
+        <ErrorBoundary
+            resetKeys={[location.pathname]}
+            onError={(error, errorInfo) =>
+                logError(error, errorInfo, {
+                    source: 'global-error-boundary',
+                    path: location.pathname
+                })
+            }
+            fallbackRender={props => <GlobalErrorFallback {...props} />}>
+            <App />
+        </ErrorBoundary>
+    )
+}
+
+const RootApp = () => (
+    <StoreProvider>
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <ThemeProvider>
+                    <AppWithGlobalErrorBoundary />
+                </ThemeProvider>
+            </BrowserRouter>
+        </QueryClientProvider>
+    </StoreProvider>
+)
+
 const rootElement = document.getElementById('root')
 
-if (rootElement) {
-    ReactDOM.createRoot(rootElement).render(
-        <StoreProvider>
-            <QueryClientProvider client={queryClient}>
-                <BrowserRouter>
-                    <ThemeProvider>
-                        <ErrorBoundary fallback={<ErrorBoundaryFallback />}>
-                            <App />
-                        </ErrorBoundary>
-                    </ThemeProvider>
-                </BrowserRouter>
-            </QueryClientProvider>
-        </StoreProvider>
-    )
+if (!rootElement) {
+    console.error('Root element with id="root" not found in DOM')
 } else {
-    console.error('Root element not found')
+    const root = ReactDOM.createRoot(rootElement)
+
+    root.render(
+        <StrictMode>
+            <RootApp />
+        </StrictMode>
+    )
 }
