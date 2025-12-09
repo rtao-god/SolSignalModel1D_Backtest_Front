@@ -26,9 +26,7 @@ export default function AuthSection({ className }: AuthSectionProps) {
                             Войти
                         </Text>
                     </Link>
-                    <Text type='p' color='#0064FA'>
-                        /
-                    </Text>
+                    <Text color='#0064FA'>/</Text>
                     <Link to='/registration'>
                         <Text type='h2' fz='14px' color='#0064FA'>
                             Регистрация

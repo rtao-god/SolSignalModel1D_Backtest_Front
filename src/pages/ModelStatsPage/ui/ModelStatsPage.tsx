@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
-import { useGetModelStatsReportQuery } from '@/shared/api/api'
 import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import cls from './ModelStatsPage.module.scss'
+import { useModelStatsReportQuery } from '@/shared/api/tanstackQueries/modelStats'
 
 interface ModelStatsPageProps {
     className?: string
@@ -47,12 +47,8 @@ const SEGMENT_PREFIX: Record<SegmentKey, string> = {
     RECENT: '[RECENT] '
 }
 
-// Приоритет выбора сегмента по умолчанию
 const SEGMENT_INIT_ORDER: SegmentKey[] = ['OOS', 'RECENT', 'TRAIN', 'FULL']
 
-/**
- * Обрезает префикс "[OOS] " / "[TRAIN] " и т.п. в заголовке секции.
- */
 function stripSegmentPrefix(title: string | undefined | null): string {
     if (!title) return ''
     const match = title.match(/^\[(FULL|TRAIN|OOS|RECENT)\]\s*/i)
@@ -60,31 +56,20 @@ function stripSegmentPrefix(title: string | undefined | null): string {
     return title.slice(match[0].length)
 }
 
-/**
- * Проверка, что секция — key-value (опираемся на наличие items).
- */
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
     return Array.isArray((section as KeyValueSectionDto).items)
 }
 
-/**
- * Проверка, что секция — табличная (опираемся на наличие columns).
- */
 function isTableSection(section: ReportSectionDto): section is TableSectionDto {
     return Array.isArray((section as TableSectionDto).columns)
 }
 
-/**
- * Представление метаданных по выбранному сегменту в одном месте.
- * Это упрощает отображение и переиспользуется и для бейджа, и для текста под переключателями.
- */
 interface ResolvedSegmentMeta {
     label: string
     description: string
 }
 
 function resolveSegmentMeta(segment: SegmentKey, meta: GlobalMeta | null): ResolvedSegmentMeta | null {
-    // Если глобальные метаданные ещё не успели приехать — ничего не показываем.
     if (!meta) {
         return null
     }
@@ -115,10 +100,6 @@ function resolveSegmentMeta(segment: SegmentKey, meta: GlobalMeta | null): Resol
     }
 }
 
-/**
- * Переключатель бизнес/тех-режима.
- * Управляет только выбором daily confusion summary vs technical matrix.
- */
 function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeToggleProps) {
     const handleBusinessClick = () => {
         if (mode !== 'business') {
@@ -156,10 +137,6 @@ interface SegmentToggleProps {
     onChange: (segment: SegmentKey) => void
 }
 
-/**
- * Переключатель сегмента (OOS / Train / Full / Recent).
- * Использует те же стили, что и переключатель бизнес/тех-режима.
- */
 function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
     if (!segments.length) {
         return null
@@ -201,11 +178,6 @@ function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
     )
 }
 
-/**
- * Карточка табличной секции.
- * Заголовок очищается от префикса сегмента.
- * Добавлен aria-labelledby, чтобы экранные дикторы корректно зачитывали подпись таблицы.
- */
 function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     if (!section.columns || section.columns.length === 0) {
         return null
@@ -248,28 +220,28 @@ function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
 
 /**
  * Страница статистики моделей:
- * - тянет ReportDocument kind="backtest_model_stats" (через API);
- * - читает global-meta (RunKind, HasOos, размеры выборок);
- * - даёт выбрать сегмент (OOS / Train / Full / Recent);
- * - бизнес/тех-режим управляет версией daily confusion.
- *
- * Вёрстка и тексты подстроены под тёмную тему и сценарий:
- * "быстро понять, что за отчёт, какой сегмент и режим сейчас выбраны
- *  и какие данные лежат под каждой карточкой".
+ * - использует Suspense-хук useModelStatsReportQuery;
+ * - переключатели сегмента (OOS/Train/Full/Recent) и бизнес/тех-режима;
+ * - SectionPager для навигации по секциям.
  */
 export default function ModelStatsPage({ className }: ModelStatsPageProps) {
-    const { data, isLoading, isError } = useGetModelStatsReportQuery()
+    const { data, isError } = useModelStatsReportQuery()
 
-    // Глобальный режим отображения daily confusion.
     const [mode, setMode] = useState<ViewMode>('business')
-
-    // Текущий сегмент (OOS / Train / Full / Recent).
     const [segment, setSegment] = useState<SegmentKey | null>(null)
 
-    // Все секции отчёта.
-    const allSections = useMemo(() => (data?.sections as ReportSectionDto[] | undefined) ?? [], [data])
+    const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
 
-    // Глобальные метаданные по мультисегментному отчёту.
+    if (isError || !data) {
+        return (
+            <div className={rootClassName}>
+                <Text type='h2'>Не удалось загрузить статистику моделей</Text>
+            </div>
+        )
+    }
+
+    const allSections = useMemo(() => (data.sections as ReportSectionDto[] | undefined) ?? [], [data.sections])
+
     const globalMeta = useMemo<GlobalMeta | null>(() => {
         if (!allSections.length) {
             return null
@@ -277,7 +249,6 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
 
         const metaSection = allSections.filter(isKeyValueSection).find(section => {
             const title = section.title ?? ''
-            // Название из бэкенда: "Параметры модельных статистик (multi-segment)"
             return title.includes('multi-segment') || title.includes('Параметры модельных статистик')
         })
 
@@ -315,10 +286,8 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         }
     }, [allSections])
 
-    // Все табличные секции (до фильтрации по сегменту/режиму).
     const rawTableSections = useMemo(() => allSections.filter(isTableSection), [allSections])
 
-    // Доступные сегменты по префиксам "[OOS] ", "[TRAIN] " и т.д.
     const availableSegments = useMemo<SegmentInfo[]>(() => {
         if (!rawTableSections.length) {
             return []
@@ -346,7 +315,6 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         return ordered
     }, [rawTableSections])
 
-    // Инициализация выбранного сегмента (OOS → Recent → Train → Full).
     useEffect(() => {
         if (segment !== null) {
             return
@@ -362,11 +330,9 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
             }
         }
 
-        // fallback: первый доступный сегмент
         setSegment(availableSegments[0].key)
     }, [segment, availableSegments])
 
-    // Табличные секции после фильтрации по сегменту и бизнес/тех-режиму.
     const tableSections = useMemo(() => {
         if (!rawTableSections.length) {
             return [] as TableSectionDto[]
@@ -375,7 +341,6 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         return rawTableSections.filter(section => {
             const title = section.title ?? ''
 
-            // Фильтр по сегменту: оставляем только таблицы с нужным префиксом.
             if (segment) {
                 const prefix = SEGMENT_PREFIX[segment]
                 if (!title.startsWith(prefix)) {
@@ -383,7 +348,6 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 }
             }
 
-            // Фильтр по режиму: summary vs technical matrix для daily confusion.
             const isDailyBusiness = title.includes('Daily label summary (business)')
             const isDailyTechnical = title.includes('Daily label confusion (3-class, technical)')
 
@@ -399,7 +363,6 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         })
     }, [rawTableSections, segment, mode])
 
-    // Таб-лист для SectionPager; заголовки без префикса сегмента.
     const tabs = useMemo(
         () =>
             tableSections.map((section, index) => {
@@ -418,10 +381,8 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
         syncHash: true
-        // offsetTop берётся из CSS-переменной внутри scrollToAnchor
     })
 
-    // Метаданные для текущего сегмента: единый источник правды и для бейджа, и для описания.
     const currentSegmentMeta = useMemo(
         () => (segment ? resolveSegmentMeta(segment, globalMeta) : null),
         [segment, globalMeta]
@@ -429,28 +390,12 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
 
     const segmentDescription = currentSegmentMeta?.description ?? ''
 
-    if (isLoading) {
-        return (
-            <div className={classNames(cls.ModelStatsPage, {}, [className ?? ''])}>
-                <Text type='h2'>Загружаю статистику моделей...</Text>
-            </div>
-        )
-    }
-
-    if (isError || !data) {
-        return (
-            <div className={classNames(cls.ModelStatsPage, {}, [className ?? ''])}>
-                <Text type='h2'>Не удалось загрузить статистику моделей</Text>
-            </div>
-        )
-    }
-
     return (
-        <div className={classNames(cls.ModelStatsPage, {}, [className ?? ''])}>
+        <div className={rootClassName}>
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
                     <Text type='h2'>{data.title || 'Статистика моделей'}</Text>
-                    <Text type='p' className={cls.subtitle}>
+                    <Text className={cls.subtitle}>
                         Сводный отчёт по качеству и поведению ML-моделей на разных выборках (train / OOS / full /
                         recent). Сначала выберите сегмент данных и режим отчёта, ниже — детальные карточки с метриками.
                     </Text>
@@ -468,27 +413,19 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 </div>
 
                 <div className={cls.meta}>
-                    <Text type='p' className={cls.metaTitle}>
-                        Параметры прогона
-                    </Text>
-                    <Text type='p' className={cls.metaLine}>
-                        Сформирован: {new Date(data.generatedAtUtc).toLocaleString()}
-                    </Text>
-                    <Text type='p' className={cls.metaLine}>
-                        Тип отчёта: {data.kind}
-                    </Text>
+                    <Text className={cls.metaTitle}>Параметры прогона</Text>
+                    <Text className={cls.metaLine}>Сформирован: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
+                    <Text className={cls.metaLine}>Тип отчёта: {data.kind}</Text>
                     {globalMeta && (
                         <>
-                            <Text type='p' className={cls.metaLine}>
-                                Run kind: {globalMeta.runKind || 'n/a'}
-                            </Text>
-                            <Text type='p' className={classNames(cls.metaLine, {}, [cls.metaLineStrong])}>
+                            <Text className={cls.metaLine}>Run kind: {globalMeta.runKind || 'n/a'}</Text>
+                            <Text className={classNames(cls.metaLine, {}, [cls.metaLineStrong])}>
                                 OOS:{' '}
                                 {globalMeta.hasOos ?
                                     `есть, записей ${globalMeta.oosRecordsCount}`
                                 :   'нет (используется только train)'}
                             </Text>
-                            <Text type='p' className={cls.metaLine}>
+                            <Text className={cls.metaLine}>
                                 Train: {globalMeta.trainRecordsCount}, Recent ({globalMeta.recentDays} d):{' '}
                                 {globalMeta.recentRecordsCount}
                             </Text>
@@ -497,17 +434,14 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 </div>
             </header>
 
-            {/* Переключатели сегмента и бизнес/тех-режима + пояснение как читать отчёт */}
             <section className={cls.controlBar}>
                 <div className={cls.controlBarMain}>
                     <SegmentToggle segments={availableSegments} value={segment} onChange={setSegment} />
                     <ModelStatsModeToggle mode={mode} onChange={setMode} />
                 </div>
                 <div className={cls.controlBarInfo}>
-                    <Text type='p' className={cls.controlTitle}>
-                        Как читать этот отчёт
-                    </Text>
-                    <Text type='p' className={cls.controlText}>
+                    <Text className={cls.controlTitle}>Как читать этот отчёт</Text>
+                    <Text className={cls.controlText}>
                         Сегменты (OOS / Train / Full / Recent) задают, на каких данных считаются метрики. Режим
                         &quot;Бизнес&quot; показывает агрегированные показатели, &quot;Технарь&quot; — детальные матрицы
                         ошибок и распределения для анализа модели.
@@ -515,11 +449,7 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 </div>
             </section>
 
-            {segmentDescription && (
-                <Text type='p' className={cls.segmentSubtitle}>
-                    {segmentDescription}
-                </Text>
-            )}
+            {segmentDescription && <Text className={cls.segmentSubtitle}>{segmentDescription}</Text>}
 
             <div className={cls.tablesGrid}>
                 {tableSections.map((section, index) => {

@@ -1,17 +1,36 @@
-import { Btn } from '@/shared/ui'
 import { useEffect, useState } from 'react'
+import { Btn } from '@/shared/ui'
+import styles from './BugBtn.module.scss'
 
-// На будущее. Пока что LEGACY
+/**
+ * Кнопка для проверки ErrorBoundary.
+ * По клику инициирует контролируемую ошибку в жизненном цикле React.
+ */
 export default function BugBtn() {
-    const [error, setError] = useState(false)
+    // Флаг, что пользователь запросил генерацию ошибки
+    const [shouldThrow, setShouldThrow] = useState(false)
 
-    const onThrow = () => {
-        setError(true)
+    const handleClick = () => {
+        // Меняем состояние, а не кидаем ошибку прямо в обработчике.
+        // Ошибка в эффектах корректно перехватывается ErrorBoundary.
+        setShouldThrow(true)
     }
 
     useEffect(() => {
-        if (error) throw new Error()
-    }, [error])
+        if (!shouldThrow) return
 
-    return <Btn onClick={onThrow}>error</Btn>
+        const error = new Error(
+            'Демо-ошибка для проверки ErrorBoundary. ' +
+                'Если виден человекочитаемый экран ошибки — обработчик работает корректно.'
+        )
+        error.name = 'ErrorBoundaryTestError'
+
+        throw error
+    }, [shouldThrow])
+
+    return (
+        <Btn onClick={handleClick} className={styles.button}>
+            Сгенерировать ошибку
+        </Btn>
+    )
 }

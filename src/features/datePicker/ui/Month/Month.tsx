@@ -1,4 +1,4 @@
-import { CALENDAR_MONTHS, getWeekDaysArray } from '@/shared/const/date'
+import { CALENDAR_MONTHS, getWeekDaysArray } from '@/shared/consts/date'
 import Day from '../Day/Day'
 import cls from './Month.module.scss'
 import { Icon, Text } from '@/shared/ui'

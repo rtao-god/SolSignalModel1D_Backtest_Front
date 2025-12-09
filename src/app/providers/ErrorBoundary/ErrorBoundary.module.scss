@@ -1,0 +1,110 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    padding: 24px 16px;
+}
+
+.card {
+    max-width: 560px;
+    width: 100%;
+
+    padding: 20px 22px;
+    border-radius: 18px;
+
+    background: radial-gradient(circle at 0 0, rgba(255, 86, 86, 0.16), transparent 60%),
+        #111319;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(0, 0, 0, 0.9);
+
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pill {
+    align-self: flex-start;
+    padding: 2px 10px;
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    background: rgba(255, 86, 86, 0.12);
+    color: rgba(255, 189, 189, 0.9);
+}
+
+.title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.details {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 8px;
+}
+
+.label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.value {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    word-break: break-word;
+}
+
+.actions {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.secondary {
+    border: none;
+    background: transparent;
+    padding: 8px 10px;
+
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+
+    color: rgba(255, 255, 255, 0.7);
+}

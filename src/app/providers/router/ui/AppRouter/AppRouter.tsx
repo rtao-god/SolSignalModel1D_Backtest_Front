@@ -1,23 +1,32 @@
 import { Routes, Route } from 'react-router-dom'
 import { ROUTE_CONFIG } from '../../config/routeConfig'
 import Layout from '@/pages/Layout/Layout'
+import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 
 export default function AppRouter() {
     const routesWithLayout = ROUTE_CONFIG.filter(r => r.layout !== 'bare')
     const routesWithoutLayout = ROUTE_CONFIG.filter(r => r.layout === 'bare')
+
+    const renderElement = (route: (typeof ROUTE_CONFIG)[number]) => {
+        if (!route.loadingTitle) {
+            return route.element
+        }
+
+        return <PageSuspense title={route.loadingTitle}>{route.element}</PageSuspense>
+    }
 
     return (
         <Routes>
             {/* Все "нормальные" страницы под общим Layout */}
             <Route element={<Layout children={undefined} />}>
                 {routesWithLayout.map(route => (
-                    <Route key={route.id} path={route.path} element={route.element} />
+                    <Route key={route.id} path={route.path} element={renderElement(route)} />
                 ))}
             </Route>
 
             {/* "Голые" страницы без Layout */}
             {routesWithoutLayout.map(route => (
-                <Route key={route.id} path={route.path} element={route.element} />
+                <Route key={route.id} path={route.path} element={renderElement(route)} />
             ))}
         </Routes>
     )

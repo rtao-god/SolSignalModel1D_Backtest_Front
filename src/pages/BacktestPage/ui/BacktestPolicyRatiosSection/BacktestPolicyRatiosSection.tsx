@@ -1,26 +1,21 @@
 import { useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import { Btn, Text } from '@/shared/ui'
 import { useGetBacktestPolicyRatiosQuery } from '@/shared/api/api'
 import type { PolicyRatiosReportDto, PolicyRatiosPerPolicyDto } from '@/shared/types/policyRatios.types'
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from 'recharts'
 import cls from './BacktestPolicyRatiosSection.module.scss'
+import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
+import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
+import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 
 interface BacktestPolicyRatiosSectionProps {
-    /** id профиля бэктеста; по умолчанию "baseline". */
     profileId?: string
-    /** Заголовок секции. */
     title?: string
 }
 
-/** Доступные метрики для графика и таблицы. */
 type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
 
-/**
- * Конфигурация метрик:
- * - label используется в селекте и легенде графика,
- * - isPercent определяет форматирование оси и tooltip.
- */
 const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = [
     { key: 'totalPnlPct', label: 'PnL %', isPercent: true },
     { key: 'sharpe', label: 'Sharpe' },
@@ -31,11 +26,10 @@ const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = 
 
 /**
  * Секция метрик политик:
- * - по умолчанию показывает график (bar chart) по выбранной метрике;
- * - по клику можно переключиться на табличное представление.
- *
- * Один и тот же DTO PolicyRatiosReportDto используется и для графика, и для таблицы,
- * поэтому лишних запросов на бэкенд не делается — меняется только способ отображения.
+ * - bar chart по выбранной метрике;
+ * - табличное представление;
+ * - ErrorBlock для сетевых ошибок;
+ * - SectionErrorBoundary для защиту от клиентских ошибок в отрисовке.
  */
 export function BacktestPolicyRatiosSection({
     profileId = 'baseline',
@@ -49,10 +43,6 @@ export function BacktestPolicyRatiosSection({
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
     const isPercentMetric = Boolean(currentMetric.isPercent)
 
-    /**
-     * Унифицированный доступ к значениям метрик.
-     * Здесь только извлечение значения, без форматирования и без фильтрации NaN/Infinity.
-     */
     const selectMetric = (row: PolicyRatiosPerPolicyDto, key: MetricKey): number => {
         switch (key) {
             case 'totalPnlPct':
@@ -70,11 +60,6 @@ export function BacktestPolicyRatiosSection({
         }
     }
 
-    /**
-     * Данные для графика:
-     * - приводим значения к числу или null (если NaN/Infinity),
-     * - график не будет ломаться на проблемных значениях (например, Sharpe при отсутствии сделок).
-     */
     const chartData = useMemo(
         () =>
             (data?.policies ?? []).map(row => {
@@ -95,21 +80,24 @@ export function BacktestPolicyRatiosSection({
         return (
             <section className={cls.PolicyRatiosSection}>
                 <Text type='h3'>{title}</Text>
-                <Text type='p'>Загружаю метрики политик...</Text>
+                <Text>Загружаю метрики политик...</Text>
             </section>
         )
     }
 
     if (isError) {
-        const message =
-            (error as any)?.data?.message ??
-            (error as any)?.error ??
-            'Не удалось загрузить метрики политик (policy_ratios).'
+        const resolved = resolveAppError(error)
 
         return (
             <section className={cls.PolicyRatiosSection}>
                 <Text type='h3'>{title}</Text>
-                <Text type='p'>{String(message)}</Text>
+                <ErrorBlock
+                    code={resolved.code}
+                    title={resolved.title}
+                    description={resolved.description}
+                    details={resolved.rawMessage}
+                    compact
+                />
             </section>
         )
     }
@@ -118,7 +106,7 @@ export function BacktestPolicyRatiosSection({
         return (
             <section className={cls.PolicyRatiosSection}>
                 <Text type='h3'>{title}</Text>
-                <Text type='p'>Пока нет сохранённого отчёта с метриками политик.</Text>
+                <Text>Пока нет сохранённого отчёта с метриками политик.</Text>
             </section>
         )
     }
@@ -139,7 +127,7 @@ export function BacktestPolicyRatiosSection({
                 <div className={cls.headerText}>
                     <Text type='h3'>{title}</Text>
                     {report.fromDateUtc && report.toDateUtc && (
-                        <Text type='p'>
+                        <Text>
                             Окно бэктеста: {new Date(report.fromDateUtc).toLocaleDateString()} —{' '}
                             {new Date(report.toDateUtc).toLocaleDateString()}
                         </Text>
@@ -161,147 +149,155 @@ export function BacktestPolicyRatiosSection({
                     </div>
 
                     <div className={cls.toggleGroup}>
-                        <button
-                            type='button'
+                        <Btn
                             className={classNames(cls.toggleBtn, {
                                 [cls.toggleBtnActive]: viewMode === 'chart'
                             })}
                             onClick={() => handleViewModeChange('chart')}>
                             График
-                        </button>
-                        <button
-                            type='button'
+                        </Btn>
+                        <Btn
                             className={classNames(cls.toggleBtn, {
                                 [cls.toggleBtnActive]: viewMode === 'table'
                             })}
                             onClick={() => handleViewModeChange('table')}>
                             Таблица
-                        </button>
+                        </Btn>
                     </div>
                 </div>
             </div>
 
-            {viewMode === 'chart' ?
-                <div className={cls.chartContainer}>
-                    {hasValidChartValues ?
-                        <ResponsiveContainer width='100%' height='100%'>
-                            <BarChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 40 }}>
-                                <CartesianGrid strokeDasharray='3 3' vertical={false} />
+            <SectionErrorBoundary
+                name='BacktestPolicyRatiosContent'
+                fallback={({ error: sectionError, reset }) => (
+                    <ErrorBlock
+                        code='CLIENT'
+                        title='Ошибка в секции метрик политик'
+                        description='При отрисовке блока метрик политик произошла ошибка на клиенте. Остальная часть страницы продолжает работать.'
+                        details={sectionError.message}
+                        onRetry={reset}
+                        compact
+                    />
+                )}>
+                {viewMode === 'chart' ?
+                    <div className={cls.chartContainer}>
+                        {hasValidChartValues ?
+                            <ResponsiveContainer width='100%' height='100%'>
+                                <BarChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 40 }}>
+                                    <CartesianGrid strokeDasharray='3 3' vertical={false} />
 
-                                <XAxis
-                                    dataKey='policyName'
-                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
-                                    angle={-35}
-                                    textAnchor='end'
-                                    height={50}
-                                />
+                                    <XAxis
+                                        dataKey='policyName'
+                                        tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
+                                        angle={-35}
+                                        textAnchor='end'
+                                        height={50}
+                                    />
 
-                                <YAxis
-                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
-                                    width={60}
-                                    tickFormatter={value => {
-                                        if (typeof value !== 'number') {
-                                            return value
-                                        }
-
-                                        if (isPercentMetric) {
-                                            // Для процентов на оси достаточно целых значений (0%, 10%, 20%, ...)
-                                            return `${value.toFixed(0)}%`
-                                        }
-
-                                        // Для коэффициентов показываем целые значения на оси,
-                                        // детализация уходит в tooltip.
-                                        return value.toFixed(0)
-                                    }}
-                                />
-
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                                        borderRadius: 8,
-                                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                                        padding: '8px 10px',
-                                        fontSize: 12
-                                    }}
-                                    labelStyle={{
-                                        fontWeight: 500,
-                                        marginBottom: 4
-                                    }}
-                                    formatter={(value: any) => {
-                                        if (typeof value !== 'number') {
-                                            return value
-                                        }
-
-                                        const formatted = isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(2)
-
-                                        return [formatted, currentMetric.label]
-                                    }}
-                                    labelFormatter={label => `Политика: ${label}`}
-                                />
-
-                                {/* Линия нулевого уровня — визуальное разделение "плюс/минус" */}
-                                <ReferenceLine y={0} stroke='rgba(255, 255, 255, 0.4)' strokeDasharray='3 3' />
-
-                                <Bar dataKey='value' name={currentMetric.label} radius={[4, 4, 0, 0]} barSize={28}>
-                                    {chartData.map(entry => (
-                                        <Cell
-                                            key={entry.policyName}
-                                            fill={
-                                                entry.value == null ? 'rgba(255, 255, 255, 0.3)'
-                                                : entry.value >= 0 ?
-                                                    '#4caf50'
-                                                :   '#ff6b6b'
+                                    <YAxis
+                                        tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
+                                        width={60}
+                                        tickFormatter={value => {
+                                            if (typeof value !== 'number') {
+                                                return value
                                             }
-                                        />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    :   <div className={cls.chartEmptyState}>
-                            <Text type='p'>
-                                Нет валидных значений для выбранной метрики. Попробуйте выбрать другую метрику или
-                                изменить окно бэктеста.
-                            </Text>
-                        </div>
-                    }
-                </div>
-            :   <div className={cls.tableWrapper}>
-                    <table className={cls.table}>
-                        <thead>
-                            <tr>
-                                <th>Политика</th>
-                                <th>Сделок</th>
-                                <th>PnL %</th>
-                                <th>MaxDD %</th>
-                                <th>Sharpe</th>
-                                <th>Sortino</th>
-                                <th>Calmar</th>
-                                <th>WinRate %</th>
-                                <th>Withdrawn $</th>
-                                <th>Liq?</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {report.policies.map(row => (
-                                <tr key={row.policyName}>
-                                    <td>{row.policyName}</td>
-                                    <td>{row.tradesCount}</td>
-                                    <td>{row.totalPnlPct.toFixed(2)}</td>
-                                    <td>{row.maxDdPct.toFixed(2)}</td>
-                                    <td>{Number.isFinite(row.sharpe) ? row.sharpe.toFixed(2) : '—'}</td>
-                                    <td>{Number.isFinite(row.sortino) ? row.sortino.toFixed(2) : '—'}</td>
-                                    <td>{Number.isFinite(row.calmar) ? row.calmar.toFixed(2) : '—'}</td>
-                                    <td>{row.winRatePct.toFixed(1)}</td>
-                                    <td>{row.withdrawnUsd.toFixed(0)}</td>
-                                    <td className={row.hadLiquidation ? cls.badLiq : undefined}>
-                                        {row.hadLiquidation ? 'YES' : 'no'}
-                                    </td>
+
+                                            if (isPercentMetric) {
+                                                return `${value.toFixed(0)}%`
+                                            }
+
+                                            return value.toFixed(0)
+                                        }}
+                                    />
+
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(255, 255, 255, 0.16)',
+                                            padding: '8px 10px',
+                                            fontSize: 12
+                                        }}
+                                        labelStyle={{
+                                            fontWeight: 500,
+                                            marginBottom: 4
+                                        }}
+                                        formatter={(value: any) => {
+                                            if (typeof value !== 'number') {
+                                                return value
+                                            }
+
+                                            const formatted =
+                                                isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(2)
+
+                                            return [formatted, currentMetric.label]
+                                        }}
+                                        labelFormatter={label => `Политика: ${label}`}
+                                    />
+
+                                    <ReferenceLine y={0} stroke='rgba(255, 255, 255, 0.4)' strokeDasharray='3 3' />
+
+                                    <Bar dataKey='value' name={currentMetric.label} radius={[4, 4, 0, 0]} barSize={28}>
+                                        {chartData.map(entry => (
+                                            <Cell
+                                                key={entry.policyName}
+                                                fill={
+                                                    entry.value == null ? 'rgba(255, 255, 255, 0.3)'
+                                                    : entry.value >= 0 ?
+                                                        '#4caf50'
+                                                    :   '#ff6b6b'
+                                                }
+                                            />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        :   <div className={cls.chartEmptyState}>
+                                <Text>
+                                    Нет валидных значений для выбранной метрики. Попробуйте выбрать другую метрику или
+                                    изменить окно бэктеста.
+                                </Text>
+                            </div>
+                        }
+                    </div>
+                :   <div className={cls.tableWrapper}>
+                        <table className={cls.table}>
+                            <thead>
+                                <tr>
+                                    <th>Политика</th>
+                                    <th>Сделок</th>
+                                    <th>PnL %</th>
+                                    <th>MaxDD %</th>
+                                    <th>Sharpe</th>
+                                    <th>Sortino</th>
+                                    <th>Calmar</th>
+                                    <th>WinRate %</th>
+                                    <th>Withdrawn $</th>
+                                    <th>Liq?</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            }
+                            </thead>
+                            <tbody>
+                                {report.policies.map(row => (
+                                    <tr key={row.policyName}>
+                                        <td>{row.policyName}</td>
+                                        <td>{row.tradesCount}</td>
+                                        <td>{row.totalPnlPct.toFixed(2)}</td>
+                                        <td>{row.maxDdPct.toFixed(2)}</td>
+                                        <td>{Number.isFinite(row.sharpe) ? row.sharpe.toFixed(2) : '—'}</td>
+                                        <td>{Number.isFinite(row.sortino) ? row.sortino.toFixed(2) : '—'}</td>
+                                        <td>{Number.isFinite(row.calmar) ? row.calmar.toFixed(2) : '—'}</td>
+                                        <td>{row.winRatePct.toFixed(1)}</td>
+                                        <td>{row.withdrawnUsd.toFixed(0)}</td>
+                                        <td className={row.hadLiquidation ? cls.badLiq : undefined}>
+                                            {row.hadLiquidation ? 'YES' : 'no'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </SectionErrorBoundary>
         </section>
     )
 }

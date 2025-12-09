@@ -1,5 +1,6 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Footer.module.scss'
+import { Text } from '@/shared/ui'
 
 interface FooterProps {
     className?: string
@@ -21,13 +22,13 @@ export default function Footer({ className }: FooterProps) {
 
                 {/* Текстовый блок с моковыми текстами */}
                 <div className={cls.textBlock}>
-                    <p className={cls.textPrimary}>
+                    <Text className={cls.textPrimary}>
                         Все результаты бэктестов носят ознакомительный характер и не являются инвестиционной
                         рекомендацией.
-                    </p>
-                    <p className={cls.textSecondary}>
+                    </Text>
+                    <Text className={cls.textSecondary}>
                         © {year} Project Name. Внутренний интерфейс для экспериментов и анализа.
-                    </p>
+                    </Text>
                 </div>
             </div>
         </footer>

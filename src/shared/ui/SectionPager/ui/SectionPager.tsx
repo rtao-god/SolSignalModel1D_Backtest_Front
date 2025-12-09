@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import cls from './SectionPager.module.scss'
+import { Btn } from '../../Btn'
 
 interface SectionPagerItem {
     id: string
@@ -59,14 +60,14 @@ export default function SectionPager({
     return (
         <div className={cls.pager}>
             {hasPrev && (
-                <button className={cls.btn} type='button' onClick={handlePrevClick} aria-label='Предыдущий раздел'>
+                <Btn className={cls.btn} onClick={handlePrevClick} aria-label='Предыдущий раздел'>
                     <span className={cls.arrow}>↑</span>
-                </button>
+                </Btn>
             )}
             {hasNext && (
-                <button className={cls.btn} type='button' onClick={handleNextClick} aria-label='Следующий раздел'>
+                <Btn className={cls.btn} onClick={handleNextClick} aria-label='Следующий раздел'>
                     <span className={cls.arrow}>↓</span>
-                </button>
+                </Btn>
             )}
         </div>
     )

@@ -1,8 +1,10 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestBaselinePage.module.scss'
 import { Text } from '@/shared/ui'
-import { useGetBacktestBaselineSnapshotQuery } from '@/shared/api/api'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
+import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
+import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
+import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 
 interface BacktestBaselinePageProps {
     className?: string
@@ -12,28 +14,33 @@ interface BacktestBaselinePageProps {
  * Страница, показывающая лёгкий baseline-снимок бэктеста:
  * - метаданные (configName, время генерации, SL/TP);
  * - таблицу политик с PnL, просадкой и ликвидациями.
+ * Данные приходят через Suspense-хук useBacktestBaselineSnapshotQuery.
  */
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
-    const { data, isLoading, isError } = useGetBacktestBaselineSnapshotQuery()
+    const { data, isError, error } = useBacktestBaselineSnapshotQuery()
 
-    if (isLoading) {
-        return (
-            <div className={classNames(cls.BacktestBaselinePage, {}, [className ?? ''])}>
-                <Text type='h2'>Загружаю baseline бэктеста...</Text>
-            </div>
-        )
-    }
+    const rootClassName = classNames(cls.BacktestBaselinePage, {}, [className ?? ''])
 
     if (isError || !data) {
+        const resolved = isError ? resolveAppError(error) : undefined
+
         return (
-            <div className={classNames(cls.BacktestBaselinePage, {}, [className ?? ''])}>
-                <Text type='h2'>Не удалось загрузить baseline бэктеста</Text>
+            <div className={rootClassName}>
+                <ErrorBlock
+                    code={resolved?.code ?? (isError ? 'UNKNOWN' : 'EMPTY')}
+                    title={resolved?.title ?? 'Не удалось загрузить baseline бэктеста'}
+                    description={
+                        resolved?.description ??
+                        'Проверьте, что бэкенд запущен и endpoint снапшота baseline-бэктеста отдаёт данные.'
+                    }
+                    details={resolved?.rawMessage}
+                />
             </div>
         )
     }
 
     return (
-        <div className={classNames(cls.BacktestBaselinePage, {}, [className ?? ''])}>
+        <div className={rootClassName}>
             <Header snapshot={data} />
             <GlobalParams snapshot={data} />
             <PoliciesTable policies={data.policies ?? []} />
@@ -56,10 +63,10 @@ function Header({ snapshot }: HeaderProps) {
     return (
         <header className={cls.header}>
             <Text type='h1'>Baseline бэктеста</Text>
-            <Text type='p'>ID снапшота: {snapshot.id}</Text>
-            <Text type='p'>Конфиг: {snapshot.configName}</Text>
-            <Text type='p'>Сгенерировано (UTC): {generatedUtcStr}</Text>
-            <Text type='p'>Сгенерировано (локальное время): {generatedLocalStr}</Text>
+            <Text>ID снапшота: {snapshot.id}</Text>
+            <Text>Конфиг: {snapshot.configName}</Text>
+            <Text>Сгенерировано (UTC): {generatedUtcStr}</Text>
+            <Text>Сгенерировано (локальное время): {generatedLocalStr}</Text>
         </header>
     )
 }
@@ -108,7 +115,7 @@ function PoliciesTable({ policies }: PoliciesTableProps) {
         return (
             <section className={cls.policiesSection}>
                 <Text type='h2'>Политики</Text>
-                <Text type='p'>Нет данных по политикам.</Text>
+                <Text>Нет данных по политикам.</Text>
             </section>
         )
     }

@@ -4,7 +4,7 @@ function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; erro
     const [data, setData] = useState<T | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [error, setError] = useState<Error | null>(null)
-    const baseURL = import.meta.env.VITE_API_BASE_URL
+    const baseURL = import.meta.env.API_BASE_URL
 
     useEffect(() => {
         const fetchData = async () => {

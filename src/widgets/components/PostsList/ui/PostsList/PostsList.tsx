@@ -19,7 +19,7 @@ export default function PostsList({ className }: PostsListProps) {
         const fetchPosts = async () => {
             try {
                 setIsLoading(true)
-            /*     const response = await getPosts()
+                /*     const response = await getPosts()
                 setPosts(response) */
             } catch (err) {
                 setError('Failed to load posts')
@@ -72,17 +72,17 @@ export default function PostsList({ className }: PostsListProps) {
             </Form>
             {formData && (
                 <div className='form-data'>
-                    <h3>Submitted Data:</h3>
+                    <Text type='h3'>Submitted Data:</Text>
                     <pre>{JSON.stringify(formData, null, 2)}</pre>
                 </div>
             )}
             {posts.map((post: any) => (
                 <div className={cls.post} key={post.id}>
                     <Text type='h3'>{post.title}</Text>
-                    <Text type='p'>{post.body}</Text>
+                    <Text>{post.body}</Text>
                     <Row gap={20}>
                         <Btn onClick={() => handleUpdateCounter(post.id)}>Increment</Btn>
-                        <Text type='p'>Counter: {counters[post.id] || 0}</Text>
+                        <Text>Counter: {counters[post.id] || 0}</Text>
                     </Row>
                 </div>
             ))}

@@ -50,6 +50,8 @@ export type AppRouteConfig = RouteProps & {
     element: JSX.Element
     nav?: RouteNavMeta
     layout?: RouteLayout
+    // Текст для PageLoader (если нужен локальный Suspense на страницу)
+    loadingTitle?: string
 }
 
 // Элемент навигации сайдбара

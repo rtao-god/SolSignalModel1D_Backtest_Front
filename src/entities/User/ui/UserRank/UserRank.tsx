@@ -6,7 +6,7 @@ import cls from './UserRank.module.scss'
 export default function UserRank({ className, rank, position, fz = '14px' }: UserRankProps) {
     return (
         <div className={classNames(cls.User_rank, {}, [className ?? ''])}>
-            <Text type='p' fz={fz} color='#B1B2B4' position={position}>
+            <Text fz={fz} color='#B1B2B4' position={position}>
                 rank: {rank}
             </Text>
         </div>

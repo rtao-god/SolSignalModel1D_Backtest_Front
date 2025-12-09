@@ -9,7 +9,7 @@ interface Config {
     notifications: Notification[]
 }
 
-const baseURL = import.meta.env.VITE_API_BASE_URL
+const baseURL = import.meta.env.API_BASE_URL
 
 function useConfig(endpoint: string): { config: Config | null; isLoading: boolean; error: Error | null } {
     const [config, setConfig] = useState<Config | null>(null)

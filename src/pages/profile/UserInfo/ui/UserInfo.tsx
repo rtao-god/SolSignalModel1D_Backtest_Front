@@ -50,9 +50,9 @@ export default function UserInfo({ className }: UserInfoProps) {
             </div>
             <div className={cls.data}>
                 <Text type='h2' color='#262626' fz='20px'>
-                     {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')}
+                    {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')}
                 </Text>
-                <Text type='p' color='#B1B2B4' fz='14px'>
+                <Text color='#B1B2B4' fz='14px'>
                     {user && user.group.name}
                 </Text>
             </div>

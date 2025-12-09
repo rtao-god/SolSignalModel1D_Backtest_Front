@@ -28,7 +28,7 @@ export default function NotFound({ className }: NotFoundProps) {
     // Хук должен быть вызван, а не просто передан как ссылка
     const { backOnPrevPage } = useBackOnPrevPage()
 
-    // Список рекомендуемых разделов. 
+    // Список рекомендуемых разделов.
     const suggestions: NotFoundSuggestion[] = useMemo(
         () => [
             {
@@ -78,7 +78,7 @@ export default function NotFound({ className }: NotFoundProps) {
                             Страница не найдена
                         </Text>
 
-                        <Text type='p' fz={MOBILE ? '14px' : '16px'} color='#B1B2B4' position='left'>
+                        <Text fz={MOBILE ? '14px' : '16px'} color='#B1B2B4' position='left'>
                             Похоже, по этому адресу ничего нет.
                             <br />
                             Возможно, страница была переименована или никогда не существовала.
@@ -95,26 +95,25 @@ export default function NotFound({ className }: NotFoundProps) {
                         <Btn onClick={backOnPrevPage}>Вернуться назад</Btn>
                     </div>
 
-                    <Text type='p' fz={MOBILE ? '13px' : '14px'} color='#8B8C8F' position='center'>
+                    <Text fz={MOBILE ? '13px' : '14px'} color='#8B8C8F' position='center'>
                         Или выберите один из разделов ниже:
                     </Text>
                 </div>
 
                 <div className={cls.linksGrid}>
                     {suggestions.map(item => (
-                        <button
+                        <Btn
                             key={item.id}
-                            type='button'
                             className={cls.linkCard}
                             onClick={() => handleSuggestionClick(item.path)}>
                             <Text type='h4' fz={MOBILE ? '14px' : '16px'} position='left'>
                                 {item.title}
                             </Text>
 
-                            <Text type='p' fz={MOBILE ? '12px' : '13px'} color='#A0A1A4' position='left'>
+                            <Text fz={MOBILE ? '12px' : '13px'} color='#A0A1A4' position='left'>
                                 {item.description}
                             </Text>
-                        </button>
+                        </Btn>
                     ))}
                 </div>
             </div>

@@ -13,7 +13,7 @@ export interface StateSchema {
     registration?: RegistrationSchema
     loginForm?: LoginSchema
 
-    // RTK Query-слайсы — делаем НЕ опциональными, т.к. они всегда есть в store
+    // RTK Query-слайсы
     [api.reducerPath]: ReturnType<typeof api.reducer>
     [authApi.reducerPath]: ReturnType<typeof authApi.reducer>
     [registrationApi.reducerPath]: ReturnType<typeof registrationApi.reducer>

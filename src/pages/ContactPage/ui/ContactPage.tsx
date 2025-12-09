@@ -22,7 +22,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                     <Text type='h1' className={cls.title}>
                         Связаться со мной
                     </Text>
-                    <Text type='p' className={cls.subtitle}>
+                    <Text className={cls.subtitle}>
                         Короткая страница с основными контактами для связи по проекту и вопросам сотрудничества.
                     </Text>
                 </header>
@@ -41,10 +41,8 @@ export default function ContactPage({ className }: ContactPageProps) {
                         <Text type='h2' className={cls.profileName}>
                             {FULL_NAME}
                         </Text>
-                        <Text type='p' className={cls.profileRole}>
-                            Quant / ML, Full-stack (React + .NET)
-                        </Text>
-                        <Text type='p' className={cls.profileNote}>
+                        <Text className={cls.profileRole}>Quant / ML, Full-stack (React + .NET)</Text>
+                        <Text className={cls.profileNote}>
                             Фокус на моделях для крипторынка, аналитике и визуализации результатов бэктестов.
                         </Text>
                     </div>
@@ -62,7 +60,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 Telegram
                             </Text>
-                            <Text type='p' className={cls.cardDescription}>
+                            <Text className={cls.cardDescription}>
                                 Основной канал для быстрой связи, вопросов по модели и демо-созвонов.
                             </Text>
                             <a href={TELEGRAM_URL} target='_blank' rel='noreferrer' className={cls.cardLink}>
@@ -82,7 +80,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 LinkedIn
                             </Text>
-                            <Text type='p' className={cls.cardDescription}>
+                            <Text className={cls.cardDescription}>
                                 Профессиональный профиль, резюме и история проектов.
                             </Text>
                             <a href={LINKEDIN_URL} target='_blank' rel='noreferrer' className={cls.cardLink}>
@@ -102,21 +100,19 @@ export default function ContactPage({ className }: ContactPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 Телефон / WhatsApp
                             </Text>
-                            <Text type='p' className={cls.cardDescription}>
+                            <Text className={cls.cardDescription}>
                                 Для созвонов, обсуждения деталей сотрудничества и быстрых согласований.
                             </Text>
                             <a href={`tel:${PHONE_TEL}`} className={cls.cardLink}>
                                 {PHONE_DISPLAY}
                             </a>
-                            <Text type='p' className={cls.cardTag}>
-                                WhatsApp доступен по этому номеру
-                            </Text>
+                            <Text className={cls.cardTag}>WhatsApp доступен по этому номеру</Text>
                         </div>
                     </article>
                 </section>
 
                 <footer className={cls.footer}>
-                    <Text type='p' className={cls.footerText}>
+                    <Text className={cls.footerText}>
                         При необходимости могу предложить короткий онлайн-демо формат: 10–15 минут, чтобы показать
                         ключевые метрики и UI проекта.
                     </Text>

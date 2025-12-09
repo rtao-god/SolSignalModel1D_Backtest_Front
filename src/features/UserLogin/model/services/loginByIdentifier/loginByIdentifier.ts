@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
-import { CONSTANS } from '@/shared/const/localStorage'
+import { CONSTANS } from '@/shared/consts/localStorage'
 import { User, userActions } from '@/entities/User'
 import i18n from '@/shared/configs/i18n/i18n'
 

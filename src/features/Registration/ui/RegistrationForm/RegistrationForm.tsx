@@ -32,7 +32,7 @@ import {
     PASSWORD_REQUIRED,
     PASSWORD_SHORT,
     TERMS_REQUIRED
-} from '@/shared/const/authRegister'
+} from '@/shared/consts/authRegister'
 import Checkbox from '../Checkbox/Checkbox'
 import { useDebounce } from '@/shared/lib/hooks/useDebounce'
 
@@ -166,7 +166,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
         setLocalIdentifier(value)
         debouncedSet(value)
     }
-    
+
     console.log('user: ', identifier, password)
     console.log('localStorage: ', localStorage.user)
     return (
@@ -250,9 +250,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
 
                         <Checkbox label='Checkbox' />
 
-                        <Text type='p' className={cls.error}>
-                            {error}
-                        </Text>
+                        <Text className={cls.error}>{error}</Text>
 
                         <Btn
                             color='#0064FA'

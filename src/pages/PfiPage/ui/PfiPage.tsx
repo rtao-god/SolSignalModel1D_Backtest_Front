@@ -1,64 +1,21 @@
 import { useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
-import { Btn } from '@/shared/ui/Btn'
-import { useGetPfiPerModelReportQuery } from '@/shared/api/api'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
+import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/ViewModeToggle'
 import cls from './PfiPage.module.scss'
+import { usePfiPerModelReportQuery } from '@/shared/api/tanstackQueries/pfi'
+import { Text } from '@/shared/ui'
 
-type ViewMode = 'business' | 'technical'
-
-interface PfiModeToggleProps {
-    mode: ViewMode
-    onChange: (mode: ViewMode) => void
-}
-
-function PfiModeToggle({ mode, onChange }: PfiModeToggleProps) {
-    const handleBusinessClick = () => {
-        if (mode !== 'business') {
-            onChange('business')
-        }
-    }
-
-    const handleTechnicalClick = () => {
-        if (mode !== 'technical') {
-            onChange('technical')
-        }
-    }
-
-    return (
-        <div className={cls.modeToggle}>
-            <Btn
-                size='small'
-                className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
-                onClick={handleBusinessClick}>
-                Бизнес
-            </Btn>
-            <Btn
-                size='small'
-                className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
-                onClick={handleTechnicalClick}>
-                Технарь
-            </Btn>
-        </div>
-    )
-}
-
-/**
- * Карточка для одной таблицы PFI (одна модель).
- * Локальный state режима (business / technical) — отдельно на каждую карточку.
- */
 interface PfiTableCardProps {
     section: TableSectionDto
     domId: string
 }
 
 // Индексы колонок, которые показываются в бизнес-режиме.
-// Важно: при экспорте в бизнес-режиме выгружается именно этот поднабор колонок.
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
@@ -72,11 +29,9 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
         }
 
         if (mode === 'technical') {
-            // Технарский режим — показываем все столбцы как есть.
             return columns.map((_, idx: number) => idx)
         }
 
-        // Бизнес-режим — только подмножество «главных» колонок.
         return BUSINESS_COLUMN_INDEXES.filter(idx => idx < columns.length)
     }, [mode, columns])
 
@@ -84,8 +39,6 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
         return null
     }
 
-    // Подготовка данных для экспорта:
-    // экспортируем именно то, что сейчас видно (учитывая режим и подмножество колонок).
     const exportColumns = visibleColumnIndexes.map(colIdx => columns[colIdx] ?? `col_${colIdx}`)
     const exportRows = section.rows?.map(row => visibleColumnIndexes.map(colIdx => (row ? row[colIdx] : ''))) ?? []
 
@@ -94,15 +47,13 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
     return (
         <section id={domId} className={cls.tableCard}>
             <header className={cls.cardHeader}>
-                {/* Левая часть: заголовок + переключатель режима */}
                 <div>
                     <Text type='h3' className={cls.cardTitle}>
                         {section.title}
                     </Text>
-                    <PfiModeToggle mode={mode} onChange={setMode} />
+                    <ViewModeToggle mode={mode} onChange={setMode} className={cls.modeToggle} />
                 </div>
 
-                {/* Правая часть: иконка экспорта таблицы */}
                 <TableExportButton
                     columns={exportColumns}
                     rows={exportRows}
@@ -142,15 +93,11 @@ interface PfiPageProps {
 
 /**
  * Страница PFI:
- * - тянет ReportDocument с PFI по всем моделям;
- * - строит табы по факту секций бэкенда (buildPfiTabsFromSections);
- * - использует useSectionPager для синхронизации:
- *   - стрелки PFI;
- *   - подвкладки в сайдбаре;
- *   - hash в URL.
+ * - Suspense-данные приходят из usePfiPerModelReportQuery;
+ * - PageSuspense с текстом "Загружаю PFI отчёт…" навешивается на уровне роутера.
  */
 export default function PfiPage({ className }: PfiPageProps) {
-    const { data, isLoading, isError } = useGetPfiPerModelReportQuery()
+    const { data } = usePfiPerModelReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -162,44 +109,40 @@ export default function PfiPage({ className }: PfiPageProps) {
         [data]
     )
 
-    // Табы строим из фактических секций отчёта.
     const tabs = useMemo(() => buildPfiTabsFromSections(tableSections), [tableSections])
 
-    // Общая логика перелистывания/скролла/хэшей — в useSectionPager.
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
         syncHash: true
     })
 
-    if (isLoading) {
-        return (
-            <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
-                <Text type='h2'>Загружаю PFI отчёт...</Text>
-            </div>
-        )
-    }
+    const rootClassName = classNames(cls.PfiPage, {}, [className ?? ''])
 
-    if (isError || !data) {
+    if (!data || tableSections.length === 0) {
         return (
-            <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
-                <Text type='h2'>Не удалось загрузить PFI отчёт</Text>
+            <div className={rootClassName}>
+                <Text type='h2'>PFI отчёт пустой</Text>
+                <Text>
+                    Бэкенд вернул отчёт без табличных секций. Имеет смысл проверить конфигурацию генерации PFI или
+                    данные в базе.
+                </Text>
             </div>
         )
     }
 
     return (
-        <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
+        <div className={rootClassName}>
             <header className={cls.headerRow}>
                 <div>
                     <Text type='h2'>{data.title || 'PFI по моделям'}</Text>
-                    <Text type='p' className={cls.subtitle}>
+                    <Text className={cls.subtitle}>
                         Отчёт по важности признаков (Permutation Feature Importance) для всех бинарных моделей (move /
                         dir / micro / SL и т.п.).
                     </Text>
                 </div>
                 <div className={cls.meta}>
-                    <Text type='p'>Generated at: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
-                    <Text type='p'>Kind: {data.kind}</Text>
+                    <Text>Generated at: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
+                    <Text>Kind: {data.kind}</Text>
                 </div>
             </header>
 
