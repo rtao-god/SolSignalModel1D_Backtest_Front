@@ -1,7 +1,6 @@
 export * from './Navbar'
 export * from './SideBar'
 export * from './LangSwitcher'
-export * from './PageError'
 export * from './Footer'
 export * from './PostsList'
 export * from './LogoutBtn'

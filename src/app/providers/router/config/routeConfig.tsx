@@ -40,7 +40,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.MAIN],
         element: <MainPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю главную страницу…',
+        loadingTitle: 'Загружаю главную страницу',
         nav: {
             sidebar: false, // главную из сайдбара пока не показываем
             navbar: true,
@@ -55,7 +55,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
         element: <CurrentMLModelPredictionPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю текущий прогноз…',
+        loadingTitle: 'Загружаю текущий прогноз',
         nav: {
             sidebar: true,
             label: 'Текущий прогноз',
@@ -68,7 +68,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_HISTORY],
         element: <PredictionHistoryPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю историю прогнозов…',
+        loadingTitle: 'Загружаю историю прогнозов',
         nav: {
             sidebar: true,
             label: 'История прогнозов',
@@ -83,7 +83,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
         element: <ModelStatsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю статистику моделей…',
+        loadingTitle: 'Загружаю статистику моделей',
         nav: {
             sidebar: true,
             label: 'Статистика моделей',
@@ -98,7 +98,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_BASELINE],
         element: <BacktestBaselinePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю baseline бэктеста…',
+        loadingTitle: 'Загружаю baseline бэктеста',
         nav: {
             sidebar: true,
             label: 'Baseline бэктест',
@@ -111,7 +111,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_SUMMARY],
         element: <BacktestSummaryReportPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю сводку бэктеста…',
+        loadingTitle: 'Загружаю сводку бэктеста',
         nav: {
             sidebar: true,
             label: 'Сводка бэктеста',
@@ -124,7 +124,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_FULL],
         element: <BacktestPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю экспериментальный бэктест…',
+        loadingTitle: 'Загружаю экспериментальный бэктест',
         nav: {
             sidebar: true,
             label: 'Экспериментальный бэктест',
@@ -139,7 +139,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
         element: <PfiPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю PFI отчёт…',
+        loadingTitle: 'Загружаю PFI отчёт',
         nav: {
             sidebar: true,
             label: 'PFI по моделям',
@@ -154,7 +154,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS],
         element: <DocsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю документацию…',
+        loadingTitle: 'Загружаю документацию',
         nav: {
             sidebar: false, // НЕ показываем /docs в сайдбаре, только в navbar
             navbar: true,
@@ -168,7 +168,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS_MODELS],
         element: <DocsModelsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание моделей…',
+        loadingTitle: 'Загружаю описание моделей',
         nav: {
             sidebar: true,
             label: 'Модели',
@@ -181,7 +181,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS_TESTS],
         element: <DocsTestsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание тестов…',
+        loadingTitle: 'Загружаю описание тестов',
         nav: {
             sidebar: true,
             label: 'Тесты',
@@ -196,7 +196,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.ABOUT],
         element: <AboutPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу About…',
+        loadingTitle: 'Загружаю страницу About',
         nav: {
             sidebar: false,
             navbar: true,
@@ -210,7 +210,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CONTACT],
         element: <ContactPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу контактов…',
+        loadingTitle: 'Загружаю страницу контактов',
         nav: {
             sidebar: false,
             navbar: true,
@@ -226,7 +226,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.REGISTRATION],
         element: <RegistrationPage />,
         layout: 'bare',
-        loadingTitle: 'Загружаю страницу регистрации…',
+        loadingTitle: 'Загружаю страницу регистрации',
         nav: {
             sidebar: false,
             label: 'Регистрация',
@@ -238,7 +238,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.LOGIN],
         element: <LoginPage />,
         layout: 'bare',
-        loadingTitle: 'Загружаю страницу входа…',
+        loadingTitle: 'Загружаю страницу входа',
         nav: {
             sidebar: false,
             label: 'Вход',
@@ -251,7 +251,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.PROFILE],
         element: <ProfilePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю профиль…',
+        loadingTitle: 'Загружаю профиль',
         nav: {
             sidebar: false,
             navbar: true,
@@ -265,7 +265,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.NOT_FOUND],
         element: <NotFoundPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу…'
+        loadingTitle: 'Загружаю страницу'
     }
 ]
 

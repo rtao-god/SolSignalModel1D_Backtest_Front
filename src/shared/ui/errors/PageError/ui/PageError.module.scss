@@ -1,0 +1,126 @@
+.PageError {
+    /* Центрирование и ограничения по ширине */
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 24px 20px;
+
+    border-radius: 16px;
+    position: relative;
+
+    /* Внешний неоновый "контур" через градиентный бордер */
+    background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.35), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.3), transparent 55%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow:
+        0 20px 40px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+
+    /* легкий градиент по тексту */
+    background: linear-gradient(90deg, #e5e7eb, #a5b4fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.message {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(226, 232, 240, 0.9);
+}
+
+/* Детали ошибки: monospace-блок с подложкой */
+.details {
+    margin: 4px 0 0;
+    padding: 12px 14px;
+
+    border-radius: 10px;
+    background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.45), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(51, 65, 85, 0.9);
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+        monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(203, 213, 225, 0.95);
+
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Нижняя панель с кнопками/слотом действий */
+.actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Кнопка "Повторить" под неон-тему */
+.retryButton {
+    border-radius: 999px;
+    padding-inline: 16px;
+
+    background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), rgba(22, 163, 74, 0.9));
+    border: 1px solid rgba(74, 222, 128, 0.8);
+    color: #ecfdf5;
+
+    box-shadow:
+        0 0 10px rgba(22, 163, 74, 0.55),
+        0 8px 18px rgba(15, 23, 42, 0.9);
+    transition:
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        background 0.12s ease-out,
+        border-color 0.12s ease-out;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow:
+            0 0 14px rgba(34, 197, 94, 0.85),
+            0 14px 28px rgba(15, 23, 42, 0.95);
+        background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.3), rgba(21, 128, 61, 0.95));
+        border-color: rgba(190, 242, 100, 0.95);
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow:
+            0 0 8px rgba(22, 163, 74, 0.6),
+            0 8px 20px rgba(15, 23, 42, 0.95);
+    }
+}
+
+/* Адаптация под узкие экраны */
+@media (max-width: 768px) {
+    .PageError {
+        margin: 16px 12px;
+        padding: 16px 14px;
+        border-radius: 14px;
+    }
+
+    .title {
+        font-size: 16px;
+    }
+
+    .message {
+        font-size: 13px;
+    }
+
+    .details {
+        font-size: 11px;
+    }
+}
