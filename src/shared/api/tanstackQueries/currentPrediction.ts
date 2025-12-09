@@ -2,7 +2,7 @@ import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-q
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { CurrentPredictionIndexItemDto } from '../endpoints/reportEndpoints'
 import { mapReportResponse } from '../utils/mapReportResponse'
-import { API_BASE_URL } from '../config'
+import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 
 const { latestReport, datesIndex } = API_ROUTES.currentPrediction

@@ -2,7 +2,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
-import { API_BASE_URL } from '../config'
+import { API_BASE_URL } from '../../configs/config'
 import { createSuspenseReportHook } from './utils/createSuspenseReportHook'
 
 // Общий ключ для PFI-отчёта.

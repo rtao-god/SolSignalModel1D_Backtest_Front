@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config'
+import { API_BASE_URL } from '../configs/config'
 
 /**
  * Базовый helper для GET-запросов с JSON-ответом.

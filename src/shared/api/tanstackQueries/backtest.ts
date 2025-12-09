@@ -1,7 +1,7 @@
 import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
 import type { BacktestBaselineSnapshotDto, BacktestSummaryDto } from '@/shared/types/backtest.types'
 import { mapReportResponse } from '../utils/mapReportResponse'
-import { API_BASE_URL } from '../config'
+import { API_BASE_URL } from '../../configs/config'
 
 const BACKTEST_BASELINE_SUMMARY_URL = '/backtest/summary'
 const BACKTEST_BASELINE_SNAPSHOT_URL = '/backtest/baseline'

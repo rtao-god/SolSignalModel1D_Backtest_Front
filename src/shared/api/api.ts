@@ -5,7 +5,7 @@ import { buildUserEndpoints } from './endpoints/userEndpoints'
 import { buildReportEndpoints } from './endpoints/reportEndpoints'
 import { modelStatsEndpoints } from './endpoints/modelStatsEndpoints'
 import { pfiEndpoints } from './endpoints/pfiEndpoints'
-import { API_BASE_URL } from './config'
+import { API_BASE_URL } from '../configs/config'
 
 export const api = createApi({
     reducerPath: 'api',

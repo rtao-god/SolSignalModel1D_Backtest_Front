@@ -1,5 +1,5 @@
 import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
-import { API_BASE_URL } from '../../config'
+import { API_BASE_URL } from '../../../configs/config'
 
 interface CreateSuspenseReportHookOptions<T> {
     queryKey: readonly unknown[]

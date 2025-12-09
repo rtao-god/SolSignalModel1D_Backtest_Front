@@ -12,8 +12,8 @@ interface DocsModelsPageProps {
 /**
  * Страница описания моделей и пайплайна:
  * - маршрут /docs/models;
- * - секции/якоря берутся из DOCS_MODELS_TABS;
- * - сверху глобальный переключатель бизнес/тех-режима.
+ * - подвкладки управляются DOCS_MODELS_TABS (+ сайдбар);
+ * - сверху глобальный переключатель бизнес/тех режима (ViewModeToggle).
  */
 export default function DocsModelsPage({ className }: DocsModelsPageProps) {
     const [mode, setMode] = useState<ViewMode>('business')
