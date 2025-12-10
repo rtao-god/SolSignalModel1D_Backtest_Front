@@ -31,13 +31,13 @@ export function ViewModeToggle({ mode, onChange, className, labels }: ViewModeTo
     return (
         <div className={classNames(cls.ViewModeToggle, {}, [className ?? ''])}>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
                 onClick={() => handleChange('business')}>
                 {businessLabel}
             </Btn>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
                 onClick={() => handleChange('technical')}>
                 {technicalLabel}

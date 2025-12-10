@@ -118,13 +118,13 @@ function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeToggleProps) {
     return (
         <div className={cls.modeToggle}>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
                 onClick={handleBusinessClick}>
                 Бизнес
             </Btn>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
                 onClick={handleTechnicalClick}>
                 Технарь
@@ -170,7 +170,7 @@ function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
             {segments.map(seg => (
                 <Btn
                     key={seg.key}
-                    size='small'
+                    size='sm'
                     className={classNames(cls.modeButton, { [cls.modeButtonActive]: value === seg.key }, [])}
                     onClick={handleClick(seg.key)}>
                     {renderLabel(seg.key)}
