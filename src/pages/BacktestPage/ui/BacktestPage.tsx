@@ -17,23 +17,20 @@ import { BacktestPolicyRatiosSection } from './BacktestPolicyRatiosSection/Backt
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
-import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
+import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtestBaseline'
+
+interface BacktestPageContentProps extends BacktestPageProps {
+    baselineSummary: BacktestSummaryDto
+    profiles: BacktestProfileDto[]
+}
 
 /**
  * Внутренний контент страницы бэктеста.
- * Использует Suspense-хук для baseline summary и RTK-query для профилей / preview.
+ * На вход приходит уже успешно загруженный baselineSummary + список профилей.
+ * HTTP-ошибки и глобальный loader обрабатываются на уровне BacktestPageWithBoundary.
  */
-function BacktestPageContent({ className }: BacktestPageProps) {
-    const { data: baselineSummary } = useBacktestBaselineSummaryReportQuery()
-
-    const {
-        data: profiles,
-        isLoading: isProfilesLoading,
-        isError: isProfilesError,
-        error: profilesError
-    } = useGetBacktestProfilesQuery()
-
+function BacktestPageContent({ className, baselineSummary, profiles }: BacktestPageContentProps) {
     const [previewBacktest, { isLoading: isPreviewLoading }] = usePreviewBacktestMutation()
 
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
@@ -117,47 +114,21 @@ function BacktestPageContent({ className }: BacktestPageProps) {
         setPreviewError(null)
     }, [currentProfile])
 
-    // Ошибка именно по профилям бэктеста — отдаём ErrorBlock.
-    if (isProfilesError) {
-        const resolved = resolveAppError(profilesError)
-
+    // Локальный guard на случай, если нет валидного profle/config (доменный кейс, не HTTP).
+    if (!currentProfile || !currentProfile.config || !draftConfig) {
         return (
             <div className={classNames(cls.BacktestPage, {}, [className ?? ''])}>
-                <ErrorBlock
-                    code={resolved.code}
-                    title={resolved.title ?? 'Не удалось загрузить профили бэктеста'}
-                    description={
-                        resolved.description ??
-                        'Проверьте, что бэкенд запущен и endpoint /backtest/profiles отдаёт данные.'
-                    }
-                    details={resolved.rawMessage}
-                />
+                <Text type='h2'>Инициализирую профиль бэктеста…</Text>
             </div>
         )
     }
 
-    const isInitialLoading =
-        isProfilesLoading ||
-        !profiles ||
-        profiles.length === 0 ||
-        !currentProfile ||
-        !currentProfile.config ||
-        !draftConfig
-
-    const pagerSections = isInitialLoading ? [] : BACKTEST_FULL_TABS
+    const pagerSections = BACKTEST_FULL_TABS
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: pagerSections,
         syncHash: true
     })
-
-    if (isInitialLoading) {
-        return (
-            <div className={classNames(cls.BacktestPage, {}, [className ?? ''])}>
-                <Text type='h2'>Загружаю baseline-сводку и профили бэктеста...</Text>
-            </div>
-        )
-    }
 
     const handleStopPctChange = (valueStr: string) => {
         if (!draftConfig) return
@@ -306,7 +277,7 @@ function BacktestPageContent({ className }: BacktestPageProps) {
                         compact
                     />
                 )}>
-                <BacktestBaselineMetrics baselineSummary={baselineSummary!} previewSummary={previewSummary} />
+                <BacktestBaselineMetrics baselineSummary={baselineSummary} previewSummary={previewSummary} />
             </SectionErrorBoundary>
 
             <div className={cls.columns}>
@@ -323,7 +294,7 @@ function BacktestPageContent({ className }: BacktestPageProps) {
                     )}>
                     <div className={cls.column}>
                         <Text type='h2'>Baseline (консольный бэктест)</Text>
-                        <BacktestSummaryView summary={baselineSummary!} title='Baseline summary' />
+                        <BacktestSummaryView summary={baselineSummary} title='Baseline summary' />
                         <BacktestPolicyRatiosSection profileId='baseline' />
                     </div>
                 </SectionErrorBoundary>
@@ -344,7 +315,7 @@ function BacktestPageContent({ className }: BacktestPageProps) {
 
                         <BacktestConfigEditor
                             currentProfile={currentProfile}
-                            draftConfig={draftConfig!}
+                            draftConfig={draftConfig}
                             selectedPolicies={selectedPolicies}
                             isPreviewLoading={isPreviewLoading}
                             previewError={previewError}
@@ -403,13 +374,63 @@ function BacktestPageContent({ className }: BacktestPageProps) {
 }
 
 /**
+ * Обёртка страницы бэктеста:
+ * - грузит baseline summary (TanStack) и профили (RTK);
+ * - отдаёт их в PageDataBoundary для единого поведения loader/HTTP-ошибок;
+ * - внутренняя логика страницы работает уже только с валидными данными.
+ */
+function BacktestPageWithBoundary(props: BacktestPageProps) {
+    const {
+        data: baselineSummary,
+        isError: isBaselineError,
+        error: baselineError,
+        refetch: refetchBaseline
+    } = useBacktestBaselineSummaryReportQuery()
+
+    const {
+        data: profiles,
+        isError: isProfilesError,
+        error: profilesError,
+        refetch: refetchProfiles
+    } = useGetBacktestProfilesQuery()
+
+    const hasProfiles = Array.isArray(profiles) && profiles.length > 0
+    const hasData = Boolean(baselineSummary && hasProfiles)
+
+    const isError = Boolean(isBaselineError || isProfilesError)
+    const mergedError = (isBaselineError ? baselineError : profilesError) ?? undefined
+
+    const handleRetry = () => {
+        void refetchBaseline()
+        void refetchProfiles()
+    }
+
+    return (
+        <PageDataBoundary
+            isError={isError}
+            error={mergedError}
+            hasData={hasData}
+            onRetry={handleRetry}
+            errorTitle='Не удалось загрузить baseline-сводку и профили бэктеста'>
+            {hasData && (
+                <BacktestPageContent
+                    {...props}
+                    baselineSummary={baselineSummary as BacktestSummaryDto}
+                    profiles={profiles as BacktestProfileDto[]}
+                />
+            )}
+        </PageDataBoundary>
+    )
+}
+
+/**
  * Внешний экспорт страницы:
  * - оборачивает контент в PageSuspense, чтобы Suspense-хуки по baseline работали корректно.
  */
 export default function BacktestPage(props: BacktestPageProps) {
     return (
         <PageSuspense title='Загружаю baseline-сводку и профили бэктеста…'>
-            <BacktestPageContent {...props} />
+            <BacktestPageWithBoundary {...props} />
         </PageSuspense>
     )
 }

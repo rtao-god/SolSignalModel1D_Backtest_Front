@@ -2,9 +2,8 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestBaselinePage.module.scss'
 import { Text } from '@/shared/ui'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
-import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
-import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
+import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 
 interface BacktestBaselinePageProps {
     className?: string
@@ -17,34 +16,25 @@ interface BacktestBaselinePageProps {
  * Данные приходят через Suspense-хук useBacktestBaselineSnapshotQuery.
  */
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
-    const { data, isError, error } = useBacktestBaselineSnapshotQuery()
+    const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
 
     const rootClassName = classNames(cls.BacktestBaselinePage, {}, [className ?? ''])
 
-    if (isError || !data) {
-        const resolved = isError ? resolveAppError(error) : undefined
-
-        return (
-            <div className={rootClassName}>
-                <ErrorBlock
-                    code={resolved?.code ?? (isError ? 'UNKNOWN' : 'EMPTY')}
-                    title={resolved?.title ?? 'Не удалось загрузить baseline бэктеста'}
-                    description={
-                        resolved?.description ??
-                        'Проверьте, что бэкенд запущен и endpoint снапшота baseline-бэктеста отдаёт данные.'
-                    }
-                    details={resolved?.rawMessage}
-                />
-            </div>
-        )
-    }
-
     return (
-        <div className={rootClassName}>
-            <Header snapshot={data} />
-            <GlobalParams snapshot={data} />
-            <PoliciesTable policies={data.policies ?? []} />
-        </div>
+        <PageDataBoundary
+            isError={isError}
+            error={error}
+            hasData={Boolean(data)}
+            onRetry={refetch}
+            errorTitle='Не удалось загрузить baseline бэктеста'>
+            {data && (
+                <div className={rootClassName}>
+                    <Header snapshot={data} />
+                    <GlobalParams snapshot={data} />
+                    <PoliciesTable policies={data.policies ?? []} />
+                </div>
+            )}
+        </PageDataBoundary>
     )
 }
 

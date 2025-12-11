@@ -6,7 +6,7 @@ export default function Rows({ children, rows, gap, className, style }: RowsProp
     return (
         <div
             className={classNames(cls.Rows, {}, [className ?? ''])}
-            style={{ gridGap: gap, gridTemplateRows: rows.join(' '), ...style }}>
+            style={{ gap, gridTemplateRows: rows.join(' '), ...style }}>
             {children}
         </div>
     )

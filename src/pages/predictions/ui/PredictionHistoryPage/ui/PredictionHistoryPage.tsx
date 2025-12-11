@@ -12,6 +12,7 @@ import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { useCurrentPredictionIndexQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
+import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 
 const PAGE_SIZE = 10
 
@@ -19,13 +20,18 @@ interface PredictionHistoryPageProps {
     className?: string
 }
 
+type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
+
+interface PredictionHistoryPageInnerProps {
+    className?: string
+    index: PredictionHistoryIndex
+}
+
 /**
  * Внутренний контент страницы истории прогнозов.
- * Индекс дат тянется через Suspense-хук useCurrentPredictionIndexQuery.
+ * На вход приходит уже успешно загруженный индекс дат.
  */
-function PredictionHistoryPageContent({ className }: PredictionHistoryPageProps) {
-    const { data: index } = useCurrentPredictionIndexQuery(365)
-
+function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageInnerProps) {
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
@@ -232,12 +238,34 @@ function PredictionHistoryReportCard({ dateUtc }: PredictionHistoryReportCardPro
 }
 
 /**
+ * Обёртка над index-запросом:
+ * - HTTP-ошибки и отсутствие данных обрабатываются через PageDataBoundary;
+ * - внутрь попадает только валидный индекс прогнозов.
+ */
+function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
+    const { data, isError, error, refetch } = useCurrentPredictionIndexQuery(365)
+
+    const hasData = Array.isArray(data)
+
+    return (
+        <PageDataBoundary
+            isError={isError}
+            error={error}
+            hasData={hasData}
+            onRetry={refetch}
+            errorTitle='Не удалось загрузить индекс истории прогнозов'>
+            {data && <PredictionHistoryPageInner {...props} index={data} />}
+        </PageDataBoundary>
+    )
+}
+
+/**
  * Внешний экспорт страницы: обёртка в PageSuspense.
  */
 export default function PredictionHistoryPage(props: PredictionHistoryPageProps) {
     return (
         <PageSuspense title='Загружаю историю прогнозов…'>
-            <PredictionHistoryPageContent {...props} />
+            <PredictionHistoryPageWithBoundary {...props} />
         </PageSuspense>
     )
 }

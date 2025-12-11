@@ -9,6 +9,7 @@ import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/Vie
 import cls from './PfiPage.module.scss'
 import { usePfiPerModelReportQuery } from '@/shared/api/tanstackQueries/pfi'
 import { Text } from '@/shared/ui'
+import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 
 interface PfiTableCardProps {
     section: TableSectionDto
@@ -97,7 +98,7 @@ interface PfiPageProps {
  * - PageSuspense с текстом "Загружаю PFI отчёт…" навешивается на уровне роутера.
  */
 export default function PfiPage({ className }: PfiPageProps) {
-    const { data } = usePfiPerModelReportQuery()
+    const { data, isError, error, refetch } = usePfiPerModelReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -118,53 +119,61 @@ export default function PfiPage({ className }: PfiPageProps) {
 
     const rootClassName = classNames(cls.PfiPage, {}, [className ?? ''])
 
-    if (!data || tableSections.length === 0) {
-        return (
-            <div className={rootClassName}>
-                <Text type='h2'>PFI отчёт пустой</Text>
-                <Text>
-                    Бэкенд вернул отчёт без табличных секций. Имеет смысл проверить конфигурацию генерации PFI или
-                    данные в базе.
-                </Text>
-            </div>
-        )
-    }
-
     return (
-        <div className={rootClassName}>
-            <header className={cls.headerRow}>
-                <div>
-                    <Text type='h2'>{data.title || 'PFI по моделям'}</Text>
-                    <Text className={cls.subtitle}>
-                        Отчёт по важности признаков (Permutation Feature Importance) для всех бинарных моделей (move /
-                        dir / micro / SL и т.п.).
-                    </Text>
+        <PageDataBoundary
+            isError={isError}
+            error={error}
+            hasData={Boolean(data)}
+            onRetry={refetch}
+            errorTitle='Не удалось загрузить PFI отчёт'>
+            {data && (
+                <div className={rootClassName}>
+                    <header className={cls.headerRow}>
+                        <div>
+                            <Text type='h2'>{data.title || 'PFI по моделям'}</Text>
+                            <Text className={cls.subtitle}>
+                                Отчёт по важности признаков (Permutation Feature Importance) для всех бинарных моделей
+                                (move / dir / micro / SL и т.п.).
+                            </Text>
+                        </div>
+                        <div className={cls.meta}>
+                            <Text>Generated at: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
+                            <Text>Kind: {data.kind}</Text>
+                        </div>
+                    </header>
+
+                    {tableSections.length === 0 ?
+                        <div>
+                            <Text type='h2'>PFI отчёт пустой</Text>
+                            <Text>
+                                Бэкенд вернул отчёт без табличных секций. Имеет смысл проверить конфигурацию генерации
+                                PFI или данные в базе.
+                            </Text>
+                        </div>
+                    :   <>
+                            <div className={cls.tablesGrid}>
+                                {tableSections.map((section, index) => {
+                                    const tab = tabs[index]
+                                    const domId = tab?.anchor ?? `pfi-model-${index + 1}`
+
+                                    return <PfiTableCard key={section.title ?? domId} section={section} domId={domId} />
+                                })}
+                            </div>
+
+                            {tabs.length > 1 && (
+                                <SectionPager
+                                    sections={tabs}
+                                    currentIndex={currentIndex}
+                                    canPrev={canPrev}
+                                    canNext={canNext}
+                                    onPrev={handlePrev}
+                                    onNext={handleNext}
+                                />
+                            )}
+                        </>
+                    }
                 </div>
-                <div className={cls.meta}>
-                    <Text>Generated at: {new Date(data.generatedAtUtc).toLocaleString()}</Text>
-                    <Text>Kind: {data.kind}</Text>
-                </div>
-            </header>
-
-            <div className={cls.tablesGrid}>
-                {tableSections.map((section, index) => {
-                    const tab = tabs[index]
-                    const domId = tab?.anchor ?? `pfi-model-${index + 1}`
-
-                    return <PfiTableCard key={section.title ?? domId} section={section} domId={domId} />
-                })}
-            </div>
-
-            {tabs.length > 1 && (
-                <SectionPager
-                    sections={tabs}
-                    currentIndex={currentIndex}
-                    canPrev={canPrev}
-                    canNext={canNext}
-                    onPrev={handlePrev}
-                    onNext={handleNext}
-                />
             )}
-        </div>
+        </PageDataBoundary>
     )
 }
