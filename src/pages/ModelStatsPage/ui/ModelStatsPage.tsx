@@ -6,6 +6,8 @@ import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import cls from './ModelStatsPage.module.scss'
 import { useModelStatsReportQuery } from '@/shared/api/tanstackQueries/modelStats'
+import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
+import ErrorPlayground from '@/shared/ui/errors/ErrorPlayground/ui/ErrorPlayground'
 
 interface ModelStatsPageProps {
     className?: string
@@ -116,13 +118,13 @@ function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeToggleProps) {
     return (
         <div className={cls.modeToggle}>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
                 onClick={handleBusinessClick}>
                 Бизнес
             </Btn>
             <Btn
-                size='small'
+                size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
                 onClick={handleTechnicalClick}>
                 Технарь
@@ -168,7 +170,7 @@ function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
             {segments.map(seg => (
                 <Btn
                     key={seg.key}
-                    size='small'
+                    size='sm'
                     className={classNames(cls.modeButton, { [cls.modeButtonActive]: value === seg.key }, [])}
                     onClick={handleClick(seg.key)}>
                     {renderLabel(seg.key)}
@@ -218,27 +220,23 @@ function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     )
 }
 
-/**
- * Страница статистики моделей:
- * - использует Suspense-хук useModelStatsReportQuery;
- * - переключатели сегмента (OOS/Train/Full/Recent) и бизнес/тех-режима;
- * - SectionPager для навигации по секциям.
- */
-export default function ModelStatsPage({ className }: ModelStatsPageProps) {
-    const { data, isError } = useModelStatsReportQuery()
+// Тип отчёта берём из хука, чтобы не дублировать DTO.
+type ModelStatsReport = NonNullable<ReturnType<typeof useModelStatsReportQuery>['data']>
 
+interface ModelStatsPageInnerProps {
+    className?: string
+    data: ModelStatsReport
+}
+
+/**
+ * Внутренняя часть страницы: сюда попадает только валидный data.
+ * Здесь нет проверки isError / !data — это всё решает PageDataBoundary.
+ */
+function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProps) {
     const [mode, setMode] = useState<ViewMode>('business')
     const [segment, setSegment] = useState<SegmentKey | null>(null)
 
     const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
-
-    if (isError || !data) {
-        return (
-            <div className={rootClassName}>
-                <Text type='h2'>Не удалось загрузить статистику моделей</Text>
-            </div>
-        )
-    }
 
     const allSections = useMemo(() => (data.sections as ReportSectionDto[] | undefined) ?? [], [data.sections])
 
@@ -468,6 +466,27 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                     onNext={handleNext}
                 />
             )}
+
+            {/* <ErrorPlayground /> */}
         </div>
+    )
+}
+
+/**
+ * Внешняя страница: только загрузка/ошибки + boundary.
+ * Здесь нет ранних return по ошибке, всё делегировано PageDataBoundary.
+ */
+export default function ModelStatsPage({ className }: ModelStatsPageProps) {
+    const { data, isError, error, refetch } = useModelStatsReportQuery()
+
+    return (
+        <PageDataBoundary
+            isError={isError}
+            error={error}
+            hasData={Boolean(data)}
+            onRetry={refetch}
+            errorTitle='Не удалось загрузить статистику моделей'>
+            {data && <ModelStatsPageInner className={className} data={data} />}
+        </PageDataBoundary>
     )
 }

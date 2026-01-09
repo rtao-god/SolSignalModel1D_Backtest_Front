@@ -18,25 +18,32 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(0deg);
-    height: 300px;
-    width: 300px;
+
+    /* Базовые размеры для десктопа.
+       На планшете/мобиле переопределяются в media-правилах ниже. */
+    --outer-size: 300px;
+    --inner-size: 195px;
+    --outer-dot-size: 50px;
+    --inner-dot-size: 20px;
+
+    height: var(--outer-size);
+    width: var(--outer-size);
     animation: rotate1 1.8s infinite linear reverse;
 }
 
 .loop_first {
     display: flex;
     position: relative;
-    width: 300px;
-    height: 300px;
+    width: var(--outer-size);
+    height: var(--outer-size);
     z-index: 210;
 
     div {
-        width: 50px;
-        height: 50px;
+        width: var(--outer-dot-size);
+        height: var(--outer-dot-size);
         border-radius: 50%;
-        border: 2px solid rgb(255, 255, 255);
+        border: 1px solid rgb(255, 255, 255);
         animation: color-change 1s linear infinite;
-        border: 1px solid;
         position: absolute;
 
         &:nth-child(1) {
@@ -74,13 +81,13 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(0deg);
-    height: 195px;
-    width: 195px;
+    height: var(--inner-size);
+    width: var(--inner-size);
     animation: rotate3 0.6s infinite linear reverse;
 
     div {
-        width: 20px;
-        height: 20px;
+        width: var(--inner-dot-size);
+        height: var(--inner-dot-size);
         border-radius: 50%;
         border: 1.5px solid rgb(255, 255, 255);
         animation: color-change 1.2s linear infinite;
@@ -150,5 +157,25 @@
 
     100% {
         transform: translate(-50%, -50%) rotate(90deg);
+    }
+}
+
+/* Планшеты: чуть уменьшаем размер */
+@media (max-width: 1023px) {
+    .loop_wrapper {
+        --outer-size: 230px;
+        --inner-size: 160px;
+        --outer-dot-size: 40px;
+        --inner-dot-size: 18px;
+    }
+}
+
+/* Телефоны: делаем ещё компактнее */
+@media (max-width: 767px) {
+    .loop_wrapper {
+        --outer-size: 180px;
+        --inner-size: 130px;
+        --outer-dot-size: 30px;
+        --inner-dot-size: 14px;
     }
 }

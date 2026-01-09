@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import TextProps from './types'
 import cls from './Text.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -8,24 +9,29 @@ export default function Text({
     children,
     position = 'start',
     fz,
-    color = '',
+    color,
     fw,
-    onClick,
     style,
-    className = ''
+    className = '',
+    ...rest
 }: TextProps) {
+    const mergedStyle: CSSProperties = {
+        ...(style ?? {}),
+        ...(fz !== undefined && { fontSize: fz }),
+        ...(color && { color }),
+        ...(fw !== undefined && { fontWeight: fw })
+    }
+
+    if (position) {
+        ;(mergedStyle as any).textAlign = position
+    }
+
     return (
         <Element
             type={type}
             className={classNames(cls.Text, {}, [className || '', cls[type]])}
-            onClick={onClick}
-            style={{
-                textAlign: position,
-                fontSize: fz,
-                color: color,
-                fontWeight: fw,
-                ...style
-            }}>
+            style={mergedStyle}
+            {...rest}>
             {children}
         </Element>
     )

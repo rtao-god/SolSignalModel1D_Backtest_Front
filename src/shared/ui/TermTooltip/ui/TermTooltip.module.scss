@@ -1,0 +1,85 @@
+.TermTooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    cursor: help;
+    margin-right: 0.25em; // визуальный пробел после термина
+}
+
+.termText {
+    display: inline;
+    margin: 0;
+}
+
+.termInner {
+    position: relative;
+    display: inline;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.8);
+    padding-bottom: 1px;
+    color: inherit;
+}
+
+.termInner:focus-visible {
+    outline: 2px solid rgba(96, 165, 250, 0.9);
+    outline-offset: 2px;
+}
+
+/* базовое состояние: элемент вообще не участвует в раскладке и в расчёте ширины */
+
+.tooltip {
+    position: absolute;
+    z-index: 40;
+
+    top: calc(100% + 6px);
+
+    min-width: 220px;
+    max-width: 360px;
+
+    display: none;
+    /* <- главное изменение */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px) scale(0.97);
+    transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+
+/* базовое выравнивание (для десктопа), на мобиле поверх этого работает useLayoutEffect */
+
+.tooltipLeft {
+    left: 0;
+}
+
+.tooltipRight {
+    right: 0;
+}
+
+.tooltipVisible {
+    display: block;
+    /* появляемся только когда открыто */
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.tooltipContent {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.tooltipTitle {
+    margin: 0 0 4px;
+}
+
+.tooltipBody {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 767px) {
+    .tooltip {
+        max-width: min(360px, 100vw - 30px);
+    }
+}

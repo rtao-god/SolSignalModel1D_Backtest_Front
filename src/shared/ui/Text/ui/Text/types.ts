@@ -1,13 +1,48 @@
-import { ReactNode, CSSProperties, MouseEventHandler } from 'react'
+import ElementProps, { HtmlTag } from '@/shared/ui/Element/ui/Element/types'
+import type { CSSProperties, ReactNode } from 'react'
 
-export default interface TextProps {
-    type?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+// Разрешённые теги для текста
+export type TextTag = Extract<HtmlTag, 'p' | 'span' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'>
+
+/**
+ * Публичный контракт Text:
+ * - наследует ВСЕ DOM-пропсы через ElementProps (id, aria-*, data-*, onClick, tabIndex, и т.п.);
+ * - переопределяет type (семантический тег текста);
+ * - добавляет шорткаты типографики.
+ */
+export default interface TextProps extends Omit<ElementProps, 'type' | 'style' | 'children'> {
+    /**
+     * Какой тег рисуем (p/h1/...).
+     */
+    type?: TextTag
+
+    /**
+     * Контент.
+     */
     children: ReactNode
+
+    /**
+     * Выравнивание текста (сохранены твои значения).
+     */
     position?: 'start' | 'end' | 'left' | 'right' | 'center' | 'justify' | 'match-parent'
+
+    /**
+     * Размер шрифта (шорткат поверх style.fontSize).
+     */
     fz?: string | number
+
+    /**
+     * Цвет шрифта (шорткат поверх style.color).
+     */
     color?: string
-    fw?: number
-    onClick?: MouseEventHandler<HTMLElement>
+
+    /**
+     * Жирность (шорткат поверх style.fontWeight).
+     */
+    fw?: number | string
+
+    /**
+     * Базовые inline-стили, мержатся с шорткатами.
+     */
     style?: CSSProperties
-    className?: string
 }

@@ -6,7 +6,7 @@ export default function Row({ children, style, gap, className, onClick }: RowPro
     return (
         <div
             className={classNames(cls.Row, {}, [className ?? ''])}
-            style={{ ...style, gridGap: gap }}
+            style={{ ...style, gap }}
             onClick={onClick}>
             {children}
         </div>
