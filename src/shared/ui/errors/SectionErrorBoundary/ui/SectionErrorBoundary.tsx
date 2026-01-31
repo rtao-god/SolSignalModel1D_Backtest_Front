@@ -14,12 +14,13 @@ interface SectionErrorBoundaryState {
     error: Error | null
 }
 
-/**
- * Локальный error boundary для отдельных блоков:
- * - ловит runtime-ошибки в рендере конкретной секции;
- * - показывает ErrorBlock вместо падения всей страницы;
- * - даёт reset(), чтобы заново попытаться отрендерить блок.
- */
+/*
+	Локальный error boundary для отдельных блоков.
+
+	- Ловит runtime-ошибки в рендере конкретной секции.
+	- Показывает ErrorBlock вместо падения всей страницы.
+	- Даёт reset(), чтобы заново попытаться отрендерить блок.
+*/
 export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryProps, SectionErrorBoundaryState> {
     state: SectionErrorBoundaryState = {
         hasError: false,
@@ -34,8 +35,11 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
-        // Здесь можно интегрировать логирование в сторонний сервис.
-        // Сейчас ограничиваемся логом в консоль.
+        /*
+			Здесь можно интегрировать логирование в сторонний сервис.
+
+			- Сейчас ограничиваемся логом в консоль.
+		*/
         // eslint-disable-next-line no-console
         console.error('[SectionErrorBoundary]', this.props.name, error, info)
     }
@@ -76,3 +80,4 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
         )
     }
 }
+

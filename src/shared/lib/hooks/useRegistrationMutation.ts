@@ -1,6 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { User } from '@/entities/User'
 
+/*
+	useRegistrationMutation — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useRegistrationMutation.
+*/
+
 interface RegistrationResponse {
     id: number
     identifier: string
@@ -27,3 +34,4 @@ export const registrationApi = createApi({
 })
 
 export const { useRegisterUserMutation } = registrationApi
+

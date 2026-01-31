@@ -1,14 +1,21 @@
 import { logError } from './logError'
 
+/*
+	setupGlobalErrorHandlers — логирование.
+
+	Зачем:
+		- Централизует обработку и отправку ошибок.
+*/
+
 let isInitialized = false
 
-/**
- * Глобальные обработчики ошибок, которые не попали в React ErrorBoundary:
- * - runtime-ошибки window.onerror;
- * - необработанные отклонения промисов (unhandledrejection).
- *
- * Вызывать один раз при старте приложения.
- */
+/*
+	Глобальные обработчики ошибок, которые не попали в React ErrorBoundary.
+
+	- Runtime-ошибки window.onerror.
+	- Необработанные отклонения промисов (unhandledrejection).
+	- Вызывать один раз при старте приложения.
+*/
 export function setupGlobalErrorHandlers() {
     if (isInitialized || typeof window === 'undefined') {
         return
@@ -43,3 +50,4 @@ export function setupGlobalErrorHandlers() {
         })
     })
 }
+

@@ -3,15 +3,23 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import type { AppErrorCode, AppErrorDescriptor } from '@/shared/consts/errorMessages'
 import { getErrorDescriptor } from '@/shared/consts/errorMessages'
 
+/*
+	resolveAppError — ошибки и маппинг.
+
+	Зачем:
+		- Нормализует ошибки для UI.
+*/
+
 export interface ResolvedAppError extends AppErrorDescriptor {
     // Сырой текст ошибки (для логов, dev-режима и продвинутых экранов).
     rawMessage?: string
 }
 
-/**
- * Нормализует ошибку RTK Query / fetch / обычный Error в единый объект ResolvedAppError.
- * Используется в UI-компонентах, чтобы не размазывать разбор ошибок по страницам.
- */
+/*
+	Нормализует ошибку RTK Query / fetch / обычный Error в единый объект ResolvedAppError.
+
+	- Используется в UI-компонентах, чтобы не размазывать разбор ошибок по страницам.
+*/
 export function resolveAppError(error: unknown): ResolvedAppError {
     let code: AppErrorCode | null = null
     let rawMessage: string | undefined
@@ -70,3 +78,4 @@ export function resolveAppError(error: unknown): ResolvedAppError {
         rawMessage
     }
 }
+

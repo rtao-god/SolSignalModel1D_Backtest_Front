@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react'
 
+/*
+	useApi — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useApi.
+*/
+
 function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; error: Error | null } {
     const [data, setData] = useState<T | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -30,3 +37,4 @@ function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; erro
 }
 
 export default useApi
+

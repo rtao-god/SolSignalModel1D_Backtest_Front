@@ -10,11 +10,6 @@ import LogoutBtn from '@/widgets/components/LogoutBtn/LogoutBtn'
 export default function AuthSection({ className }: AuthSectionProps) {
     const dispatch = useDispatch()
     const isAuthenticated = useSelector(getIsAuthenticated)
-    // const logout = useLogout()
-    // const { data, error, isLoading } = useGetDataQuery('/your-endpoint')
-
-    // if (isLoading) return <div>Loading...</div>
-    // if (error) return <div>Error: {error.message}</div>
 
     return (
         <div className={classNames(cls.Auth_section, {}, [className ?? ''])}>
@@ -37,3 +32,4 @@ export default function AuthSection({ className }: AuthSectionProps) {
         </div>
     )
 }
+

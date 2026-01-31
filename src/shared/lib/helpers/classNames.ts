@@ -1,3 +1,9 @@
+/*
+	classNames — helper.
+
+	Зачем:
+		- Упрощает повторяющиеся операции в коде.
+*/
 type Mods = Record<string, boolean | string>
 
 export default function classNames(cls: string, mods: Mods = {}, additional: string[] = []): string {
@@ -9,3 +15,5 @@ export default function classNames(cls: string, mods: Mods = {}, additional: str
         ...additional.filter(Boolean)
     ].join(' ')
 }
+
+

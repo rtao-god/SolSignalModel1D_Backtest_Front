@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+/*
+	registration — shared store.
+
+	Зачем:
+		- Хранит shared-состояние и логику auth/registration.
+*/
+
 interface RegistrationStoreProps {
     identifier: string
     setIdentifier: (identifier: string) => void
@@ -50,3 +57,4 @@ export const useRegistration = create<RegistrationStoreProps>()(
         }
     }))
 )
+

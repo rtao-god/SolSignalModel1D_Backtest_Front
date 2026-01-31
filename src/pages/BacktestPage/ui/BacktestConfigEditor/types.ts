@@ -1,5 +1,4 @@
-import { BacktestConfigDto, BacktestProfileDto } from "@/shared/types/backtest.types"
-
+import { BacktestConfigDto, BacktestProfileDto } from '@/shared/types/backtest.types'
 export default interface BacktestConfigEditorProps {
     currentProfile: BacktestProfileDto | null
     draftConfig: BacktestConfigDto
@@ -12,3 +11,4 @@ export default interface BacktestConfigEditorProps {
     onPolicyLeverageChange: (name: string, valueStr: string) => void
     onRunPreview: () => void
 }
+

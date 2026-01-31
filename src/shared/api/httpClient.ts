@@ -1,10 +1,18 @@
 import { API_BASE_URL } from '../configs/config'
 
-/**
- * Базовый helper для GET-запросов с JSON-ответом.
- * Важно: здесь пока НЕТ авторизации. Если PFI/другие отчёты требуют токен,
- * сюда нужно будет добавить логику из prepareHeaders (достать токен из стора).
- */
+/*
+	httpClient — API слой.
+
+	Зачем:
+		- Определяет общие настройки и контракты API.
+*/
+
+/*
+	Базовый helper для GET-запросов с JSON-ответом.
+
+	- Здесь пока нет авторизации.
+	- Если PFI/другие отчёты требуют токен, нужно добавить логику из prepareHeaders (достать токен из стора).
+*/
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${path}`, {
         method: 'GET',
@@ -24,3 +32,4 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
 
     return (await response.json()) as T
 }
+

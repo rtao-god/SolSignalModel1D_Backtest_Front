@@ -1,3 +1,9 @@
+/*
+	policyRatios.types — типы.
+
+	Зачем:
+		- Описывает DTO и доменные типы.
+*/
 export interface PolicyRatiosPerPolicyDto {
     policyName: string
     tradesCount: number
@@ -10,17 +16,19 @@ export interface PolicyRatiosPerPolicyDto {
     sortino: number
     cagr: number
     calmar: number
-    /** WinRate в процентах (0–100). */
+    // WinRate в процентах (0–100).
     winRatePct: number
-    /** Суммарно выведенные средства по политике (USD). */
+    // Суммарно выведенные средства по политике (USD).
     withdrawnUsd: number
     hadLiquidation: boolean
 }
 
 export interface PolicyRatiosReportDto {
     backtestId: string
-    /** Метаданные окна бэктеста (ISO-строки или null). */
+    // Метаданные окна бэктеста (ISO-строки или null).
     fromDateUtc: string | null
     toDateUtc: string | null
     policies: PolicyRatiosPerPolicyDto[]
 }
+
+

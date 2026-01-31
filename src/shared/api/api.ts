@@ -5,7 +5,15 @@ import { buildUserEndpoints } from './endpoints/userEndpoints'
 import { buildReportEndpoints } from './endpoints/reportEndpoints'
 import { modelStatsEndpoints } from './endpoints/modelStatsEndpoints'
 import { pfiEndpoints } from './endpoints/pfiEndpoints'
+import { aggregationEndpoints } from './endpoints/aggregationEndpoints'
 import { API_BASE_URL } from '../configs/config'
+
+/*
+	api — корневой RTK Query API.
+
+	Зачем:
+		- Централизует baseUrl, заголовки и сборку доменных эндпоинтов.
+*/
 
 export const api = createApi({
     reducerPath: 'api',
@@ -24,37 +32,40 @@ export const api = createApi({
         const b = builder as unknown as ApiEndpointBuilder
 
         return {
-            // user
+            // Эндпоинты пользователя.
             ...buildUserEndpoints(b),
 
-            // reports
+            // Отчёты и текущий прогноз.
             ...buildReportEndpoints(b),
 
-            // backtest
+            // Бэктест-эндпоинты.
             ...buildBacktestEndpoints(b),
 
-            // PFI
+            // PFI-отчёты.
             ...pfiEndpoints(b),
 
-            // ML model stats
-            ...modelStatsEndpoints(b)
+            // Статистика ML-моделей.
+            ...modelStatsEndpoints(b),
+
+            // Агрегация вероятностей и метрик.
+            ...aggregationEndpoints(b)
         }
     }
 })
 
 export const {
-    // user
+    // Пользовательские хуки.
     useGetUserQuery,
     useChangeUserDetailsMutation,
 
-    // reports
+    // Хуки отчётов и текущего прогноза.
     useGetCurrentPredictionQuery,
     useGetCurrentPredictionIndexQuery,
     useGetCurrentPredictionByDateQuery,
     useGetBacktestBaselineSummaryQuery,
     useGetBacktestBaselineSnapshotQuery,
 
-    // backtest
+    // Хуки бэктеста.
     useGetBacktestConfigQuery,
     useGetBacktestProfilesQuery,
     useGetBacktestProfileByIdQuery,
@@ -63,9 +74,14 @@ export const {
     usePreviewBacktestMutation,
     useGetBacktestPolicyRatiosQuery,
 
-    // PFI
+    // Хуки PFI-отчётов.
     useGetPfiPerModelReportQuery,
 
-    // ML model stats
-    useGetModelStatsReportQuery
+    // Хуки статистики ML-моделей.
+    useGetModelStatsReportQuery,
+
+    // Хуки агрегации вероятностей и метрик.
+    useGetAggregationProbsQuery,
+    useGetAggregationMetricsQuery
 } = api
+

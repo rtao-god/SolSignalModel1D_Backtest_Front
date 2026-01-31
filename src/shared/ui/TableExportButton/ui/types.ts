@@ -1,5 +1,4 @@
 import { TableExportFormat } from "@/shared/lib/tableExport/tableExport"
-
 export default interface TableExportButtonProps {
     className?: string
     columns: string[]
@@ -8,3 +7,5 @@ export default interface TableExportButtonProps {
     // По дефолту — pdf, но можно переопределить при переиспользовании.
     defaultFormat?: TableExportFormat
 }
+
+

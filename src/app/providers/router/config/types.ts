@@ -13,9 +13,10 @@ export enum AppRoute {
     PFI_PER_MODEL = 'PFI_PER_MODEL',
 
     MODELS_STATS = 'MODELS_STATS',
+    AGGREGATION_STATS = 'AGGREGATION_STATS',
     FEATURES_STATS = 'FEATURES_STATS',
 
-    // Документация / описания
+    // Документация / описания проекта
     DOCS = 'DOCS',
     DOCS_MODELS = 'DOCS_MODELS',
     DOCS_TESTS = 'DOCS_TESTS',

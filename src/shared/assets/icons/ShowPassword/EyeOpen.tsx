@@ -1,3 +1,9 @@
+/*
+	EyeOpen — модуль.
+
+	Зачем:
+		- Содержит общую логику.
+*/
 interface EyeOpenProps {
     className?: string
 }
@@ -23,3 +29,5 @@ export function EyeOpen({ className }: EyeOpenProps) {
         </svg>
     )
 }
+
+

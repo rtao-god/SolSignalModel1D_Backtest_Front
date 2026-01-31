@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useChangeUserDetailsMutation } from '@/entities/User/api/userApi'
 import { userActions } from '@/entities/User'
 
+/*
+	useUserMutate — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useUserMutate.
+*/
+
 export const useUserMutate = () => {
     const [changeUserDetails, { isLoading }] = useChangeUserDetailsMutation()
     const dispatch = useDispatch()
@@ -21,3 +28,4 @@ export const useUserMutate = () => {
 
     return { updateUser, isLoading }
 }
+

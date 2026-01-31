@@ -7,3 +7,4 @@ export default function ImageWithSvg({ svg, width, height, style, onClick, class
         </div>
     )
 }
+

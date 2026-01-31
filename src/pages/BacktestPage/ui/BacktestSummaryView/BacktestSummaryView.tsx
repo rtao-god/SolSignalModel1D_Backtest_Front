@@ -3,6 +3,18 @@ import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/sh
 import { Text } from '@/shared/ui'
 import cls from './BacktestSummaryView.module.scss'
 
+/*
+	BacktestSummaryView — компактный рендер отчёта бэктеста.
+
+	Зачем:
+		- Показывает метаданные и секции отчёта в карточке.
+		- Унифицирует отображение summary для baseline/preview.
+
+	Контракты:
+		- summary содержит sections в формате ReportSectionDto.
+*/
+
+// Пропсы карточки summary.
 interface BacktestSummaryViewProps {
     summary: BacktestSummaryDto
     title: string
@@ -39,17 +51,18 @@ interface SectionRendererProps {
     section: ReportSectionDto
 }
 
-/**
- * Универсальный рендер секций:
- * - если есть items → KeyValue;
- * - если есть columns/rows → таблица;
- * - иначе дамп JSON.
- */
+/*
+	Универсальный рендер секций.
+
+	- KeyValue секции рендерятся как список.
+	- Table секции рендерятся как таблица.
+	- Иначе отображается JSON-фолбэк.
+*/
 function SectionRenderer({ section }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
 
-    // KeyValue секция
+    // KeyValue секция.
     if (Array.isArray(kv.items)) {
         return (
             <section className={cls.section}>
@@ -66,7 +79,7 @@ function SectionRenderer({ section }: SectionRendererProps) {
         )
     }
 
-    // Табличная секция
+    // Табличная секция.
     if (Array.isArray(tbl.columns) && Array.isArray(tbl.rows)) {
         return (
             <section className={cls.section}>
@@ -93,7 +106,7 @@ function SectionRenderer({ section }: SectionRendererProps) {
         )
     }
 
-    // Фолбэк для неожиданных секций
+    // Фолбэк для неожиданных секций.
     return (
         <section className={cls.section}>
             <Text type='h3'>{section.title}</Text>

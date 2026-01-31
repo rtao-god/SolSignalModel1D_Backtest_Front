@@ -5,8 +5,8 @@
 
     padding: 24px;
 
-    // Немного ограничиваем ширину на очень широких мониторах,
-    // чтобы таблицы не растягивались бесконечно.
+    // Ограничиваем ширину на широких мониторах,
+    // чтобы таблицы не растягивались.
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -60,6 +60,7 @@
 
 .cardTitle {
     font-weight: 600;
+    margin-bottom: 10px;
 }
 
 /* Переключатель режимов (кнопка на "вкладке") */
@@ -95,7 +96,7 @@
     width: 100%;
     overflow-x: auto;
 
-    /* чуть сглаживаем скролл */
+    /* Сглаживаем скролл */
     scrollbar-width: thin;
 }
 
@@ -123,4 +124,90 @@
 
 .table tbody tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ===== sortable headers ===== */
+
+.thButton {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    color: inherit;
+    font: inherit;
+
+    cursor: pointer;
+}
+
+.table th:first-child .thButton {
+    justify-content: flex-start;
+}
+
+.thButton:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.25);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.thButtonSorted {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.01);
+}
+
+.sortIcons {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+
+    opacity: 0.25;
+    transition: opacity 140ms ease;
+}
+
+.thButton:hover .sortIcons {
+    opacity: 0.7;
+}
+
+@media (hover: none) {
+    .sortIcons {
+        opacity: 0.6;
+    }
+}
+
+.thButtonSorted .sortIcons {
+    opacity: 1;
+}
+
+.sortIcon {
+    width: 10px;
+    height: 10px;
+
+    opacity: 0.35;
+    transform: translateY(0);
+
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease;
+}
+
+.sortIconActive {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.sortIconMuted {
+    opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .sortIcons,
+    .sortIcon {
+        transition: none;
+    }
 }

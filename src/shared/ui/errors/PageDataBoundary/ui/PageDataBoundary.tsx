@@ -24,3 +24,4 @@ export default function PageDataBoundary({
 
     return <>{children}</>
 }
+

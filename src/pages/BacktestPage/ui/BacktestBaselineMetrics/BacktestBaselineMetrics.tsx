@@ -3,14 +3,22 @@ import { Text } from '@/shared/ui'
 import { getMetricValue } from '@/shared/utils/backtestMetrics'
 import cls from './BacktestBaselineMetrics.module.scss'
 
+/*
+	BacktestBaselineMetrics — быстрые baseline vs preview метрики.
+
+	Зачем:
+		- Дает компактное сравнение лучшей политики baseline и preview.
+
+	Контракты:
+		- baselineSummary обязателен, previewSummary может быть null.
+*/
+
+// Пропсы блока сравнения baseline/preview.
 interface BacktestBaselineMetricsProps {
     baselineSummary: BacktestSummaryDto
     previewSummary: BacktestSummaryDto | null
 }
 
-/**
- * Быстрая метрика сравнения по лучшей политике baseline vs preview формы.
- */
 export function BacktestBaselineMetrics({ baselineSummary, previewSummary }: BacktestBaselineMetricsProps) {
     const baselineBestPnl = getMetricValue(baselineSummary, 'BestTotalPnlPct')
     const previewBestPnl = getMetricValue(previewSummary, 'BestTotalPnlPct')

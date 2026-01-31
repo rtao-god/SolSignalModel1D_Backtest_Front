@@ -1,5 +1,4 @@
 import { CSSProperties } from 'react'
-
 export default interface LineProps {
     width?: string
     height?: string
@@ -7,3 +6,5 @@ export default interface LineProps {
     style?: CSSProperties
     className?: string
 }
+
+

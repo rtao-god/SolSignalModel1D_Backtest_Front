@@ -1,3 +1,9 @@
+/*
+	hooks — типы.
+
+	Зачем:
+		- Описывает контракт пропсов и DTO для hooks.
+*/
 export type TMethod = 'GET' | 'POST' | 'DELETE' | 'PUT' | 'OPTIONS' | 'HEAD' | 'TRACE' | 'PATCH' | 'CONNECT'
 
 export interface Data {
@@ -8,3 +14,5 @@ export interface CustomError extends Error {
 }
 
 export type TStatus = 'idle' | 'loading' | 'succeseeded'
+
+

@@ -1,3 +1,9 @@
+/*
+	ui — публичные реэкспорты.
+
+	Зачем:
+		- Собирает экспорт модулей ui.
+*/
 export * from './Icon'
 export * from './Row'
 export * from './Line'
@@ -17,3 +23,4 @@ export * from './portals'
 export * from './forms'
 export * from './loaders'
 export * from './TermTooltip'
+

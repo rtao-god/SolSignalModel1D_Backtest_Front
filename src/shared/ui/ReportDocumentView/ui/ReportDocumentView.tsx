@@ -13,12 +13,13 @@ interface ReportDocumentViewProps {
     className?: string
 }
 
-/**
- * Компонент отображения отчёта ReportDocumentDto:
- * - шапка с title/kind/id и временем генерации;
- * - универсальный рендер секций (KeyValue, таблицы, JSON-фолбэк);
- * - стили заточены под тёмную тему.
- */
+/*
+	Компонент отображения отчёта ReportDocumentDto.
+
+	- Шапка с title/kind/id и временем генерации.
+	- Универсальный рендер секций (KeyValue, таблицы, JSON-фолбэк).
+	- Стили заточены под тёмную тему.
+*/
 export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
     const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
 
@@ -90,10 +91,11 @@ function isTableSection(section: ReportSectionDto): section is TableSectionDto {
 
 type DirectionKind = 'long' | 'short' | 'flat'
 
-/**
- * Эвристика для определения направления по строковому значению.
- * Нужна, чтобы подсветить значения типа "long"/"short"/"flat".
- */
+/*
+	Эвристика для определения направления по строковому значению.
+
+	- Нужна, чтобы подсветить значения типа "long"/"short"/"flat".
+*/
 function detectDirection(value: unknown): DirectionKind | null {
     if (value === null || value === undefined) {
         return null
@@ -116,9 +118,7 @@ function detectDirection(value: unknown): DirectionKind | null {
     return null
 }
 
-/**
- * Парсинг числовых значений для подсветки плюса/минуса.
- */
+// Парсинг числовых значений для подсветки плюса/минуса.
 function parseNumericCell(raw: string): number | null {
     if (!raw) {
         return null
@@ -134,12 +134,13 @@ function parseNumericCell(raw: string): number | null {
     return num
 }
 
-/**
- * Рендер одной секции отчёта:
- * - KeyValue секции;
- * - табличные секции;
- * - JSON-фолбэк для новых/неизвестных структур.
- */
+/*
+	Рендер одной секции отчёта.
+
+	- KeyValue секции.
+	- Табличные секции.
+	- JSON-фолбэк для новых/неизвестных структур.
+*/
 function SectionRenderer({ section }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
@@ -244,3 +245,4 @@ function SectionRenderer({ section }: SectionRendererProps) {
         </section>
     )
 }
+

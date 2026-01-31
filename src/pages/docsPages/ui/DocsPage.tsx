@@ -2,6 +2,15 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { TermTooltip, Text } from '@/shared/ui'
 import cls from './DocsPage.module.scss'
 
+/*
+	DocsPage — обзорная документация.
+
+	Зачем:
+		- Объясняет ключевые термины и принципы чтения отчётов.
+		- Даёт быстрые подсказки для страниц аналитики.
+*/
+
+// Пропсы страницы Docs.
 interface DocsPageProps {
     className?: string
 }

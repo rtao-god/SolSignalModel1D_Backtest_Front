@@ -5,16 +5,25 @@ import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 
+/*
+	BacktestBaselinePage — страница baseline-снимка бэктеста.
+
+	Зачем:
+		- Показывает метаданные baseline и таблицу политик.
+		- Даёт лёгкий обзор без полного режима бэктеста.
+
+	Источники данных и сайд-эффекты:
+		- useBacktestBaselineSnapshotQuery() (TanStack Query).
+
+	Контракты:
+		- Внутренние секции получают валидный snapshot.
+*/
+
+// Пропсы страницы baseline-снимка.
 interface BacktestBaselinePageProps {
     className?: string
 }
 
-/**
- * Страница, показывающая лёгкий baseline-снимок бэктеста:
- * - метаданные (configName, время генерации, SL/TP);
- * - таблицу политик с PnL, просадкой и ликвидациями.
- * Данные приходят через Suspense-хук useBacktestBaselineSnapshotQuery.
- */
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
 
@@ -38,13 +47,16 @@ export default function BacktestBaselinePage({ className }: BacktestBaselinePage
     )
 }
 
+// Пропсы шапки baseline-снимка.
 interface HeaderProps {
     snapshot: BacktestBaselineSnapshotDto
 }
 
-/**
- * Шапка: базовая информация о снапшоте + время в UTC и локали.
- */
+/*
+	Шапка baseline-снимка.
+
+	- Показывает ID, конфиг и время генерации в UTC/локали.
+*/
 function Header({ snapshot }: HeaderProps) {
     const generatedUtc = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : null
     const generatedUtcStr = generatedUtc ? generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
@@ -61,14 +73,16 @@ function Header({ snapshot }: HeaderProps) {
     )
 }
 
+// Пропсы блока глобальных параметров.
 interface GlobalParamsProps {
     snapshot: BacktestBaselineSnapshotDto
 }
 
-/**
- * Блок с глобальными параметрами бэктеста (SL/TP).
- * Проценты конвертируются из долей (0.05 → 5.00 %).
- */
+/*
+	Глобальные параметры бэктеста (SL/TP).
+
+	- Конвертирует доли в проценты для человекочитаемого вида.
+*/
 function GlobalParams({ snapshot }: GlobalParamsProps) {
     const dailyStopPctStr = `${(snapshot.dailyStopPct * 100).toFixed(2)} %`
     const dailyTpPctStr = `${(snapshot.dailyTpPct * 100).toFixed(2)} %`
@@ -90,16 +104,16 @@ function GlobalParams({ snapshot }: GlobalParamsProps) {
     )
 }
 
+// Пропсы таблицы политик.
 interface PoliciesTableProps {
     policies: BacktestPolicySummaryDto[]
 }
 
-/**
- * Таблица по политикам:
- * - имя, режим маржи, base/anti;
- * - итоговый PnL, max DD, ликвидации;
- * - суммарный withdraw и количество сделок.
- */
+/*
+	Таблица политик baseline.
+
+	- Показывает итоговый PnL, просадки, ликвидации и счётчики сделок.
+*/
 function PoliciesTable({ policies }: PoliciesTableProps) {
     if (!Array.isArray(policies) || policies.length === 0) {
         return (

@@ -1,4 +1,9 @@
-// export * from './useLocation'
+/*
+	hooks — публичные реэкспорты.
+
+	Зачем:
+		- Собирает экспорт модулей hooks.
+*/
 export * from './useBackOnPrevPage'
 export * from './redux'
 export * from './useApi'
@@ -14,4 +19,6 @@ export * from './useRegistrationMutation'
 export * from './useLogin'
 export * from './useLoginMutation'
 export * from './useUserMutate'
+
+
 

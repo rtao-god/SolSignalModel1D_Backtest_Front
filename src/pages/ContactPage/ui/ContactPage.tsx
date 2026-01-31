@@ -2,11 +2,23 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import cls from './ContactPage.module.scss'
 
+/*
+	ContactPage — страница контактов.
+
+	Зачем:
+		- Даёт пользователю быстрые каналы связи.
+		- Показывает ключевые профили и контакты по проекту.
+
+	Контракты:
+		- Константы контактов должны быть актуальными для продакшена.
+*/
+
+// Пропсы страницы контактов.
 interface ContactPageProps {
     className?: string
 }
 
-// Константы с контактами лучше переопределить реальными значениями
+// Константы с контактами лучше переопределить реальными значениями.
 const FULL_NAME = 'Имя Фамилия'
 const TELEGRAM_HANDLE = '@telegram_username'
 const TELEGRAM_URL = 'https://t.me/telegram_username'
@@ -49,7 +61,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                 </section>
 
                 <section className={cls.grid}>
-                    {/* Telegram */}
+                    {/* Telegram. */}
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -69,7 +81,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                         </div>
                     </article>
 
-                    {/* LinkedIn */}
+                    {/* LinkedIn. */}
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -89,7 +101,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                         </div>
                     </article>
 
-                    {/* Телефон / WhatsApp */}
+                    {/* Телефон / WhatsApp. */}
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>

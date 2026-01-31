@@ -9,13 +9,30 @@ import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 
+/*
+	BacktestPolicyRatiosSection — секция метрик политик.
+
+	Зачем:
+		- Показывает метрики политик в виде графика и таблицы.
+		- Даёт быстрый обзор качества через переключаемую метрику.
+
+	Источники данных и сайд-эффекты:
+		- useGetBacktestPolicyRatiosQuery() (RTK Query).
+
+	Контракты:
+		- profileId должен соответствовать существующему профилю на бэкенде.
+*/
+
+// Пропсы секции метрик политик.
 interface BacktestPolicyRatiosSectionProps {
     profileId?: string
     title?: string
 }
 
+// Поддерживаемые ключи метрик для графика.
 type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
 
+// Опции для селектора метрик.
 const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = [
     { key: 'totalPnlPct', label: 'PnL %', isPercent: true },
     { key: 'sharpe', label: 'Sharpe' },
@@ -24,13 +41,6 @@ const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = 
     { key: 'winRatePct', label: 'WinRate %', isPercent: true }
 ]
 
-/**
- * Секция метрик политик:
- * - bar chart по выбранной метрике;
- * - табличное представление;
- * - ErrorBlock для сетевых ошибок;
- * - SectionErrorBoundary для защиту от клиентских ошибок в отрисовке.
- */
 export function BacktestPolicyRatiosSection({
     profileId = 'baseline',
     title = 'Метрики политик (Sharpe / Sortino / PnL)'
@@ -43,6 +53,7 @@ export function BacktestPolicyRatiosSection({
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
     const isPercentMetric = Boolean(currentMetric.isPercent)
 
+    // Выбор значения метрики из строки отчёта.
     const selectMetric = (row: PolicyRatiosPerPolicyDto, key: MetricKey): number => {
         switch (key) {
             case 'totalPnlPct':
@@ -60,6 +71,7 @@ export function BacktestPolicyRatiosSection({
         }
     }
 
+    // Подготовка данных графика для текущей метрики.
     const chartData = useMemo(
         () =>
             (data?.policies ?? []).map(row => {

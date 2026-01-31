@@ -17,3 +17,4 @@ export default function AuthWith({ img, text }: AuthWithProps) {
         </BlueBox>
     )
 }
+

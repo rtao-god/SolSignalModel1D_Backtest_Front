@@ -5,6 +5,13 @@ import { RegistrationForm } from '@/features/Registration'
 import AuthWithGoogle from '@/features/AuthWithGoogle/AuthWithGoogle'
 import RegistrationProps from './types'
 
+/*
+	Registration — страница регистрации.
+
+	Зачем:
+		- Даёт форму регистрации и альтернативный вход через Google.
+*/
+
 export default function Registration({ className }: RegistrationProps) {
     return (
         <div className={classNames(cls.Registration, {}, [className ?? ''])}>
@@ -12,9 +19,7 @@ export default function Registration({ className }: RegistrationProps) {
                 <RegistrationForm />
                 <Row gap={16} style={{ justifyContent: 'center' }}>
                     <AuthWithGoogle />
-                    {/*  <RegistrationWithGoogle />
-                               <RegistrationWithFacebook />
-                    <RegistrationWithApple /> */}
+                    {/* Дополнительные провайдеры регистрации отключены. */}
                 </Row>
             </AuthContainer>
         </div>

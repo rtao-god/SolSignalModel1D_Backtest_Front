@@ -1,5 +1,12 @@
 import { useCallback, useRef } from 'react'
 
+/*
+	useDebounce — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useDebounce.
+*/
+
 export function useDebounce(callback, delay = 500) {
     const timer = useRef(null)
 
@@ -18,3 +25,4 @@ export function useDebounce(callback, delay = 500) {
 
     return debouncedCallback
 }
+

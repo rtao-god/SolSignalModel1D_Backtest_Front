@@ -1,20 +1,29 @@
 import type { ErrorInfo } from 'react'
 
+/*
+	logError — логирование.
+
+	Зачем:
+		- Централизует обработку и отправку ошибок.
+*/
+
 export interface LogErrorContext {
-    // Откуда пришла ошибка (глобальный boundary, layout, window и т.п.)
+    // Откуда пришла ошибка (глобальный boundary, layout, window и т.п.).
     source?: string
-    // Текущий путь/роут, если есть
+    // Текущий путь/роут, если есть.
     path?: string
-    // Внешний ID ошибки (если генерится где-то ещё, например во fallback-UI)
+    // Внешний ID ошибки (если генерится где-то ещё, например во fallback-UI).
     errorId?: string
-    // Дополнительные данные по ситуации
+    // Дополнительные данные по ситуации.
     extra?: Record<string, unknown>
 }
 
-/**
- * Универсальная точка логирования ошибок UI.
- * Сейчас: dev → подробный console.error, prod → заготовка под отправку на backend/в сервис мониторинга.
- */
+/*
+	Универсальная точка логирования ошибок UI.
+
+	- В dev: подробный console.error.
+	- В prod: заготовка под отправку на backend или в сервис мониторинга.
+*/
 export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogErrorContext) {
     const payload = {
         name: error.name,
@@ -27,19 +36,17 @@ export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogError
     }
 
     if (process.env.NODE_ENV === 'development') {
-        // В dev достаточно честно и подробно вывалить всё в консоль
+        // В dev достаточно честно и подробно вывалить всё в консоль.
         console.error('[UI Error]', payload)
         return
     }
 
-    // TODO: Добавить в backend:
-    //
-    // void fetch('/api/logs/ui-error', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(payload)
-    // })
-    //
-    // Чтобы сейчас ничего не ломать — оставляем мягкий fallback в консоль.
+    /*
+		TODO: добавить отправку ошибки в backend.
+
+		- Endpoint: POST /api/logs/ui-error с payload.
+		- Пока не ломаем поток, оставляем fallback в консоль.
+	*/
     console.error('[UI Error][prod]', payload)
 }
+

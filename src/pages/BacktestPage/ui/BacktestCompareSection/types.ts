@@ -1,5 +1,4 @@
-import { BacktestProfileDto, BacktestSummaryDto } from "@/shared/types/backtest.types"
-
+import { BacktestProfileDto, BacktestSummaryDto } from '@/shared/types/backtest.types'
 export default interface BacktestCompareSectionProps {
     profiles: BacktestProfileDto[] | undefined
     profileAId: string | null
@@ -12,3 +11,4 @@ export default interface BacktestCompareSectionProps {
     onProfileBChange: (id: string | null) => void
     onRunCompare: () => void
 }
+

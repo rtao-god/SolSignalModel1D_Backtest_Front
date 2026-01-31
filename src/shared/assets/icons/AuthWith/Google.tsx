@@ -1,3 +1,9 @@
+/*
+	Google — модуль.
+
+	Зачем:
+		- Содержит общую логику.
+*/
 interface GoogleProps {
     className?: string
 }
@@ -27,3 +33,5 @@ export default function Google({ className }: GoogleProps) {
         </svg>
     )
 }
+
+

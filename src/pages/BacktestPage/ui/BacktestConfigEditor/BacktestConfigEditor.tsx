@@ -3,13 +3,16 @@ import type { BacktestPolicyConfigDto } from '@/shared/types/backtest.types'
 import cls from './BacktestConfigEditor.module.scss'
 import BacktestConfigEditorProps from './types'
 
-/**
- * Редактор what-if конфига выбранного профиля:
- * - глобальные параметры SL/TP;
- * - включение/выключение политик;
- * - изменение плеча для const-политик;
- * - кнопка запуска preview.
- */
+/*
+	BacktestConfigEditor — редактор what-if конфига профиля.
+
+	Зачем:
+		- Позволяет менять SL/TP и политики для preview.
+		- Управляет включением политик и их плечом.
+
+	Контракты:
+		- draftConfig содержит валидные параметры профиля.
+*/
 export function BacktestConfigEditor({
     currentProfile,
     draftConfig,

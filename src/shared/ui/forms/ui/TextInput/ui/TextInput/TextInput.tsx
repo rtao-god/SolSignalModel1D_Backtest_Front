@@ -6,3 +6,4 @@ import { Input } from '@/shared/ui/Input'
 export default function TextInput({ name, placeholder, className }: TextInputProps) {
     return <Input className={classNames(cls.Text_input, {}, [className ?? ''])} name={name} id={name} placeholder={placeholder} />
 }
+

@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-
 export default interface ModalProps {
     children: ReactNode
     onClose: () => void
@@ -7,3 +6,5 @@ export default interface ModalProps {
     height?: string
     className?: string
 }
+
+

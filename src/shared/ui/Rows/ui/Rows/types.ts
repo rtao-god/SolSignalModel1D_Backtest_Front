@@ -1,5 +1,4 @@
 import { CSSProperties, ReactNode } from 'react'
-
 export default interface RowsProps {
     children: ReactNode
     rows: string[]
@@ -7,3 +6,5 @@ export default interface RowsProps {
     style?: CSSProperties
     className?: string
 }
+
+

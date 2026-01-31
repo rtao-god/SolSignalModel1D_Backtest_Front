@@ -14,6 +14,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
 
     [AppRoute.MODELS_STATS]: '/models/stats',
+    [AppRoute.AGGREGATION_STATS]: '/models/aggregation',
     [AppRoute.FEATURES_STATS]: '/features/stats',
 
     // Документация

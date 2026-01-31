@@ -2,15 +2,20 @@
 import { useEffect, useState } from 'react'
 import { animate, stagger } from 'framer-motion'
 
-// import arrowDown from "/assets/arrow-down-gray.svg";
-// import man from "/assets/man.jpg";
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Users.module.scss'
-import Layout from '../Layout/Layout'
 import { Text } from '@/shared/ui'
 import UsersProps from './types'
 
-// LEGACY (По крайней мере текст)
+/*
+	Users — legacy-страница списка пользователей.
+
+	Зачем:
+		- Сохраняет старую версию UI для возможной миграции.
+		- Используется как справочный макет.
+*/
+
+// Legacy-страница, текст и данные пока статические.
 
 export default function Users({ className }: UsersProps) {
     const [isFilter, setIsFilter] = useState<number>(1)
@@ -52,25 +57,21 @@ export default function Users({ className }: UsersProps) {
                         <Text fz='17px' color='#7D7F82'>
                             Имя Фамилия
                         </Text>
-                        {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'center' }}>
                         <Text fz='17px' color='#7D7F82'>
                             Дата Рождения
                         </Text>
-                        {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'center' }}>
                         <Text fz='17px' color='#7D7F82'>
                             Болезнь · Проблема · Недуг
                         </Text>
-                        {/* <img src={arrowDown} alt="" /> */}
                     </div>
                     <div className={cls.tableFilter} style={{ justifyContent: 'flex-end' }}>
                         <Text fz='17px' color='#7D7F82'>
                             Дата Поступления
                         </Text>
-                        {/* <img src={arrowDown} alt="" /> */}
                     </div>
                 </div>
                 <ul className={cls.box}>
@@ -81,7 +82,6 @@ export default function Users({ className }: UsersProps) {
                                     <Text color='#7D7F82' type='p' fz='17px'>
                                         {`${i + 1}.`}
                                     </Text>
-                                    {/* <img src={man} alt="" /> */}
                                     <div className={cls.text}>
                                         <Text type='h2' fz='19px'>
                                             Яковенко А. С.

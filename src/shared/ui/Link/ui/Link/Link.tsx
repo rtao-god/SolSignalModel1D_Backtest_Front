@@ -21,3 +21,4 @@ export default function AppLink({ to, className, children, onClick, ...rest }: A
         </Link>
     )
 }
+

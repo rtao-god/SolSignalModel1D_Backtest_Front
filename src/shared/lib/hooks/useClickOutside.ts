@@ -1,5 +1,12 @@
 import { RefObject, useEffect } from 'react'
 
+/*
+	useClickOutside — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useClickOutside.
+*/
+
 function useClickOutside<T extends HTMLElement>(
     ref: RefObject<T>,
     handler: (event: MouseEvent | TouchEvent) => void,
@@ -7,7 +14,7 @@ function useClickOutside<T extends HTMLElement>(
 ): void {
     useEffect(() => {
         const listener = (event: MouseEvent | TouchEvent) => {
-            // Check if the clicked element is not within the ref element and also not the excludeRef element
+            // Игнорируем клики внутри основного ref и внутри excludeRef.
             if (
                 !ref.current ||
                 ref.current.contains(event.target as Node) ||
@@ -30,3 +37,4 @@ function useClickOutside<T extends HTMLElement>(
 }
 
 export default useClickOutside
+

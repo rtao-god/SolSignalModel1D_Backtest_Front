@@ -1,5 +1,4 @@
 import { InputHTMLAttributes } from 'react'
-
 export interface CustomInputProps {
     width?: string
     height?: string
@@ -21,3 +20,5 @@ export interface CustomInputProps {
 }
 
 export type InputProps = CustomInputProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'style'>
+
+

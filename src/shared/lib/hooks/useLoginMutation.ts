@@ -3,13 +3,18 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
 import { authApi } from '@/shared/api'
-// import { useCookie } from './useCookie'
+
+/*
+	useLoginMutation — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useLoginMutation.
+*/
 
 export const useLoginMutation = (
     identifier: string,
     password: string 
 ) => {
-    // const { setCookie } = useCookie()
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
@@ -28,16 +33,12 @@ export const useLoginMutation = (
                 console.log('false auth')
             }
 
-            /*  setCookie("refresh_token", data.data.refresh_token, 1);
-      setCookie("access_token", data.data.access_token, 1); */
             navigate('/')
         },
-        onError: /* error */ () => {
-            // const errorMessage = error ?? 'Произошла ошибка при регистрации, проверьте введенные данные.'
-            // setErrorCallback(errorMessage)
-
+        onError: () => {
             dispatch(setError('FALSE AUTH'))
             console.log('localStorage: ', localStorage)
         }
     })
 }
+

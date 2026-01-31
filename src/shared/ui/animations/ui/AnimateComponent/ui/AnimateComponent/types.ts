@@ -1,5 +1,4 @@
 import { ElementType, ReactNode } from 'react'
-
 export default interface AnimateComponentProps {
     children: ReactNode
     Component?: ElementType
@@ -9,3 +8,5 @@ export default interface AnimateComponentProps {
     duration?: number
     className?: string
 }
+
+

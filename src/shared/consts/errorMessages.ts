@@ -1,3 +1,9 @@
+/*
+	errorMessages — константы.
+
+	Зачем:
+		- Содержит статические значения для UI и логики.
+*/
 export interface AppErrorDescriptor {
     // Код ошибки: HTTP-код или технический маркер (NETWORK, TIMEOUT, UNKNOWN и т.п.).
     code: AppErrorCode
@@ -7,8 +13,11 @@ export interface AppErrorDescriptor {
     description: string
 }
 
-// Базовый тип для кодов ошибок.
-// Вынесен в отдельный файл, чтобы можно было переиспользовать в других модулях без цикличных импортов.
+/*
+	Базовый тип для кодов ошибок.
+
+	- Вынесен в отдельный файл, чтобы переиспользовать без цикличных импортов.
+*/
 export type AppErrorCode = number | 'NETWORK' | 'TIMEOUT' | 'PARSING' | 'UNKNOWN'
 
 export const DEFAULT_ERROR_DESCRIPTOR: AppErrorDescriptor = {
@@ -17,10 +26,11 @@ export const DEFAULT_ERROR_DESCRIPTOR: AppErrorDescriptor = {
     description: 'Произошла непредвиденная ошибка. Попробуйте обновить страницу или повторить действие позже.'
 }
 
-/**
- * Словарь распространённых ошибок по коду.
- * Ключ — строка, чтобы покрыть и числовые статусы, и текстовые маркеры.
- */
+/*
+	Словарь распространённых ошибок по коду.
+
+	- Ключ — строка, чтобы покрыть и числовые статусы, и текстовые маркеры.
+*/
 export const ERROR_DESCRIPTORS: Record<string, AppErrorDescriptor> = {
     '400': {
         code: 400,
@@ -64,9 +74,7 @@ export const ERROR_DESCRIPTORS: Record<string, AppErrorDescriptor> = {
     }
 }
 
-/**
- * Возвращает описатель ошибки по коду или дефолтный, если код не распознан.
- */
+// Возвращает описатель ошибки по коду или дефолтный, если код не распознан.
 export function getErrorDescriptor(code: AppErrorCode | null | undefined): AppErrorDescriptor {
     if (code == null) {
         return DEFAULT_ERROR_DESCRIPTOR
@@ -75,3 +83,5 @@ export function getErrorDescriptor(code: AppErrorCode | null | undefined): AppEr
     const key = typeof code === 'number' ? String(code) : code
     return ERROR_DESCRIPTORS[key] ?? { ...DEFAULT_ERROR_DESCRIPTOR, code }
 }
+
+

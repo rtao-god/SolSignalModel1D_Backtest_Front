@@ -88,6 +88,59 @@
     gap: 16px;
 }
 
+/* Пагинация истории */
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.paginationButton {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.8);
+    background: rgba(15, 23, 42, 0.9);
+    color: #e5e7eb;
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.paginationButton:hover {
+    border-color: rgba(129, 140, 248, 1);
+    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
+}
+
+.paginationButton:disabled {
+    opacity: 0.4;
+    cursor: default;
+    box-shadow: none;
+}
+
+.paginationInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.85;
+    flex: 1;
+}
+
+.paginationHint {
+    opacity: 0.6;
+}
+
 /* Обёртка одной карточки отчёта за день */
 
 .reportCard {
@@ -96,39 +149,6 @@
     background: rgba(15, 23, 42, 0.9);
     border: 1px solid rgba(148, 163, 184, 0.25);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
-}
-
-/* Кнопка "Показать ещё" */
-
-.loadMore {
-    margin-top: 8px;
-    display: flex;
-    justify-content: center;
-}
-
-.loadMoreButton {
-    padding: 8px 18px;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.8);
-    background: rgba(15, 23, 42, 0.9);
-    color: #e5e7eb;
-    font-size: 13px;
-    cursor: pointer;
-
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.loadMoreButton:hover {
-    border-color: rgba(129, 140, 248, 1);
-    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-}
-
-.loadMoreButton:disabled {
-    opacity: 0.4;
-    cursor: default;
-    box-shadow: none;
 }
 
 /* Карточка ошибки */
@@ -346,5 +366,27 @@
 
     .reportCard {
         padding: 10px 12px 14px;
+    }
+}
+
+@keyframes cards-fade-slide {
+    from {
+        opacity: 0.75;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cardsAnimating {
+    animation: cards-fade-slide 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cardsAnimating {
+        animation: none;
     }
 }

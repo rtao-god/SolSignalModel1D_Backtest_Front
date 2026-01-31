@@ -2,6 +2,13 @@ import { UserData } from '@/shared/types/user.types'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+/*
+	auth — shared store.
+
+	Зачем:
+		- Хранит shared-состояние и логику auth/registration.
+*/
+
 interface AuthStore {
     isAuth: boolean
     user: null | UserData
@@ -25,3 +32,4 @@ export const useAuth = create<AuthStore>()(
         }
     }))
 )
+

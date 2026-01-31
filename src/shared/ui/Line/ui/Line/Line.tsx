@@ -9,3 +9,4 @@ export default function Line({ className, color, height, width, style }: LinePro
             style={{ ...style, backgroundColor: color, width, height }}></div>
     )
 }
+

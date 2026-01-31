@@ -34,3 +34,4 @@ export default function Modal({ width = '50vw', height = '50vh', className, chil
         </Portal>
     )
 }
+

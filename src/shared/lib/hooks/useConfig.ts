@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react'
 
+/*
+	useConfig — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useConfig.
+*/
+
 interface Notification {
     title: string
     message: string
@@ -44,3 +51,4 @@ function useConfig(endpoint: string): { config: Config | null; isLoading: boolea
 }
 
 export default useConfig
+

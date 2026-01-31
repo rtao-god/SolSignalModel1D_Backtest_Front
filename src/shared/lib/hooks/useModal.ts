@@ -1,5 +1,12 @@
 import { useState, useCallback } from 'react'
 
+/*
+	useModal — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useModal.
+*/
+
 export default function useModal(initialState = false) {
     const [isOpen, setIsOpen] = useState(initialState)
 
@@ -15,3 +22,4 @@ export default function useModal(initialState = false) {
 
     return { isOpen, openModal, closeModal, toggleModal }
 }
+

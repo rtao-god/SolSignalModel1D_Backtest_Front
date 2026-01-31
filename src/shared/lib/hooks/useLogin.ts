@@ -4,6 +4,13 @@ import { useLoginUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
 
+/*
+	useLogin — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useLogin.
+*/
+
 export const useLogin = () => {
     const [loginUser, { isLoading }] = useLoginUserMutation()
     const dispatch = useDispatch()
@@ -13,7 +20,7 @@ export const useLogin = () => {
         try {
             const user = await loginUser({ identifier, password }).unwrap()
 
-            // Сохраняем данные пользователя в Redux-состояние
+            // Сохраняем данные пользователя в Redux-состояние.
             dispatch(userActions.login(user))
             navigate('/')
         } catch (error) {
@@ -24,3 +31,4 @@ export const useLogin = () => {
 
     return { login, isLoading }
 }
+

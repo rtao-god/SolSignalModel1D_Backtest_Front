@@ -1,11 +1,14 @@
-// Утилита экспорта табличных данных в разные форматы.
-// Сейчас поддерживаются:
-//  - CSV (без зависимостей);
-//  - PDF (через jsPDF + jspdf-autotable).
-
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+/*
+	tableExport — экспорт таблиц.
+
+	Зачем:
+		- Формирует и сохраняет экспорт таблиц в PDF/CSV.
+*/
+
+// Поддерживаемые форматы экспорта.
 export type TableExportFormat = 'pdf' | 'csv'
 
 export interface TableExportOptions {
@@ -15,11 +18,12 @@ export interface TableExportOptions {
     format: TableExportFormat
 }
 
-/**
- * Простая нормализация имени файла:
- * - убираем потенциально проблемные символы;
- * - режем слишком длинные варианты.
- */
+/*
+	Простая нормализация имени файла.
+
+	- Убираем потенциально проблемные символы.
+	- Режем слишком длинные варианты.
+*/
 function sanitizeFileName(raw: string): string {
     const fallback = 'table'
     const base = (raw || fallback).trim()
@@ -28,10 +32,11 @@ function sanitizeFileName(raw: string): string {
     return trimmed.replace(/[^a-zA-Z0-9._-]+/g, '_') || fallback
 }
 
-/**
- * Скачивание произвольного Blob как файла.
- * Универсальный helper, чтобы не дублировать логику.
- */
+/*
+	Скачивание произвольного Blob как файла.
+
+	- Универсальный helper, чтобы не дублировать логику.
+*/
 function downloadBlob(blob: Blob, fileNameWithExt: string): void {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -45,11 +50,12 @@ function downloadBlob(blob: Blob, fileNameWithExt: string): void {
     URL.revokeObjectURL(url)
 }
 
-/**
- * Преобразование таблицы в CSV-строку.
- * Здесь можно легко поменять разделитель (',' или ';').
- * Для русскоязычных Excel/LibreOffice часто удобнее ';'.
- */
+/*
+	Преобразование таблицы в CSV-строку.
+
+	- Здесь можно поменять разделитель (',' или ';').
+	- Для русскоязычных Excel/LibreOffice часто удобнее ';'.
+*/
 function toCsv(columns: string[], rows: Array<Array<unknown>>, separator: string = ';'): string {
     const escapeCell = (value: unknown): string => {
         if (value === null || value === undefined) {
@@ -57,7 +63,7 @@ function toCsv(columns: string[], rows: Array<Array<unknown>>, separator: string
         }
 
         const str = String(value)
-        // Экранируем кавычки по стандарту CSV: "" → """
+        // Экранируем кавычки по стандарту CSV: "" → """.
         const escaped = str.replace(/"/g, '""')
         // Всегда оборачиваем в кавычки, чтобы спокойно жить с разделителями и переносами строк.
         return `"${escaped}"`
@@ -71,9 +77,7 @@ function toCsv(columns: string[], rows: Array<Array<unknown>>, separator: string
     return '\uFEFF' + content
 }
 
-/**
- * Экспорт таблицы в CSV-файл.
- */
+// Экспорт таблицы в CSV-файл.
 function exportCsv(columns: string[], rows: Array<Array<unknown>>, fileBaseName: string): void {
     const csv = toCsv(columns, rows)
     const fileName = `${sanitizeFileName(fileBaseName)}.csv`
@@ -82,17 +86,18 @@ function exportCsv(columns: string[], rows: Array<Array<unknown>>, fileBaseName:
     downloadBlob(blob, fileName)
 }
 
-/**
- * Экспорт таблицы в PDF через jsPDF + jspdf-autotable.
- * Это даёт более-менее аккуратную табличную верстку "как в отчёте".
- */
+/*
+	Экспорт таблицы в PDF через jsPDF + jspdf-autotable.
+
+	- Даёт аккуратную табличную верстку "как в отчёте".
+*/
 function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName: string): void {
     // Преобразуем всё в строки заранее, чтобы не ломать автотаблицу.
     const head = [columns.map(col => (col ?? '').toString())]
     const body = rows.map(row => row.map(cell => (cell ?? '').toString()))
 
     const doc = new jsPDF({
-        orientation: 'landscape', // широкой таблице обычно так удобнее
+        orientation: 'landscape', // Широкой таблице обычно так удобнее.
         unit: 'pt',
         format: 'a4'
     })
@@ -101,7 +106,7 @@ function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName:
     doc.setFontSize(12)
     doc.text(title, 40, 30)
 
-    // @ts-ignore - типы автотаблиц зависят от версии пакета
+    // @ts-ignore - типы автотаблиц зависят от версии пакета.
     autoTable(doc, {
         head,
         body,
@@ -120,10 +125,11 @@ function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName:
     doc.save(fileName)
 }
 
-/**
- * Внешняя точка входа: экспортирует таблицу в указанный формат.
- * Если формат неизвестен, можно расширить логику (xlsx и т.п.).
- */
+/*
+	Внешняя точка входа: экспортирует таблицу в указанный формат.
+
+	- Если формат неизвестен, можно расширить логику (xlsx и т.п.).
+*/
 export function exportTable(options: TableExportOptions): void {
     const { columns, rows, fileBaseName, format } = options
 
@@ -141,7 +147,11 @@ export function exportTable(options: TableExportOptions): void {
         return
     }
 
-    // На будущее: сюда можно добавить другие форматы (xlsx и т.д.).
-    // Пока просто fallback в CSV.
+    /*
+		На будущее: сюда можно добавить другие форматы (xlsx и т.д.).
+
+		- Пока просто fallback в CSV.
+	*/
     exportCsv(safeColumns, safeRows, fileBaseName)
 }
+

@@ -3,14 +3,22 @@ import { Text } from '@/shared/ui'
 import { DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 import cls from './DocsTestsPage.module.scss'
 
+/*
+	DocsTestsPage — описание тестов и self-check'ов.
+
+	Зачем:
+		- Объясняет назначение тестов и проверок пайплайна.
+		- Дает якоря для навигации по разделам тестов.
+
+	Контракты:
+		- DOCS_TESTS_TABS содержит стабильные id/anchor для секций.
+*/
+
+// Пропсы страницы описания тестов.
 interface DocsTestsPageProps {
     className?: string
 }
 
-/**
- * Страница с описанием тестов и self-check'ов пайплайна:
- * якоря синхронизированы с DOCS_TESTS_TABS и сайдбаром.
- */
 export default function DocsTestsPage({ className }: DocsTestsPageProps) {
     return (
         <div className={classNames(cls.DocsTestsPage, {}, [className ?? ''])}>

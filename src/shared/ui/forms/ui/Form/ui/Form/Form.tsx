@@ -17,3 +17,4 @@ export default function Form({ onSubmit, className, children }: FormProps) {
         </form>
     )
 }
+

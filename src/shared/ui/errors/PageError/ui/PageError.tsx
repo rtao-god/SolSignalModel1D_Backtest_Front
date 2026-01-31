@@ -12,7 +12,7 @@ interface PageErrorProps {
 }
 
 function formatError(error: unknown): string {
-    // упрощённый форматтер, чтобы не тащить конкретные типы RTK Query
+    // Упрощённый форматтер, чтобы не тащить конкретные типы RTK Query.
     if (!error) return ''
 
     if (typeof error === 'string') {
@@ -55,3 +55,4 @@ export default function PageError({ title, message, error, onRetry, actionsSlot 
         </div>
     )
 }
+

@@ -1,5 +1,12 @@
 import { useNavigate } from 'react-router'
 
+/*
+	useBackOnPrevPage — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useBackOnPrevPage.
+*/
+
 export const useBackOnPrevPage = () => {
     const navigate = useNavigate()
 
@@ -9,3 +16,4 @@ export const useBackOnPrevPage = () => {
 
     return { backOnPrevPage }
 }
+

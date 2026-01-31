@@ -5,6 +5,13 @@ import { I18nextProvider } from 'react-i18next'
 import { StateSchema, StoreProvider } from '@/app/providers/StoreProvider'
 import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 
+/*
+	ComponentRender — тестовый хелпер.
+
+	Зачем:
+		- Помогает рендерить компоненты в тестах.
+*/
+
 export interface ComponentRenderPropsOptions {
     children?: ReactNode
     route?: string
@@ -34,3 +41,4 @@ const customRender = (ui: ReactNode, options?: Omit<RenderOptions, 'wrapper'> & 
 
 export * from '@testing-library/react'
 export { customRender as render }
+

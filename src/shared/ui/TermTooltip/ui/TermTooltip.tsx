@@ -13,12 +13,13 @@ interface TermTooltipProps {
     align?: 'left' | 'right'
 }
 
-/**
- * Термин с подсказкой:
- * - слово подчёркнуто пунктиром и кликабельно;
- * - по hover/клику открывается тултип;
- * - на узких экранах позиция тултипа клампится по viewport с учётом отступов .main.
- */
+/*
+	Термин с подсказкой.
+
+	- Слово подчёркнуто пунктиром и кликабельно.
+	- По hover/клику открывается тултип.
+	- На узких экранах позиция тултипа клампится по viewport с учётом отступов .main.
+*/
 export default function TermTooltip({ term, description, type = 'h3', className, align = 'left' }: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
@@ -88,7 +89,7 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         if (typeof window === 'undefined') return
 
         const viewportWidth = document.documentElement.clientWidth
-        const isNarrow = viewportWidth <= 576 // в синхроне с .main @media
+        const isNarrow = viewportWidth <= 576 // В синхроне с .main @media.
 
         const tooltipEl = tooltipRef.current
 
@@ -99,7 +100,7 @@ export default function TermTooltip({ term, description, type = 'h3', className,
             return
         }
 
-        const MAIN_PADDING = 15 // как в .main для max-width: 576px
+        const MAIN_PADDING = 15 // Как в .main для max-width: 576px.
 
         const rootRect = rootRef.current.getBoundingClientRect()
 
@@ -159,3 +160,4 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         </span>
     )
 }
+

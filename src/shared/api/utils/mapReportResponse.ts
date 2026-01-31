@@ -1,16 +1,23 @@
 import type { ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
 
-/**
- * Универсальный маппер ReportDocument (backend) → ReportDocumentDto (frontend).
- * Держим в отдельном модуле, чтобы:
- * - переиспользовать в current-prediction / backtest-summary / preview;
- * - не дублировать логику в каждом эндпоинте.
- */
+/*
+	mapReportResponse — утилита API.
+
+	Зачем:
+		- Подготавливает ответ или запрос в формате UI.
+*/
+
+/*
+	Универсальный маппер ReportDocument (backend) → ReportDocumentDto (frontend).
+
+	- Переиспользуется в current-prediction / backtest-summary / preview.
+	- Не дублирует логику в каждом эндпоинте.
+*/
 export function mapReportResponse(response: unknown): ReportDocumentDto {
     const raw: any = response
     const sections: ReportSectionDto[] = []
 
-    // KeyValue-секции
+    // KeyValue-секции.
     if (Array.isArray(raw?.keyValueSections)) {
         for (const kv of raw.keyValueSections) {
             sections.push({
@@ -26,7 +33,7 @@ export function mapReportResponse(response: unknown): ReportDocumentDto {
         }
     }
 
-    // Табличные секции
+    // Табличные секции.
     if (Array.isArray(raw?.tableSections)) {
         for (const tbl of raw.tableSections) {
             sections.push({
@@ -50,3 +57,4 @@ export function mapReportResponse(response: unknown): ReportDocumentDto {
         sections
     }
 }
+

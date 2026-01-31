@@ -2,11 +2,19 @@ import cls from './Main.module.scss'
 import MainProps from './types'
 import { Link, Text } from '@/shared/ui'
 
+/*
+	Main — главная страница проекта.
+
+	Зачем:
+		- Быстро объясняет, что делает модель.
+		- Даёт ссылки на ключевые разделы продукта.
+*/
+
 export default function Main({ className }: MainProps) {
     return (
         <span>
             <section className={cls.hero}>
-                {/* кнопка для вызова искусственной ошибки. Нужна просто для тестов. */}
+                {/* Кнопка для ручной проверки ErrorBoundary (пока отключена). */}
                 {/* <BugBtn /> */}
 
                 <Text type='h1' className={cls.heroTitle}>
@@ -22,7 +30,7 @@ export default function Main({ className }: MainProps) {
                     <div className={cls.metaPill}>Multi-layer (move / dir / micro / SL)</div>
                 </div>
             </section>
-            {/* Карточки разделов — то, что сейчас делает модель */}
+            {/* Карточки ключевых разделов проекта. */}
             <section className={cls.sections}>
                 <Text type='h2' className={cls.sectionsTitle}>
                     Что можно посмотреть

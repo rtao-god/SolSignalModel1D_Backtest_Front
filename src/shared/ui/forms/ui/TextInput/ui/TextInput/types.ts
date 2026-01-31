@@ -3,3 +3,6 @@ export default interface TextInputProps {
     placeholder?: string
     className?: string
 }
+
+
+

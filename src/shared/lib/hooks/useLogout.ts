@@ -4,6 +4,13 @@ import { useRegisterUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 
+/*
+	useLogout — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useLogout.
+*/
+
 export const useRegister = () => {
     const [logoutUser, { isLoading }] = useRegisterUserMutation()
     const dispatch = useDispatch()
@@ -28,3 +35,4 @@ export const useRegister = () => {
 
     return { register, isLoading }
 }
+

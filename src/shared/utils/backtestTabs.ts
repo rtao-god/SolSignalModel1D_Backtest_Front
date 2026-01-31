@@ -1,3 +1,9 @@
+/*
+	backtestTabs — утилиты.
+
+	Зачем:
+		- Содержит вспомогательные функции для доменной логики.
+*/
 export interface PageTab {
     id: string
     label: string
@@ -9,3 +15,5 @@ export const BACKTEST_FULL_TABS: PageTab[] = [
     { id: 'whatif', label: 'Изменение конфигурации', anchor: 'whatif' },
     { id: 'compare', label: 'Сравнение профилей', anchor: 'compare' }
 ]
+
+

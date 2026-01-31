@@ -1,15 +1,22 @@
 import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../../configs/config'
 
+/*
+	createSuspenseReportHook — TanStack Query hooks.
+
+	Зачем:
+		- Даёт запросы для report-эндпоинтов и suspense-режима.
+*/
+
 interface CreateSuspenseReportHookOptions<T> {
     queryKey: readonly unknown[]
     path: string
     mapResponse: (raw: unknown) => T
 }
 
-/**
- * Фабрика Suspense-хуков для отчётов, которые отдаются по простому GET без параметров.
- */
+/*
+	Фабрика Suspense-хуков для отчётов, которые отдаются по простому GET без параметров.
+*/
 export function createSuspenseReportHook<T>({ queryKey, path, mapResponse }: CreateSuspenseReportHookOptions<T>) {
     async function fetchReport(): Promise<T> {
         const resp = await fetch(`${API_BASE_URL}${path}`)
@@ -30,3 +37,4 @@ export function createSuspenseReportHook<T>({ queryKey, path, mapResponse }: Cre
         })
     }
 }
+

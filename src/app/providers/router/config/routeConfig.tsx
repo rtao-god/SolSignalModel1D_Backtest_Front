@@ -7,6 +7,7 @@ import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
 const MainPage = lazyPage(() => import('@/pages/Main/Main'))
 
 const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage/ui/ModelStatsPage'))
+const AggregationStatsPage = lazyPage(() => import('@/pages/AggregationStatsPage'))
 const RegistrationPage = lazyPage(() => import('@/pages/Registration/Registration'))
 const LoginPage = lazyPage(() => import('@/pages/Login/Login'))
 const AboutPage = lazyPage(() => import('@/pages/About/About'))
@@ -89,6 +90,19 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             label: 'Статистика моделей',
             section: 'models',
             order: 1
+        }
+    },
+    {
+        id: AppRoute.AGGREGATION_STATS,
+        path: ROUTE_PATH[AppRoute.AGGREGATION_STATS],
+        element: <AggregationStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю агрегацию прогнозов',
+        nav: {
+            sidebar: true,
+            label: 'Агрегация прогнозов',
+            section: 'models',
+            order: 2
         }
     },
 

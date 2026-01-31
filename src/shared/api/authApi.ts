@@ -1,5 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
+/*
+	authApi — API слой.
+
+	Зачем:
+		- Определяет общие настройки и контракты API.
+*/
+
 interface LoginRequest {
     identifier: string
     password: string
@@ -43,3 +50,4 @@ export const authApi = createApi({
 })
 
 export const { useLoginUserMutation, useRegisterUserMutation } = authApi
+

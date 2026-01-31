@@ -6,10 +6,23 @@ import { MOBILE } from '@/shared/utils'
 import { useBackOnPrevPage } from '@/shared/lib/hooks/'
 import cls from './NotFound.module.scss'
 
+/*
+	NotFound — страница 404.
+
+	Зачем:
+		- Показывает пользователю, что маршрут не найден.
+		- Даёт быстрые действия и ссылки на ключевые разделы.
+
+	Контракты:
+		- suggestions содержит валидные path маршрутов приложения.
+*/
+
+// Пропсы страницы 404.
 interface NotFoundProps {
     className?: string
 }
 
+// Модель карточки с рекомендацией по разделу.
 interface NotFoundSuggestion {
     id: string
     title: string
@@ -17,18 +30,12 @@ interface NotFoundSuggestion {
     path: string
 }
 
-/**
- * 404-страница:
- * - крупный код ошибки и пояснение;
- * - основные действия: на главную / назад;
- * - набор ссылок на ключевые разделы, чтобы не терять пользователя.
- */
 export default function NotFound({ className }: NotFoundProps) {
     const navigate = useNavigate()
-    // Хук должен быть вызван, а не просто передан как ссылка
+    // Хук возвращает обработчик "назад", его нужно вызвать для корректной навигации.
     const { backOnPrevPage } = useBackOnPrevPage()
 
-    // Список рекомендуемых разделов.
+    // Список рекомендуемых разделов для быстрого возврата пользователя.
     const suggestions: NotFoundSuggestion[] = useMemo(
         () => [
             {

@@ -3,6 +3,13 @@ import { initReactI18next } from 'react-i18next'
 import Backend from 'i18next-http-backend'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
+/*
+	i18n — конфигурация.
+
+	Зачем:
+		- Хранит общие настройки приложения.
+*/
+
 void i18n
     .use(Backend)
     .use(LanguageDetector)
@@ -16,3 +23,4 @@ void i18n
     })
 
 export default i18n
+

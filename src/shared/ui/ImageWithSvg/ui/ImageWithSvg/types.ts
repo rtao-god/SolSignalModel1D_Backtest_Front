@@ -1,5 +1,4 @@
 import { CSSProperties, ImgHTMLAttributes, MouseEventHandler, ReactNode } from 'react'
-
 export default interface ImageWithSvgProps extends ImgHTMLAttributes<HTMLImageElement> {
     svg: ReactNode
     width?: string | number
@@ -8,3 +7,5 @@ export default interface ImageWithSvgProps extends ImgHTMLAttributes<HTMLImageEl
     onClick?: MouseEventHandler<HTMLDivElement>
     className?: string
 }
+
+

@@ -5,6 +5,13 @@ import AuthWithGoogle from '@/features/AuthWithGoogle/AuthWithGoogle'
 import LoginProps from './types'
 import { UserLogin } from '@/features/UserLogin'
 
+/*
+	Login — страница входа.
+
+	Зачем:
+		- Даёт форму логина и альтернативный вход через Google.
+*/
+
 export default function Login({ className }: LoginProps) {
     return (
         <div className={classNames(cls.Login, {}, [className ?? ''])}>
@@ -19,8 +26,7 @@ export default function Login({ className }: LoginProps) {
                 </Row>
                 <Rows gap={16} rows={['auto']}>
                     <AuthWithGoogle />
-                    {/*   <AuthWithFacebook />
-                <AuthWithApple /> */}
+                    {/* Дополнительные провайдеры входа отключены. */}
                 </Rows>
             </AuthContainer>
         </div>

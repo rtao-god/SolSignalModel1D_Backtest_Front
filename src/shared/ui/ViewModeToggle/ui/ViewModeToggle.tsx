@@ -14,10 +14,11 @@ interface ViewModeToggleProps {
     }
 }
 
-/**
- * Переключатель режима представления: "Бизнес" / "Технарь".
- * Используется на страницах с отчётами и документацией.
- */
+/*
+	Переключатель режима представления: "Бизнес" / "Технарь".
+
+	- Используется на страницах с отчётами и документацией.
+*/
 export function ViewModeToggle({ mode, onChange, className, labels }: ViewModeToggleProps) {
     const handleChange = (next: ViewMode) => {
         if (next !== mode) {
@@ -45,3 +46,4 @@ export function ViewModeToggle({ mode, onChange, className, labels }: ViewModeTo
         </div>
     )
 }
+

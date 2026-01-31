@@ -10,7 +10,6 @@
     z-index: 50;
 
     pointer-events: none;
-    /* чтобы клики шли только по кнопкам */
 
     @media (max-width: 900px) {
         right: 16px;
@@ -58,7 +57,7 @@
     }
 
     &:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.96);
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
     }
 
@@ -68,6 +67,11 @@
     }
 }
 
+.btnDisabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
 .arrow {
     color: white;
     font-size: 1.05rem;
@@ -75,30 +79,117 @@
     user-select: none;
 }
 
-.btn:hover {
-    opacity: 0.96;
-    transform: translateY(-1px) scale(1.04);
-    box-shadow:
-        0 0 0 1px rgba(191, 219, 254, 0.7),
-        0 16px 30px rgba(0, 0, 0, 0.6);
+/* ===== dpad variant ===== */
+
+.pagerDpad {
+    display: block;
+    gap: 0;
 }
 
-.btn:active {
-    transform: translateY(0) scale(0.96);
-    box-shadow:
-        0 0 0 1px rgba(148, 163, 184, 0.9),
-        0 8px 18px rgba(0, 0, 0, 0.5);
+.dpad {
+    /* больше воздуха и гарантированный пустой центр */
+    --dpad-size: 116px;
+    --dpad-pad: 10px;
+    /* отступ кнопок от края */
+    --dpad-center-gap: 34px;
+    /* диаметр "пустого" центра */
+
+    position: relative;
+    width: var(--dpad-size);
+    height: var(--dpad-size);
+    pointer-events: none;
 }
 
-/* появление блока пагинации */
-@keyframes pager-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
+.dpadBase {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
+.dpadUpWrap,
+.dpadDownWrap,
+.dpadLeftWrap,
+.dpadRightWrap {
+    position: absolute;
+    pointer-events: auto;
+}
+
+/* Расставляем кнопки вокруг "невидимого круга".
+   Идея: фиксируем их ближе к краям, а центр остаётся пустым за счёт увеличения dpad-size. */
+.dpadUpWrap {
+    left: 50%;
+    top: var(--dpad-pad);
+    transform: translateX(-50%);
+}
+
+.dpadDownWrap {
+    left: 50%;
+    bottom: var(--dpad-pad);
+    transform: translateX(-50%);
+}
+
+.dpadLeftWrap {
+    left: var(--dpad-pad);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.dpadRightWrap {
+    right: var(--dpad-pad);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* (опционально) лёгкое "разведение" по диагонали,
+   чтобы визуально центр казался ещё свободнее */
+.dpadUpWrap,
+.dpadDownWrap {
+    transform: translateX(-50%) translateY(0);
+}
+
+.dpadLeftWrap,
+.dpadRightWrap {
+    transform: translateY(-50%) translateX(0);
+}
+
+/* статус страницы показываем только при hover по ←/→ */
+.groupStatus {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 8px;
+    border-radius: 999px;
+
+    font-size: 12px;
+    line-height: 14px;
+    color: rgba(255, 255, 255, 0.92);
+
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.dpadLeftWrap .groupStatus {
+    /* чуть дальше из-за увеличения dpad */
+    right: 46px;
+}
+
+.dpadRightWrap .groupStatus {
+    left: 46px;
+}
+
+.dpadLeftWrap:hover .groupStatus,
+.dpadRightWrap:hover .groupStatus {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .groupStatus {
+        transition: none;
     }
 }

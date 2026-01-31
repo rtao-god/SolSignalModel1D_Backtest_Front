@@ -19,12 +19,13 @@ interface ErrorBlockProps {
     compact?: boolean
 }
 
-/**
- * Универсальный блок ошибки:
- * - тёмная тема + неоновый градиент по рамке;
- * - одинаковый внешний вид для всех ошибок по проекту;
- * - вставляется в любые страницы и секции.
- */
+/*
+	Универсальный блок ошибки.
+
+	- Тёмная тема + неоновый градиент по рамке.
+	- Единый внешний вид для всех ошибок по проекту.
+	- Используется в страницах и секциях.
+*/
 export function ErrorBlock({ className, code, title, description, details, onRetry, compact }: ErrorBlockProps) {
     const rootClasses = classNames(
         cls.ErrorBlock,
@@ -70,3 +71,4 @@ export function ErrorBlock({ className, code, title, description, details, onRet
         </div>
     )
 }
+
