@@ -138,6 +138,7 @@ export function useSectionPager({
 		- НЕ блокирует обновление currentIndex.
 	*/
     const programmaticTargetIndexRef = useRef<number | null>(null)
+    const lastHandledHashRef = useRef<string | null>(null)
 
     // Страхуемся от выхода currentIndex за границы при смене списка секций.
     useEffect(() => {
@@ -166,12 +167,20 @@ export function useSectionPager({
         if (!syncHash || sections.length === 0) return
 
         const hash = location.hash.replace('#', '')
-        if (!hash) return
+        if (!hash) {
+            lastHandledHashRef.current = null
+            return
+        }
+
+        if (lastHandledHashRef.current === hash) {
+            return
+        }
 
         const idx = sections.findIndex(s => s.anchor === hash)
         if (idx < 0) return
 
         programmaticTargetIndexRef.current = idx
+        lastHandledHashRef.current = hash
 
         scrollToAnchor(hash, {
             behavior: 'smooth',

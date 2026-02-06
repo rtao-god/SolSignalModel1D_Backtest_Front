@@ -7,13 +7,6 @@ import type {
 } from '@reduxjs/toolkit/query'
 
 /*
-	api — типы.
-
-	Зачем:
-		- Описывает контракт типов для API и RTK Query.
-*/
-
-/*
 	Базовый тип baseQuery, совместимый с fetchBaseQuery.
 
 	- Важно: meta = FetchBaseQueryMeta, чтобы тип совпадал с тем, что инферит createApi.

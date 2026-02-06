@@ -18,6 +18,7 @@ import type { CurrentPredictionSet } from '@/shared/api/endpoints/reportEndpoint
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
+import type { PredictionHistoryPageProps } from './types'
 
 /*
 	PredictionHistoryPage — история прогнозов по датам.
@@ -39,11 +40,6 @@ const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = Math.max(1, Math.floor(PAGE_SIZE / 2))
 // Историю берём из backfilled-отчётов, чтобы видеть строгие дневные снапшоты.
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
-
-// Пропсы страницы истории прогнозов.
-interface PredictionHistoryPageProps {
-    className?: string
-}
 
 // Тип индекса дат для истории прогнозов.
 type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
@@ -270,6 +266,7 @@ function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageI
                             canNext={canCardNext}
                             onPrev={handleCardPrev}
                             onNext={handleCardNext}
+                            tightRight
                             canGroupPrev={canPrev}
                             canGroupNext={canNext}
                             onGroupPrev={handlePagePrev}

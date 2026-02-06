@@ -18,8 +18,6 @@ import { ModelStatsPageInner } from './ModelStatsPageInner'
 	Контракты:
 		- ModelStatsPageInner получает data только при успешной загрузке.
 
-	Public API:
-		- default export: ModelStatsPage
 */
 export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     const { data, isError, error, refetch } = useModelStatsReportQuery()

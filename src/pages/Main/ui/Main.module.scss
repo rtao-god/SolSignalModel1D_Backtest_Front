@@ -1,0 +1,379 @@
+/* Main: стили для карты проекта и витрины лучшей политики. */
+.MainPage {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 24px 32px;
+}
+
+.hero {
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.heroTitle {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f9fafb;
+}
+
+.heroSubtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #9ca3af;
+    max-width: 760px;
+}
+
+.heroMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.metaPill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    color: #e5e7eb;
+    background: rgba(15, 23, 42, 0.8);
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.overview {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.overviewGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.overviewCard {
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.92));
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.55);
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cardTitle {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.cardText {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #d1d5db;
+}
+
+.flow {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: linear-gradient(150deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.85));
+    padding: 18px 20px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.flowSubtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #94a3b8;
+}
+
+.flowRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.flowStep {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.75);
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.flowArrow {
+    color: #93c5fd;
+    font-weight: 700;
+}
+
+.bestPolicy {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.bestPolicyHeader {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.bestPolicySubtitle {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #9ca3af;
+    max-width: 760px;
+}
+
+.bestPolicyLink {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #93c5fd;
+    padding-top: 6px;
+}
+
+.bestPolicyHero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.7);
+}
+
+.bestPolicyName {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.bestPolicyNote {
+    font-size: 13px;
+    color: #93c5fd;
+}
+
+.bestPolicyMeta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.bestPolicyMetaItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #cbd5f5;
+}
+
+.bestPolicyMetaValue {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.bestPolicyMetrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.metricCard {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(15, 23, 42, 0.75);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.metricValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.bestPolicyDescription {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.bestPolicyText {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d1d5db;
+}
+
+.bestPolicyTables {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.partBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.termsBlock {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: linear-gradient(140deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.85));
+    padding: 18px 20px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.55);
+}
+
+.termsHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.termsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.termsSubtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #94a3b8;
+}
+
+.termsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+
+    @media (max-width: 980px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.termItem {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.65);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.termDescription {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d1d5db;
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.navCards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.navCard {
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.9));
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.navLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.navLink {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.navSublinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.navSubLink {
+    text-decoration: none;
+    font-size: 12px;
+    color: #cbd5f5;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(15, 23, 42, 0.6);
+}
+
+@media (max-width: 720px) {
+    .MainPage {
+        padding: 20px 18px;
+    }
+
+    .bestPolicyMeta {
+        grid-template-columns: 1fr;
+    }
+}

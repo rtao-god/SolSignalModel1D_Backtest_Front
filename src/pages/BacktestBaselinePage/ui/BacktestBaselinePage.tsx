@@ -1,9 +1,24 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestBaselinePage.module.scss'
-import { Text } from '@/shared/ui'
+import { TermTooltip, Text } from '@/shared/ui'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
+import type { BacktestBaselinePageProps } from './types'
+
+const BASELINE_COLUMN_TOOLTIPS: Record<string, string> = {
+    Политика: 'Имя торговой политики (стратегии), для которой приведены итоговые метрики.',
+    Маржа: 'Режим маржи сделки: Cross или Isolated.',
+    Режим: 'Ветка логики: Base или Anti‑direction (разворот направления при триггере риска).',
+    'Итоговый PnL, %': 'Суммарная доходность по политике в процентах за период бэктеста.',
+    'Max DD, %': 'Максимальная просадка капитала в процентах — ключевой риск‑показатель.',
+    Ликвидации: 'Были ли ликвидации (Да/Нет). Критичный риск‑флаг.',
+    'Withdraw, $': 'Сколько прибыли было выведено из капитала (если применимо).',
+    Сделок: 'Количество сделок по политике за период.'
+}
+
+const renderTooltip = (term: string, description?: string) =>
+    description ? <TermTooltip term={term} description={description} type='span' /> : term
 
 /*
 	BacktestBaselinePage — страница baseline-снимка бэктеста.
@@ -18,11 +33,6 @@ import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBou
 	Контракты:
 		- Внутренние секции получают валидный snapshot.
 */
-
-// Пропсы страницы baseline-снимка.
-interface BacktestBaselinePageProps {
-    className?: string
-}
 
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
@@ -90,13 +100,27 @@ function GlobalParams({ snapshot }: GlobalParamsProps) {
     return (
         <section className={cls.globalParams}>
             <Text type='h2'>Глобальные параметры</Text>
+            <Text>
+                Базовые настройки риска, применяемые ко всем политикам в baseline‑запуске. Эти значения задают дневные
+                границы стоп‑лосса и тейк‑профита.
+            </Text>
             <dl className={cls.kvList}>
                 <div className={cls.kvRow}>
-                    <dt>Дневной стоп (SL)</dt>
+                    <dt>
+                        {renderTooltip(
+                            'Дневной стоп (SL)',
+                            'Процентное ограничение убытка на день. Если цена проходит дальше — позиция закрывается.'
+                        )}
+                    </dt>
                     <dd>{dailyStopPctStr}</dd>
                 </div>
                 <div className={cls.kvRow}>
-                    <dt>Дневной тейк-профит (TP)</dt>
+                    <dt>
+                        {renderTooltip(
+                            'Дневной тейк-профит (TP)',
+                            'Процентное ограничение прибыли на день. При достижении уровня фиксируем прибыль.'
+                        )}
+                    </dt>
                     <dd>{dailyTpPctStr}</dd>
                 </div>
             </dl>
@@ -127,17 +151,21 @@ function PoliciesTable({ policies }: PoliciesTableProps) {
     return (
         <section className={cls.policiesSection}>
             <Text type='h2'>Политики (baseline, WITH SL)</Text>
+            <Text>
+                Сводная таблица результатов baseline‑запуска для каждой политики. Это быстрый способ сравнить доходность
+                и риск до детальных диагностик.
+            </Text>
             <table className={cls.table}>
                 <thead>
                     <tr>
-                        <th>Политика</th>
-                        <th>Маржа</th>
-                        <th>Режим</th>
-                        <th>Итоговый PnL, %</th>
-                        <th>Max DD, %</th>
-                        <th>Ликвидации</th>
-                        <th>Withdraw, $</th>
-                        <th>Сделок</th>
+                        <th>{renderTooltip('Политика', BASELINE_COLUMN_TOOLTIPS.Политика)}</th>
+                        <th>{renderTooltip('Маржа', BASELINE_COLUMN_TOOLTIPS.Маржа)}</th>
+                        <th>{renderTooltip('Режим', BASELINE_COLUMN_TOOLTIPS.Режим)}</th>
+                        <th>{renderTooltip('Итоговый PnL, %', BASELINE_COLUMN_TOOLTIPS['Итоговый PnL, %'])}</th>
+                        <th>{renderTooltip('Max DD, %', BASELINE_COLUMN_TOOLTIPS['Max DD, %'])}</th>
+                        <th>{renderTooltip('Ликвидации', BASELINE_COLUMN_TOOLTIPS.Ликвидации)}</th>
+                        <th>{renderTooltip('Withdraw, $', BASELINE_COLUMN_TOOLTIPS['Withdraw, $'])}</th>
+                        <th>{renderTooltip('Сделок', BASELINE_COLUMN_TOOLTIPS.Сделок)}</th>
                     </tr>
                 </thead>
                 <tbody>

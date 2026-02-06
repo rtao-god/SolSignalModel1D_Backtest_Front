@@ -16,9 +16,6 @@ import { userActions } from '@/entities/User'
 
 export default function Profile({ className }: ProfileProps) {
     const dispatch = useDispatch()
-    // Временный вывод для отладки диспатча.
-    console.log('dispatch: ', dispatch(userActions.login))
-
     return (
         <div className={classNames(cls.Profile, {}, [className ?? ''])}>
             <UserInfo />

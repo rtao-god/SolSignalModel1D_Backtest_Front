@@ -23,4 +23,6 @@ export * from './portals'
 export * from './forms'
 export * from './loaders'
 export * from './TermTooltip'
+export * from './SortableTable'
+export * from './ReportTableCard'
 

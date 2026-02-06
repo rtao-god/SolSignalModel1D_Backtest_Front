@@ -1,8 +1,8 @@
-import { useMutation } from 'react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
-import { authApi } from '@/shared/api'
+import axios from 'axios'
 
 /*
 	useLoginMutation — пользовательский хук.
@@ -19,8 +19,11 @@ export const useLoginMutation = (
     const dispatch = useDispatch()
 
     return useMutation({
-        mutationFn: () => authApi(identifier, password),
-        mutationKey: ['login'],
+        mutationFn: async () => {
+            const response = await axios.post('/api/login', { identifier, password })
+            return response.data
+        },
+        mutationKey: ['login', identifier],
         onSuccess: data => {
             console.log(data)
             const storedIdentifier = localStorage.getItem('identifier')

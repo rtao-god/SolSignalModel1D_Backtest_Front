@@ -1,0 +1,43 @@
+.card {
+    border-radius: 12px;
+    padding: 16px 20px;
+
+    background-color: var(--bg-color-elevated, #171a20);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cardTitle {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.cardSubtitle {
+    font-size: 12px;
+    opacity: 0.75;
+    max-width: 720px;
+}
+
+.rowPositive {
+    background-color: rgba(16, 185, 129, 0.08);
+}
+
+.rowNegative {
+    background-color: rgba(239, 68, 68, 0.08);
+}
+
+.cellPositive {
+    color: #16a34a;
+}
+
+.cellNegative {
+    color: #ef4444;
+}
+

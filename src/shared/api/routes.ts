@@ -62,6 +62,17 @@ export const API_ROUTES = {
             method: 'GET' as const
         },
 
+        // Диагностика бэктеста (ReportDocument, all history).
+        diagnosticsGet: {
+            path: '/backtest/diagnostics',
+            method: 'GET' as const
+        },
+        // Policy Branch Mega (ReportDocument, all history).
+        policyBranchMegaGet: {
+            path: '/backtest/policy-branch-mega',
+            method: 'GET' as const
+        },
+
         // Список профилей бэктеста (GET /backtest/profiles).
         profilesListGet: {
             path: '/backtest/profiles',

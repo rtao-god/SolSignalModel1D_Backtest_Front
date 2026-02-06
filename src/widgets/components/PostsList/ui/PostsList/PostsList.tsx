@@ -11,7 +11,7 @@ export default function PostsList({ className }: PostsListProps) {
     const [error, setError] = useState<string | null>(null)
     const [counters, setCounters] = useState<{ [key: number]: number }>({})
     const [formData, setFormData] = useState({})
-    const [errors, setErrors] = useState({})
+    const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
 
     console.log('formData: ', formData)
 

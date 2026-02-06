@@ -1,14 +1,33 @@
 import type { RouteProps } from 'react-router'
 
+/*
+    types — контракт навигации и маршрутов.
+
+    Зачем:
+        - Даёт единый набор id/секций для navbar/sidebar.
+        - Фиксирует структуру AppRouteConfig.
+*/
+
 // Логические идентификаторы маршрутов
 export enum AppRoute {
     MAIN = 'MAIN',
     CURRENT_PREDICTION = 'CURRENT_PREDICTION',
     CURRENT_PREDICTION_HISTORY = 'CURRENT_PREDICTION_HISTORY',
 
+    DIAGNOSTICS_HOME = 'DIAGNOSTICS_HOME',
+    ANALYSIS_HOME = 'ANALYSIS_HOME',
+
     BACKTEST_BASELINE = 'BACKTEST_BASELINE',
     BACKTEST_SUMMARY = 'BACKTEST_SUMMARY',
     BACKTEST_FULL = 'BACKTEST_FULL',
+    BACKTEST_DIAGNOSTICS = 'BACKTEST_DIAGNOSTICS',
+    BACKTEST_DIAGNOSTICS_GUARDRAIL = 'BACKTEST_DIAGNOSTICS_GUARDRAIL',
+    BACKTEST_DIAGNOSTICS_DECISIONS = 'BACKTEST_DIAGNOSTICS_DECISIONS',
+    BACKTEST_DIAGNOSTICS_HOTSPOTS = 'BACKTEST_DIAGNOSTICS_HOTSPOTS',
+    BACKTEST_DIAGNOSTICS_OTHER = 'BACKTEST_DIAGNOSTICS_OTHER',
+    BACKTEST_DIAGNOSTICS_RATINGS = 'BACKTEST_DIAGNOSTICS_RATINGS',
+    BACKTEST_DIAGNOSTICS_DAYSTATS = 'BACKTEST_DIAGNOSTICS_DAYSTATS',
+    BACKTEST_POLICY_BRANCH_MEGA = 'BACKTEST_POLICY_BRANCH_MEGA',
 
     PFI_PER_MODEL = 'PFI_PER_MODEL',
 
@@ -33,7 +52,15 @@ export enum AppRoute {
 export type RouteLayout = 'app' | 'bare'
 
 // Логические группы для сайдбара
-export type RouteSection = 'predictions' | 'models' | 'backtest' | 'features' | 'docs' | 'system'
+export type RouteSection =
+    | 'predictions'
+    | 'models'
+    | 'backtest'
+    | 'analysis'
+    | 'diagnostics'
+    | 'features'
+    | 'docs'
+    | 'system'
 
 export interface RouteNavMeta {
     sidebar?: boolean // показывать ли в сайдбаре

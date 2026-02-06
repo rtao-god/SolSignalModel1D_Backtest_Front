@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import { User } from '@/entities/User'
+import { userActions } from '@/entities/User'
 
 interface RegistrationResponse {
     id: number

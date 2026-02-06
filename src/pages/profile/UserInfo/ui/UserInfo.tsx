@@ -54,7 +54,7 @@ export default function UserInfo({ className }: UserInfoProps) {
                     {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')}
                 </Text>
                 <Text color='#B1B2B4' fz='14px'>
-                    {user && user.group.name}
+                    {user?.group?.name ?? ''}
                 </Text>
             </div>
         </div>

@@ -7,11 +7,11 @@ import { useCallback, useRef } from 'react'
 		- Инкапсулирует логику useDebounce.
 */
 
-export function useDebounce(callback, delay = 500) {
-    const timer = useRef(null)
+export function useDebounce<T extends (...args: any[]) => void>(callback: T, delay = 500) {
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const debouncedCallback = useCallback(
-        (...args) => {
+        (...args: Parameters<T>) => {
             if (timer.current) {
                 clearTimeout(timer.current)
             }

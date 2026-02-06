@@ -1,7 +1,7 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestSummaryReportPage.module.scss'
 import { Text } from '@/shared/ui'
-import type BacktestSummaryReportProps from '../types'
+import type BacktestSummaryReportProps from './types'
 import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'

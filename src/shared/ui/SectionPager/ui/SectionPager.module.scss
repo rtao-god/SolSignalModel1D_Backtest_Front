@@ -24,6 +24,14 @@
     }
 }
 
+.pagerTight {
+    right: 8px;
+
+    @media (max-width: 900px) {
+        right: 8px;
+    }
+}
+
 .btn {
     pointer-events: auto;
     width: 38px;
@@ -89,7 +97,7 @@
 .dpad {
     /* больше воздуха и гарантированный пустой центр */
     --dpad-size: 116px;
-    --dpad-pad: 10px;
+    --dpad-pad: 14px;
     /* отступ кнопок от края */
     --dpad-center-gap: 34px;
     /* диаметр "пустого" центра */

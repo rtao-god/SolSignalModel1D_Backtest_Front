@@ -1,4 +1,7 @@
 import { Text } from '@/shared/ui'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import cls from './ModelStatsPage.module.scss'
 import { stripSegmentPrefix } from './modelStatsUtils'
 import type { ModelStatsTableCardProps } from './modelStatsTypes'
@@ -21,13 +24,17 @@ export function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps
 
     const visibleTitle = stripSegmentPrefix(section.title)
     const headingId = `${domId}-title`
+    const description = resolveReportSectionDescription('backtest_model_stats', visibleTitle)
 
     return (
         <section id={domId} aria-labelledby={headingId} className={cls.tableCard}>
             <header className={cls.cardHeader}>
-                <Text type='h3' className={cls.cardTitle} id={headingId}>
-                    {visibleTitle}
-                </Text>
+                <div>
+                    <Text type='h3' className={cls.cardTitle} id={headingId}>
+                        {visibleTitle}
+                    </Text>
+                    {description && <Text className={cls.cardSubtitle}>{description}</Text>}
+                </div>
             </header>
 
             <div className={cls.tableScroll}>
@@ -35,7 +42,12 @@ export function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps
                     <thead>
                         <tr>
                             {section.columns.map((colTitle, colIdx) => (
-                                <th key={colIdx}>{colTitle}</th>
+                                <th key={colIdx}>
+                                    {renderTermTooltipTitle(
+                                        colTitle,
+                                        resolveReportColumnTooltip('backtest_model_stats', visibleTitle, colTitle)
+                                    )}
+                                </th>
                             ))}
                         </tr>
                     </thead>

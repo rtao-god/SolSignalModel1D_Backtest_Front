@@ -3,36 +3,68 @@ import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
 
-// Основные страницы
-const MainPage = lazyPage(() => import('@/pages/Main/Main'))
+/*
+    routeConfig — единый источник маршрутов, navbar и sidebar.
 
-const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage/ui/ModelStatsPage'))
+    Зачем:
+        - Гарантирует, что карта страниц и навигация синхронизированы.
+        - Держит порядок и группировку разделов, включая новые mega-таблицы.
+*/
+
+// Основные страницы
+const MainPage = lazyPage(() => import('@/pages/Main'))
+
+const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage'))
 const AggregationStatsPage = lazyPage(() => import('@/pages/AggregationStatsPage'))
-const RegistrationPage = lazyPage(() => import('@/pages/Registration/Registration'))
-const LoginPage = lazyPage(() => import('@/pages/Login/Login'))
-const AboutPage = lazyPage(() => import('@/pages/About/About'))
-const ContactPage = lazyPage(() => import('@/pages/ContactPage/ui/ContactPage'))
-const NotFoundPage = lazyPage(() => import('@/pages/404/NotFound'))
-const ProfilePage = lazyPage(() => import('@/pages/profile/Profile/ui/Profile'))
+const RegistrationPage = lazyPage(() => import('@/pages/Registration'))
+const LoginPage = lazyPage(() => import('@/pages/Login'))
+const AboutPage = lazyPage(() => import('@/pages/About'))
+const ContactPage = lazyPage(() => import('@/pages/ContactPage'))
+const NotFoundPage = lazyPage(() => import('@/pages/404'))
+const ProfilePage = lazyPage(() => import('@/pages/profile/Profile'))
+const DiagnosticsHomePage = lazyPage(() => import('@/pages/diagnosticsPages/ui/DiagnosticsPage'))
+const AnalysisHomePage = lazyPage(() => import('@/pages/analysisPages/ui/AnalysisPage'))
 
 // Backtest / ML
-const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage/ui/BacktestBaselinePage'))
-const BacktestPage = lazyPage(() => import('@/pages/BacktestPage/ui/BacktestPage'))
-const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport/ui/BacktestSummaryReportPage'))
+const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage'))
+const BacktestPage = lazyPage(() => import('@/pages/BacktestPage'))
+const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport'))
+const BacktestDiagnosticsPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsPage/ui/BacktestDiagnosticsPage')
+)
+const BacktestDiagnosticsGuardrailPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsGuardrailPage/ui/BacktestDiagnosticsGuardrailPage')
+)
+const BacktestDiagnosticsDecisionsPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDecisionsPage/ui/BacktestDiagnosticsDecisionsPage')
+)
+const BacktestDiagnosticsHotspotsPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsHotspotsPage/ui/BacktestDiagnosticsHotspotsPage')
+)
+const BacktestDiagnosticsOtherPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsOtherPage/ui/BacktestDiagnosticsOtherPage')
+)
+const BacktestDiagnosticsRatingsPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsRatingsPage/ui/BacktestDiagnosticsRatingsPage')
+)
+const BacktestDiagnosticsDayStatsPage = lazyPage(
+    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDayStatsPage/ui/BacktestDiagnosticsDayStatsPage')
+)
+const PolicyBranchMegaPage = lazyPage(
+    () => import('@/pages/analysisPages/ui/PolicyBranchMegaPage')
+)
 const CurrentMLModelPredictionPage = lazyPage(
-    () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage/ui/CurrentMLModelPredictionPage')
+    () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
 )
-const PredictionHistoryPage = lazyPage(
-    () => import('@/pages/predictions/ui/PredictionHistoryPage/ui/PredictionHistoryPage')
-)
+const PredictionHistoryPage = lazyPage(() => import('@/pages/predictions/ui/PredictionHistoryPage'))
 
 // PFI
-const PfiPage = lazyPage(() => import('@/pages/PfiPage/ui/PfiPage'))
+const PfiPage = lazyPage(() => import('@/pages/PfiPage'))
 
 // Docs / описания — структура, как ты просил
 const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
-const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage/ui/DocsModelsPage'))
-const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage/ui/DocsTestsPage'))
+const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage'))
+const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage'))
 
 // Основная конфигурация маршрутов
 export const ROUTE_CONFIG: AppRouteConfig[] = [
@@ -47,6 +79,36 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Main',
             navbarOrder: 0
+        }
+    },
+
+    // ===== ДИАГНОСТИКА / АНАЛИЗ (navbar) =====
+    {
+        id: AppRoute.DIAGNOSTICS_HOME,
+        path: ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME],
+        element: <DiagnosticsHomePage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю диагностику',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Диагностика',
+            section: 'diagnostics',
+            navbarOrder: 1
+        }
+    },
+    {
+        id: AppRoute.ANALYSIS_HOME,
+        path: ROUTE_PATH[AppRoute.ANALYSIS_HOME],
+        element: <AnalysisHomePage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю анализ',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Анализ',
+            section: 'analysis',
+            navbarOrder: 2
         }
     },
 
@@ -146,6 +208,110 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 3
         }
     },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_RATINGS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS],
+        element: <BacktestDiagnosticsRatingsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю рейтинги бэктеста',
+        nav: {
+            sidebar: true,
+            label: 'Рейтинги полисов',
+            section: 'analysis',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS],
+        element: <BacktestDiagnosticsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю риск и ликвидации',
+        nav: {
+            sidebar: true,
+            label: 'Риск и ликвидации',
+            section: 'diagnostics',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL],
+        element: <BacktestDiagnosticsGuardrailPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю guardrail-диагностику',
+        nav: {
+            sidebar: true,
+            label: 'Guardrail / Specificity',
+            section: 'diagnostics',
+            order: 2
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS],
+        element: <BacktestDiagnosticsDecisionsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю анализ решений',
+        nav: {
+            sidebar: true,
+            label: 'Решения / Attribution',
+            section: 'diagnostics',
+            order: 3
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS],
+        element: <BacktestDiagnosticsHotspotsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю hotspots',
+        nav: {
+            sidebar: true,
+            label: 'Hotspots / NoTrade',
+            section: 'diagnostics',
+            order: 4
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_OTHER,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER],
+        element: <BacktestDiagnosticsOtherPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю прочие диагностики',
+        nav: {
+            sidebar: true,
+            label: 'Прочее',
+            section: 'diagnostics',
+            order: 5
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS],
+        element: <BacktestDiagnosticsDayStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю статистику по дням',
+        nav: {
+            sidebar: true,
+            label: 'Статистика по дням',
+            section: 'analysis',
+            order: 2
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_POLICY_BRANCH_MEGA,
+        path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+        element: <PolicyBranchMegaPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю Policy Branch Mega',
+        nav: {
+            sidebar: true,
+            label: 'Policy Branch Mega',
+            section: 'analysis',
+            order: 3
+        }
+    },
 
     // ===== PFI =====
     {
@@ -174,7 +340,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Docs',
             section: 'docs',
-            navbarOrder: 4
+            navbarOrder: 3
         }
     },
     {
@@ -216,7 +382,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'About',
             section: 'system',
-            navbarOrder: 2
+            navbarOrder: 6
         }
     },
     {
@@ -230,7 +396,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Contact',
             section: 'system',
-            navbarOrder: 3
+            navbarOrder: 7
         }
     },
 
@@ -271,7 +437,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Profile',
             section: 'system',
-            navbarOrder: 1
+            navbarOrder: 5
         }
     },
     {

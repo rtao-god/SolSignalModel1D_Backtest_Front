@@ -1,0 +1,158 @@
+.PolicyRatiosSection {
+    margin-top: 24px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.headerSubtitle {
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.75;
+    max-width: 640px;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.metricSelectWrapper {
+    display: flex;
+    align-items: center;
+}
+
+.metricLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.metricSelect {
+    min-width: 140px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(0, 0, 0, 0.28);
+    color: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.metricSelect:focus-visible {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Тогглер "График / Таблица" */
+
+.toggleGroup {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.toggleBtn {
+    border: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    background: transparent;
+    color: inherit;
+    transition: background-color 0.15s ease-in-out, opacity 0.15s ease-in-out;
+    opacity: 0.8;
+}
+
+.toggleBtn:hover {
+    opacity: 1;
+}
+
+.toggleBtnActive {
+    background: var(--inverted-bg-color-btn);
+    opacity: 1;
+}
+
+/* График */
+
+.chartContainer {
+    width: 100%;
+    height: 280px;
+    margin-top: 4px;
+    position: relative;
+}
+
+/* Центрированная заглушка для случая, когда нет валидных данных для метрики */
+.chartEmptyState {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.75;
+    padding: 0 16px;
+}
+
+/* Таблица */
+
+.tableWrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.table th,
+.table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.table th {
+    text-align: left;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+.badLiq {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .chartContainer {
+        height: 260px;
+    }
+
+    .controls {
+        align-items: flex-start;
+    }
+}

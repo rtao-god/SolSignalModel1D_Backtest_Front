@@ -48,7 +48,8 @@ async function fetchCurrentPrediction(
     const report = set === 'live' ? raw.live : raw.backfilled
 
     if (!report) {
-        throw new Error(`Current prediction report "${set}" is missing in response`)
+        const scopeLabel = scope ?? 'train'
+        throw new Error(`Current prediction report "${set}" is missing in response (scope=${scopeLabel}).`)
     }
 
     return mapReportResponse(report)

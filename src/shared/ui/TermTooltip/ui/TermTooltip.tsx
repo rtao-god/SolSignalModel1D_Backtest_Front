@@ -1,6 +1,6 @@
 import { KeyboardEvent, ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import { Portal, Text } from '@/shared/ui'
 import useClickOutside from '@/shared/lib/hooks/useClickOutside'
 import cls from './TermTooltip.module.scss'
 import { TextTag } from '../../Text/ui/Text/types'
@@ -80,84 +80,152 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         cancelHide()
         setHovered(false)
         setPinned(false)
-    })
+    }, tooltipRef)
 
-    // Кламп по горизонтали на узких экранах, чтобы тултип не вылезал за страницу.
+    // Кламп по горизонтали, чтобы тултип не вылезал за страницу/контейнер.
     useLayoutEffect(() => {
         if (!open) return
-        if (!rootRef.current || !tooltipRef.current) return
         if (typeof window === 'undefined') return
 
-        const viewportWidth = document.documentElement.clientWidth
-        const isNarrow = viewportWidth <= 576 // В синхроне с .main @media.
+        const handle = () => {
+            if (!rootRef.current || !tooltipRef.current) return
+            // Повторяем позиционирование при ресайзе/скролле.
+            const viewportWidth = document.documentElement.clientWidth
+            const viewportHeight = document.documentElement.clientHeight
+            const tooltipEl = tooltipRef.current
+            const rootEl = rootRef.current
 
-        const tooltipEl = tooltipRef.current
+            const isNarrow = viewportWidth <= 576
+            const MAIN_PADDING = isNarrow ? 15 : 12
 
-        if (!isNarrow) {
-            // На десктопе полагаемся на классы tooltipLeft/tooltipRight.
+            const rootRect = rootEl.getBoundingClientRect()
+
             tooltipEl.style.left = ''
             tooltipEl.style.right = ''
-            return
+            tooltipEl.style.top = ''
+
+            const tooltipRect = tooltipEl.getBoundingClientRect()
+
+            const resolveClampBounds = () => {
+                const boundary = rootEl.closest('[data-tooltip-boundary]') as HTMLElement | null
+                if (!boundary) {
+                    return {
+                        left: MAIN_PADDING,
+                        right: viewportWidth - MAIN_PADDING,
+                        top: MAIN_PADDING,
+                        bottom: viewportHeight - MAIN_PADDING
+                    }
+                }
+
+                const boundaryRect = boundary.getBoundingClientRect()
+                const style = window.getComputedStyle(boundary)
+                const padLeft = parseFloat(style.paddingLeft || '0') || 0
+                const padRight = parseFloat(style.paddingRight || '0') || 0
+                const padTop = parseFloat(style.paddingTop || '0') || 0
+                const padBottom = parseFloat(style.paddingBottom || '0') || 0
+
+                const left = boundaryRect.left + padLeft
+                const right = boundaryRect.right - padRight
+                const top = boundaryRect.top + padTop
+                const bottom = boundaryRect.bottom - padBottom
+
+                if (right <= left || bottom <= top) {
+                    return {
+                        left: MAIN_PADDING,
+                        right: viewportWidth - MAIN_PADDING,
+                        top: MAIN_PADDING,
+                        bottom: viewportHeight - MAIN_PADDING
+                    }
+                }
+
+                return {
+                    left: Math.max(left, MAIN_PADDING),
+                    right: Math.min(right, viewportWidth - MAIN_PADDING),
+                    top: Math.max(top, MAIN_PADDING),
+                    bottom: Math.min(bottom, viewportHeight - MAIN_PADDING)
+                }
+            }
+
+            const bounds = resolveClampBounds()
+
+            const minLeft = bounds.left
+            const maxLeft = Math.max(minLeft, bounds.right - tooltipRect.width)
+
+            const termCenterX = rootRect.left + rootRect.width / 2
+            let desiredLeft = termCenterX - tooltipRect.width / 2
+
+            if (desiredLeft < minLeft) desiredLeft = minLeft
+            if (desiredLeft > maxLeft) desiredLeft = maxLeft
+
+            const gap = 6
+            const fitsBelow = rootRect.bottom + gap + tooltipRect.height <= bounds.bottom
+            const fitsAbove = rootRect.top - gap - tooltipRect.height >= bounds.top
+            let desiredTop = rootRect.bottom + gap
+            if (!fitsBelow && fitsAbove) {
+                desiredTop = rootRect.top - gap - tooltipRect.height
+            }
+
+            if (desiredTop + tooltipRect.height > bounds.bottom) {
+                desiredTop = bounds.bottom - tooltipRect.height
+            }
+            if (desiredTop < bounds.top) desiredTop = bounds.top
+
+            const docLeft = desiredLeft + window.scrollX
+            const docTop = desiredTop + window.scrollY
+
+            tooltipEl.style.position = 'absolute'
+            tooltipEl.style.left = `${docLeft}px`
+            tooltipEl.style.top = `${docTop}px`
+            tooltipEl.style.right = 'auto'
         }
 
-        const MAIN_PADDING = 15 // Как в .main для max-width: 576px.
+        handle()
 
-        const rootRect = rootRef.current.getBoundingClientRect()
+        window.addEventListener('resize', handle)
+        window.addEventListener('scroll', handle, true)
 
-        // Сбрасываем inline-координаты, чтобы корректно измерить ширину.
-        tooltipEl.style.left = ''
-        tooltipEl.style.right = ''
-
-        const tooltipRect = tooltipEl.getBoundingClientRect()
-
-        const minLeft = MAIN_PADDING
-        const maxLeft = viewportWidth - MAIN_PADDING - tooltipRect.width
-
-        const termCenterX = rootRect.left + rootRect.width / 2
-        let desiredLeft = termCenterX - tooltipRect.width / 2
-
-        if (desiredLeft < minLeft) desiredLeft = minLeft
-        if (desiredLeft > maxLeft) desiredLeft = maxLeft
-
-        const relativeLeft = desiredLeft - rootRect.left
-
-        tooltipEl.style.left = `${relativeLeft}px`
-        tooltipEl.style.right = 'auto'
+        return () => {
+            window.removeEventListener('resize', handle)
+            window.removeEventListener('scroll', handle, true)
+        }
     }, [open])
 
     const tooltipAlignClass = align === 'right' ? cls.tooltipRight : cls.tooltipLeft
 
     return (
-        <span ref={rootRef} className={classNames(cls.TermTooltip, {}, [className ?? ''])}>
-            <Text type={type} className={cls.termText}>
-                <span
-                    className={cls.termInner}
-                    onMouseEnter={handleTermEnter}
-                    onMouseLeave={handleTermLeave}
-                    onClick={togglePinned}
-                    onKeyDown={handleKeyDown}
-                    role='button'
-                    tabIndex={0}
-                    aria-label={`Что такое ${term}?`}
-                    aria-expanded={open}>
-                    {term}
-                </span>
-            </Text>
-
-            <div
-                ref={tooltipRef}
-                className={classNames(cls.tooltip, { [cls.tooltipVisible]: open }, [tooltipAlignClass])}
-                role='tooltip'
-                onMouseEnter={handleTooltipEnter}
-                onMouseLeave={handleTooltipLeave}>
-                <div className={cls.tooltipContent}>
-                    <Text type='p' className={cls.tooltipTitle}>
+        <>
+            <span ref={rootRef} className={classNames(cls.TermTooltip, {}, [className ?? ''])}>
+                <Text type={type} className={cls.termText}>
+                    <span
+                        className={cls.termInner}
+                        onMouseEnter={handleTermEnter}
+                        onMouseLeave={handleTermLeave}
+                        onClick={togglePinned}
+                        onKeyDown={handleKeyDown}
+                        role='button'
+                        tabIndex={0}
+                        aria-label={`Что такое ${term}?`}
+                        aria-expanded={open}>
                         {term}
-                    </Text>
-                    <div className={cls.tooltipBody}>{description}</div>
+                    </span>
+                </Text>
+            </span>
+
+            <Portal>
+                <div
+                    ref={tooltipRef}
+                    className={classNames(cls.tooltip, { [cls.tooltipVisible]: open }, [tooltipAlignClass])}
+                    role='tooltip'
+                    onMouseEnter={handleTooltipEnter}
+                    onMouseLeave={handleTooltipLeave}>
+                    <div className={cls.tooltipContent}>
+                        <Text type='p' className={cls.tooltipTitle}>
+                            {term}
+                        </Text>
+                        <div className={cls.tooltipBody}>{description}</div>
+                    </div>
                 </div>
-            </div>
-        </span>
+            </Portal>
+        </>
     )
 }
-

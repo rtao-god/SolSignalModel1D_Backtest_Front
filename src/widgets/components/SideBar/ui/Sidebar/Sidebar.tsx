@@ -7,11 +7,31 @@ import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
+import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
+import { buildPolicyBranchMegaTabsFromSections } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    buildDiagnosticsTabsFromSections,
+    getDiagnosticsGroupSections,
+    splitBacktestDiagnosticsSections,
+    toDiagnosticsSectionRefs,
+    type DiagnosticsGroupId,
+    type DiagnosticsTabConfig
+} from '@/shared/utils/backtestDiagnosticsSections'
+import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
+
+/*
+    Sidebar — левое меню навигации.
+
+    Зачем:
+        - Группирует пункты по разделам (predictions/models/backtest/analysis/diagnostics).
+        - Подтягивает hash-навигацию для страниц с секциями (PFI, diagnostics, policy-branch-mega).
+*/
 
 interface SidebarProps {
     className?: string
@@ -29,12 +49,15 @@ interface SidebarProps {
 }
 
 // Порядок секций в сайдбаре для "боевого" режима
-const SECTION_ORDER: RouteSection[] = ['models', 'backtest', 'features']
+const SECTION_ORDER: RouteSection[] = ['predictions', 'models', 'backtest', 'analysis', 'diagnostics', 'features']
 
 // Человеко-читаемые заголовки секций
 const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
+    predictions: 'Прогнозы',
     models: 'Модели',
     backtest: 'Бэктест',
+    analysis: 'Анализ',
+    diagnostics: 'Диагностика',
     features: 'Фичи',
     docs: 'Документация'
     // system выводить не нужно — там служебные вещи
@@ -46,6 +69,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
     const isModal = mode === 'modal'
     const isDocsRoute = location.pathname.startsWith('/docs')
+    const isDiagnosticsRoute = location.pathname.startsWith('/diagnostics')
+    const isAnalysisRoute = location.pathname.startsWith('/analysis')
 
     // ===== Хук: если hash был, а стал пустой — скроллим в самый верх =====
     const prevHashRef = useRef<string | null>(null)
@@ -79,6 +104,16 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         enabled: isOnPfiPage
     })
 
+    const shouldLoadDiagnosticsNav = isDiagnosticsRoute || isAnalysisRoute
+    const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery({
+        enabled: shouldLoadDiagnosticsNav
+    })
+
+    const shouldLoadPolicyBranchMegaNav = isAnalysisRoute
+    const { data: policyBranchMegaReport } = usePolicyBranchMegaReportNavQuery({
+        enabled: shouldLoadPolicyBranchMegaNav
+    })
+
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
 
@@ -89,6 +124,53 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
         return buildPfiTabsFromSections(tableSections)
     }, [pfiReport])
+
+    const diagnosticsTabs = useMemo(() => {
+        if (!diagnosticsReport) {
+            return {
+                ratings: [] as DiagnosticsTabConfig[],
+                diagnostics: [] as DiagnosticsTabConfig[],
+                dayStats: [] as DiagnosticsTabConfig[],
+                diagnosticsGroups: new Map<DiagnosticsGroupId, DiagnosticsTabConfig[]>()
+            }
+        }
+
+        const tableSections = (diagnosticsReport.sections ?? []).filter(
+            (section): section is TableSectionDto =>
+                Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
+        )
+
+        const split = splitBacktestDiagnosticsSections(tableSections)
+        const ratingsRefs = toDiagnosticsSectionRefs(split.ratings)
+        const dayStatsRefs = toDiagnosticsSectionRefs(split.dayStats)
+        const diagnosticsSections = [...split.diagnostics, ...split.unknown]
+        const diagnosticsRefs = toDiagnosticsSectionRefs(diagnosticsSections)
+        const groupTabs = new Map<DiagnosticsGroupId, DiagnosticsTabConfig[]>()
+        const groupIds: DiagnosticsGroupId[] = ['risk', 'guardrail', 'decisions', 'hotspots', 'other']
+        for (const groupId of groupIds) {
+            const groupSections = getDiagnosticsGroupSections(diagnosticsSections, groupId)
+            const groupRefs = toDiagnosticsSectionRefs(groupSections)
+            groupTabs.set(groupId, buildDiagnosticsTabsFromSections(groupRefs))
+        }
+
+        return {
+            ratings: buildDiagnosticsTabsFromSections(ratingsRefs),
+            diagnostics: buildDiagnosticsTabsFromSections(diagnosticsRefs),
+            dayStats: buildDiagnosticsTabsFromSections(dayStatsRefs),
+            diagnosticsGroups: groupTabs
+        }
+    }, [diagnosticsReport])
+
+    const policyBranchMegaTabs = useMemo(() => {
+        if (!policyBranchMegaReport) return []
+
+        const tableSections = (policyBranchMegaReport.sections ?? []).filter(
+            (section): section is TableSectionDto =>
+                Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
+        )
+
+        return buildPolicyBranchMegaTabsFromSections(tableSections)
+    }, [policyBranchMegaReport])
 
     // Группируем пункты меню по секциям с учётом docs-режима
     const grouped = useMemo(() => {
@@ -101,14 +183,32 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
             }
 
             const isDocsItem = section === 'docs'
+            const isDiagnosticsItem = section === 'diagnostics'
+            const isAnalysisItem = section === 'analysis'
 
             // Если мы на docs-странице → показываем только docs-секцию.
             if (isDocsRoute && !isDocsItem) {
                 return
             }
 
-            // Если мы НЕ на docs-странице → скрываем docs-секцию.
+            // Если мы на diagnostics-странице → показываем только диагностику.
+            if (isDiagnosticsRoute && !isDiagnosticsItem) {
+                return
+            }
+
+            // Если мы на analysis-странице → показываем только анализ.
+            if (isAnalysisRoute && !isAnalysisItem) {
+                return
+            }
+
+            // Если мы НЕ на docs/diagnostics/analysis → скрываем эти секции.
             if (!isDocsRoute && isDocsItem) {
+                return
+            }
+            if (!isDiagnosticsRoute && isDiagnosticsItem) {
+                return
+            }
+            if (!isAnalysisRoute && isAnalysisItem) {
                 return
             }
 
@@ -128,7 +228,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         }
 
         return bySection
-    }, [isDocsRoute])
+    }, [isDocsRoute, isDiagnosticsRoute, isAnalysisRoute])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())
@@ -169,13 +269,56 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isPfiPerModel = item.id === AppRoute.PFI_PER_MODEL
                                 const isDocsModels = item.id === AppRoute.DOCS_MODELS
                                 const isDocsTests = item.id === AppRoute.DOCS_TESTS
+                                const isAggregationStats = item.id === AppRoute.AGGREGATION_STATS
+                                const isBacktestDiagnostics = item.id === AppRoute.BACKTEST_DIAGNOSTICS
+                                const isBacktestRatings = item.id === AppRoute.BACKTEST_DIAGNOSTICS_RATINGS
+                                const isBacktestDayStats = item.id === AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS
+                                const isBacktestDiagnosticsGuardrail =
+                                    item.id === AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL
+                                const isBacktestDiagnosticsDecisions =
+                                    item.id === AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS
+                                const isBacktestDiagnosticsHotspots =
+                                    item.id === AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS
+                                const isBacktestDiagnosticsOther = item.id === AppRoute.BACKTEST_DIAGNOSTICS_OTHER
+                                const isPolicyBranchMega = item.id === AppRoute.BACKTEST_POLICY_BRANCH_MEGA
 
-                                const hasSubNav = isBacktestFull || isPfiPerModel || isDocsModels || isDocsTests
+                                const hasSubNav =
+                                    isBacktestFull ||
+                                    isPfiPerModel ||
+                                    isDocsModels ||
+                                    isDocsTests ||
+                                    isAggregationStats ||
+                                    isBacktestDiagnostics ||
+                                    isBacktestRatings ||
+                                    isBacktestDayStats ||
+                                    isBacktestDiagnosticsGuardrail ||
+                                    isBacktestDiagnosticsDecisions ||
+                                    isBacktestDiagnosticsHotspots ||
+                                    isBacktestDiagnosticsOther ||
+                                    isPolicyBranchMega
 
                                 const isBacktestRouteActive = isBacktestFull && location.pathname.startsWith(item.path)
                                 const isPfiRouteActive = isPfiPerModel && location.pathname.startsWith(item.path)
                                 const isDocsModelsRouteActive = isDocsModels && location.pathname.startsWith(item.path)
                                 const isDocsTestsRouteActive = isDocsTests && location.pathname.startsWith(item.path)
+                                const isAggregationStatsRouteActive =
+                                    isAggregationStats && location.pathname.startsWith(item.path)
+                                const isBacktestDiagnosticsRouteActive =
+                                    isBacktestDiagnostics && location.pathname.startsWith(item.path)
+                                const isBacktestDiagnosticsGuardrailRouteActive =
+                                    isBacktestDiagnosticsGuardrail && location.pathname.startsWith(item.path)
+                                const isBacktestDiagnosticsDecisionsRouteActive =
+                                    isBacktestDiagnosticsDecisions && location.pathname.startsWith(item.path)
+                                const isBacktestDiagnosticsHotspotsRouteActive =
+                                    isBacktestDiagnosticsHotspots && location.pathname.startsWith(item.path)
+                                const isBacktestDiagnosticsOtherRouteActive =
+                                    isBacktestDiagnosticsOther && location.pathname.startsWith(item.path)
+                                const isBacktestRatingsRouteActive =
+                                    isBacktestRatings && location.pathname.startsWith(item.path)
+                                const isBacktestDayStatsRouteActive =
+                                    isBacktestDayStats && location.pathname.startsWith(item.path)
+                                const isPolicyBranchMegaRouteActive =
+                                    isPolicyBranchMega && location.pathname.startsWith(item.path)
 
                                 const isRouteActiveBase =
                                     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -190,6 +333,19 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPfiPerModel ? pfiTabs
                                     : isDocsModels ? DOCS_MODELS_TABS
                                     : isDocsTests ? DOCS_TESTS_TABS
+                                    : isAggregationStats ? AGGREGATION_TABS
+                                    : isBacktestDiagnostics ? (diagnosticsTabs.diagnosticsGroups.get('risk') ?? [])
+                                    : isBacktestDiagnosticsGuardrail ?
+                                        (diagnosticsTabs.diagnosticsGroups.get('guardrail') ?? [])
+                                    : isBacktestDiagnosticsDecisions ?
+                                        (diagnosticsTabs.diagnosticsGroups.get('decisions') ?? [])
+                                    : isBacktestDiagnosticsHotspots ?
+                                        (diagnosticsTabs.diagnosticsGroups.get('hotspots') ?? [])
+                                    : isBacktestDiagnosticsOther ?
+                                        (diagnosticsTabs.diagnosticsGroups.get('other') ?? [])
+                                    : isBacktestRatings ? diagnosticsTabs.ratings
+                                    : isBacktestDayStats ? diagnosticsTabs.dayStats
+                                    : isPolicyBranchMega ? policyBranchMegaTabs
                                     : []
 
                                 const subNavAriaLabel =
@@ -197,6 +353,15 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPfiPerModel ? t('Модели PFI')
                                     : isDocsModels ? t('Описание моделей')
                                     : isDocsTests ? t('Описание тестов')
+                                    : isAggregationStats ? t('Разделы агрегации прогнозов')
+                                    : isBacktestDiagnostics ? t('Разделы диагностики')
+                                    : isBacktestDiagnosticsGuardrail ? t('Разделы guardrail')
+                                    : isBacktestDiagnosticsDecisions ? t('Разделы решений')
+                                    : isBacktestDiagnosticsHotspots ? t('Разделы hotspots')
+                                    : isBacktestDiagnosticsOther ? t('Разделы прочего')
+                                    : isBacktestRatings ? t('Разделы анализа')
+                                    : isBacktestDayStats ? t('Разделы статистики по дням')
+                                    : isPolicyBranchMega ? t('Разделы Policy Branch Mega')
                                     : undefined
 
                                 return (
@@ -223,7 +388,20 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                             (isBacktestFull && isBacktestRouteActive) ||
                                                             (isPfiPerModel && isPfiRouteActive) ||
                                                             (isDocsModels && isDocsModelsRouteActive) ||
-                                                            (isDocsTests && isDocsTestsRouteActive)
+                                                            (isDocsTests && isDocsTestsRouteActive) ||
+                                                            (isAggregationStats && isAggregationStatsRouteActive) ||
+                                                            (isBacktestDiagnostics && isBacktestDiagnosticsRouteActive) ||
+                                                            (isBacktestDiagnosticsGuardrail &&
+                                                                isBacktestDiagnosticsGuardrailRouteActive) ||
+                                                            (isBacktestDiagnosticsDecisions &&
+                                                                isBacktestDiagnosticsDecisionsRouteActive) ||
+                                                            (isBacktestDiagnosticsHotspots &&
+                                                                isBacktestDiagnosticsHotspotsRouteActive) ||
+                                                            (isBacktestDiagnosticsOther &&
+                                                                isBacktestDiagnosticsOtherRouteActive) ||
+                                                            (isBacktestRatings && isBacktestRatingsRouteActive) ||
+                                                            (isBacktestDayStats && isBacktestDayStatsRouteActive) ||
+                                                            (isPolicyBranchMega && isPolicyBranchMegaRouteActive)
 
                                                         const isActiveTab =
                                                             isRouteActiveWithTabs && currentHash === tab.anchor

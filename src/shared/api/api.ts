@@ -64,6 +64,7 @@ export const {
     useGetCurrentPredictionByDateQuery,
     useGetBacktestBaselineSummaryQuery,
     useGetBacktestBaselineSnapshotQuery,
+    useGetBacktestDiagnosticsReportQuery,
 
     // Хуки бэктеста.
     useGetBacktestConfigQuery,

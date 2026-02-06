@@ -49,7 +49,7 @@ export interface CurrentPredictionLatestDto {
 export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
     const { latestReport, datesIndex, byDateReport } = API_ROUTES.currentPrediction
 
-    const { baselineSummaryGet, baselineSnapshotGet } = API_ROUTES.backtest
+    const { baselineSummaryGet, baselineSnapshotGet, diagnosticsGet } = API_ROUTES.backtest
 
     return {
         // Текущий прогноз ML-модели (последний снапшот).
@@ -109,6 +109,15 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
                 url: baselineSnapshotGet.path,
                 method: baselineSnapshotGet.method
             })
+        }),
+
+        // Диагностика бэктеста (ReportDocument, kind = "backtest_diagnostics").
+        getBacktestDiagnosticsReport: builder.query<ReportDocumentDto, void>({
+            query: () => ({
+                url: diagnosticsGet.path,
+                method: diagnosticsGet.method
+            }),
+            transformResponse: mapReportResponse
         })
     }
 }

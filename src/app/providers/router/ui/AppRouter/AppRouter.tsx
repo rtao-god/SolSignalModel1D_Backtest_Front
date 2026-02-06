@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { ROUTE_CONFIG } from '../../config/routeConfig'
-import Layout from '@/pages/Layout/Layout'
+import Layout from '@/pages/Layout/ui/Layout'
 import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 
 export default function AppRouter() {

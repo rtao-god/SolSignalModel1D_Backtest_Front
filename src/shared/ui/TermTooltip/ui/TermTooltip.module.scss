@@ -28,12 +28,12 @@
 
 .tooltip {
     position: absolute;
-    z-index: 40;
+    z-index: 2000;
 
     top: calc(100% + 6px);
 
     min-width: 220px;
-    max-width: 360px;
+    max-width: min(360px, 90vw);
 
     display: none;
     /* <- главное изменение */
@@ -67,15 +67,29 @@
     background: rgba(15, 23, 42, 0.98);
     box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
     border: 1px solid rgba(148, 163, 184, 0.5);
+    text-align: left;
+    white-space: normal;
+    user-select: text;
+    color: #f8fafc;
+    font: var(--font-m);
 }
 
 .tooltipTitle {
     margin: 0 0 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    user-select: text;
 }
 
 .tooltipBody {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+    user-select: text;
+    cursor: text;
 }
 
 @media (max-width: 767px) {

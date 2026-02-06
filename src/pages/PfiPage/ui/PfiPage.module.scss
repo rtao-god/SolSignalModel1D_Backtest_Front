@@ -63,6 +63,12 @@
     margin-bottom: 10px;
 }
 
+.cardSubtitle {
+    margin-bottom: 10px;
+    opacity: 0.8;
+    max-width: 820px;
+}
+
 /* Переключатель режимов (кнопка на "вкладке") */
 .modeToggle {
     display: inline-flex;

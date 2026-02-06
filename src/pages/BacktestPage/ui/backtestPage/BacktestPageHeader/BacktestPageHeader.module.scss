@@ -1,0 +1,29 @@
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+
+    & > h1,
+    & > .title {
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+
+    & > p {
+        opacity: 0.85;
+        font-size: 0.95rem;
+        max-width: 720px;
+    }
+
+    select {
+        margin-top: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        gap: 6px;
+    }
+}
+

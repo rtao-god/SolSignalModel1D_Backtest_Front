@@ -25,4 +25,5 @@
 - Не дублировать UI: сначала искать в `shared/ui` и `widgets`.
 - Навигация/страницы только через `export const ROUTE_CONFIG`.
 - API вызовы — через RTK Query (`shared/api`), типы — в `shared/types`.
-- Минимальные изменения и единый стиль (classNames + CSS modules).
+- Минимальные изменения и единый стиль (classNames + CSS modules)
+- Если задача касается страницы/вкладки/SideBar/таблицы/Navbar, создание новых страниц/таблиц, то открой файл SolSignalModel1D_Backtest_Front/.codex/FRONTEND_NAV_PAGES_RULES.md, там будут правила и заметки по таким задачам

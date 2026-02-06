@@ -1,11 +1,15 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
+import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import type {
     ReportDocumentDto,
     ReportSectionDto,
     KeyValueSectionDto,
     TableSectionDto
 } from '@/shared/types/report.types'
+import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import cls from './ReportDocumentView.module.scss'
 
 interface ReportDocumentViewProps {
@@ -67,7 +71,9 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
             <div className={cls.sections}>
                 {hasSections ?
-                    report.sections.map((section, index) => <SectionRenderer key={index} section={section} />)
+                    report.sections.map((section, index) => (
+                        <SectionRenderer key={index} section={section} reportKind={report.kind} />
+                    ))
                 :   <Text>Нет секций отчёта для отображения.</Text>}
             </div>
         </div>
@@ -76,6 +82,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
 interface SectionRendererProps {
     section: ReportSectionDto
+    reportKind?: string
 }
 
 // Определение, является ли секция KeyValue-форматом.
@@ -118,20 +125,9 @@ function detectDirection(value: unknown): DirectionKind | null {
     return null
 }
 
-// Парсинг числовых значений для подсветки плюса/минуса.
-function parseNumericCell(raw: string): number | null {
-    if (!raw) {
-        return null
-    }
-
-    const cleaned = raw.replace(/\s/g, '').replace('%', '').replace(',', '.')
-    const num = Number.parseFloat(cleaned)
-
-    if (Number.isNaN(num)) {
-        return null
-    }
-
-    return num
+function normalizeReportTitle(title: string | undefined): string {
+    if (!title) return ''
+    return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
 }
 
 /*
@@ -141,29 +137,33 @@ function parseNumericCell(raw: string): number | null {
 	- Табличные секции.
 	- JSON-фолбэк для новых/неизвестных структур.
 */
-function SectionRenderer({ section }: SectionRendererProps) {
+function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
     const description = (section as any)?.description as string | undefined
 
     if (isKeyValueSection(section)) {
+        const visibleTitle = normalizeReportTitle(kv.title) || kv.title
+        const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, kv.title)
         return (
             <section className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h2' className={cls.sectionTitle}>
-                        {kv.title}
+                        {visibleTitle}
                     </Text>
 
-                    {description && <Text className={cls.sectionSubtitle}>{description}</Text>}
+                    {resolvedDescription && <Text className={cls.sectionSubtitle}>{resolvedDescription}</Text>}
                 </div>
 
                 <dl className={cls.kvList}>
                     {kv.items!.map(item => {
                         const direction = detectDirection(item.value)
+                        const keyTooltip = resolveReportKeyTooltip(reportKind, visibleTitle, item.key)
+                        const renderedKey = renderTermTooltipTitle(item.key, keyTooltip)
 
                         return (
                             <div key={item.key} className={cls.kvRow}>
-                                <dt className={cls.kvKey}>{item.key}</dt>
+                                <dt className={cls.kvKey}>{renderedKey}</dt>
 
                                 <dd
                                     className={classNames(
@@ -186,56 +186,30 @@ function SectionRenderer({ section }: SectionRendererProps) {
     }
 
     if (isTableSection(section)) {
+        const columns = tbl.columns ?? []
+        const rows = tbl.rows ?? []
+        const visibleTitle = normalizeReportTitle(tbl.title) || tbl.title || 'table'
+        const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, tbl.title)
+        const safeTitle = visibleTitle
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+        const domId = `report-${safeTitle || 'table'}`
+
+        const renderColumnTitle = (title: string) => {
+            const tooltip = resolveReportColumnTooltip(reportKind, visibleTitle, title)
+            return renderTermTooltipTitle(title, tooltip)
+        }
+
         return (
-            <section className={cls.section}>
-                <div className={cls.sectionHeader}>
-                    <Text type='h2' className={cls.sectionTitle}>
-                        {tbl.title}
-                    </Text>
-
-                    {description && <Text className={cls.sectionSubtitle}>{description}</Text>}
-                </div>
-
-                <div className={cls.tableWrapper}>
-                    <table className={cls.table}>
-                        <thead>
-                            <tr>
-                                {tbl.columns?.map(column => (
-                                    <th key={column} className={cls.tableHeaderCell}>
-                                        {column}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tbl.rows?.map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                    {row.map((cell, cellIndex) => {
-                                        const numeric = parseNumericCell(cell)
-                                        const isPositive = numeric !== null && numeric > 0
-                                        const isNegative = numeric !== null && numeric < 0
-
-                                        return (
-                                            <td
-                                                key={cellIndex}
-                                                className={classNames(
-                                                    cls.tableCell,
-                                                    {
-                                                        [cls.positive]: isPositive,
-                                                        [cls.negative]: isNegative
-                                                    },
-                                                    []
-                                                )}>
-                                                {cell}
-                                            </td>
-                                        )
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <ReportTableCard
+                title={visibleTitle}
+                description={resolvedDescription ?? undefined}
+                columns={columns}
+                rows={rows}
+                domId={domId}
+                renderColumnTitle={renderColumnTitle}
+            />
         )
     }
 
@@ -245,4 +219,3 @@ function SectionRenderer({ section }: SectionRendererProps) {
         </section>
     )
 }
-

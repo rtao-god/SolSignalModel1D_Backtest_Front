@@ -69,7 +69,7 @@ export default function UserLogin({ className }: LoginFormProps) {
                 <PasswordInputField
                     onChangePassword={onChangePassword}
                     placeholder={t('EnterThePassword')}
-                    error={error}
+                    loginError={error}
                     /*   className={classNames('auth_input_style', {
                       [cls.errorBorder]: loginError.includes(PASSWORD_REQUIRED)
                   })} */

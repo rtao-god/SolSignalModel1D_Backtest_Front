@@ -1,6 +1,7 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import cls from './ContactPage.module.scss'
+import type { ContactPageProps } from './types'
 
 /*
 	ContactPage — страница контактов.
@@ -12,11 +13,6 @@ import cls from './ContactPage.module.scss'
 	Контракты:
 		- Константы контактов должны быть актуальными для продакшена.
 */
-
-// Пропсы страницы контактов.
-interface ContactPageProps {
-    className?: string
-}
 
 // Константы с контактами лучше переопределить реальными значениями.
 const FULL_NAME = 'Имя Фамилия'

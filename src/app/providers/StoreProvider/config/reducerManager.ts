@@ -11,11 +11,12 @@ export function createReducerManager(initialReducers: ReducersMapObject<StateSch
         getReducerMap: () => reducers,
 
         reduce: (state: StateSchema | undefined, action: AnyAction) => {
-            if (keysToRemove.length > 0) {
-                state = { ...state }
+            if (keysToRemove.length > 0 && state) {
+                const stateCopy: Partial<StateSchema> = { ...state }
                 keysToRemove.forEach(key => {
-                    delete state[key]
+                    delete stateCopy[key]
                 })
+                state = stateCopy as StateSchema
                 keysToRemove = []
             }
             return combinedReducer(state, action)

@@ -2,6 +2,7 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useChangeUserDetailsMutation } from '@/entities/User/api/userApi'
 import { userActions } from '@/entities/User'
+import type { TUserDataForPutRequest } from '@/entities/User/model/types/UserSchema'
 
 /*
 	useUserMutate — пользовательский хук.
@@ -15,7 +16,7 @@ export const useUserMutate = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
 
-    const updateUser = async data => {
+    const updateUser = async (data: TUserDataForPutRequest) => {
         try {
             const updatedUser = await changeUserDetails(data).unwrap()
 

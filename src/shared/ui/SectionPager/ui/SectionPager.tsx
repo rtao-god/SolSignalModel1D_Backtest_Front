@@ -42,6 +42,9 @@ interface SectionPagerProps {
 
     // Статус группы (показываем только при hover по ←/→).
     groupStatus?: { current: number; total: number }
+
+    // Прижимает dpad-пейджер к правому краю (для плотных страниц).
+    tightRight?: boolean
 }
 
 export default function SectionPager({
@@ -57,13 +60,20 @@ export default function SectionPager({
     canGroupNext,
     onGroupPrev,
     onGroupNext,
-    groupStatus
+    groupStatus,
+    tightRight = false
 }: SectionPagerProps) {
     const hasPrev = typeof canPrev === 'boolean' ? canPrev : currentIndex > 0
     const hasNext = typeof canNext === 'boolean' ? canNext : currentIndex < sections.length - 1
 
     const hasGroupPrev = Boolean(canGroupPrev)
     const hasGroupNext = Boolean(canGroupNext)
+
+    const pagerClassName = classNames(
+        cls.pager,
+        { [cls.pagerDpad]: variant === 'dpad', [cls.pagerTight]: tightRight },
+        []
+    )
 
     if (variant === 'vertical') {
         if (sections.length <= 1) return null
@@ -89,7 +99,7 @@ export default function SectionPager({
         }, [hasNext, onNext, onNavigate, currentIndex])
 
         return (
-            <div className={cls.pager}>
+            <div className={pagerClassName}>
                 {hasPrev && (
                     <Btn className={cls.btn} onClick={handlePrevClick} aria-label='Предыдущий раздел'>
                         <span className={cls.arrow}>↑</span>
@@ -145,7 +155,7 @@ export default function SectionPager({
         groupStatus && groupStatus.total > 0 ? `${groupStatus.current}/${groupStatus.total}` : null
 
     return (
-        <div className={classNames(cls.pager, { [cls.pagerDpad]: true }, [])}>
+        <div className={pagerClassName}>
             <div className={cls.dpad} aria-label='Навигация по отчётам'>
                 <div className={cls.dpadBase} aria-hidden='true' />
 
