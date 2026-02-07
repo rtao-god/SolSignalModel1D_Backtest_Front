@@ -42,17 +42,29 @@ function extractPartNumber(title: string | undefined): number | null {
     return parsed
 }
 
+// Режим нужен, чтобы вкладки не смешивали WITH SL и NO SL.
+function resolveModePrefix(title: string | undefined): string {
+    if (!title) return ''
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toUpperCase()
+    if (normalized.includes('NO SL')) return 'NO SL · '
+    if (normalized.includes('WITH SL')) return 'WITH SL · '
+
+    return ''
+}
+
 // Финальная подпись вкладки (если номер части распознан, используем его).
 function resolvePartLabel(title: string | undefined, index: number): string {
     const part = extractPartNumber(title)
+    const modePrefix = resolveModePrefix(title)
     if (part) {
-        return `Часть ${part}/3`
+        return `${modePrefix}Часть ${part}/3`
     }
 
     const normalized = normalizePolicyBranchMegaTitle(title)
-    if (normalized) return normalized
+    if (normalized) return `${modePrefix}${normalized}`
 
-    return `Секция ${index + 1}`
+    return `${modePrefix}Секция ${index + 1}`
 }
 
 // Формируем вкладки/якоря по секциям отчёта.

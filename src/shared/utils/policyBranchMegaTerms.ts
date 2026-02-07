@@ -153,6 +153,49 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Сколько дней были пропущены из‑за cap fraction = 0. Для статических политик это прямой запрет на сделку; для динамических обычно 0.',
         tooltip: 'Дни, где cap=0 запретил сделку.'
     },
+    // Метрики ставки и порогов TP/SL (новые колонки mega‑таблицы).
+    'AvgStake%': {
+        key: 'AvgStake%',
+        title: 'AvgStake%',
+        description:
+            'Средняя маржа на сделку (Daily + Delayed) в процентах от total capital (сумма стартовых бакетов). Считается по MarginUsed, то есть это доля депозита ДО плеча, не notional.',
+        tooltip: 'Средняя маржа на сделку, % от total capital.'
+    },
+    'AvgStake$': {
+        key: 'AvgStake$',
+        title: 'AvgStake$',
+        description:
+            'Средняя маржа на сделку (Daily + Delayed) в долларах. Это та же AvgStake%, но в денежном эквиваленте.',
+        tooltip: 'Средняя маржа на сделку, $.'
+    },
+    'DailyTP%': {
+        key: 'DailyTP%',
+        title: 'DailyTP%',
+        description:
+            'Дневной take‑profit порог из BacktestConfig. Показывает, на сколько процентов от цены входа должна вырасти/упасть цена, чтобы дневная сделка закрылась по TP.',
+        tooltip: 'Дневной TP порог, % от входа.'
+    },
+    'DailySL%': {
+        key: 'DailySL%',
+        title: 'DailySL%',
+        description:
+            'Дневной stop‑loss порог из BacktestConfig. В режиме NO SL всегда 0, потому что SL отключён и дневная сделка закрывается по принудительному закрытию в конце дня.',
+        tooltip: 'Дневной SL порог, % от входа.'
+    },
+    'DelayedTP%': {
+        key: 'DelayedTP%',
+        title: 'DelayedTP%',
+        description:
+            'Средний intraday TP порог для delayed‑сделок (DelayedA/DelayedB) по дням, где delayed действительно была. Берётся из DelayedIntradayTpPct (causal‑слой).',
+        tooltip: 'Средний intraday TP для delayed, % от входа.'
+    },
+    'DelayedSL%': {
+        key: 'DelayedSL%',
+        title: 'DelayedSL%',
+        description:
+            'Средний intraday SL порог для delayed‑сделок по дням, где delayed была. В режиме NO SL всегда 0, потому что intraday SL отключён.',
+        tooltip: 'Средний intraday SL для delayed, % от входа.'
+    },
     Tr: {
         key: 'Tr',
         title: 'Tr',
@@ -499,6 +542,23 @@ function extractMegaPartNumber(title: string | undefined): number | null {
     return parsed
 }
 
+// Режимы mega-таблицы нужны для стабильной сортировки (WITH SL / NO SL).
+function resolveMegaModeKey(title: string | undefined): 'WITH SL' | 'NO SL' | 'UNKNOWN' {
+    if (!title) return 'UNKNOWN'
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toUpperCase()
+    if (normalized.includes('NO SL')) return 'NO SL'
+    if (normalized.includes('WITH SL')) return 'WITH SL'
+
+    return 'UNKNOWN'
+}
+
+function resolveMegaModeOrder(mode: 'WITH SL' | 'NO SL' | 'UNKNOWN'): number {
+    if (mode === 'WITH SL') return 0
+    if (mode === 'NO SL') return 1
+    return 2
+}
+
 // Проверка: это действительно секция Policy Branch Mega.
 function isPolicyBranchMegaTitle(title: string | undefined): boolean {
     if (!title) return false
@@ -532,13 +592,24 @@ export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]
         throw new Error('[policy-branch-mega] no Policy Branch Mega sections found.')
     }
 
-    return megaSections
-        .map((section, index) => ({
-            section,
-            part: extractMegaPartNumber(section.title),
-            index
-        }))
+    const enriched = megaSections.map((section, index) => ({
+        section,
+        part: extractMegaPartNumber(section.title),
+        mode: resolveMegaModeKey(section.title),
+        index
+    }))
+
+    // Fail-fast: неизвестный режим ломает порядок и смыслы.
+    if (enriched.some(item => item.mode === 'UNKNOWN')) {
+        const titles = enriched.map(item => item.section.title).join(' | ')
+        throw new Error(`[policy-branch-mega] unknown mega mode in titles: ${titles}`)
+    }
+
+    return enriched
         .sort((a, b) => {
+            const modeOrder = resolveMegaModeOrder(a.mode) - resolveMegaModeOrder(b.mode)
+            if (modeOrder !== 0) return modeOrder
+
             if (a.part !== null && b.part !== null) return a.part - b.part
             if (a.part !== null) return -1
             if (b.part !== null) return 1
@@ -568,17 +639,19 @@ export function resolvePolicyBranchMegaSectionDescription(title: string | undefi
     if (!normalized) return null
 
     const upper = normalized.toUpperCase()
+    const mode = resolveMegaModeKey(normalized)
+    const modePrefix = mode === 'NO SL' ? 'NO SL: ' : mode === 'WITH SL' ? 'WITH SL: ' : ''
 
     if (upper.includes('PART 1/3')) {
-        return 'Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).'
+        return `${modePrefix}Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).`
     }
 
     if (upper.includes('PART 2/3')) {
-        return 'Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).'
+        return `${modePrefix}Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).`
     }
 
     if (upper.includes('PART 3/3')) {
-        return 'Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.'
+        return `${modePrefix}Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.`
     }
 
     return null
