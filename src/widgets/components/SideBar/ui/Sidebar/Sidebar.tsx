@@ -319,6 +319,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isBacktestDayStats && location.pathname.startsWith(item.path)
                                 const isPolicyBranchMegaRouteActive =
                                     isPolicyBranchMega && location.pathname.startsWith(item.path)
+                                const policyBranchMegaSearch =
+                                    isPolicyBranchMega && isPolicyBranchMegaRouteActive ? location.search : ''
 
                                 const isRouteActiveBase =
                                     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -406,10 +408,14 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                         const isActiveTab =
                                                             isRouteActiveWithTabs && currentHash === tab.anchor
 
+                                                        const linkBase = isPolicyBranchMega
+                                                            ? `${item.path}${policyBranchMegaSearch}`
+                                                            : item.path
+
                                                         return (
                                                             <Link
                                                                 key={tab.id}
-                                                                to={`${item.path}#${tab.anchor}`}
+                                                                to={`${linkBase}#${tab.anchor}`}
                                                                 onClick={onItemClick}
                                                                 className={classNames(cls.subLink, {
                                                                     [cls.subLinkActive]: isActiveTab

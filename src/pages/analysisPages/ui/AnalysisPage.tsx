@@ -68,6 +68,19 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>Открыть статистику →</span>
                         </article>
                     </Link>
+                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]} className={cls.cardLink}>
+                        <article className={cls.card}>
+                            <Text type='h3' className={cls.cardTitle}>
+                                Уверенность и TP/SL
+                            </Text>
+                            <Text className={cls.cardText}>
+                                Bucket‑статистика по уверенности модели: как часто достигаются TP/SL и как меняются
+                                MFE/MAE при разных уровнях сигнала. Помогает понять, где можно усиливать тейк‑профит,
+                                а где лучше снижать риск.
+                            </Text>
+                            <span className={cls.cardHint}>Открыть статистику уверенности →</span>
+                        </article>
+                    </Link>
                 </div>
             </section>
         </div>

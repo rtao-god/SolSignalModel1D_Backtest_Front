@@ -28,6 +28,74 @@
     max-width: 720px;
 }
 
+.bucketControls {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bucketLabel {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.bucketButtons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.75));
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    box-shadow:
+        0 10px 40px rgba(15, 23, 42, 0.7),
+        0 0 0 1px rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    flex-wrap: wrap;
+}
+
+.bucketButton {
+    border-radius: 999px;
+    padding-inline: 12px;
+    min-width: 92px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+    background: transparent;
+    border: none;
+    opacity: 0.82;
+    transition:
+        background-color 150ms ease,
+        color 150ms ease,
+        opacity 150ms ease,
+        box-shadow 150ms ease,
+        transform 120ms ease;
+
+    &:hover {
+        opacity: 0.95;
+        background: rgba(30, 64, 175, 0.25);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(94, 234, 212, 0.9);
+        outline-offset: 2px;
+    }
+}
+
+.bucketButtonActive {
+    opacity: 1;
+    background: linear-gradient(135deg, #22c55e, #0ea5e9);
+    color: #020617;
+    box-shadow:
+        0 8px 24px rgba(34, 197, 94, 0.55),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+    transform: translateY(-1px);
+}
+
 .meta {
     display: flex;
     flex-direction: column;
@@ -116,5 +184,9 @@
 
     .hero {
         flex-direction: column;
+    }
+
+    .bucketButton {
+        min-width: 0;
     }
 }

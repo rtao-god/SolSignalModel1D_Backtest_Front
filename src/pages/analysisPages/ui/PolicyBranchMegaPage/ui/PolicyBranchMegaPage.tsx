@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { TermTooltip, Text } from '@/shared/ui'
+import { Btn, TermTooltip, Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import type { TableSectionDto } from '@/shared/types/report.types'
@@ -16,7 +17,13 @@ import {
     orderPolicyBranchMegaSectionsOrThrow,
     resolvePolicyBranchMegaSectionDescription
 } from '@/shared/utils/policyBranchMegaTerms'
-import { buildPolicyBranchMegaTabsFromSections, normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    buildPolicyBranchMegaTabsFromSections,
+    filterPolicyBranchMegaSectionsByBucketOrThrow,
+    normalizePolicyBranchMegaTitle,
+    resolvePolicyBranchMegaBucketFromQuery,
+    type PolicyBranchMegaBucketMode
+} from '@/shared/utils/policyBranchMegaTabs'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
 
@@ -60,7 +67,17 @@ function sectionDomId(index: number): string {
     return `policy-branch-section-${index + 1}`
 }
 
+const DEFAULT_BUCKET: PolicyBranchMegaBucketMode = 'daily'
+
+const BUCKET_OPTIONS: Array<{ value: PolicyBranchMegaBucketMode; label: string }> = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'intraday', label: 'Intraday' },
+    { value: 'delayed', label: 'Delayed' },
+    { value: 'total', label: 'Σ Все бакеты' }
+]
+
 export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
+    const [searchParams, setSearchParams] = useSearchParams()
     const { data, isError, error, refetch } = usePolicyBranchMegaReportQuery()
 
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
@@ -82,7 +99,35 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         }
     }, [data, tableSections])
 
-    const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(resolvedSections.sections), [resolvedSections.sections])
+    const bucketState = useMemo(() => {
+        try {
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_BUCKET)
+            return { value: bucket, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega bucket query.')
+            return { value: DEFAULT_BUCKET, error: safeError }
+        }
+    }, [searchParams])
+
+    const bucketSections = useMemo(() => {
+        if (!data) return { sections: [] as TableSectionDto[], error: null as Error | null }
+        if (resolvedSections.error) {
+            return { sections: [] as TableSectionDto[], error: resolvedSections.error }
+        }
+
+        try {
+            return {
+                sections: filterPolicyBranchMegaSectionsByBucketOrThrow(resolvedSections.sections, bucketState.value),
+                error: null
+            }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to filter policy branch mega sections by bucket.')
+            return { sections: [] as TableSectionDto[], error: safeError }
+        }
+    }, [data, resolvedSections, bucketState.value])
+
+    const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(bucketSections.sections), [bucketSections.sections])
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
@@ -117,6 +162,13 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         return renderTermTooltipTitle(title, term.tooltip)
     }
 
+    const handleBucketChange = (next: PolicyBranchMegaBucketMode) => {
+        if (next === bucketState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('bucket', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
     let content: JSX.Element | null = null
 
     if (data) {
@@ -133,6 +185,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     onRetry={refetch}
                 />
             )
+        } else if (bucketState.error) {
+            content = (
+                <PageError
+                    title='Policy Branch Mega bucket query is invalid'
+                    message='Query parameter "bucket" is invalid. Expected daily, intraday, delayed, or total.'
+                    error={bucketState.error}
+                    onRetry={refetch}
+                />
+            )
         } else if (resolvedSections.error) {
             content = (
                 <PageError
@@ -141,6 +202,21 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     error={resolvedSections.error}
                     onRetry={refetch}
                 />
+            )
+        } else if (bucketSections.error) {
+            content = (
+                <PageError
+                    title='Policy Branch Mega bucket sections are missing'
+                    message='Report sections for the selected bucket were not found or are tagged inconsistently.'
+                    error={bucketSections.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (bucketSections.sections.length === 0) {
+            content = (
+                <Text>
+                    Policy Branch Mega пока пустой для выбранного бакета. Проверь генерацию отчётов на бэкенде.
+                </Text>
             )
         } else if (resolvedSections.sections.length === 0) {
             content = <Text>Policy Branch Mega пока пустой. Проверь генерацию отчётов на бэкенде.</Text>
@@ -158,6 +234,28 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                 Самые полные таблицы по каждой политике и ветке (BASE/ANTI‑D) на всей истории с учётом
                                 SL. Здесь собраны доходность, риск, восстановление, long/short‑разрез и темпы роста.
                             </Text>
+
+                            <div className={cls.bucketControls}>
+                                <Text className={cls.bucketLabel}>Бакет капитала</Text>
+                                <div className={cls.bucketButtons}>
+                                    {BUCKET_OPTIONS.map(option => (
+                                        <Btn
+                                            key={option.value}
+                                            size='sm'
+                                            className={classNames(
+                                                cls.bucketButton,
+                                                {
+                                                    [cls.bucketButtonActive]: option.value === bucketState.value
+                                                },
+                                                []
+                                            )}
+                                            onClick={() => handleBucketChange(option.value)}
+                                            aria-pressed={option.value === bucketState.value}>
+                                            {option.label}
+                                        </Btn>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <div className={cls.meta}>
@@ -169,7 +267,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     </header>
 
                     <div className={cls.sectionsGrid}>
-                        {resolvedSections.sections.map((section, index) => {
+                        {bucketSections.sections.map((section, index) => {
                             const domId = sectionDomId(index)
                             const title = normalizePolicyBranchMegaTitle(section.title) || section.title
                             const terms = buildPolicyBranchMegaTermsForColumns(section.columns ?? [])

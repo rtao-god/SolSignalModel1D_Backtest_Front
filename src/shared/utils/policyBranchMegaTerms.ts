@@ -168,19 +168,20 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Средняя маржа на сделку (Daily + Delayed) в долларах. Это та же AvgStake%, но в денежном эквиваленте.',
         tooltip: 'Средняя маржа на сделку, $.'
     },
+    // Daily TP/SL: выводим фактические avg/min/max, а не статичный конфиг.
     'DailyTP%': {
         key: 'DailyTP%',
         title: 'DailyTP%',
         description:
-            'Дневной take‑profit порог из BacktestConfig. Показывает, на сколько процентов от цены входа должна вырасти/упасть цена, чтобы дневная сделка закрылась по TP.',
-        tooltip: 'Дневной TP порог, % от входа.'
+            'Фактический дневной take‑profit, который использовался в daily‑сделках. Формат: avg/min/max в процентах от цены входа. Значение динамическое и меняется по уверенности модели.',
+        tooltip: 'Дневной TP: avg/min/max, % от входа.'
     },
     'DailySL%': {
         key: 'DailySL%',
         title: 'DailySL%',
         description:
-            'Дневной stop‑loss порог из BacktestConfig. В режиме NO SL всегда 0, потому что SL отключён и дневная сделка закрывается по принудительному закрытию в конце дня.',
-        tooltip: 'Дневной SL порог, % от входа.'
+            'Фактический дневной stop‑loss, который использовался в daily‑сделках. Формат: avg/min/max в процентах от цены входа. В режиме NO SL значения равны 0.',
+        tooltip: 'Дневной SL: avg/min/max, % от входа.'
     },
     'DelayedTP%': {
         key: 'DelayedTP%',

@@ -1,7 +1,7 @@
 # Обзор проекта (Frontend)
 
 ## Факты
-- Frontend для SolSignalModel1D Backtest: React + TypeScript + Vite.
+- Frontend для SolSignalModel1D Backtest: React + TypeScript + Redux Toolkit + Vite.
 - Архитектура близка к FSD: `app / pages / widgets / features / entities / shared`.
 - Роутинг через `react-router-dom`, все страницы описаны в `export const ROUTE_CONFIG`.
 - Состояние: Redux Toolkit + RTK Query, локально также используется TanStack Query.

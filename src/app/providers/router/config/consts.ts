@@ -29,6 +29,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]: '/analysis/ratings',
     [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: '/analysis/day-stats',
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: '/analysis/policy-branch-mega',
+    [AppRoute.BACKTEST_CONFIDENCE_RISK]: '/analysis/confidence-risk',
 
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
 

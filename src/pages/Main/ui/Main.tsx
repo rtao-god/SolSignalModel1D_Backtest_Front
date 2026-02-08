@@ -658,6 +658,9 @@ export default function Main({ className }: MainProps) {
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]} className={cls.navLink}>
                                 Статистика по дням →
                             </Link>
+                            <Link to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]} className={cls.navLink}>
+                                Уверенность и TP/SL →
+                            </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]} className={cls.navLink}>
                                 Policy Branch Mega →
                             </Link>

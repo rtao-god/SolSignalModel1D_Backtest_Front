@@ -53,6 +53,9 @@ const BacktestDiagnosticsDayStatsPage = lazyPage(
 const PolicyBranchMegaPage = lazyPage(
     () => import('@/pages/analysisPages/ui/PolicyBranchMegaPage')
 )
+const ConfidenceRiskPage = lazyPage(
+    () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
+)
 const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
 )
@@ -308,6 +311,19 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         nav: {
             sidebar: true,
             label: 'Policy Branch Mega',
+            section: 'analysis',
+            order: 4
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_CONFIDENCE_RISK,
+        path: ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK],
+        element: <ConfidenceRiskPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю статистику уверенности',
+        nav: {
+            sidebar: true,
+            label: 'Статистика уверенности',
             section: 'analysis',
             order: 3
         }

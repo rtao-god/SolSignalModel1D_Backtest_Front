@@ -72,6 +72,11 @@ export const API_ROUTES = {
             path: '/backtest/policy-branch-mega',
             method: 'GET' as const
         },
+        // Bucket-статистика уверенности (ReportDocument).
+        confidenceRiskGet: {
+            path: '/backtest/confidence-risk',
+            method: 'GET' as const
+        },
 
         // Список профилей бэктеста (GET /backtest/profiles).
         profilesListGet: {
