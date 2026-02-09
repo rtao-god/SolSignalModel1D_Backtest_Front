@@ -1,2 +1,2 @@
-export { default as Suspense } from './ui/Suspense/Suspense' 
+export { default as Suspense } from './ui/Suspense/Suspense'
 

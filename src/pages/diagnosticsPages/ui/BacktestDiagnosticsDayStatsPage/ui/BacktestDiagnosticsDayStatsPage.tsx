@@ -13,9 +13,8 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Разрезы по DayType/weekday и объяснение пропусков.
         - Проверка перекоса рынка и поведения модели.
 */
-
 export default function BacktestDiagnosticsDayStatsPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -30,6 +29,7 @@ export default function BacktestDiagnosticsDayStatsPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

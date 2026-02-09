@@ -26,24 +26,6 @@ import {
 } from '@/shared/utils/policyBranchMegaTabs'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
-
-/*
-    PolicyBranchMegaPage — страница трёх mega-таблиц по политикам и веткам.
-
-    Зачем:
-        - Показывает самый полный набор метрик (доходность, риск, устойчивость, recovery).
-        - Даёт подробные определения терминов прямо перед каждой таблицей.
-
-    Источники данных и сайд-эффекты:
-        - usePolicyBranchMegaReportQuery() (TanStack Query).
-        - useSectionPager({ syncHash: true }) синхронизирует якоря секций.
-
-    Контракты:
-        - Отчёт обязан содержать секции Policy Branch Mega [PART 1/3..3/3].
-        - Колонки секций должны быть описаны в policyBranchMegaTerms.
-*/
-
-// Форматируем UTC-дату для мета-блока отчёта.
 function formatUtc(dt: Date): string {
     const year = dt.getUTCFullYear()
     const month = String(dt.getUTCMonth() + 1).padStart(2, '0')
@@ -53,16 +35,12 @@ function formatUtc(dt: Date): string {
 
     return `${year}-${month}-${day} ${hour}:${minute} UTC`
 }
-
-// Фильтр секций: берём только те, где реально есть колонки (и значит таблица валидна).
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
         (section): section is TableSectionDto =>
             Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
     )
 }
-
-// Якорь секции для hash-навигации (sidebar + SectionPager).
 function sectionDomId(index: number): string {
     return `policy-branch-section-${index + 1}`
 }

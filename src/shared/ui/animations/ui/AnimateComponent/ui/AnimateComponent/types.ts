@@ -9,4 +9,3 @@ export default interface AnimateComponentProps {
     className?: string
 }
 
-

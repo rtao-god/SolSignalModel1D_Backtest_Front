@@ -5,19 +5,6 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import cls from './BacktestSummaryView.module.scss'
-
-/*
-	BacktestSummaryView — компактный рендер отчёта бэктеста.
-
-	Зачем:
-		- Показывает метаданные и секции отчёта в карточке.
-		- Унифицирует отображение summary для baseline/preview.
-
-	Контракты:
-		- summary содержит sections в формате ReportSectionDto.
-*/
-
-// Пропсы карточки summary.
 interface BacktestSummaryViewProps {
     summary: BacktestSummaryDto
     title: string
@@ -57,20 +44,11 @@ interface SectionRendererProps {
     reportKind?: string
 }
 
-/*
-	Универсальный рендер секций.
-
-	- KeyValue секции рендерятся как список.
-	- Table секции рендерятся как таблица.
-	- Иначе отображается JSON-фолбэк.
-*/
 function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
     const normalizeTitle = (title: string | undefined): string =>
         title ? title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim() : ''
-
-    // KeyValue секция.
     if (Array.isArray(kv.items)) {
         const visibleTitle = normalizeTitle(kv.title) || kv.title
         const description = resolveReportSectionDescription(reportKind, kv.title)
@@ -94,8 +72,6 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
             </section>
         )
     }
-
-    // Табличная секция.
     if (Array.isArray(tbl.columns) && Array.isArray(tbl.rows)) {
         const visibleTitle = normalizeTitle(tbl.title) || tbl.title
         const description = resolveReportSectionDescription(reportKind, tbl.title)
@@ -129,8 +105,6 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
             </section>
         )
     }
-
-    // Фолбэк для неожиданных секций.
     return (
         <section className={cls.section}>
             <Text type='h3'>{normalizeTitle(section.title) || section.title}</Text>

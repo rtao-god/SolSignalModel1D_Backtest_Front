@@ -1,9 +1,4 @@
-/*
-	authRegister — константы.
 
-	Зачем:
-		- Содержит статические значения для UI и логики.
-*/
 const ERROR_MESSAGES = {
     BIRTHDAY_REQUIRED: 'Укажите дату рождения.',
     BIRTHDAY_COMPLETE: 'Введите полностью свою дату рождения.',
@@ -25,5 +20,4 @@ export const {
     PASSWORD_MISMATCH,
     TERMS_REQUIRED
 } = ERROR_MESSAGES
-
 

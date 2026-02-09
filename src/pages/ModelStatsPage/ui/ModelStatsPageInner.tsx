@@ -17,25 +17,6 @@ import type {
 } from './modelStatsTypes'
 import { buildGlobalMeta, collectAvailableSegments, isTableSection, resolveSegmentMeta, stripSegmentPrefix } from './modelStatsUtils'
 
-/*
-	ModelStatsPageInner — основной UI отчёта статистики моделей: нормализует секции ReportDocument,
-	строит сегменты и режимы, показывает шапку с метаданными прогона, панель SegmentToggle/ModelStatsModeToggle,
-	карточки ModelStatsTableCard и пагинацию SectionPager.
-
-	Зачем:
-		- Превращает сырые секции отчёта в структурированный UI (сегменты/режимы/таблицы).
-		- Даёт навигацию по секциям через якоря и SectionPager.
-
-	Источники данных и сайд-эффекты:
-		- Данные приходят через props (валидный report) от ModelStatsPage.
-		- useEffect выбирает стартовый сегмент по доступным секциям.
-		- useSectionPager({ syncHash: true }) синхронизирует скролл и hash.
-
-	Контракты:
-		- Заголовки table-секций содержат префиксы из SEGMENT_PREFIX.
-		- Режимы business/technical различаются по маркерам в title секций.
-		- tabs и tableSections идут в одном порядке для корректных якорей.
-*/
 export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProps) {
     const [mode, setMode] = useState<ViewMode>('business')
     const [segment, setSegment] = useState<SegmentKey | null>(null)
@@ -44,32 +25,15 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
     const allSections = useMemo(() => (data.sections as ReportSection[] | undefined) ?? [], [data.sections])
 
-	/*
-		Глобальные метаданные прогона.
 
-		- Используются для бейджей и подписи сегмента.
-
-		Контракты:
-			- При отсутствии секции возвращается null.
-	*/
     const globalMeta = useMemo(() => buildGlobalMeta(allSections), [allSections])
 
     const rawTableSections = useMemo(() => allSections.filter(isTableSection), [allSections])
 
-	/*
-		Доступные сегменты отчёта.
 
-		- Управляет тем, какие кнопки сегментов показывать в UI.
-	*/
     const availableSegments = useMemo(() => collectAvailableSegments(rawTableSections), [rawTableSections])
 
-	/*
-		Авто-инициализация segment.
 
-		Контракты:
-			- Если segment уже выбран, ничего не меняем.
-			- Если сегментов нет, не трогаем состояние.
-	*/
     useEffect(() => {
         if (segment !== null) {
             return
@@ -88,14 +52,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         setSegment(availableSegments[0].key)
     }, [segment, availableSegments])
 
-    /*
-		Финальная фильтрация таблиц.
 
-		- Оставляет только нужный сегмент и нужный режим.
-        
-		Контракты:
-			- Фильтрация режима опирается на маркеры в title (контракт формата отчёта).
-	*/
     const tableSections = useMemo(() => {
         if (!rawTableSections.length) {
             return [] as TableSection[]
@@ -126,12 +83,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         })
     }, [rawTableSections, segment, mode])
 
-	/*
-		Табы для SectionPager.
 
-		Контракты:
-			- Порядок tabs соответствует tableSections.
-	*/
     const tabs = useMemo(
         () =>
             tableSections.map((section, index) => {
@@ -225,12 +177,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
             <div className={cls.tablesGrid}>
                 {tableSections.map((section, index) => {
-                    /*
-						Связка таба и секции.
 
-						Контракты:
-							- anchor соответствует id секции для hash/scroll.
-					*/
                     const domId = tabs[index]?.anchor ?? `ml-model-${index + 1}`
                     return <ModelStatsTableCard key={section.title ?? domId} section={section} domId={domId} />
                 })}

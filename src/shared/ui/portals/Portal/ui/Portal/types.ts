@@ -4,4 +4,3 @@ export default interface PortalProps {
     element?: HTMLElement
 }
 
-

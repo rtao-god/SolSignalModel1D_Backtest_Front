@@ -16,23 +16,9 @@ interface NotFoundSuggestion {
     path: string
 }
 
-/*
-	NotFound — страница 404.
-
-	Зачем:
-		- Показывает пользователю, что маршрут не найден.
-		- Даёт быстрые действия и ссылки на ключевые разделы.
-
-	Контракты:
-		- suggestions содержит валидные path маршрутов приложения.
-*/
-
 export default function NotFound({ className }: NotFoundProps) {
     const navigate = useNavigate()
-    // Хук возвращает обработчик "назад", его нужно вызвать для корректной навигации.
     const { backOnPrevPage } = useBackOnPrevPage()
-
-    // Список рекомендуемых разделов для быстрого возврата пользователя.
     const suggestions: NotFoundSuggestion[] = useMemo(
         () => [
             {

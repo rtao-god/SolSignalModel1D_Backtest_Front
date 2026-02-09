@@ -3,5 +3,3 @@ export default interface SubmitButtonProps {
     className?: string
 }
 
-
-

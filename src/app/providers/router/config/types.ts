@@ -1,14 +1,4 @@
 import type { RouteProps } from 'react-router'
-
-/*
-    types — контракт навигации и маршрутов.
-
-    Зачем:
-        - Даёт единый набор id/секций для navbar/sidebar.
-        - Фиксирует структуру AppRouteConfig.
-*/
-
-// Логические идентификаторы маршрутов
 export enum AppRoute {
     MAIN = 'MAIN',
     CURRENT_PREDICTION = 'CURRENT_PREDICTION',
@@ -35,11 +25,16 @@ export enum AppRoute {
     MODELS_STATS = 'MODELS_STATS',
     AGGREGATION_STATS = 'AGGREGATION_STATS',
     FEATURES_STATS = 'FEATURES_STATS',
-
-    // Документация / описания проекта
     DOCS = 'DOCS',
     DOCS_MODELS = 'DOCS_MODELS',
     DOCS_TESTS = 'DOCS_TESTS',
+    EXPLAIN = 'EXPLAIN',
+    EXPLAIN_MODELS = 'EXPLAIN_MODELS',
+    EXPLAIN_BRANCHES = 'EXPLAIN_BRANCHES',
+    EXPLAIN_SPLITS = 'EXPLAIN_SPLITS',
+    EXPLAIN_PROJECT = 'EXPLAIN_PROJECT',
+    EXPLAIN_TIME = 'EXPLAIN_TIME',
+    EXPLAIN_FEATURES = 'EXPLAIN_FEATURES',
 
     ABOUT = 'ABOUT',
     CONTACT = 'CONTACT',
@@ -48,11 +43,7 @@ export enum AppRoute {
     PROFILE = 'PROFILE',
     NOT_FOUND = 'NOT_FOUND'
 }
-
-// Какие layout'ы бывают
 export type RouteLayout = 'app' | 'bare'
-
-// Логические группы для сайдбара
 export type RouteSection =
     | 'predictions'
     | 'models'
@@ -61,6 +52,7 @@ export type RouteSection =
     | 'diagnostics'
     | 'features'
     | 'docs'
+    | 'explain'
     | 'system'
 
 export interface RouteNavMeta {
@@ -71,19 +63,14 @@ export interface RouteNavMeta {
     order?: number // порядок внутри группы (сайдбар)
     navbarOrder?: number // порядок в navbar
 }
-
-// Базовый тип конфигурации маршрута
 export type AppRouteConfig = RouteProps & {
     id: AppRoute
     path: string
     element: JSX.Element
     nav?: RouteNavMeta
     layout?: RouteLayout
-    // Текст для PageLoader (если нужен локальный Suspense на страницу)
     loadingTitle?: string
 }
-
-// Элемент навигации сайдбара
 export interface SidebarNavItem {
     id: AppRoute
     path: string
@@ -91,11 +78,10 @@ export interface SidebarNavItem {
     section?: RouteSection
     order: number
 }
-
-// Элемент навигации navbar
 export interface NavbarNavItem {
     id: AppRoute
     path: string
     label: string
     order: number
 }
+

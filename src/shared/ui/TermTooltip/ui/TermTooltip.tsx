@@ -13,13 +13,6 @@ interface TermTooltipProps {
     align?: 'left' | 'right'
 }
 
-/*
-	Термин с подсказкой.
-
-	- Слово подчёркнуто пунктиром и кликабельно.
-	- По hover/клику открывается тултип.
-	- На узких экранах позиция тултипа клампится по viewport с учётом отступов .main.
-*/
 export default function TermTooltip({ term, description, type = 'h3', className, align = 'left' }: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
@@ -81,15 +74,12 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         setHovered(false)
         setPinned(false)
     }, tooltipRef)
-
-    // Кламп по горизонтали, чтобы тултип не вылезал за страницу/контейнер.
     useLayoutEffect(() => {
         if (!open) return
         if (typeof window === 'undefined') return
 
         const handle = () => {
             if (!rootRef.current || !tooltipRef.current) return
-            // Повторяем позиционирование при ресайзе/скролле.
             const viewportWidth = document.documentElement.clientWidth
             const viewportHeight = document.documentElement.clientHeight
             const tooltipEl = tooltipRef.current

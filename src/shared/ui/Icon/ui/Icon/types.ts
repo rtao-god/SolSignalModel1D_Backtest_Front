@@ -8,5 +8,3 @@ export default interface IconProps {
     flipped?: boolean
 }
 
-
-

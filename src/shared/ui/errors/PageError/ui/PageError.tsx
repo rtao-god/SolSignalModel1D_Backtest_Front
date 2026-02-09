@@ -12,7 +12,6 @@ interface PageErrorProps {
 }
 
 function formatError(error: unknown): string {
-    // Упрощённый форматтер, чтобы не тащить конкретные типы RTK Query.
     if (!error) return ''
 
     if (typeof error === 'string') {

@@ -1,17 +1,5 @@
 import type { ReportDocumentDto } from './report.types'
 
-/*
-	backtest.types — типы.
-
-	Зачем:
-		- Описывает DTO и доменные типы.
-*/
-
-/*
-	Конфиг одной политики плеча в бэктесте.
-
-	- Прямая проекция PolicyConfig из бэка.
-*/
 export interface BacktestPolicyConfigDto {
     name: string
     policyType: string // 'const' | 'risk_aware' | 'ultra_safe' | etc.
@@ -19,22 +7,12 @@ export interface BacktestPolicyConfigDto {
     marginMode: string // 'Cross' | 'Isolated'.
 }
 
-/*
-	Общий конфиг бэктеста.
-
-	- Доли SL/TP — в долях (0.05 = 5%).
-*/
 export interface BacktestConfigDto {
     dailyStopPct: number
     dailyTpPct: number
     policies: BacktestPolicyConfigDto[]
 }
 
-/*
-	Профиль бэктеста.
-
-	- Оборачивает BacktestConfigDto и метаданные.
-*/
 export type BacktestProfileCategory = 'system' | 'user' | 'scratch' | string
 
 export interface BacktestProfileDto {
@@ -61,9 +39,6 @@ export interface BacktestProfileUpdateDto {
     isFavorite?: boolean
 }
 
-/*
-	Лёгкая сводка по одной политике в baseline-снимке.
-*/
 export interface BacktestPolicySummaryDto {
     policyName: string
     marginMode: string // 'Cross' | 'Isolated'.
@@ -77,9 +52,6 @@ export interface BacktestPolicySummaryDto {
     tradesCount: number
 }
 
-/*
-	Лёгкий baseline-снимок бэктеста (DTO под /api/backtest/baseline).
-*/
 export interface BacktestBaselineSnapshotDto {
     id: string
     generatedAtUtc: string
@@ -91,22 +63,10 @@ export interface BacktestBaselineSnapshotDto {
     policies: BacktestPolicySummaryDto[]
 }
 
-/*
-	DTO для one-shot preview.
-
-	- Соответствует BacktestPreviewRequestDto на бэке.
-	- config: конфиг бэктеста.
-	- selectedPolicies: имена политик, которые нужно прогонять.
-*/
 export interface BacktestPreviewRequestDto {
     config?: BacktestConfigDto
     selectedPolicies?: string[]
 }
 
-/*
-	Сводка бэктеста с точки зрения фронта.
-
-	- Сейчас это просто ReportDocumentDto (KeyValue + таблицы).
-*/
 export type BacktestSummaryDto = ReportDocumentDto
 

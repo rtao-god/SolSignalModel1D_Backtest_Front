@@ -7,4 +7,3 @@ export default interface ModalProps {
     className?: string
 }
 
-

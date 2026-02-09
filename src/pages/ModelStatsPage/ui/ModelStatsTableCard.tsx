@@ -6,17 +6,6 @@ import cls from './ModelStatsPage.module.scss'
 import { stripSegmentPrefix } from './modelStatsUtils'
 import type { ModelStatsTableCardProps } from './modelStatsTypes'
 
-/*
-	ModelStatsTableCard — карточка одной table-секции отчёта для ModelStatsPageInner: заголовок без префикса сегмента,
-	таблица с rows/columns и якорь для SectionPager.
-
-	Зачем:
-		- Рендерит один блок таблицы в списке отчёта.
-		- Даёт стабильный id для hash/scroll и aria-labelledby.
-
-	Контракты:
-		- При пустых columns карточка не рендерится.
-*/
 export function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps) {
     if (!section.columns || section.columns.length === 0) {
         return null

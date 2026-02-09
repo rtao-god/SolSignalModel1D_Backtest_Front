@@ -4,13 +4,6 @@ import { StateSchemaKey } from '@/app/providers/StoreProvider/config/StateSchema
 import { Reducer } from '@reduxjs/toolkit'
 import { useDispatch, useStore } from 'react-redux'
 
-/*
-	DynamicModuleLoader — вспомогательный компонент.
-
-	Зачем:
-		- Инкапсулирует повторяемую инфраструктурную логику.
-*/
-
 export type ReducersList = {
     [name in StateSchemaKey]?: Reducer
 }

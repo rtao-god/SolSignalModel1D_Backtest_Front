@@ -1,13 +1,5 @@
 import type { Prob3Dto } from '@/shared/types/aggregation.types'
 
-/*
-	numberFormat — форматирование числовых значений для UI.
-
-	Зачем:
-		- Централизует форматирование чисел/процентов/Prob3.
-		- Снимает дублирование по страницам.
-*/
-
 function ensureFiniteNumber(value: unknown, label?: string): number {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
         const context = label ? ` (${label})` : ''
@@ -15,27 +7,19 @@ function ensureFiniteNumber(value: unknown, label?: string): number {
     }
     return value
 }
-
-// Безопасное форматирование целых счётчиков (ru-RU), чтобы не падать на undefined.
 export function formatCount(value: number | null | undefined, label?: string): string {
     const safeValue = ensureFiniteNumber(value, label)
     return safeValue.toLocaleString('ru-RU')
 }
-
-// Формат доли 0..1 в проценты.
 export function formatPercent(value: number | null | undefined, digits: number = 1, label?: string): string {
     const safeValue = ensureFiniteNumber(value, label)
     const pct = safeValue * 100
     return pct.toFixed(digits)
 }
-
-// Безопасно форматирует числовое значение.
 export function formatNumber(value: number | null | undefined, digits: number = 2, label?: string): string {
     const safeValue = ensureFiniteNumber(value, label)
     return safeValue.toFixed(digits)
 }
-
-// Формат Prob3 в виде "Up / Flat / Down".
 export function formatProb3(value: Prob3Dto | null | undefined, label?: string): string {
     if (!value || typeof value !== 'object') {
         const context = label ? ` (${label})` : ''

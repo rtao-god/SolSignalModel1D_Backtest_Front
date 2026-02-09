@@ -10,21 +10,6 @@ import { useBacktestConfidenceRiskReportQuery } from '@/shared/api/tanstackQueri
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
 
-/*
-    ConfidenceRiskPage — страница bucket-статистики уверенности.
-
-    Зачем:
-        - Показывает, как метрики TP/SL и MFE/MAE меняются при разной уверенности модели.
-        - Помогает понять, где уместно усиливать ставку и TP, а где лучше быть аккуратнее.
-
-    Источники данных и сайд-эффекты:
-        - useBacktestConfidenceRiskReportQuery() (TanStack Query).
-
-    Контракты:
-        - Отчёт должен содержать 1 табличную секцию "Confidence buckets".
-        - Названия колонок таблицы должны быть описаны в TERMS_TABLE.
-*/
-
 interface ConfidenceRiskTerm {
     key: string
     title: string

@@ -4,5 +4,3 @@ export default interface PageLoaderProps {
     subtitle?: string
 }
 
-
-

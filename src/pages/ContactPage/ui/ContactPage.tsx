@@ -2,19 +2,6 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import cls from './ContactPage.module.scss'
 import type { ContactPageProps } from './types'
-
-/*
-	ContactPage — страница контактов.
-
-	Зачем:
-		- Даёт пользователю быстрые каналы связи.
-		- Показывает ключевые профили и контакты по проекту.
-
-	Контракты:
-		- Константы контактов должны быть актуальными для продакшена.
-*/
-
-// Константы с контактами лучше переопределить реальными значениями.
 const FULL_NAME = 'Имя Фамилия'
 const TELEGRAM_HANDLE = '@telegram_username'
 const TELEGRAM_URL = 'https://t.me/telegram_username'
@@ -57,7 +44,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                 </section>
 
                 <section className={cls.grid}>
-                    {/* Telegram. */}
+
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -77,7 +64,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                         </div>
                     </article>
 
-                    {/* LinkedIn. */}
+
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -97,7 +84,7 @@ export default function ContactPage({ className }: ContactPageProps) {
                         </div>
                     </article>
 
-                    {/* Телефон / WhatsApp. */}
+
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>

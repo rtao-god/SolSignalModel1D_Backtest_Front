@@ -5,27 +5,14 @@ import cls from './ErrorBlock.module.scss'
 
 interface ErrorBlockProps {
     className?: string
-    // HTTP-код или технический код (NETWORK, UNKNOWN, CLIENT и т.п.).
     code?: string | number
-    // Короткий заголовок ошибки.
     title?: string
-    // Основное описание для пользователя.
     description?: string
-    // Дополнительные детали (сырое сообщение, трассировка и т.п.).
     details?: ReactNode
-    // Колбэк для кнопки "Повторить".
     onRetry?: () => void
-    // Компактный вариант, чтобы блок не раздувал плотный layout.
     compact?: boolean
 }
 
-/*
-	Универсальный блок ошибки.
-
-	- Тёмная тема + неоновый градиент по рамке.
-	- Единый внешний вид для всех ошибок по проекту.
-	- Используется в страницах и секциях.
-*/
 export function ErrorBlock({ className, code, title, description, details, onRetry, compact }: ErrorBlockProps) {
     const rootClasses = classNames(
         cls.ErrorBlock,

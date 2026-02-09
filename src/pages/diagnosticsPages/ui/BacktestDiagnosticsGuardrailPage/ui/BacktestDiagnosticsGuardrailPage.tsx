@@ -13,9 +13,8 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Метрики Specificity/Guardrail и их влияние на сделки.
         - Контроль дрейфа и эффективности фильтра.
 */
-
 export default function BacktestDiagnosticsGuardrailPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -38,6 +37,7 @@ export default function BacktestDiagnosticsGuardrailPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

@@ -4,13 +4,6 @@ import { useChangeUserDetailsMutation } from '@/entities/User/api/userApi'
 import { userActions } from '@/entities/User'
 import type { TUserDataForPutRequest } from '@/entities/User/model/types/UserSchema'
 
-/*
-	useUserMutate — пользовательский хук.
-
-	Зачем:
-		- Инкапсулирует логику useUserMutate.
-*/
-
 export const useUserMutate = () => {
     const [changeUserDetails, { isLoading }] = useChangeUserDetailsMutation()
     const dispatch = useDispatch()

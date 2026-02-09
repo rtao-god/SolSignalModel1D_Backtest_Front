@@ -19,43 +19,15 @@ import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import type { PredictionHistoryPageProps } from './types'
-
-/*
-	PredictionHistoryPage — история прогнозов по датам.
-
-	Зачем:
-		- Показывает архив прогнозов с фильтрами по датам.
-		- Дает карточки отчётов по каждому дню.
-
-	Источники данных и сайд-эффекты:
-		- useCurrentPredictionIndexQuery() (TanStack Query).
-		- useGetCurrentPredictionByDateQuery() (RTK Query).
-
-	Контракты:
-		- index содержит predictionDateUtc в ISO-формате.
-*/
-
-// Количество дней, показываемых по умолчанию.
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = Math.max(1, Math.floor(PAGE_SIZE / 2))
-// Историю берём из backfilled-отчётов, чтобы видеть строгие дневные снапшоты.
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
-
-// Тип индекса дат для истории прогнозов.
 type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
-
-// Пропсы внутреннего компонента (уже с загруженным индексом).
 interface PredictionHistoryPageInnerProps {
     className?: string
     index: PredictionHistoryIndex
 }
 
-/*
-	Внутренний контент страницы истории прогнозов.
-
-	- Работает только с валидным индексом дат.
-	- Управляет фильтрацией и пагинацией карточек.
-*/
 function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageInnerProps) {
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
@@ -148,8 +120,6 @@ function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageI
     const totalCount = allDatesDesc.length
     const filteredCount = filteredDates.length
     const historyTag = `current_prediction_${HISTORY_SET}`
-
-    // Берём последний отчёт, чтобы показать единый диапазон обучения в шапке.
     const latestDateUtc = allDatesDesc.length > 0 ? allDatesDesc[0] : null
     const latestReportQuery = useGetCurrentPredictionByDateQuery(
         latestDateUtc ? { set: HISTORY_SET, dateUtc: `${latestDateUtc}T00:00:00Z` } : skipToken
@@ -283,21 +253,12 @@ function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageI
         </div>
     )
 }
-
-// Пропсы карточки отчёта за конкретную дату.
 interface PredictionHistoryReportCardProps {
     dateUtc: string
     domId: string
 }
 
-/*
-	Карточка отчёта за конкретный день.
-
-	- Делает отдельный запрос для каждой видимой даты.
-	- Защищает рендер ReportDocumentView через SectionErrorBoundary.
-*/
 function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReportCardProps) {
-    // Бэкенд требует dateUtc с Kind=UTC, поэтому передаём ISO с суффиксом Z.
     const requestDateUtc = `${dateUtc}T00:00:00Z`
 
     const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery({
@@ -353,9 +314,6 @@ function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReport
     )
 }
 
-/*
-	Boundary-слой для запроса индекса.
-*/
 function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     const { data, isError, error, refetch } = useCurrentPredictionIndexQuery(HISTORY_SET, 365)
 

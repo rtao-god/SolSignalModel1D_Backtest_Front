@@ -5,4 +5,3 @@ export default interface AppLinkProps extends LinkProps {
     className?: string
 }
 
-

@@ -10,21 +10,14 @@ import { logError } from '@/shared/lib/logging/logError'
 import { setupGlobalErrorHandlers } from '@/shared/lib/logging/setupGlobalErrorHandlers'
 import { ErrorBoundary } from './providers/ErrorBoundary/ErrorBoundary'
 import App from './App'
-
-// Общий QueryClient для TanStack Query.
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            // Эти флаги включать, когда начнём писать useQuery с Suspense:
-            // suspense: true,
-            // useErrorBoundary: true,
             retry: 1,
             refetchOnWindowFocus: false
         }
     }
 })
-
-// Настраиваем глобальные обработчики window.onerror / unhandledrejection один раз
 setupGlobalErrorHandlers()
 
 function AppWithGlobalErrorBoundary() {

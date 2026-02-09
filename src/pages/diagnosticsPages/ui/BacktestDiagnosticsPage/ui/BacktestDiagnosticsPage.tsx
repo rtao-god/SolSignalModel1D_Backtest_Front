@@ -13,9 +13,8 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Сфокусировать риск‑метрики и ликвидации в отдельной теме.
         - Быстро находить причины слива по Equity/DD и liq‑событиям.
 */
-
 export default function BacktestDiagnosticsPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -38,6 +37,7 @@ export default function BacktestDiagnosticsPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

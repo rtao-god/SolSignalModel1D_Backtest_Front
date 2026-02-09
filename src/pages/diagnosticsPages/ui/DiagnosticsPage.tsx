@@ -5,14 +5,6 @@ import { AppRoute } from '@/app/providers/router/config/types'
 import cls from './DiagnosticsPage.module.scss'
 import type { DiagnosticsPageProps } from './types'
 
-/*
-    DiagnosticsPage — корневая страница вкладки «Диагностика».
-
-    Зачем:
-        - Явный вход в диагностические отчёты.
-        - Коротко объясняет, где искать причины слива/ликвидаций.
-*/
-
 export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>

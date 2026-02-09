@@ -5,14 +5,6 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './ReportTableCard.module.scss'
 import { SortableTable, type TableRow, getCellValue, toExportCell, tryParseNumberFromString } from '@/shared/ui/SortableTable'
 
-/*
-    ReportTableCard — карточка с таблицей отчёта.
-
-    Зачем:
-        - Показывает заголовок, описание, экспорт и сортировку.
-        - Подсвечивает прибыль/убыток для быстрых выводов.
-*/
-
 interface ReportTableCardProps {
     title: string
     description?: string
@@ -22,14 +14,10 @@ interface ReportTableCardProps {
     className?: string
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
-
-// Приоритет колонок, по которым можно оценить «прибыль/убыток» строки.
 const PROFIT_COLUMN_PRIORITY: RegExp[] = [
     /totalpnl%|total%|netreturnpct|netreturn%|pnl%|return%/i,
     /netpnlusd|total\$|pnl\$|profit|pnl/i
 ]
-
-// Ищем индекс колонки, отвечающей за прибыль/убыток.
 function resolveProfitColumnIndex(columns: string[]): number | null {
     for (const re of PROFIT_COLUMN_PRIORITY) {
         const idx = columns.findIndex(col => re.test(col))
@@ -39,8 +27,6 @@ function resolveProfitColumnIndex(columns: string[]): number | null {
     }
     return null
 }
-
-// Парсим числовую ячейку для подсветки.
 function parseNumericCell(value: unknown): number | null {
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : null
@@ -61,8 +47,6 @@ export default function ReportTableCard({
     renderColumnTitle
 }: ReportTableCardProps) {
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
-
-    // При обновлении данных сбрасываем сохранённый порядок.
     useEffect(() => {
         setSortedRows(rows ?? [])
     }, [rows])

@@ -4,13 +4,6 @@ import { useRegisterUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 
-/*
-	useRegister — пользовательский хук.
-
-	Зачем:
-		- Инкапсулирует логику useRegister.
-*/
-
 export const useRegister = () => {
     const [registerUser, { isLoading }] = useRegisterUserMutation()
     const dispatch = useDispatch()

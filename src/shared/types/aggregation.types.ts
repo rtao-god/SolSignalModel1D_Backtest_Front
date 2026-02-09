@@ -1,11 +1,3 @@
-/*
-	aggregation.types — DTO для агрегации вероятностей и метрик.
-
-	Зачем:
-		- Описывает контракт снапшотов AggregationProbsSnapshot и AggregationMetricsSnapshot.
-*/
-
-// Поддержка разных форм сериализации UtcDayKey (string или объект с полями).
 export type UtcDayKeyDto =
     | string
     | {
@@ -22,16 +14,12 @@ export type UtcDayKeyDto =
           Day?: number
           day?: number
       }
-
-// Тройка вероятностей (up/flat/down) из Prob3.
 export interface Prob3Dto {
     Up: number
     Flat: number
     Down: number
     Sum?: number
 }
-
-// Средние вероятности слоя (AggregationLayerAvg).
 export interface AggregationLayerAvgDto {
     PUp: number
     PFlat: number
@@ -40,8 +28,6 @@ export interface AggregationLayerAvgDto {
 }
 
 export type DayDirectionLabelDto = number | 'Down' | 'Flat' | 'Up'
-
-// Одна строка для debug-таблицы последних дней.
 export interface AggregationProbsDebugRowDto {
     DateUtc: UtcDayKeyDto
     TrueLabel: DayDirectionLabelDto
@@ -57,8 +43,6 @@ export interface AggregationProbsDebugRowDto {
     SlPenLong: boolean
     SlPenShort: boolean
 }
-
-// Снапшот одного сегмента вероятностей.
 export interface AggregationProbsSegmentSnapshotDto {
     SegmentName: string
     SegmentLabel: string
@@ -72,8 +56,6 @@ export interface AggregationProbsSegmentSnapshotDto {
     AvgConfMicro: number
     RecordsWithSlScore: number
 }
-
-// Снапшот агрегированных вероятностей.
 export interface AggregationProbsSnapshotDto {
     MinDateUtc: UtcDayKeyDto
     MaxDateUtc: UtcDayKeyDto
@@ -82,8 +64,6 @@ export interface AggregationProbsSnapshotDto {
     Segments: AggregationProbsSegmentSnapshotDto[]
     DebugLastDays: AggregationProbsDebugRowDto[]
 }
-
-// Метрики слоя (accuracy, confusion и т.п.).
 export interface LayerMetricsSnapshotDto {
     LayerName: string
     Confusion: number[][]
@@ -95,8 +75,6 @@ export interface LayerMetricsSnapshotDto {
     InvalidForLogLoss: number
     ValidForLogLoss: number
 }
-
-// Метрики одного сегмента (Train/OOS/Recent/Full).
 export interface AggregationMetricsSegmentSnapshotDto {
     SegmentName: string
     SegmentLabel: string
@@ -107,8 +85,6 @@ export interface AggregationMetricsSegmentSnapshotDto {
     DayMicro: LayerMetricsSnapshotDto
     Total: LayerMetricsSnapshotDto
 }
-
-// Снапшот агрегированных метрик.
 export interface AggregationMetricsSnapshotDto {
     TotalInputRecords: number
     ExcludedCount: number

@@ -2,16 +2,6 @@ import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection, NavbarNavItem }
 import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
-
-/*
-    routeConfig — единый источник маршрутов, navbar и sidebar.
-
-    Зачем:
-        - Гарантирует, что карта страниц и навигация синхронизированы.
-        - Держит порядок и группировку разделов, включая новые mega-таблицы.
-*/
-
-// Основные страницы
 const MainPage = lazyPage(() => import('@/pages/Main'))
 
 const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage'))
@@ -24,8 +14,6 @@ const NotFoundPage = lazyPage(() => import('@/pages/404'))
 const ProfilePage = lazyPage(() => import('@/pages/profile/Profile'))
 const DiagnosticsHomePage = lazyPage(() => import('@/pages/diagnosticsPages/ui/DiagnosticsPage'))
 const AnalysisHomePage = lazyPage(() => import('@/pages/analysisPages/ui/AnalysisPage'))
-
-// Backtest / ML
 const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage'))
 const BacktestPage = lazyPage(() => import('@/pages/BacktestPage'))
 const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport'))
@@ -60,16 +48,17 @@ const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
 )
 const PredictionHistoryPage = lazyPage(() => import('@/pages/predictions/ui/PredictionHistoryPage'))
-
-// PFI
 const PfiPage = lazyPage(() => import('@/pages/PfiPage'))
-
-// Docs / описания — структура, как ты просил
 const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
 const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage'))
 const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage'))
-
-// Основная конфигурация маршрутов
+const ExplainPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainPage'))
+const ExplainModelsPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainModelsPage'))
+const ExplainBranchesPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainBranchesPage'))
+const ExplainSplitsPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainSplitsPage'))
+const ExplainProjectPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainProjectPage'))
+const ExplainTimePage = lazyPage(() => import('@/pages/explainPages/ui/ExplainTimePage'))
+const ExplainFeaturesPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainFeaturesPage'))
 export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MAIN,
@@ -84,8 +73,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbarOrder: 0
         }
     },
-
-    // ===== ДИАГНОСТИКА / АНАЛИЗ (navbar) =====
     {
         id: AppRoute.DIAGNOSTICS_HOME,
         path: ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME],
@@ -114,8 +101,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbarOrder: 2
         }
     },
-
-    // ===== ПРОГНОЗЫ =====
     {
         id: AppRoute.CURRENT_PREDICTION,
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
@@ -142,8 +127,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 2
         }
     },
-
-    // ===== МОДЕЛИ =====
     {
         id: AppRoute.MODELS_STATS,
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
@@ -170,8 +153,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 2
         }
     },
-
-    // ===== БЭКТЕСТ =====
     {
         id: AppRoute.BACKTEST_BASELINE,
         path: ROUTE_PATH[AppRoute.BACKTEST_BASELINE],
@@ -328,8 +309,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 3
         }
     },
-
-    // ===== PFI =====
     {
         id: AppRoute.PFI_PER_MODEL,
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
@@ -343,8 +322,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 2
         }
     },
-
-    // ===== ДОКУМЕНТАЦИЯ / ОПИСАНИЯ =====
     {
         id: AppRoute.DOCS,
         path: ROUTE_PATH[AppRoute.DOCS],
@@ -385,8 +362,98 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             order: 2
         }
     },
-
-    // ===== ПРОЧЕЕ =====
+    {
+        id: AppRoute.EXPLAIN,
+        path: ROUTE_PATH[AppRoute.EXPLAIN],
+        element: <ExplainPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю объяснение проекта',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Объяснение',
+            section: 'explain',
+            navbarOrder: 4
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_MODELS,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_MODELS],
+        element: <ExplainModelsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю объяснение моделей',
+        nav: {
+            sidebar: true,
+            label: 'Модели',
+            section: 'explain',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_BRANCHES,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_BRANCHES],
+        element: <ExplainBranchesPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю объяснение веток',
+        nav: {
+            sidebar: true,
+            label: 'Ветки BASE/ANTI-D',
+            section: 'explain',
+            order: 2
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_SPLITS,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_SPLITS],
+        element: <ExplainSplitsPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю объяснение сплитов',
+        nav: {
+            sidebar: true,
+            label: 'Train/OOS/Recent',
+            section: 'explain',
+            order: 3
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_PROJECT,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_PROJECT],
+        element: <ExplainProjectPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю описание проекта',
+        nav: {
+            sidebar: true,
+            label: 'О проекте',
+            section: 'explain',
+            order: 4
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_TIME,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_TIME],
+        element: <ExplainTimePage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю объяснение времени',
+        nav: {
+            sidebar: true,
+            label: 'Время и дни',
+            section: 'explain',
+            order: 5
+        }
+    },
+    {
+        id: AppRoute.EXPLAIN_FEATURES,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_FEATURES],
+        element: <ExplainFeaturesPage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю описание фич',
+        nav: {
+            sidebar: true,
+            label: 'Фичи и индикаторы',
+            section: 'explain',
+            order: 6
+        }
+    },
     {
         id: AppRoute.ABOUT,
         path: ROUTE_PATH[AppRoute.ABOUT],
@@ -415,8 +482,6 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbarOrder: 7
         }
     },
-
-    // "Голые" страницы (без layout)
     {
         id: AppRoute.REGISTRATION,
         path: ROUTE_PATH[AppRoute.REGISTRATION],
@@ -464,11 +529,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         loadingTitle: 'Загружаю страницу'
     }
 ]
-
-// Навигация для сайдбара
 export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = buildSidebarNavItems(ROUTE_CONFIG)
-
-// Навигация для navbar (верхнее меню)
 export const NAVBAR_ITEMS: NavbarNavItem[] = ROUTE_CONFIG.filter(route => route.nav && route.nav.navbar)
     .map(route => ({
         id: route.id,
@@ -484,3 +545,4 @@ export const NAVBAR_ITEMS: NavbarNavItem[] = ROUTE_CONFIG.filter(route => route.
     })
 
 export type { RouteSection }
+

@@ -11,32 +11,14 @@ import { Text } from '@/shared/ui'
 import type { CurrentPredictionSet, CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 
-/*
-	CurrentMLModelPredictionPage — текущий прогноз модели.
-
-	Зачем:
-		- Показывает актуальный отчёт прогноза модели.
-		- Защищает рендер отчёта через SectionErrorBoundary.
-
-	Источники данных и сайд-эффекты:
-		- useCurrentPredictionReportQuery() (TanStack Query).
-
-	Контракты:
-		- ReportDocumentView получает валидный report.
-*/
-
 export default function CurrentMLModelPredictionPage({ className }: CurrentMLModelPredictionProps) {
-    // Для текущего прогноза берём live-отчёт (as-of срез).
     const reportSet: CurrentPredictionSet = 'live'
-    // Режим обучения: по умолчанию берём full-history (основной режим для прод-прогноза).
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
 
     const { data, isError, error, refetch } = useCurrentPredictionReportQuery(reportSet, trainingScope)
 
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
     const trainingLabel = resolveTrainingLabel(data)
-
-    // Конфигурация табов режимов обучения (порядок соответствует UX-логике).
     const scopeOptions = useMemo(
         () => [
             {

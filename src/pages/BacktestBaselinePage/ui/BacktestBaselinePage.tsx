@@ -20,20 +20,6 @@ const BASELINE_COLUMN_TOOLTIPS: Record<string, string> = {
 const renderTooltip = (term: string, description?: string) =>
     description ? <TermTooltip term={term} description={description} type='span' /> : term
 
-/*
-	BacktestBaselinePage — страница baseline-снимка бэктеста.
-
-	Зачем:
-		- Показывает метаданные baseline и таблицу политик.
-		- Даёт лёгкий обзор без полного режима бэктеста.
-
-	Источники данных и сайд-эффекты:
-		- useBacktestBaselineSnapshotQuery() (TanStack Query).
-
-	Контракты:
-		- Внутренние секции получают валидный snapshot.
-*/
-
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
 
@@ -56,17 +42,10 @@ export default function BacktestBaselinePage({ className }: BacktestBaselinePage
         </PageDataBoundary>
     )
 }
-
-// Пропсы шапки baseline-снимка.
 interface HeaderProps {
     snapshot: BacktestBaselineSnapshotDto
 }
 
-/*
-	Шапка baseline-снимка.
-
-	- Показывает ID, конфиг и время генерации в UTC/локали.
-*/
 function Header({ snapshot }: HeaderProps) {
     const generatedUtc = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : null
     const generatedUtcStr = generatedUtc ? generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
@@ -82,17 +61,10 @@ function Header({ snapshot }: HeaderProps) {
         </header>
     )
 }
-
-// Пропсы блока глобальных параметров.
 interface GlobalParamsProps {
     snapshot: BacktestBaselineSnapshotDto
 }
 
-/*
-	Глобальные параметры бэктеста (SL/TP).
-
-	- Конвертирует доли в проценты для человекочитаемого вида.
-*/
 function GlobalParams({ snapshot }: GlobalParamsProps) {
     const dailyStopPctStr = `${(snapshot.dailyStopPct * 100).toFixed(2)} %`
     const dailyTpPctStr = `${(snapshot.dailyTpPct * 100).toFixed(2)} %`
@@ -127,17 +99,10 @@ function GlobalParams({ snapshot }: GlobalParamsProps) {
         </section>
     )
 }
-
-// Пропсы таблицы политик.
 interface PoliciesTableProps {
     policies: BacktestPolicySummaryDto[]
 }
 
-/*
-	Таблица политик baseline.
-
-	- Показывает итоговый PnL, просадки, ликвидации и счётчики сделок.
-*/
 function PoliciesTable({ policies }: PoliciesTableProps) {
     if (!Array.isArray(policies) || policies.length === 0) {
         return (

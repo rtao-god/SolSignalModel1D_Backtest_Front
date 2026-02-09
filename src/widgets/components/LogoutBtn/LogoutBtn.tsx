@@ -11,7 +11,6 @@ export default function LogoutBtn({ className }: LogoutBtnProps) {
 
     const dispatch = useDispatch()
     function handleLogout() {
-        // console.log('userActions: ', dispatch(userActions))
         dispatch(userActions.logout())
     }
     return (

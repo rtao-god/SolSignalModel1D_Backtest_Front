@@ -71,8 +71,6 @@ export default function Day({ className, year, month }: DayProps) {
 
                 const today = new Date()
                 today.setHours(0, 0, 0, 0)
-
-                // ДЛЯ ДИАГНОСТИКИ: пока считаем все дни кликабельными
                 const isClickable = true
 
                 const isSelectedDeparture = !!departureDate && dateObj.getTime() === departureDate.dateObj.getTime()
@@ -112,7 +110,6 @@ export default function Day({ className, year, month }: DayProps) {
                             },
                             [className ?? '']
                         )}
-                        // КРИТИЧЕСКОЕ МЕСТО: убираем все условия, всегда вешаем onClick
                         onClick={() => handleClick(day, dateObj)}>
                         {day}
                     </div>

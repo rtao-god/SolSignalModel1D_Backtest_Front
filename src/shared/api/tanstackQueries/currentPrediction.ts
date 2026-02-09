@@ -9,16 +9,7 @@ import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 
-/*
-	currentPrediction — TanStack Query hooks.
-
-	Зачем:
-		- Даёт запросы для report-эндпоинтов и suspense-режима.
-*/
-
 const { latestReport, datesIndex } = API_ROUTES.currentPrediction
-
-// Ответ /api/current-prediction с двумя версиями текущего отчёта.
 interface CurrentPredictionLatestResponse {
     live?: unknown
     backfilled?: unknown
@@ -28,7 +19,6 @@ async function fetchCurrentPrediction(
     set: CurrentPredictionSet,
     scope?: CurrentPredictionTrainingScope
 ): Promise<ReportDocumentDto> {
-    // Scope применяется только к live-отчётам.
     const search = new URLSearchParams()
     if (set === 'live' && scope) {
         search.set('scope', scope)
@@ -79,8 +69,6 @@ async function fetchCurrentPredictionIndex(
 
     return (await resp.json()) as CurrentPredictionIndexItemDto[]
 }
-
-// Suspense-версия отчёта по текущему прогнозу.
 export function useCurrentPredictionReportQuery(
     set: CurrentPredictionSet = 'live',
     scope?: CurrentPredictionTrainingScope
@@ -91,11 +79,6 @@ export function useCurrentPredictionReportQuery(
     })
 }
 
-/*
-	Suspense-версия индекса доступных дат по current_prediction.
-
-	- По умолчанию используется 365 дней.
-*/
 export function useCurrentPredictionIndexQuery(
     set: CurrentPredictionSet = 'backfilled',
     days: number = 365

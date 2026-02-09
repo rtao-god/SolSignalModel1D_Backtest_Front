@@ -5,18 +5,6 @@ import { BacktestSummaryView } from '../BacktestSummaryView/BacktestSummaryView'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import cls from './BacktestWhatIfColumn.module.scss'
-
-/*
-	BacktestWhatIfColumn — колонка what-if конфигурации.
-
-	Зачем:
-		- Даёт редактор профиля и preview результатов.
-
-	Контракты:
-		- currentProfile и draftConfig должны быть валидными.
-*/
-
-// Пропсы колонки what-if.
 interface BacktestWhatIfColumnProps {
     currentProfile: BacktestProfileDto
     draftConfig: BacktestConfigDto

@@ -18,32 +18,16 @@ interface SectionPagerProps {
     onPrev?: () => void
     onNext?: () => void
 
-    /*
-		Старый вариант обратно-совместимого API.
 
-		- Только currentIndex + onNavigate.
-		- Если onPrev/onNext не переданы, используем этот колбэк.
-	*/
     onNavigate?: (index: number) => void
 
-    /*
-        Вариант UI.
 
-        - vertical: текущие ↑/↓
-        - dpad: 4-направления (↑/↓ секции, ←/→ "группы"/страницы)
-    */
     variant?: SectionPagerVariant
-
-    // Навигация по "группам" (например, страницы по 10 элементов).
     canGroupPrev?: boolean
     canGroupNext?: boolean
     onGroupPrev?: () => void
     onGroupNext?: () => void
-
-    // Статус группы (показываем только при hover по ←/→).
     groupStatus?: { current: number; total: number }
-
-    // Прижимает dpad-пейджер к правому краю (для плотных страниц).
     tightRight?: boolean
 }
 
@@ -113,8 +97,6 @@ export default function SectionPager({
             </div>
         )
     }
-
-    // dpad
     if (sections.length <= 1 && !hasGroupPrev && !hasGroupNext) {
         return null
     }

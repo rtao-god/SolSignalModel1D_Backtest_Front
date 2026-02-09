@@ -16,8 +16,6 @@ export default function createReduxStore(initialState?: StateSchema, asyncReduce
         [api.reducerPath]: api.reducer,
         [authApi.reducerPath]: authApi.reducer,
         [registrationApi.reducerPath]: registrationApi.reducer,
-
-        // обычные слайсы
         date: dateReducer,
         user: userReducer,
         registration: registrationReducer,

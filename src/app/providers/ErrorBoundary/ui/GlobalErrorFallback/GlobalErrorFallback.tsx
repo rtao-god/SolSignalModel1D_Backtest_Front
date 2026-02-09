@@ -8,38 +8,23 @@ interface GlobalErrorFallbackProps extends ErrorBoundaryFallbackProps {
     className?: string
 }
 
-/**
- * Full-screen fallback для критических ошибок приложения.
- * Используется глобальным ErrorBoundary вокруг всего <App />.
- */
 export default function GlobalErrorFallback({ error, resetErrorBoundary, className }: GlobalErrorFallbackProps) {
-    // Стабильный ID ошибки на время жизни fallback-компонента
     const errorId = useMemo(() => {
         const base = Date.now().toString(36)
         const random = Math.floor(Math.random() * 1e6).toString(36)
         return `${base}-${random}`
     }, [])
-
-    // В dev можно показывать больше технических деталей
     const isDev = process.env.NODE_ENV === 'development'
 
     const handleReloadClick = () => {
-        // Жёсткое восстановление — полная перезагрузка приложения
         window.location.reload()
     }
 
     const handleRetryClick = () => {
-        // Мягкий вариант — сбросить ErrorBoundary и попробовать перерендериться без reload
         resetErrorBoundary()
     }
 
     const handleReportClick = () => {
-        // Здесь можно:
-        // - открыть модалку с формой;
-        // - отправить событие в аналитику;
-        // - или открыть mailto на адрес поддержки.
-        //
-        // Пока оставляется мягкая заглушка, чтобы не привязывать проект к конкретному решению.
         // eslint-disable-next-line no-console
         console.info('[ErrorReport]', { errorId, message: error?.message })
     }

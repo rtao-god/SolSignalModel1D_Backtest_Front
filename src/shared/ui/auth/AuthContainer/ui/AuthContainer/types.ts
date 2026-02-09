@@ -5,4 +5,3 @@ export default interface AuthContainerProps {
     className?: string
 }
 
-

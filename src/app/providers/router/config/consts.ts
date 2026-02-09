@@ -1,14 +1,4 @@
 import { AppRoute, RouteSection } from './types'
-
-/*
-    consts — карта маршрутов и порядок секций.
-
-    Зачем:
-        - Один источник правды для path'ов.
-        - Контролируем порядок блоков в сайдбаре.
-*/
-
-// Карта id → путь
 export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.MAIN]: '/',
 
@@ -36,11 +26,16 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.MODELS_STATS]: '/models/stats',
     [AppRoute.AGGREGATION_STATS]: '/models/aggregation',
     [AppRoute.FEATURES_STATS]: '/features/stats',
-
-    // Документация
     [AppRoute.DOCS]: '/docs',
     [AppRoute.DOCS_MODELS]: '/docs/models',
     [AppRoute.DOCS_TESTS]: '/docs/tests',
+    [AppRoute.EXPLAIN]: '/explain',
+    [AppRoute.EXPLAIN_MODELS]: '/explain/models',
+    [AppRoute.EXPLAIN_BRANCHES]: '/explain/branches',
+    [AppRoute.EXPLAIN_SPLITS]: '/explain/splits',
+    [AppRoute.EXPLAIN_PROJECT]: '/explain/project',
+    [AppRoute.EXPLAIN_TIME]: '/explain/time',
+    [AppRoute.EXPLAIN_FEATURES]: '/explain/features',
 
     [AppRoute.ABOUT]: '/about',
     [AppRoute.CONTACT]: '/contact',
@@ -49,8 +44,6 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.PROFILE]: '/profile',
     [AppRoute.NOT_FOUND]: '*'
 }
-
-// Порядок секций в сайдбаре
 export const ROUTE_SECTION_ORDER: RouteSection[] = [
     'predictions',
     'models',
@@ -59,5 +52,7 @@ export const ROUTE_SECTION_ORDER: RouteSection[] = [
     'diagnostics',
     'features',
     'docs',
+    'explain',
     'system'
 ]
+

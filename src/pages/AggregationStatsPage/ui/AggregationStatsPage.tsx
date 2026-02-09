@@ -4,19 +4,6 @@ import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from 
 import type { AggregationStatsPageProps } from './types'
 import { AggregationStatsPageInner } from './AggregationStatsPageInner'
 
-/*
-	AggregationStatsPage — контейнер страницы агрегации прогнозов.
-
-	Зачем:
-		- Загружает агрегацию вероятностей и метрик.
-		- Показывает единый PageDataBoundary для двух запросов.
-
-	Источники данных и сайд-эффекты:
-		- useAggregationProbsQuery() и useAggregationMetricsQuery() (tanstack query).
-
-	Контракты:
-		- Внутренний UI получает оба снапшота одновременно.
-*/
 export default function AggregationStatsPage({ className }: AggregationStatsPageProps) {
     const probsQuery = useAggregationProbsQuery()
     const metricsQuery = useAggregationMetricsQuery()

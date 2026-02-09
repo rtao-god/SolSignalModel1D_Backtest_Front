@@ -1,23 +1,28 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../configs/config'
 
 /*
-	useApi — пользовательский хук.
+	useApi — минимальный универсальный fetch-хук для чтения данных по endpoint.
 
-	Зачем:
-		- Инкапсулирует логику useApi.
+	Источники данных и сайд-эффекты:
+		- Делает HTTP GET через window.fetch к API_BASE_URL + endpoint.
+		- Управляет локальными состояниями data/isLoading/error.
+
+	Контракты:
+		- Хук перезапрашивает данные при смене endpoint.
+		- Невалидный HTTP-статус трактуется как ошибка и попадает в error.
 */
-
 function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; error: Error | null } {
     const [data, setData] = useState<T | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [error, setError] = useState<Error | null>(null)
-    const baseURL = import.meta.env.API_BASE_URL
 
     useEffect(() => {
+        // Хук привязан к endpoint: при его смене выполняем новый запрос.
         const fetchData = async () => {
             setIsLoading(true)
             try {
-                const response = await fetch(`${baseURL}${endpoint}`)
+                const response = await fetch(`${API_BASE_URL}${endpoint}`)
                 if (!response.ok) {
                     throw new Error('Network response was not ok')
                 }
@@ -30,8 +35,9 @@ function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; erro
             }
         }
 
+        // Явно помечаем Promise как fire-and-forget внутри эффекта.
         void fetchData()
-    }, [endpoint, baseURL])
+    }, [endpoint])
 
     return { data, isLoading, error }
 }

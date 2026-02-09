@@ -5,4 +5,3 @@ export default interface BlueBoxProps {
     className?: string
 }
 
-

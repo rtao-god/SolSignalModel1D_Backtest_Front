@@ -13,12 +13,11 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Сосредоточиться на лучших/худших сделках и днях.
         - Быстро находить «что работает» и «что ломает PnL».
 */
-
 const renderRatingColumnTitle = (title: string) =>
     renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
 
 export default function BacktestDiagnosticsRatingsPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -31,6 +30,7 @@ export default function BacktestDiagnosticsRatingsPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

@@ -1,12 +1,5 @@
 import { Group } from './group.type'
 
-/*
-	user.types — типы пользователя.
-
-	Зачем:
-		- Описывает структуру UserData, используемую в API и shared-слое.
-*/
-
 export interface UserData {
     id: number
     password: string

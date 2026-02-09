@@ -8,13 +8,6 @@ import { pfiEndpoints } from './endpoints/pfiEndpoints'
 import { aggregationEndpoints } from './endpoints/aggregationEndpoints'
 import { API_BASE_URL } from '../configs/config'
 
-/*
-	api — корневой RTK Query API.
-
-	Зачем:
-		- Централизует baseUrl, заголовки и сборку доменных эндпоинтов.
-*/
-
 export const api = createApi({
     reducerPath: 'api',
     baseQuery: fetchBaseQuery({
@@ -32,41 +25,25 @@ export const api = createApi({
         const b = builder as unknown as ApiEndpointBuilder
 
         return {
-            // Эндпоинты пользователя.
             ...buildUserEndpoints(b),
-
-            // Отчёты и текущий прогноз.
             ...buildReportEndpoints(b),
-
-            // Бэктест-эндпоинты.
             ...buildBacktestEndpoints(b),
-
-            // PFI-отчёты.
             ...pfiEndpoints(b),
-
-            // Статистика ML-моделей.
             ...modelStatsEndpoints(b),
-
-            // Агрегация вероятностей и метрик.
             ...aggregationEndpoints(b)
         }
     }
 })
 
 export const {
-    // Пользовательские хуки.
     useGetUserQuery,
     useChangeUserDetailsMutation,
-
-    // Хуки отчётов и текущего прогноза.
     useGetCurrentPredictionQuery,
     useGetCurrentPredictionIndexQuery,
     useGetCurrentPredictionByDateQuery,
     useGetBacktestBaselineSummaryQuery,
     useGetBacktestBaselineSnapshotQuery,
     useGetBacktestDiagnosticsReportQuery,
-
-    // Хуки бэктеста.
     useGetBacktestConfigQuery,
     useGetBacktestProfilesQuery,
     useGetBacktestProfileByIdQuery,
@@ -74,14 +51,8 @@ export const {
     useUpdateBacktestProfileMutation,
     usePreviewBacktestMutation,
     useGetBacktestPolicyRatiosQuery,
-
-    // Хуки PFI-отчётов.
     useGetPfiPerModelReportQuery,
-
-    // Хуки статистики ML-моделей.
     useGetModelStatsReportQuery,
-
-    // Хуки агрегации вероятностей и метрик.
     useGetAggregationProbsQuery,
     useGetAggregationMetricsQuery
 } = api

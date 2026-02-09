@@ -10,19 +10,7 @@ import PageErrorFallback from '@/app/providers/ErrorBoundary/ui/PageErrorFallbac
 import { logError } from '@/shared/lib/logging/logError'
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary/ErrorBoundary'
 
-/*
-	Layout — базовая оболочка приложения.
-
-	Зачем:
-		- Склеивает Navbar, Sidebar, Footer и основной контент.
-		- Даёт отдельный ErrorBoundary для основного контента.
-
-	Контракты:
-		- На десктопе Sidebar рендерится постоянно, на мобильных — через Modal.
-*/
-
 export default function Layout({ children, className }: LayoutProps) {
-    // Десктоп — когда не мобильный и не планшет.
     const isDesktop = !MOBILE && !TABLET
 
     const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
@@ -44,7 +32,7 @@ export default function Layout({ children, className }: LayoutProps) {
                 {isDesktop && <Sidebar />}
 
                 <div className={cls.main} data-tooltip-boundary>
-                    {/* ErrorBoundary для основного контента (Outlet/children). */}
+
                     <ErrorBoundary
                         resetKeys={[location.pathname]}
                         onError={(error, errorInfo) =>
@@ -54,7 +42,7 @@ export default function Layout({ children, className }: LayoutProps) {
                             })
                         }
                         fallbackRender={props => <PageErrorFallback {...props} />}>
-                        {/* Если children не переданы, рендерим <Outlet />. */}
+
                         {children ?? <Outlet />}
                     </ErrorBoundary>
                 </div>
@@ -62,7 +50,7 @@ export default function Layout({ children, className }: LayoutProps) {
 
             <Footer />
 
-            {/* Модалка с сайдбаром для мобилок и планшетов. */}
+
             {!isDesktop && isSidebarModalOpen && (
                 <Modal width='min(90vw, 420px)' height='auto' onClose={handleCloseSidebarModal}>
                     <Sidebar mode='modal' onItemClick={handleCloseSidebarModal} />

@@ -13,9 +13,8 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Кто и почему принял финальное решение.
         - Разделение вины модели и политики.
 */
-
 export default function BacktestDiagnosticsDecisionsPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -38,6 +37,7 @@ export default function BacktestDiagnosticsDecisionsPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

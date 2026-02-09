@@ -9,24 +9,6 @@ import type {
 } from './modelStatsTypes'
 import { SEGMENT_INIT_ORDER, SEGMENT_PREFIX } from './modelStatsConstants'
 
-/*
-	modelStatsUtils — утилиты разбора отчёта статистики моделей: чистит префиксы сегментов,
-	определяет типы секций, извлекает метаданные прогона и собирает список сегментов для UI.
-
-	Зачем:
-		- Консолидирует парсинг ReportDocument, чтобы не дублировать его в ModelStatsPageInner.
-		- Даёт стабильные данные для сегментов, подписей и фильтров.
-
-	Контракты:
-		- Опираться только на публичный DTO-формат отчёта.
-		- Маркеры сегментов и ключи метаданных должны совпадать с форматом отчёта.
-*/
-
-/*
-	Удаление префикса сегмента из заголовка секции.
-
-	- Чистит UI от служебных маркеров при переключении сегментов.
-*/
 export function stripSegmentPrefix(title: string | undefined | null): string {
     if (!title) return ''
     const match = title.match(/^\[(FULL|TRAIN|OOS|RECENT)\]\s*/i)
@@ -34,35 +16,14 @@ export function stripSegmentPrefix(title: string | undefined | null): string {
     return title.slice(match[0].length)
 }
 
-/*
-	Type guard для key-value секций отчёта.
-
-	Контракты:
-		- Key-value секции имеют массив items.
-*/
 export function isKeyValueSection(section: ReportSection): section is KeyValueSection {
     return Array.isArray((section as KeyValueSection).items)
 }
 
-/*
-	Type guard для table секций отчёта.
-
-	Контракты:
-		- Table секции содержат массив columns.
-*/
 export function isTableSection(section: ReportSection): section is TableSection {
     return Array.isArray((section as TableSection).columns)
 }
 
-/*
-	Глобальные метаданные прогона, извлечённые из key-value секции.
-
-	- Питает подписи сегментов и блок “Параметры прогона”.
-
-	Контракты:
-		- При отсутствии нужной секции возвращаем null.
-		- Числа парсятся безопасно; NaN/Infinity -> 0.
-*/
 export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
     if (!sections.length) {
         return null
@@ -107,14 +68,6 @@ export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
     }
 }
 
-/*
-	Вычисление доступных сегментов по заголовкам table-секций.
-
-	- Определяет, какие вкладки сегментов показывать в UI.
-
-	Контракты:
-		- Сегмент доступен, если существует хотя бы одна секция с его префиксом.
-*/
 export function collectAvailableSegments(sections: TableSection[]): SegmentInfo[] {
     if (!sections.length) {
         return []
@@ -142,12 +95,6 @@ export function collectAvailableSegments(sections: TableSection[]): SegmentInfo[
     return ordered
 }
 
-/*
-	Подпись и описание сегмента с учётом GlobalMeta.
-
-	Контракты:
-		- Если meta нет, возвращаем null без генерации вымышленных данных.
-*/
 export function resolveSegmentMeta(segment: SegmentKey, meta: GlobalMeta | null): ResolvedSegmentMeta | null {
     if (!meta) {
         return null

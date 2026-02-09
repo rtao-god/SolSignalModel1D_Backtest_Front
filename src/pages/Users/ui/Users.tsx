@@ -10,16 +10,6 @@ interface UsersProps {
     className?: string
 }
 
-/*
-	Users — legacy-страница списка пользователей.
-
-	Зачем:
-		- Сохраняет старую версию UI для возможной миграции.
-		- Используется как справочный макет.
-*/
-
-// Legacy-страница, текст и данные пока статические.
-
 export default function Users({ className }: UsersProps) {
     const [isFilter, setIsFilter] = useState<number>(1)
 

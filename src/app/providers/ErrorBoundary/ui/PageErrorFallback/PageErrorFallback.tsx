@@ -3,10 +3,6 @@ import { ErrorBoundaryFallbackProps } from '../../ErrorBoundary'
 import cls from './PageErrorFallback.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 
-/**
- * Компактный fallback для ошибок на уровне страницы/виджета.
- * Предполагается, что shell (Navbar/Sidebar/Footer) остаётся доступным.
- */
 export default function PageErrorFallback({ error, resetErrorBoundary }: ErrorBoundaryFallbackProps) {
     return (
         <div className={classNames(cls.PageErrorFallback, {}, [])}>

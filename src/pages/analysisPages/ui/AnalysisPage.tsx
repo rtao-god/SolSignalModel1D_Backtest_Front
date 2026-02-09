@@ -5,14 +5,6 @@ import { AppRoute } from '@/app/providers/router/config/types'
 import cls from './AnalysisPage.module.scss'
 import type { AnalysisPageProps } from './types'
 
-/*
-    AnalysisPage — корневая страница вкладки «Анализ».
-
-    Зачем:
-        - Быстрый вход в таблицы PnL/рейтингов и разрезов по дням.
-        - Ориентир по тому, какие отчёты читать для оценки прибыли.
-*/
-
 export default function AnalysisPage({ className }: AnalysisPageProps) {
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>

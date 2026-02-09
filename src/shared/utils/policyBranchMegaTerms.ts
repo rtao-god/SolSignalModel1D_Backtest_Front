@@ -1,14 +1,6 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
 
-/*
-    policyBranchMegaTerms — словарь терминов для Policy Branch Mega.
-
-    Зачем:
-        - Даёт подробные определения метрик, основанные на реальной логике бэктеста.
-        - Даёт короткие подсказки для TermTooltip без дублирования длинных описаний.
-*/
-
 export interface PolicyBranchMegaTermDefinition {
     key: string
     title: string
@@ -17,8 +9,6 @@ export interface PolicyBranchMegaTermDefinition {
 }
 
 const MEGA_TITLE_MARKER = 'Policy Branch Mega'
-
-// Справочник всех колонок Policy Branch Mega с полными описаниями и tooltip-версией.
 const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
     Policy: {
         key: 'Policy',
@@ -32,7 +22,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         title: 'Branch',
         description:
             'Ветка симуляции: BASE использует базовое направление, ANTI-D включает анти-направление в риск‑дни. Anti‑D применяется только если SL‑слой пометил день как рискованный, MinMove в диапазоне 0.5–12% и запас до ликвидации ≥ 2× MinMove.',
-        tooltip: 'BASE или ANTI-D (с анти-направлением при риск‑триггере).' 
+        tooltip: 'BASE или ANTI-D (с анти-направлением при риск‑триггере).'
     },
     Days: {
         key: 'Days',
@@ -46,14 +36,14 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         title: 'StartDay',
         description:
             'Первая дата (UTC day‑key) среди дней, реально наблюдавшихся в расчёте. Нужна, чтобы правильно считать пропуски и границы периода.',
-        tooltip: 'Первая дата периода (UTC).' 
+        tooltip: 'Первая дата периода (UTC).'
     },
     EndDay: {
         key: 'EndDay',
         title: 'EndDay',
         description:
             'Последняя дата (UTC day‑key) среди наблюдавшихся дней. Если был ранний stop, EndDay фиксируется на день остановки.',
-        tooltip: 'Последняя дата периода (UTC).' 
+        tooltip: 'Последняя дата периода (UTC).'
     },
     StopReason: {
         key: 'StopReason',
@@ -153,7 +143,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Сколько дней были пропущены из‑за cap fraction = 0. Для статических политик это прямой запрет на сделку; для динамических обычно 0.',
         tooltip: 'Дни, где cap=0 запретил сделку.'
     },
-    // Метрики ставки и порогов TP/SL (новые колонки mega‑таблицы).
     'AvgStake%': {
         key: 'AvgStake%',
         title: 'AvgStake%',
@@ -168,7 +157,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Средняя маржа на сделку (Daily + Delayed) в долларах. Это та же AvgStake%, но в денежном эквиваленте.',
         tooltip: 'Средняя маржа на сделку, $.'
     },
-    // Daily TP/SL: выводим фактические avg/min/max, а не статичный конфиг.
     'DailyTP%': {
         key: 'DailyTP%',
         title: 'DailyTP%',
@@ -251,7 +239,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         title: 'Sharpe',
         description:
             'Коэффициент Sharpe по дневным доходностям: средняя дневная доходность / стандартное отклонение * √252. Дневные доходности агрегируются из сделок с весом позиции относительно общего капитала.',
-        tooltip: 'Sharpe по дневным доходностям (annualized).' 
+        tooltip: 'Sharpe по дневным доходностям (annualized).'
     },
     Sortino: {
         key: 'Sortino',
@@ -335,7 +323,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         title: 'HadLiq',
         description:
             'Флаг ликвидации: для фьючерсов — есть хотя бы одна сделка с IsLiquidated; для спота — финальная equity ≤ 10% от старта (ruin). Это флаг риска, не причина stop.',
-        tooltip: 'Была ли ликвидация (по правилу отображения).' 
+        tooltip: 'Была ли ликвидация (по правилу отображения).'
     },
     AccRuin: {
         key: 'AccRuin',
@@ -349,7 +337,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         title: 'RealLiq',
         description:
             'Количество реальных ликвидаций (IsRealLiquidation) по сделкам. Для Cross выводится "—", потому что там важнее сам факт смерти, а не число ликвидаций.',
-        tooltip: 'Число реальных ликвидаций (Isolated).' 
+        tooltip: 'Число реальных ликвидаций (Isolated).'
     },
     'BalMin%': {
         key: 'BalMin%',
@@ -520,8 +508,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         tooltip: 'Аномалии минутных данных.'
     }
 }
-
-// Вытаскиваем номер части из заголовка вида "[PART 1/3]".
 function extractMegaPartNumber(title: string | undefined): number | null {
     if (!title) return null
 
@@ -542,8 +528,6 @@ function extractMegaPartNumber(title: string | undefined): number | null {
 
     return parsed
 }
-
-// Режимы mega-таблицы нужны для стабильной сортировки (WITH SL / NO SL).
 function resolveMegaModeKey(title: string | undefined): 'WITH SL' | 'NO SL' | 'UNKNOWN' {
     if (!title) return 'UNKNOWN'
 
@@ -559,15 +543,11 @@ function resolveMegaModeOrder(mode: 'WITH SL' | 'NO SL' | 'UNKNOWN'): number {
     if (mode === 'NO SL') return 1
     return 2
 }
-
-// Проверка: это действительно секция Policy Branch Mega.
 function isPolicyBranchMegaTitle(title: string | undefined): boolean {
     if (!title) return false
     const normalized = normalizePolicyBranchMegaTitle(title)
     return normalized.toLowerCase().includes(MEGA_TITLE_MARKER.toLowerCase())
 }
-
-// Возвращает термин по точному названию колонки, иначе fail-fast.
 export function getPolicyBranchMegaTermOrThrow(title: string): PolicyBranchMegaTermDefinition {
     const key = title?.trim()
     if (!key) {
@@ -581,8 +561,6 @@ export function getPolicyBranchMegaTermOrThrow(title: string): PolicyBranchMegaT
 
     return term
 }
-
-// Упорядочиваем секции mega-отчёта в 1/3 → 2/3 → 3/3.
 export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]): TableSectionDto[] {
     if (!sections || sections.length === 0) {
         throw new Error('[policy-branch-mega] report has no sections.')
@@ -599,8 +577,6 @@ export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]
         mode: resolveMegaModeKey(section.title),
         index
     }))
-
-    // Fail-fast: неизвестный режим ломает порядок и смыслы.
     if (enriched.some(item => item.mode === 'UNKNOWN')) {
         const titles = enriched.map(item => item.section.title).join(' | ')
         throw new Error(`[policy-branch-mega] unknown mega mode in titles: ${titles}`)
@@ -618,8 +594,6 @@ export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]
         })
         .map(item => item.section)
 }
-
-// Подбираем определения терминов в том же порядке, что и колонки таблицы.
 export function buildPolicyBranchMegaTermsForColumns(columns: string[]): PolicyBranchMegaTermDefinition[] {
     if (!columns || columns.length === 0) {
         throw new Error('[policy-branch-mega] columns list is empty.')
@@ -633,8 +607,6 @@ export function buildPolicyBranchMegaTermsForColumns(columns: string[]): PolicyB
         }
     })
 }
-
-// Текстовое описание каждой части mega-отчёта.
 export function resolvePolicyBranchMegaSectionDescription(title: string | undefined): string | null {
     const normalized = normalizePolicyBranchMegaTitle(title)
     if (!normalized) return null

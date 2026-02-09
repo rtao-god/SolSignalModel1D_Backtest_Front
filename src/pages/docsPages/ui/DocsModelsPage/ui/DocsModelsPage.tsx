@@ -5,19 +5,6 @@ import { DOCS_MODELS_TABS } from '@/shared/utils/docsTabs'
 import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/ViewModeToggle'
 import cls from './DocsModelsPage.module.scss'
 import type { DocsModelsPageProps } from './types'
-
-/*
-	DocsModelsPage — описание моделей и пайплайна.
-
-	Зачем:
-		- Даёт структуру документации по моделям.
-		- Позволяет переключать бизнес/технический режим описаний.
-
-	Контракты:
-		- DOCS_MODELS_TABS содержит стабильные id/anchor для секций.
-*/
-
-// Пропсы страницы описания моделей.
 export default function DocsModelsPage({ className }: DocsModelsPageProps) {
     const [mode, setMode] = useState<ViewMode>('business')
 

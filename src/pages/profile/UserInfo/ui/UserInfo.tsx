@@ -10,18 +10,9 @@ import classNames from '@/shared/lib/helpers/classNames'
 import UserInfoProps from './types'
 import { getFullUsernameWithInitials } from '@/entities/User/model/selectors/getFullUsernameWithInitials'
 
-/*
-	UserInfo — блок информации о пользователе.
-
-	Зачем:
-		- Показывает фото/заглушку и базовые данные пользователя.
-		- Даёт точку входа для будущего редактирования профиля.
-*/
-
 export default function UserInfo({ className }: UserInfoProps) {
     const { user } = useAuth()
     const sick = user
-    // Временный вывод пользователя для отладки.
     console.log('user', user)
 
     return (

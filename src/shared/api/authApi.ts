@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { API_BASE_URL } from '../configs/config'
 
 /*
 	authApi — API слой.
@@ -6,7 +7,6 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 	Зачем:
 		- Определяет общие настройки и контракты API.
 */
-
 interface LoginRequest {
     identifier: string
     password: string
@@ -29,7 +29,7 @@ interface RegisterResponse {
 
 export const authApi = createApi({
     reducerPath: 'authApi',
-    baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+    baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
     endpoints: builder => ({
         loginUser: builder.mutation<LoginResponse, LoginRequest>({
             query: credentials => ({

@@ -17,14 +17,14 @@ export default function AppRouter() {
 
     return (
         <Routes>
-            {/* Все "нормальные" страницы под общим Layout */}
+
             <Route element={<Layout children={undefined} />}>
                 {routesWithLayout.map(route => (
                     <Route key={route.id} path={route.path} element={renderElement(route)} />
                 ))}
             </Route>
 
-            {/* "Голые" страницы без Layout */}
+
             {routesWithoutLayout.map(route => (
                 <Route key={route.id} path={route.path} element={renderElement(route)} />
             ))}

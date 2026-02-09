@@ -1,9 +1,4 @@
-/*
-	EyeClose — модуль.
 
-	Зачем:
-		- Содержит общую логику.
-*/
 interface EyeCloseProps {
     className?: string
 }
@@ -45,5 +40,4 @@ export function EyeClose({ className }: EyeCloseProps) {
         </svg>
     )
 }
-
 

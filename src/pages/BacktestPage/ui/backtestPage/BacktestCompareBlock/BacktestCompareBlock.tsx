@@ -3,18 +3,6 @@ import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { BacktestCompareSection } from '../BacktestCompareSection/BacktestCompareSection'
 import cls from './BacktestCompareBlock.module.scss'
-
-/*
-	BacktestCompareBlock — обёртка сравнения профилей.
-
-	Зачем:
-		- Защищает секцию сравнения через SectionErrorBoundary.
-
-	Контракты:
-		- profiles содержит список доступных профилей.
-*/
-
-// Пропсы блока сравнения профилей.
 interface BacktestCompareBlockProps {
     profiles: BacktestProfileDto[]
     profileAId: string | null

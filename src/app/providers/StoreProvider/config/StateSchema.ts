@@ -12,8 +12,6 @@ export interface StateSchema {
     user: UserSchema
     registration: RegistrationSchema
     loginForm: LoginSchema
-
-    // RTK Query-слайсы
     [api.reducerPath]: ReturnType<typeof api.reducer>
     [authApi.reducerPath]: ReturnType<typeof authApi.reducer>
     [registrationApi.reducerPath]: ReturnType<typeof registrationApi.reducer>

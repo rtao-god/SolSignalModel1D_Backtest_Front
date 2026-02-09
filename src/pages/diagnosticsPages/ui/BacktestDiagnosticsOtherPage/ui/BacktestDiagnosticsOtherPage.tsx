@@ -13,9 +13,8 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Сюда попадают редкие/новые таблицы вне основных групп.
         - Позволяет не терять данные при расширении отчёта.
 */
-
 export default function BacktestDiagnosticsOtherPage() {
-    const { data, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
         () =>
@@ -38,6 +37,7 @@ export default function BacktestDiagnosticsOtherPage() {
 
     return (
         <PageDataBoundary
+            isLoading={isPending}
             isError={isError}
             error={error}
             hasData={Boolean(data)}

@@ -9,31 +9,11 @@ import cls from './BacktestPolicyRatiosSection.module.scss'
 import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
-
-/*
-	BacktestPolicyRatiosSection — секция метрик политик.
-
-	Зачем:
-		- Показывает метрики политик в виде графика и таблицы.
-		- Даёт быстрый обзор качества через переключаемую метрику.
-
-	Источники данных и сайд-эффекты:
-		- useGetBacktestPolicyRatiosQuery() (RTK Query).
-
-	Контракты:
-		- profileId должен соответствовать существующему профилю на бэкенде.
-*/
-
-// Пропсы секции метрик политик.
 interface BacktestPolicyRatiosSectionProps {
     profileId?: string
     title?: string
 }
-
-// Поддерживаемые ключи метрик для графика.
 type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
-
-// Опции для селектора метрик.
 const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = [
     { key: 'totalPnlPct', label: 'PnL %', isPercent: true },
     { key: 'sharpe', label: 'Sharpe' },
@@ -66,8 +46,6 @@ export function BacktestPolicyRatiosSection({
 
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
     const isPercentMetric = Boolean(currentMetric.isPercent)
-
-    // Выбор значения метрики из строки отчёта.
     const selectMetric = (row: PolicyRatiosPerPolicyDto, key: MetricKey): number => {
         switch (key) {
             case 'totalPnlPct':
@@ -84,8 +62,6 @@ export function BacktestPolicyRatiosSection({
                 return 0
         }
     }
-
-    // Подготовка данных графика для текущей метрики.
     const chartData = useMemo(
         () =>
             (data?.policies ?? []).map(row => {

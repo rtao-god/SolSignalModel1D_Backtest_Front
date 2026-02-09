@@ -1,9 +1,4 @@
-/*
-	useCookie — пользовательский хук.
 
-	Зачем:
-		- Инкапсулирует логику useCookie.
-*/
 export const useCookie = () => {
     const cookies = `; ${document.cookie}`
 
@@ -33,5 +28,4 @@ export const useCookie = () => {
 
     return { getCookie, setCookie, removeCookie }
 }
-
 

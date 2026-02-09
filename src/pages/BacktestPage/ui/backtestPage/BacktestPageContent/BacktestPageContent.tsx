@@ -15,59 +15,24 @@ import { BacktestBaselineColumn } from '../BacktestBaselineColumn/BacktestBaseli
 import { BacktestWhatIfColumn } from '../BacktestWhatIfColumn/BacktestWhatIfColumn'
 import { BacktestCompareBlock } from '../BacktestCompareBlock/BacktestCompareBlock'
 
-/*
-	BacktestPageContent — основной UI полного бэктеста.
-
-	Зачем:
-		- Даёт сценарии baseline, what-if и сравнение профилей A/B.
-		- Организует навигацию по секциям через SectionPager.
-
-	Источники данных и сайд-эффекты:
-		- Preview запускается через usePreviewBacktestMutation().
-		- Внутренние состояния зависят от выбранного профиля и конфигурации.
-
-	Контракты:
-		- baselineSummary и profiles приходят уже загруженными и валидными.
-		- profiles содержит baseline или минимум один профиль для выбора.
-*/
-
-/*
-	baselineSummary и profiles приходят из boundary-слоя.
-
-	Контракты:
-		- profiles должен быть непустым массивом.
-*/
 interface BacktestPageContentProps {
     baselineSummary: BacktestSummaryDto
     profiles: BacktestProfileDto[]
 }
 
 export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageContentProps) {
-    // RTK mutation для запуска preview-бэктеста.
     const [previewBacktest, { isLoading: isPreviewLoading }] = usePreviewBacktestMutation()
-
-    // Текущий профиль и драфт его конфигурации.
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
     const [draftConfig, setDraftConfig] = useState<BacktestConfigDto | null>(null)
-    // Чекбоксы политик, выбранных для preview.
     const [selectedPolicies, setSelectedPolicies] = useState<Record<string, boolean>>({})
-    // Результат preview-бэктеста и ошибка.
     const [previewSummary, setPreviewSummary] = useState<BacktestSummaryDto | null>(null)
     const [previewError, setPreviewError] = useState<string | null>(null)
-
-    // Состояния для сравнения двух профилей.
     const [profileAId, setProfileAId] = useState<string | null>(null)
     const [profileBId, setProfileBId] = useState<string | null>(null)
-
-    // Результаты сравнения и ошибка.
     const [summaryA, setSummaryA] = useState<BacktestSummaryDto | null>(null)
     const [summaryB, setSummaryB] = useState<BacktestSummaryDto | null>(null)
-
-    // Флаги состояния сравнения профилей.
     const [isCompareLoading, setIsCompareLoading] = useState(false)
     const [compareError, setCompareError] = useState<string | null>(null)
-
-    // Определяем активный профиль (baseline → выбранный → первый).
     const currentProfile: BacktestProfileDto | null = useMemo(() => {
         if (!profiles || profiles.length === 0) return null
 
@@ -81,8 +46,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
 
         return profiles[0]
     }, [profiles, selectedProfileId])
-
-    // Вычисляем список активных политик для preview.
     const enabledPolicyNames = useMemo(
         () =>
             Object.entries(selectedPolicies)
@@ -90,8 +53,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
                 .map(([name]) => name),
         [selectedPolicies]
     )
-
-    // Инициализация выбранных профилей для what-if и compare.
     useEffect(() => {
         if (!profiles || profiles.length === 0) return
 
@@ -111,8 +72,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             setProfileBId(alt.id)
         }
     }, [profiles, selectedProfileId, profileAId, profileBId])
-
-    // Инициализация драфт-конфига и включённых политик при смене профиля.
     useEffect(() => {
         if (!currentProfile || !currentProfile.config) {
             setDraftConfig(null)
@@ -134,17 +93,11 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         setPreviewSummary(null)
         setPreviewError(null)
     }, [currentProfile])
-
-    // Секции для SectionPager задаём до раннего return, чтобы хуки не меняли порядок.
     const pagerSections = BACKTEST_FULL_TABS
-
-    // Хук навигации по секциям (должен вызываться без условий).
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: pagerSections,
         syncHash: true
     })
-
-    // Локальный guard на случай, если нет валидного профиля/конфига (доменный кейс, не HTTP).
     if (!currentProfile || !currentProfile.config || !draftConfig) {
         return (
             <div className={cls.content}>
@@ -152,8 +105,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             </div>
         )
     }
-
-    // Обработчик изменения дневного SL (в процентах).
     const handleStopPctChange = (valueStr: string) => {
         if (!draftConfig) return
         const normalized = valueStr.replace(',', '.')
@@ -167,8 +118,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             dailyStopPct: value / 100
         })
     }
-
-    // Обработчик изменения дневного TP (в процентах).
     const handleTpPctChange = (valueStr: string) => {
         if (!draftConfig) return
         const normalized = valueStr.replace(',', '.')
@@ -182,16 +131,12 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             dailyTpPct: value / 100
         })
     }
-
-    // Чекбокс включения/выключения политики.
     const handlePolicyEnabledChange = (name: string, checked: boolean) => {
         setSelectedPolicies(prev => ({
             ...prev,
             [name]: checked
         }))
     }
-
-    // Редактирование плеча конкретной политики.
     const handlePolicyLeverageChange = (name: string, valueStr: string) => {
         if (!draftConfig) return
 
@@ -206,8 +151,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             policies: draftConfig.policies.map(p => (p.name === name ? { ...p, leverage: value } : p))
         })
     }
-
-    // Запуск preview-бэктеста для текущего драфта.
     const handleRunPreview = async () => {
         if (!draftConfig) return
 
@@ -227,8 +170,6 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             setPreviewError(String(message))
         }
     }
-
-    // Запуск сравнения двух профилей.
     const handleRunCompare = async () => {
         if (!profiles || profiles.length === 0) return
 

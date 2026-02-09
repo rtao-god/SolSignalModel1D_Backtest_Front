@@ -14,16 +14,6 @@ const CONFIG_COLUMN_TOOLTIPS: Record<string, string> = {
 const renderTooltip = (term: string, description?: string) =>
     description ? <TermTooltip term={term} description={description} type='span' /> : term
 
-/*
-	BacktestConfigEditor — редактор what-if конфига профиля.
-
-	Зачем:
-		- Позволяет менять SL/TP и политики для preview.
-		- Управляет включением политик и их плечом.
-
-	Контракты:
-		- draftConfig содержит валидные параметры профиля.
-*/
 export function BacktestConfigEditor({
     currentProfile,
     draftConfig,

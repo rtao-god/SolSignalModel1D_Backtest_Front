@@ -15,30 +15,8 @@ import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import type { PfiPageProps, PfiTableCardProps } from './types'
-
-/*
-	PfiPage — отчёт важности признаков (PFI).
-
-	Зачем:
-		- Показывает вклад фичей по всем моделям.
-		- Даёт экспорт таблиц и навигацию по секциям.
-
-	Источники данных и сайд-эффекты:
-		- usePfiPerModelReportQuery() (TanStack Query).
-
-	Контракты:
-		- Табличные секции обязаны иметь columns и rows.
-*/
-
-// Индексы колонок, которые показываются в бизнес-режиме.
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
-/*
-	Карточка таблицы PFI.
-
-	- Показывает таблицу по одной секции отчёта.
-	- Даёт переключатель business/technical и экспорт.
-*/
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
     const [mode, setMode] = useState<ViewMode>('business')
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])

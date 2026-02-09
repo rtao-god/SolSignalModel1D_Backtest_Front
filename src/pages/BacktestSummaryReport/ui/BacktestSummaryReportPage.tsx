@@ -6,19 +6,6 @@ import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocu
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 
-/*
-	BacktestSummaryReportPage — сводный отчёт бэктеста.
-
-	Зачем:
-		- Показывает общий отчёт baseline-бэктеста.
-		- Рендерит секции через ReportDocumentView.
-
-	Источники данных и сайд-эффекты:
-		- useBacktestBaselineSummaryReportQuery() (TanStack Query).
-
-	Контракты:
-		- ReportDocumentView получает валидный report.
-*/
 export default function BacktestSummaryReportPage({ className }: BacktestSummaryReportProps) {
     const { data, isError, error, refetch } = useBacktestBaselineSummaryReportQuery()
 

@@ -42,8 +42,6 @@ export default function Calendar({ className }: CalendarProps) {
         setCurrentMonth(newMonth)
         setCurrentYear(newYear)
     }
-
-    // Рассчитываем следующий месяц и год для отображения второго месяца
     let nextMonth = currentMonth + 1
     let nextYear = currentYear
 

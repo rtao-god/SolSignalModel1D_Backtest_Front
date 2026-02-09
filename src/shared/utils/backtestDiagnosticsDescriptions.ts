@@ -1,10 +1,4 @@
-/*
-    backtestDiagnosticsDescriptions — подробные описания таблиц бэктест-диагностики.
 
-    Зачем:
-        - Дать новичку понятный контекст прямо над таблицей.
-        - Обеспечить единый словарь описаний по всем страницам.
-*/
 
 interface DescriptionRule {
     match: RegExp
@@ -198,8 +192,6 @@ function normalizeReportTitle(title: string): string {
     if (!title) return ''
     return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
 }
-
-// Возвращает описание по заголовку таблицы.
 export function resolveBacktestDiagnosticsDescription(title: string): string | null {
     if (!title) {
         return null

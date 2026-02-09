@@ -5,19 +5,9 @@ import { createSuspenseReportHook } from './utils/createSuspenseReportHook'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
 
-/*
-    policyBranchMega — TanStack Query hooks.
-
-    Зачем:
-        - Даёт доступ к отчёту policy_branch_mega (Policy Branch Mega, all history, with SL).
-*/
-
 const POLICY_BRANCH_MEGA_QUERY_KEY = ['backtest', 'policy-branch-mega'] as const
 const { path } = API_ROUTES.backtest.policyBranchMegaGet
 
-/*
-    Suspense-хук для отчёта policy_branch_mega.
-*/
 export const usePolicyBranchMegaReportQuery = createSuspenseReportHook<ReportDocumentDto>({
     queryKey: POLICY_BRANCH_MEGA_QUERY_KEY,
     path,
@@ -27,8 +17,6 @@ export const usePolicyBranchMegaReportQuery = createSuspenseReportHook<ReportDoc
 interface UsePolicyBranchMegaNavOptions {
     enabled: boolean
 }
-
-// Низкоуровневый fetch для не-suspense вариантов (Main/Sidebar).
 async function fetchPolicyBranchMegaReport(): Promise<ReportDocumentDto> {
     const resp = await fetch(`${API_BASE_URL}${path}`)
 
@@ -41,9 +29,6 @@ async function fetchPolicyBranchMegaReport(): Promise<ReportDocumentDto> {
     return mapReportResponse(raw)
 }
 
-/*
-    Неспенсовый вариант для сайдбара и Main.
-*/
 export function usePolicyBranchMegaReportNavQuery(
     options: UsePolicyBranchMegaNavOptions
 ): UseQueryResult<ReportDocumentDto, Error> {

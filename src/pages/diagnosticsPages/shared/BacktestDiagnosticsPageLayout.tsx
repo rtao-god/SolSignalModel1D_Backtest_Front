@@ -8,14 +8,6 @@ import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import { resolveBacktestDiagnosticsDescription } from '@/shared/utils/backtestDiagnosticsDescriptions'
 import cls from './BacktestDiagnosticsPageLayout.module.scss'
 
-/*
-    BacktestDiagnosticsPageLayout — общий каркас страниц диагностики.
-
-    Зачем:
-        - Единый header + мета-информация отчёта.
-        - Унифицированный рендер табличных секций.
-*/
-
 interface BacktestDiagnosticsPageLayoutProps {
     report: ReportDocumentDto
     sections: TableSectionDto[]

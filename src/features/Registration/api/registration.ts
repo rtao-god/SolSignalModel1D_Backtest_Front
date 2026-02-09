@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { userActions } from '@/entities/User'
+import { API_BASE_URL } from '@/shared/configs/config'
 
 interface RegistrationResponse {
     id: number
@@ -14,7 +15,7 @@ interface RegistrationRequest {
 
 export const registrationApi = createApi({
     reducerPath: 'registrationApi',
-    baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+    baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
     endpoints: builder => ({
         registerUser: builder.mutation<RegistrationResponse, RegistrationRequest>({
             query: ({ identifier, password }) => ({

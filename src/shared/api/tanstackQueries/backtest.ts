@@ -3,13 +3,6 @@ import type { BacktestBaselineSnapshotDto, BacktestSummaryDto } from '@/shared/t
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 
-/*
-	backtest — TanStack Query hooks.
-
-	Зачем:
-		- Даёт запросы для report-эндпоинтов и suspense-режима.
-*/
-
 const BACKTEST_BASELINE_SUMMARY_URL = '/backtest/summary'
 const BACKTEST_BASELINE_SNAPSHOT_URL = '/backtest/baseline'
 
@@ -34,19 +27,12 @@ async function fetchBacktestBaselineSnapshot(): Promise<BacktestBaselineSnapshot
     return (await resp.json()) as BacktestBaselineSnapshotDto
 }
 
-/*
-	Suspense-версия baseline summary-отчёта бэктеста.
-
-	- Ошибки не пробрасываются в ErrorBoundary (useErrorBoundary по умолчанию false), чтобы страница могла отрисовать свой ErrorBlock.
-*/
 export function useBacktestBaselineSummaryReportQuery(): UseSuspenseQueryResult<BacktestSummaryDto, Error> {
     return useSuspenseQuery({
         queryKey: ['backtest', 'summary', 'baseline'],
         queryFn: fetchBacktestBaselineSummary
     })
 }
-
-// Suspense-версия лёгкого снапшота baseline-бэктеста.
 export function useBacktestBaselineSnapshotQuery(): UseSuspenseQueryResult<BacktestBaselineSnapshotDto, Error> {
     return useSuspenseQuery({
         queryKey: ['backtest', 'baseline', 'snapshot'],

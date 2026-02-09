@@ -5,11 +5,6 @@ import cls from './TableExportButton.module.scss'
 import TableExportButtonProps from './types'
 import { Btn } from '../../Btn'
 
-/*
-	Универсальная кнопка-иконка экспорта таблицы.
-
-	- Можно повесить в правый верхний угол любой карточки с таблицей.
-*/
 export default function TableExportButton({
     className,
     columns,
@@ -28,7 +23,6 @@ export default function TableExportButton({
     }
 
     const handleExport = (format: TableExportFormat) => {
-        // Нормализация значений до "прямоугольной" таблицы.
         const safeRows = (rows ?? []).map(row => row ?? [])
 
         exportTable({
@@ -44,7 +38,7 @@ export default function TableExportButton({
     return (
         <div className={classNames(cls.TableExportButton, {}, [className ?? ''])}>
             <Btn className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу'>
-                {/* Простейшая иконка "download" через SVG, чтобы не тянуть сторонние пакеты. */}
+
                 <svg className={cls.icon} viewBox='0 0 24 24' aria-hidden='true'>
                     <path
                         d='M12 3.5a.75.75 0 0 1 .75.75v8.19l2.72-2.72a.75.75 0 0 1 1.06 1.06l-4.06 4.06a.75.75 0 0 1-1.06 0L7.35 10.78a.75.75 0 0 1 1.06-1.06l2.84 2.84V4.25A.75.75 0 0 1 12 3.5z'
@@ -60,7 +54,6 @@ export default function TableExportButton({
             {open && (
                 <div
                     className={cls.menu}
-                    // Простейшая закрывашка при уходе фокуса: можно улучшить позже за счёт глобального слушателя кликов.
                     onMouseLeave={handleClose}>
                     <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat)}>
                         Скачать как {defaultFormat.toUpperCase()}

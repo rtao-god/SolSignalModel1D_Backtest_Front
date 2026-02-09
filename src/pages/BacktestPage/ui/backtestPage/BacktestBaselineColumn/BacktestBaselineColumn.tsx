@@ -5,18 +5,6 @@ import { BacktestPolicyRatiosSection } from '../BacktestPolicyRatiosSection/Back
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import cls from './BacktestBaselineColumn.module.scss'
-
-/*
-	BacktestBaselineColumn — колонка baseline-бэктеста.
-
-	Зачем:
-		- Показывает baseline summary и метрики политик.
-
-	Контракты:
-		- baselineSummary содержит валидный summary бэктеста.
-*/
-
-// Пропсы колонки baseline-бэктеста.
 interface BacktestBaselineColumnProps {
     baselineSummary: BacktestSummaryDto
 }

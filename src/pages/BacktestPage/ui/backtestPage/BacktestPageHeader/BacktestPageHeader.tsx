@@ -1,19 +1,6 @@
 import { Text } from '@/shared/ui'
 import type { BacktestProfileDto } from '@/shared/types/backtest.types'
 import cls from './BacktestPageHeader.module.scss'
-
-/*
-	BacktestPageHeader — шапка страницы бэктеста.
-
-	Зачем:
-		- Показывает заголовок и описание страницы.
-		- Даёт селектор текущего профиля бэктеста.
-
-	Контракты:
-		- profiles содержит список доступных профилей.
-*/
-
-// Пропсы шапки страницы бэктеста.
 interface BacktestPageHeaderProps {
     profiles: BacktestProfileDto[]
     currentProfile: BacktestProfileDto | null

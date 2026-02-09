@@ -5,19 +5,6 @@ import type {
 import type { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
-/*
-	aggregationEndpoints — endpoints API.
-
-	Зачем:
-		- Даёт доступ к агрегированным вероятностям и метрикам.
-*/
-
-/*
-	Эндпоинты агрегации прогнозов.
-
-	- /backtest/aggregation/probs
-	- /backtest/aggregation/metrics
-*/
 export const aggregationEndpoints = (builder: ApiEndpointBuilder) => {
     const { aggregationProbs, aggregationMetrics } = API_ROUTES.backtest
 

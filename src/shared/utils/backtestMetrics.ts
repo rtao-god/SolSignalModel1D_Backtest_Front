@@ -1,18 +1,6 @@
 import type { BacktestSummaryDto } from '@/shared/types/backtest.types'
 import type { KeyValueSectionDto } from '@/shared/types/report.types'
 
-/*
-	backtestMetrics — утилиты.
-
-	Зачем:
-		- Содержит вспомогательные функции для доменной логики.
-*/
-
-/*
-	Вытаскивает числовое значение метрики из KeyValue-секций по ключу.
-
-	- Например, BestTotalPnlPct, WorstMaxDdPct и т.п.
-*/
 export function getMetricValue(summary: BacktestSummaryDto | null, key: string): number | null {
     if (!summary) return null
     if (!Array.isArray(summary.sections)) return null

@@ -30,7 +30,6 @@ const loginSlice = createSlice({
                 state.isLoading = true
                 state.error = undefined
             })
-            // You can chain calls, or have separate `builder.addCase()` lines each time
             .addCase(loginByIdentifier.fulfilled, state => {
                 state.isLoading = false
                 state.error = ''
@@ -42,9 +41,6 @@ const loginSlice = createSlice({
     }
 })
 
-/* export const { actions: loginActions } = loginSlice
-export const { reducer: loginReducer } = loginSlice
- */
 export const { setIdentifier, setPassword, setError } = loginSlice.actions
 
 export default loginSlice.reducer

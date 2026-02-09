@@ -1,9 +1,4 @@
-/*
-	aggregationTabs — подпункты страницы агрегации прогнозов.
 
-	Зачем:
-		- Дает статический список якорей для Sidebar.
-*/
 
 export interface AggregationTabConfig {
     id: string

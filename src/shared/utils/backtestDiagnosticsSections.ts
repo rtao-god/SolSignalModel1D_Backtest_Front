@@ -1,10 +1,4 @@
-/*
-    backtestDiagnosticsSections — распределение таблиц по страницам.
 
-    Зачем:
-        - Гарантирует, что все таблицы из отчёта попадут на фронт.
-        - Разделяет «рейтинги», «диагностики» и «статистику по дням».
-*/
 
 import type { TableSectionDto } from '@/shared/types/report.types'
 
@@ -84,8 +78,6 @@ export interface DiagnosticsTabGroup {
     label: string
     tabs: DiagnosticsTabConfig[]
 }
-
-// Раскладываем секции отчёта по категориям, сохраняя порядок.
 export function splitBacktestDiagnosticsSections(sections: TableSectionDto[]): BacktestDiagnosticsSectionsSplit {
     const result: BacktestDiagnosticsSectionsSplit = {
         ratings: [],
@@ -129,10 +121,6 @@ export function toDiagnosticsSectionRefs(sections: TableSectionDto[]): Diagnosti
     return sections.map((section, index) => ({ section, index }))
 }
 
-/*
-    Собирает вкладки для сайдбара под страницы диагностики/анализа.
-    Якоря должны совпадать с BacktestDiagnosticsPageLayout (diag-section-N).
-*/
 export function buildDiagnosticsTabsFromSections(sections: DiagnosticsSectionRef[]): DiagnosticsTabConfig[] {
     return sections.map(ref => {
         const id = `diag-section-${ref.index + 1}`

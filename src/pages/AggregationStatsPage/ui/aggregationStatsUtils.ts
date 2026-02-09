@@ -2,12 +2,6 @@ import type { DayDirectionLabelDto, UtcDayKeyDto } from '@/shared/types/aggregat
 import { formatIsoDateHuman } from '@/shared/utils/dateFormat'
 import { formatCount, formatPercent, formatProb3, formatNumber } from '@/shared/utils/numberFormat'
 
-/*
-	Утилиты страницы AggregationStatsPage.
-
-	- Форматирование UtcDayKey, вероятностей и меток.
-*/
-
 function pad2(value: number): string {
     return value < 10 ? `0${value}` : String(value)
 }
@@ -29,8 +23,6 @@ function toNumberOrNull(value: unknown): number | null {
     }
     return null
 }
-
-// Нормализует UtcDayKey в ISO-строку YYYY-MM-DD.
 export function formatUtcDayKey(value: UtcDayKeyDto | null | undefined): string {
     if (!value) {
         throw new Error('[ui] Missing UtcDayKey value.')
@@ -60,14 +52,10 @@ export function formatUtcDayKey(value: UtcDayKeyDto | null | undefined): string 
 
     throw new Error('[ui] UtcDayKey value is invalid or incomplete.')
 }
-
-// Человекочитаемый формат даты (ru-RU): "1 сентября" или "1 сентября 2025".
 export function formatUtcDayKeyHuman(value: UtcDayKeyDto | null | undefined): string {
     const iso = formatUtcDayKey(value)
     return formatIsoDateHuman(iso, { locale: 'ru-RU', omitYearForCurrent: true, timeZone: 'UTC' })
 }
-
-// Приводит метку направления к UI-подписке.
 export function formatDayDirectionLabel(label: DayDirectionLabelDto): string {
     if (label === null || typeof label === 'undefined') {
         throw new Error('[ui] Missing DayDirectionLabel value.')
@@ -89,6 +77,4 @@ export function formatRange(from: UtcDayKeyDto | null | undefined, to: UtcDayKey
     }
     return `${fromText} → ${toText}`
 }
-
-// Re-export форматтеров чисел для обратной совместимости импорта.
 export { formatCount, formatPercent, formatProb3, formatNumber }

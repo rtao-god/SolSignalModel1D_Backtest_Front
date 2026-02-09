@@ -1,0 +1,79 @@
+.ExplainSplitsPage {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.headerRow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.subtitle {
+    max-width: 760px;
+    opacity: 0.8;
+}
+
+.sectionsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 980px;
+}
+
+.sectionCard {
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.sectionTitle {
+    margin-bottom: 8px;
+}
+
+.sectionText {
+    opacity: 0.85;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.tableWrap {
+    overflow-x: auto;
+    margin-bottom: 14px;
+}
+
+.infoTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 660px;
+}
+
+.infoTable th,
+.infoTable td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    font-size: 13px;
+    vertical-align: top;
+    line-height: 1.45;
+}
+
+.infoTable th {
+    text-align: left;
+    opacity: 0.9;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.termGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.termItem {
+    font-size: 14px;
+}

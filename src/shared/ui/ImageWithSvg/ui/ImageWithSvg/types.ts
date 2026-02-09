@@ -8,4 +8,3 @@ export default interface ImageWithSvgProps extends ImgHTMLAttributes<HTMLImageEl
     className?: string
 }
 
-

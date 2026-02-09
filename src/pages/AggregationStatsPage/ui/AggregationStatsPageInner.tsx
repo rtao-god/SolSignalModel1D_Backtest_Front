@@ -79,22 +79,6 @@ const renderTooltip = (term: string, description?: string) => {
     return <TermTooltip term={term} description={description} type='span' />
 }
 
-/*
-	AggregationStatsPageInner — UI отчёта по агрегации вероятностей и метрик.
-
-	Зачем:
-		- Показывает агрегированные вероятности по сегментам (Day / Day+Micro / Total).
-		- Дает метрики качества и матрицы ошибок по тем же сегментам.
-		- Добавляет debug-таблицу последних дней для диагностики overlay-слоёв.
-
-	Источники данных и сайд-эффекты:
-		- Данные приходят через props (готовые снапшоты).
-		- useSectionPager синхронизирует hash и скролл по секциям.
-
-	Контракты:
-		- Сегменты приходят уже отсортированными бэкендом.
-		- DebugLastDays может быть пустым (UI это допускает).
-*/
 export function AggregationStatsPageInner({ className, probs, metrics }: AggregationStatsPageInnerProps) {
     const rootClassName = classNames(cls.AggregationStatsPage, {}, [className ?? ''])
 
@@ -243,8 +227,6 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
         </div>
     )
 }
-
-// Карточка одного сегмента для вероятностей.
 function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshotDto }) {
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
@@ -296,8 +278,6 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
         </div>
     )
 }
-
-// Строка таблицы средних вероятностей.
 function LayerAvgRow({
     name,
     layer
@@ -315,8 +295,6 @@ function LayerAvgRow({
         </tr>
     )
 }
-
-// Карточка сегмента с метриками качества.
 function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSnapshotDto }) {
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
@@ -337,8 +315,6 @@ function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSna
         </div>
     )
 }
-
-// Карточка метрик одного слоя.
 function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
     const accuracy = formatPercent(layer.Accuracy)
     const microF1 = formatPercent(layer.MicroF1)
@@ -380,8 +356,6 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
         </div>
     )
 }
-
-// Таблица confusion matrix (true vs predicted).
 function ConfusionMatrixTable({ layer }: { layer: LayerMetricsSnapshotDto }) {
     const labels = ['Падение', 'Боковик', 'Рост']
 
@@ -417,8 +391,6 @@ function ConfusionMatrixTable({ layer }: { layer: LayerMetricsSnapshotDto }) {
         </table>
     )
 }
-
-// Debug-строка последнего дня.
 function DebugRow({ row }: { row: AggregationProbsDebugRowDto }) {
     const dayKeyLabel = formatUtcDayKey(row.DateUtc)
     return (

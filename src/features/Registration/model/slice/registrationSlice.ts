@@ -35,9 +35,6 @@ export const registrationSlice = createSlice({
     }
 })
 
-/* export const { actions: registrationActions } = registrationSlice
-export const { reducer: registrationReducer } = registrationSlice
- */
 export const { setIdentifier, setBirthday, setPassword, setConfirmPassword, setIsChecked, setError } =
     registrationSlice.actions
 

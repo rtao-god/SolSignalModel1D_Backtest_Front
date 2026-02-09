@@ -4,8 +4,6 @@ import { Btn, Rows, Input, Text } from '@/shared/ui'
 import classNames from '@/shared/lib/helpers/classNames'
 import { useRegister } from '@/shared/lib/hooks/useRegister'
 import cls from './RegistrationForm.module.scss'
-
-// import { Policy } from "../Policy";
 import RegistrationFormProps from './types'
 import {
     getBirthday,

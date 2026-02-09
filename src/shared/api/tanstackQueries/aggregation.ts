@@ -6,13 +6,6 @@ import type {
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 
-/*
-	aggregation — TanStack Query hooks.
-
-	Зачем:
-		- Даёт запросы для агрегации вероятностей и метрик.
-*/
-
 const { aggregationProbs, aggregationMetrics } = API_ROUTES.backtest
 
 async function fetchAggregationProbs(): Promise<AggregationProbsSnapshotDto> {
@@ -36,16 +29,12 @@ async function fetchAggregationMetrics(): Promise<AggregationMetricsSnapshotDto>
 
     return (await resp.json()) as AggregationMetricsSnapshotDto
 }
-
-// Агрегация вероятностей (suspense).
 export function useAggregationProbsQuery(): UseSuspenseQueryResult<AggregationProbsSnapshotDto, Error> {
     return useSuspenseQuery({
         queryKey: ['aggregation', 'probs'],
         queryFn: fetchAggregationProbs
     })
 }
-
-// Агрегация метрик (suspense).
 export function useAggregationMetricsQuery(): UseSuspenseQueryResult<AggregationMetricsSnapshotDto, Error> {
     return useSuspenseQuery({
         queryKey: ['aggregation', 'metrics'],

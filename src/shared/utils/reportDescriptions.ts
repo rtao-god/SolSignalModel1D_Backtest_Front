@@ -1,10 +1,4 @@
-/*
-    reportDescriptions — подробные описания секций отчётов.
 
-    Зачем:
-        - Давать начинающим пользователям понятный контекст над таблицами/секциями.
-        - Использовать единый словарь для всех страниц, где рендерятся ReportDocument.
-*/
 
 function normalizeTitle(title: string | undefined): string {
     if (!title) return ''

@@ -3,18 +3,6 @@ import type { TUserDataForPutRequest } from '@/entities/User/model/types/UserSch
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
-/*
-	userEndpoints — endpoints API.
-
-	Зачем:
-		- Инкапсулирует RTK Query эндпоинты пользователя и профиля.
-*/
-
-/*
-	Группа эндпоинтов, связанных с пользователем и профилем.
-
-	- Каждый endpoint использует URL и метод из централизованного API_ROUTES.
-*/
 export const buildUserEndpoints = (builder: ApiEndpointBuilder) => {
     const { detailGet, detailPut } = API_ROUTES.user
 

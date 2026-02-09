@@ -4,17 +4,6 @@ import { DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 import cls from './DocsTestsPage.module.scss'
 import type { DocsTestsPageProps } from './types'
 
-/*
-	DocsTestsPage — описание тестов и self-check'ов.
-
-	Зачем:
-		- Объясняет назначение тестов и проверок пайплайна.
-		- Дает якоря для навигации по разделам тестов.
-
-	Контракты:
-		- DOCS_TESTS_TABS содержит стабильные id/anchor для секций.
-*/
-
 export default function DocsTestsPage({ className }: DocsTestsPageProps) {
     const SECTION_TEXT: Record<string, string> = {
         'tests-overview':

@@ -7,4 +7,3 @@ export default interface RowsProps {
     className?: string
 }
 
-

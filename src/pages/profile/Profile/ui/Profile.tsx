@@ -6,14 +6,6 @@ import { LogoutBtn } from '@/widgets/components'
 import { useDispatch } from 'react-redux'
 import { userActions } from '@/entities/User'
 
-/*
-	Profile — страница профиля пользователя.
-
-	Зачем:
-		- Показывает информацию о пользователе.
-		- Даёт кнопку выхода из системы.
-*/
-
 export default function Profile({ className }: ProfileProps) {
     const dispatch = useDispatch()
     return (

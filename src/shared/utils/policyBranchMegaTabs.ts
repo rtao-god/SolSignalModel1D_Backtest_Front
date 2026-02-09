@@ -1,13 +1,5 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 
-/*
-    policyBranchMegaTabs — утилиты вкладок для Policy Branch Mega.
-
-    Зачем:
-        - Держит стабильные якоря (#policy-branch-section-N).
-        - Нормализует заголовки без декоративных ===.
-*/
-
 export interface PolicyBranchMegaTabConfig {
     id: string
     label: string
@@ -30,14 +22,10 @@ const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     'sum-buckets': 'total',
     'total-buckets': 'total'
 }
-
-// Убираем декоративные символы отчёта, чтобы заголовок читался на фронте.
 export function normalizePolicyBranchMegaTitle(title: string | undefined): string {
     if (!title) return ''
     return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
 }
-
-// Разбираем bucket-параметр из query (bucket=...).
 export function resolvePolicyBranchMegaBucketFromQuery(
     raw: string | null | undefined,
     fallback: PolicyBranchMegaBucketMode
@@ -54,8 +42,6 @@ export function resolvePolicyBranchMegaBucketFromQuery(
 
     return mapped
 }
-
-// Пытаемся извлечь bucket-метку из заголовка секции.
 export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined): PolicyBranchMegaBucketMode | null {
     if (!title) return null
 
@@ -93,8 +79,6 @@ export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined
 
     return matches.length === 1 ? matches[0] : null
 }
-
-// Фильтруем секции по bucket-режиму (daily/intraday/delayed/total).
 export function filterPolicyBranchMegaSectionsByBucketOrThrow(
     sections: TableSectionDto[],
     bucket: PolicyBranchMegaBucketMode
@@ -111,11 +95,11 @@ export function filterPolicyBranchMegaSectionsByBucketOrThrow(
     const hasAnyTag = tagged.some(item => item.bucket !== null)
 
     if (!hasAnyTag) {
-        if (bucket === 'total') {
+        if (bucket === 'total' || bucket === 'daily') {
             return sections
         }
 
-        throw new Error(`[policy-branch-mega] bucket sections are missing for ${bucket}.`)
+        return []
     }
 
     if (tagged.some(item => item.bucket === null)) {
@@ -130,8 +114,6 @@ export function filterPolicyBranchMegaSectionsByBucketOrThrow(
 
     return filtered
 }
-
-// Пробуем вынуть номер части из заголовка "[PART 1/3]".
 function extractPartNumber(title: string | undefined): number | null {
     if (!title) return null
 
@@ -152,8 +134,6 @@ function extractPartNumber(title: string | undefined): number | null {
 
     return parsed
 }
-
-// Режим нужен, чтобы вкладки не смешивали WITH SL и NO SL.
 function resolveModePrefix(title: string | undefined): string {
     if (!title) return ''
 
@@ -163,8 +143,6 @@ function resolveModePrefix(title: string | undefined): string {
 
     return ''
 }
-
-// Финальная подпись вкладки (если номер части распознан, используем его).
 function resolvePartLabel(title: string | undefined, index: number): string {
     const part = extractPartNumber(title)
     const modePrefix = resolveModePrefix(title)
@@ -177,8 +155,6 @@ function resolvePartLabel(title: string | undefined, index: number): string {
 
     return `${modePrefix}Секция ${index + 1}`
 }
-
-// Формируем вкладки/якоря по секциям отчёта.
 export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[]): PolicyBranchMegaTabConfig[] {
     return sections.map((section, index) => {
         const id = `policy-branch-section-${index + 1}`

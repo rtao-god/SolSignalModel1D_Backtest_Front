@@ -17,13 +17,6 @@ interface ReportDocumentViewProps {
     className?: string
 }
 
-/*
-	Компонент отображения отчёта ReportDocumentDto.
-
-	- Шапка с title/kind/id и временем генерации.
-	- Универсальный рендер секций (KeyValue, таблицы, JSON-фолбэк).
-	- Стили заточены под тёмную тему.
-*/
 export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
     const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
 
@@ -84,13 +77,9 @@ interface SectionRendererProps {
     section: ReportSectionDto
     reportKind?: string
 }
-
-// Определение, является ли секция KeyValue-форматом.
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
     return Array.isArray((section as KeyValueSectionDto).items)
 }
-
-// Определение, является ли секция табличной.
 function isTableSection(section: ReportSectionDto): section is TableSectionDto {
     const tbl = section as TableSectionDto
     return Array.isArray(tbl.columns) && Array.isArray(tbl.rows)
@@ -98,11 +87,6 @@ function isTableSection(section: ReportSectionDto): section is TableSectionDto {
 
 type DirectionKind = 'long' | 'short' | 'flat'
 
-/*
-	Эвристика для определения направления по строковому значению.
-
-	- Нужна, чтобы подсветить значения типа "long"/"short"/"flat".
-*/
 function detectDirection(value: unknown): DirectionKind | null {
     if (value === null || value === undefined) {
         return null
@@ -130,13 +114,6 @@ function normalizeReportTitle(title: string | undefined): string {
     return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
 }
 
-/*
-	Рендер одной секции отчёта.
-
-	- KeyValue секции.
-	- Табличные секции.
-	- JSON-фолбэк для новых/неизвестных структур.
-*/
 function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto

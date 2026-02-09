@@ -5,4 +5,3 @@ export default interface PageSuspenseProps {
     children: ReactNode
 }
 
-

@@ -1,16 +1,9 @@
-/*
-	docsTabs — утилиты.
 
-	Зачем:
-		- Содержит вспомогательные функции для доменной логики.
-*/
 export interface DocsTabConfig {
     id: string
     label: string
     anchor: string
 }
-
-// Подвкладки для страницы описания моделей.
 export const DOCS_MODELS_TABS: DocsTabConfig[] = [
     {
         id: 'models-overview',
@@ -38,8 +31,6 @@ export const DOCS_MODELS_TABS: DocsTabConfig[] = [
         anchor: 'models-pipeline'
     }
 ]
-
-// Подвкладки для страницы описания тестов и self-check'ов.
 export const DOCS_TESTS_TABS: DocsTabConfig[] = [
     {
         id: 'tests-overview',
@@ -62,5 +53,4 @@ export const DOCS_TESTS_TABS: DocsTabConfig[] = [
         anchor: 'tests-perf'
     }
 ]
-
 

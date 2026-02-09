@@ -12,6 +12,14 @@ import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
+import {
+    EXPLAIN_BRANCHES_TABS,
+    EXPLAIN_FEATURES_TABS,
+    EXPLAIN_MODELS_TABS,
+    EXPLAIN_PROJECT_TABS,
+    EXPLAIN_SPLITS_TABS,
+    EXPLAIN_TIME_TABS
+} from '@/shared/utils/explainTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 import { buildPolicyBranchMegaTabsFromSections } from '@/shared/utils/policyBranchMegaTabs'
 import {
@@ -26,32 +34,38 @@ import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueri
 import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 
 /*
-    Sidebar — левое меню навигации.
+	Sidebar — единый слой навигации по разделам приложения: собирает пункты из route-конфига, фильтрует их по контексту текущей страницы и строит поднавигацию по hash-якорям из отчётных секций.
 
-    Зачем:
-        - Группирует пункты по разделам (predictions/models/backtest/analysis/diagnostics).
-        - Подтягивает hash-навигацию для страниц с секциями (PFI, diagnostics, policy-branch-mega).
+	Зачем:
+		- Держит в одном месте правила отображения левого меню для обычных разделов, docs/explain и отчётных страниц.
+		- Синхронизирует UI меню с маршрутом и hash, чтобы пользователь видел активный раздел и подпункт.
+
+	Источники данных и сайд-эффекты:
+		- Источник базовой навигации: SIDEBAR_NAV_ITEMS из роутера.
+		- Источник динамических подпунктов: PFI/Diagnostics/PolicyBranchMega отчёты (tanstack query), включаемые только на релевантных страницах.
+		- Побочный эффект: при сбросе hash выполняем скролл страницы к началу.
+
+	Контракты:
+		- Для динамических табов учитываются только валидные table-секции с непустыми колонками.
+		- Для Policy Branch Mega при клике по якорю сохраняется query-строка (bucket), иначе теряется контекст выбранного режима.
 */
-
 interface SidebarProps {
     className?: string
-    /**
-     * Режим отображения:
-     * - default — обычный сайдбар в лэйауте (ПК)
-     * - modal   — тот же контент, но внутри модалки (мобилка/планшет)
-     */
+
     mode?: 'default' | 'modal'
-    /**
-     * Коллбек на клик по пункту меню (основному или подвкладке).
-     * В моб. режиме используется для закрытия модалки.
-     */
+
     onItemClick?: () => void
 }
-
-// Порядок секций в сайдбаре для "боевого" режима
-const SECTION_ORDER: RouteSection[] = ['predictions', 'models', 'backtest', 'analysis', 'diagnostics', 'features']
-
-// Человеко-читаемые заголовки секций
+const SECTION_ORDER: RouteSection[] = [
+    'predictions',
+    'models',
+    'backtest',
+    'analysis',
+    'diagnostics',
+    'features',
+    'docs',
+    'explain'
+]
 const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
     predictions: 'Прогнозы',
     models: 'Модели',
@@ -59,27 +73,26 @@ const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
     analysis: 'Анализ',
     diagnostics: 'Диагностика',
     features: 'Фичи',
-    docs: 'Документация'
-    // system выводить не нужно — там служебные вещи
+    docs: 'Документация',
+    explain: 'Объяснение'
 }
 
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t } = useTranslation('')
     const location = useLocation()
 
+    // Режим страницы определяет, какие секции вообще должны быть видимы в сайдбаре.
     const isModal = mode === 'modal'
     const isDocsRoute = location.pathname.startsWith('/docs')
+    const isExplainRoute = location.pathname.startsWith('/explain')
     const isDiagnosticsRoute = location.pathname.startsWith('/diagnostics')
     const isAnalysisRoute = location.pathname.startsWith('/analysis')
-
-    // ===== Хук: если hash был, а стал пустой — скроллим в самый верх =====
+    // Если hash в URL пропал (например, после перехода между пунктами), уводим страницу к началу.
     const prevHashRef = useRef<string | null>(null)
 
     useEffect(() => {
         const prevHash = prevHashRef.current ?? ''
         const currentHash = location.hash ?? ''
-
-        // Был какой-то #anchor, теперь hash пустой → едем наверх.
         if (prevHash && !currentHash) {
             scrollToTop({
                 behavior: 'smooth',
@@ -89,21 +102,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
         prevHashRef.current = currentHash
     }, [location.hash])
-
-    // Путь до PFI-страницы для skip-логики запроса
     const pfiRoutePath = useMemo(
         () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.PFI_PER_MODEL)?.path ?? null,
         []
     )
 
     const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
-
-    // Тянем PFI-отчёт только когда реально находимся на PFI-странице
-    // TanStack-хук: запрос активен только на PFI-странице.
+    // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
         enabled: isOnPfiPage
     })
 
+    // Подгружаем данные для поднавигации только на тех страницах, где она реально используется.
     const shouldLoadDiagnosticsNav = isDiagnosticsRoute || isAnalysisRoute
     const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery({
         enabled: shouldLoadDiagnosticsNav
@@ -117,6 +127,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
 
+        // Защита от "шумных" секций: в навигацию попадают только реальные таблицы.
         const tableSections = (pfiReport.sections ?? []).filter(
             (section): section is TableSectionDto =>
                 Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
@@ -143,6 +154,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         const split = splitBacktestDiagnosticsSections(tableSections)
         const ratingsRefs = toDiagnosticsSectionRefs(split.ratings)
         const dayStatsRefs = toDiagnosticsSectionRefs(split.dayStats)
+        // Неизвестные секции отправляем в общий diagnostics, чтобы не терять навигацию при расширении отчёта.
         const diagnosticsSections = [...split.diagnostics, ...split.unknown]
         const diagnosticsRefs = toDiagnosticsSectionRefs(diagnosticsSections)
         const groupTabs = new Map<DiagnosticsGroupId, DiagnosticsTabConfig[]>()
@@ -172,7 +184,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         return buildPolicyBranchMegaTabsFromSections(tableSections)
     }, [policyBranchMegaReport])
 
-    // Группируем пункты меню по секциям с учётом docs-режима
+    // На специализированных страницах оставляем только профильную секцию в сайдбаре.
     const grouped = useMemo(() => {
         const bySection = new Map<RouteSection, SidebarNavItem[]>()
 
@@ -183,26 +195,27 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
             }
 
             const isDocsItem = section === 'docs'
+            const isExplainItem = section === 'explain'
             const isDiagnosticsItem = section === 'diagnostics'
             const isAnalysisItem = section === 'analysis'
 
-            // Если мы на docs-странице → показываем только docs-секцию.
+            // В специализированных разделах оставляем только их собственные секции меню.
             if (isDocsRoute && !isDocsItem) {
                 return
             }
-
-            // Если мы на diagnostics-странице → показываем только диагностику.
+            if (isExplainRoute && !isExplainItem) {
+                return
+            }
             if (isDiagnosticsRoute && !isDiagnosticsItem) {
                 return
             }
-
-            // Если мы на analysis-странице → показываем только анализ.
             if (isAnalysisRoute && !isAnalysisItem) {
                 return
             }
-
-            // Если мы НЕ на docs/diagnostics/analysis → скрываем эти секции.
             if (!isDocsRoute && isDocsItem) {
+                return
+            }
+            if (!isExplainRoute && isExplainItem) {
                 return
             }
             if (!isDiagnosticsRoute && isDiagnosticsItem) {
@@ -217,6 +230,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
             bySection.set(section, list)
         })
 
+        // Стабильный порядок внутри секции: сначала order, затем label.
         for (const [section, items] of bySection) {
             items.sort((a, b) => {
                 const ao = a.order ?? 0
@@ -228,7 +242,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         }
 
         return bySection
-    }, [isDocsRoute, isDiagnosticsRoute, isAnalysisRoute])
+    }, [isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())
@@ -269,6 +283,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isPfiPerModel = item.id === AppRoute.PFI_PER_MODEL
                                 const isDocsModels = item.id === AppRoute.DOCS_MODELS
                                 const isDocsTests = item.id === AppRoute.DOCS_TESTS
+                                const isExplainModels = item.id === AppRoute.EXPLAIN_MODELS
+                                const isExplainBranches = item.id === AppRoute.EXPLAIN_BRANCHES
+                                const isExplainSplits = item.id === AppRoute.EXPLAIN_SPLITS
+                                const isExplainProject = item.id === AppRoute.EXPLAIN_PROJECT
+                                const isExplainTime = item.id === AppRoute.EXPLAIN_TIME
+                                const isExplainFeatures = item.id === AppRoute.EXPLAIN_FEATURES
                                 const isAggregationStats = item.id === AppRoute.AGGREGATION_STATS
                                 const isBacktestDiagnostics = item.id === AppRoute.BACKTEST_DIAGNOSTICS
                                 const isBacktestRatings = item.id === AppRoute.BACKTEST_DIAGNOSTICS_RATINGS
@@ -287,6 +307,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isPfiPerModel ||
                                     isDocsModels ||
                                     isDocsTests ||
+                                    isExplainModels ||
+                                    isExplainBranches ||
+                                    isExplainSplits ||
+                                    isExplainProject ||
+                                    isExplainTime ||
+                                    isExplainFeatures ||
                                     isAggregationStats ||
                                     isBacktestDiagnostics ||
                                     isBacktestRatings ||
@@ -301,6 +327,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isPfiRouteActive = isPfiPerModel && location.pathname.startsWith(item.path)
                                 const isDocsModelsRouteActive = isDocsModels && location.pathname.startsWith(item.path)
                                 const isDocsTestsRouteActive = isDocsTests && location.pathname.startsWith(item.path)
+                                const isExplainModelsRouteActive =
+                                    isExplainModels && location.pathname.startsWith(item.path)
+                                const isExplainBranchesRouteActive =
+                                    isExplainBranches && location.pathname.startsWith(item.path)
+                                const isExplainSplitsRouteActive =
+                                    isExplainSplits && location.pathname.startsWith(item.path)
+                                const isExplainProjectRouteActive =
+                                    isExplainProject && location.pathname.startsWith(item.path)
+                                const isExplainTimeRouteActive =
+                                    isExplainTime && location.pathname.startsWith(item.path)
+                                const isExplainFeaturesRouteActive =
+                                    isExplainFeatures && location.pathname.startsWith(item.path)
                                 const isAggregationStatsRouteActive =
                                     isAggregationStats && location.pathname.startsWith(item.path)
                                 const isBacktestDiagnosticsRouteActive =
@@ -330,11 +368,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     [cls.itemBlockGroupActive]: hasSubNav && isRouteActiveBase
                                 })
 
+                                // Источник подвкладок зависит от текущего раздела и доступных секций отчёта.
                                 const tabs =
                                     isBacktestFull ? BACKTEST_FULL_TABS
                                     : isPfiPerModel ? pfiTabs
                                     : isDocsModels ? DOCS_MODELS_TABS
                                     : isDocsTests ? DOCS_TESTS_TABS
+                                    : isExplainModels ? EXPLAIN_MODELS_TABS
+                                    : isExplainBranches ? EXPLAIN_BRANCHES_TABS
+                                    : isExplainSplits ? EXPLAIN_SPLITS_TABS
+                                    : isExplainProject ? EXPLAIN_PROJECT_TABS
+                                    : isExplainTime ? EXPLAIN_TIME_TABS
+                                    : isExplainFeatures ? EXPLAIN_FEATURES_TABS
                                     : isAggregationStats ? AGGREGATION_TABS
                                     : isBacktestDiagnostics ? (diagnosticsTabs.diagnosticsGroups.get('risk') ?? [])
                                     : isBacktestDiagnosticsGuardrail ?
@@ -355,6 +400,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPfiPerModel ? t('Модели PFI')
                                     : isDocsModels ? t('Описание моделей')
                                     : isDocsTests ? t('Описание тестов')
+                                    : isExplainModels ? t('Объяснение моделей')
+                                    : isExplainBranches ? t('Объяснение веток')
+                                    : isExplainSplits ? t('Объяснение сплитов')
+                                    : isExplainProject ? t('Объяснение проекта')
+                                    : isExplainTime ? t('Объяснение времени')
+                                    : isExplainFeatures ? t('Объяснение фич')
                                     : isAggregationStats ? t('Разделы агрегации прогнозов')
                                     : isBacktestDiagnostics ? t('Разделы диагностики')
                                     : isBacktestDiagnosticsGuardrail ? t('Разделы guardrail')
@@ -368,7 +419,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
                                 return (
                                     <div key={item.id} className={containerClass}>
-                                        {/* Основная вкладка */}
+
                                         <Link
                                             to={item.path}
                                             onClick={onItemClick}
@@ -380,7 +431,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                             <span className={cls.label}>{t(item.label)}</span>
                                         </Link>
 
-                                        {/* Подвкладки для backtest / PFI / Docs-* */}
+
                                         {hasSubNav && tabs.length > 0 && (
                                             <nav className={cls.subNav} aria-label={subNavAriaLabel}>
                                                 <div className={cls.subNavLine} />
@@ -391,6 +442,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                             (isPfiPerModel && isPfiRouteActive) ||
                                                             (isDocsModels && isDocsModelsRouteActive) ||
                                                             (isDocsTests && isDocsTestsRouteActive) ||
+                                                            (isExplainModels && isExplainModelsRouteActive) ||
+                                                            (isExplainBranches && isExplainBranchesRouteActive) ||
+                                                            (isExplainSplits && isExplainSplitsRouteActive) ||
+                                                            (isExplainProject && isExplainProjectRouteActive) ||
+                                                            (isExplainTime && isExplainTimeRouteActive) ||
+                                                            (isExplainFeatures && isExplainFeaturesRouteActive) ||
                                                             (isAggregationStats && isAggregationStatsRouteActive) ||
                                                             (isBacktestDiagnostics && isBacktestDiagnosticsRouteActive) ||
                                                             (isBacktestDiagnosticsGuardrail &&
@@ -408,6 +465,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                         const isActiveTab =
                                                             isRouteActiveWithTabs && currentHash === tab.anchor
 
+                                                        // Для Policy Branch Mega сохраняем query-параметры (bucket) при кликах по якорям.
                                                         const linkBase = isPolicyBranchMega
                                                             ? `${item.path}${policyBranchMegaSearch}`
                                                             : item.path

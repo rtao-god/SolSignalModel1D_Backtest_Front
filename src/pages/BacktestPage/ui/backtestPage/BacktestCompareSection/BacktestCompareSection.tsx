@@ -4,16 +4,6 @@ import { getMetricValue } from '@/shared/utils/backtestMetrics'
 import cls from './BacktestCompareSection.module.scss'
 import BacktestCompareSectionProps from './types'
 
-/*
-	BacktestCompareSection — сравнение профилей A/B.
-
-	Зачем:
-		- Позволяет сравнить два профиля по ключевым метрикам.
-		- Показывает результаты preview в двух колонках.
-
-	Контракты:
-		- profiles содержит данные профилей для выбора A/B.
-*/
 export function BacktestCompareSection({
     profiles,
     profileAId,
@@ -39,7 +29,7 @@ export function BacktestCompareSection({
         <section id='compare' className={cls.compareSection}>
             <Text type='h2'>Сравнение профилей A / B</Text>
 
-            {/* Выбор профилей для слотов A и B. */}
+
             {profiles && profiles.length > 0 && (
                 <div className={cls.compareSelectors}>
                     <div className={cls.selector}>
@@ -72,7 +62,7 @@ export function BacktestCompareSection({
                 </div>
             )}
 
-            {/* Компактный comparator по основным метрикам. */}
+
             <div className={cls.compareMetrics}>
                 <Text type='h3'>Основные метрики (preview A/B)</Text>
                 <div className={cls.metricsValues}>

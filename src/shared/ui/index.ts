@@ -1,9 +1,4 @@
-/*
-	ui — публичные реэкспорты.
 
-	Зачем:
-		- Собирает экспорт модулей ui.
-*/
 export * from './Icon'
 export * from './Row'
 export * from './Line'

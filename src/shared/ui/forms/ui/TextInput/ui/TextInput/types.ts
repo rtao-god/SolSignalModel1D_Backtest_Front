@@ -4,5 +4,3 @@ export default interface TextInputProps {
     className?: string
 }
 
-
-

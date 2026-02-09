@@ -12,36 +12,16 @@ import {
     toExportCell
 } from '../model/utils'
 
-/*
-    SortableTable — универсальная сортируемая таблица.
-
-    Зачем:
-        - Даёт единый UX сортировки (стрелки, состояния, локальное хранение).
-        - Используется в PFI и бэктест-диагностиках.
-
-    Инварианты:
-        - Сортировка не меняет исходные данные (используется стабильная сортировка).
-        - Скрытые колонки не сортируют видимые строки (если сортировка по скрытой — отдаём исходный порядок).
-*/
-
 interface SortableTableProps {
     columns: string[]
     rows: TableRow[]
-    // Какие колонки показываем (если null/undefined — показываем все).
     visibleColumnIndexes?: number[]
-    // Ключ для хранения сортировки в localStorage.
     storageKey?: string
-    // Класс для внешнего контейнера.
     className?: string
-    // Класс для таблицы (доп. стили).
     tableClassName?: string
-    // Доп. класс для строк.
     getRowClassName?: (row: TableRow, rowIndex: number) => string | undefined
-    // Доп. класс для ячеек.
     getCellClassName?: (value: unknown, rowIndex: number, colIdx: number) => string | undefined
-    // Коллбек на изменение порядка строк (для экспорта).
     onSortedRowsChange?: (rows: TableRow[]) => void
-    // Рендер заголовка колонки (например, для подсказок).
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
 
@@ -60,16 +40,12 @@ function ChevronDownIcon({ className }: { className: string }) {
         </svg>
     )
 }
-
-// Формируем ключ localStorage для сортировки.
 function storageKeyFor(rawKey?: string): string | null {
     if (!rawKey) {
         return null
     }
     return rawKey.trim() ? rawKey : null
 }
-
-// Безопасно читаем сортировку из localStorage.
 function safeLoadSortState(key: string, columnsLen: number): SortState | null {
     if (typeof window === 'undefined') {
         return null
@@ -108,8 +84,6 @@ function safeLoadSortState(key: string, columnsLen: number): SortState | null {
         return null
     }
 }
-
-// Безопасно сохраняем сортировку в localStorage.
 function safeSaveSortState(key: string, state: SortState) {
     if (typeof window === 'undefined') {
         return
@@ -161,8 +135,6 @@ export default function SortableTable({
         }
         return map
     }, [columns.length, rowEntries])
-
-    // Подгружаем сохранённую сортировку (если она есть).
     useEffect(() => {
         const key = storageKeyFor(storageKey)
         if (!key) {
@@ -173,8 +145,6 @@ export default function SortableTable({
             setSort(loaded)
         }
     }, [storageKey, columns.length])
-
-    // Нормализация kind=default, когда дефолт пропал.
     useEffect(() => {
         if (sort.colIdx === null || sort.kind !== 'default') {
             return
@@ -186,8 +156,6 @@ export default function SortableTable({
         }
         setSort({ colIdx: sort.colIdx, kind: def })
     }, [defaultDirByColIdx, sort.colIdx, sort.kind])
-
-    // Сохраняем сортировку.
     useEffect(() => {
         const key = storageKeyFor(storageKey)
         if (!key) {
@@ -199,7 +167,6 @@ export default function SortableTable({
     const isSortColVisible = sort.colIdx !== null && resolvedVisibleIndexes.includes(sort.colIdx)
 
     const displayEntries = useMemo(() => {
-        // Сортировка по скрытой колонке — возвращаем исходный порядок.
         if (!isSortColVisible) {
             return rowEntries
         }
@@ -210,8 +177,6 @@ export default function SortableTable({
 
         const defaultDir = defaultDirByColIdx.get(sort.colIdx) ?? null
         const resolved = resolveDir(sort.kind, defaultDir)
-
-        // Для defaultable-колонок: direction == defaultDir означает "как есть".
         if (defaultDir && resolved === defaultDir) {
             return rowEntries
         }
@@ -222,8 +187,6 @@ export default function SortableTable({
 
         return stableSortByCol(rowEntries, sort.colIdx, resolved)
     }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx])
-
-    // Пробрасываем отсортированные строки наверх (для экспорта).
     useEffect(() => {
         if (!onSortedRowsChange) {
             return
@@ -236,24 +199,18 @@ export default function SortableTable({
         const isDefaultable = defaultDir !== null
 
         setSort(prev => {
-            // Новая колонка
             if (prev.colIdx !== colIdx) {
                 if (isDefaultable) {
-                    // Первый клик = противоположное дефолту, чтобы пользователь увидел изменение.
                     return { colIdx, kind: oppositeDir(defaultDir!) }
                 }
                 return { colIdx, kind: 'asc' }
             }
-
-            // Тоггл по текущей колонке
             if (isDefaultable) {
                 const def = defaultDir!
                 const currentDir = resolveDir(prev.kind, def) ?? def
                 const nextDir = currentDir === def ? oppositeDir(def) : def
                 return { colIdx, kind: nextDir }
             }
-
-            // Обычная колонка: none -> asc -> desc -> none
             if (prev.kind === 'none') {
                 return { colIdx, kind: 'asc' }
             }

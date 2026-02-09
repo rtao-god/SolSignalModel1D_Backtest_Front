@@ -3,14 +3,6 @@ import { TermTooltip, Text } from '@/shared/ui'
 import cls from './DocsPage.module.scss'
 import type { DocsPageProps } from './types'
 
-/*
-	DocsPage — обзорная документация.
-
-	Зачем:
-		- Объясняет ключевые термины и принципы чтения отчётов.
-		- Даёт быстрые подсказки для страниц аналитики.
-*/
-
 export default function DocsPage({ className }: DocsPageProps) {
     return (
         <div className={classNames(cls.DocsPageRoot, {}, [className ?? ''])}>

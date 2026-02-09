@@ -20,22 +20,6 @@ import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaT
 import cls from './Main.module.scss'
 import MainProps from './types'
 
-/*
-    Main — главная страница проекта.
-
-    Зачем:
-        - Даёт понятную карту проекта и точку входа для покупателя/CTO/аналитика.
-        - Показывает лучшую политику и её метрики на всей истории.
-        - Объясняет ключевые термины без погружения в код.
-
-    Источники данных и сайд-эффекты:
-        - usePolicyBranchMegaReportNavQuery() для best policy и mega-метрик.
-
-    Контракты:
-        - policy_branch_mega должен содержать 3 части Policy Branch Mega.
-        - Колонки обязаны быть описаны в policyBranchMegaTerms (иначе выводим ошибку блока).
-*/
-
 interface BestPolicyRowBundle {
     policy: string
     branch: string
@@ -53,8 +37,6 @@ const DEFAULT_POLICY_BRANCH_TABS = [
     { label: 'Часть 2/3', anchor: 'policy-branch-section-2' },
     { label: 'Часть 3/3', anchor: 'policy-branch-section-3' }
 ]
-
-// Отфильтровываем пустые секции без колонок.
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
         (section): section is TableSectionDto =>
@@ -78,8 +60,6 @@ function columnIndexOrThrow(columns: string[] | undefined, title: string, tag: s
 function buildPolicyBranchKey(policy: string, branch: string): string {
     return `${policy}::${branch}`
 }
-
-// Достаём строку лучшей политики по TotalPnl% и связываем с частями 2/3, 3/3.
 function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRowBundle {
     if (!sections || sections.length < 3) {
         throw new Error('[main] policy branch mega sections count is less than 3.')
@@ -146,8 +126,6 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
         part3Row
     }
 }
-
-// Ищем соответствующую строку по ключу policy+branch.
 function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: string): string[] {
     const columns = section.columns ?? []
     const rows = section.rows ?? []
@@ -183,8 +161,6 @@ function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: s
 
     return resolved
 }
-
-// Ищем конкретную метрику по всем трём частям mega-таблиц.
 function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string {
     const candidates: Array<{ columns: string[]; row: string[] }> = [
         { columns: bundle.part1.columns ?? [], row: bundle.part1Row },
@@ -208,8 +184,6 @@ function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string 
 
     throw new Error(`[main] metric not found in policy branch mega parts: ${title}.`)
 }
-
-// Короткое бизнес-описание выбранной политики (для витрины).
 function renderPolicyDescription(policyName: string, branchName: string): string[] {
     const description: string[] = []
 
@@ -742,8 +716,30 @@ export default function Main({ className }: MainProps) {
                             </Link>
                         </div>
                     </article>
+
+                    <article className={cls.navCard}>
+                        <Text type='h3' className={cls.cardTitle}>
+                            Объяснение
+                        </Text>
+                        <Text className={cls.cardText}>
+                            Карта того, что есть в проекте и зачем: модели, ветки, сплиты данных, время и структура
+                            решения.
+                        </Text>
+                        <div className={cls.navLinks}>
+                            <Link to={ROUTE_PATH[AppRoute.EXPLAIN]} className={cls.navLink}>
+                                Объяснение →
+                            </Link>
+                            <Link to={ROUTE_PATH[AppRoute.EXPLAIN_MODELS]} className={cls.navLink}>
+                                Модели →
+                            </Link>
+                            <Link to={ROUTE_PATH[AppRoute.EXPLAIN_PROJECT]} className={cls.navLink}>
+                                О проекте →
+                            </Link>
+                        </div>
+                    </article>
                 </div>
             </section>
         </div>
     )
 }
+

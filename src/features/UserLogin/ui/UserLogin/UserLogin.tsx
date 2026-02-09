@@ -62,17 +62,13 @@ export default function UserLogin({ className }: LoginFormProps) {
                     onChange={onChangeIdentifier}
                     placeholder={t('EnterEmailOrPhone')}
                     error={error?.includes(IDENTIFIER_REQUIRED) ? 'Ошибка в' : ''}
-                    /*   className={classNames('auth_input_style', {
-                      [cls.errorBorder]: loginError.includes(IDENTIFIER_REQUIRED)
-                  })} */
+
                 />
                 <PasswordInputField
                     onChangePassword={onChangePassword}
                     placeholder={t('EnterThePassword')}
                     loginError={error}
-                    /*   className={classNames('auth_input_style', {
-                      [cls.errorBorder]: loginError.includes(PASSWORD_REQUIRED)
-                  })} */
+
                 />
                 <Text color='#d64657' position='center'>
                     {error}

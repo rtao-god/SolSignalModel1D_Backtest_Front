@@ -5,20 +5,6 @@ import type { BacktestSummaryDto, BacktestProfileDto } from '@/shared/types/back
 import { BacktestPageContent } from '../BacktestPageContent/BacktestPageContent'
 import cls from './BacktestPageWithBoundary.module.scss'
 
-/*
-	BacktestPageWithBoundary — boundary-слой страницы бэктеста.
-
-	Зачем:
-		- Загружает baseline-summary и список профилей.
-		- Централизует обработку ошибок/ретраев через PageDataBoundary.
-
-	Источники данных и сайд-эффекты:
-		- useBacktestBaselineSummaryReportQuery() (TanStack Query).
-		- useGetBacktestProfilesQuery() (RTK Query).
-
-	Контракты:
-		- В BacktestPageContent передаётся только валидный data.
-*/
 export function BacktestPageWithBoundary() {
     const {
         data: baselineSummary,
