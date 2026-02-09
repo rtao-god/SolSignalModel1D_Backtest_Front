@@ -1,17 +1,9 @@
-/*
-    reportTooltips — словари подсказок для колонок и key-value секций отчётов.
 
-    Важно:
-        - описания основаны на текущей реализации бэкенда (ReportBuilder + принтеры);
-        - fallback остаётся нейтральным и не выдумывает значения.
-*/
 
 function normalizeKey(value: string | undefined | null): string {
     if (!value) return ''
     return value.trim()
 }
-
-// ===== Backtest summary =====
 const BACKTEST_SUMMARY_COLUMNS: Record<string, string> = {
     Name: 'Название политики из baseline-конфига. Это лишь описание того, что запускали, а не результат.',
     Type: 'Тип логики политики (как стратегия принимает решения о входе/выходе). Используется для группировки.',
@@ -45,8 +37,6 @@ const BACKTEST_SUMMARY_KEYS: Record<string, string> = {
     DailyStopPct: 'Дневной стоп-лосс из конфигурации (в процентах).',
     DailyTpPct: 'Дневной тейк-профит из конфигурации (в процентах).'
 }
-
-// ===== Current prediction =====
 const CURRENT_PREDICTION_COLUMNS: Record<string, string> = {
     Политика: 'Название торговой политики/стратегии. Показывает, к какой логике относится строка.',
     Ветка: 'BASE — базовая логика, ANTI-D — анти-направление при триггере риска.',
@@ -65,8 +55,8 @@ const CURRENT_PREDICTION_COLUMNS: Record<string, string> = {
     'Цена ликвидации': 'Расчётная цена ликвидации для выбранного плеча.',
     'Дистанция до ликвидации, %': 'Запас по цене до ликвидации в процентах.',
     Trades: 'Сколько сделок уже было у этой политики в отчётном окне.',
-    TotalPnl%: 'Суммарная доходность политики в процентах.',
-    MaxDD%: 'Максимальная просадка политики в процентах.',
+    'TotalPnl%': 'Суммарная доходность политики в процентах.',
+    'MaxDD%': 'Максимальная просадка политики в процентах.',
     HadLiq: 'Флаг наличия ликвидаций (yes/no).',
     'Withdrawn$': 'Выведенный профит по политике, $ (если применимо).',
     Тип: 'Тип фактора в объяснении (например: feature, rule, сигнал и т.п.).',
@@ -103,8 +93,6 @@ const CURRENT_PREDICTION_KEYS: Record<string, string> = {
     'Минимальная цена за 24 часа': 'Минимальная цена за следующие 24 часа (исторический baseline).',
     'Цена закрытия через 24 часа': 'Цена закрытия через 24 часа (исторический baseline).'
 }
-
-// ===== PFI =====
 const PFI_COLUMNS: Record<string, string> = {
     '#': 'Порядковый номер признака в списке (ранжирование внутри таблицы).',
     Index: 'Индекс признака в исходном списке фичей.',
@@ -128,8 +116,6 @@ const PFI_COLUMNS: Record<string, string> = {
     'Support (pos/neg)': 'Сколько примеров в каждом классе: pos/neg.',
     'CountPos / CountNeg': 'Количество примеров класса 1 и класса 0.'
 }
-
-// ===== Model stats =====
 const MODEL_STATS_COLUMNS: Record<string, string> = {
     Class: 'Класс истинной метки (UP/DOWN/FLAT).',
     Summary: 'Короткое описание качества по этому классу (сколько попаданий/промахов).',
@@ -156,8 +142,6 @@ const MODEL_STATS_COLUMNS: Record<string, string> = {
     'pred HIGH, %': 'Доля предсказаний HIGH при данном пороге.',
     'high / total': 'Сколько HIGH предсказаний от общего числа дней.'
 }
-
-// ===== Diagnostics =====
 const DIAGNOSTICS_EXACT: Record<string, string> = {
     Policy: 'Название торговой политики/стратегии. Показывает, к какой логике относится строка.',
     Branch: 'Ветка симуляции: BASE (базовая) или ANTI-D (анти-направление).',
@@ -167,21 +151,21 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     EndDay: 'Последняя дата периода (UTC), до которой строится агрегат.',
     StopReason: 'Причина остановки/завершения периода для политики (если применимо).',
     MissingDays: 'Сколько дней отсутствует в ряду между StartDay и EndDay.',
-    TradeDays%: 'Доля дней, когда были сделки.',
-    Long%: 'Доля дней с long-сделками.',
-    Short%: 'Доля дней с short-сделками.',
-    NoTrade%: 'Доля дней без сделок.',
-    RiskDay%: 'Доля дней, где SL-логика пометила день как рискованный.',
-    AntiD%: 'Доля дней, где применилось anti-direction.',
+    'TradeDays%': 'Доля дней, когда были сделки.',
+    'Long%': 'Доля дней с long-сделками.',
+    'Short%': 'Доля дней с short-сделками.',
+    'NoTrade%': 'Доля дней без сделок.',
+    'RiskDay%': 'Доля дней, где SL-логика пометила день как рискованный.',
+    'AntiD%': 'Доля дней, где применилось anti-direction.',
     'Cap avg/min/max':
         'Средняя/минимальная/максимальная доля капитала (cap fraction), использованная в сделках. Значения в % от бакета.',
     'Cap p50/p90': 'Квантили p50/p90 по cap fraction — медиана и верхний хвост распределения.',
     CapApplied: 'Сколько дней cap-фильтр применился (ограничил размер позиции).',
     CapSkipped: 'Сколько дней cap-фильтр был пропущен (не ограничивал позицию).',
     Trades: 'Количество сделок в этой группе.',
-    TotalPnl%: 'Суммарная доходность в % по марже за период.',
-    MaxDD%: 'Максимальная просадка equity (drawdown) в %.',
-    MaxDD_NoLiq%: 'Максимальная просадка без учёта ликвидаций.',
+    'TotalPnl%': 'Суммарная доходность в % по марже за период.',
+    'MaxDD%': 'Максимальная просадка equity (drawdown) в %.',
+    'MaxDD_NoLiq%': 'Максимальная просадка без учёта ликвидаций.',
     HadLiq: 'Были ли ликвидации (yes/no).',
     'Withdrawn$': 'Выведенная прибыль в долларах (если капитал превышал базовый).',
     inv_liq_mismatch: 'Количество диагностических несоответствий по ликвидациям (инварианты).',
@@ -206,7 +190,6 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     IsLiq: 'Флаг ликвидации в модели (бакет обнулился или ликвидация).',
     IsRealLiq: 'Более строгий флаг реальной ликвидации (backtest-уровень достигнут).',
     Source: 'Источник сигнала: Daily / DelayedA / DelayedB.',
-    Bucket: 'Бакет капитала: daily / intraday / delayed.',
     DayType: 'Тип дня рынка: UP / DOWN / FLAT.',
     'AbsRet%': 'Абсолютная дневная доходность рынка (|return|) в %.',
     MinMove: 'Прокси-волатильность дня (минимальный значимый ход цены).',
@@ -215,8 +198,8 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     'EndEq$': 'Equity на конце периода.',
     'MinEq$': 'Минимальная equity в периоде.',
     'MaxEq$': 'Максимальная equity в периоде.',
-    LiqDays#: 'Количество дней, когда была ликвидация.',
-    RealLiq#: 'Количество реальных ликвидаций (backtest-level).',
+    'LiqDays#': 'Количество дней, когда была ликвидация.',
+    'RealLiq#': 'Количество реальных ликвидаций (backtest-level).',
     FirstLiqDay: 'Первая дата ликвидации.',
     LastLiqDay: 'Последняя дата ликвидации.',
     MinDistPct: 'Минимальная дистанция до ликвидации, % (liqDist − adverse).',
@@ -243,13 +226,13 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     Samples: 'Размер выборки, на которой считались пороги.',
     SpecUndefined: 'Сколько дней без определённого порога специфичности (недостаточно выборки).',
     SpecDays: 'Сколько дней классифицированы как специфичные.',
-    SpecTrade%: 'Доля торговых дней среди специфичных.',
-    SpecNoTrade%: 'Доля no-trade среди специфичных.',
-    SpecOpp%: 'Доля противоположных решений среди специфичных.',
+    'SpecTrade%': 'Доля торговых дней среди специфичных.',
+    'SpecNoTrade%': 'Доля no-trade среди специфичных.',
+    'SpecOpp%': 'Доля противоположных решений среди специфичных.',
     NormDays: 'Сколько дней классифицированы как нормальные (не специфичные).',
-    NormTrade%: 'Доля торговых дней среди нормальных.',
-    NormNoTrade%: 'Доля no-trade среди нормальных.',
-    NormOpp%: 'Доля противоположных решений среди нормальных.',
+    'NormTrade%': 'Доля торговых дней среди нормальных.',
+    'NormNoTrade%': 'Доля no-trade среди нормальных.',
+    'NormOpp%': 'Доля противоположных решений среди нормальных.',
     Specific: 'Флаг специфичности дня (yes/no).',
     'Specific%': 'Доля специфичных дней внутри выборки.',
     'SpecDefined%': 'Доля дней, где порог специфичности определён.',
@@ -286,22 +269,22 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     'OOD_severe%': 'Доля тяжёлых OOD-дней в группе.',
     Weekday: 'День недели (Mon..Sun).',
     Причина: 'Причина NoTrade/Skip (агрегировано).',
-    Share%: 'Доля от общего, %.',
-    ShareAll%: 'Доля от общего по всем дням, %.',
-    ShareSkipped%: 'Доля пропущенных дней по причине, %.',
-    NoDir%: 'Доля дней без направления (модель не дала сигнал).',
-    PolicySkip%: 'Доля пропусков из-за правил политики.',
-    CapZero%: 'Доля пропусков из-за нулевого cap fraction.',
-    LowEdge%: 'Доля пропусков из-за слабого edge.',
-    RiskThrottle%: 'Доля пропусков из-за risk throttling.',
-    Unknown%: 'Доля пропусков по неизвестной причине.',
+    'Share%': 'Доля от общего, %.',
+    'ShareAll%': 'Доля от общего по всем дням, %.',
+    'ShareSkipped%': 'Доля пропущенных дней по причине, %.',
+    'NoDir%': 'Доля дней без направления (модель не дала сигнал).',
+    'PolicySkip%': 'Доля пропусков из-за правил политики.',
+    'CapZero%': 'Доля пропусков из-за нулевого cap fraction.',
+    'LowEdge%': 'Доля пропусков из-за слабого edge.',
+    'RiskThrottle%': 'Доля пропусков из-за risk throttling.',
+    'Unknown%': 'Доля пропусков по неизвестной причине.',
     OOD: 'Категория OOD (вне распределения).',
     'Trade%': 'Доля торговых дней.',
     'OppDir%': 'Доля сделок против направления дня (UP→SHORT или DOWN→LONG).',
     OppDirDays: 'Сколько дней с противоположным направлением сделки.',
-    OppHarmAvg%: 'Средний вред от противоположных решений, %.',
-    NoTradeOppAvg%: 'Средний объём упущенной выгоды из-за no-trade, %.',
-    NoTradeOppSum%: 'Суммарная упущенная выгода из-за no-trade, %.',
+    'OppHarmAvg%': 'Средний вред от противоположных решений, %.',
+    'NoTradeOppAvg%': 'Средний объём упущенной выгоды из-за no-trade, %.',
+    'NoTradeOppSum%': 'Суммарная упущенная выгода из-за no-trade, %.',
     'UpTrades': 'Количество сделок в дни роста (UP).',
     'DownTrades': 'Количество сделок в дни падения (DOWN).',
     'FlatTrades': 'Количество сделок в дни боковика (FLAT).',
@@ -371,8 +354,6 @@ function resolveDiagnosticsColumnTooltip(title: string): string | null {
         const desc = buildDayTypeDescription(prefix, metric)
         if (desc) return desc
     }
-
-    // Квантили вида "X p50/p90" или "X P10/P50/P90"
     if (/(p50\/p90|P10\/P50\/P90)/.test(key)) {
         return 'Квантили распределения для показателя (обычно p10/p50/p90 или p50/p90). Помогают понять «хвосты».'
     }
@@ -453,8 +434,6 @@ function resolveDiagnosticsColumnTooltip(title: string): string | null {
 
     return `Показатель «${key}». Точное определение зависит от таблицы; см. описание секции выше.`
 }
-
-// ===== Public resolvers =====
 export function resolveReportColumnTooltip(
     reportKind: string | undefined,
     sectionTitle: string | undefined,
@@ -478,8 +457,6 @@ export function resolveReportColumnTooltip(
     if (reportKind?.startsWith('current_prediction')) {
         return CURRENT_PREDICTION_COLUMNS[col] ?? null
     }
-
-    // Фолбэк на diagnostics (если ReportDocumentView будет использоваться для таких отчётов).
     if (reportKind === 'backtest_diagnostics') {
         return resolveDiagnosticsColumnTooltip(col)
     }
@@ -509,3 +486,4 @@ export function resolveReportKeyTooltip(
 export function resolveDiagnosticsColumnTooltipPublic(title: string): string | null {
     return resolveDiagnosticsColumnTooltip(title)
 }
+
