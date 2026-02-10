@@ -10,7 +10,7 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
-import { usePolicyBranchMegaReportQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
+import { usePolicyBranchMegaReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     buildPolicyBranchMegaTermsForColumns,
     getPolicyBranchMegaTermOrThrow,
@@ -73,12 +73,14 @@ const METRIC_OPTIONS: Array<{ value: PolicyBranchMegaMetricMode; label: string }
 
 export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
     const [searchParams, setSearchParams] = useSearchParams()
-    const { data, isError, error, refetch } = usePolicyBranchMegaReportQuery()
+    const { data, isError, error, refetch } = usePolicyBranchMegaReportWithFreshnessQuery()
+    const report = data?.report ?? null
+    const freshness = data?.freshness ?? null
 
-    const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
+    const tableSections = useMemo(() => buildTableSections(report?.sections ?? []), [report])
 
     const resolvedSections = useMemo(() => {
-        if (!data) return { sections: [] as TableSectionDto[], error: null as Error | null }
+        if (!report) return { sections: [] as TableSectionDto[], error: null as Error | null }
 
         try {
             return {
@@ -92,7 +94,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 error: safeError
             }
         }
-    }, [data, tableSections])
+    }, [report, tableSections])
 
     const bucketState = useMemo(() => {
         try {
@@ -115,7 +117,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     }, [searchParams])
 
     const filteredSections = useMemo(() => {
-        if (!data) return { sections: [] as TableSectionDto[], error: null as Error | null }
+        if (!report) return { sections: [] as TableSectionDto[], error: null as Error | null }
         if (resolvedSections.error) {
             return { sections: [] as TableSectionDto[], error: resolvedSections.error }
         }
@@ -133,10 +135,10 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     : new Error('Failed to filter policy branch mega sections by bucket/metric.')
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [data, resolvedSections, bucketState.value, metricState.value])
+    }, [report, resolvedSections, bucketState.value, metricState.value])
 
     const metricDiffState = useMemo(() => {
-        if (!data || resolvedSections.error || bucketState.error) {
+        if (!report || resolvedSections.error || bucketState.error) {
             return null
         }
 
@@ -171,7 +173,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         } catch {
             return null
         }
-    }, [data, resolvedSections, bucketState.error, bucketState.value])
+    }, [report, resolvedSections, bucketState.error, bucketState.value])
 
     const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(filteredSections.sections), [filteredSections.sections])
 
@@ -181,25 +183,25 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     })
 
     const generatedAtState = useMemo(() => {
-        if (!data) return { value: null as Date | null, error: null as Error | null }
+        if (!report) return { value: null as Date | null, error: null as Error | null }
 
-        if (!data.generatedAtUtc) {
+        if (!report.generatedAtUtc) {
             return {
                 value: null,
                 error: new Error('[policy-branch-mega] generatedAtUtc is missing.')
             }
         }
 
-        const parsed = new Date(data.generatedAtUtc)
+        const parsed = new Date(report.generatedAtUtc)
         if (Number.isNaN(parsed.getTime())) {
             return {
                 value: null,
-                error: new Error(`[policy-branch-mega] generatedAtUtc is invalid: ${data.generatedAtUtc}`)
+                error: new Error(`[policy-branch-mega] generatedAtUtc is invalid: ${report.generatedAtUtc}`)
             }
         }
 
         return { value: parsed, error: null }
-    }, [data])
+    }, [report])
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
@@ -221,6 +223,13 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         nextParams.set('metric', next)
         setSearchParams(nextParams, { replace: true })
     }
+
+    const freshnessLabel =
+        freshness?.sourceMode === 'actual' ? 'ACTUAL: latest verified' : 'DEBUG: freshness not verified'
+    const freshnessLagLabel =
+        freshness?.lagSeconds && freshness.lagSeconds > 0
+            ? `Lag vs diagnostics: ${Math.round(freshness.lagSeconds / 60)} min`
+            : null
 
     const renderHeader = (generatedUtc: Date) => (
         <header className={cls.hero}>
@@ -289,8 +298,21 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             </div>
 
             <div className={cls.meta}>
-                <Text>Report: {data?.title ?? 'n/a'}</Text>
-                <Text>Kind: {data?.kind ?? 'n/a'}</Text>
+                <Text
+                    className={classNames(
+                        cls.freshnessBadge,
+                        {
+                            [cls.freshnessActual]: freshness?.sourceMode === 'actual',
+                            [cls.freshnessDebug]: freshness?.sourceMode !== 'actual'
+                        },
+                        []
+                    )}>
+                    {freshnessLabel}
+                </Text>
+                <Text>{freshness?.message ?? 'Freshness status is unavailable.'}</Text>
+                {freshnessLagLabel && <Text>{freshnessLagLabel}</Text>}
+                <Text>Report: {report?.title ?? 'n/a'}</Text>
+                <Text>Kind: {report?.kind ?? 'n/a'}</Text>
                 <Text>Generated (UTC): {formatUtc(generatedUtc)}</Text>
                 <Text>Generated (local): {generatedUtc.toLocaleString()}</Text>
             </div>
@@ -299,7 +321,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
     let content: JSX.Element | null = null
 
-    if (data) {
+    if (report) {
         if (generatedAtState.error || !generatedAtState.value) {
             const error =
                 generatedAtState.error ??
@@ -455,7 +477,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         <PageDataBoundary
             isError={isError}
             error={error}
-            hasData={Boolean(data)}
+            hasData={Boolean(report)}
             onRetry={refetch}
             errorTitle='Не удалось загрузить Policy Branch Mega'>
             {content}

@@ -48,6 +48,10 @@ export const API_ROUTES = {
             path: '/backtest/policy-branch-mega',
             method: 'GET' as const
         },
+        policyBranchMegaStatusGet: {
+            path: '/backtest/policy-branch-mega/status',
+            method: 'GET' as const
+        },
         confidenceRiskGet: {
             path: '/backtest/confidence-risk',
             method: 'GET' as const

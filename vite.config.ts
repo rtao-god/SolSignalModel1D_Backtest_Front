@@ -9,8 +9,7 @@ function resolveDevApiProxyTarget(rawTarget: string | undefined): string {
     const withProtocol = /^https?:\/\//i.test(normalized) ? normalized : `http://${normalized}`
 
     try {
-        const host = new URL(withProtocol).hostname
-        if (/onrender\.com$/i.test(host)) return fallback
+        new URL(withProtocol)
         return withProtocol
     } catch {
         return fallback
