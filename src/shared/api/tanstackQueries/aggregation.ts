@@ -1,4 +1,4 @@
-import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type {
     AggregationMetricsSnapshotDto,
     AggregationProbsSnapshotDto
@@ -29,15 +29,17 @@ async function fetchAggregationMetrics(): Promise<AggregationMetricsSnapshotDto>
 
     return (await resp.json()) as AggregationMetricsSnapshotDto
 }
-export function useAggregationProbsQuery(): UseSuspenseQueryResult<AggregationProbsSnapshotDto, Error> {
-    return useSuspenseQuery({
+export function useAggregationProbsQuery(): UseQueryResult<AggregationProbsSnapshotDto, Error> {
+    return useQuery({
         queryKey: ['aggregation', 'probs'],
-        queryFn: fetchAggregationProbs
+        queryFn: fetchAggregationProbs,
+        retry: false
     })
 }
-export function useAggregationMetricsQuery(): UseSuspenseQueryResult<AggregationMetricsSnapshotDto, Error> {
-    return useSuspenseQuery({
+export function useAggregationMetricsQuery(): UseQueryResult<AggregationMetricsSnapshotDto, Error> {
+    return useQuery({
         queryKey: ['aggregation', 'metrics'],
-        queryFn: fetchAggregationMetrics
+        queryFn: fetchAggregationMetrics,
+        retry: false
     })
 }

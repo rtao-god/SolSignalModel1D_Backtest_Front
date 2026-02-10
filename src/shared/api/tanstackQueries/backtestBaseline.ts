@@ -1,4 +1,4 @@
-import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type { BacktestBaselineSnapshotDto, BacktestSummaryDto } from '@/shared/types/backtest.types'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
@@ -28,16 +28,18 @@ async function fetchBacktestBaselineSnapshot(): Promise<BacktestBaselineSnapshot
 
     return (await resp.json()) as BacktestBaselineSnapshotDto
 }
-export function useBacktestBaselineSummaryReportQuery(): UseSuspenseQueryResult<BacktestSummaryDto, Error> {
-    return useSuspenseQuery({
+export function useBacktestBaselineSummaryReportQuery(): UseQueryResult<BacktestSummaryDto, Error> {
+    return useQuery({
         queryKey: ['backtest', 'summary', 'baseline'],
-        queryFn: fetchBacktestBaselineSummary
+        queryFn: fetchBacktestBaselineSummary,
+        retry: false
     })
 }
-export function useBacktestBaselineSnapshotQuery(): UseSuspenseQueryResult<BacktestBaselineSnapshotDto, Error> {
-    return useSuspenseQuery({
+export function useBacktestBaselineSnapshotQuery(): UseQueryResult<BacktestBaselineSnapshotDto, Error> {
+    return useQuery({
         queryKey: ['backtest', 'baseline', 'snapshot'],
-        queryFn: fetchBacktestBaselineSnapshot
+        queryFn: fetchBacktestBaselineSnapshot,
+        retry: false
     })
 }
 

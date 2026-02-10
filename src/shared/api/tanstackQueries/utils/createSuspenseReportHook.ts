@@ -1,4 +1,4 @@
-import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../../configs/config'
 
 interface CreateSuspenseReportHookOptions<T> {
@@ -20,10 +20,11 @@ export function createSuspenseReportHook<T>({ queryKey, path, mapResponse }: Cre
         return mapResponse(raw)
     }
 
-    return function useSuspenseReportQuery(): UseSuspenseQueryResult<T, Error> {
-        return useSuspenseQuery({
+    return function useReportQuery(): UseQueryResult<T, Error> {
+        return useQuery({
             queryKey,
-            queryFn: fetchReport
+            queryFn: fetchReport,
+            retry: false
         })
     }
 }

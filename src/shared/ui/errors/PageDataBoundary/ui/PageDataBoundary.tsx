@@ -23,7 +23,9 @@ export default function PageDataBoundary({
     loadingTitle,
     children
 }: PageDataBoundaryProps) {
-    if (isLoading) {
+    const shouldShowLoading = isLoading ?? (!isError && !hasData)
+
+    if (shouldShowLoading) {
         return <PageLoader title={loadingTitle ?? 'Загружаю данные'} />
     }
 

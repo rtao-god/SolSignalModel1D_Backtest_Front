@@ -1,4 +1,4 @@
-import { useSuspenseQuery, type UseSuspenseQueryResult } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type {
     CurrentPredictionIndexItemDto,
@@ -72,20 +72,22 @@ async function fetchCurrentPredictionIndex(
 export function useCurrentPredictionReportQuery(
     set: CurrentPredictionSet = 'live',
     scope?: CurrentPredictionTrainingScope
-): UseSuspenseQueryResult<ReportDocumentDto, Error> {
-    return useSuspenseQuery({
+): UseQueryResult<ReportDocumentDto, Error> {
+    return useQuery({
         queryKey: ['current-prediction', 'latest', set, scope ?? 'default'],
-        queryFn: () => fetchCurrentPrediction(set, scope)
+        queryFn: () => fetchCurrentPrediction(set, scope),
+        retry: false
     })
 }
 
 export function useCurrentPredictionIndexQuery(
     set: CurrentPredictionSet = 'backfilled',
     days: number = 365
-): UseSuspenseQueryResult<CurrentPredictionIndexItemDto[], Error> {
-    return useSuspenseQuery({
+): UseQueryResult<CurrentPredictionIndexItemDto[], Error> {
+    return useQuery({
         queryKey: ['current-prediction', 'dates', set, days],
-        queryFn: () => fetchCurrentPredictionIndex(set, days)
+        queryFn: () => fetchCurrentPredictionIndex(set, days),
+        retry: false
     })
 }
 
