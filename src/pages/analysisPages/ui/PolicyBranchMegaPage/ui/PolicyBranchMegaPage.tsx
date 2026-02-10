@@ -19,10 +19,13 @@ import {
 } from '@/shared/utils/policyBranchMegaTerms'
 import {
     buildPolicyBranchMegaTabsFromSections,
+    filterPolicyBranchMegaSectionsByMetricOrThrow,
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     normalizePolicyBranchMegaTitle,
     resolvePolicyBranchMegaBucketFromQuery,
-    type PolicyBranchMegaBucketMode
+    resolvePolicyBranchMegaMetricFromQuery,
+    type PolicyBranchMegaBucketMode,
+    type PolicyBranchMegaMetricMode
 } from '@/shared/utils/policyBranchMegaTabs'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
@@ -45,13 +48,27 @@ function sectionDomId(index: number): string {
     return `policy-branch-section-${index + 1}`
 }
 
+function rowFingerprint(row: unknown): string {
+    if (Array.isArray(row)) {
+        return row.map(value => String(value ?? '')).join('\u001f')
+    }
+
+    return JSON.stringify(row)
+}
+
 const DEFAULT_BUCKET: PolicyBranchMegaBucketMode = 'daily'
+const DEFAULT_METRIC: PolicyBranchMegaMetricMode = 'real'
 
 const BUCKET_OPTIONS: Array<{ value: PolicyBranchMegaBucketMode; label: string }> = [
     { value: 'daily', label: 'Daily' },
     { value: 'intraday', label: 'Intraday' },
     { value: 'delayed', label: 'Delayed' },
     { value: 'total', label: 'Σ Все бакеты' }
+]
+
+const METRIC_OPTIONS: Array<{ value: PolicyBranchMegaMetricMode; label: string }> = [
+    { value: 'real', label: 'REAL' },
+    { value: 'no-biggest-liq-loss', label: 'NO BIGGEST LIQ LOSS' }
 ]
 
 export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
@@ -87,25 +104,76 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         }
     }, [searchParams])
 
-    const bucketSections = useMemo(() => {
+    const metricState = useMemo(() => {
+        try {
+            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_METRIC)
+            return { value: metric, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega metric query.')
+            return { value: DEFAULT_METRIC, error: safeError }
+        }
+    }, [searchParams])
+
+    const filteredSections = useMemo(() => {
         if (!data) return { sections: [] as TableSectionDto[], error: null as Error | null }
         if (resolvedSections.error) {
             return { sections: [] as TableSectionDto[], error: resolvedSections.error }
         }
 
         try {
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(resolvedSections.sections, bucketState.value)
             return {
-                sections: filterPolicyBranchMegaSectionsByBucketOrThrow(resolvedSections.sections, bucketState.value),
+                sections: filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, metricState.value),
                 error: null
             }
         } catch (err) {
             const safeError =
-                err instanceof Error ? err : new Error('Failed to filter policy branch mega sections by bucket.')
+                err instanceof Error
+                    ? err
+                    : new Error('Failed to filter policy branch mega sections by bucket/metric.')
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [data, resolvedSections, bucketState.value])
+    }, [data, resolvedSections, bucketState.value, metricState.value])
 
-    const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(bucketSections.sections), [bucketSections.sections])
+    const metricDiffState = useMemo(() => {
+        if (!data || resolvedSections.error || bucketState.error) {
+            return null
+        }
+
+        try {
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(resolvedSections.sections, bucketState.value)
+            const realSections = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, 'real')
+            const noBigSections = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, 'no-biggest-liq-loss')
+
+            const comparableSections = Math.min(realSections.length, noBigSections.length)
+            if (comparableSections === 0) {
+                return { changedRows: 0, totalRows: 0 }
+            }
+
+            let changedRows = 0
+            let totalRows = 0
+
+            for (let sectionIndex = 0; sectionIndex < comparableSections; sectionIndex++) {
+                const realRows = realSections[sectionIndex].rows ?? []
+                const noBigRows = noBigSections[sectionIndex].rows ?? []
+                const comparableRows = Math.min(realRows.length, noBigRows.length)
+
+                totalRows += comparableRows
+
+                for (let rowIndex = 0; rowIndex < comparableRows; rowIndex++) {
+                    if (rowFingerprint(realRows[rowIndex]) !== rowFingerprint(noBigRows[rowIndex])) {
+                        changedRows += 1
+                    }
+                }
+            }
+
+            return { changedRows, totalRows }
+        } catch {
+            return null
+        }
+    }, [data, resolvedSections, bucketState.error, bucketState.value])
+
+    const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(filteredSections.sections), [filteredSections.sections])
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
@@ -147,6 +215,88 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         setSearchParams(nextParams, { replace: true })
     }
 
+    const handleMetricChange = (next: PolicyBranchMegaMetricMode) => {
+        if (next === metricState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('metric', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
+    const renderHeader = (generatedUtc: Date) => (
+        <header className={cls.hero}>
+            <div>
+                <Text type='h1' className={cls.heroTitle}>
+                    Policy Branch Mega
+                </Text>
+                <Text className={cls.heroSubtitle}>
+                    Самые полные таблицы по каждой политике и ветке (BASE/ANTI‑D) на всей истории с учётом SL. Здесь
+                    собраны доходность, риск, восстановление, long/short‑разрез и темпы роста.
+                </Text>
+
+                <div className={cls.bucketControls}>
+                    <Text className={cls.bucketLabel}>Бакет капитала</Text>
+                    <div className={cls.bucketButtons}>
+                        {BUCKET_OPTIONS.map(option => (
+                            <Btn
+                                key={option.value}
+                                size='sm'
+                                className={classNames(
+                                    cls.bucketButton,
+                                    {
+                                        [cls.bucketButtonActive]: option.value === bucketState.value
+                                    },
+                                    []
+                                )}
+                                onClick={() => handleBucketChange(option.value)}
+                                aria-pressed={option.value === bucketState.value}>
+                                {option.label}
+                            </Btn>
+                        ))}
+                    </div>
+                </div>
+
+                <div className={cls.bucketControls}>
+                    <Text className={cls.bucketLabel}>Режим метрик</Text>
+                    <div className={cls.bucketButtons}>
+                        {METRIC_OPTIONS.map(option => (
+                            <Btn
+                                key={option.value}
+                                size='sm'
+                                className={classNames(
+                                    cls.bucketButton,
+                                    {
+                                        [cls.bucketButtonActive]: option.value === metricState.value
+                                    },
+                                    []
+                                )}
+                                onClick={() => handleMetricChange(option.value)}
+                                aria-pressed={option.value === metricState.value}>
+                                {option.label}
+                            </Btn>
+                        ))}
+                    </div>
+                </div>
+
+                {metricDiffState && (
+                    <Text className={cls.heroSubtitle}>
+                        {metricDiffState.totalRows === 0
+                            ? 'REAL/NO BIGGEST LIQ LOSS: нет сопоставимых строк для сравнения в выбранном бакете.'
+                            : metricDiffState.changedRows === 0
+                              ? 'REAL/NO BIGGEST LIQ LOSS: в выбранном бакете строки совпадают (ликвидации не влияют на этот срез).'
+                              : `REAL/NO BIGGEST LIQ LOSS: изменено ${metricDiffState.changedRows} из ${metricDiffState.totalRows} строк в выбранном бакете.`}
+                    </Text>
+                )}
+            </div>
+
+            <div className={cls.meta}>
+                <Text>Report: {data?.title ?? 'n/a'}</Text>
+                <Text>Kind: {data?.kind ?? 'n/a'}</Text>
+                <Text>Generated (UTC): {formatUtc(generatedUtc)}</Text>
+                <Text>Generated (local): {generatedUtc.toLocaleString()}</Text>
+            </div>
+        </header>
+    )
+
     let content: JSX.Element | null = null
 
     if (data) {
@@ -172,6 +322,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     onRetry={refetch}
                 />
             )
+        } else if (metricState.error) {
+            content = (
+                <PageError
+                    title='Policy Branch Mega metric query is invalid'
+                    message='Query parameter "metric" is invalid. Expected real or no-biggest-liq-loss.'
+                    error={metricState.error}
+                    onRetry={refetch}
+                />
+            )
         } else if (resolvedSections.error) {
             content = (
                 <PageError
@@ -181,19 +340,38 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     onRetry={refetch}
                 />
             )
-        } else if (bucketSections.error) {
-            content = (
-                <PageError
-                    title='Policy Branch Mega bucket sections are missing'
-                    message='Report sections for the selected bucket were not found or are tagged inconsistently.'
-                    error={bucketSections.error}
-                    onRetry={refetch}
-                />
-            )
-        } else if (bucketSections.sections.length === 0) {
+        } else if (filteredSections.error) {
+            const generatedUtc = generatedAtState.value
+            const isMetricMissing =
+                filteredSections.error.message.includes('[policy-branch-mega] no sections found for metric=')
+
+            if (generatedUtc && isMetricMissing) {
+                content = (
+                    <div className={rootClassName}>
+                        {renderHeader(generatedUtc)}
+                        <PageError
+                            title='Policy Branch Mega sections are missing'
+                            message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                            error={filteredSections.error}
+                            onRetry={refetch}
+                        />
+                    </div>
+                )
+            } else {
+                content = (
+                    <PageError
+                        title='Policy Branch Mega sections are missing'
+                        message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                        error={filteredSections.error}
+                        onRetry={refetch}
+                    />
+                )
+            }
+        } else if (filteredSections.sections.length === 0) {
             content = (
                 <Text>
-                    Policy Branch Mega пока пустой для выбранного бакета. Проверь генерацию отчётов на бэкенде.
+                    Policy Branch Mega пока пустой для выбранного бакета/режима метрик. Проверь генерацию отчётов на
+                    бэкенде.
                 </Text>
             )
         } else if (resolvedSections.sections.length === 0) {
@@ -203,49 +381,10 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
             content = (
                 <div className={rootClassName}>
-                    <header className={cls.hero}>
-                        <div>
-                            <Text type='h1' className={cls.heroTitle}>
-                                Policy Branch Mega
-                            </Text>
-                            <Text className={cls.heroSubtitle}>
-                                Самые полные таблицы по каждой политике и ветке (BASE/ANTI‑D) на всей истории с учётом
-                                SL. Здесь собраны доходность, риск, восстановление, long/short‑разрез и темпы роста.
-                            </Text>
-
-                            <div className={cls.bucketControls}>
-                                <Text className={cls.bucketLabel}>Бакет капитала</Text>
-                                <div className={cls.bucketButtons}>
-                                    {BUCKET_OPTIONS.map(option => (
-                                        <Btn
-                                            key={option.value}
-                                            size='sm'
-                                            className={classNames(
-                                                cls.bucketButton,
-                                                {
-                                                    [cls.bucketButtonActive]: option.value === bucketState.value
-                                                },
-                                                []
-                                            )}
-                                            onClick={() => handleBucketChange(option.value)}
-                                            aria-pressed={option.value === bucketState.value}>
-                                            {option.label}
-                                        </Btn>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className={cls.meta}>
-                            <Text>Report: {data.title}</Text>
-                            <Text>Kind: {data.kind}</Text>
-                            <Text>Generated (UTC): {formatUtc(generatedUtc)}</Text>
-                            <Text>Generated (local): {generatedUtc.toLocaleString()}</Text>
-                        </div>
-                    </header>
+                    {renderHeader(generatedUtc)}
 
                     <div className={cls.sectionsGrid}>
-                        {bucketSections.sections.map((section, index) => {
+                        {filteredSections.sections.map((section, index) => {
                             const domId = sectionDomId(index)
                             const title = normalizePolicyBranchMegaTitle(section.title) || section.title
                             const terms = buildPolicyBranchMegaTermsForColumns(section.columns ?? [])

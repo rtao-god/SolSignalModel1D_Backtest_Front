@@ -1,5 +1,9 @@
-import type { TableSectionDto } from '@/shared/types/report.types'
-import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
+﻿import type { TableSectionDto } from '@/shared/types/report.types'
+import {
+    normalizePolicyBranchMegaTitle,
+    resolvePolicyBranchMegaBucketFromTitle,
+    resolvePolicyBranchMegaMetricFromTitle
+} from '@/shared/utils/policyBranchMegaTabs'
 
 export interface PolicyBranchMegaTermDefinition {
     key: string
@@ -56,8 +60,8 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         key: 'Miss',
         title: 'Miss',
         description:
-            'Количество пропущенных календарных дней внутри [StartDay..EndDay], которых нет в наблюдениях. Показывает разрывы в данных или неполные участки trace.',
-        tooltip: 'Сколько дней пропало внутри периода.'
+            'Пропуски внутри [StartDay..EndDay] в формате "будни | выходные". Слева — невыходные пропуски (обычно аномалии данных/trace), справа — выходные пропуски (ожидаемые при weekend-skip).',
+        tooltip: 'Пропуски: "будни | выходные" (например, "0 | 21").'
     },
     'Trade%': {
         key: 'Trade%',
@@ -100,6 +104,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         description:
             'Доля дней, где реально сработал anti‑direction overlay: AntiDAppliedDays / Days * 100. Отображается только для ветки ANTI‑D, для BASE ставится "—".',
         tooltip: 'Процент дней, где применилось anti‑direction.'
+    },
+    'AntiD|Risk%': {
+        key: 'AntiD|Risk%',
+        title: 'AntiD|Risk%',
+        description:
+            'Доля срабатываний anti‑direction только среди риск‑дней: AntiDAppliedDays / RiskDays * 100. Для ветки BASE выводится "—". Если риск‑дней нет, значение равно 0.0.',
+        tooltip: 'Процент применений anti‑direction внутри RiskDay.'
     },
     'Lev avg/min/max': {
         key: 'Lev avg/min/max',
@@ -196,14 +207,14 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         key: 'TotalPnl%',
         title: 'TotalPnl%',
         description:
-            'Суммарная доходность в процентах по результату PnL‑движка (WITH SL). Это основная итоговая метрика прибыли за весь период.',
+            'Суммарная доходность в процентах по результату PnL-движка. В режиме REAL считается по фактическому прогону. В режиме NO BIGGEST LIQ LOSS это контрфакт: из расчёта исключена одна самая убыточная ликвидационная сделка.',
         tooltip: 'Итоговая доходность, %.'
     },
     'TotalPnl$': {
         key: 'TotalPnl$',
         title: 'TotalPnl$',
         description:
-            'Суммарная прибыль/убыток в долларах, рассчитанная по wealth‑базе: (equity now + withdrawn) − start capital. Это денежный эквивалент итоговой доходности.',
+            'Суммарная прибыль/убыток в долларах по wealth-базе: (equity now + withdrawn) − start capital. Как и TotalPnl%, зависит от выбранного режима метрик: REAL или NO BIGGEST LIQ LOSS.',
         tooltip: 'Итоговый PnL в $ по wealth‑базе.'
     },
     'Wealth%': {
@@ -217,7 +228,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         key: 'MaxDD%',
         title: 'MaxDD%',
         description:
-            'Максимальная просадка в процентах из PnL‑движка. Показывает, насколько сильно капитал падал от локального пика.',
+            'Максимальная просадка из PnL-кривой. В REAL — фактическая просадка. В NO BIGGEST LIQ LOSS — пересчитанная контрфактическая просадка после исключения одной самой убыточной ликвидации.',
         tooltip: 'Максимальная просадка, %.'
     },
     'MaxDD_NoLiq%': {
@@ -543,13 +554,32 @@ function resolveMegaModeOrder(mode: 'WITH SL' | 'NO SL' | 'UNKNOWN'): number {
     if (mode === 'NO SL') return 1
     return 2
 }
+
+function resolveMegaMetricOrder(metric: 'real' | 'no-biggest-liq-loss' | null): number {
+    if (metric === 'real') return 0
+    if (metric === 'no-biggest-liq-loss') return 1
+    return 2
+}
+
+function resolveMegaBucketOrder(bucket: 'daily' | 'intraday' | 'delayed' | 'total' | null): number {
+    if (bucket === 'daily') return 0
+    if (bucket === 'intraday') return 1
+    if (bucket === 'delayed') return 2
+    if (bucket === 'total') return 3
+    return 4
+}
 function isPolicyBranchMegaTitle(title: string | undefined): boolean {
     if (!title) return false
     const normalized = normalizePolicyBranchMegaTitle(title)
     return normalized.toLowerCase().includes(MEGA_TITLE_MARKER.toLowerCase())
 }
+
+function normalizeTermKey(rawTitle: string): string {
+    return rawTitle.trim().replace(/\s*\|\s*/g, '|')
+}
+
 export function getPolicyBranchMegaTermOrThrow(title: string): PolicyBranchMegaTermDefinition {
-    const key = title?.trim()
+    const key = normalizeTermKey(title ?? '')
     if (!key) {
         throw new Error('[policy-branch-mega] column title is empty.')
     }
@@ -575,6 +605,8 @@ export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]
         section,
         part: extractMegaPartNumber(section.title),
         mode: resolveMegaModeKey(section.title),
+        metric: resolvePolicyBranchMegaMetricFromTitle(section.title),
+        bucket: resolvePolicyBranchMegaBucketFromTitle(section.title),
         index
     }))
     if (enriched.some(item => item.mode === 'UNKNOWN')) {
@@ -582,10 +614,21 @@ export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]
         throw new Error(`[policy-branch-mega] unknown mega mode in titles: ${titles}`)
     }
 
+    if (enriched.some(item => item.metric === null)) {
+        const titles = enriched.map(item => item.section.title).join(' | ')
+        throw new Error(`[policy-branch-mega] unknown mega metric in titles: ${titles}`)
+    }
+
     return enriched
         .sort((a, b) => {
             const modeOrder = resolveMegaModeOrder(a.mode) - resolveMegaModeOrder(b.mode)
             if (modeOrder !== 0) return modeOrder
+
+            const metricOrder = resolveMegaMetricOrder(a.metric) - resolveMegaMetricOrder(b.metric)
+            if (metricOrder !== 0) return metricOrder
+
+            const bucketOrder = resolveMegaBucketOrder(a.bucket) - resolveMegaBucketOrder(b.bucket)
+            if (bucketOrder !== 0) return bucketOrder
 
             if (a.part !== null && b.part !== null) return a.part - b.part
             if (a.part !== null) return -1
@@ -613,19 +656,23 @@ export function resolvePolicyBranchMegaSectionDescription(title: string | undefi
 
     const upper = normalized.toUpperCase()
     const mode = resolveMegaModeKey(normalized)
+    const metric = resolvePolicyBranchMegaMetricFromTitle(normalized)
     const modePrefix = mode === 'NO SL' ? 'NO SL: ' : mode === 'WITH SL' ? 'WITH SL: ' : ''
+    const metricPrefix = metric === 'no-biggest-liq-loss' ? 'NO BIGGEST LIQ LOSS: ' : 'REAL: '
+    const prefix = `${modePrefix}${metricPrefix}`
 
     if (upper.includes('PART 1/3')) {
-        return `${modePrefix}Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).`
+        return `${prefix}Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).`
     }
 
     if (upper.includes('PART 2/3')) {
-        return `${modePrefix}Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).`
+        return `${prefix}Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).`
     }
 
     if (upper.includes('PART 3/3')) {
-        return `${modePrefix}Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.`
+        return `${prefix}Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.`
     }
 
     return null
 }
+

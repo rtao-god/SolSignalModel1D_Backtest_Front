@@ -7,6 +7,7 @@ export interface PolicyBranchMegaTabConfig {
 }
 
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
+export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
 
 const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     daily: 'daily',
@@ -22,6 +23,20 @@ const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     'sum-buckets': 'total',
     'total-buckets': 'total'
 }
+
+const METRIC_QUERY_ALIASES: Record<string, PolicyBranchMegaMetricMode> = {
+    real: 'real',
+    default: 'real',
+    base: 'real',
+    noliq: 'no-biggest-liq-loss',
+    no_liq: 'no-biggest-liq-loss',
+    'no-liq': 'no-biggest-liq-loss',
+    no_biggest_liq_loss: 'no-biggest-liq-loss',
+    'no-biggest-liq-loss': 'no-biggest-liq-loss',
+    nobiggestliqloss: 'no-biggest-liq-loss',
+    stressless: 'no-biggest-liq-loss'
+}
+
 export function normalizePolicyBranchMegaTitle(title: string | undefined): string {
     if (!title) return ''
     return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
@@ -42,6 +57,24 @@ export function resolvePolicyBranchMegaBucketFromQuery(
 
     return mapped
 }
+
+export function resolvePolicyBranchMegaMetricFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaMetricMode
+): PolicyBranchMegaMetricMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = METRIC_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown metric query: ${raw}`)
+    }
+
+    return mapped
+}
+
 export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined): PolicyBranchMegaBucketMode | null {
     if (!title) return null
 
@@ -79,6 +112,20 @@ export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined
 
     return matches.length === 1 ? matches[0] : null
 }
+
+export function resolvePolicyBranchMegaMetricFromTitle(title: string | undefined): PolicyBranchMegaMetricMode | null {
+    if (!title) return null
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toUpperCase()
+    if (!normalized) return null
+
+    if (normalized.includes('NO BIGGEST LIQ LOSS')) return 'no-biggest-liq-loss'
+    if (normalized.includes('[REAL]')) return 'real'
+
+    // Backward compatibility: old reports had no explicit metric tag and represent REAL.
+    return 'real'
+}
+
 export function filterPolicyBranchMegaSectionsByBucketOrThrow(
     sections: TableSectionDto[],
     bucket: PolicyBranchMegaBucketMode
@@ -110,6 +157,32 @@ export function filterPolicyBranchMegaSectionsByBucketOrThrow(
 
     if (filtered.length === 0) {
         throw new Error(`[policy-branch-mega] no sections found for bucket=${bucket}.`)
+    }
+
+    return filtered
+}
+
+export function filterPolicyBranchMegaSectionsByMetricOrThrow(
+    sections: TableSectionDto[],
+    metric: PolicyBranchMegaMetricMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        metric: resolvePolicyBranchMegaMetricFromTitle(section.title)
+    }))
+
+    if (tagged.some(item => item.metric === null)) {
+        throw new Error('[policy-branch-mega] mixed metric tagging detected in report sections.')
+    }
+
+    const filtered = tagged.filter(item => item.metric === metric).map(item => item.section)
+
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for metric=${metric}.`)
     }
 
     return filtered
