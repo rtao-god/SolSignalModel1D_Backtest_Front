@@ -60,7 +60,7 @@
 
     .wave_top {
         background-size: 50% 100px;
-        background-image: url('./assets/wave/top.png');
+        background-image: url('../../assets/wave/top.png');
         animation: move_wave 3s;
         animation-delay: 1s;
         -webkit-animation: move_wave 3s;
@@ -69,13 +69,13 @@
 
     .wave_middle {
         background-size: 50% 120px;
-        background-image: url('./assets/wave/mid.png');
+        background-image: url('../../assets/wave/mid.png');
         animation: move_wave 10s linear infinite;
     }
 
     .wave_bottom {
         background-size: 50% 100px;
-        background-image: url('./assets/wave/bot.png');
+        background-image: url('../../assets/wave/bot.png');
         animation: move_wave 15s linear infinite;
     }
 }
