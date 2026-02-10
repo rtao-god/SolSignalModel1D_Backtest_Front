@@ -21,7 +21,13 @@ import {
     EXPLAIN_TIME_TABS
 } from '@/shared/utils/explainTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
-import { buildPolicyBranchMegaTabsFromSections } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    buildPolicyBranchMegaTabsFromSections,
+    filterPolicyBranchMegaSectionsByBucketOrThrow,
+    filterPolicyBranchMegaSectionsByMetricOrThrow,
+    resolvePolicyBranchMegaBucketFromQuery,
+    resolvePolicyBranchMegaMetricFromQuery
+} from '@/shared/utils/policyBranchMegaTabs'
 import {
     buildDiagnosticsTabsFromSections,
     getDiagnosticsGroupSections,
@@ -181,8 +187,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                 Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
         )
 
-        return buildPolicyBranchMegaTabsFromSections(tableSections)
-    }, [policyBranchMegaReport])
+        try {
+            const search = new URLSearchParams(location.search)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(search.get('bucket'), 'daily')
+            const metric = resolvePolicyBranchMegaMetricFromQuery(search.get('metric'), 'real')
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(tableSections, bucket)
+            const byMetric = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, metric)
+            return buildPolicyBranchMegaTabsFromSections(byMetric)
+        } catch {
+            // В сайдбаре безопасно деградируем к пустому подменю вместо падения всего layout.
+            return []
+        }
+    }, [location.search, policyBranchMegaReport])
 
     // На специализированных страницах оставляем только профильную секцию в сайдбаре.
     const grouped = useMemo(() => {
