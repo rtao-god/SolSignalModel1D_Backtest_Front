@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './DatePicker.module.scss'
 import DatePickerProps from './types'
-import { selectArrivalDate, selectDepartureDate, selectIsSelectingDepartureDate, dateActions } from '@/entities/date'
+import { selectArrivalDate, selectDepartureDate, dateActions } from '@/entities/date'
 import { Input, Modal } from '@/shared/ui'
 import useModal from '@/shared/lib/hooks/useModal'
 import Calendar from '../Calendar/Calendar'
@@ -13,51 +13,45 @@ export default function DatePicker({ className }: DatePickerProps) {
     const dispatch = useDispatch()
     const departureDate = useSelector(selectDepartureDate)
     const arrivalDate = useSelector(selectArrivalDate)
-    const isSelectingDepartureDate = useSelector(selectIsSelectingDepartureDate)
 
-    console.log('[DatePicker] state', {
-        departureDate,
-        arrivalDate,
-        isSelectingDepartureDate
-    })
+    const hasRange = Boolean(departureDate && arrivalDate)
 
     function handleDepartureDateClick(): void {
         openModal()
         dispatch(dateActions.setIsSelectingDepartureDate(true))
-        console.log('[DatePicker] click departure')
     }
 
     function handleArrivalDateClick(): void {
         openModal()
         dispatch(dateActions.setIsSelectingDepartureDate(false))
-        console.log('[DatePicker] click arrival')
     }
 
     return (
-        <div className={classNames(cls.Date_picker, {}, [className ?? ''])}>
-            <Input
-                type='text'
-                placeholder='Departure Date'
-                value={departureDate?.value ?? ''}
-                onClick={handleDepartureDateClick}
-                readOnly
-            />
-            <div className={cls.datepicker_separator}>
-                {departureDate && arrivalDate && (
-                    <div className={cls.datepicker_range}>
-                        <div className={cls.datepicker_line}></div>
-                    </div>
-                )}
+        <div className={classNames(cls.datePicker, {}, [className ?? ''])}>
+            <div className={cls.inputs}>
+                <Input
+                    type='text'
+                    placeholder='From date'
+                    value={departureDate?.value ?? ''}
+                    onClick={handleDepartureDateClick}
+                    width='180px'
+                    readOnly
+                />
+                <div className={classNames(cls.separator, { [cls.separatorActive]: hasRange }, [])} aria-hidden='true'>
+                    <span className={cls.separatorLine}></span>
+                </div>
+                <Input
+                    type='text'
+                    placeholder='To date'
+                    value={arrivalDate?.value ?? ''}
+                    onClick={handleArrivalDateClick}
+                    width='180px'
+                    readOnly
+                />
             </div>
-            <Input
-                type='text'
-                placeholder='Arrival Date'
-                value={arrivalDate?.value ?? ''}
-                onClick={handleArrivalDateClick}
-                readOnly
-            />
+
             {isOpen && (
-                <Modal onClose={closeModal}>
+                <Modal onClose={closeModal} width='fit-content' height='fit-content' className={cls.modal}>
                     <Calendar />
                 </Modal>
             )}

@@ -1,34 +1,79 @@
-.Month_header {
-    position: relative;
-    margin-bottom: 20px;
+.Month {
+    width: 100%;
+    max-width: 364px;
 }
 
-.date {
+.Month_header {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 40px;
+    margin-bottom: 12px;
+}
 
-    & .prev_icon {
-        cursor: pointer;
-        position: absolute;
-        left: 0;
-    }
+.dateTitle {
+    margin: 0;
+    line-height: 1.2;
+}
 
-    & .next_icon {
-        cursor: pointer;
-        position: absolute;
-        right: 0;
-    }
+.navButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: 1px solid #d7dfec;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        color 0.2s ease;
+}
+
+.navButton:hover {
+    border-color: #64748b;
+    color: #1f2937;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.navButton:focus-visible {
+    outline: none;
+    border-color: #64748b;
+    color: #1f2937;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25);
+}
+
+.prevButton {
+    left: 0;
+}
+
+.nextButton {
+    right: 0;
 }
 
 .week_days {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    margin: 0 0 6px;
+    gap: 4px;
 }
 
-.week_day {
-    flex: 1;
+.weekDay {
+    margin: 0;
     text-align: center;
+    color: #475569;
+    opacity: 0.9;
+}
+
+@media (max-width: 920px) {
+    .Month {
+        max-width: unset;
+    }
 }

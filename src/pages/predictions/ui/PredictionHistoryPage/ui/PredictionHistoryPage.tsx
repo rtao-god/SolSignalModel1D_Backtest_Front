@@ -258,6 +258,10 @@ interface PredictionHistoryReportCardProps {
     domId: string
 }
 
+function isLegacyPolicyTableSection(title: string): boolean {
+    return /^=*\s*Политики плеча/i.test(title.trim())
+}
+
 function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReportCardProps) {
     const requestDateUtc = `${dateUtc}T00:00:00Z`
 
@@ -293,6 +297,15 @@ function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReport
         )
     }
 
+    const filteredSections = data.sections.filter(section => !isLegacyPolicyTableSection(section.title))
+    const reportForView =
+        filteredSections.length === data.sections.length
+            ? data
+            : {
+                  ...data,
+                  sections: filteredSections
+              }
+
     return (
         <div id={domId} className={cls.reportCard}>
             <SectionErrorBoundary
@@ -308,7 +321,7 @@ function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReport
                     />
                 )}
             >
-                <ReportDocumentView report={data} />
+                <ReportDocumentView report={reportForView} />
             </SectionErrorBoundary>
         </div>
     )

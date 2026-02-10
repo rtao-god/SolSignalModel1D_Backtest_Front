@@ -14,15 +14,12 @@ const dateSlice = createSlice({
     initialState,
     reducers: {
         setDepartureDate(state, action: PayloadAction<UiDate>) {
-            console.log('[dateSlice] setDepartureDate', action.payload)
             state.departureDate = action.payload
         },
         setArrivalDate(state, action: PayloadAction<UiDate>) {
-            console.log('[dateSlice] setArrivalDate', action.payload)
             state.arrivalDate = action.payload
         },
         setIsSelectingDepartureDate(state, action: PayloadAction<boolean>) {
-            console.log('[dateSlice] setIsSelectingDepartureDate', action.payload)
             state.isSelectingDepartureDate = action.payload
         }
     }

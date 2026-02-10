@@ -1,63 +1,140 @@
-.month_grid {
+.monthGrid {
+    --range-fill: rgba(148, 163, 184, 0.22);
+    --range-fill-strong: rgba(100, 116, 139, 0.3);
+    --range-tail: rgba(100, 116, 139, 0.36);
+
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    // gap: 5px;
+    gap: 4px;
     line-height: 1.5;
-    padding: 10px;
+    padding: 6px 2px 2px;
     background-color: #fff;
 }
 
-.Day_cell {
+.emptyCell,
+.dayCell {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 42px;
     text-align: center;
-    padding: 0.6em 0;
-    border-radius: 4px;
+    position: relative;
 }
 
-.active {
-    cursor: pointer;
-    color: black;
-    border-radius: 50%;
+.emptyCell {
+    pointer-events: none;
+}
 
-    &:hover {
-        border: 1px rgb(0, 0, 0) solid;
-    }
+.dayCell {
+    border: 0;
+    background: transparent;
+    color: #0f172a;
+    border-radius: 10px;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        color 0.2s ease;
+}
+
+.dayValue {
+    position: relative;
+    z-index: 2;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.dayCell:hover:not(:disabled) {
+    background-color: rgba(226, 232, 240, 0.7);
+    box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.38);
+}
+
+.dayCell:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(100, 116, 139, 0.7);
 }
 
 .disabled {
-    color: #bbb;
+    cursor: not-allowed;
+    color: #cbd5e1;
 }
 
-.selected_departure,
-.selected_arrival {
-    color: white;
-    background-color: black;
+.disabled:hover {
+    background: transparent;
+    box-shadow: none;
 }
 
 .range {
-    // background-color: rgb(247, 247, 247);
-    background-color: rgb(242, 255, 0);
+    background: var(--range-fill);
     border-radius: 0;
-    color: white;
+}
 
-    &:hover {
-        border-radius: 50%;
-    }
+.rangeMonthStart::before,
+.rangeMonthEnd::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 28px;
+    pointer-events: none;
+}
+
+.rangeMonthStart::before {
+    left: -8px;
+    background: linear-gradient(90deg, rgba(100, 116, 139, 0), var(--range-tail));
+}
+
+.rangeMonthEnd::after {
+    right: -8px;
+    background: linear-gradient(90deg, var(--range-tail), rgba(100, 116, 139, 0));
 }
 
 .selected {
-    background-color: red;
+    background: radial-gradient(circle at 35% 30%, #8993a6 0%, #687387 56%, #515b6c 100%);
+    border-radius: 999px;
+    color: #f8fafc;
+    box-shadow:
+        0 9px 16px rgba(71, 85, 105, 0.23),
+        inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 
-
-.firstDay {
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCA0NCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSI0NCIgaGVpZ2h0PSIzMCIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzE1NV8yMDEyKSIgLz4KICAgIDxkZWZzPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8xNTVfMjAxMiIgeDE9IjE3LjUiIHkxPSIxNSIgeDI9IjQiIHkyPSIxNSIKICAgICAgICAgICAgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjRUJGMEY3IiAvPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNFQkYwRjciIHN0b3Atb3BhY2l0eT0iMCIgLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgo8L3N2Zz4=');
+.selected .dayValue {
+    font-weight: 600;
 }
 
-.lastDay {
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCA0NCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ0IiBoZWlnaHQ9IjMwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMTYyXzE0MTYpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXJfMTYyXzE0MTYiIHgxPSIyMiIgeTE9IjE1IiB4Mj0iMzcuNSIgeTI9IjE1IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiNFQkYwRjciLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRUJGMEY3IiBzdG9wLW9wYWNpdHk9IjAiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4=');
+.rangeStart::after,
+.rangeEnd::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 28px;
+    pointer-events: none;
+}
+
+.rangeStart::after {
+    left: 50%;
+    right: -6px;
+    background: linear-gradient(90deg, var(--range-fill-strong) 0%, rgba(148, 163, 184, 0) 100%);
+}
+
+.rangeEnd::before {
+    left: -6px;
+    right: 50%;
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0) 0%, var(--range-fill-strong) 100%);
+}
+
+.singleSelected::before,
+.singleSelected::after {
+    display: none;
+}
+
+@media (max-width: 920px) {
+    .emptyCell,
+    .dayCell {
+        width: 40px;
+        height: 40px;
+    }
 }

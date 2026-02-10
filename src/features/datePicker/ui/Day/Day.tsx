@@ -1,118 +1,127 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Day.module.scss'
-import { getLastDayMonth, getMonthGrid } from '@/shared/consts/date'
+import { formatDateKey, getDaysInMonth, getMonthGrid, MIN_DATE_PICKER_YEAR, toStartOfDay } from '@/shared/consts/date'
 import DayProps from './types'
 import { useDispatch, useSelector } from 'react-redux'
 import { dateActions, selectArrivalDate, selectDepartureDate, selectIsSelectingDepartureDate } from '@/entities/date'
 
 export default function Day({ className, year, month }: DayProps) {
     const monthGrid = getMonthGrid(year, month)
+    const lastDayOfMonth = getDaysInMonth(year, month)
 
     const dispatch = useDispatch()
     const departureDate = useSelector(selectDepartureDate)
     const arrivalDate = useSelector(selectArrivalDate)
     const isSelectingDepartureDate = useSelector(selectIsSelectingDepartureDate)
 
-    function handleClick(day: number, dateObj: Date) {
-        console.log('[Day] handleClick RAW', {
-            day,
-            dateIso: dateObj.toISOString(),
-            isSelectingDepartureDate,
-            departureDate,
-            arrivalDate
-        })
+    const minSelectableDate = toStartOfDay(new Date(MIN_DATE_PICKER_YEAR, 0, 1))
+    const maxSelectableDate = toStartOfDay(new Date())
 
-        const isoValue = dateObj.toISOString().slice(0, 10) // YYYY-MM-DD
+    const departureTime = departureDate?.dateObj.getTime() ?? null
+    const arrivalTime = arrivalDate?.dateObj.getTime() ?? null
+    const hasRange = departureTime !== null && arrivalTime !== null
+    const isSingleDayRange = hasRange && departureTime === arrivalTime
 
-        const selectedDateValue = {
-            value: isoValue,
-            dateObj
-        }
+    const makeUiDate = (dateObj: Date) => {
+        const normalizedDate = toStartOfDay(dateObj)
 
-        if (isSelectingDepartureDate) {
-            console.log('[Day] DISPATCH setDepartureDate (as FROM)', selectedDateValue)
-            dispatch(dateActions.setDepartureDate(selectedDateValue))
-            dispatch(dateActions.setIsSelectingDepartureDate(false))
-        } else if (departureDate && dateObj >= departureDate.dateObj) {
-            console.log('[Day] DISPATCH setArrivalDate (TO >= FROM)', selectedDateValue)
-            dispatch(dateActions.setArrivalDate(selectedDateValue))
-            dispatch(dateActions.setIsSelectingDepartureDate(false))
-        } else if (departureDate && !isSelectingDepartureDate) {
-            console.log('[Day] DISPATCH reset range, new FROM', selectedDateValue)
-            dispatch(dateActions.setArrivalDate(null))
-            dispatch(dateActions.setDepartureDate(selectedDateValue))
-            dispatch(dateActions.setIsSelectingDepartureDate(false))
-        } else {
-            console.log('[Day] CLICK FALLTHROUGH (no branch matched)')
+        return {
+            value: formatDateKey(normalizedDate),
+            dateObj: normalizedDate
         }
     }
 
-    console.log(
-        '[Day] render',
-        { year, month },
-        'selectors:',
-        'departureDate =',
-        departureDate?.value,
-        'arrivalDate =',
-        arrivalDate?.value,
-        'isSelectingDepartureDate =',
-        isSelectingDepartureDate
-    )
+    const isSelectableDate = (dateObj: Date): boolean =>
+        dateObj.getTime() >= minSelectableDate.getTime() && dateObj.getTime() <= maxSelectableDate.getTime()
+
+    function setNewDepartureDate(dateObj: Date): void {
+        dispatch(dateActions.setDepartureDate(makeUiDate(dateObj)))
+        dispatch(dateActions.setArrivalDate(null))
+        dispatch(dateActions.setIsSelectingDepartureDate(false))
+    }
+
+    function setNewArrivalDate(dateObj: Date): void {
+        dispatch(dateActions.setArrivalDate(makeUiDate(dateObj)))
+        dispatch(dateActions.setIsSelectingDepartureDate(false))
+    }
+
+    function handleClick(dateObj: Date): void {
+        const normalizedDate = toStartOfDay(dateObj)
+
+        if (!isSelectableDate(normalizedDate)) {
+            return
+        }
+
+        if (!departureDate || isSelectingDepartureDate) {
+            setNewDepartureDate(normalizedDate)
+            return
+        }
+
+        const selectedTime = normalizedDate.getTime()
+        const departureDateTime = departureDate.dateObj.getTime()
+
+        if (selectedTime < departureDateTime) {
+            setNewDepartureDate(normalizedDate)
+            return
+        }
+
+        setNewArrivalDate(normalizedDate)
+    }
 
     return (
-        <div className={classNames(cls.month_grid, {}, [className ?? ''])}>
+        <div className={classNames(cls.monthGrid, {}, [className ?? ''])}>
             {monthGrid.map((day, index) => {
                 if (day === null) {
-                    return <div key={index} className={cls.day_cell}></div>
+                    return <div key={`empty-${index}`} className={cls.emptyCell} aria-hidden='true'></div>
                 }
 
-                const dateObj = new Date(year, month - 1, day)
-                dateObj.setHours(0, 0, 0, 0)
+                const dateObj = toStartOfDay(new Date(year, month - 1, day))
+                const dayTime = dateObj.getTime()
+                const isDisabled = !isSelectableDate(dateObj)
 
-                const today = new Date()
-                today.setHours(0, 0, 0, 0)
-                const isClickable = true
-
-                const isSelectedDeparture = !!departureDate && dateObj.getTime() === departureDate.dateObj.getTime()
-                const isSelectedArrival = !!arrivalDate && dateObj.getTime() === arrivalDate.dateObj.getTime()
+                const isSelectedDeparture = departureTime !== null && dayTime === departureTime
+                const isSelectedArrival = arrivalTime !== null && dayTime === arrivalTime
 
                 const isRange =
-                    !!departureDate && !!arrivalDate && dateObj > departureDate.dateObj && dateObj < arrivalDate.dateObj
+                    hasRange &&
+                    departureTime !== null &&
+                    arrivalTime !== null &&
+                    dayTime > departureTime &&
+                    dayTime < arrivalTime
+                const isRangeStart = !isSingleDayRange && isSelectedDeparture
+                const isRangeEnd = !isSingleDayRange && isSelectedArrival
+                const isRangeMonthStart = isRange && day === 1
+                const isRangeMonthEnd = isRange && day === lastDayOfMonth
 
-                const isFirstDay = isRange && day === 1
-                const isLastDay = isRange && getLastDayMonth(dateObj)
+                const isSingleSelectedDay = isSingleDayRange && (isSelectedDeparture || isSelectedArrival)
 
-                console.log('[Day] cell', {
-                    index,
-                    day,
-                    dateIso: dateObj.toISOString().slice(0, 10),
-                    isClickable,
-                    isSelectedDeparture,
-                    isSelectedArrival,
-                    isRange,
-                    isFirstDay,
-                    isLastDay
-                })
+                const isSelected = isSelectedDeparture || isSelectedArrival
+                const key = `${year}-${month}-${day}`
 
                 return (
-                    <div
-                        key={index}
+                    <button
+                        type='button'
+                        key={key}
                         className={classNames(
-                            cls.Day_cell,
+                            cls.dayCell,
                             {
-                                [cls.active]: isClickable,
-                                [cls.disabled]: !isClickable,
-                                [cls.selected_departure]: isSelectedDeparture,
-                                [cls.selected_arrival]: isSelectedArrival,
+                                [cls.disabled]: isDisabled,
+                                [cls.selected]: isSelected,
                                 [cls.range]: isRange,
-                                [cls.firstDay]: isFirstDay,
-                                [cls.lastDay]: isLastDay
+                                [cls.rangeStart]: isRangeStart,
+                                [cls.rangeEnd]: isRangeEnd,
+                                [cls.singleSelected]: isSingleSelectedDay,
+                                [cls.rangeMonthStart]: isRangeMonthStart,
+                                [cls.rangeMonthEnd]: isRangeMonthEnd
                             },
-                            [className ?? '']
+                            []
                         )}
-                        onClick={() => handleClick(day, dateObj)}>
-                        {day}
-                    </div>
+                        onClick={() => handleClick(dateObj)}
+                        disabled={isDisabled}
+                        aria-pressed={isSelected || isRange}
+                        aria-label={formatDateKey(dateObj)}>
+                        <span className={cls.dayValue}>{day}</span>
+                    </button>
                 )
             })}
         </div>

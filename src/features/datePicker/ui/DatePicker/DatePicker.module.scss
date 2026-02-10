@@ -1,24 +1,49 @@
-.Date_picker {
-    margin-top: 100px;
+.datePicker {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.inputs {
     display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.datepicker_separator {
-    background-color: #0071c2;
+.separator {
+    width: 20px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.datepicker_range {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
+.separatorLine {
+    width: 14px;
     height: 2px;
-    background-color: #0071c2;
-    transform: translateY(-50%);
+    border-radius: 999px;
+    background-color: #94a3b8;
+    transition:
+        background-color 0.2s ease,
+        width 0.2s ease;
 }
 
-.datepicker_line {
-    width: 100%;
-    height: 100%;
-    background-color: #0071c2;
+.separatorActive .separatorLine {
+    width: 18px;
+    background-color: #64748b;
+}
+
+.modal {
+    max-width: min(96vw, 840px);
+}
+
+@media (max-width: 920px) {
+    .inputs {
+        flex-wrap: wrap;
+        gap: 8px 10px;
+    }
+
+    .separator {
+        width: 14px;
+    }
 }

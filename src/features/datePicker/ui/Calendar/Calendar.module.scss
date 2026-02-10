@@ -1,12 +1,65 @@
 .Calendar {
     display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 20px !important;
+    background-color: #fff;
+    border: 1px solid #dce3f0;
+    border-radius: 20px;
+    box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.15);
+}
+
+.toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+}
+
+.yearLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.yearSelect {
+    min-width: 92px;
+    height: 34px;
+    border: 1px solid #c7d2e6;
+    border-radius: 10px;
+    padding: 0 10px;
+    background: #f8fafc;
+    color: #1f2937;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.yearSelect:focus {
+    outline: none;
+    border-color: #64748b;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.months {
+    display: flex;
     align-items: flex-start;
     justify-content: center;
     flex-direction: row;
     gap: 20px;
-    padding: 16px 32px !important;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 32px;
-    box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 920px) {
+    .Calendar {
+        padding: 12px !important;
+        border-radius: 14px;
+    }
+
+    .months {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .toolbar {
+        justify-content: space-between;
+    }
 }

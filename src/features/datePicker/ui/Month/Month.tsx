@@ -6,26 +6,44 @@ import MonthProps from './types'
 import classNames from '@/shared/lib/helpers/classNames'
 
 export default function Month({ className, year, month, onPrevMonth, onNextMonth }: MonthProps) {
+    const monthTitle = `${CALENDAR_MONTHS[month]} ${year}`
+
     return (
         <div className={classNames(cls.Month, {}, [className ?? ''])}>
             <div className={cls.Month_header}>
-                <div className={cls.date}>
-                    {onPrevMonth && (
-                        <Icon name='arrow' flipped={true} onClick={onPrevMonth} className={cls.prev_icon} />
-                    )}
-                    <Text type='h1'>
-                        {CALENDAR_MONTHS[month]} {year}
-                    </Text>
-                    {onNextMonth && <Icon name='arrow' onClick={onNextMonth} className={cls.next_icon} />}
-                </div>
+                {onPrevMonth && (
+                    <button
+                        type='button'
+                        className={classNames(cls.navButton, {}, [cls.prevButton])}
+                        onClick={onPrevMonth}
+                        aria-label='Previous month'>
+                        <Icon name='arrow' flipped color='currentColor' />
+                    </button>
+                )}
+
+                <Text type='h1' className={cls.dateTitle}>
+                    {monthTitle}
+                </Text>
+
+                {onNextMonth && (
+                    <button
+                        type='button'
+                        className={classNames(cls.navButton, {}, [cls.nextButton])}
+                        onClick={onNextMonth}
+                        aria-label='Next month'>
+                        <Icon name='arrow' color='currentColor' />
+                    </button>
+                )}
             </div>
+
             <div className={cls.week_days}>
-                {getWeekDaysArray().map((day, index) => (
-                    <Text key={index} type='h4'>
+                {getWeekDaysArray().map(day => (
+                    <Text key={day} type='h4' className={cls.weekDay}>
                         {day}
                     </Text>
                 ))}
             </div>
+
             <Day year={year} month={month} />
         </div>
     )

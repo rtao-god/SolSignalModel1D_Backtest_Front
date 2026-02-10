@@ -1,4 +1,4 @@
-import { KeyboardEvent, ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { KeyboardEvent, MouseEvent, ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Portal, Text } from '@/shared/ui'
 import useClickOutside from '@/shared/lib/hooks/useClickOutside'
@@ -59,14 +59,39 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         setPinned(prev => !prev)
     }, [])
 
+    const clickParentButtonIfExists = useCallback((target: HTMLElement): boolean => {
+        const parentButton = target.closest('button')
+        if (!parentButton) {
+            return false
+        }
+
+        parentButton.click()
+        return true
+    }, [])
+
+    const handleTermClick = useCallback(
+        (event: MouseEvent<HTMLSpanElement>) => {
+            if (clickParentButtonIfExists(event.currentTarget)) {
+                return
+            }
+
+            togglePinned()
+        },
+        [clickParentButtonIfExists, togglePinned]
+    )
+
     const handleKeyDown = useCallback(
         (event: KeyboardEvent<HTMLSpanElement>) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
+                if (clickParentButtonIfExists(event.currentTarget)) {
+                    return
+                }
+
                 togglePinned()
             }
         },
-        [togglePinned]
+        [clickParentButtonIfExists, togglePinned]
     )
 
     useClickOutside(rootRef, () => {
@@ -190,7 +215,7 @@ export default function TermTooltip({ term, description, type = 'h3', className,
                         className={cls.termInner}
                         onMouseEnter={handleTermEnter}
                         onMouseLeave={handleTermLeave}
-                        onClick={togglePinned}
+                        onClick={handleTermClick}
                         onKeyDown={handleKeyDown}
                         role='button'
                         tabIndex={0}

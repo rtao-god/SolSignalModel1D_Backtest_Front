@@ -1,28 +1,50 @@
 import { StateSchema } from '@/app/providers/StoreProvider'
+import { formatDateKey, parseDateKey, toStartOfDay } from '@/shared/consts/date'
 import type DateSchema from '../types/DateSchema'
-type UiDate = DateSchema['departureDate'] // { value: string; dateObj: Date } | null
+
+type UiDate = DateSchema['departureDate']
+
+function createUiDate(value: string | null, dateObj: Date | null): UiDate {
+    if (!value && !dateObj) {
+        return null
+    }
+
+    const normalizedByValue = value ? parseDateKey(value) : null
+    const normalizedByObject = dateObj ? toStartOfDay(dateObj) : null
+    const normalized = normalizedByValue ?? normalizedByObject
+
+    if (!normalized) {
+        return null
+    }
+
+    return {
+        value: formatDateKey(normalized),
+        dateObj: normalized
+    }
+}
 
 function normalizeDate(raw: unknown): UiDate {
     if (raw == null) {
         return null
     }
-    if (typeof raw === 'object' && 'value' in (raw as any)) {
-        const r = raw as { value: string; dateObj?: Date }
-        const value = r.value
-        const dateObj = r.dateObj instanceof Date ? r.dateObj : new Date(value)
 
-        return { value, dateObj }
+    if (typeof raw === 'object' && 'value' in (raw as Record<string, unknown>)) {
+        const typedRaw = raw as { value?: unknown; dateObj?: unknown }
+        const value = typeof typedRaw.value === 'string' ? typedRaw.value : null
+        const dateObj = typedRaw.dateObj instanceof Date ? typedRaw.dateObj : null
+
+        return createUiDate(value, dateObj)
     }
+
     if (raw instanceof Date) {
-        const iso = raw.toISOString()
-        const value = iso.slice(0, 10) // YYYY-MM-DD
-        return { value, dateObj: raw }
+        const normalizedDate = toStartOfDay(raw)
+        return createUiDate(formatDateKey(normalizedDate), normalizedDate)
     }
+
     if (typeof raw === 'string') {
-        const value = raw
-        const dateObj = new Date(raw)
-        return { value, dateObj }
+        return createUiDate(raw, null)
     }
+
     return null
 }
 
