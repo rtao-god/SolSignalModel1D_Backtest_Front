@@ -29,6 +29,7 @@ interface PolicyBranchMegaStatusDto {
 
 export interface PolicyBranchMegaFreshnessInfoDto {
     sourceMode: PolicyBranchMegaSourceMode
+    sourceEndpoint: string
     state: PolicyBranchMegaFreshnessState
     message: string
     lagSeconds: number | null
@@ -90,9 +91,12 @@ function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
 }
 
 function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranchMegaFreshnessInfoDto {
+    const sourceEndpoint = resolvePolicyBranchMegaSourceEndpoint()
+
     if (!status) {
         return {
             sourceMode: 'debug',
+            sourceEndpoint,
             state: 'unknown',
             message: 'Не удалось проверить актуальность отчёта (status endpoint недоступен).',
             lagSeconds: null,
@@ -105,6 +109,7 @@ function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranch
 
     return {
         sourceMode: status.state === 'fresh' ? 'actual' : 'debug',
+        sourceEndpoint,
         state: status.state,
         message: status.message,
         lagSeconds: status.lagSeconds,
@@ -113,6 +118,21 @@ function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranch
         diagnosticsId: status.diagnosticsId,
         diagnosticsGeneratedAtUtc: status.diagnosticsGeneratedAtUtc
     }
+}
+
+function resolvePolicyBranchMegaSourceEndpoint(): string {
+    const base = API_BASE_URL.trim()
+
+    if (base.startsWith('/')) {
+        const devProxy = import.meta.env.VITE_DEV_API_PROXY_TARGET
+        if (typeof devProxy === 'string' && devProxy.trim().length > 0) {
+            return devProxy.trim().replace(/\/+$/, '')
+        }
+
+        return `${window.location.origin}${base}`
+    }
+
+    return base.replace(/\/+$/, '')
 }
 
 async function fetchPolicyBranchMegaStatusOrNull(): Promise<PolicyBranchMegaStatusDto | null> {
@@ -164,6 +184,21 @@ async function fetchPolicyBranchMegaReportWithFreshness(): Promise<PolicyBranchM
 
     const report = await fetchPolicyBranchMegaReport()
     const freshness = toFreshnessInfo(status)
+
+    if (status?.state === 'fresh' && status.policyBranchMegaId) {
+        const expectedId = status.policyBranchMegaId.trim()
+        const loadedId = report.id.trim()
+
+        if (loadedId.length === 0) {
+            throw new Error('[policy-branch-mega] Loaded report id is empty.')
+        }
+
+        if (loadedId !== expectedId) {
+            throw new Error(
+                `[policy-branch-mega] Loaded report id (${loadedId}) does not match latest verified id (${expectedId}).`
+            )
+        }
+    }
 
     return { report, freshness }
 }

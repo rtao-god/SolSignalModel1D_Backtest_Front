@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Icon, Text } from '@/shared/ui'
+import { BucketFilterToggle, Icon, ReportTableCard, Text } from '@/shared/ui'
 import { useGetCurrentPredictionByDateQuery } from '@/shared/api/api'
 import { selectArrivalDate, selectDepartureDate } from '@/entities/date'
 import cls from './PredictionHistoryPage.module.scss'
@@ -18,6 +18,11 @@ import type { CurrentPredictionSet } from '@/shared/api/endpoints/reportEndpoint
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import type { ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
+import type { TableRow } from '@/shared/ui/SortableTable'
+import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import type { PredictionHistoryPageProps } from './types'
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = Math.max(1, Math.floor(PAGE_SIZE / 2))
@@ -26,6 +31,258 @@ type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPrediction
 interface PredictionHistoryPageInnerProps {
     className?: string
     index: PredictionHistoryIndex
+}
+
+interface PolicyTradeRow {
+    policyName: string
+    branch: string
+    bucket: string
+    side: 'LONG' | 'SHORT'
+    entryPrice: number
+    exitPrice: number
+    exitReason: string
+    tpPrice: number
+    tpPct: number
+    slPrice: number
+    slPct: number
+    liqPrice: number | null
+    bucketCapitalUsd: number
+    stakeUsd: number
+    stakePct: number
+}
+
+const POLICY_TABLE_TITLE_RE = /^=*\s*Политики плеча/i
+const ALL_BUCKETS_VALUE = 'all'
+
+function isTableSection(section: ReportSectionDto): section is { title: string; columns: string[]; rows: string[][] } {
+    const candidate = section as { columns?: unknown; rows?: unknown }
+    return Array.isArray(candidate.columns) && Array.isArray(candidate.rows)
+}
+
+function normalizeLabel(value: string): string {
+    return value.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function findColumnIndexOrThrow(columns: string[], matcher: (normalized: string) => boolean, label: string): number {
+    const idx = columns.findIndex(col => matcher(normalizeLabel(col)))
+    if (idx < 0) {
+        throw new Error(`[ui] Required column is missing in policy table. column=${label}.`)
+    }
+    return idx
+}
+
+function parseNumberOrThrow(raw: unknown, label: string): number {
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return raw
+    }
+
+    if (typeof raw === 'string') {
+        const parsed = tryParseNumberFromString(raw)
+        if (parsed !== null && Number.isFinite(parsed)) {
+            return parsed
+        }
+    }
+
+    throw new Error(`[ui] Missing or invalid numeric value. field=${label}, value=${String(raw)}.`)
+}
+
+function parseOptionalNumber(raw: unknown): number | null {
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return raw
+    }
+
+    if (typeof raw !== 'string') {
+        return null
+    }
+
+    const normalized = raw.trim().toLowerCase()
+    if (
+        normalized.length === 0 ||
+        normalized === '-' ||
+        normalized === 'n/a' ||
+        normalized === 'na' ||
+        normalized.startsWith('нет')
+    ) {
+        return null
+    }
+
+    const parsed = tryParseNumberFromString(raw)
+    if (parsed === null || !Number.isFinite(parsed)) {
+        return null
+    }
+
+    return parsed
+}
+
+function parseBooleanTextOrThrow(raw: unknown, label: string): boolean {
+    if (typeof raw !== 'string') {
+        throw new Error(`[ui] Missing or invalid boolean-like text. field=${label}.`)
+    }
+
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'true' || normalized === 'yes') {
+        return true
+    }
+    if (normalized === 'false' || normalized === 'no') {
+        return false
+    }
+
+    throw new Error(`[ui] Unsupported boolean-like text. field=${label}, value=${raw}.`)
+}
+
+function formatPrice(value: number): string {
+    if (!Number.isFinite(value)) {
+        throw new Error(`[ui] Invalid price value for formatting: ${value}.`)
+    }
+    return value.toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4
+    })
+}
+
+function formatMoney(value: number): string {
+    if (!Number.isFinite(value)) {
+        throw new Error(`[ui] Invalid money value for formatting: ${value}.`)
+    }
+    return value.toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })
+}
+
+function formatPercent(value: number): string {
+    if (!Number.isFinite(value)) {
+        throw new Error(`[ui] Invalid percent value for formatting: ${value}.`)
+    }
+    return value.toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })
+}
+
+function resolvePolicyTableSectionOrThrow(report: ReportDocumentDto): { title: string; columns: string[]; rows: string[][] } {
+    const table = report.sections.find(
+        section =>
+            isTableSection(section) &&
+            POLICY_TABLE_TITLE_RE.test(section.title) &&
+            section.columns.some(col => normalizeLabel(col) === 'политика') &&
+            section.columns.some(col => normalizeLabel(col) === 'цена входа')
+    )
+
+    if (!table || !isTableSection(table)) {
+        throw new Error('[ui] Policy table section is missing in report.')
+    }
+
+    return table
+}
+
+function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): PolicyTradeRow[] {
+    const table = resolvePolicyTableSectionOrThrow(report)
+
+    const policyIdx = findColumnIndexOrThrow(table.columns, col => col === 'политика', 'Политика')
+    const branchIdx = findColumnIndexOrThrow(table.columns, col => col === 'ветка', 'Ветка')
+    const hasDirectionIdx = findColumnIndexOrThrow(table.columns, col => col === 'есть направление', 'Есть направление')
+    const skippedIdx = findColumnIndexOrThrow(table.columns, col => col === 'пропущено', 'Пропущено')
+    const directionIdx = findColumnIndexOrThrow(table.columns, col => col === 'направление', 'Направление')
+    const leverageIdx = findColumnIndexOrThrow(table.columns, col => col === 'плечо', 'Плечо')
+    const entryIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена входа', 'Цена входа')
+    const slPctIdx = findColumnIndexOrThrow(table.columns, col => col === 'sl, %', 'SL, %')
+    const tpPctIdx = findColumnIndexOrThrow(table.columns, col => col === 'tp, %', 'TP, %')
+    const slPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена sl', 'Цена SL')
+    const tpPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена tp', 'Цена TP')
+    const positionUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'размер позиции, $', 'Размер позиции, $')
+    const liqPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена ликвидации', 'Цена ликвидации')
+    const exitPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена выхода', 'Цена выхода')
+    const exitReasonIdx = findColumnIndexOrThrow(table.columns, col => col === 'причина выхода', 'Причина выхода')
+    const bucketCapitalUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'капитал бакета, $', 'Капитал бакета, $')
+    const stakeUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'ставка, $', 'Ставка, $')
+    const stakePctIdx = findColumnIndexOrThrow(table.columns, col => col === 'ставка, %', 'Ставка, %')
+
+    const tradeRows: PolicyTradeRow[] = []
+
+    for (const row of table.rows) {
+        if (!Array.isArray(row)) {
+            throw new Error('[ui] Invalid policy table row.')
+        }
+
+        const hasDirection = parseBooleanTextOrThrow(row[hasDirectionIdx], 'Есть направление')
+        const skipped = parseBooleanTextOrThrow(row[skippedIdx], 'Пропущено')
+
+        if (!hasDirection || skipped) {
+            continue
+        }
+
+        const directionRaw = String(row[directionIdx] ?? '').trim().toUpperCase()
+        if (directionRaw !== 'LONG' && directionRaw !== 'SHORT') {
+            throw new Error(`[ui] Unsupported direction value: ${directionRaw}.`)
+        }
+
+        const policyName = String(row[policyIdx] ?? '')
+        const branch = String(row[branchIdx] ?? '')
+        const leverage = parseNumberOrThrow(row[leverageIdx], 'Плечо')
+        const entryPrice = parseNumberOrThrow(row[entryIdx], 'Цена входа')
+        const slPrice = parseNumberOrThrow(row[slPriceIdx], 'Цена SL')
+        const tpPrice = parseNumberOrThrow(row[tpPriceIdx], 'Цена TP')
+        const liqPrice = parseOptionalNumber(row[liqPriceIdx])
+        const positionUsd = parseNumberOrThrow(row[positionUsdIdx], 'Размер позиции, $')
+
+        if (!policyName || !branch) {
+            throw new Error('[ui] Policy or branch value is empty in policy table row.')
+        }
+        if (!(leverage > 0)) {
+            throw new Error(`[ui] Leverage must be > 0. value=${leverage}.`)
+        }
+        if (!(entryPrice > 0 && slPrice > 0 && tpPrice > 0)) {
+            throw new Error('[ui] Trade prices must be positive.')
+        }
+        if (!(positionUsd > 0) || !Number.isFinite(positionUsd)) {
+            throw new Error(`[ui] Position usd is invalid. value=${positionUsd}.`)
+        }
+
+        const slPctFromEntry = parseNumberOrThrow(row[slPctIdx], 'SL, %')
+        const tpPctFromEntry = parseNumberOrThrow(row[tpPctIdx], 'TP, %')
+        const bucketCapitalUsd = parseNumberOrThrow(row[bucketCapitalUsdIdx], 'Капитал бакета, $')
+        const stakeUsd = parseNumberOrThrow(row[stakeUsdIdx], 'Ставка, $')
+        const stakePct = parseNumberOrThrow(row[stakePctIdx], 'Ставка, %')
+        const exitPrice = parseNumberOrThrow(row[exitPriceIdx], 'Цена выхода')
+        const exitReason = String(row[exitReasonIdx] ?? '').trim()
+
+        if (!(bucketCapitalUsd > 0) || !Number.isFinite(bucketCapitalUsd)) {
+            throw new Error(`[ui] Bucket capital is invalid. value=${bucketCapitalUsd}.`)
+        }
+        if (!(stakeUsd > 0) || !Number.isFinite(stakeUsd)) {
+            throw new Error(`[ui] Stake usd is invalid. value=${stakeUsd}.`)
+        }
+        if (!(stakePct >= 0) || !Number.isFinite(stakePct)) {
+            throw new Error(`[ui] Stake pct is invalid. value=${stakePct}.`)
+        }
+        if (!(exitPrice > 0) || !Number.isFinite(exitPrice)) {
+            throw new Error(`[ui] Exit price is invalid. value=${exitPrice}.`)
+        }
+        if (exitReason.length === 0) {
+            throw new Error('[ui] Exit reason is empty.')
+        }
+
+        tradeRows.push({
+            policyName,
+            branch,
+            bucket: 'daily',
+            side: directionRaw,
+            entryPrice,
+            exitPrice,
+            exitReason,
+            tpPrice,
+            tpPct: tpPctFromEntry,
+            slPrice,
+            slPct: slPctFromEntry,
+            liqPrice,
+            bucketCapitalUsd,
+            stakeUsd,
+            stakePct
+        })
+    }
+
+    return tradeRows
 }
 
 function PredictionHistoryPageInner({ className, index }: PredictionHistoryPageInnerProps) {
@@ -262,6 +519,114 @@ function isLegacyPolicyTableSection(title: string): boolean {
     return /^=*\s*Политики плеча/i.test(title.trim())
 }
 
+interface PredictionPolicyTradesTableProps {
+    report: ReportDocumentDto
+    dateUtc: string
+}
+
+const POLICY_TRADES_SECTION_TITLE = 'Политики плеча (BASE vs ANTI-D)'
+
+function PredictionPolicyTradesTable({ report, dateUtc }: PredictionPolicyTradesTableProps) {
+    const tradeRows = useMemo(() => parsePolicyTradeRowsOrThrow(report), [report])
+
+    const availableBuckets = useMemo(() => {
+        const uniqueBuckets = Array.from(new Set(tradeRows.map(row => row.bucket)))
+        uniqueBuckets.sort((a, b) => a.localeCompare(b))
+        return uniqueBuckets
+    }, [tradeRows])
+
+    const [bucketFilter, setBucketFilter] = useState<string>(ALL_BUCKETS_VALUE)
+
+    useEffect(() => {
+        if (bucketFilter !== ALL_BUCKETS_VALUE && !availableBuckets.includes(bucketFilter)) {
+            setBucketFilter(ALL_BUCKETS_VALUE)
+        }
+    }, [availableBuckets, bucketFilter])
+
+    if (tradeRows.length === 0) {
+        return (
+            <div className={cls.tradeTableBlock}>
+                <Text type='p'>По выбранному дню не было открытых сделок по политикам.</Text>
+            </div>
+        )
+    }
+
+    const options = [
+        { value: ALL_BUCKETS_VALUE, label: 'Все бакеты' },
+        ...availableBuckets.map(bucket => ({
+            value: bucket,
+            label: bucket
+        }))
+    ]
+
+    const filteredRows =
+        bucketFilter === ALL_BUCKETS_VALUE ? tradeRows : tradeRows.filter(row => row.bucket === bucketFilter)
+
+    const columns = [
+        'Политика',
+        'Ветка',
+        'Сторона',
+        'Вход, $',
+        'Выход, $',
+        'Причина выхода',
+        'TP, $',
+        'TP, %',
+        'SL, $',
+        'SL, %',
+        'Цена ликвидации, $',
+        'Капитал бакета, $',
+        'Ставка, $',
+        'Ставка, %'
+    ]
+
+    const tableRows: TableRow[] = filteredRows.map(row => [
+        row.policyName,
+        row.branch,
+        row.side,
+        formatPrice(row.entryPrice),
+        formatPrice(row.exitPrice),
+        row.exitReason,
+        formatPrice(row.tpPrice),
+        formatPercent(row.tpPct),
+        formatPrice(row.slPrice),
+        formatPercent(row.slPct),
+        row.liqPrice !== null ? formatPrice(row.liqPrice) : 'нет (плечо<=1x / не рассчитана)',
+        formatMoney(row.bucketCapitalUsd),
+        formatMoney(row.stakeUsd),
+        formatPercent(row.stakePct)
+    ])
+
+    return (
+        <div className={cls.tradeTableBlock}>
+            <div className={cls.tradeTableToolbar}>
+                <Text type='p' className={cls.tradeTableHint}>
+                    Таблица собрана по backend-полям отчёта за {dateUtc}. Данные выхода/ставки берутся напрямую из
+                    бэкенда без клиентских fallback-расчётов.
+                </Text>
+
+                <BucketFilterToggle
+                    value={bucketFilter}
+                    options={options}
+                    onChange={setBucketFilter}
+                    className={cls.bucketToggle}
+                    ariaLabel='Фильтр торговой таблицы по бакету'
+                />
+            </div>
+
+            <ReportTableCard
+                title='Сделки по политикам'
+                description='История торговых параметров по каждому прогнозу и ветке с фильтрацией по бакету.'
+                columns={columns}
+                rows={tableRows}
+                domId={`pred-trades-${dateUtc}`}
+                renderColumnTitle={title =>
+                    renderTermTooltipTitle(title, resolveReportColumnTooltip(report.kind, POLICY_TRADES_SECTION_TITLE, title))
+                }
+            />
+        </div>
+    )
+}
+
 function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReportCardProps) {
     const requestDateUtc = `${dateUtc}T00:00:00Z`
 
@@ -322,6 +687,22 @@ function PredictionHistoryReportCard({ dateUtc, domId }: PredictionHistoryReport
                 )}
             >
                 <ReportDocumentView report={reportForView} />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary
+                name={`PredictionHistoryPolicyTrades_${dateUtc}`}
+                fallback={({ error: sectionError, reset }) => (
+                    <ErrorBlock
+                        code='CLIENT'
+                        title={`Ошибка при построении торговой таблицы за ${dateUtc}`}
+                        description='Основной отчёт отрисован, но таблица сделок не построилась из-за несовместимых данных.'
+                        details={sectionError.message}
+                        onRetry={reset}
+                        compact
+                    />
+                )}
+            >
+                <PredictionPolicyTradesTable report={data} dateUtc={dateUtc} />
             </SectionErrorBoundary>
         </div>
     )

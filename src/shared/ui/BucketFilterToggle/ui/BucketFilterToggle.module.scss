@@ -1,0 +1,43 @@
+.BucketFilterToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.75);
+}
+
+.optionButton {
+    min-width: 88px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: rgba(226, 232, 240, 0.85);
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.optionButton:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #f8fafc;
+}
+
+.optionButtonActive {
+    background: linear-gradient(135deg, #0ea5e9, #22c55e);
+    color: #041019;
+    font-weight: 600;
+}
+
+@media (max-width: 760px) {
+    .BucketFilterToggle {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+    }
+
+    .optionButton {
+        min-width: 74px;
+    }
+}
+

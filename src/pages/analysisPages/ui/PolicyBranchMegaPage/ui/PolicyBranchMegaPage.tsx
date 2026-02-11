@@ -225,7 +225,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     }
 
     const freshnessLabel =
-        freshness?.sourceMode === 'actual' ? 'ACTUAL: latest verified' : 'DEBUG: freshness not verified'
+        freshness?.sourceMode === 'actual'
+            ? 'ACTUAL: latest verified (for current API source)'
+            : 'DEBUG: freshness not verified'
     const freshnessLagLabel =
         freshness?.lagSeconds && freshness.lagSeconds > 0
             ? `Lag vs diagnostics: ${Math.round(freshness.lagSeconds / 60)} min`
@@ -310,9 +312,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     {freshnessLabel}
                 </Text>
                 <Text>{freshness?.message ?? 'Freshness status is unavailable.'}</Text>
+                <Text>Data source: {freshness?.sourceEndpoint ?? 'n/a'}</Text>
                 {freshnessLagLabel && <Text>{freshnessLagLabel}</Text>}
                 <Text>Report: {report?.title ?? 'n/a'}</Text>
+                <Text>Report ID: {report?.id ?? 'n/a'}</Text>
                 <Text>Kind: {report?.kind ?? 'n/a'}</Text>
+                <Text>Status policy_branch_mega ID: {freshness?.policyBranchMegaId ?? 'n/a'}</Text>
+                <Text>Status diagnostics ID: {freshness?.diagnosticsId ?? 'n/a'}</Text>
+                <Text>Status policy_branch_mega generatedAt (UTC): {freshness?.policyBranchMegaGeneratedAtUtc ?? 'n/a'}</Text>
+                <Text>Status diagnostics generatedAt (UTC): {freshness?.diagnosticsGeneratedAtUtc ?? 'n/a'}</Text>
                 <Text>Generated (UTC): {formatUtc(generatedUtc)}</Text>
                 <Text>Generated (local): {generatedUtc.toLocaleString()}</Text>
             </div>

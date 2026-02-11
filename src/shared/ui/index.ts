@@ -20,4 +20,5 @@ export * from './loaders'
 export * from './TermTooltip'
 export * from './SortableTable'
 export * from './ReportTableCard'
+export * from './BucketFilterToggle'
 

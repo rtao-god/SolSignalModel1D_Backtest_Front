@@ -151,6 +151,31 @@
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
 }
 
+.tradeTableBlock {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tradeTableToolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+}
+
+.tradeTableHint {
+    font-size: 12px;
+    opacity: 0.78;
+    max-width: 860px;
+}
+
+.bucketToggle {
+    flex-shrink: 0;
+}
+
 /* Карточка ошибки */
 
 .errorCard {
