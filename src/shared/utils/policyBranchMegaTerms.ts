@@ -350,6 +350,70 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Количество реальных ликвидаций (IsRealLiquidation) по сделкам. Для Cross выводится "—", потому что там важнее сам факт смерти, а не число ликвидаций.',
         tooltip: 'Число реальных ликвидаций (Isolated).'
     },
+    EODExit_n: {
+        key: 'EODExit_n',
+        title: 'EODExit_n',
+        description:
+            'Количество сделок, закрытых принудительно в конце торгового окна (EndOfDay), когда first-event логика не нашла TP/SL/liquidation раньше. Счётчик показывает, как часто позиция доживает до конца окна без раннего события.',
+        tooltip:
+            'Count сделок с ExitReason=EndOfDay. Рост метрики означает, что TP/SL/liquidation реже срабатывают до конца окна.'
+    },
+    'EODExit%': {
+        key: 'EODExit%',
+        title: 'EODExit%',
+        description:
+            'Доля принудительных EndOfDay-выходов среди всех сделок: EODExit_n / Tr * 100. Нужна, чтобы видеть, насколько часто позиция доживает до конца окна.',
+        tooltip:
+            'Formula: EODExit_n / Tr * 100. Нормирует EODExit_n на объём торгов и позволяет сравнивать политики с разным числом сделок.'
+    },
+    'EODExit$': {
+        key: 'EODExit$',
+        title: 'EODExit$',
+        description:
+            'Суммарный NetPnL в долларах только по сделкам с принудительным EndOfDay-выходом. Показывает вклад EOD-сделок в общий денежный результат.',
+        tooltip:
+            'Сумма NetPnL по всем EndOfDay-сделкам. Отрицательное значение означает, что принудительное закрытие в конце окна ухудшает итоговый PnL.'
+    },
+    'EODExit_AvgRet%': {
+        key: 'EODExit_AvgRet%',
+        title: 'EODExit_AvgRet%',
+        description:
+            'Средняя NetReturn% по сделкам, закрытым принудительно в конце окна (EndOfDay). Это средняя доходность одной EOD-сделки без взвешивания по частоте других причин выхода.',
+        tooltip:
+            'Mean NetReturn% только по EndOfDay-сделкам. Используется для оценки качества «дефолтного» выхода в конце окна.'
+    },
+    LiqBeforeSL_n: {
+        key: 'LiqBeforeSL_n',
+        title: 'LiqBeforeSL_n',
+        description:
+            'Количество ликвидаций при включённом SL-режиме, когда ликвидация произошла раньше, чем сработал stop-loss. Это индикатор того, что риск в части сделок успевает реализоваться до защитного выхода.',
+        tooltip:
+            'Count случаев liquidation раньше SL при включённом SL-режиме. Ненулевые значения требуют проверки leverage/cap/SL-порогов.'
+    },
+    LiqBeforeSL_BadSL_n: {
+        key: 'LiqBeforeSL_BadSL_n',
+        title: 'LiqBeforeSL_BadSL_n',
+        description:
+            'Подмножество LiqBeforeSL_n, где рассчитанный SL находился за уровнем ликвидации (некорректная постановка SL относительно leverage/margin).',
+        tooltip:
+            'Count случаев, где SL расположен «дальше», чем уровень ликвидации. Для корректной риск-настройки метрика должна стремиться к нулю.'
+    },
+    LiqBeforeSL_Same1m_n: {
+        key: 'LiqBeforeSL_Same1m_n',
+        title: 'LiqBeforeSL_Same1m_n',
+        description:
+            'Подмножество LiqBeforeSL_n, где SL и ликвидация были задеты в одной и той же 1m-свече (конфликт порядка внутри минуты).',
+        tooltip:
+            'Count конфликтных кейсов в одной 1m-свече: одновременно касаются SL и liquidation. Влияет на чувствительность к first-event и порядку событий.'
+    },
+    'LiqBeforeSL$': {
+        key: 'LiqBeforeSL$',
+        title: 'LiqBeforeSL$',
+        description:
+            'Суммарный NetPnL в долларах по сделкам из LiqBeforeSL_n (ликвидация раньше SL при включённом SL-режиме). Оценивает денежный ущерб/вклад именно проблемных кейсов «liq раньше SL».',
+        tooltip:
+            'Сумма NetPnL по сделкам LiqBeforeSL_n. Чем сильнее отрицательное значение, тем дороже обходятся ликвидации до срабатывания SL.'
+    },
     'BalMin%': {
         key: 'BalMin%',
         title: 'BalMin%',

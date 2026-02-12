@@ -21,4 +21,6 @@ export * from './TermTooltip'
 export * from './SortableTable'
 export * from './ReportTableCard'
 export * from './BucketFilterToggle'
+export * from './PolicyBucketFilterToggle'
+export * from './CurrentPredictionTrainingScopeToggle'
 

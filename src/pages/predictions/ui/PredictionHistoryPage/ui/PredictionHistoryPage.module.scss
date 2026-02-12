@@ -50,6 +50,44 @@
     gap: 12px;
 }
 
+.controlsPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(10, 15, 26, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.controlBlock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+.controlLabel {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.controlHint {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.72;
+}
+
+.scopeToggle {
+    flex: 1 1 420px;
+}
+
+.historyWindowToggle {
+    flex-shrink: 0;
+}
+
 .filtersRow {
     display: flex;
     flex-wrap: wrap;

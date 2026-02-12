@@ -38,10 +38,20 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
         }),
         getCurrentPredictionIndex: builder.query<
             CurrentPredictionIndexItemDto[],
-            { set: CurrentPredictionSet; days?: number }
+            { set: CurrentPredictionSet; days?: number; scope?: CurrentPredictionTrainingScope }
         >({
-            query: ({ set, days }) => {
-                const params = days ? { set, days } : { set }
+            query: ({ set, days, scope }) => {
+                const params: {
+                    set: CurrentPredictionSet
+                    days?: number
+                    scope?: CurrentPredictionTrainingScope
+                } = { set }
+                if (typeof days === 'number' && Number.isFinite(days) && days > 0) {
+                    params.days = days
+                }
+                if (scope) {
+                    params.scope = scope
+                }
 
                 return {
                     url: datesIndex.path,
@@ -50,12 +60,18 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
                 }
             }
         }),
-        getCurrentPredictionByDate: builder.query<ReportDocumentDto, { set: CurrentPredictionSet; dateUtc: string }>({
-            query: ({ set, dateUtc }) => ({
-                url: byDateReport.path,
-                method: byDateReport.method,
-                params: { set, dateUtc }
-            }),
+        getCurrentPredictionByDate: builder.query<
+            ReportDocumentDto,
+            { set: CurrentPredictionSet; dateUtc: string; scope?: CurrentPredictionTrainingScope }
+        >({
+            query: ({ set, dateUtc, scope }) => {
+                const params = scope ? { set, dateUtc, scope } : { set, dateUtc }
+                return {
+                    url: byDateReport.path,
+                    method: byDateReport.method,
+                    params
+                }
+            },
             transformResponse: mapReportResponse
         }),
         getBacktestBaselineSummary: builder.query<BacktestSummaryDto, void>({

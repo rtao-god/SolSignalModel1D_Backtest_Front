@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Btn, TermTooltip, Text } from '@/shared/ui'
+import { Btn, PolicyBucketFilterToggle, TermTooltip, Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import type { TableSectionDto } from '@/shared/types/report.types'
@@ -58,13 +58,6 @@ function rowFingerprint(row: unknown): string {
 
 const DEFAULT_BUCKET: PolicyBranchMegaBucketMode = 'daily'
 const DEFAULT_METRIC: PolicyBranchMegaMetricMode = 'real'
-
-const BUCKET_OPTIONS: Array<{ value: PolicyBranchMegaBucketMode; label: string }> = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'intraday', label: 'Intraday' },
-    { value: 'delayed', label: 'Delayed' },
-    { value: 'total', label: 'Σ Все бакеты' }
-]
 
 const METRIC_OPTIONS: Array<{ value: PolicyBranchMegaMetricMode; label: string }> = [
     { value: 'real', label: 'REAL' },
@@ -246,24 +239,12 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
                 <div className={cls.bucketControls}>
                     <Text className={cls.bucketLabel}>Бакет капитала</Text>
-                    <div className={cls.bucketButtons}>
-                        {BUCKET_OPTIONS.map(option => (
-                            <Btn
-                                key={option.value}
-                                size='sm'
-                                className={classNames(
-                                    cls.bucketButton,
-                                    {
-                                        [cls.bucketButtonActive]: option.value === bucketState.value
-                                    },
-                                    []
-                                )}
-                                onClick={() => handleBucketChange(option.value)}
-                                aria-pressed={option.value === bucketState.value}>
-                                {option.label}
-                            </Btn>
-                        ))}
-                    </div>
+                    <PolicyBucketFilterToggle
+                        value={bucketState.value}
+                        onChange={handleBucketChange}
+                        className={cls.bucketButtons}
+                        ariaLabel='Фильтр Policy Branch Mega по бакету'
+                    />
                 </div>
 
                 <div className={cls.bucketControls}>

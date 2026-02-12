@@ -30,32 +30,8 @@
     opacity: 0.7;
 }
 
-.scopeToggleGroup {
-    display: inline-flex;
-    padding: 2px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.scopeToggleBtn {
-    border: none;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 13px;
-    cursor: pointer;
-    background: transparent;
-    color: inherit;
-    transition: background-color 0.15s ease-in-out, opacity 0.15s ease-in-out;
-    opacity: 0.8;
-}
-
-.scopeToggleBtn:hover {
-    opacity: 1;
-}
-
-.scopeToggleBtnActive {
-    background: var(--inverted-bg-color-btn);
-    opacity: 1;
+.scopeToggle {
+    flex: 1 1 420px;
 }
 
 /* Мета-блок над отчётом */
