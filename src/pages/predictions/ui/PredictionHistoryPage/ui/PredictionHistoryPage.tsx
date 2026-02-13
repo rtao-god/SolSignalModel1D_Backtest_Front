@@ -607,14 +607,15 @@ function PredictionHistoryPageInner({
     const rootClassName = classNames(cls.HistoryPage, {}, [className ?? ''])
 
     if (!allDatesDesc.length) {
+        const details = `set=${HISTORY_SET}, scope=${trainingScope}, window=${selectedHistoryWindowMeta.value}`
         return (
             <div className={rootClassName}>
-                <Text type='h2'>История прогнозов пуста</Text>
-                <Text type='p'>
-                    Бэкенд вернул пустой список дат по current_prediction ({HISTORY_SET}, scope=
-                    {trainingScope}, window={selectedHistoryWindowMeta.value}). Проверь конфигурацию генерации
-                    отчётов или период хранения.
-                </Text>
+                <ErrorBlock
+                    code='DATA'
+                    title='История прогнозов не загружена'
+                    description='Бэкенд не вернул ни одной даты для выбранного режима обучения. Это считается ошибкой данных, а не пустым состоянием.'
+                    details={details}
+                />
             </div>
         )
     }
@@ -781,7 +782,7 @@ function PredictionHistoryPageInner({
                         <div className={classNames(cls.cards, { [cls.cardsAnimating]: cardsAnimating }, [])}>
                             {visibleDates.map(date => (
                                 <PredictionHistoryReportCard
-                                    key={date}
+                                    key={`${trainingScope}-${date}`}
                                     dateUtc={date}
                                     domId={`pred-${date}`}
                                     trainingScope={trainingScope}
