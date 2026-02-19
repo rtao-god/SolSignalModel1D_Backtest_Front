@@ -29,7 +29,7 @@ async function fetchCurrentPrediction(
     const querySuffix = search.toString()
     const url = `${API_BASE_URL}${latestReport.path}${querySuffix ? `?${querySuffix}` : ''}`
 
-    const resp = await fetch(url)
+    const resp = await fetch(url, { cache: 'no-store' })
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')

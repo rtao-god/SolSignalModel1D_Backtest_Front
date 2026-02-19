@@ -56,6 +56,10 @@ export const API_ROUTES = {
             path: '/backtest/confidence-risk',
             method: 'GET' as const
         },
+        executionPipelineGet: {
+            path: '/backtest/execution-pipeline',
+            method: 'GET' as const
+        },
         profilesListGet: {
             path: '/backtest/profiles',
             method: 'GET' as const
@@ -74,6 +78,14 @@ export const API_ROUTES = {
         },
         previewPost: {
             path: '/backtest/preview',
+            method: 'POST' as const
+        },
+        previewFullPost: {
+            path: '/backtest/preview/full',
+            method: 'POST' as const
+        },
+        comparePost: {
+            path: '/backtest/compare',
             method: 'POST' as const
         },
         policyRatiosGetByProfile: {

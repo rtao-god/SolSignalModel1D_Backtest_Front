@@ -15,6 +15,7 @@ export interface TableSectionDto extends BaseSectionDto {
     detailLevel?: TableDetailLevel
     columns?: string[]
     rows?: string[][]
+    metadata?: CapturedTableMetadataDto
 }
 export type ReportSectionDto = KeyValueSectionDto | TableSectionDto
 export interface ReportDocumentDto {
@@ -27,3 +28,17 @@ export interface ReportDocumentDto {
 
 export type TableDetailLevel = 'simple' | 'technical';
 
+export type CapturedTableKindDto = 'unknown' | 'policy-branch-mega' | 'top-trades'
+export type CapturedMegaModeDto = 'with-sl' | 'no-sl'
+export type CapturedMegaZonalModeDto = 'with-zonal' | 'without-zonal'
+export type CapturedMegaMetricVariantDto = 'real' | 'no-biggest-liq-loss'
+export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total-aggregate'
+
+export interface CapturedTableMetadataDto {
+    kind: CapturedTableKindDto
+    mode?: CapturedMegaModeDto
+    zonalMode?: CapturedMegaZonalModeDto
+    metricVariant?: CapturedMegaMetricVariantDto
+    bucket?: CapturedMegaBucketDto
+    part?: number
+}

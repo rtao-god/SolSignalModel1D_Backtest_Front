@@ -28,6 +28,37 @@
     max-width: 720px;
 }
 
+.scopeControls {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.scopeControlBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scopeControlLabel {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.scopeToggle {
+    align-self: flex-start;
+}
+
+.scopeBucketToggle {
+    align-self: flex-start;
+}
+
+.scopeHint {
+    font-size: 12px;
+    color: #cbd5f5;
+}
+
 .meta {
     display: flex;
     flex-direction: column;

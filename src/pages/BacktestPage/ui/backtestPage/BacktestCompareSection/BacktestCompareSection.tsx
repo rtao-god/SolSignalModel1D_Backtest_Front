@@ -1,8 +1,17 @@
 import { Btn, Text } from '@/shared/ui'
 import { BacktestSummaryView } from '../BacktestSummaryView/BacktestSummaryView'
-import { getMetricValue } from '@/shared/utils/backtestMetrics'
+import { BacktestPolicyRatiosSection } from '../BacktestPolicyRatiosSection/BacktestPolicyRatiosSection'
 import cls from './BacktestCompareSection.module.scss'
 import BacktestCompareSectionProps from './types'
+
+function formatSignedDelta(value: number | null, digits = 2): string {
+    if (value === null || !Number.isFinite(value)) {
+        return 'n/a'
+    }
+
+    const sign = value > 0 ? '+' : ''
+    return `${sign}${value.toFixed(digits)}`
+}
 
 export function BacktestCompareSection({
     profiles,
@@ -10,6 +19,11 @@ export function BacktestCompareSection({
     profileBId,
     summaryA,
     summaryB,
+    policyRatiosA,
+    policyRatiosB,
+    deltaBestTotalPnlPct,
+    deltaWorstMaxDdPct,
+    deltaTotalTrades,
     compareError,
     isCompareLoading,
     onProfileAChange,
@@ -19,21 +33,14 @@ export function BacktestCompareSection({
     const profileA = profiles?.find(p => p.id === profileAId) ?? null
     const profileB = profiles?.find(p => p.id === profileBId) ?? null
 
-    const profileABestPnl = getMetricValue(summaryA, 'BestTotalPnlPct')
-    const profileBBestPnl = getMetricValue(summaryB, 'BestTotalPnlPct')
-
-    const profileADrawdown = getMetricValue(summaryA, 'WorstMaxDdPct')
-    const profileBDrawdown = getMetricValue(summaryB, 'WorstMaxDdPct')
-
     return (
         <section id='compare' className={cls.compareSection}>
             <Text type='h2'>Сравнение профилей A / B</Text>
 
-
             {profiles && profiles.length > 0 && (
                 <div className={cls.compareSelectors}>
-                    <div className={cls.selector}>
-                        <Text>Профиль A:</Text>
+                    <label className={cls.selector}>
+                        <Text>Профиль A</Text>
                         <select
                             value={profileAId ?? ''}
                             onChange={e => onProfileAChange(e.target.value)}
@@ -44,10 +51,10 @@ export function BacktestCompareSection({
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </label>
 
-                    <div className={cls.selector}>
-                        <Text>Профиль B:</Text>
+                    <label className={cls.selector}>
+                        <Text>Профиль B</Text>
                         <select
                             value={profileBId ?? ''}
                             onChange={e => onProfileBChange(e.target.value)}
@@ -58,22 +65,16 @@ export function BacktestCompareSection({
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </label>
                 </div>
             )}
 
-
             <div className={cls.compareMetrics}>
-                <Text type='h3'>Основные метрики (preview A/B)</Text>
+                <Text type='h3'>Сводка дельт (B - A)</Text>
                 <div className={cls.metricsValues}>
-                    <Text>
-                        BestTotalPnlPct:&nbsp;A ={profileABestPnl !== null ? ` ${profileABestPnl.toFixed(2)} %` : ' —'},
-                        B ={profileBBestPnl !== null ? ` ${profileBBestPnl.toFixed(2)} %` : ' —'}
-                    </Text>
-                    <Text>
-                        WorstMaxDdPct:&nbsp;A ={profileADrawdown !== null ? ` ${profileADrawdown.toFixed(2)} %` : ' —'},
-                        B ={profileBDrawdown !== null ? ` ${profileBDrawdown.toFixed(2)} %` : ' —'}
-                    </Text>
+                    <Text>BestTotalPnlPct: {formatSignedDelta(deltaBestTotalPnlPct)} %</Text>
+                    <Text>WorstMaxDdPct: {formatSignedDelta(deltaWorstMaxDdPct)} %</Text>
+                    <Text>TotalTrades: {formatSignedDelta(deltaTotalTrades, 0)}</Text>
                 </div>
             </div>
 
@@ -87,17 +88,32 @@ export function BacktestCompareSection({
                 <div className={cls.column}>
                     <Text type='h3'>Профиль A{profileA ? ` (${profileA.name || profileA.id})` : ''}</Text>
                     {summaryA ?
-                        <BacktestSummaryView summary={summaryA} title='Результат профиля A' />
+                        <BacktestSummaryView summary={summaryA} title='Summary профиля A' />
                     :   <Text>Ещё нет результата preview для профиля A.</Text>}
+                    {policyRatiosA && (
+                        <BacktestPolicyRatiosSection
+                            report={policyRatiosA}
+                            title='Метрики политик профиля A'
+                            subtitle='Метрики построены по тому же one-shot прогона, что и summary профиля A.'
+                        />
+                    )}
                 </div>
 
                 <div className={cls.column}>
                     <Text type='h3'>Профиль B{profileB ? ` (${profileB.name || profileB.id})` : ''}</Text>
                     {summaryB ?
-                        <BacktestSummaryView summary={summaryB} title='Результат профиля B' />
+                        <BacktestSummaryView summary={summaryB} title='Summary профиля B' />
                     :   <Text>Ещё нет результата preview для профиля B.</Text>}
+                    {policyRatiosB && (
+                        <BacktestPolicyRatiosSection
+                            report={policyRatiosB}
+                            title='Метрики политик профиля B'
+                            subtitle='Метрики построены по тому же one-shot прогона, что и summary профиля B.'
+                        />
+                    )}
                 </div>
             </div>
         </section>
     )
 }
+

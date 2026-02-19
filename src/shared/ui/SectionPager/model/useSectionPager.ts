@@ -93,12 +93,21 @@ export function useSectionPager({
 
     const programmaticTargetIndexRef = useRef<number | null>(null)
     const lastHandledHashRef = useRef<string | null>(null)
+    const scrollSyncedHashRef = useRef<string | null>(null)
+    const currentHashRef = useRef<string>('')
+
+    useEffect(() => {
+        currentHashRef.current = location.hash.replace('#', '')
+    }, [location.hash])
+
     useEffect(() => {
         if (sections.length === 0) {
             if (currentIndex !== 0) {
                 setCurrentIndex(0)
             }
             programmaticTargetIndexRef.current = null
+            scrollSyncedHashRef.current = null
+            currentHashRef.current = ''
             return
         }
 
@@ -114,15 +123,23 @@ export function useSectionPager({
         const hash = location.hash.replace('#', '')
         if (!hash) {
             lastHandledHashRef.current = null
+            scrollSyncedHashRef.current = null
+            return
+        }
+
+        const idx = sections.findIndex(s => s.anchor === hash)
+        if (idx < 0) return
+
+        if (scrollSyncedHashRef.current === hash) {
+            scrollSyncedHashRef.current = null
+            lastHandledHashRef.current = hash
+            setCurrentIndex(prev => (prev === idx ? prev : idx))
             return
         }
 
         if (lastHandledHashRef.current === hash) {
             return
         }
-
-        const idx = sections.findIndex(s => s.anchor === hash)
-        if (idx < 0) return
 
         programmaticTargetIndexRef.current = idx
         lastHandledHashRef.current = hash
@@ -183,6 +200,27 @@ export function useSectionPager({
             }
 
             setCurrentIndex(prev => (prev === bestIndex ? prev : bestIndex))
+
+            const bestAnchor = sections[bestIndex]?.anchor
+            const isProgrammaticScroll = programmaticTargetIndexRef.current !== null
+            if (!syncHash || !bestAnchor || isProgrammaticScroll) {
+                return
+            }
+
+            if (currentHashRef.current === bestAnchor) {
+                return
+            }
+
+            scrollSyncedHashRef.current = bestAnchor
+            currentHashRef.current = bestAnchor
+            navigate(
+                {
+                    pathname: location.pathname,
+                    search: location.search,
+                    hash: `#${bestAnchor}`
+                },
+                { replace: true, preventScrollReset: true }
+            )
         }
 
         scrollRoot.addEventListener('scroll', handleScroll, { passive: true })
@@ -191,7 +229,7 @@ export function useSectionPager({
         return () => {
             scrollRoot.removeEventListener('scroll', handleScroll)
         }
-    }, [sections, trackScrollEffective, offsetTop])
+    }, [sections, trackScrollEffective, offsetTop, syncHash, navigate, location.pathname, location.search])
 
 
     useEffect(() => {

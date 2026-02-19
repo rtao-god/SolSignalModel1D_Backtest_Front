@@ -18,12 +18,12 @@ const BACKTEST_SUMMARY_RULES: { match: RegExp; description: string }[] = [
     {
         match: /^Backtest config \(baseline\)/i,
         description:
-            'Базовые настройки бэктеста, которые применялись ко всем политикам: дневной стоп-лосс и тейк-профит. Это именно конфиг запуска, а не результат торговли.'
+            'Конфиг baseline и what-if: базовые дневные TP/SL, dynamic confidence-risk overlay, risk-budget и ограничения dynamic TP/SL (клампы, confidence-gate, историческая проверка bucket samples/win-rate). Dynamic TP/SL активируется не в каждый день: только если confidence-условия выполняются.'
     },
     {
         match: /^Policies \(baseline config\)/i,
         description:
-            'Список политик из baseline-конфига: имя, тип логики, плечо и режим маржи. Таблица описывает «что запускали», а не «как получилось».'
+            'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом, плечом и режимом маржи.'
     },
     {
         match: /^Политики бэктеста/i,

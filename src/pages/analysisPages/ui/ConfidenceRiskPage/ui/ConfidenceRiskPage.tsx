@@ -1,12 +1,40 @@
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text, TermTooltip } from '@/shared/ui'
+import {
+    BucketFilterToggle,
+    CurrentPredictionTrainingScopeToggle,
+    ReportActualStatusCard,
+    ReportTableTermsBlock,
+    ReportViewControls,
+    Text,
+    TermTooltip,
+    resolveCurrentPredictionTrainingScopeMeta
+} from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { useBacktestConfidenceRiskReportQuery } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
+import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
+import {
+    filterPolicyBranchMegaSectionsByBucketOrThrow,
+    filterPolicyBranchMegaSectionsByMetricOrThrow,
+    resolvePolicyBranchMegaBucketFromQuery,
+    resolvePolicyBranchMegaMetricFromQuery,
+    resolvePolicyBranchMegaTpSlModeFromQuery
+} from '@/shared/utils/policyBranchMegaTabs'
+import {
+    DEFAULT_REPORT_BUCKET_MODE,
+    DEFAULT_REPORT_METRIC_MODE,
+    DEFAULT_REPORT_TP_SL_MODE,
+    resolveReportViewCapabilities,
+    validateReportViewSelectionOrThrow
+} from '@/shared/utils/reportViewCapabilities'
+import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
+import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
+import type { BucketFilterOption } from '@/shared/ui/BucketFilterToggle'
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
 
@@ -22,8 +50,8 @@ const TERMS_TABLE: ConfidenceRiskTerm[] = [
         key: 'Split',
         title: 'Split',
         description:
-            'Срез данных: FULL — вся история, TRAIN — обучающая часть, OOS — out‑of‑sample. Это нужно, чтобы видеть стабильность правил на новых данных.',
-        tooltip: 'Срез данных (FULL/TRAIN/OOS).'
+            'Срез данных: FULL — вся история, TRAIN — обучающая часть, OOS — out‑of‑sample, RECENT — хвост последних дней. Это нужно, чтобы видеть стабильность правил на новых данных и на свежем хвосте.',
+        tooltip: 'Срез данных (FULL/TRAIN/OOS/RECENT).'
     },
     {
         key: 'Bucket',
@@ -227,6 +255,171 @@ const TERMS_CONFIG: Record<string, ConfidenceRiskTerm> = {
 
 const TABLE_TERM_MAP = new Map(TERMS_TABLE.map(term => [term.title, term]))
 
+const CONFIDENCE_SCOPE_TO_SPLIT: Record<CurrentPredictionTrainingScope, string> = {
+    full: 'FULL',
+    train: 'TRAIN',
+    oos: 'OOS',
+    recent: 'RECENT'
+}
+
+const DEFAULT_CONFIDENCE_SCOPE: CurrentPredictionTrainingScope = 'full'
+const DEFAULT_CONFIDENCE_BUCKET = 'all'
+
+function resolveConfidenceScopeFromQueryOrThrow(raw: string | null): CurrentPredictionTrainingScope {
+    if (!raw) {
+        return DEFAULT_CONFIDENCE_SCOPE
+    }
+
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'full') return 'full'
+    if (normalized === 'train') return 'train'
+    if (normalized === 'oos') return 'oos'
+    if (normalized === 'recent') return 'recent'
+
+    throw new Error(`[confidence-risk] invalid scope query value: ${raw}.`)
+}
+
+function findColumnIndexByTitleOrThrow(columns: string[], title: string): number {
+    const index = columns.findIndex(column => column.trim().toLowerCase() === title.trim().toLowerCase())
+    if (index < 0) {
+        throw new Error(`[confidence-risk] required column is missing: ${title}.`)
+    }
+
+    return index
+}
+
+function compareConfidenceBucketNames(left: string, right: string): number {
+    if (left === right) return 0
+    if (left === 'OUT_OF_RANGE') return 1
+    if (right === 'OUT_OF_RANGE') return -1
+
+    const leftMatch = /^B(\d{2})$/i.exec(left)
+    const rightMatch = /^B(\d{2})$/i.exec(right)
+
+    if (leftMatch && rightMatch) {
+        const leftValue = Number(leftMatch[1])
+        const rightValue = Number(rightMatch[1])
+        return leftValue - rightValue
+    }
+
+    return left.localeCompare(right, 'en-US', { sensitivity: 'base' })
+}
+
+function buildConfidenceBucketOptionsOrThrow(
+    sections: TableSectionDto[],
+    scope: CurrentPredictionTrainingScope
+): BucketFilterOption[] {
+    if (!Array.isArray(sections) || sections.length === 0) {
+        throw new Error('[confidence-risk] table sections are missing for bucket options.')
+    }
+
+    const splitLabel = CONFIDENCE_SCOPE_TO_SPLIT[scope]
+    const uniqueBucketNames = new Set<string>()
+
+    sections.forEach(section => {
+        if (!Array.isArray(section.columns) || !Array.isArray(section.rows)) {
+            throw new Error('[confidence-risk] invalid table section while reading confidence buckets.')
+        }
+
+        const splitIndex = findColumnIndexByTitleOrThrow(section.columns, 'Split')
+        const bucketIndex = findColumnIndexByTitleOrThrow(section.columns, 'Bucket')
+
+        section.rows.forEach((row, rowIndex) => {
+            if (!Array.isArray(row)) {
+                throw new Error(
+                    `[confidence-risk] row is not an array while reading confidence buckets. rowIndex=${rowIndex}.`
+                )
+            }
+
+            const splitValue = row[splitIndex]?.trim().toUpperCase()
+            const bucketValue = row[bucketIndex]?.trim()
+
+            if (splitValue === splitLabel && bucketValue) {
+                uniqueBucketNames.add(bucketValue)
+            }
+        })
+    })
+
+    if (uniqueBucketNames.size === 0) {
+        throw new Error(`[confidence-risk] no rows found for selected scope: ${scope}.`)
+    }
+
+    const orderedBuckets = Array.from(uniqueBucketNames).sort(compareConfidenceBucketNames)
+
+    return [
+        { value: DEFAULT_CONFIDENCE_BUCKET, label: 'Все бакеты' },
+        ...orderedBuckets.map(bucket => ({ value: bucket, label: bucket }))
+    ]
+}
+
+function resolveConfidenceBucketFromQueryOrThrow(raw: string | null, options: BucketFilterOption[]): string {
+    if (!raw) {
+        return DEFAULT_CONFIDENCE_BUCKET
+    }
+
+    const normalized = raw.trim()
+    const supported = options.some(option => option.value === normalized)
+    if (!supported) {
+        throw new Error(`[confidence-risk] invalid confidence bucket query value: ${raw}.`)
+    }
+
+    return normalized
+}
+
+function filterConfidenceRowsByScopeAndBucketOrThrow(
+    sections: TableSectionDto[],
+    scope: CurrentPredictionTrainingScope,
+    bucket: string
+): TableSectionDto[] {
+    if (!Array.isArray(sections) || sections.length === 0) {
+        throw new Error('[confidence-risk] table sections are missing for scope filtering.')
+    }
+
+    const splitLabel = CONFIDENCE_SCOPE_TO_SPLIT[scope]
+
+    const filtered = sections.map(section => {
+        if (!Array.isArray(section.columns) || !Array.isArray(section.rows)) {
+            throw new Error('[confidence-risk] invalid table section while filtering by scope.')
+        }
+
+        const splitIndex = findColumnIndexByTitleOrThrow(section.columns, 'Split')
+        const bucketIndex = findColumnIndexByTitleOrThrow(section.columns, 'Bucket')
+
+        const rows = section.rows.filter((row, rowIndex) => {
+            if (!Array.isArray(row)) {
+                throw new Error(`[confidence-risk] row is not an array while filtering. rowIndex=${rowIndex}.`)
+            }
+
+            const splitValue = row[splitIndex]?.trim().toUpperCase()
+            const bucketValue = row[bucketIndex]?.trim()
+
+            if (splitValue !== splitLabel) {
+                return false
+            }
+
+            if (bucket === DEFAULT_CONFIDENCE_BUCKET) {
+                return true
+            }
+
+            return bucketValue === bucket
+        })
+
+        return {
+            ...section,
+            rows
+        }
+    })
+
+    const rowsCount = filtered.reduce((sum, section) => sum + (section.rows?.length ?? 0), 0)
+    if (rowsCount === 0) {
+        throw new Error(
+            `[confidence-risk] no rows found after scope/bucket filtering. scope=${scope}, bucket=${bucket}.`
+        )
+    }
+
+    return filtered
+}
+
 function getTableTermOrThrow(title: string): ConfidenceRiskTerm {
     if (!title) {
         throw new Error('[confidence-risk] column title is empty.')
@@ -253,16 +446,6 @@ function getConfigTermOrThrow(key: string): ConfidenceRiskTerm {
     return term
 }
 
-function formatUtc(dt: Date): string {
-    const year = dt.getUTCFullYear()
-    const month = String(dt.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(dt.getUTCDate()).padStart(2, '0')
-    const hour = String(dt.getUTCHours()).padStart(2, '0')
-    const minute = String(dt.getUTCMinutes()).padStart(2, '0')
-
-    return `${year}-${month}-${day} ${hour}:${minute} UTC`
-}
-
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
         (section): section is TableSectionDto =>
@@ -278,9 +461,240 @@ function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
 
 export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
     const { data, isError, error, refetch } = useBacktestConfidenceRiskReportQuery()
+    const [searchParams, setSearchParams] = useSearchParams()
 
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
     const keyValueSections = useMemo(() => buildKeyValueSections(data?.sections ?? []), [data])
+    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(tableSections), [tableSections])
+    const scopeState = useMemo(() => {
+        try {
+            return {
+                value: resolveConfidenceScopeFromQueryOrThrow(searchParams.get('scope')),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk scope query.')
+            return {
+                value: DEFAULT_CONFIDENCE_SCOPE,
+                error: safeError
+            }
+        }
+    }, [searchParams])
+    const scopeMetaState = useMemo(() => {
+        try {
+            return {
+                value: resolveCurrentPredictionTrainingScopeMeta(scopeState.value),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError =
+                err instanceof Error
+                    ? err
+                    : new Error('Failed to resolve current prediction training scope metadata.')
+            return {
+                value: null,
+                error: safeError
+            }
+        }
+    }, [scopeState.value])
+
+    const bucketState = useMemo(() => {
+        try {
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            return { value: bucket, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk bucket query.')
+            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const metricState = useMemo(() => {
+        try {
+            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            return { value: metric, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk metric query.')
+            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const tpSlState = useMemo(() => {
+        try {
+            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
+            return { value: mode, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk tpsl query.')
+            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const sourceEndpointState = useMemo(() => {
+        try {
+            return {
+                value: resolveReportSourceEndpointOrThrow(),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            return {
+                value: null as string | null,
+                error: safeError
+            }
+        }
+    }, [])
+
+    const viewSelectionState = useMemo(() => {
+        try {
+            validateReportViewSelectionOrThrow(
+                {
+                    bucket: bucketState.value,
+                    metric: metricState.value,
+                    tpSl: tpSlState.value
+                },
+                viewCapabilities,
+                'confidence-risk'
+            )
+            return { error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to validate confidence-risk view state.')
+            return { error: safeError }
+        }
+    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
+
+    const filteredTableSectionsState = useMemo(() => {
+        if (viewSelectionState.error) {
+            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
+        }
+
+        try {
+            let nextSections = tableSections
+
+            if (viewCapabilities.supportsBucketFiltering) {
+                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
+            }
+
+            if (viewCapabilities.supportsMetricFiltering) {
+                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
+            }
+
+            if (viewCapabilities.supportsTpSlFiltering) {
+                nextSections = applyReportTpSlModeToSectionsOrThrow(
+                    nextSections,
+                    tpSlState.value,
+                    'confidence-risk'
+                )
+            }
+
+            return { sections: nextSections, error: null as Error | null }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to filter confidence-risk sections by bucket/metric.')
+            return { sections: [] as TableSectionDto[], error: safeError }
+        }
+    }, [bucketState.value, metricState.value, tableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+
+    const confidenceBucketOptionsState = useMemo(() => {
+        if (scopeState.error) {
+            return {
+                options: [] as BucketFilterOption[],
+                error: scopeState.error
+            }
+        }
+
+        if (filteredTableSectionsState.error) {
+            return {
+                options: [] as BucketFilterOption[],
+                error: filteredTableSectionsState.error
+            }
+        }
+
+        try {
+            return {
+                options: buildConfidenceBucketOptionsOrThrow(filteredTableSectionsState.sections, scopeState.value),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to build confidence bucket options for selected scope.')
+            return {
+                options: [] as BucketFilterOption[],
+                error: safeError
+            }
+        }
+    }, [filteredTableSectionsState.error, filteredTableSectionsState.sections, scopeState.error, scopeState.value])
+
+    const confidenceBucketState = useMemo(() => {
+        if (confidenceBucketOptionsState.error) {
+            return {
+                value: DEFAULT_CONFIDENCE_BUCKET,
+                error: confidenceBucketOptionsState.error
+            }
+        }
+
+        try {
+            return {
+                value: resolveConfidenceBucketFromQueryOrThrow(
+                    searchParams.get('confBucket'),
+                    confidenceBucketOptionsState.options
+                ),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence bucket query.')
+            return {
+                value: DEFAULT_CONFIDENCE_BUCKET,
+                error: safeError
+            }
+        }
+    }, [confidenceBucketOptionsState.error, confidenceBucketOptionsState.options, searchParams])
+
+    const scopeFilteredTableSectionsState = useMemo(() => {
+        if (filteredTableSectionsState.error) {
+            return {
+                sections: [] as TableSectionDto[],
+                error: filteredTableSectionsState.error
+            }
+        }
+
+        if (scopeState.error) {
+            return {
+                sections: [] as TableSectionDto[],
+                error: scopeState.error
+            }
+        }
+
+        if (confidenceBucketState.error) {
+            return {
+                sections: [] as TableSectionDto[],
+                error: confidenceBucketState.error
+            }
+        }
+
+        try {
+            return {
+                sections: filterConfidenceRowsByScopeAndBucketOrThrow(
+                    filteredTableSectionsState.sections,
+                    scopeState.value,
+                    confidenceBucketState.value
+                ),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to filter confidence-risk rows by scope and bucket.')
+            return {
+                sections: [] as TableSectionDto[],
+                error: safeError
+            }
+        }
+    }, [
+        confidenceBucketState.error,
+        confidenceBucketState.value,
+        filteredTableSectionsState.error,
+        filteredTableSectionsState.sections,
+        scopeState.error,
+        scopeState.value
+    ])
 
     const configState = useMemo(() => {
         if (!data) {
@@ -333,6 +747,42 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         return renderTermTooltipTitle(title, term.tooltip)
     }
 
+    const handleScopeChange = (next: CurrentPredictionTrainingScope) => {
+        if (next === scopeState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('scope', next)
+        nextParams.set('confBucket', DEFAULT_CONFIDENCE_BUCKET)
+        setSearchParams(nextParams, { replace: true })
+    }
+
+    const handleConfidenceBucketChange = (next: string) => {
+        if (next === confidenceBucketState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('confBucket', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
+    const handleBucketChange = (next: typeof bucketState.value) => {
+        if (next === bucketState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('bucket', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
+    const handleMetricChange = (next: typeof metricState.value) => {
+        if (next === metricState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('metric', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
+    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
+        if (next === tpSlState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('tpsl', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
     let content: JSX.Element | null = null
 
     if (data) {
@@ -349,6 +799,112 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     onRetry={refetch}
                 />
             )
+        } else if (sourceEndpointState.error || !sourceEndpointState.value) {
+            const err =
+                sourceEndpointState.error ??
+                new Error('[confidence-risk] report source endpoint is missing after validation.')
+
+            content = (
+                <PageError
+                    title='Confidence risk report source is invalid'
+                    message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                    error={err}
+                    onRetry={refetch}
+                />
+            )
+        } else if (bucketState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk bucket query is invalid'
+                    message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                    error={bucketState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (metricState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk metric query is invalid'
+                    message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                    error={metricState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (tpSlState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk TP/SL query is invalid'
+                    message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                    error={tpSlState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (viewSelectionState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk view mode is unsupported for this report'
+                    message='Выбранный bucket/metric/tpsl режим не поддерживается структурой текущего отчёта.'
+                    error={viewSelectionState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (filteredTableSectionsState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk sections are missing'
+                    message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                    error={filteredTableSectionsState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (scopeState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk scope query is invalid'
+                    message='Query parameter \"scope\" is invalid. Expected full, train, oos, or recent.'
+                    error={scopeState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (scopeMetaState.error || !scopeMetaState.value) {
+            content = (
+                <PageError
+                    title='Confidence risk scope metadata is invalid'
+                    message='Не удалось определить метаданные выбранного scope-режима.'
+                    error={
+                        scopeMetaState.error ??
+                        new Error('[confidence-risk] scope metadata is missing after validation.')
+                    }
+                    onRetry={refetch}
+                />
+            )
+        } else if (confidenceBucketOptionsState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk bucket options are missing'
+                    message='Для выбранного scope не удалось построить список confidence-бакетов.'
+                    error={confidenceBucketOptionsState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (confidenceBucketState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk confidence-bucket query is invalid'
+                    message='Query parameter \"confBucket\" is invalid for selected scope.'
+                    error={confidenceBucketState.error}
+                    onRetry={refetch}
+                />
+            )
+        } else if (scopeFilteredTableSectionsState.error) {
+            content = (
+                <PageError
+                    title='Confidence risk scope filtering failed'
+                    message='Не удалось применить фильтр scope/confidence-bucket к таблице отчёта.'
+                    error={scopeFilteredTableSectionsState.error}
+                    onRetry={refetch}
+                />
+            )
         } else if (configState.error) {
             content = (
                 <PageError
@@ -358,11 +914,9 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     onRetry={refetch}
                 />
             )
-        } else if (tableSections.length === 0) {
+        } else if (scopeFilteredTableSectionsState.sections.length === 0) {
             content = <Text>Таблица уверенности пустая. Проверь генерацию отчёта на бэкенде.</Text>
         } else {
-            const generatedUtc = generatedAtState.value
-
             content = (
                 <div className={rootClassName}>
                     <header className={cls.hero}>
@@ -375,14 +929,51 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                                 достигаются TP/SL и какие типичные MFE/MAE. Это опорная статистика для настройки
                                 динамического тейк‑профита, стоп‑лосса и размера ставки.
                             </Text>
+
+                            <ReportViewControls
+                                bucket={bucketState.value}
+                                metric={metricState.value}
+                                tpSlMode={tpSlState.value}
+                                capabilities={viewCapabilities}
+                                onBucketChange={handleBucketChange}
+                                onMetricChange={handleMetricChange}
+                                onTpSlModeChange={handleTpSlModeChange}
+                            />
+
+                            <div className={cls.scopeControls}>
+                                <div className={cls.scopeControlBlock}>
+                                    <Text className={cls.scopeControlLabel}>Срез данных:</Text>
+                                    <CurrentPredictionTrainingScopeToggle
+                                        value={scopeState.value}
+                                        onChange={handleScopeChange}
+                                        className={cls.scopeToggle}
+                                        ariaLabel='Срез confidence-risk: full/train/oos/recent'
+                                    />
+                                    <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>
+                                </div>
+                                <div className={cls.scopeControlBlock}>
+                                    <Text className={cls.scopeControlLabel}>Бакет confidence:</Text>
+                                    <BucketFilterToggle
+                                        value={confidenceBucketState.value}
+                                        options={confidenceBucketOptionsState.options}
+                                        onChange={handleConfidenceBucketChange}
+                                        className={cls.scopeBucketToggle}
+                                        ariaLabel='Фильтр confidence-бакета для выбранного scope'
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className={cls.meta}>
-                            <Text>Report: {data.title}</Text>
-                            <Text>Kind: {data.kind}</Text>
-                            <Text>Generated (UTC): {formatUtc(generatedUtc)}</Text>
-                            <Text>Generated (local): {generatedUtc.toLocaleString()}</Text>
-                        </div>
+                        <ReportActualStatusCard
+                            statusMode='debug'
+                            statusTitle='DEBUG: freshness not verified'
+                            statusMessage='Status endpoint для backtest_confidence_risk не настроен: показываются metadata отчёта без freshness-проверки.'
+                            dataSource={sourceEndpointState.value!}
+                            reportTitle={data.title}
+                            reportId={data.id}
+                            reportKind={data.kind}
+                            generatedAtUtc={data.generatedAtUtc}
+                        />
                     </header>
 
                     {configState.section && (
@@ -413,26 +1004,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     )}
 
                     <section className={cls.sectionBlock}>
-                        <div className={cls.termsBlock} data-tooltip-boundary>
-                            <div className={cls.termsHeader}>
-                                <Text type='h3' className={cls.termsTitle}>
-                                    Термины таблицы
-                                </Text>
-                                <Text className={cls.termsSubtitle}>
-                                    Объяснения всех показателей, которые используются в таблице уверенности.
-                                </Text>
-                            </div>
-                            <div className={cls.termsGrid}>
-                                {TERMS_TABLE.map(term => (
-                                    <div key={term.key} className={cls.termItem}>
-                                        <TermTooltip term={term.title} description={term.tooltip} type='span' />
-                                        <Text className={cls.termDescription}>{term.description}</Text>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <ReportTableTermsBlock
+                            terms={TERMS_TABLE}
+                            subtitle='Объяснения всех показателей, которые используются в таблице уверенности.'
+                            className={cls.termsBlock}
+                        />
 
-                        {tableSections.map((section, index) => {
+                        {scopeFilteredTableSectionsState.sections.map((section, index) => {
                             const domId = `confidence-risk-${index + 1}`
                             const title = section.title || `Confidence bucket table ${index + 1}`
 

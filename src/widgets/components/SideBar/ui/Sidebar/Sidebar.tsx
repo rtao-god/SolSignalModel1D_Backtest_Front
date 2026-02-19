@@ -112,8 +112,15 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.PFI_PER_MODEL)?.path ?? null,
         []
     )
+    const policyBranchMegaRoutePath = useMemo(
+        () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.BACKTEST_POLICY_BRANCH_MEGA)?.path ?? null,
+        []
+    )
 
     const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
+    const isOnPolicyBranchMegaPage = policyBranchMegaRoutePath
+        ? location.pathname.startsWith(policyBranchMegaRoutePath)
+        : false
     // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
         enabled: isOnPfiPage
@@ -125,7 +132,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         enabled: shouldLoadDiagnosticsNav
     })
 
-    const shouldLoadPolicyBranchMegaNav = isAnalysisRoute
+    const shouldLoadPolicyBranchMegaNav = isOnPolicyBranchMegaPage
     const { data: policyBranchMegaReport } = usePolicyBranchMegaReportNavQuery({
         enabled: shouldLoadPolicyBranchMegaNav
     })

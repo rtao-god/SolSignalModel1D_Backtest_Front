@@ -69,6 +69,19 @@ export function formatDayDirectionLabel(label: DayDirectionLabelDto): string {
     throw new Error(`[ui] Unknown DayDirectionLabel value: ${String(label)}.`)
 }
 
+export function formatDayDirectionPositionLabel(label: DayDirectionLabelDto): string {
+    if (label === null || typeof label === 'undefined') {
+        throw new Error('[ui] Missing DayDirectionLabel value.')
+    }
+    if (typeof label === 'number' && !Number.isFinite(label)) {
+        throw new Error('[ui] Invalid DayDirectionLabel value.')
+    }
+    if (label === 'Down' || label === 0) return 'Short'
+    if (label === 'Flat' || label === 1) return 'Flat'
+    if (label === 'Up' || label === 2) return 'Long'
+    throw new Error(`[ui] Unknown DayDirectionLabel value: ${String(label)}.`)
+}
+
 export function formatRange(from: UtcDayKeyDto | null | undefined, to: UtcDayKeyDto | null | undefined): string {
     const fromText = formatUtcDayKey(from)
     const toText = formatUtcDayKey(to)

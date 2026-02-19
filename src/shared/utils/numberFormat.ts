@@ -20,6 +20,32 @@ export function formatNumber(value: number | null | undefined, digits: number = 
     const safeValue = ensureFiniteNumber(value, label)
     return safeValue.toFixed(digits)
 }
+
+const NUMERIC_TEXT_PATTERN = /^[+-]?\d+(?:[.,]\d+)?$/
+
+export function normalizeZeroLikeNumericText(value: string): string {
+    const trimmed = value.trim()
+    if (!trimmed) {
+        return value
+    }
+
+    const compact = trimmed.replace(/\s+/g, '')
+    if (!NUMERIC_TEXT_PATTERN.test(compact)) {
+        return value
+    }
+
+    const parsed = Number(compact.replace(',', '.'))
+    if (!Number.isFinite(parsed)) {
+        return value
+    }
+
+    if (Math.abs(parsed) <= 1e-12) {
+        return '0'
+    }
+
+    return value
+}
+
 export function formatProb3(value: Prob3Dto | null | undefined, label?: string): string {
     if (!value || typeof value !== 'object') {
         const context = label ? ` (${label})` : ''

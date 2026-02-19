@@ -1,4 +1,5 @@
 import { Text } from '@/shared/ui'
+import { SortableTable } from '@/shared/ui/SortableTable'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
@@ -26,31 +27,19 @@ export function ModelStatsTableCard({ section, domId }: ModelStatsTableCardProps
                 </div>
             </header>
 
-            <div className={cls.tableScroll}>
-                <table className={cls.table}>
-                    <thead>
-                        <tr>
-                            {section.columns.map((colTitle, colIdx) => (
-                                <th key={colIdx}>
-                                    {renderTermTooltipTitle(
-                                        colTitle,
-                                        resolveReportColumnTooltip('backtest_model_stats', visibleTitle, colTitle)
-                                    )}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {section.rows?.map((row, rowIndex) => (
-                            <tr key={rowIndex}>
-                                {row.map((cell, colIdx) => (
-                                    <td key={colIdx}>{cell}</td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <SortableTable
+                columns={section.columns}
+                rows={section.rows ?? []}
+                storageKey={`model-stats.sort.${domId}`}
+                className={cls.tableScroll}
+                tableClassName={cls.table}
+                renderColumnTitle={colTitle =>
+                    renderTermTooltipTitle(
+                        colTitle,
+                        resolveReportColumnTooltip('backtest_model_stats', visibleTitle, colTitle)
+                    )
+                }
+            />
         </section>
     )
 }

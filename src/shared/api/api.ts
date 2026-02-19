@@ -50,6 +50,8 @@ export const {
     useCreateBacktestProfileMutation,
     useUpdateBacktestProfileMutation,
     usePreviewBacktestMutation,
+    usePreviewBacktestFullMutation,
+    useCompareBacktestProfilesMutation,
     useGetBacktestPolicyRatiosQuery,
     useGetPfiPerModelReportQuery,
     useGetModelStatsReportQuery,

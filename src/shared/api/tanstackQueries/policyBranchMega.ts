@@ -1,9 +1,10 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { createSuspenseReportHook } from './utils/createSuspenseReportHook'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
+import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 
 const POLICY_BRANCH_MEGA_QUERY_KEY = ['backtest', 'policy-branch-mega'] as const
 const POLICY_BRANCH_MEGA_WITH_FRESHNESS_QUERY_KEY = ['backtest', 'policy-branch-mega', 'with-freshness'] as const
@@ -91,7 +92,7 @@ function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
 }
 
 function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranchMegaFreshnessInfoDto {
-    const sourceEndpoint = resolvePolicyBranchMegaSourceEndpoint()
+    const sourceEndpoint = resolveReportSourceEndpointOrThrow()
 
     if (!status) {
         return {
@@ -119,22 +120,6 @@ function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranch
         diagnosticsGeneratedAtUtc: status.diagnosticsGeneratedAtUtc
     }
 }
-
-function resolvePolicyBranchMegaSourceEndpoint(): string {
-    const base = API_BASE_URL.trim()
-
-    if (base.startsWith('/')) {
-        const devProxy = import.meta.env.VITE_DEV_API_PROXY_TARGET
-        if (typeof devProxy === 'string' && devProxy.trim().length > 0) {
-            return devProxy.trim().replace(/\/+$/, '')
-        }
-
-        return `${window.location.origin}${base}`
-    }
-
-    return base.replace(/\/+$/, '')
-}
-
 async function fetchPolicyBranchMegaStatusOrNull(): Promise<PolicyBranchMegaStatusDto | null> {
     const resp = await fetch(`${API_BASE_URL}${statusPath}`, { cache: 'no-store' })
     if (!resp.ok) {
@@ -154,7 +139,7 @@ async function fetchPolicyBranchMegaReport(): Promise<ReportDocumentDto> {
     }
 
     const raw = await resp.json()
-    return mapReportResponse(raw)
+    return mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'strict' })
 }
 
 async function fetchPolicyBranchMegaReportWithFreshness(): Promise<PolicyBranchMegaReportWithFreshnessDto> {
@@ -206,7 +191,7 @@ async function fetchPolicyBranchMegaReportWithFreshness(): Promise<PolicyBranchM
 export const usePolicyBranchMegaReportQuery = createSuspenseReportHook<ReportDocumentDto>({
     queryKey: POLICY_BRANCH_MEGA_QUERY_KEY,
     path,
-    mapResponse: mapReportResponse
+    mapResponse: raw => mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'strict' })
 })
 
 export function usePolicyBranchMegaReportWithFreshnessQuery(): UseQueryResult<PolicyBranchMegaReportWithFreshnessDto, Error> {

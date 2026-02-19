@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
@@ -10,6 +12,24 @@ import type {
     TableSectionDto
 } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
+import PageError from '@/shared/ui/errors/PageError/ui/PageError'
+import {
+    filterPolicyBranchMegaSectionsByBucketOrThrow,
+    filterPolicyBranchMegaSectionsByMetricOrThrow,
+    resolvePolicyBranchMegaBucketFromQuery,
+    resolvePolicyBranchMegaMetricFromQuery,
+    resolvePolicyBranchMegaTpSlModeFromQuery
+} from '@/shared/utils/policyBranchMegaTabs'
+import {
+    DEFAULT_REPORT_BUCKET_MODE,
+    DEFAULT_REPORT_METRIC_MODE,
+    DEFAULT_REPORT_TP_SL_MODE,
+    resolveReportViewCapabilities,
+    validateReportViewSelectionOrThrow
+} from '@/shared/utils/reportViewCapabilities'
+import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
+import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
+import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 import cls from './ReportDocumentView.module.scss'
 
 interface ReportDocumentViewProps {
@@ -18,34 +38,260 @@ interface ReportDocumentViewProps {
 }
 
 export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
-    const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
+    const [searchParams, setSearchParams] = useSearchParams()
+    const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
 
-    const formatUtc = (date: Date): string => {
-        const year = date.getUTCFullYear()
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-        const day = String(date.getUTCDate()).padStart(2, '0')
-        const hour = String(date.getUTCHours()).padStart(2, '0')
-        const minute = String(date.getUTCMinutes()).padStart(2, '0')
+    const generatedAtState = useMemo(() => {
+        if (!report.generatedAtUtc) {
+            return { error: new Error('[report-document-view] generatedAtUtc is missing.') }
+        }
 
-        return `${year}-${month}-${day} ${hour}:${minute} UTC`
+        const parsed = new Date(report.generatedAtUtc)
+        if (Number.isNaN(parsed.getTime())) {
+            return { error: new Error(`[report-document-view] generatedAtUtc is invalid: ${report.generatedAtUtc}`) }
+        }
+
+        return { error: null as Error | null }
+    }, [report.generatedAtUtc])
+
+    const sourceEndpointState = useMemo(() => {
+        try {
+            return {
+                value: resolveReportSourceEndpointOrThrow(),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            return {
+                value: null as string | null,
+                error: safeError
+            }
+        }
+    }, [])
+
+    const tableSections = useMemo(
+        () => report.sections.filter(section => isTableSection(section)) as TableSectionDto[],
+        [report.sections]
+    )
+    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(tableSections), [tableSections])
+
+    const bucketState = useMemo(() => {
+        try {
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            return { value: bucket, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse report bucket query.')
+            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const metricState = useMemo(() => {
+        try {
+            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            return { value: metric, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse report metric query.')
+            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const tpSlState = useMemo(() => {
+        try {
+            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
+            return { value: mode, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse report tpsl query.')
+            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
+        }
+    }, [searchParams])
+
+    const viewSelectionState = useMemo(() => {
+        try {
+            validateReportViewSelectionOrThrow(
+                {
+                    bucket: bucketState.value,
+                    metric: metricState.value,
+                    tpSl: tpSlState.value
+                },
+                viewCapabilities,
+                'report-document-view'
+            )
+
+            return { error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to validate report view state.')
+            return { error: safeError }
+        }
+    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
+
+    const filteredTableSectionsState = useMemo(() => {
+        if (viewSelectionState.error) {
+            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
+        }
+
+        try {
+            let nextSections = tableSections
+
+            if (viewCapabilities.supportsBucketFiltering) {
+                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
+            }
+
+            if (viewCapabilities.supportsMetricFiltering) {
+                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
+            }
+
+            if (viewCapabilities.supportsTpSlFiltering) {
+                nextSections = applyReportTpSlModeToSectionsOrThrow(
+                    nextSections,
+                    tpSlState.value,
+                    'report-document-view'
+                )
+            }
+
+            return { sections: nextSections, error: null as Error | null }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to filter report table sections by bucket/metric.')
+            return { sections: [] as TableSectionDto[], error: safeError }
+        }
+    }, [bucketState.value, metricState.value, tableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+
+    const filteredTableSet = useMemo(() => new Set(filteredTableSectionsState.sections), [filteredTableSectionsState.sections])
+    const termsState = useMemo(() => {
+        if (filteredTableSectionsState.sections.length === 0) {
+            return {
+                terms: [] as ReportTermItem[],
+                error: null as Error | null
+            }
+        }
+
+        try {
+            return {
+                terms: buildReportTermsFromSectionsOrThrow({
+                    sections: filteredTableSectionsState.sections,
+                    reportKind: report.kind,
+                    contextTag: 'report-document-view',
+                    resolveSectionTitle: section => normalizeReportTitle(section.title) || section.title || 'report-table'
+                }),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to build report terms.')
+            return {
+                terms: [] as ReportTermItem[],
+                error: safeError
+            }
+        }
+    }, [filteredTableSectionsState.sections, report.kind])
+
+    const sectionsForView = useMemo(
+        () =>
+            report.sections.filter(section => {
+                if (!isTableSection(section)) {
+                    return true
+                }
+
+                return filteredTableSet.has(section)
+            }),
+        [filteredTableSet, report.sections]
+    )
+
+    const handleBucketChange = (next: typeof bucketState.value) => {
+        if (next === bucketState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('bucket', next)
+        setSearchParams(nextParams, { replace: true })
     }
 
-    const generatedUtcStr = generatedUtc ? formatUtc(generatedUtc) : '—'
+    const handleMetricChange = (next: typeof metricState.value) => {
+        if (next === metricState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('metric', next)
+        setSearchParams(nextParams, { replace: true })
+    }
 
-    const generatedLocalStr =
-        generatedUtc ?
-            generatedUtc.toLocaleString(undefined, {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-        :   '—'
+    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
+        if (next === tpSlState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('tpsl', next)
+        setSearchParams(nextParams, { replace: true })
+    }
 
-    const hasSections = Array.isArray(report.sections) && report.sections.length > 0
+    if (generatedAtState.error) {
+        return (
+            <PageError
+                title='Report has invalid generatedAtUtc'
+                message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчёта.'
+                error={generatedAtState.error}
+            />
+        )
+    }
 
-    const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
+    if (sourceEndpointState.error || !sourceEndpointState.value) {
+        return (
+            <PageError
+                title='Report source is invalid'
+                message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                error={
+                    sourceEndpointState.error ??
+                    new Error('[report-document-view] report source endpoint is missing after validation.')
+                }
+            />
+        )
+    }
+
+    if (bucketState.error) {
+        return (
+            <PageError
+                title='Report bucket query is invalid'
+                message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                error={bucketState.error}
+            />
+        )
+    }
+
+    if (metricState.error) {
+        return (
+            <PageError
+                title='Report metric query is invalid'
+                message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                error={metricState.error}
+            />
+        )
+    }
+
+    if (tpSlState.error) {
+        return (
+            <PageError
+                title='Report TP/SL query is invalid'
+                message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                error={tpSlState.error}
+            />
+        )
+    }
+
+    if (filteredTableSectionsState.error) {
+        return (
+            <PageError
+                title='Report sections are missing'
+                message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                error={filteredTableSectionsState.error}
+            />
+        )
+    }
+
+    if (termsState.error) {
+        return (
+            <PageError
+                title='Report terms are invalid'
+                message='Не удалось построить термины для таблиц отчёта. Проверь колонки и словарь подсказок.'
+                error={termsState.error}
+            />
+        )
+    }
+
+    const hasSections = Array.isArray(sectionsForView) && sectionsForView.length > 0
+    const hasTableSections = filteredTableSectionsState.sections.length > 0
 
     return (
         <div className={rootClassName}>
@@ -53,18 +299,41 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 <div className={cls.headerMain}>
                     <Text type='h1'>{report.title}</Text>
                     <span className={cls.kindTag}>{report.kind}</span>
+                    <ReportViewControls
+                        bucket={bucketState.value}
+                        metric={metricState.value}
+                        tpSlMode={tpSlState.value}
+                        capabilities={viewCapabilities}
+                        onBucketChange={handleBucketChange}
+                        onMetricChange={handleMetricChange}
+                        onTpSlModeChange={handleTpSlModeChange}
+                    />
                 </div>
 
-                <div className={cls.meta}>
-                    <span className={cls.metaItem}>ID отчёта: {report.id}</span>
-                    <span className={cls.metaItem}>Сгенерировано (UTC): {generatedUtcStr}</span>
-                    <span className={cls.metaItem}>Сгенерировано (локальное время): {generatedLocalStr}</span>
-                </div>
+                <ReportActualStatusCard
+                    statusMode='debug'
+                    statusTitle='DEBUG: freshness not verified'
+                    statusMessage={`Status endpoint для ${report.kind} не настроен: показываются metadata отчёта без freshness-проверки.`}
+                    dataSource={sourceEndpointState.value}
+                    reportTitle={report.title}
+                    reportId={report.id}
+                    reportKind={report.kind}
+                    generatedAtUtc={report.generatedAtUtc}
+                />
             </header>
 
             <div className={cls.sections}>
+                {hasTableSections && (
+                    <ReportTableTermsBlock
+                        terms={termsState.terms}
+                        title='Термины таблиц отчёта'
+                        subtitle='Подробные определения всех колонок, которые используются в текущем наборе таблиц.'
+                        className={cls.termsBlock}
+                    />
+                )}
+
                 {hasSections ?
-                    report.sections.map((section, index) => (
+                    sectionsForView.map((section, index) => (
                         <SectionRenderer key={index} section={section} reportKind={report.kind} />
                     ))
                 :   <Text>Нет секций отчёта для отображения.</Text>}
@@ -179,14 +448,16 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
         }
 
         return (
-            <ReportTableCard
-                title={visibleTitle}
-                description={resolvedDescription ?? undefined}
-                columns={columns}
-                rows={rows}
-                domId={domId}
-                renderColumnTitle={renderColumnTitle}
-            />
+            <section className={cls.section}>
+                <ReportTableCard
+                    title={visibleTitle}
+                    description={resolvedDescription ?? undefined}
+                    columns={columns}
+                    rows={rows}
+                    domId={domId}
+                    renderColumnTitle={renderColumnTitle}
+                />
+            </section>
         )
     }
 

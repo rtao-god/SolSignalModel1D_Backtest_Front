@@ -1,6 +1,7 @@
 
 export interface PolicyRatiosPerPolicyDto {
     policyName: string
+    bucket: string
     tradesCount: number
     totalPnlPct: number
     maxDdPct: number
@@ -22,4 +23,3 @@ export interface PolicyRatiosReportDto {
     toDateUtc: string | null
     policies: PolicyRatiosPerPolicyDto[]
 }
-

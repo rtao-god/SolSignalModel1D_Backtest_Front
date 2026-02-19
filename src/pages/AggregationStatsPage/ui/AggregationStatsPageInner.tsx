@@ -13,7 +13,7 @@ import cls from './AggregationStatsPage.module.scss'
 import type { AggregationStatsPageInnerProps } from './types'
 import {
     formatCount,
-    formatDayDirectionLabel,
+    formatDayDirectionPositionLabel,
     formatNumber,
     formatPercent,
     formatProb3,
@@ -396,10 +396,10 @@ function DebugRow({ row }: { row: AggregationProbsDebugRowDto }) {
     return (
         <tr>
             <td>{formatUtcDayKeyHuman(row.DateUtc)}</td>
-            <td>{formatDayDirectionLabel(row.TrueLabel)}</td>
-            <td>{formatDayDirectionLabel(row.PredDay)}</td>
-            <td>{formatDayDirectionLabel(row.PredDayMicro)}</td>
-            <td>{formatDayDirectionLabel(row.PredTotal)}</td>
+            <td>{formatDayDirectionPositionLabel(row.TrueLabel)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredDay)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredDayMicro)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredTotal)}</td>
             <td>{formatProb3(row.PDay, `DebugLastDays[${dayKeyLabel}].PDay`)}</td>
             <td>{formatProb3(row.PDayMicro, `DebugLastDays[${dayKeyLabel}].PDayMicro`)}</td>
             <td>{formatProb3(row.PTotal, `DebugLastDays[${dayKeyLabel}].PTotal`)}</td>

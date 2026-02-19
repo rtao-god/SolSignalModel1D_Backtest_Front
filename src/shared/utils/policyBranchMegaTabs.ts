@@ -8,6 +8,8 @@ export interface PolicyBranchMegaTabConfig {
 
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
 export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
+export type PolicyBranchMegaTpSlMode = 'all' | 'dynamic' | 'static'
+export type PolicyBranchMegaZonalMode = 'with-zonal' | 'without-zonal'
 
 const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     daily: 'daily',
@@ -35,6 +37,33 @@ const METRIC_QUERY_ALIASES: Record<string, PolicyBranchMegaMetricMode> = {
     'no-biggest-liq-loss': 'no-biggest-liq-loss',
     nobiggestliqloss: 'no-biggest-liq-loss',
     stressless: 'no-biggest-liq-loss'
+}
+
+const TP_SL_QUERY_ALIASES: Record<string, PolicyBranchMegaTpSlMode> = {
+    all: 'all',
+    default: 'all',
+    full: 'all',
+    dynamic: 'dynamic',
+    dyn: 'dynamic',
+    confidence: 'dynamic',
+    static: 'static',
+    stat: 'static',
+    baseline: 'static'
+}
+
+const ZONAL_QUERY_ALIASES: Record<string, PolicyBranchMegaZonalMode> = {
+    with: 'with-zonal',
+    on: 'with-zonal',
+    enabled: 'with-zonal',
+    zonal: 'with-zonal',
+    'with-zonal': 'with-zonal',
+    'with_zonal': 'with-zonal',
+    without: 'without-zonal',
+    off: 'without-zonal',
+    disabled: 'without-zonal',
+    nozonal: 'without-zonal',
+    'without-zonal': 'without-zonal',
+    'without_zonal': 'without-zonal'
 }
 
 export function normalizePolicyBranchMegaTitle(title: string | undefined): string {
@@ -70,6 +99,40 @@ export function resolvePolicyBranchMegaMetricFromQuery(
     const mapped = METRIC_QUERY_ALIASES[key]
     if (!mapped) {
         throw new Error(`[policy-branch-mega] unknown metric query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaTpSlModeFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaTpSlMode
+): PolicyBranchMegaTpSlMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = TP_SL_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown tpsl query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaZonalModeFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaZonalMode
+): PolicyBranchMegaZonalMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = ZONAL_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown zonal query: ${raw}`)
     }
 
     return mapped
@@ -134,18 +197,26 @@ export function filterPolicyBranchMegaSectionsByBucketOrThrow(
         throw new Error('[policy-branch-mega] report has no sections.')
     }
 
-    const tagged = sections.map(section => ({
+    const metadataTagged = sections.map(section => ({
         section,
-        bucket: resolvePolicyBranchMegaBucketFromTitle(section.title)
+        bucket: tryResolvePolicyBranchMegaBucketFromMetadataOrNull(section)
     }))
 
-    const hasAnyTag = tagged.some(item => item.bucket !== null)
+    const metadataCount = metadataTagged.filter(item => item.bucket !== null).length
 
+    const tagged =
+        metadataCount === sections.length
+            ? metadataTagged.map(item => ({ section: item.section, bucket: item.bucket! }))
+            : sections.map(section => ({
+                  section,
+                  bucket: resolvePolicyBranchMegaBucketFromTitle(section.title)
+              }))
+
+    const hasAnyTag = tagged.some(item => item.bucket !== null)
     if (!hasAnyTag) {
         if (bucket === 'total' || bucket === 'daily') {
             return sections
         }
-
         return []
     }
 
@@ -170,10 +241,20 @@ export function filterPolicyBranchMegaSectionsByMetricOrThrow(
         throw new Error('[policy-branch-mega] report has no sections.')
     }
 
-    const tagged = sections.map(section => ({
+    const metadataTagged = sections.map(section => ({
         section,
-        metric: resolvePolicyBranchMegaMetricFromTitle(section.title)
+        metric: tryResolvePolicyBranchMegaMetricFromMetadataOrNull(section)
     }))
+
+    const metadataCount = metadataTagged.filter(item => item.metric !== null).length
+
+    const tagged =
+        metadataCount === sections.length
+            ? metadataTagged.map(item => ({ section: item.section, metric: item.metric! }))
+            : sections.map(section => ({
+                  section,
+                  metric: resolvePolicyBranchMegaMetricFromTitle(section.title)
+              }))
 
     if (tagged.some(item => item.metric === null)) {
         throw new Error('[policy-branch-mega] mixed metric tagging detected in report sections.')
@@ -183,6 +264,28 @@ export function filterPolicyBranchMegaSectionsByMetricOrThrow(
 
     if (filtered.length === 0) {
         throw new Error(`[policy-branch-mega] no sections found for metric=${metric}.`)
+    }
+
+    return filtered
+}
+
+export function filterPolicyBranchMegaSectionsByZonalModeOrThrow(
+    sections: TableSectionDto[],
+    zonalMode: PolicyBranchMegaZonalMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        zonalMode: resolvePolicyBranchMegaZonalModeFromMetadataOrThrow(section)
+    }))
+
+    const filtered = tagged.filter(item => item.zonalMode === zonalMode).map(item => item.section)
+
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for zonal=${zonalMode}.`)
     }
 
     return filtered
@@ -240,4 +343,66 @@ export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[
             anchor
         }
     })
+}
+
+function tryResolvePolicyBranchMegaBucketFromMetadataOrNull(section: TableSectionDto): PolicyBranchMegaBucketMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.bucket) {
+        throw new Error(`[policy-branch-mega] section metadata.bucket is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.bucket === 'daily') return 'daily'
+    if (metadata.bucket === 'intraday') return 'intraday'
+    if (metadata.bucket === 'delayed') return 'delayed'
+    if (metadata.bucket === 'total-aggregate') return 'total'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.bucket value: ${String(metadata.bucket)}.`)
+}
+
+function tryResolvePolicyBranchMegaMetricFromMetadataOrNull(section: TableSectionDto): PolicyBranchMegaMetricMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.metricVariant) {
+        throw new Error(`[policy-branch-mega] section metadata.metricVariant is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.metricVariant === 'real') return 'real'
+    if (metadata.metricVariant === 'no-biggest-liq-loss') return 'no-biggest-liq-loss'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.metricVariant value: ${String(metadata.metricVariant)}.`)
+}
+
+function resolvePolicyBranchMegaZonalModeFromMetadataOrThrow(section: TableSectionDto): PolicyBranchMegaZonalMode {
+    const metadata = section.metadata
+    if (!metadata || metadata.kind !== 'policy-branch-mega') {
+        throw new Error(
+            `[policy-branch-mega] section metadata is missing or kind is invalid for zonal filtering. title=${section.title ?? 'n/a'}.`
+        )
+    }
+
+    if (!metadata.zonalMode) {
+        throw new Error(`[policy-branch-mega] section metadata.zonalMode is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.zonalMode === 'with-zonal') return 'with-zonal'
+    if (metadata.zonalMode === 'without-zonal') return 'without-zonal'
+
+    throw new Error(
+        `[policy-branch-mega] unsupported metadata.zonalMode value for section ${section.title ?? 'n/a'}: ${String(metadata.zonalMode)}.`
+    )
 }

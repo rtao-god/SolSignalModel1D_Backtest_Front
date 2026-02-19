@@ -182,6 +182,48 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Фактический дневной stop‑loss, который использовался в daily‑сделках. Формат: avg/min/max в процентах от цены входа. В режиме NO SL значения равны 0.',
         tooltip: 'Дневной SL: avg/min/max, % от входа.'
     },
+    'DynTP/SL Days': {
+        key: 'DynTP/SL Days',
+        title: 'DynTP/SL Days',
+        description:
+            'Количество уникальных дней, где для Daily/Intraday сделок применялись динамические TP/SL по confidence (после каузального прохождения порогов исторической валидности).',
+        tooltip: 'Уникальные дни с dynamic TP/SL (Daily/Intraday).'
+    },
+    'DynTP/SL Tr': {
+        key: 'DynTP/SL Tr',
+        title: 'DynTP/SL Tr',
+        description:
+            'Количество Daily/Intraday сделок, где был включён dynamic TP/SL по confidence. Обычно меньше общего Tr, потому что ранние дни до накопления статистики идут в static.',
+        tooltip: 'Число сделок с dynamic TP/SL.'
+    },
+    'DynTP/SL PnL%': {
+        key: 'DynTP/SL PnL%',
+        title: 'DynTP/SL PnL%',
+        description:
+            'Вклад в итоговый PnL (в процентах от стартового капитала выбранного bucket‑среза) только от сделок с dynamic TP/SL. Это вклад подмножества сделок, а не отдельный независимый бэктест.',
+        tooltip: 'Вклад в PnL% только от dynamic TP/SL сделок.'
+    },
+    'StatTP/SL Days': {
+        key: 'StatTP/SL Days',
+        title: 'StatTP/SL Days',
+        description:
+            'Количество уникальных дней, где Daily/Intraday сделки шли со статичными TP/SL (без confidence-множителей).',
+        tooltip: 'Уникальные дни со static TP/SL (Daily/Intraday).'
+    },
+    'StatTP/SL Tr': {
+        key: 'StatTP/SL Tr',
+        title: 'StatTP/SL Tr',
+        description:
+            'Количество Daily/Intraday сделок, где применялись статичные TP/SL (confidence-динамика в этот день не была разрешена).',
+        tooltip: 'Число сделок со static TP/SL.'
+    },
+    'StatTP/SL PnL%': {
+        key: 'StatTP/SL PnL%',
+        title: 'StatTP/SL PnL%',
+        description:
+            'Вклад в итоговый PnL (в процентах от стартового капитала выбранного bucket‑среза) только от сделок со статичными TP/SL.',
+        tooltip: 'Вклад в PnL% только от static TP/SL сделок.'
+    },
     'DelayedTP%': {
         key: 'DelayedTP%',
         title: 'DelayedTP%',
@@ -216,6 +258,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         description:
             'Суммарная прибыль/убыток в долларах по wealth-базе: (equity now + withdrawn) − start capital. Как и TotalPnl%, зависит от выбранного режима метрик: REAL или NO BIGGEST LIQ LOSS.',
         tooltip: 'Итоговый PnL в $ по wealth‑базе.'
+    },
+    'BucketNow$': {
+        key: 'BucketNow$',
+        title: 'BucketNow$',
+        description:
+            'Текущий реальный баланс выбранного бакета после всех сделок (equityNow, без учёта withdrawn). Для daily/intraday/delayed это локальный bucket-equity; для aggregate — сумма по всем бакетам.',
+        tooltip: 'Текущий баланс бакета на бирже, $.'
     },
     'Wealth%': {
         key: 'Wealth%',

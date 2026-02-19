@@ -2,6 +2,9 @@ import type {
     BacktestConfigDto,
     BacktestSummaryDto,
     BacktestPreviewRequestDto,
+    BacktestPreviewBundleDto,
+    BacktestCompareRequestDto,
+    BacktestCompareResponseDto,
     BacktestProfileDto,
     BacktestProfileCreateDto,
     BacktestProfileUpdateDto
@@ -19,6 +22,8 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
         profileGetById,
         profileUpdatePatch,
         previewPost,
+        previewFullPost,
+        comparePost,
         policyRatiosGetByProfile
     } = API_ROUTES.backtest
 
@@ -67,7 +72,41 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
             }),
             transformResponse: mapReportResponse
         }),
-
+        previewBacktestFull: builder.mutation<BacktestPreviewBundleDto, BacktestPreviewRequestDto>({
+            query: (body: BacktestPreviewRequestDto) => ({
+                url: previewFullPost.path,
+                method: previewFullPost.method,
+                body
+            }),
+            transformResponse: (response: BacktestPreviewBundleDto) => ({
+                ...response,
+                summary: mapReportResponse(response.summary)
+            })
+        }),
+        compareBacktestProfiles: builder.mutation<BacktestCompareResponseDto, BacktestCompareRequestDto>({
+            query: (body: BacktestCompareRequestDto) => ({
+                url: comparePost.path,
+                method: comparePost.method,
+                body
+            }),
+            transformResponse: (response: BacktestCompareResponseDto) => ({
+                ...response,
+                left: {
+                    ...response.left,
+                    preview: {
+                        ...response.left.preview,
+                        summary: mapReportResponse(response.left.preview.summary)
+                    }
+                },
+                right: {
+                    ...response.right,
+                    preview: {
+                        ...response.right.preview,
+                        summary: mapReportResponse(response.right.preview.summary)
+                    }
+                }
+            })
+        }),
 
         getBacktestPolicyRatios: builder.query<PolicyRatiosReportDto, string | undefined>({
 

@@ -10,6 +10,45 @@ import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBou
 import { CurrentPredictionTrainingScopeToggle, Text, resolveCurrentPredictionTrainingScopeMeta } from '@/shared/ui'
 import type { CurrentPredictionSet, CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
+import type { KeyValueSectionDto, ReportDocumentDto } from '@/shared/types/report.types'
+
+const PREVIEW_STATUS_PREFIX = 'PREVIEW_'
+
+interface CurrentPredictionStatusMeta {
+    text: string
+    isPreview: boolean
+}
+
+function resolveCurrentPredictionStatusMeta(report: ReportDocumentDto | undefined): CurrentPredictionStatusMeta | null {
+    if (!report) {
+        return null
+    }
+
+    for (const section of report.sections) {
+        const keyValueSection = section as KeyValueSectionDto
+        if (!Array.isArray(keyValueSection.items) || keyValueSection.items.length === 0) {
+            continue
+        }
+
+        for (const item of keyValueSection.items) {
+            if (item.key.trim().toLowerCase() !== 'статус прогноза') {
+                continue
+            }
+
+            const text = item.value.trim()
+            if (!text) {
+                return null
+            }
+
+            return {
+                text,
+                isPreview: text.toUpperCase().startsWith(PREVIEW_STATUS_PREFIX)
+            }
+        }
+    }
+
+    return null
+}
 
 export default function CurrentMLModelPredictionPage({ className }: CurrentMLModelPredictionProps) {
     const reportSet: CurrentPredictionSet = 'live'
@@ -20,6 +59,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
     const trainingLabel = resolveTrainingLabel(data)
     const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
+    const predictionStatus = resolveCurrentPredictionStatusMeta(data)
 
     return (
         <PageDataBoundary
@@ -43,6 +83,22 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                             {currentScopeMeta.hint}
                         </Text>
                     </div>
+
+                    {predictionStatus && (
+                        <div
+                            className={classNames(cls.statusPanel, {
+                                [cls.statusPanelPreview]: predictionStatus.isPreview,
+                                [cls.statusPanelNormal]: !predictionStatus.isPreview
+                            })}
+                        >
+                            <Text type='p' className={cls.statusLabel}>
+                                Статус прогноза:
+                            </Text>
+                            <Text type='p' className={cls.statusValue}>
+                                {predictionStatus.text}
+                            </Text>
+                        </div>
+                    )}
 
                     <div className={cls.metaPanel}>
                         <Text type='p' className={cls.metaLine}>

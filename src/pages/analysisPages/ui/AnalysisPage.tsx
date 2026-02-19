@@ -73,6 +73,18 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>Открыть статистику уверенности →</span>
                         </article>
                     </Link>
+                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE]} className={cls.cardLink}>
+                        <article className={cls.card}>
+                            <Text type='h3' className={cls.cardTitle}>
+                                Execution Pipeline
+                            </Text>
+                            <Text className={cls.cardText}>
+                                Сквозной отчёт по уровням расчёта: модель, решение, исполнение, бухгалтерия и
+                                финальная агрегация. Подходит для пошаговой сверки формул и поиска расхождений.
+                            </Text>
+                            <span className={cls.cardHint}>Открыть pipeline отчёт →</span>
+                        </article>
+                    </Link>
                 </div>
             </section>
         </div>

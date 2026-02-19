@@ -44,6 +44,9 @@ const PolicyBranchMegaPage = lazyPage(
 const ConfidenceRiskPage = lazyPage(
     () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
 )
+const ExecutionPipelinePage = lazyPage(
+    () => import('@/pages/analysisPages/ui/ExecutionPipelinePage')
+)
 const CurrentMLModelPredictionPage = lazyPage(
     () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
 )
@@ -307,6 +310,19 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             label: 'Статистика уверенности',
             section: 'analysis',
             order: 3
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_EXECUTION_PIPELINE,
+        path: ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE],
+        element: <ExecutionPipelinePage />,
+        layout: 'app',
+        loadingTitle: 'Загружаю execution pipeline',
+        nav: {
+            sidebar: true,
+            label: 'Execution pipeline',
+            section: 'analysis',
+            order: 5
         }
     },
     {

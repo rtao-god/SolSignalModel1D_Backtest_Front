@@ -5,7 +5,7 @@ function normalizeKey(value: string | undefined | null): string {
     return value.trim()
 }
 const BACKTEST_SUMMARY_COLUMNS: Record<string, string> = {
-    Name: 'Название политики из baseline-конфига. Это лишь описание того, что запускали, а не результат.',
+    Name: 'Название политики из активного конфига.',
     Type: 'Тип логики политики (как стратегия принимает решения о входе/выходе). Используется для группировки.',
     Leverage: 'Плечо из конфигурации: фиксированное число или dynamic, если политика сама рассчитывает плечо.',
     MarginMode: 'Режим маржи сделки: Cross (общий кошелёк) или Isolated (риск ограничен позицией).',
@@ -34,8 +34,20 @@ const BACKTEST_SUMMARY_KEYS: Record<string, string> = {
     WorstMaxDdPct: 'Худшая (максимальная) просадка среди политик.',
     PoliciesWithLiquidation: 'Сколько политик имели хотя бы одну ликвидацию.',
     TotalTrades: 'Общее количество сделок по всем политикам.',
-    DailyStopPct: 'Дневной стоп-лосс из конфигурации (в процентах).',
-    DailyTpPct: 'Дневной тейк-профит из конфигурации (в процентах).'
+    DailyStopPct:
+        'Базовый дневной stop-loss (%). Dynamic overlay масштабирует его только в днях, которые проходят confidence-ограничения.',
+    DailyTpPct:
+        'Базовый дневной take-profit (%). Dynamic overlay масштабирует его только в днях с достаточной confidence-статистикой.',
+    DynamicTpPctMin: 'Нижняя граница для итогового dynamic TP после всех множителей.',
+    DynamicTpPctMax: 'Верхняя граница для итогового dynamic TP после всех множителей.',
+    DynamicSlPctMin: 'Нижняя граница для итогового dynamic SL после всех множителей.',
+    DynamicSlPctMax: 'Верхняя граница для итогового dynamic SL после всех множителей.',
+    DynamicEvidenceMinBucketSamples:
+        'Минимум исторических наблюдений в confidence-bucket для включения dynamic TP/SL.',
+    DynamicEvidenceMinBucketWinRate:
+        'Минимальный исторический win-rate confidence-bucket для включения dynamic TP/SL.',
+    DynamicOutOfRangeBehavior:
+        'Поведение при невалидной confidence: NoTrade — пропуск дня, MinRisk — минимальный риск.'
 }
 const CURRENT_PREDICTION_COLUMNS: Record<string, string> = {
     Политика: 'Название торговой политики/стратегии. Показывает, к какой логике относится строка.',
