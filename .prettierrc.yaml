@@ -10,7 +10,7 @@ arrowParens: 'avoid'
 bracketSpacing: true
 bracketSameLine: true
 parser: 'typescript'
-endOfLine: 'lf'
+endOfLine: 'auto'
 experimentalTernaries: true
 overrides:
   - files: "*.scss"
