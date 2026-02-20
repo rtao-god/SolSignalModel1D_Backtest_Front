@@ -20,6 +20,7 @@ import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import {
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery
@@ -32,7 +33,6 @@ import {
     validateReportViewSelectionOrThrow
 } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import type { PfiPageProps, PfiTableCardProps } from './types'
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
@@ -213,7 +213,7 @@ export default function PfiPage({ className }: PfiPageProps) {
             }
 
             if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = applyReportTpSlModeToSectionsOrThrow(nextSections, tpSlState.value, 'pfi')
+                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
             }
 
             return { sections: nextSections, error: null as Error | null }

@@ -21,6 +21,7 @@ import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/repo
 import {
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery
@@ -33,7 +34,6 @@ import {
     validateReportViewSelectionOrThrow
 } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
 import type { BucketFilterOption } from '@/shared/ui/BucketFilterToggle'
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
@@ -578,11 +578,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
 
             if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = applyReportTpSlModeToSectionsOrThrow(
-                    nextSections,
-                    tpSlState.value,
-                    'confidence-risk'
-                )
+                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
             }
 
             return { sections: nextSections, error: null as Error | null }

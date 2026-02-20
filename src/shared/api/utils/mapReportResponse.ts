@@ -2,6 +2,7 @@ import type {
     CapturedMegaBucketDto,
     CapturedMegaMetricVariantDto,
     CapturedMegaModeDto,
+    CapturedMegaTpSlModeDto,
     CapturedMegaZonalModeDto,
     CapturedTableKindDto,
     CapturedTableMetadataDto,
@@ -58,6 +59,23 @@ function parseMegaModeOrThrow(raw: unknown, label: string): CapturedMegaModeDto 
         const normalized = raw.trim().toLowerCase()
         if (normalized === 'withsl' || normalized === 'with_sl' || normalized === 'with-sl') return 'with-sl'
         if (normalized === 'nosl' || normalized === 'no_sl' || normalized === 'no-sl') return 'no-sl'
+    }
+
+    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+}
+
+function parseMegaTpSlModeOrThrow(raw: unknown, label: string): CapturedMegaTpSlModeDto {
+    if (typeof raw === 'number') {
+        if (raw === 0) return 'all'
+        if (raw === 1) return 'dynamic'
+        if (raw === 2) return 'static'
+    }
+
+    if (typeof raw === 'string') {
+        const normalized = raw.trim().toLowerCase()
+        if (normalized === 'all') return 'all'
+        if (normalized === 'dynamic') return 'dynamic'
+        if (normalized === 'static') return 'static'
     }
 
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
@@ -173,6 +191,7 @@ function mapTableMetadataOrThrow(
 
     const isStrict = policyMegaMetadataMode === 'strict'
     const modeLabel = `TableSection.metadata.mode (${tableTitle})`
+    const tpSlModeLabel = `TableSection.metadata.tpSlMode (${tableTitle})`
     const zonalModeLabel = `TableSection.metadata.zonalMode (${tableTitle})`
     const metricVariantLabel = `TableSection.metadata.metricVariant (${tableTitle})`
     const bucketLabel = `TableSection.metadata.bucket (${tableTitle})`
@@ -185,6 +204,12 @@ function mapTableMetadataOrThrow(
         metadata.mode = parseMegaModeOrThrow(payload.mode, modeLabel)
     } else if (isStrict) {
         throw new Error(`[ui] ${modeLabel} is missing.`)
+    }
+
+    if (payload.tpSlMode !== null && typeof payload.tpSlMode !== 'undefined') {
+        metadata.tpSlMode = parseMegaTpSlModeOrThrow(payload.tpSlMode, tpSlModeLabel)
+    } else if (isStrict) {
+        throw new Error(`[ui] ${tpSlModeLabel} is missing.`)
     }
 
     if (payload.zonalMode !== null && typeof payload.zonalMode !== 'undefined') {

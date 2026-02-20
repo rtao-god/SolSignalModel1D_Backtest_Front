@@ -16,6 +16,7 @@ import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import {
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery
@@ -28,7 +29,6 @@ import {
     validateReportViewSelectionOrThrow
 } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 import cls from './ReportDocumentView.module.scss'
 
@@ -141,11 +141,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
             }
 
             if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = applyReportTpSlModeToSectionsOrThrow(
-                    nextSections,
-                    tpSlState.value,
-                    'report-document-view'
-                )
+                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
             }
 
             return { sections: nextSections, error: null as Error | null }

@@ -28,6 +28,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Ветка симуляции: BASE использует базовое направление, ANTI-D включает анти-направление в риск‑дни. Anti‑D применяется только если SL‑слой пометил день как рискованный, MinMove в диапазоне 0.5–12% и запас до ликвидации ≥ 2× MinMove.',
         tooltip: 'BASE или ANTI-D (с анти-направлением при риск‑триггере).'
     },
+    'SL Mode': {
+        key: 'SL Mode',
+        title: 'SL Mode',
+        description:
+            'Показывает, в каком режиме рассчитана строка: WITH SL или NO SL. Колонка появляется только в объединённом срезе, где одновременно отображаются оба режима.',
+        tooltip: 'Режим расчёта строки: WITH SL или NO SL.'
+    },
     Days: {
         key: 'Days',
         title: 'Days',
@@ -161,7 +168,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Средняя маржа на сделку (Daily + Delayed) в процентах от total capital (сумма стартовых бакетов). Считается по MarginUsed, то есть это доля депозита ДО плеча, не notional.',
         tooltip: 'Средняя маржа на сделку, % от total capital.'
     },
-    'AvgStake$': {
+    AvgStake$: {
         key: 'AvgStake$',
         title: 'AvgStake$',
         description:
@@ -252,14 +259,14 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Суммарная доходность в процентах по результату PnL-движка. В режиме REAL считается по фактическому прогону. В режиме NO BIGGEST LIQ LOSS это контрфакт: из расчёта исключена одна самая убыточная ликвидационная сделка.',
         tooltip: 'Итоговая доходность, %.'
     },
-    'TotalPnl$': {
+    TotalPnl$: {
         key: 'TotalPnl$',
         title: 'TotalPnl$',
         description:
             'Суммарная прибыль/убыток в долларах по wealth-базе: (equity now + withdrawn) − start capital. Как и TotalPnl%, зависит от выбранного режима метрик: REAL или NO BIGGEST LIQ LOSS.',
         tooltip: 'Итоговый PnL в $ по wealth‑базе.'
     },
-    'BucketNow$': {
+    BucketNow$: {
         key: 'BucketNow$',
         title: 'BucketNow$',
         description:
@@ -357,21 +364,21 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Максимальная просадка на дневной кривой ratio‑метрик (equity строится из дневных доходностей). Это отдельная кривая, поэтому значение может отличаться от MaxDD%.',
         tooltip: 'MaxDD на дневной ratio‑кривой.'
     },
-    'Withdrawn$': {
+    Withdrawn$: {
         key: 'Withdrawn$',
         title: 'Withdrawn$',
         description:
             'Сумма выведенной прибыли в долларах (WithdrawnTotal). Это деньги, которые «сняты» с баланса, когда equity превышал стартовый капитал.',
         tooltip: 'Сумма выведенной прибыли, $.'
     },
-    'OnExch$': {
+    OnExch$: {
         key: 'OnExch$',
         title: 'OnExch$',
         description:
             'Текущая equity на бирже (equityNow) — сумма по всем бакетам. Это то, что осталось «в работе», без учёта выводов.',
         tooltip: 'Текущая equity на бирже, $.'
     },
-    'StartCap$': {
+    StartCap$: {
         key: 'StartCap$',
         title: 'StartCap$',
         description:
@@ -415,7 +422,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         tooltip:
             'Formula: EODExit_n / Tr * 100. Нормирует EODExit_n на объём торгов и позволяет сравнивать политики с разным числом сделок.'
     },
-    'EODExit$': {
+    EODExit$: {
         key: 'EODExit$',
         title: 'EODExit$',
         description:
@@ -455,7 +462,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
         tooltip:
             'Count конфликтных кейсов в одной 1m-свече: одновременно касаются SL и liquidation. Влияет на чувствительность к first-event и порядку событий.'
     },
-    'LiqBeforeSL$': {
+    LiqBeforeSL$: {
         key: 'LiqBeforeSL$',
         title: 'LiqBeforeSL$',
         description:
@@ -519,21 +526,21 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
             'Минимальная equity в самом глубоком эпизоде, когда equity падала ниже 70% от старта. Это аналитический порог, не стоп.',
         tooltip: 'Минимум в эпизоде equity < 70%.'
     },
-    'DD70_Recov': {
+    DD70_Recov: {
         key: 'DD70_Recov',
         title: 'DD70_Recov',
         description:
             'Флаг восстановления после глубокой просадки: поднялась ли equity обратно выше 70% после самого глубокого эпизода.',
         tooltip: 'Было ли восстановление выше 70%.'
     },
-    'DD70_RecovDays': {
+    DD70_RecovDays: {
         key: 'DD70_RecovDays',
         title: 'DD70_RecovDays',
         description:
             'Сколько календарных дней прошло от минимума глубокой просадки до восстановления выше 70%. Если восстановления не было — выводится "—".',
         tooltip: 'Дни до восстановления выше 70%.'
     },
-    'DD70_n': {
+    DD70_n: {
         key: 'DD70_n',
         title: 'DD70_n',
         description:
@@ -578,15 +585,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
     'Long n': {
         key: 'Long n',
         title: 'Long n',
-        description:
-            'Количество LONG‑сделок по данной политике/ветке. Это именно число сделок, не дней.',
+        description: 'Количество LONG‑сделок по данной политике/ветке. Это именно число сделок, не дней.',
         tooltip: 'Сколько long‑сделок.'
     },
     'Short n': {
         key: 'Short n',
         title: 'Short n',
-        description:
-            'Количество SHORT‑сделок по данной политике/ветке. Это именно число сделок, не дней.',
+        description: 'Количество SHORT‑сделок по данной политике/ветке. Это именно число сделок, не дней.',
         tooltip: 'Сколько short‑сделок.'
     },
     'Long $': {
@@ -606,15 +611,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDefinition> = {
     'AvgLong%': {
         key: 'AvgLong%',
         title: 'AvgLong%',
-        description:
-            'Средняя NetReturn% по LONG‑сделкам (простое среднее по сделкам). Не учитывает размер позиции.',
+        description: 'Средняя NetReturn% по LONG‑сделкам (простое среднее по сделкам). Не учитывает размер позиции.',
         tooltip: 'Средняя доходность long‑сделки, %.'
     },
     'AvgShort%': {
         key: 'AvgShort%',
         title: 'AvgShort%',
-        description:
-            'Средняя NetReturn% по SHORT‑сделкам (простое среднее по сделкам). Не учитывает размер позиции.',
+        description: 'Средняя NetReturn% по SHORT‑сделкам (простое среднее по сделкам). Не учитывает размер позиции.',
         tooltip: 'Средняя доходность short‑сделки, %.'
     },
     inv_liq_mismatch: {
@@ -770,7 +773,10 @@ export function resolvePolicyBranchMegaSectionDescription(title: string | undefi
     const upper = normalized.toUpperCase()
     const mode = resolveMegaModeKey(normalized)
     const metric = resolvePolicyBranchMegaMetricFromTitle(normalized)
-    const modePrefix = mode === 'NO SL' ? 'NO SL: ' : mode === 'WITH SL' ? 'WITH SL: ' : ''
+    const modePrefix =
+        mode === 'NO SL' ? 'NO SL: '
+        : mode === 'WITH SL' ? 'WITH SL: '
+        : ''
     const metricPrefix = metric === 'no-biggest-liq-loss' ? 'NO BIGGEST LIQ LOSS: ' : 'REAL: '
     const prefix = `${modePrefix}${metricPrefix}`
 
@@ -788,4 +794,3 @@ export function resolvePolicyBranchMegaSectionDescription(title: string | undefi
 
     return null
 }
-

@@ -1,5 +1,3 @@
-
-
 import type { ExportCell, RowEntry, SortDir, SortKind, TableRow } from './types'
 const NULLISH_TEXT = new Set(['', '—', '-', 'n/a', 'na', 'null', 'undefined'])
 export function isNullish(v: unknown): v is null | undefined {
@@ -35,13 +33,58 @@ export function tryParseNumberFromString(value: string): number | null {
         return null
     }
 
-    const normalized = value.trim().replace(/\s+/g, '').replace('%', '').replace(',', '.')
+    let normalized = value.trim()
+    if (!normalized) {
+        return null
+    }
+
+    let sign = 1
+    if (normalized.startsWith('(') && normalized.endsWith(')')) {
+        sign = -1
+        normalized = normalized.slice(1, -1)
+    }
+
+    normalized = normalized
+        .replace(/\s+/g, '')
+        .replace(/[%$€£₽¥]/g, '')
+        .replace(',', '.')
+
+    if (!normalized) {
+        return null
+    }
+
+    let multiplier = 1
+    const suffixMatch = normalized.match(/([kmb])$/i)
+    if (suffixMatch?.[1]) {
+        const suffix = suffixMatch[1].toLowerCase()
+        if (suffix === 'k') multiplier = 1_000
+        else if (suffix === 'm') multiplier = 1_000_000
+        else if (suffix === 'b') multiplier = 1_000_000_000
+
+        normalized = normalized.slice(0, -1)
+    }
+
+    if (!normalized) {
+        return null
+    }
+
+    if (normalized.startsWith('+')) {
+        normalized = normalized.slice(1)
+    } else if (normalized.startsWith('-')) {
+        sign *= -1
+        normalized = normalized.slice(1)
+    }
+
     if (!normalized) {
         return null
     }
 
     const num = Number(normalized)
-    return Number.isFinite(num) ? num : null
+    if (!Number.isFinite(num)) {
+        return null
+    }
+
+    return sign * num * multiplier
 }
 export function compareCells(a: unknown, b: unknown): number {
     if (isNullish(a) && isNullish(b)) {
@@ -55,13 +98,21 @@ export function compareCells(a: unknown, b: unknown): number {
     }
 
     if (typeof a === 'number' && typeof b === 'number') {
-        return a === b ? 0 : a < b ? -1 : 1
+        return (
+            a === b ? 0
+            : a < b ? -1
+            : 1
+        )
     }
 
     const aNum = typeof a === 'string' ? tryParseNumberFromString(a) : null
     const bNum = typeof b === 'string' ? tryParseNumberFromString(b) : null
     if (aNum !== null && bNum !== null) {
-        return aNum === bNum ? 0 : aNum < bNum ? -1 : 1
+        return (
+            aNum === bNum ? 0
+            : aNum < bNum ? -1
+            : 1
+        )
     }
 
     const aStr = String(a)

@@ -20,26 +20,31 @@ import {
 import {
     buildPolicyBranchMegaTabsFromSections,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsBySlModeOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByZonalModeOrThrow,
     normalizePolicyBranchMegaTitle,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
+    resolvePolicyBranchMegaModeFromTitle,
+    resolvePolicyBranchMegaSlModeFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery,
     resolvePolicyBranchMegaZonalModeFromQuery,
     type PolicyBranchMegaBucketMode,
     type PolicyBranchMegaMetricMode,
+    type PolicyBranchMegaSlMode,
     type PolicyBranchMegaTpSlMode,
     type PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
 import {
     DEFAULT_REPORT_BUCKET_MODE,
     DEFAULT_REPORT_METRIC_MODE,
+    DEFAULT_REPORT_SL_MODE,
     DEFAULT_REPORT_TP_SL_MODE,
     DEFAULT_REPORT_ZONAL_MODE
 } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
@@ -79,6 +84,79 @@ function parseFiniteNumberOrNull(raw: string | undefined): number | null {
     const value = Number(normalized)
     if (!Number.isFinite(value)) return null
     return value
+}
+
+const MEGA_SL_MODE_COLUMN_NAME = 'SL Mode'
+
+function resolveMegaSlModeLabelForSectionOrThrow(section: TableSectionDto): string {
+    const metadata = section.metadata
+    if (metadata?.kind === 'policy-branch-mega') {
+        if (!metadata.mode) {
+            throw new Error(
+                `[policy-branch-mega] section metadata.mode is missing while building "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}.`
+            )
+        }
+
+        if (metadata.mode === 'with-sl') return 'WITH SL'
+        if (metadata.mode === 'no-sl') return 'NO SL'
+
+        throw new Error(
+            `[policy-branch-mega] unsupported metadata.mode value while building "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}, mode=${String(metadata.mode)}.`
+        )
+    }
+
+    const modeFromTitle = resolvePolicyBranchMegaModeFromTitle(section.title)
+    if (modeFromTitle === 'with-sl') return 'WITH SL'
+    if (modeFromTitle === 'no-sl') return 'NO SL'
+
+    throw new Error(
+        `[policy-branch-mega] cannot resolve section mode for "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}.`
+    )
+}
+
+// В объединённом режиме (ALL) явно помечаем каждую строку как WITH SL / NO SL, чтобы одинаковые policy-name не путались.
+function applyMegaSlModeColumnForAllSliceOrThrow(
+    sections: TableSectionDto[],
+    slMode: PolicyBranchMegaSlMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) return sections
+    if (slMode !== 'all') return sections
+
+    return sections.map(section => {
+        const columns = section.columns ?? []
+        const rows = section.rows ?? []
+        if (columns.includes(MEGA_SL_MODE_COLUMN_NAME)) {
+            return section
+        }
+
+        const branchIdx = columns.indexOf('Branch')
+        const policyIdx = columns.indexOf('Policy')
+        if (policyIdx < 0 || branchIdx < 0) {
+            throw new Error(
+                `[policy-branch-mega] cannot inject "${MEGA_SL_MODE_COLUMN_NAME}" column because Policy/Branch columns are missing. section=${section.title ?? 'n/a'}.`
+            )
+        }
+
+        const insertAt = branchIdx + 1
+        const modeLabel = resolveMegaSlModeLabelForSectionOrThrow(section)
+        const nextColumns = [...columns.slice(0, insertAt), MEGA_SL_MODE_COLUMN_NAME, ...columns.slice(insertAt)]
+
+        const nextRows = rows.map((row, rowIndex) => {
+            if (!row || row.length < columns.length) {
+                throw new Error(
+                    `[policy-branch-mega] malformed row while injecting "${MEGA_SL_MODE_COLUMN_NAME}" column. section=${section.title ?? 'n/a'}, row=${rowIndex}.`
+                )
+            }
+
+            return [...row.slice(0, insertAt), modeLabel, ...row.slice(insertAt)]
+        })
+
+        return {
+            ...section,
+            columns: nextColumns,
+            rows: nextRows
+        }
+    })
 }
 
 function buildUnifiedPolicyBranchMegaTermsOrThrow(sections: TableSectionDto[]) {
@@ -251,7 +329,10 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
     const bucketState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(
+                searchParams.get('bucket'),
+                DEFAULT_REPORT_BUCKET_MODE
+            )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega bucket query.')
@@ -261,7 +342,10 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
     const metricState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(
+                searchParams.get('metric'),
+                DEFAULT_REPORT_METRIC_MODE
+            )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega metric query.')
@@ -279,12 +363,19 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         }
     }, [searchParams])
 
+    const slModeState = useMemo(() => {
+        try {
+            const mode = resolvePolicyBranchMegaSlModeFromQuery(searchParams.get('slmode'), DEFAULT_REPORT_SL_MODE)
+            return { value: mode, error: null as Error | null }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega slmode query.')
+            return { value: DEFAULT_REPORT_SL_MODE, error: safeError }
+        }
+    }, [searchParams])
+
     const zonalState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaZonalModeFromQuery(
-                searchParams.get('zonal'),
-                DEFAULT_REPORT_ZONAL_MODE
-            )
+            const mode = resolvePolicyBranchMegaZonalModeFromQuery(searchParams.get('zonal'), DEFAULT_REPORT_ZONAL_MODE)
             return { value: mode, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega zonal query.')
@@ -303,25 +394,24 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 resolvedSections.sections,
                 zonalState.value
             )
-            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byZonal, bucketState.value)
+            const bySlMode = filterPolicyBranchMegaSectionsBySlModeOrThrow(byZonal, slModeState.value)
+            const byTpSlMode = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(bySlMode, tpSlState.value)
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byTpSlMode, bucketState.value)
             const byMetric = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, metricState.value)
             const noDataAwareSections = applyNoDataMarkersToMegaSectionsOrThrow(byMetric)
+
             return {
-                sections: applyReportTpSlModeToSectionsOrThrow(
-                    noDataAwareSections,
-                    tpSlState.value,
-                    'policy-branch-mega'
-                ),
+                sections: applyMegaSlModeColumnForAllSliceOrThrow(noDataAwareSections, slModeState.value),
                 error: null
             }
         } catch (err) {
             const safeError =
-                err instanceof Error
-                    ? err
-                    : new Error('Failed to filter policy branch mega sections by zonal/bucket/metric.')
+                err instanceof Error ? err : (
+                    new Error('Failed to filter policy branch mega sections by zonal/slmode/tpsl/bucket/metric.')
+                )
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [report, resolvedSections, zonalState.value, bucketState.value, metricState.value, tpSlState.value])
+    }, [report, resolvedSections, zonalState.value, slModeState.value, tpSlState.value, bucketState.value, metricState.value])
 
     const termsState = useMemo(() => {
         try {
@@ -339,7 +429,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     }, [filteredSections.sections])
 
     const metricDiffState = useMemo(() => {
-        if (!report || resolvedSections.error || zonalState.error || bucketState.error) {
+        if (!report || resolvedSections.error || zonalState.error || slModeState.error || tpSlState.error || bucketState.error) {
             return null
         }
 
@@ -348,7 +438,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 resolvedSections.sections,
                 zonalState.value
             )
-            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byZonal, bucketState.value)
+            const bySlMode = filterPolicyBranchMegaSectionsBySlModeOrThrow(byZonal, slModeState.value)
+            const byTpSlMode = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(bySlMode, tpSlState.value)
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byTpSlMode, bucketState.value)
             const realSections = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, 'real')
             const noBigSections = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, 'no-biggest-liq-loss')
 
@@ -378,9 +470,23 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         } catch {
             return null
         }
-    }, [report, resolvedSections, zonalState.error, zonalState.value, bucketState.error, bucketState.value])
+    }, [
+        report,
+        resolvedSections,
+        zonalState.error,
+        zonalState.value,
+        slModeState.error,
+        slModeState.value,
+        tpSlState.error,
+        tpSlState.value,
+        bucketState.error,
+        bucketState.value
+    ])
 
-    const tabs = useMemo(() => buildPolicyBranchMegaTabsFromSections(filteredSections.sections), [filteredSections.sections])
+    const tabs = useMemo(
+        () => buildPolicyBranchMegaTabsFromSections(filteredSections.sections),
+        [filteredSections.sections]
+    )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
@@ -436,6 +542,13 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         setSearchParams(nextParams, { replace: true })
     }
 
+    const handleSlModeChange = (next: PolicyBranchMegaSlMode) => {
+        if (next === slModeState.value) return
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('slmode', next)
+        setSearchParams(nextParams, { replace: true })
+    }
+
     const handleZonalModeChange = (next: PolicyBranchMegaZonalMode) => {
         if (next === zonalState.value) return
         const nextParams = new URLSearchParams(searchParams)
@@ -487,16 +600,19 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     bucket={bucketState.value}
                     metric={metricState.value}
                     tpSlMode={tpSlState.value}
+                    slMode={slModeState.value}
                     zonalMode={zonalState.value}
                     capabilities={{
                         supportsBucketFiltering: true,
                         supportsMetricFiltering: true,
                         supportsTpSlFiltering: true,
+                        supportsSlModeFiltering: true,
                         supportsZonalFiltering: true
                     }}
                     onBucketChange={handleBucketChange}
                     onMetricChange={handleMetricChange}
                     onTpSlModeChange={handleTpSlModeChange}
+                    onSlModeChange={handleSlModeChange}
                     onZonalModeChange={handleZonalModeChange}
                     metricDiffMessage={metricDiffMessage}
                 />
@@ -505,42 +621,40 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             <ReportActualStatusCard
                 statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
                 statusTitle={
-                    freshness?.sourceMode === 'actual'
-                        ? 'ACTUAL: latest verified (for current API source)'
-                        : 'DEBUG: freshness not verified'
+                    freshness?.sourceMode === 'actual' ?
+                        'ACTUAL: latest verified (for current API source)'
+                    :   'DEBUG: freshness not verified'
                 }
                 statusMessage={freshness?.message}
-                statusLagMinutes={
-                    freshness?.lagSeconds && freshness.lagSeconds > 0 ? freshness.lagSeconds / 60 : null
-                }
+                statusLagMinutes={freshness?.lagSeconds && freshness.lagSeconds > 0 ? freshness.lagSeconds / 60 : null}
                 dataSource={sourceEndpointState.value!}
                 reportTitle={report!.title}
                 reportId={report!.id}
                 reportKind={report!.kind}
                 generatedAtUtc={report!.generatedAtUtc}
                 statusLines={[
-                    ...(freshness?.policyBranchMegaId
-                        ? [{ label: 'Status policy_branch_mega ID', value: freshness.policyBranchMegaId }]
-                        : []),
-                    ...(freshness?.diagnosticsId
-                        ? [{ label: 'Status diagnostics ID', value: freshness.diagnosticsId }]
-                        : []),
-                    ...(freshness?.policyBranchMegaGeneratedAtUtc
-                        ? [
-                              {
-                                  label: 'Status policy_branch_mega generatedAt (UTC)',
-                                  value: freshness.policyBranchMegaGeneratedAtUtc
-                              }
-                          ]
-                        : []),
-                    ...(freshness?.diagnosticsGeneratedAtUtc
-                        ? [
-                              {
-                                  label: 'Status diagnostics generatedAt (UTC)',
-                                  value: freshness.diagnosticsGeneratedAtUtc
-                              }
-                          ]
-                        : [])
+                    ...(freshness?.policyBranchMegaId ?
+                        [{ label: 'Status policy_branch_mega ID', value: freshness.policyBranchMegaId }]
+                    :   []),
+                    ...(freshness?.diagnosticsId ?
+                        [{ label: 'Status diagnostics ID', value: freshness.diagnosticsId }]
+                    :   []),
+                    ...(freshness?.policyBranchMegaGeneratedAtUtc ?
+                        [
+                            {
+                                label: 'Status policy_branch_mega generatedAt (UTC)',
+                                value: freshness.policyBranchMegaGeneratedAtUtc
+                            }
+                        ]
+                    :   []),
+                    ...(freshness?.diagnosticsGeneratedAtUtc ?
+                        [
+                            {
+                                label: 'Status diagnostics generatedAt (UTC)',
+                                value: freshness.diagnosticsGeneratedAtUtc
+                            }
+                        ]
+                    :   [])
                 ]}
             />
         </header>
@@ -551,8 +665,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     if (report) {
         if (generatedAtState.error || !generatedAtState.value) {
             const error =
-                generatedAtState.error ??
-                new Error('[policy-branch-mega] generatedAtUtc is missing after validation.')
+                generatedAtState.error ?? new Error('[policy-branch-mega] generatedAtUtc is missing after validation.')
 
             content = (
                 <PageError
@@ -602,6 +715,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     onRetry={refetch}
                 />
             )
+        } else if (slModeState.error) {
+            content = (
+                <PageError
+                    title='Policy Branch Mega SL mode query is invalid'
+                    message='Query parameter "slmode" is invalid. Expected all, with-sl, or no-sl.'
+                    error={slModeState.error}
+                    onRetry={refetch}
+                />
+            )
         } else if (zonalState.error) {
             content = (
                 <PageError
@@ -622,8 +744,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             )
         } else if (filteredSections.error) {
             const generatedUtc = generatedAtState.value
-            const isMetricMissing =
-                filteredSections.error.message.includes('[policy-branch-mega] no sections found for metric=')
+            const isMetricMissing = filteredSections.error.message.includes(
+                '[policy-branch-mega] no sections found for metric='
+            )
 
             if (generatedUtc && isMetricMissing) {
                 content = (
@@ -631,7 +754,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                         {renderHeader(generatedUtc)}
                         <PageError
                             title='Policy Branch Mega sections are missing'
-                            message='Report sections for the selected zonal/bucket/metric slice were not found or are tagged inconsistently.'
+                            message='Report sections for the selected zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently.'
                             error={filteredSections.error}
                             onRetry={refetch}
                         />
@@ -641,7 +764,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 content = (
                     <PageError
                         title='Policy Branch Mega sections are missing'
-                        message='Report sections for the selected zonal/bucket/metric slice were not found or are tagged inconsistently.'
+                        message='Report sections for the selected zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently.'
                         error={filteredSections.error}
                         onRetry={refetch}
                     />

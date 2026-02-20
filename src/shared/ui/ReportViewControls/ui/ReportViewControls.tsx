@@ -3,6 +3,7 @@ import { Btn, Text, TpSlModeToggle } from '@/shared/ui'
 import type {
     PolicyBranchMegaBucketMode,
     PolicyBranchMegaMetricMode,
+    PolicyBranchMegaSlMode,
     PolicyBranchMegaTpSlMode,
     PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
@@ -13,11 +14,13 @@ interface ReportViewControlsProps {
     bucket: PolicyBranchMegaBucketMode
     metric: PolicyBranchMegaMetricMode
     tpSlMode: PolicyBranchMegaTpSlMode
+    slMode?: PolicyBranchMegaSlMode
     zonalMode?: PolicyBranchMegaZonalMode
     capabilities: ReportViewCapabilities
     onBucketChange: (next: PolicyBranchMegaBucketMode) => void
     onMetricChange: (next: PolicyBranchMegaMetricMode) => void
     onTpSlModeChange: (next: PolicyBranchMegaTpSlMode) => void
+    onSlModeChange?: (next: PolicyBranchMegaSlMode) => void
     onZonalModeChange?: (next: PolicyBranchMegaZonalMode) => void
     metricDiffMessage?: string | null
     className?: string
@@ -35,6 +38,12 @@ const METRIC_OPTIONS: Array<{ value: PolicyBranchMegaMetricMode; label: string }
     { value: 'no-biggest-liq-loss', label: 'NO BIGGEST LIQ LOSS' }
 ]
 
+const SL_MODE_OPTIONS: Array<{ value: PolicyBranchMegaSlMode; label: string }> = [
+    { value: 'all', label: 'ALL' },
+    { value: 'with-sl', label: 'WITH SL' },
+    { value: 'no-sl', label: 'NO SL' }
+]
+
 const ZONAL_OPTIONS: Array<{ value: PolicyBranchMegaZonalMode; label: string }> = [
     { value: 'with-zonal', label: 'С зональностью' },
     { value: 'without-zonal', label: 'Без зональности' }
@@ -44,11 +53,13 @@ export default function ReportViewControls({
     bucket,
     metric,
     tpSlMode,
+    slMode,
     zonalMode,
     capabilities,
     onBucketChange,
     onMetricChange,
     onTpSlModeChange,
+    onSlModeChange,
     onZonalModeChange,
     metricDiffMessage,
     className
@@ -56,11 +67,10 @@ export default function ReportViewControls({
     const showBucketControls = capabilities.supportsBucketFiltering
     const showMetricControls = capabilities.supportsMetricFiltering
     const showTpSlControls = capabilities.supportsTpSlFiltering
-    const showZonalControls = Boolean(
-        capabilities.supportsZonalFiltering && zonalMode && onZonalModeChange
-    )
+    const showSlModeControls = Boolean(capabilities.supportsSlModeFiltering && slMode && onSlModeChange)
+    const showZonalControls = Boolean(capabilities.supportsZonalFiltering && zonalMode && onZonalModeChange)
     const hasAtLeastOneControl =
-        showBucketControls || showMetricControls || showTpSlControls || showZonalControls
+        showBucketControls || showMetricControls || showTpSlControls || showSlModeControls || showZonalControls
 
     if (!hasAtLeastOneControl && !metricDiffMessage) {
         return null
@@ -133,6 +143,34 @@ export default function ReportViewControls({
                         className={cls.tpSlToggle}
                         ariaLabel='Срез TP/SL для отчёта'
                     />
+                </div>
+            )}
+
+            {showSlModeControls && slMode && onSlModeChange && (
+                <div className={cls.controlBlock}>
+                    <Text className={cls.controlLabel}>SL-режим</Text>
+                    <div className={cls.buttons}>
+                        {SL_MODE_OPTIONS.map(option => (
+                            <Btn
+                                key={option.value}
+                                size='sm'
+                                className={classNames(
+                                    cls.button,
+                                    {
+                                        [cls.buttonActive]: option.value === slMode
+                                    },
+                                    []
+                                )}
+                                onClick={() => {
+                                    if (option.value !== slMode) {
+                                        onSlModeChange(option.value)
+                                    }
+                                }}
+                                aria-pressed={option.value === slMode}>
+                                {option.label}
+                            </Btn>
+                        ))}
+                    </div>
                 </div>
             )}
 

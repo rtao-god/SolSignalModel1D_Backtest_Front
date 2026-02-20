@@ -33,10 +33,12 @@ export type CapturedMegaModeDto = 'with-sl' | 'no-sl'
 export type CapturedMegaZonalModeDto = 'with-zonal' | 'without-zonal'
 export type CapturedMegaMetricVariantDto = 'real' | 'no-biggest-liq-loss'
 export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total-aggregate'
+export type CapturedMegaTpSlModeDto = 'all' | 'dynamic' | 'static'
 
 export interface CapturedTableMetadataDto {
     kind: CapturedTableKindDto
     mode?: CapturedMegaModeDto
+    tpSlMode?: CapturedMegaTpSlModeDto
     zonalMode?: CapturedMegaZonalModeDto
     metricVariant?: CapturedMegaMetricVariantDto
     bucket?: CapturedMegaBucketDto

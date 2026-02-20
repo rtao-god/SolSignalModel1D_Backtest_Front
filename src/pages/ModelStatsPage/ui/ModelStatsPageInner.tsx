@@ -21,6 +21,7 @@ import { buildGlobalMeta, collectAvailableSegments, isTableSection, resolveSegme
 import {
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery
@@ -33,7 +34,6 @@ import {
     validateReportViewSelectionOrThrow
 } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { applyReportTpSlModeToSectionsOrThrow } from '@/shared/utils/reportTpSlMode'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 
 export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProps) {
@@ -133,7 +133,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
             }
 
             if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = applyReportTpSlModeToSectionsOrThrow(nextSections, tpSlState.value, 'model-stats')
+                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
             }
 
             return { sections: nextSections, error: null as Error | null }
