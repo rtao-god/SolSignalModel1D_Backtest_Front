@@ -52,7 +52,10 @@ export function formatProb3(value: Prob3Dto | null | undefined, label?: string):
         throw new Error(`[ui] Missing Prob3 value${context}.`)
     }
 
-    const up = ensureFiniteNumber((value as Prob3Dto).Up ?? (value as any).up ?? (value as any).PUp ?? (value as any).pUp, `${label ?? 'Prob3'}.Up`)
+    const up = ensureFiniteNumber(
+        (value as Prob3Dto).Up ?? (value as any).up ?? (value as any).PUp ?? (value as any).pUp,
+        `${label ?? 'Prob3'}.Up`
+    )
     const flat = ensureFiniteNumber(
         (value as Prob3Dto).Flat ?? (value as any).flat ?? (value as any).PFlat ?? (value as any).pFlat,
         `${label ?? 'Prob3'}.Flat`

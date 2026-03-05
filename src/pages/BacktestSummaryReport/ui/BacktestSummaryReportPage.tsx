@@ -5,8 +5,10 @@ import type BacktestSummaryReportProps from './types'
 import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
+import { useTranslation } from 'react-i18next'
 
 export default function BacktestSummaryReportPage({ className }: BacktestSummaryReportProps) {
+    const { t } = useTranslation('reports')
     const { data, isError, error, refetch } = useBacktestBaselineSummaryReportQuery()
 
     const rootClassName = classNames(cls.BacktestSummaryPage, {}, [className ?? ''])
@@ -17,25 +19,28 @@ export default function BacktestSummaryReportPage({ className }: BacktestSummary
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить сводку бэктеста'>
+            errorTitle={t('backtestSummary.page.errorTitle')}>
             {data && (
                 <div className={rootClassName}>
                     <header className={cls.header}>
                         <Text type='h1'>{data.title}</Text>
-                        <Text>ID отчёта: {data.id}</Text>
-                        <Text>Тип: {data.kind}</Text>
+                        <Text>{t('backtestSummary.page.reportId', { id: data.id })}</Text>
+                        <Text>{t('backtestSummary.page.reportKind', { kind: data.kind })}</Text>
                         <Text>
-                            Сгенерировано (UTC):{' '}
-                            {(() => {
-                                const generatedUtc = data.generatedAtUtc ? new Date(data.generatedAtUtc) : null
-                                return generatedUtc ?
-                                        generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC')
-                                    :   '—'
-                            })()}
+                            {t('backtestSummary.page.generatedUtc', {
+                                generatedUtc: (() => {
+                                    const generatedUtc = data.generatedAtUtc ? new Date(data.generatedAtUtc) : null
+                                    return generatedUtc ?
+                                            generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC')
+                                        :   '—'
+                                })()
+                            })}
                         </Text>
                         <Text>
-                            Сгенерировано (локальное время):{' '}
-                            {data.generatedAtUtc ? new Date(data.generatedAtUtc).toLocaleString() : '—'}
+                            {t('backtestSummary.page.generatedLocal', {
+                                generatedLocal:
+                                    data.generatedAtUtc ? new Date(data.generatedAtUtc).toLocaleString() : '—'
+                            })}
                         </Text>
                     </header>
 

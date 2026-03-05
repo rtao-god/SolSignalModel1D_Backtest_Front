@@ -21,7 +21,6 @@ function extractModelLabelFromSectionTitle(title: string | null | undefined, ind
         }
     }
 
-
     let working = title.replace(/^PFI по фичам:\s*/i, '').trim()
     const parenIdx = working.indexOf('(')
     if (parenIdx >= 0) {
@@ -48,4 +47,3 @@ export function buildPfiTabsFromSections(sections: TableSectionDto[]): PfiTabCon
         }
     })
 }
-

@@ -43,4 +43,3 @@ function useConfig(endpoint: string): { config: Config | null; isLoading: boolea
 }
 
 export default useConfig
-

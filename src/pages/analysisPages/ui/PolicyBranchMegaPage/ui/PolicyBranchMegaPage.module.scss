@@ -140,10 +140,56 @@
     gap: 24px;
 }
 
+.overviewBlock {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: linear-gradient(140deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.82));
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.overviewTitle {
+    font-size: 17px;
+    font-weight: 650;
+    color: #e2e8f0;
+}
+
+.overviewText {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.overviewSubTitle {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 650;
+    color: #e2e8f0;
+}
+
+.overviewList {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.overviewList li {
+    white-space: pre-line;
+}
+
 .sectionBlock {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    content-visibility: auto;
+    contain-intrinsic-size: 1200px;
 }
 
 .termsBlock {

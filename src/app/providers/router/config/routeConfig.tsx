@@ -38,18 +38,10 @@ const BacktestDiagnosticsRatingsPage = lazyPage(
 const BacktestDiagnosticsDayStatsPage = lazyPage(
     () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDayStatsPage/ui/BacktestDiagnosticsDayStatsPage')
 )
-const PolicyBranchMegaPage = lazyPage(
-    () => import('@/pages/analysisPages/ui/PolicyBranchMegaPage')
-)
-const ConfidenceRiskPage = lazyPage(
-    () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
-)
-const ExecutionPipelinePage = lazyPage(
-    () => import('@/pages/analysisPages/ui/ExecutionPipelinePage')
-)
-const CurrentMLModelPredictionPage = lazyPage(
-    () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
-)
+const PolicyBranchMegaPage = lazyPage(() => import('@/pages/analysisPages/ui/PolicyBranchMegaPage'))
+const ConfidenceRiskPage = lazyPage(() => import('@/pages/analysisPages/ui/ConfidenceRiskPage'))
+const ExecutionPipelinePage = lazyPage(() => import('@/pages/analysisPages/ui/ExecutionPipelinePage'))
+const CurrentMLModelPredictionPage = lazyPage(() => import('@/pages/predictions/ui/CurrentMLModelPredictionPage'))
 const PredictionHistoryPage = lazyPage(() => import('@/pages/predictions/ui/PredictionHistoryPage'))
 const PfiPage = lazyPage(() => import('@/pages/PfiPage'))
 const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
@@ -561,4 +553,3 @@ export const NAVBAR_ITEMS: NavbarNavItem[] = ROUTE_CONFIG.filter(route => route.
     })
 
 export type { RouteSection }
-

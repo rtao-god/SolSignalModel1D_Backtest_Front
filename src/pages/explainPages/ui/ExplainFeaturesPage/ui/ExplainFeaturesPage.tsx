@@ -1,6 +1,9 @@
 import { type ReactNode, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Link, TermTooltip, Text } from '@/shared/ui'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { EXPLAIN_FEATURES_TABS } from '@/shared/utils/explainTabs'
@@ -8,6 +11,11 @@ import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 import type { ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import {
+    readExplainTableRowsOrThrow,
+    readExplainTermItemsOrThrow,
+    type ExplainLocalizedTermItem
+} from '@/pages/explainPages/ui/shared/explainI18n'
 import cls from './ExplainFeaturesPage.module.scss'
 import type { ExplainFeaturesPageProps } from './types'
 
@@ -25,39 +33,6 @@ interface PfiStat {
     sumDeltaMean: number
     countDeltaMean: number
 }
-
-const OVERVIEW_TERMS: TermItem[] = [
-    {
-        term: 'Фича',
-        description:
-            'Числовой признак, который подается в модель на момент входа. Фича описывает состояние рынка, но сама по себе не является прогнозом.'
-    },
-    {
-        term: 'PFI',
-        description:
-            'Permutation Feature Importance: мы перемешиваем одну фичу и смотрим, как падает качество модели. Если падение большое, фича действительно важна.'
-    },
-    {
-        term: 'AUC',
-        description:
-            'Метрика качества бинарного классификатора. 0.5 = почти случайно, 1.0 = идеально.'
-    },
-    {
-        term: 'ΔAUC',
-        description:
-            'Изменение AUC после перемешивания фичи. Чем больше падение по модулю, тем сильнее модель опирается на эту фичу.'
-    },
-    {
-        term: 'Corr(score) (корреляция)',
-        description:
-            'Связь значения фичи со скором модели. Знак показывает направление связи (плюс/минус), модуль — ее силу.'
-    },
-    {
-        term: 'ΔMean',
-        description:
-            'Разница средних значений фичи между классами 1 и 0 в отчете. Помогает понять, куда смещен признак у целевого класса.'
-    }
-]
 
 function normalizeColumnName(value: string): string {
     return value.toLowerCase().replace(/\s+/g, '')
@@ -77,11 +52,7 @@ function findColumnIndex(columns: string[], keywords: string[]): number {
 
 function parseNumber(value?: string): number | null {
     if (!value) return null
-    const cleaned = value
-        .replace('%', '')
-        .replace(',', '.')
-        .replace('−', '-')
-        .trim()
+    const cleaned = value.replace('%', '').replace(',', '.').replace('−', '-').trim()
 
     const parsed = Number(cleaned)
     return Number.isFinite(parsed) ? parsed : null
@@ -154,30 +125,41 @@ function buildPfiStats(sections: ReportSectionDto[] | undefined): Map<string, Pf
     return stats
 }
 
-function buildPfiNote(featureName: string, stats: Map<string, PfiStat>, hasReport: boolean): string {
+function buildPfiNote(
+    featureName: string,
+    stats: Map<string, PfiStat>,
+    hasReport: boolean,
+    t: TFunction<'explain'>
+): string {
     if (!hasReport) {
-        return 'PFI: отчёт ещё не загружен, значения появятся после загрузки.'
+        return t('featuresPage.pfiNotes.reportNotLoaded')
     }
 
     const item = stats.get(featureName)
     if (!item) {
-        return 'PFI: фича не найдена в отчёте или не посчитана.'
+        return t('featuresPage.pfiNotes.featureMissing')
     }
 
     const avgImportance = item.countImportance > 0 ? item.sumImportance / item.countImportance : null
     const avgCorr = item.countCorr > 0 ? item.sumCorr / item.countCorr : null
     const avgDeltaMean = item.countDeltaMean > 0 ? item.sumDeltaMean / item.countDeltaMean : null
 
-    return `PFI по ${item.count} моделям: влияние на качество (ΔAUC) ≈ ${formatMaybe(avgImportance, 2)}; связь со скором (corr) ≈ ${formatMaybe(avgCorr, 3)}; разница средних классов (ΔMean) ≈ ${formatMaybe(avgDeltaMean, 4)}.`
+    return t('featuresPage.pfiNotes.summary', {
+        count: item.count,
+        importance: formatMaybe(avgImportance, 2),
+        corr: formatMaybe(avgCorr, 3),
+        deltaMean: formatMaybe(avgDeltaMean, 4)
+    })
 }
 
 function buildFeatureDescription(
     baseText: string,
     featureName: string,
     stats: Map<string, PfiStat>,
-    hasReport: boolean
+    hasReport: boolean,
+    t: TFunction<'explain'>
 ) {
-    const pfiLine = buildPfiNote(featureName, stats, hasReport)
+    const pfiLine = buildPfiNote(featureName, stats, hasReport, t)
 
     return (
         <div className={cls.tooltipBody}>
@@ -187,6 +169,18 @@ function buildFeatureDescription(
     )
 }
 
+function buildFeatureTermItems(
+    baseItems: ExplainLocalizedTermItem[],
+    stats: Map<string, PfiStat>,
+    hasReport: boolean,
+    t: TFunction<'explain'>
+): TermItem[] {
+    return baseItems.map(item => ({
+        term: item.term,
+        description: buildFeatureDescription(item.description, item.term, stats, hasReport, t)
+    }))
+}
+
 function TermGrid({ items }: { items: TermItem[] }) {
     return (
         <div className={cls.termGrid}>
@@ -194,7 +188,7 @@ function TermGrid({ items }: { items: TermItem[] }) {
                 <TermTooltip
                     key={item.term}
                     term={item.term}
-                    description={item.description}
+                    description={enrichTermTooltipDescription(item.description, { term: item.term })}
                     type='span'
                     className={cls.termItem}
                 />
@@ -204,75 +198,63 @@ function TermGrid({ items }: { items: TermItem[] }) {
 }
 
 export default function ExplainFeaturesPage({ className }: ExplainFeaturesPageProps) {
+    const { t } = useTranslation('explain')
     const { data: pfiReport } = usePfiPerModelReportNavQuery({ enabled: true })
+
     const pfiStats = useMemo(() => buildPfiStats(pfiReport?.sections), [pfiReport])
     const hasPfiReport = Boolean(pfiReport)
 
-    const sections = useMemo(() => EXPLAIN_FEATURES_TABS, [])
+    const sections = useMemo(
+        () =>
+            EXPLAIN_FEATURES_TABS.map(tab => ({
+                ...tab,
+                label: t(`tabs.${tab.id}`, { defaultValue: tab.label })
+            })),
+        [t]
+    )
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
     })
 
-    const featureItem = (featureName: string, text: string): TermItem => ({
-        term: featureName,
-        description: buildFeatureDescription(text, featureName, pfiStats, hasPfiReport)
-    })
+    const overviewTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.overview.terms'), [t])
+    const returnFeatureDefs = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.returns.terms'), [t])
+    const indicatorFeatureDefs = useMemo(
+        () => readExplainTermItemsOrThrow(t, 'featuresPage.sections.indicators.terms'),
+        [t]
+    )
+    const momentumFeatureDefs = useMemo(
+        () => readExplainTermItemsOrThrow(t, 'featuresPage.sections.momentum.terms'),
+        [t]
+    )
+    const regimeFeatureDefs = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.regime.terms'), [t])
 
-    const RETURN_FEATURES: TermItem[] = [
-        featureItem('SolRet30', 'Доходность SOL за 30 последних 6h-баров (примерно 7.5 дня): close[t]/close[t-30]-1.'),
-        featureItem('BtcRet30', 'Доходность BTC за те же 30 6h-баров. Дает контекст общего рыночного режима.'),
-        featureItem('SolBtcRet30', 'Разница SolRet30 - BtcRet30. Показывает относительную силу SOL против BTC.'),
-        featureItem('SolRet1', 'Доходность SOL за 1 последний 6h-бар.'),
-        featureItem('SolRet3', 'Доходность SOL за 3 последних 6h-бара (18 часов).'),
-        featureItem('BtcRet1', 'Доходность BTC за 1 последний 6h-бар.'),
-        featureItem('BtcRet3', 'Доходность BTC за 3 последних 6h-бара.'),
-        featureItem('GapBtcSol1', 'Разница BTC и SOL на горизонте 1 бара: BtcRet1 - SolRet1.'),
-        featureItem('GapBtcSol3', 'Разница BTC и SOL на горизонте 3 баров: BtcRet3 - SolRet3.')
-    ]
-
-    const INDICATOR_FEATURES: TermItem[] = [
-        featureItem('FngNorm', 'Нормализованный индекс Fear & Greed: (FNG - 50) / 50. Показывает рыночный сентимент.'),
-        featureItem('DxyChg30', 'Изменение DXY за 30 дней. В коде дополнительно ограничивается диапазоном [-3%; +3%].'),
-        featureItem('GoldChg30', 'Изменение PAXG за 30 последних 6h-баров (примерно 7.5 дня).'),
-        featureItem('BtcVs200', 'Положение BTC относительно SMA200: (BTC_close - SMA200) / SMA200.')
-    ]
-
-    const MOMENTUM_FEATURES: TermItem[] = [
-        featureItem('SolRsiCenteredScaled', 'RSI(14) по SOL, центрирован и масштабирован: (RSI - 50) / 100.'),
-        featureItem('RsiSlope3Scaled', 'Наклон RSI за 3 шага (18 часов), также масштабирован /100.'),
-        featureItem(
-            'AtrPct',
-            'ATR(14) по 6h-свечам SOL, нормализованный на цену входа: atrPct = ATR / entryPrice. ATR — технический индикатор волатильности.'
-        ),
-        featureItem('DynVol', 'Среднее абсолютное движение цены за 10 последних 6h-баров.')
-    ]
-
-    const REGIME_FEATURES: TermItem[] = [
-        featureItem(
-            'RegimeDownFlag',
-            'Флаг медвежьего режима. В коде включается, если SolRet30 < -7% или BtcRet30 < -5%.'
-        ),
-        featureItem(
-            'HardRegimeIs2Flag',
-            'Флаг жесткого режима. Включается, если |SolRet30| > 10% или AtrPct > 3.5%.'
-        ),
-        featureItem('SolAboveEma50', 'Положение SOL относительно EMA50: (entryPrice - EMA50) / EMA50.'),
-        featureItem('SolEma50vs200', 'Трендовый спред SOL: (EMA50 - EMA200) / EMA200.'),
-        featureItem('BtcEma50vs200', 'Трендовый спред BTC: (EMA50 - EMA200) / EMA200.')
-    ]
+    const returnFeatures = useMemo(
+        () => buildFeatureTermItems(returnFeatureDefs, pfiStats, hasPfiReport, t),
+        [hasPfiReport, pfiStats, returnFeatureDefs, t]
+    )
+    const indicatorFeatures = useMemo(
+        () => buildFeatureTermItems(indicatorFeatureDefs, pfiStats, hasPfiReport, t),
+        [hasPfiReport, indicatorFeatureDefs, pfiStats, t]
+    )
+    const momentumFeatures = useMemo(
+        () => buildFeatureTermItems(momentumFeatureDefs, pfiStats, hasPfiReport, t),
+        [hasPfiReport, momentumFeatureDefs, pfiStats, t]
+    )
+    const regimeFeatures = useMemo(
+        () => buildFeatureTermItems(regimeFeatureDefs, pfiStats, hasPfiReport, t),
+        [hasPfiReport, pfiStats, regimeFeatureDefs, t]
+    )
+    const overviewRows = useMemo(() => readExplainTableRowsOrThrow(t, 'featuresPage.sections.overview.table.rows'), [t])
 
     return (
         <div className={classNames(cls.ExplainFeaturesPage, {}, [className ?? ''])} data-tooltip-boundary>
             <header className={cls.headerRow}>
                 <div>
-                    <Text type='h2'>Фичи и индикаторы</Text>
-                    <Text className={cls.subtitle}>
-                        Ниже перечислены все признаки, которые реально подаются в модель. Для каждого признака есть
-                        понятное описание и фактические метрики важности из PFI.
-                    </Text>
+                    <Text type='h2'>{t('featuresPage.header.title')}</Text>
+                    <Text className={cls.subtitle}>{t('featuresPage.header.subtitle')}</Text>
                     <div className={cls.linkRow}>
-                        <Text className={cls.linkLabel}>PFI по моделям:</Text>
+                        <Text className={cls.linkLabel}>{t('featuresPage.header.linkLabel')}</Text>
                         <Link to={ROUTE_PATH[AppRoute.PFI_PER_MODEL]} className={cls.inlineLink}>
                             {ROUTE_PATH[AppRoute.PFI_PER_MODEL]}
                         </Link>
@@ -283,83 +265,62 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
             <div className={cls.sectionsGrid}>
                 <section id='explain-features-overview' className={cls.sectionCard}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Как читать фичи
+                        {t('featuresPage.sections.overview.title')}
                     </Text>
-                    <Text className={cls.sectionText}>
-                        PFI-метрики часто выглядят сложными. Таблица ниже расшифровывает их простым языком.
-                    </Text>
+                    <Text className={cls.sectionText}>{t('featuresPage.sections.overview.text')}</Text>
                     <div className={cls.tableWrap}>
                         <table className={cls.infoTable}>
                             <thead>
                                 <tr>
-                                    <th>Метрика</th>
-                                    <th>Что означает</th>
-                                    <th>Как читать</th>
+                                    <th>{t('featuresPage.sections.overview.table.headers.metric')}</th>
+                                    <th>{t('featuresPage.sections.overview.table.headers.meaning')}</th>
+                                    <th>{t('featuresPage.sections.overview.table.headers.reading')}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>ΔAUC</td>
-                                    <td>Насколько падает качество модели после перемешивания одной фичи</td>
-                                    <td>Чем больше по модулю, тем важнее фича</td>
-                                </tr>
-                                <tr>
-                                    <td>Corr(score)</td>
-                                    <td>Корреляция значения фичи со скором модели</td>
-                                    <td>Знак = направление связи, модуль = сила связи</td>
-                                </tr>
-                                <tr>
-                                    <td>ΔMean</td>
-                                    <td>Разница среднего значения фичи между классом 1 и классом 0</td>
-                                    <td>Показывает, в какую сторону сдвинут признак у целевого класса</td>
-                                </tr>
+                                {overviewRows.map((row, rowIndex) => (
+                                    <tr key={`overview-row-${rowIndex}`}>
+                                        {row.map((cell, cellIndex) => (
+                                            <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                        ))}
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
-                    <TermGrid items={OVERVIEW_TERMS} />
+                    <TermGrid items={overviewTerms} />
                 </section>
 
                 <section id='explain-features-returns' className={cls.sectionCard}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Доходности и относительная динамика
+                        {t('featuresPage.sections.returns.title')}
                     </Text>
-                    <Text className={cls.sectionText}>
-                        Это базовый блок: как двигались SOL и BTC на коротком и среднем горизонте, и кто из них был
-                        сильнее.
-                    </Text>
-                    <TermGrid items={RETURN_FEATURES} />
+                    <Text className={cls.sectionText}>{t('featuresPage.sections.returns.text')}</Text>
+                    <TermGrid items={returnFeatures} />
                 </section>
 
                 <section id='explain-features-indicators' className={cls.sectionCard}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Индикаторы и макро‑сигналы
+                        {t('featuresPage.sections.indicators.title')}
                     </Text>
-                    <Text className={cls.sectionText}>
-                        Эти признаки добавляют контекст: настроение рынка, долларовый фон и положение BTC относительно
-                        длинной средней.
-                    </Text>
-                    <TermGrid items={INDICATOR_FEATURES} />
+                    <Text className={cls.sectionText}>{t('featuresPage.sections.indicators.text')}</Text>
+                    <TermGrid items={indicatorFeatures} />
                 </section>
 
                 <section id='explain-features-momentum' className={cls.sectionCard}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Momentum и волатильность
+                        {t('featuresPage.sections.momentum.title')}
                     </Text>
-                    <Text className={cls.sectionText}>
-                        Блок про скорость движения и «нервность» рынка: RSI, ATR и динамическая волатильность.
-                    </Text>
-                    <TermGrid items={MOMENTUM_FEATURES} />
+                    <Text className={cls.sectionText}>{t('featuresPage.sections.momentum.text')}</Text>
+                    <TermGrid items={momentumFeatures} />
                 </section>
 
                 <section id='explain-features-regime' className={cls.sectionCard}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Режимы и EMA
+                        {t('featuresPage.sections.regime.title')}
                     </Text>
-                    <Text className={cls.sectionText}>
-                        Здесь собраны флаги рыночных режимов и трендовые EMA-связки. Они помогают модели переключать
-                        поведение в разных фазах рынка.
-                    </Text>
-                    <TermGrid items={REGIME_FEATURES} />
+                    <Text className={cls.sectionText}>{t('featuresPage.sections.regime.text')}</Text>
+                    <TermGrid items={regimeFeatures} />
                 </section>
             </div>
 

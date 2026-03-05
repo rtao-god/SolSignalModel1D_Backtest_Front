@@ -1,0 +1,120 @@
+{
+    "page": {
+        "title": "Documentation",
+        "subtitle": "Short guides for reading core pages. This section explains metrics and terms in plain language so the report logic is clear at first glance.",
+        "meta": {
+            "model": "ML model",
+            "backtests": "Backtests",
+            "diagnostics": "Diagnostics",
+            "currentPredictions": "Current predictions"
+        }
+    },
+    "sections": {
+        "readingReports": "How to read reports"
+    },
+    "cards": {
+        "modelStats": {
+            "title": "Model statistics (ModelStats)",
+            "text": {
+                "beforeOos": "This page evaluates ML model quality across different datasets. Segments",
+                "between": "and",
+                "afterTrain": "show how well the model generalizes to new data. In Technical mode, error matrices and SL model thresholds are displayed."
+            },
+            "tooltips": {
+                "oos": "OOS (out-of-sample) means data fully excluded from training. OOS metrics provide an unbiased quality estimate without overfitting.",
+                "train": "Train is the training dataset. Metrics are usually higher than OOS, so Train vs OOS comparison is important for overfitting control."
+            }
+        },
+        "currentPrediction": {
+            "title": "Current prediction",
+            "terms": {
+                "slModel": "SL model"
+            },
+            "text": {
+                "beforeMinMove": "This page shows the final daily forecast: direction, trade plan, and risks. Pay attention to",
+                "between": "and",
+                "afterSlModel": "signals, as they control risk."
+            },
+            "tooltips": {
+                "minMove": "MinMove is the minimum expected price movement within the trading window. A low MinMove means weaker movement potential.",
+                "slModel": "The SL model estimates stop-loss hit risk. High SL risk means entries should be handled more cautiously."
+            }
+        },
+        "aggregation": {
+            "title": "Prediction aggregation",
+            "text": {
+                "beforeAccuracy": "This page averages class probabilities and computes quality metrics for Day / Day+Micro / Total layers. Metrics",
+                "between": "and",
+                "afterLogLoss": "help assess how confidently the model predicts outcomes."
+            },
+            "tooltips": {
+                "accuracy": "Accuracy is the share of correct predictions (Correct / N). Higher is better.",
+                "logLoss": "LogLoss measures how strongly probabilities support the correct class. Lower is better."
+            }
+        },
+        "pfi": {
+            "title": "PFI - feature importance",
+            "text": {
+                "beforeDeltaAuc": "PFI shows how much model quality drops when a feature is shuffled. The key metric",
+                "afterDeltaAuc": "helps identify which features really influence predictions."
+            },
+            "tooltips": {
+                "deltaAuc": "Delta AUC shows how much AUC decreases when a feature is shuffled. Bigger drop means higher feature importance."
+            }
+        }
+    },
+    "modelsPage": {
+        "title": "Models and pipeline",
+        "subtitle": "Detailed description of model layers, their roles, and technical constraints. Switch mode to see business or technical interpretation.",
+        "labels": {
+            "models-overview": "Overview",
+            "models-daily": "Daily model",
+            "models-micro": "Micro model",
+            "models-sl": "SL model",
+            "models-pipeline": "Pipeline and data"
+        },
+        "sections": {
+            "models-overview": {
+                "business": "The model consists of several layers that refine the forecast step by step. The daily model gives a base class (up/flat/down), the micro model refines direction within flat regimes, and the SL model estimates stop-loss risk and may tighten the final decision.",
+                "tech": "All layers run on the same daily records and use strict time rules (as-of / cutoff). Labels and evaluation follow path-based logic to avoid future-data leakage."
+            },
+            "models-daily": {
+                "business": "The daily model is the main signal source. It returns three classes (UP/FLAT/DOWN) and their probabilities on a 24-hour horizon. Those probabilities become the base layer for downstream decisions.",
+                "tech": "The daily model is a 3-class classifier (Down/Flat/Up) with Prob3 output. It builds base probabilities P_day that are passed into aggregation."
+            },
+            "models-micro": {
+                "business": "The micro model is active only when the daily model predicts flat. Its role is to refine direction within sideways regimes and capture small opportunities.",
+                "tech": "The micro model is activated only for the FLAT class from the daily model. It outputs micro direction (micro-up/micro-down), forming the Day+Micro layer."
+            },
+            "models-sl": {
+                "business": "The SL model estimates bad-day risk (high probability of stop-loss). If risk is high, it lowers directional confidence and can switch the day to a more cautious mode.",
+                "tech": "The SL model outputs SL event probability and a binary high-risk decision. In aggregation it builds the Total layer (Day+Micro+SL), reducing risky directions."
+            },
+            "models-pipeline": {
+                "business": "The pipeline handles data assembly, missing-data filtering, and a consistent as-of time cut. This is required for fair and reproducible forecasts.",
+                "tech": "The pipeline fixes Train/OOS/Recent boundaries, builds as-of cuts, and excludes invalid days. This ensures unbiased metric evaluation."
+            }
+        },
+        "fallback": {
+            "business": "Section description.",
+            "tech": "Technical section description."
+        }
+    },
+    "testsPage": {
+        "title": "Tests and self-checks",
+        "subtitle": "This section explains which checks protect the model from data leakage, invalid metrics, and pipeline degradation. Short notes for each test block are listed below.",
+        "labels": {
+            "tests-overview": "Test overview",
+            "tests-sanity": "Sanity checks",
+            "tests-leakage": "Leakage tests",
+            "tests-perf": "Performance tests"
+        },
+        "sections": {
+            "tests-overview": "Overview of critical pipeline checks. If these tests fail, the model must not go to production calculations.",
+            "tests-sanity": "Sanity checks validate data and report invariants: continuity, valid ranges, and absence of NaN/Infinity in probabilities.",
+            "tests-leakage": "Leakage tests detect future-information leakage in features and labels. This is the key protection against inflated metrics.",
+            "tests-perf": "Performance checks monitor runtime and memory usage to keep the pipeline stable on the full horizon."
+        },
+        "fallback": "Section description."
+    }
+}

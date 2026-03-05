@@ -15,4 +15,3 @@ export default interface BacktestConfigEditorProps {
     onPolicyLeverageChange: (name: string, valueStr: string) => void
     onRunPreview: () => void
 }
-

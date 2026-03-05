@@ -1,0 +1,81 @@
+{
+    "lang": {
+        "switchTo": "Переключить язык на {{lang}}"
+    },
+    "loading": {
+        "main": "Загружаю главную страницу",
+        "current_prediction": "Загружаю текущий прогноз",
+        "current_prediction_history": "Загружаю историю прогнозов",
+        "diagnostics_home": "Загружаю диагностику",
+        "analysis_home": "Загружаю анализ",
+        "backtest_baseline": "Загружаю baseline бэктеста",
+        "backtest_summary": "Загружаю сводку бэктеста",
+        "backtest_full": "Загружаю экспериментальный бэктест",
+        "backtest_diagnostics": "Загружаю риск и ликвидации",
+        "backtest_diagnostics_guardrail": "Загружаю guardrail-диагностику",
+        "backtest_diagnostics_decisions": "Загружаю анализ решений",
+        "backtest_diagnostics_hotspots": "Загружаю hotspots",
+        "backtest_diagnostics_other": "Загружаю прочие диагностики",
+        "backtest_diagnostics_ratings": "Загружаю рейтинги бэктеста",
+        "backtest_diagnostics_daystats": "Загружаю статистику по дням",
+        "backtest_policy_branch_mega": "Загружаю Policy Branch Mega",
+        "backtest_confidence_risk": "Загружаю статистику уверенности",
+        "backtest_execution_pipeline": "Загружаю execution pipeline",
+        "pfi_per_model": "Загружаю PFI отчёт",
+        "models_stats": "Загружаю статистику моделей",
+        "aggregation_stats": "Загружаю агрегацию прогнозов",
+        "docs": "Загружаю документацию",
+        "docs_models": "Загружаю описание моделей",
+        "docs_tests": "Загружаю описание тестов",
+        "explain": "Загружаю объяснение проекта",
+        "explain_models": "Загружаю объяснение моделей",
+        "explain_branches": "Загружаю объяснение веток",
+        "explain_splits": "Загружаю объяснение сплитов",
+        "explain_project": "Загружаю описание проекта",
+        "explain_time": "Загружаю объяснение времени",
+        "explain_features": "Загружаю описание фич",
+        "about": "Загружаю страницу About",
+        "contact": "Загружаю страницу контактов",
+        "registration": "Загружаю страницу регистрации",
+        "login": "Загружаю страницу входа",
+        "profile": "Загружаю профиль",
+        "not_found": "Загружаю страницу"
+    },
+    "navbar": {
+        "sidebarToggleAria": "Открыть навигацию сайдбара"
+    },
+    "footer": {
+        "disclaimer": "Все результаты бэктестов носят ознакомительный характер и не являются инвестиционной рекомендацией.",
+        "copyright": "© {{year}} Project Name. Внутренний интерфейс для экспериментов и анализа."
+    },
+    "contact": {
+        "page": {
+            "title": "Связаться со мной",
+            "subtitle": "Короткая страница с основными контактами для связи по проекту и вопросам сотрудничества."
+        },
+        "profile": {
+            "fullName": "Имя Фамилия",
+            "role": "Quant / ML, Full-stack (React + .NET)",
+            "note": "Фокус на моделях для крипторынка, аналитике и визуализации результатов бэктестов."
+        },
+        "cards": {
+            "telegram": {
+                "description": "Основной канал для быстрой связи, вопросов по модели и демо-созвонов."
+            },
+            "linkedin": {
+                "description": "Профессиональный профиль, резюме и история проектов.",
+                "link": "Открыть профиль"
+            },
+            "phone": {
+                "title": "Телефон / WhatsApp",
+                "description": "Для созвонов, обсуждения деталей сотрудничества и быстрых согласований.",
+                "tag": "WhatsApp доступен по этому номеру"
+            }
+        },
+        "footer": "При необходимости могу предложить короткий онлайн-демо формат: 10–15 минут, чтобы показать ключевые метрики и UI проекта."
+    },
+    "profile": {
+        "avatarAlt": "Аватар пользователя",
+        "avatarAltWithName": "Аватар пользователя {{name}}"
+    }
+}

@@ -2,9 +2,13 @@ import { useMemo } from 'react'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
 import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import { getDiagnosticsGroupSections, splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
+import {
+    getDiagnosticsGroupSections,
+    splitBacktestDiagnosticsSections
+} from '@/shared/utils/backtestDiagnosticsSections'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { useTranslation } from 'react-i18next'
 
 /*
     BacktestDiagnosticsPage — риск/ликвидации.
@@ -14,6 +18,7 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Быстро находить причины слива по Equity/DD и liq‑событиям.
 */
 export default function BacktestDiagnosticsPage() {
+    const { t } = useTranslation('reports')
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
@@ -24,14 +29,8 @@ export default function BacktestDiagnosticsPage() {
         [data]
     )
     const split = useMemo(() => splitBacktestDiagnosticsSections(tableSections), [tableSections])
-    const diagnosticsSections = useMemo(
-        () => [...split.diagnostics, ...split.unknown],
-        [split]
-    )
-    const riskSections = useMemo(
-        () => getDiagnosticsGroupSections(diagnosticsSections, 'risk'),
-        [diagnosticsSections]
-    )
+    const diagnosticsSections = useMemo(() => [...split.diagnostics, ...split.unknown], [split])
+    const riskSections = useMemo(() => getDiagnosticsGroupSections(diagnosticsSections, 'risk'), [diagnosticsSections])
     const renderColumnTitle = (title: string) =>
         renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
 
@@ -42,18 +41,17 @@ export default function BacktestDiagnosticsPage() {
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить диагностику бэктеста'>
+            errorTitle={t('diagnosticsReport.pages.risk.errorTitle')}>
             {data && (
                 <BacktestDiagnosticsPageLayout
                     report={data}
                     sections={riskSections}
-                    pageTitle='Риск и ликвидации'
-                    pageSubtitle='Ликвидации, Equity/DD и риск‑метрики. Здесь видно, как глубоко проседал капитал и насколько близко сделки подходили к ликвидации.'
-                    emptyMessage='В отчёте нет таблиц по риску и ликвидациям.'
+                    pageTitle={t('diagnosticsReport.pages.risk.title')}
+                    pageSubtitle={t('diagnosticsReport.pages.risk.subtitle')}
+                    emptyMessage={t('diagnosticsReport.pages.risk.empty')}
                     renderColumnTitle={renderColumnTitle}
                 />
             )}
         </PageDataBoundary>
     )
 }
-

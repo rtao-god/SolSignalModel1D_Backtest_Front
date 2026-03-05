@@ -1,7 +1,4 @@
-import type {
-    AggregationMetricsSnapshotDto,
-    AggregationProbsSnapshotDto
-} from '@/shared/types/aggregation.types'
+import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 import type { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 

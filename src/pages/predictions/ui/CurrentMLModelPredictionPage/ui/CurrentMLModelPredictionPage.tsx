@@ -11,8 +11,11 @@ import { CurrentPredictionTrainingScopeToggle, Text, resolveCurrentPredictionTra
 import type { CurrentPredictionSet, CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import type { KeyValueSectionDto, ReportDocumentDto } from '@/shared/types/report.types'
+import { useTranslation } from 'react-i18next'
+import { useLocale } from '@/shared/lib/i18n'
 
 const PREVIEW_STATUS_PREFIX = 'PREVIEW_'
+const PREVIEW_STATUS_ITEM_KEY = 'preview_status'
 
 interface CurrentPredictionStatusMeta {
     text: string
@@ -31,7 +34,7 @@ function resolveCurrentPredictionStatusMeta(report: ReportDocumentDto | undefine
         }
 
         for (const item of keyValueSection.items) {
-            if (item.key.trim().toLowerCase() !== 'статус прогноза') {
+            if ((item.itemKey ?? '').trim() !== PREVIEW_STATUS_ITEM_KEY) {
                 continue
             }
 
@@ -51,10 +54,13 @@ function resolveCurrentPredictionStatusMeta(report: ReportDocumentDto | undefine
 }
 
 export default function CurrentMLModelPredictionPage({ className }: CurrentMLModelPredictionProps) {
+    const { t } = useTranslation('reports')
+    const { i18nLanguage } = useLocale()
     const reportSet: CurrentPredictionSet = 'live'
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
+    const reportLanguage = i18nLanguage === 'ru' ? 'ru' : 'en'
 
-    const { data, isError, error, refetch } = useCurrentPredictionReportQuery(reportSet, trainingScope)
+    const { data, isError, error, refetch } = useCurrentPredictionReportQuery(reportSet, trainingScope, reportLanguage)
 
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
     const trainingLabel = resolveTrainingLabel(data)
@@ -67,12 +73,12 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить текущий прогноз'>
+            errorTitle={t('currentPrediction.page.errorTitle')}>
             {data && (
                 <div className={rootClassName}>
                     <div className={cls.scopePanel}>
                         <Text type='p' className={cls.scopeLabel}>
-                            Режим обучения:
+                            {t('currentPrediction.page.scopeLabel')}
                         </Text>
                         <CurrentPredictionTrainingScopeToggle
                             value={trainingScope}
@@ -89,10 +95,9 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                             className={classNames(cls.statusPanel, {
                                 [cls.statusPanelPreview]: predictionStatus.isPreview,
                                 [cls.statusPanelNormal]: !predictionStatus.isPreview
-                            })}
-                        >
+                            })}>
                             <Text type='p' className={cls.statusLabel}>
-                                Статус прогноза:
+                                {t('currentPrediction.page.statusLabel')}
                             </Text>
                             <Text type='p' className={cls.statusValue}>
                                 {predictionStatus.text}
@@ -102,14 +107,15 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
 
                     <div className={cls.metaPanel}>
                         <Text type='p' className={cls.metaLine}>
-                            Текущий отчёт: {reportSet}
+                            {t('currentPrediction.page.meta.currentReport', { reportSet })}
                         </Text>
                         <Text type='p' className={cls.metaLine}>
-                            Выбранный режим: {currentScopeMeta.label}
+                            {t('currentPrediction.page.meta.selectedMode', { mode: currentScopeMeta.label })}
                         </Text>
                         <Text type='p' className={cls.metaLine}>
-                            Модель обучения:{' '}
-                            {trainingLabel ?? 'нет данных (проверь секцию обучения в отчёте)'}
+                            {t('currentPrediction.page.meta.trainingModel', {
+                                model: trainingLabel ?? t('currentPrediction.page.meta.trainingModelFallback')
+                            })}
                         </Text>
                     </div>
 
@@ -118,8 +124,8 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                         fallback={({ error: sectionError, reset }) => (
                             <ErrorBlock
                                 code='CLIENT'
-                                title='Ошибка при отображении отчёта'
-                                description='При отрисовке текущего прогноза произошла ошибка на клиенте. Остальная часть приложения продолжает работать.'
+                                title={t('currentPrediction.page.clientError.title')}
+                                description={t('currentPrediction.page.clientError.description')}
                                 details={sectionError.message}
                                 onRetry={reset}
                             />

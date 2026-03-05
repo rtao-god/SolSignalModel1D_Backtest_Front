@@ -38,4 +38,3 @@ export function usePfiPerModelReportNavQuery(
         enabled: options.enabled
     })
 }
-

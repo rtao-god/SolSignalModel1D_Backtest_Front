@@ -5,4 +5,3 @@ export default interface ElementProps extends Omit<HTMLAttributes<HTMLElement>, 
     type?: HtmlTag
     children: ReactNode
 }
-

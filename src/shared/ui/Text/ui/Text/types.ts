@@ -11,4 +11,3 @@ export default interface TextProps extends Omit<ElementProps, 'type' | 'style' |
     fw?: number | string
     style?: CSSProperties
 }
-

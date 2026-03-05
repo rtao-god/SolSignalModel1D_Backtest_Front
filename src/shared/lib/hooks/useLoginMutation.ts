@@ -11,10 +11,7 @@ import { API_BASE_URL } from '@/shared/configs/config'
 	Зачем:
 		- Инкапсулирует логику useLoginMutation.
 */
-export const useLoginMutation = (
-    identifier: string,
-    password: string
-) => {
+export const useLoginMutation = (identifier: string, password: string) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
@@ -44,4 +41,3 @@ export const useLoginMutation = (
         }
     })
 }
-

@@ -35,6 +35,7 @@ import {
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import type { PfiPageProps, PfiTableCardProps } from './types'
+import { useTranslation } from 'react-i18next'
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
@@ -45,9 +46,9 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
     const normalizedRows = useMemo<TableRow[]>(
         () =>
             (section.rows ?? []).map(row =>
-                Array.isArray(row)
-                    ? row.map(cell => (typeof cell === 'string' ? normalizeZeroLikeNumericText(cell) : cell))
-                    : row
+                Array.isArray(row) ?
+                    row.map(cell => (typeof cell === 'string' ? normalizeZeroLikeNumericText(cell) : cell))
+                :   row
             ),
         [section.rows]
     )
@@ -119,6 +120,7 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
 }
 
 export default function PfiPage({ className }: PfiPageProps) {
+    const { t } = useTranslation('reports')
     const { data, isError, error, refetch } = usePfiPerModelReportQuery()
     const [searchParams, setSearchParams] = useSearchParams()
 
@@ -135,7 +137,10 @@ export default function PfiPage({ className }: PfiPageProps) {
 
     const bucketState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(
+                searchParams.get('bucket'),
+                DEFAULT_REPORT_BUCKET_MODE
+            )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse pfi bucket query.')
@@ -145,7 +150,10 @@ export default function PfiPage({ className }: PfiPageProps) {
 
     const metricState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(
+                searchParams.get('metric'),
+                DEFAULT_REPORT_METRIC_MODE
+            )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse pfi metric query.')
@@ -221,7 +229,14 @@ export default function PfiPage({ className }: PfiPageProps) {
             const safeError = err instanceof Error ? err : new Error('Failed to filter pfi sections by bucket/metric.')
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [bucketState.value, metricState.value, tableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+    }, [
+        bucketState.value,
+        metricState.value,
+        tableSections,
+        tpSlState.value,
+        viewCapabilities,
+        viewSelectionState.error
+    ])
 
     const termsState = useMemo(() => {
         try {
@@ -242,7 +257,10 @@ export default function PfiPage({ className }: PfiPageProps) {
         }
     }, [filteredTableSectionsState.sections])
 
-    const tabs = useMemo(() => buildPfiTabsFromSections(filteredTableSectionsState.sections), [filteredTableSectionsState.sections])
+    const tabs = useMemo(
+        () => buildPfiTabsFromSections(filteredTableSectionsState.sections),
+        [filteredTableSectionsState.sections]
+    )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
@@ -278,72 +296,66 @@ export default function PfiPage({ className }: PfiPageProps) {
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить PFI отчёт'>
+            errorTitle={t('pfi.page.errorTitle')}>
             {data && (
                 <div className={rootClassName}>
-                    {sourceEndpointState.error || !sourceEndpointState.value ? (
+                    {sourceEndpointState.error || !sourceEndpointState.value ?
                         <PageError
-                            title='PFI report source is invalid'
-                            message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                            title={t('pfi.page.errors.sourceEndpoint.title')}
+                            message={t('pfi.page.errors.sourceEndpoint.message')}
                             error={
                                 sourceEndpointState.error ??
                                 new Error('[pfi] report source endpoint is missing after validation.')
                             }
                             onRetry={refetch}
                         />
-                    ) : bucketState.error ? (
+                    : bucketState.error ?
                         <PageError
-                            title='PFI bucket query is invalid'
-                            message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                            title={t('pfi.page.errors.bucketQuery.title')}
+                            message={t('pfi.page.errors.bucketQuery.message')}
                             error={bucketState.error}
                             onRetry={refetch}
                         />
-                    ) : metricState.error ? (
+                    : metricState.error ?
                         <PageError
-                            title='PFI metric query is invalid'
-                            message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                            title={t('pfi.page.errors.metricQuery.title')}
+                            message={t('pfi.page.errors.metricQuery.message')}
                             error={metricState.error}
                             onRetry={refetch}
                         />
-                    ) : tpSlState.error ? (
+                    : tpSlState.error ?
                         <PageError
-                            title='PFI TP/SL query is invalid'
-                            message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                            title={t('pfi.page.errors.tpSlQuery.title')}
+                            message={t('pfi.page.errors.tpSlQuery.message')}
                             error={tpSlState.error}
                             onRetry={refetch}
                         />
-                    ) : viewSelectionState.error ? (
+                    : viewSelectionState.error ?
                         <PageError
-                            title='PFI view mode is unsupported for this report'
-                            message='Выбранный bucket/metric/tpsl режим не поддерживается структурой текущего отчёта.'
+                            title={t('pfi.page.errors.unsupportedView.title')}
+                            message={t('pfi.page.errors.unsupportedView.message')}
                             error={viewSelectionState.error}
                             onRetry={refetch}
                         />
-                    ) : filteredTableSectionsState.error ? (
+                    : filteredTableSectionsState.error ?
                         <PageError
-                            title='PFI sections are missing'
-                            message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                            title={t('pfi.page.errors.sections.title')}
+                            message={t('pfi.page.errors.sections.message')}
                             error={filteredTableSectionsState.error}
                             onRetry={refetch}
                         />
-                    ) : termsState.error ? (
+                    : termsState.error ?
                         <PageError
-                            title='PFI terms are invalid'
-                            message='Не удалось построить термины для таблиц PFI. Проверь колонки и словарь подсказок.'
+                            title={t('pfi.page.errors.terms.title')}
+                            message={t('pfi.page.errors.terms.message')}
                             error={termsState.error}
                             onRetry={refetch}
                         />
-                    ) : (
-                        <>
+                    :   <>
                             <header className={cls.headerRow}>
                                 <div>
-                                    <Text type='h2'>{data.title || 'PFI по моделям'}</Text>
-                                    <Text className={cls.subtitle}>
-                                        Отчёт по важности признаков (Permutation Feature Importance) для всех бинарных
-                                        моделей (move / dir / micro / SL и т.п.). Чем выше ΔAUC, тем сильнее признак
-                                        влияет на качество, а знаки ΔMean/корреляций помогают понять направление
-                                        влияния.
-                                    </Text>
+                                    <Text type='h2'>{data.title || t('pfi.page.header.titleFallback')}</Text>
+                                    <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
                                     <ReportViewControls
                                         bucket={bucketState.value}
                                         metric={metricState.value}
@@ -356,8 +368,8 @@ export default function PfiPage({ className }: PfiPageProps) {
                                 </div>
                                 <ReportActualStatusCard
                                     statusMode='debug'
-                                    statusTitle='DEBUG: freshness not verified'
-                                    statusMessage='Status endpoint для pfi_per_model не настроен: показываются metadata отчёта без freshness-проверки.'
+                                    statusTitle={t('pfi.page.status.title')}
+                                    statusMessage={t('pfi.page.status.message')}
                                     dataSource={sourceEndpointState.value}
                                     reportTitle={data.title}
                                     reportId={data.id}
@@ -366,26 +378,22 @@ export default function PfiPage({ className }: PfiPageProps) {
                                 />
                             </header>
 
-                            {filteredTableSectionsState.sections.length === 0 ? (
+                            {filteredTableSectionsState.sections.length === 0 ?
                                 <div>
-                                    <Text type='h2'>PFI отчёт пустой</Text>
-                                    <Text>
-                                    Бэкенд вернул отчёт без табличных секций. Имеет смысл проверить конфигурацию
-                                    генерации PFI или данные в базе.
-                                </Text>
-                            </div>
-                        ) : (
-                            <>
-                                <ReportTableTermsBlock
-                                    terms={termsState.terms}
-                                    title='Термины отчёта PFI'
-                                    subtitle='Подробные определения показателей важности признаков и сопутствующих статистик для всех таблиц на этой странице.'
-                                    className={cls.pageTermsBlock}
-                                />
+                                    <Text type='h2'>{t('pfi.page.empty.title')}</Text>
+                                    <Text>{t('pfi.page.empty.description')}</Text>
+                                </div>
+                            :   <>
+                                    <ReportTableTermsBlock
+                                        terms={termsState.terms}
+                                        title={t('pfi.page.terms.title')}
+                                        subtitle={t('pfi.page.terms.subtitle')}
+                                        className={cls.pageTermsBlock}
+                                    />
 
-                                <div className={cls.tablesGrid}>
-                                    {filteredTableSectionsState.sections.map((section, index) => {
-                                        const tab = tabs[index]
+                                    <div className={cls.tablesGrid}>
+                                        {filteredTableSectionsState.sections.map((section, index) => {
+                                            const tab = tabs[index]
                                             const domId = tab?.anchor ?? `pfi-model-${index + 1}`
 
                                             return (
@@ -409,9 +417,9 @@ export default function PfiPage({ className }: PfiPageProps) {
                                         />
                                     )}
                                 </>
-                            )}
+                            }
                         </>
-                    )}
+                    }
                 </div>
             )}
         </PageDataBoundary>

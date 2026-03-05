@@ -1,3 +1,3 @@
 export default interface BacktestSummaryReportProps {
-  className?: string
+    className?: string
 }

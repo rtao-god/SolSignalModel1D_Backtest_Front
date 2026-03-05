@@ -6,4 +6,3 @@ export default interface LineProps {
     style?: CSSProperties
     className?: string
 }
-

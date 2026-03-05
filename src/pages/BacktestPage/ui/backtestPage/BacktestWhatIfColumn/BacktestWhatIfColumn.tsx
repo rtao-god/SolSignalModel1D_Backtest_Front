@@ -6,6 +6,7 @@ import { BacktestSummaryView } from '../BacktestSummaryView/BacktestSummaryView'
 import { BacktestPolicyRatiosSection } from '../BacktestPolicyRatiosSection/BacktestPolicyRatiosSection'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestWhatIfColumn.module.scss'
 interface BacktestWhatIfColumnProps {
     currentProfile: BacktestProfileDto
@@ -44,20 +45,22 @@ export function BacktestWhatIfColumn({
     onPolicyLeverageChange,
     onRunPreview
 }: BacktestWhatIfColumnProps) {
+    const { t } = useTranslation('reports')
+
     return (
         <SectionErrorBoundary
             name='BacktestWhatIfColumn'
             fallback={({ error, reset }) => (
                 <ErrorBlock
                     code='CLIENT'
-                    title='Блок What-if временно недоступен'
-                    description='При отрисовке блока What-if произошла ошибка на клиенте. Baseline и сравнение профилей продолжают работать.'
+                    title={t('backtestFull.whatIfColumn.errors.clientTitle')}
+                    description={t('backtestFull.whatIfColumn.errors.clientDescription')}
                     details={error.message}
                     onRetry={reset}
                 />
             )}>
             <div className={cls.column}>
-                <Text type='h2'>What-if конфигурация профиля</Text>
+                <Text type='h2'>{t('backtestFull.whatIfColumn.title')}</Text>
 
                 <BacktestConfigEditor
                     currentProfile={currentProfile}
@@ -77,15 +80,18 @@ export function BacktestWhatIfColumn({
                 />
 
                 <section className={cls.previewSection}>
-                    <Text type='h2'>Результат preview</Text>
+                    <Text type='h2'>{t('backtestFull.whatIfColumn.previewTitle')}</Text>
                     {previewSummary ?
-                        <BacktestSummaryView summary={previewSummary} title='Preview summary' />
-                    :   <Text>Пока нет результатов превью.</Text>}
+                        <BacktestSummaryView
+                            summary={previewSummary}
+                            title={t('backtestFull.whatIfColumn.previewSummaryTitle')}
+                        />
+                    :   <Text>{t('backtestFull.whatIfColumn.previewEmpty')}</Text>}
                     {previewPolicyRatios && (
                         <BacktestPolicyRatiosSection
                             report={previewPolicyRatios}
-                            title='Метрики политик preview'
-                            subtitle='Метрики рассчитаны по тому же what-if прогону, который отображается в summary.'
+                            title={t('backtestFull.whatIfColumn.previewPolicyRatiosTitle')}
+                            subtitle={t('backtestFull.whatIfColumn.previewPolicyRatiosSubtitle')}
                         />
                     )}
                 </section>

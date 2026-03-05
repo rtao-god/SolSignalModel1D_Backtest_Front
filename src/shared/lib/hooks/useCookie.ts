@@ -1,4 +1,3 @@
-
 export const useCookie = () => {
     const cookies = `; ${document.cookie}`
 
@@ -28,4 +27,3 @@ export const useCookie = () => {
 
     return { getCookie, setCookie, removeCookie }
 }
-

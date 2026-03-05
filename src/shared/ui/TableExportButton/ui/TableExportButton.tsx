@@ -13,32 +13,48 @@ export default function TableExportButton({
     defaultFormat = 'pdf'
 }: TableExportButtonProps) {
     const [open, setOpen] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
 
     const handleToggle = () => {
+        if (isExporting) {
+            return
+        }
         setOpen(prev => !prev)
     }
 
     const handleClose = () => {
+        if (isExporting) {
+            return
+        }
         setOpen(false)
     }
 
-    const handleExport = (format: TableExportFormat) => {
+    const handleExport = async (format: TableExportFormat) => {
+        if (isExporting) {
+            return
+        }
+
+        setIsExporting(true)
         const safeRows = (rows ?? []).map(row => row ?? [])
 
-        exportTable({
-            columns: columns ?? [],
-            rows: safeRows,
-            fileBaseName,
-            format
-        })
-
-        setOpen(false)
+        try {
+            await exportTable({
+                columns: columns ?? [],
+                rows: safeRows,
+                fileBaseName,
+                format
+            })
+        } catch (error) {
+            console.error('[table-export] Export failed.', error)
+        } finally {
+            setIsExporting(false)
+            setOpen(false)
+        }
     }
 
     return (
         <div className={classNames(cls.TableExportButton, {}, [className ?? ''])}>
-            <Btn className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу'>
-
+            <Btn className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу' disabled={isExporting}>
                 <svg className={cls.icon} viewBox='0 0 24 24' aria-hidden='true'>
                     <path
                         d='M12 3.5a.75.75 0 0 1 .75.75v8.19l2.72-2.72a.75.75 0 0 1 1.06 1.06l-4.06 4.06a.75.75 0 0 1-1.06 0L7.35 10.78a.75.75 0 0 1 1.06-1.06l2.84 2.84V4.25A.75.75 0 0 1 12 3.5z'
@@ -52,18 +68,21 @@ export default function TableExportButton({
             </Btn>
 
             {open && (
-                <div
-                    className={cls.menu}
-                    onMouseLeave={handleClose}>
-                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat)}>
-                        Скачать как {defaultFormat.toUpperCase()}
+                <div className={cls.menu} onMouseLeave={handleClose}>
+                    <Btn
+                        className={cls.menuItem}
+                        onClick={() => void handleExport(defaultFormat)}
+                        disabled={isExporting}>
+                        {isExporting ? 'Готовлю файл...' : `Скачать как ${defaultFormat.toUpperCase()}`}
                     </Btn>
-                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat === 'pdf' ? 'csv' : 'pdf')}>
-                        Скачать как {defaultFormat === 'pdf' ? 'CSV' : 'PDF'}
+                    <Btn
+                        className={cls.menuItem}
+                        onClick={() => void handleExport(defaultFormat === 'pdf' ? 'csv' : 'pdf')}
+                        disabled={isExporting}>
+                        {isExporting ? 'Готовлю файл...' : `Скачать как ${defaultFormat === 'pdf' ? 'CSV' : 'PDF'}`}
                     </Btn>
                 </div>
             )}
         </div>
     )
 }
-

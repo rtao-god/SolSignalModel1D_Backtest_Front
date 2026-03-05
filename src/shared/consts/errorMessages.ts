@@ -1,4 +1,3 @@
-
 export interface AppErrorDescriptor {
     code: AppErrorCode
     title: string
@@ -63,4 +62,3 @@ export function getErrorDescriptor(code: AppErrorCode | null | undefined): AppEr
     const key = typeof code === 'number' ? String(code) : code
     return ERROR_DESCRIPTORS[key] ?? { ...DEFAULT_ERROR_DESCRIPTOR, code }
 }
-

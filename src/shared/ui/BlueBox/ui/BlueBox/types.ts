@@ -4,4 +4,3 @@ export default interface BlueBoxProps {
     style?: CSSProperties
     className?: string
 }
-

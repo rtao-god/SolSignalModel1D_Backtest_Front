@@ -108,4 +108,3 @@ export function resolveAppError(error: unknown): ResolvedAppError {
         rawMessage
     }
 }
-

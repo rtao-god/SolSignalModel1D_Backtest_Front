@@ -14,7 +14,9 @@
     border-radius: 999px;
     background: transparent;
     color: rgba(226, 232, 240, 0.85);
-    transition: background-color 140ms ease, color 140ms ease;
+    transition:
+        background-color 140ms ease,
+        color 140ms ease;
 }
 
 .optionButton:hover {
@@ -36,4 +38,3 @@
         flex-wrap: nowrap;
     }
 }
-

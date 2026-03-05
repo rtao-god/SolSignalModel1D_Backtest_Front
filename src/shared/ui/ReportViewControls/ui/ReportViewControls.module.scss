@@ -11,6 +11,13 @@
     gap: 8px;
 }
 
+.controlLabelRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+}
+
 .controlLabel {
     font-size: 11px;
     letter-spacing: 0.12em;

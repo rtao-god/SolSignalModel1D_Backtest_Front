@@ -1,0 +1,36 @@
+{
+    "global": {
+        "title": "Critical error",
+        "retry": "Try again"
+    },
+    "notFound": {
+        "title": "Page not found",
+        "description": {
+            "line1": "Looks like nothing exists at this address.",
+            "line2": "The page may have been renamed or never existed."
+        },
+        "actions": {
+            "home": "Go to main page",
+            "back": "Go back",
+            "orChoose": "Or choose one of the sections below:"
+        },
+        "suggestions": {
+            "currentPrediction": {
+                "title": "Current prediction",
+                "description": "Check model signals for the nearest trading day."
+            },
+            "backtestSummary": {
+                "title": "Backtest summary",
+                "description": "See how the strategy behaved on historical data."
+            },
+            "pfi": {
+                "title": "PFI by models",
+                "description": "Understand which features influence predictions the most."
+            },
+            "about": {
+                "title": "About the project",
+                "description": "Short overview of the system idea, architecture, and capabilities."
+            }
+        }
+    }
+}

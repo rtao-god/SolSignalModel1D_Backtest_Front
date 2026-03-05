@@ -4,4 +4,3 @@ export {
     resolveCurrentPredictionTrainingScopeMeta
 } from './ui/CurrentPredictionTrainingScopeToggle'
 export type { CurrentPredictionTrainingScopeMeta } from './ui/CurrentPredictionTrainingScopeToggle'
-

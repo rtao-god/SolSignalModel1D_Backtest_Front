@@ -23,7 +23,5 @@ export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogError
         return
     }
 
-
     console.error('[UI Error][prod]', payload)
 }
-

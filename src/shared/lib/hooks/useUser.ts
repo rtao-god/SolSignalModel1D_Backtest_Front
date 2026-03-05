@@ -20,4 +20,3 @@ export function useUser() {
 
     return { currentUser, isLoading, error }
 }
-

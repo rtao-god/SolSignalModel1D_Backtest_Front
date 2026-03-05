@@ -31,7 +31,9 @@
     background: rgba(7, 10, 18, 0.98);
     color: rgba(255, 255, 255, 0.92);
     font-size: 0.92rem;
-    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
 
     &:focus {
         outline: none;

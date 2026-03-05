@@ -2,7 +2,7 @@ import type { ReportDocumentDto } from '@/shared/types/report.types'
 import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { createSuspenseReportHook } from './utils/createSuspenseReportHook'
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 
@@ -17,6 +17,13 @@ export type PolicyBranchMegaSourceMode = 'actual' | 'debug'
 interface UsePolicyBranchMegaNavOptions {
     enabled: boolean
 }
+
+interface UsePolicyBranchMegaWithFreshnessOptions {
+    enabled?: boolean
+}
+
+const POLICY_BRANCH_MEGA_STALE_TIME_MS = 2 * 60 * 1000
+const POLICY_BRANCH_MEGA_GC_TIME_MS = 15 * 60 * 1000
 
 interface PolicyBranchMegaStatusDto {
     state: PolicyBranchMegaFreshnessState
@@ -76,9 +83,9 @@ function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
     const payload = toObjectOrThrow(raw)
     const state = toStateOrThrow(payload.state)
     const message =
-        typeof payload.message === 'string' && payload.message.trim().length > 0
-            ? payload.message.trim()
-            : `policy_branch_mega status: ${state}`
+        typeof payload.message === 'string' && payload.message.trim().length > 0 ?
+            payload.message.trim()
+        :   `policy_branch_mega status: ${state}`
 
     return {
         state,
@@ -159,9 +166,9 @@ async function fetchPolicyBranchMegaReportWithFreshness(): Promise<PolicyBranchM
 
     if (status?.state === 'stale') {
         const lagHint =
-            typeof status.lagSeconds === 'number' && status.lagSeconds > 0
-                ? ` Отставание: ${Math.round(status.lagSeconds / 60)} мин.`
-                : ''
+            typeof status.lagSeconds === 'number' && status.lagSeconds > 0 ?
+                ` Отставание: ${Math.round(status.lagSeconds / 60)} мин.`
+            :   ''
         throw new Error(
             `[policy-branch-mega] Отчёт policy_branch_mega устарел относительно backtest_diagnostics.${lagHint} Перегенерируй Policy Branch Mega.`
         )
@@ -194,22 +201,56 @@ export const usePolicyBranchMegaReportQuery = createSuspenseReportHook<ReportDoc
     mapResponse: raw => mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'strict' })
 })
 
-export function usePolicyBranchMegaReportWithFreshnessQuery(): UseQueryResult<PolicyBranchMegaReportWithFreshnessDto, Error> {
+export function usePolicyBranchMegaReportWithFreshnessQuery(
+    options?: UsePolicyBranchMegaWithFreshnessOptions
+): UseQueryResult<
+    PolicyBranchMegaReportWithFreshnessDto,
+    Error
+> {
+    const queryClient = useQueryClient()
+
     return useQuery({
         queryKey: POLICY_BRANCH_MEGA_WITH_FRESHNESS_QUERY_KEY,
-        queryFn: fetchPolicyBranchMegaReportWithFreshness,
+        queryFn: async () => {
+            const payload = await fetchPolicyBranchMegaReportWithFreshness()
+            queryClient.setQueryData(POLICY_BRANCH_MEGA_QUERY_KEY, payload.report)
+            return payload
+        },
+        enabled: options?.enabled ?? true,
         retry: false,
-        refetchOnWindowFocus: true
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        refetchOnWindowFocus: false
     })
 }
 
 export function usePolicyBranchMegaReportNavQuery(
     options: UsePolicyBranchMegaNavOptions
 ): UseQueryResult<ReportDocumentDto, Error> {
+    const queryClient = useQueryClient()
+
     return useQuery({
         queryKey: POLICY_BRANCH_MEGA_QUERY_KEY,
-        queryFn: fetchPolicyBranchMegaReport,
+        queryFn: async () => {
+            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(
+                POLICY_BRANCH_MEGA_WITH_FRESHNESS_QUERY_KEY
+            )
+            if (cachedPayload?.report) {
+                return cachedPayload.report
+            }
+
+            return fetchPolicyBranchMegaReport()
+        },
+        initialData: () => {
+            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(
+                POLICY_BRANCH_MEGA_WITH_FRESHNESS_QUERY_KEY
+            )
+            return cachedPayload?.report
+        },
         enabled: options.enabled,
-        retry: false
+        retry: false,
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        refetchOnWindowFocus: false
     })
 }

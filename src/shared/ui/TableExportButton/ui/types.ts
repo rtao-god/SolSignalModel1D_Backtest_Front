@@ -1,4 +1,4 @@
-import { TableExportFormat } from "@/shared/lib/tableExport/tableExport"
+import { TableExportFormat } from '@/shared/lib/tableExport/tableExport'
 export default interface TableExportButtonProps {
     className?: string
     columns: string[]
@@ -6,4 +6,3 @@ export default interface TableExportButtonProps {
     fileBaseName: string
     defaultFormat?: TableExportFormat
 }
-

@@ -12,4 +12,3 @@ export interface BtnOwnProps {
 }
 
 export type BtnProps = BtnOwnProps & ButtonHTMLAttributes<HTMLButtonElement>
-

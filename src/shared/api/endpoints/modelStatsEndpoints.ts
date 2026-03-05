@@ -16,4 +16,3 @@ export const modelStatsEndpoints = (builder: ApiEndpointBuilder) => {
         })
     }
 }
-

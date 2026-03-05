@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
@@ -11,7 +12,7 @@ import {
     TermTooltip,
     resolveCurrentPredictionTrainingScopeMeta
 } from '@/shared/ui'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { enrichTermTooltipDescription, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
@@ -45,215 +46,392 @@ interface ConfidenceRiskTerm {
     tooltip: string
 }
 
-const TERMS_TABLE: ConfidenceRiskTerm[] = [
+type ConfidenceRiskUiLocale = 'ru' | 'en'
+
+interface ConfidenceRiskTermTemplate {
+    key: string
+    title: string
+    description: Record<ConfidenceRiskUiLocale, string>
+    tooltip: Record<ConfidenceRiskUiLocale, string>
+}
+
+const TERMS_TABLE_TEMPLATES: readonly ConfidenceRiskTermTemplate[] = [
     {
         key: 'Split',
         title: 'Split',
-        description:
-            'Срез данных: FULL — вся история, TRAIN — обучающая часть, OOS — out‑of‑sample, RECENT — хвост последних дней. Это нужно, чтобы видеть стабильность правил на новых данных и на свежем хвосте.',
-        tooltip: 'Срез данных (FULL/TRAIN/OOS/RECENT).'
+        description: {
+            ru: 'Срез данных: FULL — вся история, TRAIN — обучающая часть, OOS — out‑of‑sample, RECENT — хвост последних дней. Это нужно, чтобы видеть стабильность правил на новых данных и на свежем хвосте.',
+            en: 'Data split: FULL is full history, TRAIN is training segment, OOS is out-of-sample, RECENT is latest tail window. Used to check rule stability on fresh and unseen data.'
+        },
+        tooltip: {
+            ru: 'Срез данных (FULL/TRAIN/OOS/RECENT).',
+            en: 'Data split (FULL/TRAIN/OOS/RECENT).'
+        }
     },
     {
         key: 'Bucket',
         title: 'Bucket',
-        description:
-            'Диапазон уверенности (бакет). Каждый бакет объединяет дни с близким уровнем уверенности модели.',
-        tooltip: 'Диапазон confidence.'
+        description: {
+            ru: 'Диапазон уверенности (бакет). Каждый бакет объединяет дни с близким уровнем уверенности модели.',
+            en: 'Confidence range bucket. Each bucket groups days with similar model confidence.'
+        },
+        tooltip: {
+            ru: 'Диапазон confidence.',
+            en: 'Confidence range.'
+        }
     },
     {
         key: 'ConfFrom%',
         title: 'ConfFrom%',
-        description: 'Нижняя граница уверенности бакета, в процентах.',
-        tooltip: 'Нижняя граница confidence, %.'
+        description: {
+            ru: 'Нижняя граница уверенности бакета, в процентах.',
+            en: 'Lower confidence boundary of the bucket, in percent.'
+        },
+        tooltip: {
+            ru: 'Нижняя граница confidence, %.',
+            en: 'Lower confidence boundary, %.'
+        }
     },
     {
         key: 'ConfTo%',
         title: 'ConfTo%',
-        description: 'Верхняя граница уверенности бакета, в процентах.',
-        tooltip: 'Верхняя граница confidence, %.'
+        description: {
+            ru: 'Верхняя граница уверенности бакета, в процентах.',
+            en: 'Upper confidence boundary of the bucket, in percent.'
+        },
+        tooltip: {
+            ru: 'Верхняя граница confidence, %.',
+            en: 'Upper confidence boundary, %.'
+        }
     },
     {
         key: 'Days',
         title: 'Days',
-        description: 'Сколько всего дней попало в бакет (включая дни без направления).',
-        tooltip: 'Количество дней в бакете.'
+        description: {
+            ru: 'Сколько всего дней попало в бакет (включая дни без направления).',
+            en: 'Total days in the bucket (including no-direction days).'
+        },
+        tooltip: {
+            ru: 'Количество дней в бакете.',
+            en: 'Number of days in the bucket.'
+        }
     },
     {
         key: 'TradeDays',
         title: 'TradeDays',
-        description: 'Сколько дней в бакете имели направленный сигнал (up/down).',
-        tooltip: 'Дни с направлением.'
+        description: {
+            ru: 'Сколько дней в бакете имели направленный сигнал (up/down).',
+            en: 'Days in the bucket with directional signal (up/down).'
+        },
+        tooltip: {
+            ru: 'Дни с направлением.',
+            en: 'Directional days.'
+        }
     },
     {
         key: 'TradeRate%',
         title: 'TradeRate%',
-        description: 'Доля направленных дней от общего числа дней в бакете.',
-        tooltip: 'TradeDays / Days, %.'
+        description: {
+            ru: 'Доля направленных дней от общего числа дней в бакете.',
+            en: 'Share of directional days out of all days in the bucket.'
+        },
+        tooltip: {
+            ru: 'TradeDays / Days, %.',
+            en: 'TradeDays / Days, %.'
+        }
     },
     {
         key: 'ConfAvg%',
         title: 'ConfAvg%',
-        description: 'Средняя уверенность внутри бакета (в процентах).',
-        tooltip: 'Средняя confidence, %.'
+        description: {
+            ru: 'Средняя уверенность внутри бакета (в процентах).',
+            en: 'Average confidence inside the bucket, in percent.'
+        },
+        tooltip: {
+            ru: 'Средняя confidence, %.',
+            en: 'Average confidence, %.'
+        }
     },
     {
         key: 'MFE_Avg%',
         title: 'MFE_Avg%',
-        description:
-            'Средний MFE (max favorable excursion): максимальный благоприятный ход цены за день, в % от входа.',
-        tooltip: 'Средний MFE, %.'
+        description: {
+            ru: 'Средний MFE (max favorable excursion): максимальный благоприятный ход цены за день, в % от входа.',
+            en: 'Average MFE (max favorable excursion): max favorable move during the day, % from entry.'
+        },
+        tooltip: {
+            ru: 'Средний MFE, %.',
+            en: 'Average MFE, %.'
+        }
     },
     {
         key: 'MFE_P50%',
         title: 'MFE_P50%',
-        description: 'Медиана MFE: типичное значение благоприятного движения.',
-        tooltip: 'MFE p50, %.'
+        description: {
+            ru: 'Медиана MFE: типичное значение благоприятного движения.',
+            en: 'Median MFE: typical favorable move value.'
+        },
+        tooltip: {
+            ru: 'MFE p50, %.',
+            en: 'MFE p50, %.'
+        }
     },
     {
         key: 'MFE_P90%',
         title: 'MFE_P90%',
-        description: 'p90 по MFE: верхний хвост «сильных» движений.',
-        tooltip: 'MFE p90, %.'
+        description: {
+            ru: 'p90 по MFE: верхний хвост «сильных» движений.',
+            en: 'MFE p90: upper tail of strong favorable moves.'
+        },
+        tooltip: {
+            ru: 'MFE p90, %.',
+            en: 'MFE p90, %.'
+        }
     },
     {
         key: 'MAE_Avg%',
         title: 'MAE_Avg%',
-        description:
-            'Средний MAE (max adverse excursion): максимальное неблагоприятное движение против позиции, в % от входа.',
-        tooltip: 'Средний MAE, %.'
+        description: {
+            ru: 'Средний MAE (max adverse excursion): максимальное неблагоприятное движение против позиции, в % от входа.',
+            en: 'Average MAE (max adverse excursion): max adverse move against position during day, % from entry.'
+        },
+        tooltip: {
+            ru: 'Средний MAE, %.',
+            en: 'Average MAE, %.'
+        }
     },
     {
         key: 'MAE_P50%',
         title: 'MAE_P50%',
-        description: 'Медиана MAE: типичное значение неблагоприятного движения.',
-        tooltip: 'MAE p50, %.'
+        description: {
+            ru: 'Медиана MAE: типичное значение неблагоприятного движения.',
+            en: 'Median MAE: typical adverse move value.'
+        },
+        tooltip: {
+            ru: 'MAE p50, %.',
+            en: 'MAE p50, %.'
+        }
     },
     {
         key: 'MAE_P90%',
         title: 'MAE_P90%',
-        description: 'p90 по MAE: верхний хвост «сильных» неблагоприятных движений.',
-        tooltip: 'MAE p90, %.'
+        description: {
+            ru: 'p90 по MAE: верхний хвост «сильных» неблагоприятных движений.',
+            en: 'MAE p90: upper tail of strong adverse moves.'
+        },
+        tooltip: {
+            ru: 'MAE p90, %.',
+            en: 'MAE p90, %.'
+        }
     },
     {
         key: 'TP_Reach%',
         title: 'TP_Reach%',
-        description:
-            'Доля TradeDays, где движение достигало базового TP из конфига. Чем выше — тем чаще тейк‑профит мог бы сработать.',
-        tooltip: 'Дни, где достигнут TP, %.'
+        description: {
+            ru: 'Доля TradeDays, где движение достигало базового TP из конфига. Чем выше — тем чаще тейк‑профит мог бы сработать.',
+            en: 'Share of TradeDays where move reached base TP from config. Higher value means TP was reachable more often.'
+        },
+        tooltip: {
+            ru: 'Дни, где достигнут TP, %.',
+            en: 'Days with TP reached, %.'
+        }
     },
     {
         key: 'SL_Reach%',
         title: 'SL_Reach%',
-        description:
-            'Доля TradeDays, где движение достигало базового SL из конфига. Чем выше — тем чаще риск «срыва» стоп‑лосса.',
-        tooltip: 'Дни, где достигнут SL, %.'
+        description: {
+            ru: 'Доля TradeDays, где движение достигало базового SL из конфига. Чем выше — тем чаще риск «срыва» стоп‑лосса.',
+            en: 'Share of TradeDays where move reached base SL from config. Higher value means stop-loss risk is triggered more often.'
+        },
+        tooltip: {
+            ru: 'Дни, где достигнут SL, %.',
+            en: 'Days with SL reached, %.'
+        }
     },
     {
         key: 'WinRate%',
         title: 'WinRate%',
-        description:
-            'Доля правильных направлений среди TradeDays. Это «чистая» точность направления по выбранному слою.',
-        tooltip: 'Правильное направление, %.'
+        description: {
+            ru: 'Доля правильных направлений среди TradeDays. Это «чистая» точность направления по выбранному слою.',
+            en: 'Share of correct directions among TradeDays. Pure directional accuracy for selected slice.'
+        },
+        tooltip: {
+            ru: 'Правильное направление, %.',
+            en: 'Correct direction, %.'
+        }
     }
 ]
 
-const TERMS_CONFIG: Record<string, ConfidenceRiskTerm> = {
-    Source: {
+const TERMS_CONFIG_TEMPLATES: readonly ConfidenceRiskTermTemplate[] = [
+    {
         key: 'Source',
         title: 'Source',
-        description:
-            'Какой слой вероятностей используется для оценки уверенности: Day / DayMicro / Total. От этого зависит, какие прогнозы попадают в бакеты.',
-        tooltip: 'Слой вероятностей.'
+        description: {
+            ru: 'Какой слой вероятностей используется для оценки уверенности: Day / DayMicro / Total. От этого зависит, какие прогнозы попадают в бакеты.',
+            en: 'Which probability layer is used for confidence assessment: Day / DayMicro / Total. This controls which forecasts are mapped into buckets.'
+        },
+        tooltip: {
+            ru: 'Слой вероятностей.',
+            en: 'Probability layer.'
+        }
     },
-    ConfMin: {
+    {
         key: 'ConfMin',
         title: 'ConfMin',
-        description:
-            'Минимальная уверенность, от которой считается линейная шкала для динамики ставки/TP/SL. Ниже этого порога берётся минимум.',
-        tooltip: 'Нижняя граница confidence.'
+        description: {
+            ru: 'Минимальная уверенность, от которой считается линейная шкала для динамики ставки/TP/SL. Ниже этого порога берётся минимум.',
+            en: 'Minimum confidence used as linear-scale lower bound for dynamic stake/TP/SL. Below threshold, minimum multipliers are used.'
+        },
+        tooltip: {
+            ru: 'Нижняя граница confidence.',
+            en: 'Lower confidence boundary.'
+        }
     },
-    ConfMax: {
+    {
         key: 'ConfMax',
         title: 'ConfMax',
-        description:
-            'Максимальная уверенность, на которой достигаются максимальные множители динамики. Выше — уже не растёт.',
-        tooltip: 'Верхняя граница confidence.'
+        description: {
+            ru: 'Максимальная уверенность, на которой достигаются максимальные множители динамики. Выше — уже не растёт.',
+            en: 'Maximum confidence where dynamic multipliers reach their top values. Above this threshold, values no longer increase.'
+        },
+        tooltip: {
+            ru: 'Верхняя граница confidence.',
+            en: 'Upper confidence boundary.'
+        }
     },
-    BucketRange: {
+    {
         key: 'BucketRange',
         title: 'BucketRange',
-        description:
-            'Диапазон бакетов уверенности и их ширина. Нужен, чтобы понимать детализацию статистики.',
-        tooltip: 'Диапазон бакетов.'
+        description: {
+            ru: 'Диапазон бакетов уверенности и их ширина. Нужен, чтобы понимать детализацию статистики.',
+            en: 'Confidence-bucket range and width. Helps interpret granularity of statistics.'
+        },
+        tooltip: {
+            ru: 'Диапазон бакетов.',
+            en: 'Bucket range.'
+        }
     },
-    DailyTpPct: {
+    {
         key: 'DailyTpPct',
         title: 'DailyTpPct',
-        description: 'Базовый дневной тейк‑профит из конфига бэктеста, в процентах.',
-        tooltip: 'Базовый дневной TP.'
+        description: {
+            ru: 'Базовый дневной тейк‑профит из конфига бэктеста, в процентах.',
+            en: 'Base daily take-profit from backtest config, in percent.'
+        },
+        tooltip: {
+            ru: 'Базовый дневной TP.',
+            en: 'Base daily TP.'
+        }
     },
-    DailyStopPct: {
+    {
         key: 'DailyStopPct',
         title: 'DailyStopPct',
-        description: 'Базовый дневной стоп‑лосс из конфига бэктеста, в процентах.',
-        tooltip: 'Базовый дневной SL.'
+        description: {
+            ru: 'Базовый дневной стоп‑лосс из конфига бэктеста, в процентах.',
+            en: 'Base daily stop-loss from backtest config, in percent.'
+        },
+        tooltip: {
+            ru: 'Базовый дневной SL.',
+            en: 'Base daily SL.'
+        }
     },
-    CapMultiplier: {
+    {
         key: 'CapMultiplier',
         title: 'CapMultiplier',
-        description:
-            'Диапазон множителя ставки (cap fraction), который применяется поверх базовой ставки.',
-        tooltip: 'Диапазон множителя ставки.'
+        description: {
+            ru: 'Диапазон множителя ставки (cap fraction), который применяется поверх базовой ставки.',
+            en: 'Stake multiplier range (cap fraction) applied over base stake.'
+        },
+        tooltip: {
+            ru: 'Диапазон множителя ставки.',
+            en: 'Stake multiplier range.'
+        }
     },
-    TpMultiplier: {
+    {
         key: 'TpMultiplier',
         title: 'TpMultiplier',
-        description:
-            'Диапазон множителя TP, который применяется поверх базового дневного тейк‑профита.',
-        tooltip: 'Диапазон множителя TP.'
+        description: {
+            ru: 'Диапазон множителя TP, который применяется поверх базового дневного тейк‑профита.',
+            en: 'TP multiplier range applied over base daily take-profit.'
+        },
+        tooltip: {
+            ru: 'Диапазон множителя TP.',
+            en: 'TP multiplier range.'
+        }
     },
-    SlMultiplier: {
+    {
         key: 'SlMultiplier',
         title: 'SlMultiplier',
-        description:
-            'Диапазон множителя SL, который применяется поверх базового дневного стоп‑лосса.',
-        tooltip: 'Диапазон множителя SL.'
+        description: {
+            ru: 'Диапазон множителя SL, который применяется поверх базового дневного стоп‑лосса.',
+            en: 'SL multiplier range applied over base daily stop-loss.'
+        },
+        tooltip: {
+            ru: 'Диапазон множителя SL.',
+            en: 'SL multiplier range.'
+        }
     },
-    CapClamp: {
+    {
         key: 'CapClamp',
         title: 'CapClamp',
-        description:
-            'Жёсткие границы для доли капитала (cap fraction) после всех расчётов. Предохраняет от перегибов.',
-        tooltip: 'Жёсткие границы ставки.'
+        description: {
+            ru: 'Жёсткие границы для доли капитала (cap fraction) после всех расчётов. Предохраняет от перегибов.',
+            en: 'Hard bounds for cap fraction after all calculations. Prevents extreme over-sizing.'
+        },
+        tooltip: {
+            ru: 'Жёсткие границы ставки.',
+            en: 'Hard stake bounds.'
+        }
     },
-    TpClamp: {
+    {
         key: 'TpClamp',
         title: 'TpClamp',
-        description: 'Жёсткие границы для дневного TP после расчётов.',
-        tooltip: 'Жёсткие границы TP.'
+        description: {
+            ru: 'Жёсткие границы для дневного TP после расчётов.',
+            en: 'Hard bounds for daily TP after calculations.'
+        },
+        tooltip: {
+            ru: 'Жёсткие границы TP.',
+            en: 'Hard TP bounds.'
+        }
     },
-    SlClamp: {
+    {
         key: 'SlClamp',
         title: 'SlClamp',
-        description: 'Жёсткие границы для дневного SL после расчётов.',
-        tooltip: 'Жёсткие границы SL.'
+        description: {
+            ru: 'Жёсткие границы для дневного SL после расчётов.',
+            en: 'Hard bounds for daily SL after calculations.'
+        },
+        tooltip: {
+            ru: 'Жёсткие границы SL.',
+            en: 'Hard SL bounds.'
+        }
     },
-    ApplyToDynamicPolicies: {
+    {
         key: 'ApplyToDynamicPolicies',
         title: 'ApplyToDynamicPolicies',
-        description:
-            'Применяется ли динамика уверенности к политикам, которые уже умеют менять ставку/плечо.',
-        tooltip: 'Динамика для dynamic‑policy.'
+        description: {
+            ru: 'Применяется ли динамика уверенности к политикам, которые уже умеют менять ставку/плечо.',
+            en: 'Whether confidence dynamics are applied to policies that already adjust stake/leverage.'
+        },
+        tooltip: {
+            ru: 'Динамика для dynamic‑policy.',
+            en: 'Dynamics for dynamic-policy.'
+        }
     },
-    ExcludedDays: {
+    {
         key: 'ExcludedDays',
         title: 'ExcludedDays',
-        description: 'Сколько дней исключено из Train/OOS разреза (вне окна).',
-        tooltip: 'Исключённые дни.'
+        description: {
+            ru: 'Сколько дней исключено из Train/OOS разреза (вне окна).',
+            en: 'How many days were excluded from Train/OOS slices (outside window).'
+        },
+        tooltip: {
+            ru: 'Исключённые дни.',
+            en: 'Excluded days.'
+        }
     }
-}
-
-const TABLE_TERM_MAP = new Map(TERMS_TABLE.map(term => [term.title, term]))
+]
 
 const CONFIDENCE_SCOPE_TO_SPLIT: Record<CurrentPredictionTrainingScope, string> = {
     full: 'FULL',
@@ -264,6 +442,10 @@ const CONFIDENCE_SCOPE_TO_SPLIT: Record<CurrentPredictionTrainingScope, string> 
 
 const DEFAULT_CONFIDENCE_SCOPE: CurrentPredictionTrainingScope = 'full'
 const DEFAULT_CONFIDENCE_BUCKET = 'all'
+
+function resolveConfidenceRiskUiLocale(language: string): ConfidenceRiskUiLocale {
+    return language.toLowerCase().startsWith('ru') ? 'ru' : 'en'
+}
 
 function resolveConfidenceScopeFromQueryOrThrow(raw: string | null): CurrentPredictionTrainingScope {
     if (!raw) {
@@ -307,7 +489,8 @@ function compareConfidenceBucketNames(left: string, right: string): number {
 
 function buildConfidenceBucketOptionsOrThrow(
     sections: TableSectionDto[],
-    scope: CurrentPredictionTrainingScope
+    scope: CurrentPredictionTrainingScope,
+    allBucketsLabel: string
 ): BucketFilterOption[] {
     if (!Array.isArray(sections) || sections.length === 0) {
         throw new Error('[confidence-risk] table sections are missing for bucket options.')
@@ -347,7 +530,7 @@ function buildConfidenceBucketOptionsOrThrow(
     const orderedBuckets = Array.from(uniqueBucketNames).sort(compareConfidenceBucketNames)
 
     return [
-        { value: DEFAULT_CONFIDENCE_BUCKET, label: 'Все бакеты' },
+        { value: DEFAULT_CONFIDENCE_BUCKET, label: allBucketsLabel },
         ...orderedBuckets.map(bucket => ({ value: bucket, label: bucket }))
     ]
 }
@@ -420,12 +603,12 @@ function filterConfidenceRowsByScopeAndBucketOrThrow(
     return filtered
 }
 
-function getTableTermOrThrow(title: string): ConfidenceRiskTerm {
+function getTableTermOrThrow(title: string, tableTermMap: ReadonlyMap<string, ConfidenceRiskTerm>): ConfidenceRiskTerm {
     if (!title) {
         throw new Error('[confidence-risk] column title is empty.')
     }
 
-    const term = TABLE_TERM_MAP.get(title)
+    const term = tableTermMap.get(title)
     if (!term) {
         throw new Error(`[confidence-risk] unknown column term: ${title}`)
     }
@@ -433,12 +616,15 @@ function getTableTermOrThrow(title: string): ConfidenceRiskTerm {
     return term
 }
 
-function getConfigTermOrThrow(key: string): ConfidenceRiskTerm {
+function getConfigTermOrThrow(
+    key: string,
+    termsConfigMap: ReadonlyMap<string, ConfidenceRiskTerm>
+): ConfidenceRiskTerm {
     if (!key) {
         throw new Error('[confidence-risk] config key is empty.')
     }
 
-    const term = TERMS_CONFIG[key]
+    const term = termsConfigMap.get(key)
     if (!term) {
         throw new Error(`[confidence-risk] unknown config key: ${key}`)
     }
@@ -454,14 +640,43 @@ function buildTableSections(sections: unknown[]): TableSectionDto[] {
 }
 
 function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
-    return (sections ?? []).filter(
-        (section): section is KeyValueSectionDto => Array.isArray((section as KeyValueSectionDto).items)
+    return (sections ?? []).filter((section): section is KeyValueSectionDto =>
+        Array.isArray((section as KeyValueSectionDto).items)
     )
 }
 
 export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
+    const { t, i18n } = useTranslation('reports')
     const { data, isError, error, refetch } = useBacktestConfidenceRiskReportQuery()
     const [searchParams, setSearchParams] = useSearchParams()
+    const termsLocale = useMemo(
+        () => resolveConfidenceRiskUiLocale(i18n.resolvedLanguage ?? i18n.language),
+        [i18n.language, i18n.resolvedLanguage]
+    )
+
+    const tableTerms = useMemo(
+        () =>
+            TERMS_TABLE_TEMPLATES.map(template => ({
+                key: template.key,
+                title: template.title,
+                description: template.description[termsLocale],
+                tooltip: template.tooltip[termsLocale]
+            })),
+        [termsLocale]
+    )
+    const tableTermMap = useMemo(() => new Map(tableTerms.map(term => [term.title, term])), [tableTerms])
+
+    const configTerms = useMemo(
+        () =>
+            TERMS_CONFIG_TEMPLATES.map(template => ({
+                key: template.key,
+                title: template.title,
+                description: template.description[termsLocale],
+                tooltip: template.tooltip[termsLocale]
+            })),
+        [termsLocale]
+    )
+    const configTermsMap = useMemo(() => new Map(configTerms.map(term => [term.key, term])), [configTerms])
 
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
     const keyValueSections = useMemo(() => buildKeyValueSections(data?.sections ?? []), [data])
@@ -488,9 +703,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         } catch (err) {
             const safeError =
-                err instanceof Error
-                    ? err
-                    : new Error('Failed to resolve current prediction training scope metadata.')
+                err instanceof Error ? err : new Error('Failed to resolve current prediction training scope metadata.')
             return {
                 value: null,
                 error: safeError
@@ -500,7 +713,10 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
     const bucketState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(
+                searchParams.get('bucket'),
+                DEFAULT_REPORT_BUCKET_MODE
+            )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk bucket query.')
@@ -510,7 +726,10 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
     const metricState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(
+                searchParams.get('metric'),
+                DEFAULT_REPORT_METRIC_MODE
+            )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk metric query.')
@@ -587,7 +806,14 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 err instanceof Error ? err : new Error('Failed to filter confidence-risk sections by bucket/metric.')
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [bucketState.value, metricState.value, tableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+    }, [
+        bucketState.value,
+        metricState.value,
+        tableSections,
+        tpSlState.value,
+        viewCapabilities,
+        viewSelectionState.error
+    ])
 
     const confidenceBucketOptionsState = useMemo(() => {
         if (scopeState.error) {
@@ -606,7 +832,11 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
         try {
             return {
-                options: buildConfidenceBucketOptionsOrThrow(filteredTableSectionsState.sections, scopeState.value),
+                options: buildConfidenceBucketOptionsOrThrow(
+                    filteredTableSectionsState.sections,
+                    scopeState.value,
+                    t('confidenceRisk.filters.allBuckets')
+                ),
                 error: null as Error | null
             }
         } catch (err) {
@@ -617,7 +847,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: safeError
             }
         }
-    }, [filteredTableSectionsState.error, filteredTableSectionsState.sections, scopeState.error, scopeState.value])
+    }, [filteredTableSectionsState.error, filteredTableSectionsState.sections, scopeState.error, scopeState.value, t])
 
     const confidenceBucketState = useMemo(() => {
         if (confidenceBucketOptionsState.error) {
@@ -708,7 +938,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 if (!item?.key) {
                     throw new Error('[confidence-risk] config item key is empty.')
                 }
-                getConfigTermOrThrow(item.key)
+                getConfigTermOrThrow(item.key, configTermsMap)
             })
 
             return { section, error: null }
@@ -716,7 +946,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             const safeError = err instanceof Error ? err : new Error('Failed to validate confidence risk config.')
             return { section: null as KeyValueSectionDto | null, error: safeError }
         }
-    }, [data, keyValueSections])
+    }, [configTermsMap, data, keyValueSections])
 
     const generatedAtState = useMemo(() => {
         if (!data) return { value: null as Date | null, error: null as Error | null }
@@ -739,7 +969,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
     const renderColumnTitle = (title: string) => {
-        const term = getTableTermOrThrow(title)
+        const term = getTableTermOrThrow(title, tableTermMap)
         return renderTermTooltipTitle(title, term.tooltip)
     }
 
@@ -784,13 +1014,12 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     if (data) {
         if (generatedAtState.error || !generatedAtState.value) {
             const err =
-                generatedAtState.error ??
-                new Error('[confidence-risk] generatedAtUtc is missing after validation.')
+                generatedAtState.error ?? new Error('[confidence-risk] generatedAtUtc is missing after validation.')
 
             content = (
                 <PageError
-                    title='Отчёт уверенности без корректной даты генерации'
-                    message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчётов.'
+                    title={t('confidenceRisk.page.errors.invalidGeneratedAt.title')}
+                    message={t('confidenceRisk.page.errors.invalidGeneratedAt.message')}
                     error={err}
                     onRetry={refetch}
                 />
@@ -802,8 +1031,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
             content = (
                 <PageError
-                    title='Confidence risk report source is invalid'
-                    message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                    title={t('confidenceRisk.page.errors.invalidSource.title')}
+                    message={t('confidenceRisk.page.errors.invalidSource.message')}
                     error={err}
                     onRetry={refetch}
                 />
@@ -811,8 +1040,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (bucketState.error) {
             content = (
                 <PageError
-                    title='Confidence risk bucket query is invalid'
-                    message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                    title={t('confidenceRisk.page.errors.bucketQuery.title')}
+                    message={t('confidenceRisk.page.errors.bucketQuery.message')}
                     error={bucketState.error}
                     onRetry={refetch}
                 />
@@ -820,8 +1049,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (metricState.error) {
             content = (
                 <PageError
-                    title='Confidence risk metric query is invalid'
-                    message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                    title={t('confidenceRisk.page.errors.metricQuery.title')}
+                    message={t('confidenceRisk.page.errors.metricQuery.message')}
                     error={metricState.error}
                     onRetry={refetch}
                 />
@@ -829,8 +1058,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (tpSlState.error) {
             content = (
                 <PageError
-                    title='Confidence risk TP/SL query is invalid'
-                    message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                    title={t('confidenceRisk.page.errors.tpSlQuery.title')}
+                    message={t('confidenceRisk.page.errors.tpSlQuery.message')}
                     error={tpSlState.error}
                     onRetry={refetch}
                 />
@@ -838,8 +1067,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (viewSelectionState.error) {
             content = (
                 <PageError
-                    title='Confidence risk view mode is unsupported for this report'
-                    message='Выбранный bucket/metric/tpsl режим не поддерживается структурой текущего отчёта.'
+                    title={t('confidenceRisk.page.errors.unsupportedView.title')}
+                    message={t('confidenceRisk.page.errors.unsupportedView.message')}
                     error={viewSelectionState.error}
                     onRetry={refetch}
                 />
@@ -847,8 +1076,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (filteredTableSectionsState.error) {
             content = (
                 <PageError
-                    title='Confidence risk sections are missing'
-                    message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                    title={t('confidenceRisk.page.errors.sections.title')}
+                    message={t('confidenceRisk.page.errors.sections.message')}
                     error={filteredTableSectionsState.error}
                     onRetry={refetch}
                 />
@@ -856,8 +1085,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (scopeState.error) {
             content = (
                 <PageError
-                    title='Confidence risk scope query is invalid'
-                    message='Query parameter \"scope\" is invalid. Expected full, train, oos, or recent.'
+                    title={t('confidenceRisk.page.errors.scopeQuery.title')}
+                    message={t('confidenceRisk.page.errors.scopeQuery.message')}
                     error={scopeState.error}
                     onRetry={refetch}
                 />
@@ -865,8 +1094,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (scopeMetaState.error || !scopeMetaState.value) {
             content = (
                 <PageError
-                    title='Confidence risk scope metadata is invalid'
-                    message='Не удалось определить метаданные выбранного scope-режима.'
+                    title={t('confidenceRisk.page.errors.scopeMeta.title')}
+                    message={t('confidenceRisk.page.errors.scopeMeta.message')}
                     error={
                         scopeMetaState.error ??
                         new Error('[confidence-risk] scope metadata is missing after validation.')
@@ -877,8 +1106,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (confidenceBucketOptionsState.error) {
             content = (
                 <PageError
-                    title='Confidence risk bucket options are missing'
-                    message='Для выбранного scope не удалось построить список confidence-бакетов.'
+                    title={t('confidenceRisk.page.errors.bucketOptions.title')}
+                    message={t('confidenceRisk.page.errors.bucketOptions.message')}
                     error={confidenceBucketOptionsState.error}
                     onRetry={refetch}
                 />
@@ -886,8 +1115,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (confidenceBucketState.error) {
             content = (
                 <PageError
-                    title='Confidence risk confidence-bucket query is invalid'
-                    message='Query parameter \"confBucket\" is invalid for selected scope.'
+                    title={t('confidenceRisk.page.errors.confBucketQuery.title')}
+                    message={t('confidenceRisk.page.errors.confBucketQuery.message')}
                     error={confidenceBucketState.error}
                     onRetry={refetch}
                 />
@@ -895,8 +1124,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (scopeFilteredTableSectionsState.error) {
             content = (
                 <PageError
-                    title='Confidence risk scope filtering failed'
-                    message='Не удалось применить фильтр scope/confidence-bucket к таблице отчёта.'
+                    title={t('confidenceRisk.page.errors.scopeFiltering.title')}
+                    message={t('confidenceRisk.page.errors.scopeFiltering.message')}
                     error={scopeFilteredTableSectionsState.error}
                     onRetry={refetch}
                 />
@@ -904,27 +1133,23 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         } else if (configState.error) {
             content = (
                 <PageError
-                    title='Отчёт уверенности имеет неверный конфиг'
-                    message='Секция конфигурации не распознана. Проверь ключи и формат ключ‑значение.'
+                    title={t('confidenceRisk.page.errors.config.title')}
+                    message={t('confidenceRisk.page.errors.config.message')}
                     error={configState.error}
                     onRetry={refetch}
                 />
             )
         } else if (scopeFilteredTableSectionsState.sections.length === 0) {
-            content = <Text>Таблица уверенности пустая. Проверь генерацию отчёта на бэкенде.</Text>
+            content = <Text>{t('confidenceRisk.page.emptyTable')}</Text>
         } else {
             content = (
                 <div className={rootClassName}>
                     <header className={cls.hero}>
                         <div>
                             <Text type='h1' className={cls.heroTitle}>
-                                Уверенность и TP/SL
+                                {t('confidenceRisk.page.title')}
                             </Text>
-                            <Text className={cls.heroSubtitle}>
-                                Сводка по бакетам уверенности модели: сколько дней дают направление, как часто
-                                достигаются TP/SL и какие типичные MFE/MAE. Это опорная статистика для настройки
-                                динамического тейк‑профита, стоп‑лосса и размера ставки.
-                            </Text>
+                            <Text className={cls.heroSubtitle}>{t('confidenceRisk.page.subtitle')}</Text>
 
                             <ReportViewControls
                                 bucket={bucketState.value}
@@ -938,23 +1163,27 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
                             <div className={cls.scopeControls}>
                                 <div className={cls.scopeControlBlock}>
-                                    <Text className={cls.scopeControlLabel}>Срез данных:</Text>
+                                    <Text className={cls.scopeControlLabel}>
+                                        {t('confidenceRisk.filters.scopeLabel')}
+                                    </Text>
                                     <CurrentPredictionTrainingScopeToggle
                                         value={scopeState.value}
                                         onChange={handleScopeChange}
                                         className={cls.scopeToggle}
-                                        ariaLabel='Срез confidence-risk: full/train/oos/recent'
+                                        ariaLabel={t('confidenceRisk.filters.scopeAriaLabel')}
                                     />
                                     <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>
                                 </div>
                                 <div className={cls.scopeControlBlock}>
-                                    <Text className={cls.scopeControlLabel}>Бакет confidence:</Text>
+                                    <Text className={cls.scopeControlLabel}>
+                                        {t('confidenceRisk.filters.confBucketLabel')}
+                                    </Text>
                                     <BucketFilterToggle
                                         value={confidenceBucketState.value}
                                         options={confidenceBucketOptionsState.options}
                                         onChange={handleConfidenceBucketChange}
                                         className={cls.scopeBucketToggle}
-                                        ariaLabel='Фильтр confidence-бакета для выбранного scope'
+                                        ariaLabel={t('confidenceRisk.filters.confBucketAriaLabel')}
                                     />
                                 </div>
                             </div>
@@ -962,8 +1191,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
                         <ReportActualStatusCard
                             statusMode='debug'
-                            statusTitle='DEBUG: freshness not verified'
-                            statusMessage='Status endpoint для backtest_confidence_risk не настроен: показываются metadata отчёта без freshness-проверки.'
+                            statusTitle={t('confidenceRisk.page.status.title')}
+                            statusMessage={t('confidenceRisk.page.status.message')}
                             dataSource={sourceEndpointState.value!}
                             reportTitle={data.title}
                             reportId={data.id}
@@ -976,19 +1205,25 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                         <section className={cls.configBlock}>
                             <div className={cls.configHeader}>
                                 <Text type='h3' className={cls.configTitle}>
-                                    Конфиг расчёта
+                                    {t('confidenceRisk.page.config.title')}
                                 </Text>
-                                <Text className={cls.configSubtitle}>
-                                    Базовые параметры, которые использовались при сборке bucket‑статистики.
-                                </Text>
+                                <Text className={cls.configSubtitle}>{t('confidenceRisk.page.config.subtitle')}</Text>
                             </div>
                             <div className={cls.configGrid}>
                                 {(configState.section.items ?? []).map(item => {
-                                    const term = getConfigTermOrThrow(item.key)
+                                    const term = getConfigTermOrThrow(item.key, configTermsMap)
                                     return (
                                         <div key={item.key} className={cls.configItem}>
                                             <div className={cls.configKeyRow}>
-                                                <TermTooltip term={term.title} description={term.tooltip} type='span' />
+                                                <TermTooltip
+                                                    term={term.title}
+                                                    description={enrichTermTooltipDescription(term.tooltip, {
+                                                        term: term.title,
+                                                        excludeTerms: [term.title],
+                                                        excludeRuleTitles: [term.title]
+                                                    })}
+                                                    type='span'
+                                                />
                                                 <Text className={cls.configValue}>{item.value}</Text>
                                             </div>
                                             <Text className={cls.configDescription}>{term.description}</Text>
@@ -1001,20 +1236,21 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
                     <section className={cls.sectionBlock}>
                         <ReportTableTermsBlock
-                            terms={TERMS_TABLE}
-                            subtitle='Объяснения всех показателей, которые используются в таблице уверенности.'
+                            terms={tableTerms}
+                            subtitle={t('confidenceRisk.page.termsSubtitle')}
                             className={cls.termsBlock}
                         />
 
                         {scopeFilteredTableSectionsState.sections.map((section, index) => {
                             const domId = `confidence-risk-${index + 1}`
-                            const title = section.title || `Confidence bucket table ${index + 1}`
+                            const title =
+                                section.title || t('confidenceRisk.page.tableTitleFallback', { index: index + 1 })
 
                             return (
                                 <ReportTableCard
                                     key={`${section.title}-${index}`}
                                     title={title}
-                                    description='Сводка по бакетам уверенности и их торговым характеристикам.'
+                                    description={t('confidenceRisk.page.tableDescription')}
                                     columns={section.columns ?? []}
                                     rows={section.rows ?? []}
                                     domId={domId}
@@ -1034,7 +1270,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить отчёт уверенности'>
+            errorTitle={t('confidenceRisk.page.errorTitle')}>
             {content}
         </PageDataBoundary>
     )

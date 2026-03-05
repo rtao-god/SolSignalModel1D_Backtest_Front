@@ -84,10 +84,7 @@ export function resolveReportViewCapabilities(sections: TableSectionDto[]): Repo
     // TP/SL-срез включаем только когда все секции относятся к policy-branch-mega
     // и backend явно вернул полный набор tp/sl режимов через metadata.tpSlMode.
     const policyMegaSections = sections.filter(section => section.metadata?.kind === 'policy-branch-mega').length
-    const hasFullTpSlCoverage =
-        tpSlValues.has('all') &&
-        tpSlValues.has('dynamic') &&
-        tpSlValues.has('static')
+    const hasFullTpSlCoverage = tpSlValues.has('all') && tpSlValues.has('dynamic') && tpSlValues.has('static')
     const supportsTpSlFiltering = policyMegaSections === sections.length && hasFullTpSlCoverage
 
     return {
@@ -117,6 +114,8 @@ export function validateReportViewSelectionOrThrow(
     }
 
     if (!capabilities.supportsTpSlFiltering && selection.tpSl !== DEFAULT_REPORT_TP_SL_MODE) {
-        throw new Error(`[${contextTag}] tpsl mode switch is not supported for this report. requested=${selection.tpSl}.`)
+        throw new Error(
+            `[${contextTag}] tpsl mode switch is not supported for this report. requested=${selection.tpSl}.`
+        )
     }
 }

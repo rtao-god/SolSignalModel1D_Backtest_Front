@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 export type TableExportFormat = 'pdf' | 'csv'
 
 export interface TableExportOptions {
@@ -7,6 +5,29 @@ export interface TableExportOptions {
     rows: Array<Array<string | number | boolean | null | undefined>>
     fileBaseName: string
     format: TableExportFormat
+}
+
+type JsPdfConstructor = typeof import('jspdf').default
+type AutoTableFunction = typeof import('jspdf-autotable').default
+
+interface PdfExportDependencies {
+    jsPDF: JsPdfConstructor
+    autoTable: AutoTableFunction
+}
+
+let pdfExportDependenciesPromise: Promise<PdfExportDependencies> | null = null
+
+async function loadPdfExportDependencies(): Promise<PdfExportDependencies> {
+    if (!pdfExportDependenciesPromise) {
+        pdfExportDependenciesPromise = Promise.all([import('jspdf'), import('jspdf-autotable')]).then(
+            ([jspdfModule, autoTableModule]) => ({
+                jsPDF: jspdfModule.default,
+                autoTable: autoTableModule.default
+            })
+        )
+    }
+
+    return pdfExportDependenciesPromise
 }
 
 function sanitizeFileName(raw: string): string {
@@ -53,7 +74,8 @@ function exportCsv(columns: string[], rows: Array<Array<unknown>>, fileBaseName:
     downloadBlob(blob, fileName)
 }
 
-function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName: string): void {
+async function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName: string): Promise<void> {
+    const { jsPDF, autoTable } = await loadPdfExportDependencies()
     const head = [columns.map(col => (col ?? '').toString())]
     const body = rows.map(row => row.map(cell => (cell ?? '').toString()))
 
@@ -86,7 +108,7 @@ function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBaseName:
     doc.save(fileName)
 }
 
-export function exportTable(options: TableExportOptions): void {
+export async function exportTable(options: TableExportOptions): Promise<void> {
     const { columns, rows, fileBaseName, format } = options
     const safeColumns = (columns ?? []).map(col => col ?? '')
     const safeRows = (rows ?? []).map(row => row ?? [])
@@ -97,11 +119,9 @@ export function exportTable(options: TableExportOptions): void {
     }
 
     if (format === 'pdf') {
-        exportPdf(safeColumns, safeRows, fileBaseName)
+        await exportPdf(safeColumns, safeRows, fileBaseName)
         return
     }
 
-
     exportCsv(safeColumns, safeRows, fileBaseName)
 }
-

@@ -5,6 +5,7 @@ import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { useTranslation } from 'react-i18next'
 
 /*
     BacktestDiagnosticsRatingsPage — рейтинги и топы по бэктесту.
@@ -17,6 +18,7 @@ const renderRatingColumnTitle = (title: string) =>
     renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
 
 export default function BacktestDiagnosticsRatingsPage() {
+    const { t } = useTranslation('reports')
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
@@ -35,18 +37,17 @@ export default function BacktestDiagnosticsRatingsPage() {
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить рейтинги бэктест-диагностики'>
+            errorTitle={t('diagnosticsReport.pages.ratings.errorTitle')}>
             {data && (
                 <BacktestDiagnosticsPageLayout
                     report={data}
                     sections={split.ratings}
-                    pageTitle='Рейтинги полисов'
-                    pageSubtitle='Лучшие и худшие сделки/дни, а также сводный Equity/DD по топ-3 политикам.'
-                    emptyMessage='В отчёте нет таблиц рейтингов.'
+                    pageTitle={t('diagnosticsReport.pages.ratings.title')}
+                    pageSubtitle={t('diagnosticsReport.pages.ratings.subtitle')}
+                    emptyMessage={t('diagnosticsReport.pages.ratings.empty')}
                     renderColumnTitle={renderRatingColumnTitle}
                 />
             )}
         </PageDataBoundary>
     )
 }
-

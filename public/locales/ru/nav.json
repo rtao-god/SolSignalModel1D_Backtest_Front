@@ -1,0 +1,131 @@
+{
+    "navbar": {
+        "expand": {
+            "show": "Показать дополнительные разделы",
+            "hide": "Свернуть разделы"
+        }
+    },
+    "section": {
+        "predictions": "Прогнозы",
+        "models": "Модели",
+        "backtest": "Бэктест",
+        "analysis": "Анализ",
+        "diagnostics": "Диагностика",
+        "features": "Фичи",
+        "docs": "Документация",
+        "explain": "Объяснение"
+    },
+    "route": {
+        "main": "Главная",
+        "diagnostics_home": "Диагностика",
+        "analysis_home": "Анализ",
+        "docs": "Документация",
+        "explain": "Объяснение",
+        "profile": "Профиль",
+        "about": "О странице",
+        "contact": "Контакты",
+        "current_prediction": "Текущий прогноз",
+        "current_prediction_history": "История прогнозов",
+        "models_stats": "Статистика моделей",
+        "aggregation_stats": "Агрегация прогнозов",
+        "backtest_baseline": "Baseline бэктест",
+        "backtest_summary": "Сводка бэктеста",
+        "backtest_full": "Экспериментальный бэктест",
+        "backtest_diagnostics": "Риск и ликвидации",
+        "backtest_diagnostics_guardrail": "Guardrail / Specificity",
+        "backtest_diagnostics_decisions": "Решения / Attribution",
+        "backtest_diagnostics_hotspots": "Hotspots / NoTrade",
+        "backtest_diagnostics_other": "Прочее",
+        "backtest_diagnostics_ratings": "Рейтинги полисов",
+        "backtest_diagnostics_daystats": "Статистика по дням",
+        "backtest_policy_branch_mega": "Policy Branch Mega",
+        "backtest_confidence_risk": "Статистика уверенности",
+        "backtest_execution_pipeline": "Execution pipeline",
+        "pfi_per_model": "PFI по моделям",
+        "docs_models": "Модели",
+        "docs_tests": "Тесты",
+        "explain_models": "Модели",
+        "explain_branches": "Ветки BASE/ANTI-D",
+        "explain_splits": "Train/OOS/Recent",
+        "explain_project": "О проекте",
+        "explain_time": "Время и дни",
+        "explain_features": "Фичи и индикаторы"
+    },
+    "subnav": {
+        "backtest_full": "Разделы бэктеста",
+        "pfi_per_model": "Модели PFI",
+        "docs_models": "Описание моделей",
+        "docs_tests": "Описание тестов",
+        "explain_models": "Объяснение моделей",
+        "explain_branches": "Объяснение веток",
+        "explain_splits": "Объяснение сплитов",
+        "explain_project": "Объяснение проекта",
+        "explain_time": "Объяснение времени",
+        "explain_features": "Объяснение фич",
+        "aggregation_stats": "Разделы агрегации прогнозов",
+        "backtest_diagnostics": "Разделы диагностики",
+        "backtest_diagnostics_guardrail": "Разделы guardrail",
+        "backtest_diagnostics_decisions": "Разделы решений",
+        "backtest_diagnostics_hotspots": "Разделы hotspots",
+        "backtest_diagnostics_other": "Разделы прочего",
+        "backtest_diagnostics_ratings": "Разделы анализа",
+        "backtest_diagnostics_daystats": "Разделы статистики по дням",
+        "backtest_policy_branch_mega": "Разделы Policy Branch Mega"
+    },
+    "tab": {
+        "docs_models": {
+            "models-overview": "Общий обзор",
+            "models-daily": "Дневная модель (Daily)",
+            "models-micro": "Микро-модель",
+            "models-sl": "SL-модель",
+            "models-pipeline": "Пайплайн и данные"
+        },
+        "docs_tests": {
+            "tests-overview": "Общий обзор тестов",
+            "tests-sanity": "Sanity-checks",
+            "tests-leakage": "Leakage-тесты",
+            "tests-perf": "Перфоманс-тесты"
+        },
+        "explain_models": {
+            "explain-models-overview": "Общий обзор",
+            "explain-models-daily": "Дневная модель",
+            "explain-models-micro": "Микро-модель",
+            "explain-models-sl": "SL-модель",
+            "explain-models-aggregation": "Сборка сигнала"
+        },
+        "explain_branches": {
+            "explain-branches-overview": "Зачем ветки",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "Условия ANTI-D",
+            "explain-branches-usage": "Как читать результаты"
+        },
+        "explain_splits": {
+            "explain-splits-overview": "Зачем сплиты",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "explain_project": {
+            "explain-project-overview": "Общий пайплайн",
+            "explain-project-causal": "Causal vs Omniscient",
+            "explain-project-structure": "Проекты и папки",
+            "explain-project-reports": "Отчёты и API",
+            "explain-project-tests": "Тесты и защиты"
+        },
+        "explain_time": {
+            "explain-time-overview": "NY-торговый день",
+            "explain-time-baseline": "Baseline-exit",
+            "explain-time-day-keys": "Day-key и типы времени",
+            "explain-time-weekend": "Выходные и исключения"
+        },
+        "explain_features": {
+            "explain-features-overview": "Как читать фичи",
+            "explain-features-returns": "Доходности и спреды",
+            "explain-features-indicators": "Индикаторы и макро",
+            "explain-features-momentum": "Momentum и волатильность",
+            "explain-features-regime": "Режимы и EMA"
+        }
+    }
+}

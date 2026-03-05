@@ -6,6 +6,12 @@ import { useLocation } from 'react-router-dom'
 import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
+import {
+    buildRouteNavLabelI18nKey,
+    buildRouteSubTabLabelI18nKey,
+    buildRouteSectionTitleI18nKey,
+    buildRouteSubNavAriaI18nKey
+} from '@/app/providers/router/config/i18nKeys'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
 import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import type { TableSectionDto } from '@/shared/types/report.types'
@@ -25,9 +31,22 @@ import {
     buildPolicyBranchMegaTabsFromSections,
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
+    filterPolicyBranchMegaSectionsBySlModeOrThrow,
+    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
+    filterPolicyBranchMegaSectionsByZonalModeOrThrow,
     resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery
+    resolvePolicyBranchMegaMetricFromQuery,
+    resolvePolicyBranchMegaSlModeFromQuery,
+    resolvePolicyBranchMegaTpSlModeFromQuery,
+    resolvePolicyBranchMegaZonalModeFromQuery
 } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    DEFAULT_REPORT_BUCKET_MODE,
+    DEFAULT_REPORT_METRIC_MODE,
+    DEFAULT_REPORT_SL_MODE,
+    DEFAULT_REPORT_TP_SL_MODE,
+    DEFAULT_REPORT_ZONAL_MODE
+} from '@/shared/utils/reportViewCapabilities'
 import {
     buildDiagnosticsTabsFromSections,
     getDiagnosticsGroupSections,
@@ -37,7 +56,7 @@ import {
     type DiagnosticsTabConfig
 } from '@/shared/utils/backtestDiagnosticsSections'
 import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
+import { usePolicyBranchMegaReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 
 /*
 	Sidebar — единый слой навигации по разделам приложения: собирает пункты из route-конфига, фильтрует их по контексту текущей страницы и строит поднавигацию по hash-якорям из отчётных секций.
@@ -53,7 +72,7 @@ import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/
 
 	Контракты:
 		- Для динамических табов учитываются только валидные table-секции с непустыми колонками.
-		- Для Policy Branch Mega при клике по якорю сохраняется query-строка (bucket), иначе теряется контекст выбранного режима.
+		- Для Policy Branch Mega при клике по якорю сохраняется вся query-строка (bucket/metric/tpsl/slmode/zonal), иначе теряется контекст выбранного режима.
 */
 interface SidebarProps {
     className?: string
@@ -72,7 +91,7 @@ const SECTION_ORDER: RouteSection[] = [
     'docs',
     'explain'
 ]
-const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
+const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     predictions: 'Прогнозы',
     models: 'Модели',
     backtest: 'Бэктест',
@@ -84,7 +103,7 @@ const SECTION_TITLES: Partial<Record<RouteSection, string>> = {
 }
 
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
-    const { t } = useTranslation('')
+    const { t } = useTranslation()
     const location = useLocation()
 
     // Режим страницы определяет, какие секции вообще должны быть видимы в сайдбаре.
@@ -118,9 +137,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     )
 
     const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
-    const isOnPolicyBranchMegaPage = policyBranchMegaRoutePath
-        ? location.pathname.startsWith(policyBranchMegaRoutePath)
-        : false
+    const isOnPolicyBranchMegaPage =
+        policyBranchMegaRoutePath ? location.pathname.startsWith(policyBranchMegaRoutePath) : false
     // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
         enabled: isOnPfiPage
@@ -133,9 +151,10 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     })
 
     const shouldLoadPolicyBranchMegaNav = isOnPolicyBranchMegaPage
-    const { data: policyBranchMegaReport } = usePolicyBranchMegaReportNavQuery({
+    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery({
         enabled: shouldLoadPolicyBranchMegaNav
     })
+    const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
 
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
@@ -196,14 +215,28 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
         try {
             const search = new URLSearchParams(location.search)
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(search.get('bucket'), 'daily')
-            const metric = resolvePolicyBranchMegaMetricFromQuery(search.get('metric'), 'real')
-            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(tableSections, bucket)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(search.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(search.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const tpSlMode = resolvePolicyBranchMegaTpSlModeFromQuery(search.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
+            const slMode = resolvePolicyBranchMegaSlModeFromQuery(search.get('slmode'), DEFAULT_REPORT_SL_MODE)
+            const zonalMode = resolvePolicyBranchMegaZonalModeFromQuery(search.get('zonal'), DEFAULT_REPORT_ZONAL_MODE)
+            const byZonal = filterPolicyBranchMegaSectionsByZonalModeOrThrow(tableSections, zonalMode)
+            const bySlMode = filterPolicyBranchMegaSectionsBySlModeOrThrow(byZonal, slMode)
+            const byTpSlMode = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(bySlMode, tpSlMode)
+            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byTpSlMode, bucket)
             const byMetric = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, metric)
             return buildPolicyBranchMegaTabsFromSections(byMetric)
-        } catch {
-            // В сайдбаре безопасно деградируем к пустому подменю вместо падения всего layout.
-            return []
+        } catch (error) {
+            // Сайдбар не должен падать: на ошибке фильтров оставляем базовую навигацию по частям
+            // и одновременно логируем причину, чтобы ошибка не была "тихой".
+            console.error('[sidebar.policy-branch-mega] failed to build filtered tabs.', error)
+
+            try {
+                return buildPolicyBranchMegaTabsFromSections(tableSections)
+            } catch (fallbackError) {
+                console.error('[sidebar.policy-branch-mega] failed to build fallback tabs.', fallbackError)
+                return []
+            }
         }
     }, [location.search, policyBranchMegaReport])
 
@@ -295,11 +328,14 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                         return null
                     }
 
-                    const title = SECTION_TITLES[section] ?? section
+                    const fallbackTitle = SECTION_FALLBACK_TITLES[section] ?? section
+                    const sectionTitle = t(buildRouteSectionTitleI18nKey(section), {
+                        defaultValue: fallbackTitle
+                    })
 
                     return (
                         <div key={section} className={cls.sectionBlock}>
-                            <div className={cls.sectionTitle}>{t(title)}</div>
+                            <div className={cls.sectionTitle}>{sectionTitle}</div>
 
                             {items.map(item => {
                                 const isBacktestFull = item.id === AppRoute.BACKTEST_FULL
@@ -320,8 +356,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     item.id === AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL
                                 const isBacktestDiagnosticsDecisions =
                                     item.id === AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS
-                                const isBacktestDiagnosticsHotspots =
-                                    item.id === AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS
+                                const isBacktestDiagnosticsHotspots = item.id === AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS
                                 const isBacktestDiagnosticsOther = item.id === AppRoute.BACKTEST_DIAGNOSTICS_OTHER
                                 const isPolicyBranchMega = item.id === AppRoute.BACKTEST_POLICY_BRANCH_MEGA
 
@@ -418,31 +453,37 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPolicyBranchMega ? policyBranchMegaTabs
                                     : []
 
-                                const subNavAriaLabel =
-                                    isBacktestFull ? t('Разделы бэктеста')
-                                    : isPfiPerModel ? t('Модели PFI')
-                                    : isDocsModels ? t('Описание моделей')
-                                    : isDocsTests ? t('Описание тестов')
-                                    : isExplainModels ? t('Объяснение моделей')
-                                    : isExplainBranches ? t('Объяснение веток')
-                                    : isExplainSplits ? t('Объяснение сплитов')
-                                    : isExplainProject ? t('Объяснение проекта')
-                                    : isExplainTime ? t('Объяснение времени')
-                                    : isExplainFeatures ? t('Объяснение фич')
-                                    : isAggregationStats ? t('Разделы агрегации прогнозов')
-                                    : isBacktestDiagnostics ? t('Разделы диагностики')
-                                    : isBacktestDiagnosticsGuardrail ? t('Разделы guardrail')
-                                    : isBacktestDiagnosticsDecisions ? t('Разделы решений')
-                                    : isBacktestDiagnosticsHotspots ? t('Разделы hotspots')
-                                    : isBacktestDiagnosticsOther ? t('Разделы прочего')
-                                    : isBacktestRatings ? t('Разделы анализа')
-                                    : isBacktestDayStats ? t('Разделы статистики по дням')
-                                    : isPolicyBranchMega ? t('Разделы Policy Branch Mega')
+                                const subNavAriaDefaultLabel =
+                                    isBacktestFull ? 'Разделы бэктеста'
+                                    : isPfiPerModel ? 'Модели PFI'
+                                    : isDocsModels ? 'Описание моделей'
+                                    : isDocsTests ? 'Описание тестов'
+                                    : isExplainModels ? 'Объяснение моделей'
+                                    : isExplainBranches ? 'Объяснение веток'
+                                    : isExplainSplits ? 'Объяснение сплитов'
+                                    : isExplainProject ? 'Объяснение проекта'
+                                    : isExplainTime ? 'Объяснение времени'
+                                    : isExplainFeatures ? 'Объяснение фич'
+                                    : isAggregationStats ? 'Разделы агрегации прогнозов'
+                                    : isBacktestDiagnostics ? 'Разделы диагностики'
+                                    : isBacktestDiagnosticsGuardrail ? 'Разделы guardrail'
+                                    : isBacktestDiagnosticsDecisions ? 'Разделы решений'
+                                    : isBacktestDiagnosticsHotspots ? 'Разделы hotspots'
+                                    : isBacktestDiagnosticsOther ? 'Разделы прочего'
+                                    : isBacktestRatings ? 'Разделы анализа'
+                                    : isBacktestDayStats ? 'Разделы статистики по дням'
+                                    : isPolicyBranchMega ? 'Разделы Policy Branch Mega'
                                     : undefined
+
+                                const subNavAriaLabel =
+                                    subNavAriaDefaultLabel ?
+                                        t(buildRouteSubNavAriaI18nKey(item.id), {
+                                            defaultValue: subNavAriaDefaultLabel
+                                        })
+                                    :   undefined
 
                                 return (
                                     <div key={item.id} className={containerClass}>
-
                                         <Link
                                             to={item.path}
                                             onClick={onItemClick}
@@ -451,9 +492,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                 [cls.linkGroup]: hasSubNav
                                             })}>
                                             <span className={cls.linkBullet} />
-                                            <span className={cls.label}>{t(item.label)}</span>
+                                            <span className={cls.label}>
+                                                {t(buildRouteNavLabelI18nKey(item.id), {
+                                                    defaultValue: item.label
+                                                })}
+                                            </span>
                                         </Link>
-
 
                                         {hasSubNav && tabs.length > 0 && (
                                             <nav className={cls.subNav} aria-label={subNavAriaLabel}>
@@ -472,7 +516,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                             (isExplainTime && isExplainTimeRouteActive) ||
                                                             (isExplainFeatures && isExplainFeaturesRouteActive) ||
                                                             (isAggregationStats && isAggregationStatsRouteActive) ||
-                                                            (isBacktestDiagnostics && isBacktestDiagnosticsRouteActive) ||
+                                                            (isBacktestDiagnostics &&
+                                                                isBacktestDiagnosticsRouteActive) ||
                                                             (isBacktestDiagnosticsGuardrail &&
                                                                 isBacktestDiagnosticsGuardrailRouteActive) ||
                                                             (isBacktestDiagnosticsDecisions &&
@@ -488,10 +533,11 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                         const isActiveTab =
                                                             isRouteActiveWithTabs && currentHash === tab.anchor
 
-                                                        // Для Policy Branch Mega сохраняем query-параметры (bucket) при кликах по якорям.
-                                                        const linkBase = isPolicyBranchMega
-                                                            ? `${item.path}${policyBranchMegaSearch}`
-                                                            : item.path
+                                                        // Для Policy Branch Mega сохраняем весь query-контекст фильтров при кликах по якорям.
+                                                        const linkBase =
+                                                            isPolicyBranchMega ?
+                                                                `${item.path}${policyBranchMegaSearch}`
+                                                            :   item.path
 
                                                         return (
                                                             <Link
@@ -509,7 +555,11 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                                         <path d='M4 18h16v1H3v-13h1v12zm3.5-3.5 2.75-3.3 2.5 2.5 3.75-5.2.8.6-4.3 6-2.5-2.5-2.75 3.3-.95-.9z' />
                                                                     </svg>
                                                                 </span>
-                                                                <span className={cls.subLabel}>{t(tab.label)}</span>
+                                                                <span className={cls.subLabel}>
+                                                                    {t(buildRouteSubTabLabelI18nKey(item.id, tab.id), {
+                                                                        defaultValue: tab.label
+                                                                    })}
+                                                                </span>
                                                                 <span className={cls.subRipple} />
                                                             </Link>
                                                         )

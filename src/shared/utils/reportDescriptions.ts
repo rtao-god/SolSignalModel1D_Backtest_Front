@@ -1,146 +1,169 @@
+import i18n from '@/shared/configs/i18n/i18n'
 
+type ReportUiLocale = 'ru' | 'en'
+
+interface DescriptionRule {
+    match: RegExp
+    ru: string
+    en: string
+}
 
 function normalizeTitle(title: string | undefined): string {
     if (!title) return ''
-    return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
 }
 
 function stripSegmentPrefix(title: string): string {
     return title.replace(/^\[[^\]]+\]\s*/, '').trim()
 }
 
-const BACKTEST_SUMMARY_RULES: { match: RegExp; description: string }[] = [
+function resolveReportUiLocale(language: string | null | undefined): ReportUiLocale {
+    const normalized = (language ?? '').trim().toLowerCase()
+    return normalized.startsWith('ru') ? 'ru' : 'en'
+}
+
+function resolveRuleDescription(rule: DescriptionRule, locale: ReportUiLocale): string {
+    return locale === 'ru' ? rule.ru : rule.en
+}
+
+const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     {
-        match: /^Общие параметры бэктеста/i,
-        description:
-            'Общие параметры окна бэктеста: диапазон дат, число торговых дней и сколько политик участвовало. Здесь же сводные метрики по лучшей доходности и худшей просадке — это быстрый ориентир перед чтением таблиц ниже.'
+        match: /^(Общие параметры бэктеста|Backtest summary parameters)/i,
+        ru: 'Общие параметры окна бэктеста: диапазон дат, число торговых дней и сколько политик участвовало. Здесь же сводные метрики по лучшей доходности и худшей просадке — это быстрый ориентир перед чтением таблиц ниже.',
+        en: 'High-level backtest window settings: date range, trading-day count, and how many policies participated. This section also shows best-return and worst-drawdown summary metrics as a quick orientation before detailed tables.'
     },
     {
         match: /^Backtest config \(baseline\)/i,
-        description:
-            'Конфиг baseline и what-if: базовые дневные TP/SL, dynamic confidence-risk overlay, risk-budget и ограничения dynamic TP/SL (клампы, confidence-gate, историческая проверка bucket samples/win-rate). Dynamic TP/SL активируется не в каждый день: только если confidence-условия выполняются.'
+        ru: 'Конфиг baseline и what-if: базовые дневные TP/SL, dynamic confidence-risk overlay, risk-budget и ограничения dynamic TP/SL (клампы, confidence-gate, историческая проверка bucket samples/win-rate). Dynamic TP/SL активируется не в каждый день: только если confidence-условия выполняются.',
+        en: 'Baseline and what-if config: base daily TP/SL, dynamic confidence-risk overlay, risk budget, and dynamic TP/SL bounds (clamps, confidence gate, historical bucket samples/win-rate checks). Dynamic TP/SL is not enabled every day; it is applied only when confidence conditions are satisfied.'
     },
     {
         match: /^Policies \(baseline config\)/i,
-        description:
-            'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом, плечом и режимом маржи.'
+        ru: 'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом, плечом и режимом маржи.',
+        en: 'Policy list from the active config (const/risk_aware/ultra_safe/dynamic/spot) with policy type, leverage, and margin mode.'
     },
     {
-        match: /^Политики бэктеста/i,
-        description:
-            'Сводная таблица результатов по политикам и веткам (BASE/ANTI‑D) с вариантом SL/NO SL. Смотрите TotalPnl% и MaxDD% как ключевые показатели доходности и риска, а Trades/TradesBySource показывают активность.'
+        match: /^(Политики бэктеста|Backtest policies)/i,
+        ru: 'Сводная таблица результатов по политикам и веткам (BASE/ANTI‑D) с вариантами WITH-SL/NO-SL. NO-SL отключает защитный стоп-лосс и может довести капитал бакета до нуля (в cross-марже — весь торговый баланс), поэтому TotalPnl% обязательно читается вместе с MaxDD%, HadLiq и AccRuin.',
+        en: 'Policy result summary by branch (BASE/ANTI-D) and SL mode (WITH-SL/NO-SL). NO-SL disables the protective stop-loss and can reduce bucket capital to zero (or the whole trading balance in cross margin), so TotalPnl% must be interpreted together with MaxDD%, HadLiq, and AccRuin.'
     }
 ]
 
-const CURRENT_PREDICTION_RULES: { match: RegExp; description: string }[] = [
+const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
     {
-        match: /^Общие параметры прогноза/i,
-        description:
-            'Контекст формирования прогноза: режим (Live или Backfilled), строгие/мягкие правила обработки пропусков, ключевые временные метки входа/выхода и срез данных. Это «паспорт» прогноза, чтобы понимать на каких данных он построен.'
+        match: /^(Общие параметры прогноза|Prediction summary parameters)/i,
+        ru: 'Контекст формирования прогноза: режим (Live или Backfilled), строгие/мягкие правила обработки пропусков, ключевые временные метки входа/выхода и срез данных. Это «паспорт» прогноза, чтобы понимать на каких данных он построен.',
+        en: 'Prediction context: mode (Live or Backfilled), strictness level for missing-data handling, key entry/exit timestamps, and data snapshot markers. This is the prediction passport that explains what data and timing the output is based on.'
     },
     {
-        match: /^Вероятности прогноза/i,
-        description:
-            'Вероятности трёх классов (рост/боковик/падение) для трёх слоёв: базовый Day, Day+Micro и итоговый Total с учётом SL. Нужны для оценки уверенности модели, а не для «точного процента дохода».'
+        match: /^(Вероятности прогноза|Prediction probabilities)/i,
+        ru: 'Вероятности трёх классов (рост/боковик/падение) для трёх слоёв: базовый Day, Day+Micro и итоговый Total с учётом SL. Нужны для оценки уверенности модели, а не для «точного процента дохода».',
+        en: 'Three-class probabilities (up/flat/down) for three layers: base Day, Day+Micro, and final Total including SL overlay. These values describe model confidence, not a direct expected-return percentage.'
     },
     {
-        match: /^Диапазон цены за 24 часа/i,
-        description:
-            'Исторический baseline для понимания диапазона цены на 24 часа вперёд. Это справочная статистика по прошлым данным, а не прямой прогноз сегодняшней цены.'
+        match: /^(Диапазон цены за 24 часа|Price range for 24 hours)/i,
+        ru: 'Исторический baseline для понимания диапазона цены на 24 часа вперёд. Это справочная статистика по прошлым данным, а не прямой прогноз сегодняшней цены.',
+        en: 'Historical baseline for the next-24h price range. It is reference statistics from past data, not a direct forecast of today’s exact price.'
     },
     {
-        match: /^Почему модель дала такой прогноз/i,
-        description:
-            'Топ факторов (фичей/сигналов), которые сильнее всего повлияли на решение. Колонки показывают тип фактора, его имя, краткое описание, значение и ранг важности.'
+        match: /^(Почему модель дала такой прогноз|Why the model gave this prediction)/i,
+        ru: 'Топ факторов (фичей/сигналов), которые сильнее всего повлияли на решение. Колонки показывают тип фактора, его имя, краткое описание, значение и ранг важности.',
+        en: 'Top factors (features/signals) that contributed most to the decision. Columns show factor type, name, short description, current value, and importance rank.'
     },
     {
-        match: /^Факт дня и расхождение с прогнозом/i,
-        description:
-            'Сводка post-factum по backfilled-дню: что реально случилось, совпал ли итоговый прогноз с фактом, как отличились MinMove и диапазон цены, и какой фактор explain/PFI был ключевым. Эти данные появляются только после закрытия окна и не используются в causal/live решении.'
+        match: /^(Факт дня и расхождение с прогнозом|Day outcome and prediction mismatch)/i,
+        ru: 'Сводка post-factum по backfilled-дню: что реально случилось, совпал ли итоговый прогноз с фактом, как отличились MinMove и диапазон цены, и какой фактор explain/PFI был ключевым. Эти данные появляются только после закрытия окна и не используются в causal/live решении.',
+        en: 'Post-factum summary for a backfilled day: actual outcome, whether Total prediction matched the fact, MinMove and range deviations, and the key explain/PFI factor. These fields appear only after window close and are not used in causal/live decision-making.'
     },
     {
-        match: /^Политики плеча/i,
-        description:
-            'Торговый план по каждой политике и ветке: направление, плечо, цены входа/SL/TP, размер позиции и оценка риска ликвидации. Это прикладная «инструкция», как политики интерпретируют прогноз.'
+        match: /^(Политики плеча|Leverage policies)/i,
+        ru: 'Торговый план по каждой политике и ветке: направление, плечо, цены входа/SL/TP, размер позиции и оценка риска ликвидации. Это прикладная «инструкция», как политики интерпретируют прогноз.',
+        en: 'Execution plan per policy and branch: direction, leverage, entry/SL/TP prices, position size, and liquidation-risk estimate. This is the practical policy interpretation layer built on top of the forecast.'
     }
 ]
 
-const MODEL_STATS_RULES: { match: RegExp; description: string }[] = [
+const MODEL_STATS_RULES: DescriptionRule[] = [
     {
         match: /^Daily label summary/i,
-        description:
-            'Краткое объяснение качества дневной модели по каждому классу (UP/DOWN/FLAT). Полезно, чтобы быстро понять, где модель чаще ошибается.'
+        ru: 'Краткое объяснение качества дневной модели по каждому классу (UP/DOWN/FLAT). Полезно, чтобы быстро понять, где модель чаще ошибается.',
+        en: 'Compact quality summary for the daily model by class (UP/DOWN/FLAT). Useful for quickly spotting where the model misses most often.'
     },
     {
         match: /^Daily label confusion/i,
-        description:
-            'Полная матрица ошибок дневной модели (TRUE × PRED). Строки — истинный класс, столбцы — предсказанный. Помогает увидеть типичные путаницы (например, FLAT ↔ UP).'
+        ru: 'Полная матрица ошибок дневной модели (TRUE × PRED). Строки — истинный класс, столбцы — предсказанный. Помогает увидеть типичные путаницы (например, FLAT ↔ UP).',
+        en: 'Full daily-model confusion matrix (TRUE × PRED). Rows are true classes and columns are predicted classes, making class confusions (for example FLAT ↔ UP) easy to identify.'
     },
     {
-        match: /^Trend-direction confusion \(упрощённо\)/i,
-        description:
-            'Сводка по направлению тренда (DOWN vs UP) без детализации по классам. Удобна для быстрого бизнес‑сравнения.'
+        match: /^Trend-direction confusion \((упрощённо|simplified)\)/i,
+        ru: 'Сводка по направлению тренда (DOWN vs UP) без детализации по классам. Удобна для быстрого бизнес‑сравнения.',
+        en: 'Trend-direction summary (DOWN vs UP) without fine class detail. Convenient for a quick business-level comparison.'
     },
     {
-        match: /^Trend-direction confusion \(технически\)/i,
-        description:
-            'Техническая версия таблицы направления (DOWN vs UP) с количеством предсказаний и точностью.'
+        match: /^Trend-direction confusion \((технически|technical)\)/i,
+        ru: 'Техническая версия таблицы направления (DOWN vs UP) с количеством предсказаний и точностью.',
+        en: 'Technical version of trend-direction table (DOWN vs UP) with prediction counts and accuracy.'
     },
     {
         match: /^SL-model confusion/i,
-        description:
-            'Матрица ошибок SL‑модели: как она отличает «TP‑дни» от «SL‑дней» и сколько раз помечает высокий риск.'
+        ru: 'Матрица ошибок SL‑модели: как она отличает «TP‑дни» от «SL‑дней» и сколько раз помечает высокий риск.',
+        en: 'SL model confusion matrix: how well the model separates TP-days from SL-days and how often it flags high risk.'
     },
     {
         match: /^SL-model metrics/i,
-        description:
-            'Ключевые метрики SL‑модели: покрытие, TPR/FPR, precision и F1. Показывают, насколько хорошо модель ловит рискованные дни.'
+        ru: 'Ключевые метрики SL‑модели: покрытие, TPR/FPR, precision и F1. Показывают, насколько хорошо модель ловит рискованные дни.',
+        en: 'Key SL-model metrics: coverage, TPR/FPR, precision, and F1. They show how effectively risky days are detected.'
     },
     {
         match: /^SL threshold sweep/i,
-        description:
-            'Перебор порогов SL‑модели: как меняются TPR/FPR и доля HIGH‑сигналов при разных thresholds. Используется для выбора порога риска.'
+        ru: 'Перебор порогов SL‑модели: как меняются TPR/FPR и доля HIGH‑сигналов при разных thresholds. Используется для выбора порога риска.',
+        en: 'SL threshold sweep: how TPR/FPR and HIGH-signal share move across thresholds. Used for practical risk-threshold selection.'
     },
     {
         match: /^SL-model$/i,
-        description:
-            'Секция SL‑модели отсутствует в отчёте: указана причина, почему данные недоступны.'
+        ru: 'Секция SL‑модели отсутствует в отчёте: указана причина, почему данные недоступны.',
+        en: 'The SL-model section is absent in this report; the table explains why the data is unavailable.'
     }
 ]
 
-const PFI_DESCRIPTION =
-    'Permutation Feature Importance (PFI) по одной модели: показываем, насколько ухудшается качество (AUC), если перемешать фичу. Чем выше ΔAUC, тем важнее признак. ΔMean и корреляции помогают понять направление влияния.'
+const PFI_DESCRIPTION: Record<ReportUiLocale, string> = {
+    ru: 'Permutation Feature Importance (PFI) по одной модели: показываем, насколько ухудшается качество (AUC), если перемешать фичу. Чем выше ΔAUC, тем важнее признак. ΔMean и корреляции помогают понять направление влияния.',
+    en: 'Permutation Feature Importance (PFI) for a single model: shows quality degradation (AUC drop) when each feature is shuffled. Higher ΔAUC means higher feature importance. ΔMean and correlation fields help interpret directional effect.'
+}
 
 export function resolveReportSectionDescription(
     reportKind: string | undefined,
-    sectionTitle: string | undefined
+    sectionTitle: string | undefined,
+    locale?: ReportUiLocale
 ): string | null {
     const normalized = normalizeTitle(sectionTitle)
     if (!normalized) return null
+    const resolvedLocale = locale ?? resolveReportUiLocale(i18n.resolvedLanguage ?? i18n.language)
 
     if (reportKind === 'backtest_summary') {
         for (const rule of BACKTEST_SUMMARY_RULES) {
-            if (rule.match.test(normalized)) return rule.description
+            if (rule.match.test(normalized)) return resolveRuleDescription(rule, resolvedLocale)
         }
     }
 
     if (reportKind?.startsWith('current_prediction')) {
         for (const rule of CURRENT_PREDICTION_RULES) {
-            if (rule.match.test(normalized)) return rule.description
+            if (rule.match.test(normalized)) return resolveRuleDescription(rule, resolvedLocale)
         }
     }
 
     if (reportKind === 'backtest_model_stats') {
         const withoutPrefix = stripSegmentPrefix(normalized)
         for (const rule of MODEL_STATS_RULES) {
-            if (rule.match.test(withoutPrefix)) return rule.description
+            if (rule.match.test(withoutPrefix)) return resolveRuleDescription(rule, resolvedLocale)
         }
     }
 
     if (reportKind === 'pfi_per_model') {
-        return PFI_DESCRIPTION
+        return PFI_DESCRIPTION[resolvedLocale]
     }
 
     return null
 }
-

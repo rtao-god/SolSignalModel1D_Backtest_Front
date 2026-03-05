@@ -23,4 +23,3 @@ export default function WaveAnimate({ className }: WaveAnimateProps) {
         </div>
     )
 }
-

@@ -16,4 +16,3 @@ export const pfiEndpoints = (builder: ApiEndpointBuilder) => {
         })
     }
 }
-

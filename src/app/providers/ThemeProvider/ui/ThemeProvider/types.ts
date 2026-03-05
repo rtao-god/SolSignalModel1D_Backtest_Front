@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import { ReactNode } from 'react'
 import { Theme } from '@/app/providers/ThemeProvider/lib/ThemeContext'
 
 export default interface ThemeProviderProps {

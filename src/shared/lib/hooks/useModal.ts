@@ -15,4 +15,3 @@ export default function useModal(initialState = false) {
 
     return { isOpen, openModal, closeModal, toggleModal }
 }
-

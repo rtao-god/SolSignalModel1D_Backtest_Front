@@ -1,0 +1,131 @@
+{
+    "navbar": {
+        "expand": {
+            "show": "Show more sections",
+            "hide": "Collapse sections"
+        }
+    },
+    "section": {
+        "predictions": "Predictions",
+        "models": "Models",
+        "backtest": "Backtest",
+        "analysis": "Analysis",
+        "diagnostics": "Diagnostics",
+        "features": "Features",
+        "docs": "Documentation",
+        "explain": "Explain"
+    },
+    "route": {
+        "main": "Main",
+        "diagnostics_home": "Diagnostics",
+        "analysis_home": "Analysis",
+        "docs": "Docs",
+        "explain": "Explain",
+        "profile": "Profile",
+        "about": "About",
+        "contact": "Contact",
+        "current_prediction": "Current prediction",
+        "current_prediction_history": "Prediction history",
+        "models_stats": "Model statistics",
+        "aggregation_stats": "Prediction aggregation",
+        "backtest_baseline": "Baseline backtest",
+        "backtest_summary": "Backtest summary",
+        "backtest_full": "Experimental backtest",
+        "backtest_diagnostics": "Risk and liquidations",
+        "backtest_diagnostics_guardrail": "Guardrail / Specificity",
+        "backtest_diagnostics_decisions": "Decisions / Attribution",
+        "backtest_diagnostics_hotspots": "Hotspots / NoTrade",
+        "backtest_diagnostics_other": "Other diagnostics",
+        "backtest_diagnostics_ratings": "Policy ratings",
+        "backtest_diagnostics_daystats": "Day statistics",
+        "backtest_policy_branch_mega": "Policy Branch Mega",
+        "backtest_confidence_risk": "Confidence statistics",
+        "backtest_execution_pipeline": "Execution pipeline",
+        "pfi_per_model": "PFI by models",
+        "docs_models": "Models",
+        "docs_tests": "Tests",
+        "explain_models": "Models",
+        "explain_branches": "BASE/ANTI-D branches",
+        "explain_splits": "Train/OOS/Recent",
+        "explain_project": "Project overview",
+        "explain_time": "Time and days",
+        "explain_features": "Features and indicators"
+    },
+    "subnav": {
+        "backtest_full": "Backtest sections",
+        "pfi_per_model": "PFI models",
+        "docs_models": "Model docs",
+        "docs_tests": "Test docs",
+        "explain_models": "Model explain",
+        "explain_branches": "Branch explain",
+        "explain_splits": "Split explain",
+        "explain_project": "Project explain",
+        "explain_time": "Time explain",
+        "explain_features": "Feature explain",
+        "aggregation_stats": "Aggregation sections",
+        "backtest_diagnostics": "Diagnostics sections",
+        "backtest_diagnostics_guardrail": "Guardrail sections",
+        "backtest_diagnostics_decisions": "Decision sections",
+        "backtest_diagnostics_hotspots": "Hotspot sections",
+        "backtest_diagnostics_other": "Other sections",
+        "backtest_diagnostics_ratings": "Analysis sections",
+        "backtest_diagnostics_daystats": "Day stat sections",
+        "backtest_policy_branch_mega": "Policy Branch Mega sections"
+    },
+    "tab": {
+        "docs_models": {
+            "models-overview": "Overview",
+            "models-daily": "Daily model",
+            "models-micro": "Micro model",
+            "models-sl": "SL model",
+            "models-pipeline": "Pipeline and data"
+        },
+        "docs_tests": {
+            "tests-overview": "Test overview",
+            "tests-sanity": "Sanity checks",
+            "tests-leakage": "Leakage tests",
+            "tests-perf": "Performance tests"
+        },
+        "explain_models": {
+            "explain-models-overview": "Overview",
+            "explain-models-daily": "Daily model",
+            "explain-models-micro": "Micro model",
+            "explain-models-sl": "SL model",
+            "explain-models-aggregation": "Signal assembly"
+        },
+        "explain_branches": {
+            "explain-branches-overview": "Why branches",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "ANTI-D conditions",
+            "explain-branches-usage": "How to read results"
+        },
+        "explain_splits": {
+            "explain-splits-overview": "Why splits",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "explain_project": {
+            "explain-project-overview": "Overall pipeline",
+            "explain-project-causal": "Causal vs Omniscient",
+            "explain-project-structure": "Projects and folders",
+            "explain-project-reports": "Reports and API",
+            "explain-project-tests": "Tests and safeguards"
+        },
+        "explain_time": {
+            "explain-time-overview": "NY trading day",
+            "explain-time-baseline": "Baseline exit",
+            "explain-time-day-keys": "Day keys and time types",
+            "explain-time-weekend": "Weekends and exclusions"
+        },
+        "explain_features": {
+            "explain-features-overview": "How to read features",
+            "explain-features-returns": "Returns and spreads",
+            "explain-features-indicators": "Indicators and macro",
+            "explain-features-momentum": "Momentum and volatility",
+            "explain-features-regime": "Regimes and EMA"
+        }
+    }
+}

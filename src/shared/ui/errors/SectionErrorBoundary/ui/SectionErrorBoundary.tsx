@@ -1,5 +1,5 @@
 import React from 'react'
-import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock';
+import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 
 interface SectionErrorBoundaryProps {
     name?: string
@@ -26,7 +26,6 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
-
         // eslint-disable-next-line no-console
         console.error('[SectionErrorBoundary]', this.props.name, error, info)
     }
@@ -67,4 +66,3 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
         )
     }
 }
-

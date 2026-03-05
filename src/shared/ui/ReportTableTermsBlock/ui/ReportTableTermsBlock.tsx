@@ -1,4 +1,5 @@
 import { Text, TermTooltip } from '@/shared/ui'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import cls from './ReportTableTermsBlock.module.scss'
 
@@ -7,6 +8,8 @@ interface ReportTableTermsBlockProps {
     sectionTitle?: string
     columns?: string[]
     terms?: ReportTableTermItem[]
+    enhanceDomainTerms?: boolean
+    showTermTitleTooltip?: boolean
     title?: string
     subtitle?: string
     className?: string
@@ -19,6 +22,13 @@ export interface ReportTableTermItem {
     tooltip: string
 }
 
+function buildSelfTooltipExclusions(termTitle: string) {
+    return {
+        excludeTerms: [termTitle],
+        excludeRuleTitles: [termTitle]
+    }
+}
+
 function ensureNonEmptyValueOrThrow(value: string | undefined, label: string): string {
     if (!value || value.trim().length === 0) {
         throw new Error(`[report-terms] ${label} is empty.`)
@@ -27,7 +37,11 @@ function ensureNonEmptyValueOrThrow(value: string | undefined, label: string): s
     return value.trim()
 }
 
-function buildTermsFromColumnsOrThrow(reportKind: string, sectionTitle: string, columns: string[]): ReportTableTermItem[] {
+function buildTermsFromColumnsOrThrow(
+    reportKind: string,
+    sectionTitle: string,
+    columns: string[]
+): ReportTableTermItem[] {
     if (!reportKind || reportKind.trim().length === 0) {
         throw new Error('[report-terms] reportKind is empty.')
     }
@@ -82,6 +96,8 @@ export default function ReportTableTermsBlock({
     sectionTitle,
     columns,
     terms,
+    enhanceDomainTerms = false,
+    showTermTitleTooltip = true,
     title = 'Термины таблицы',
     subtitle = 'Подробные определения всех колонок, которые используются в таблице ниже.',
     className
@@ -107,8 +123,22 @@ export default function ReportTableTermsBlock({
             <div className={cls.grid}>
                 {resolvedTerms.map(term => (
                     <div key={`${sectionTitle}:${term.key}`} className={cls.item}>
-                        <TermTooltip term={term.title} description={term.tooltip} type='span' />
-                        <Text className={cls.description}>{term.description}</Text>
+                        {showTermTitleTooltip ?
+                            <TermTooltip
+                                term={term.title}
+                                description={
+                                    enhanceDomainTerms ?
+                                        renderTermTooltipRichText(term.tooltip, buildSelfTooltipExclusions(term.title))
+                                    :   term.tooltip
+                                }
+                                type='span'
+                            />
+                        :   <Text type='span'>{term.title}</Text>}
+                        <Text className={cls.description}>
+                            {enhanceDomainTerms ?
+                                renderTermTooltipRichText(term.description, buildSelfTooltipExclusions(term.title))
+                            :   term.description}
+                        </Text>
                     </div>
                 ))}
             </div>

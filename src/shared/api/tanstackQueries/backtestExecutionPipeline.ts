@@ -11,4 +11,3 @@ export const useBacktestExecutionPipelineReportQuery = createSuspenseReportHook<
     path,
     mapResponse: mapReportResponse
 })
-

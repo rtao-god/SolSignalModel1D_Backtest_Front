@@ -48,4 +48,3 @@ export function BucketFilterToggle({ value, options, onChange, className, ariaLa
         </div>
     )
 }
-

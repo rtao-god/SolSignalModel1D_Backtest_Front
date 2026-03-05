@@ -15,4 +15,3 @@ export default function AuthContainer({ className, children, title }: AuthContai
         </div>
     )
 }
-

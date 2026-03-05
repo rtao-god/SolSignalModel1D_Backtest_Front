@@ -6,8 +6,7 @@
     justify-content: center;
 
     // Лёгкий градиент и "glow" под тёмную тему
-    background:
-        radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.12), transparent 55%),
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.12), transparent 55%),
         radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.12), transparent 55%);
 }
 
@@ -127,8 +126,7 @@
     position: relative;
     padding: 16px 16px 18px;
     border-radius: 18px;
-    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.16), transparent 55%),
-        rgba(15, 23, 42, 0.96);
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.16), transparent 55%), rgba(15, 23, 42, 0.96);
     border: 1px solid rgba(148, 163, 184, 0.3);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(16px);
@@ -147,8 +145,7 @@
     inset: 0;
     border-radius: inherit;
     border: 1px solid transparent;
-    background:
-        linear-gradient(120deg, rgba(56, 189, 248, 0.35), rgba(129, 140, 248, 0.35)) border-box;
+    background: linear-gradient(120deg, rgba(56, 189, 248, 0.35), rgba(129, 140, 248, 0.35)) border-box;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.18s ease-out;

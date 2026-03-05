@@ -75,19 +75,21 @@ function buildPolicyBranchKeyOrThrow(
     const policy = row[policyIdx]?.trim()
     const branch = row[branchIdx]?.trim()
     if (!policy || !branch) {
-        throw new Error(
-            `[${contextTag}] row has empty Policy/Branch. section=${sectionTitle}, row=${rowIndex}.`
-        )
+        throw new Error(`[${contextTag}] row has empty Policy/Branch. section=${sectionTitle}, row=${rowIndex}.`)
     }
 
     return `${policy}::${branch}`
 }
 
-function ensureRowShapeOrThrow(row: string[] | undefined, requiredIdx: number, contextTag: string, sectionTitle: string, rowIndex: number) {
+function ensureRowShapeOrThrow(
+    row: string[] | undefined,
+    requiredIdx: number,
+    contextTag: string,
+    sectionTitle: string,
+    rowIndex: number
+) {
     if (!row || row.length <= requiredIdx) {
-        throw new Error(
-            `[${contextTag}] malformed row for TP/SL mode. section=${sectionTitle}, row=${rowIndex}.`
-        )
+        throw new Error(`[${contextTag}] malformed row for TP/SL mode. section=${sectionTitle}, row=${rowIndex}.`)
     }
 }
 

@@ -1,4 +1,3 @@
-
 interface EyeCloseProps {
     className?: string
 }
@@ -40,4 +39,3 @@ export function EyeClose({ className }: EyeCloseProps) {
         </svg>
     )
 }
-

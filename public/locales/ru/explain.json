@@ -1,0 +1,553 @@
+{
+  "page": { "title": "Объяснение" },
+  "home": {
+    "hero": {
+      "title": "Объяснение проекта",
+      "subtitle": "Карта проекта: модели, ветки, сплиты, время и структура решений.",
+      "meta": {
+        "models": "Модели",
+        "branches": "Ветки",
+        "data": "Данные",
+        "time": "Время",
+        "architecture": "Архитектура"
+      }
+    },
+    "sections": {
+      "title": "Разделы объяснения",
+      "cards": {
+        "models": {
+          "title": "Модели",
+          "description": "Как устроены Day/Micro/SL и как собирается финальный сигнал.",
+          "hint": "Открыть модели →"
+        },
+        "branches": {
+          "title": "Ветки BASE / ANTI-D",
+          "description": "Когда включается anti-direction и как это влияет на риск и доходность.",
+          "hint": "Открыть ветки →"
+        },
+        "splits": {
+          "title": "Train / OOS / Recent / Full",
+          "description": "Как читать train/oos и зачем выделять recent.",
+          "hint": "Открыть сплиты →"
+        },
+        "project": {
+          "title": "О проекте",
+          "description": "Техническая карта: causal/omniscient, отчёты, API и тесты.",
+          "hint": "Открыть описание →"
+        },
+        "time": {
+          "title": "Время и торговые дни",
+          "description": "NY-вход, baseline-exit, day-key, DST и выходные.",
+          "hint": "Открыть правила времени →"
+        },
+        "features": {
+          "title": "Фичи и индикаторы",
+          "description": "Список признаков модели с PFI-подсказками.",
+          "hint": "Открыть фичи →"
+        }
+      }
+    }
+  },
+  "tabs": {
+    "explain-models-overview": "Общий обзор",
+    "explain-models-daily": "Дневная модель",
+    "explain-models-micro": "Микро-модель",
+    "explain-models-sl": "SL-модель",
+    "explain-models-aggregation": "Сборка сигнала",
+    "explain-branches-overview": "Зачем ветки",
+    "explain-branches-base": "BASE",
+    "explain-branches-anti": "ANTI-D",
+    "explain-branches-conditions": "Условия ANTI-D",
+    "explain-branches-usage": "Как читать результаты",
+    "explain-splits-overview": "Зачем сплиты",
+    "explain-splits-train": "Train",
+    "explain-splits-oos": "OOS",
+    "explain-splits-recent": "Recent (240d)",
+    "explain-splits-full": "Full history",
+    "explain-project-overview": "Общий пайплайн",
+    "explain-project-causal": "Causal vs Omniscient",
+    "explain-project-structure": "Проекты и папки",
+    "explain-project-reports": "Отчёты и API",
+    "explain-project-tests": "Тесты и защиты",
+    "explain-time-overview": "NY-торговый день",
+    "explain-time-baseline": "Baseline-exit",
+    "explain-time-day-keys": "Day-key и типы времени",
+    "explain-time-weekend": "Выходные и исключения",
+    "explain-features-overview": "Как читать фичи",
+    "explain-features-returns": "Доходности и спреды",
+    "explain-features-indicators": "Индикаторы и макро",
+    "explain-features-momentum": "Momentum и волатильность",
+    "explain-features-regime": "Режимы и EMA"
+  },
+  "modelsPage": {
+    "header": {
+      "title": "Модели",
+      "subtitle": "Сигнал строится из трёх слоёв: Day, Micro и SL.",
+      "linkLabel": "Подробные метрики вынесены в отдельный раздел.",
+      "linkButton": "Подробнее"
+    },
+    "sections": {
+      "overview": {
+        "title": "Общий обзор слоёв",
+        "text": "Цепочка: Day -> Day+Micro -> Total (с учётом SL).",
+        "table": {
+          "headers": { "layer": "Слой", "role": "Что решает", "output": "Выход" },
+          "rows": [
+            ["Day (Move+Dir)", "Есть движение и куда", "ProbUp / ProbFlat / ProbDown"],
+            ["Micro (flat-only)", "Уточняет FLAT", "Day+Micro"],
+            ["SL", "Риск SL раньше TP", "Total"]
+          ]
+        },
+        "terms": [
+          { "term": "Дневной слой (Move + Dir)", "description": "Базовый слой прогноза по направлению и факту движения." },
+          { "term": "Move (P(move))", "description": "Оценивает, будет ли заметное движение." },
+          { "term": "Dir (P(up|move))", "description": "Определяет направление, если движение ожидается." },
+          { "term": "Микро-слой (flat-only)", "description": "Включается только для FLAT-сценариев." },
+          { "term": "SL-слой риска", "description": "Оценивает риск срабатывания SL до TP." },
+          { "term": "Total-прогноз", "description": "Финальные вероятности после всех оверлеев." }
+        ]
+      },
+      "daily": {
+        "title": "Дневная модель",
+        "text": "Выдаёт три класса: UP / FLAT / DOWN.",
+        "table": {
+          "headers": { "class": "Класс", "condition": "Условие разметки" },
+          "rows": [
+            ["UP (2)", "Первым достигнут entry * (1 + MinMove)"],
+            ["DOWN (0)", "Первым достигнут entry * (1 - MinMove)"],
+            ["FLAT (1)", "Уровни +/-MinMove не достигнуты"]
+          ]
+        },
+        "terms": [
+          { "term": "Кто определяет FLAT", "description": "FLAT задаётся условиями baseline-окна и максимумом вероятностей в runtime." },
+          { "term": "UP / FLAT / DOWN", "description": "Три целевых класса направления дня." },
+          { "term": "MinMove", "description": "Порог минимально значимого дневного движения." },
+          { "term": "ATR (Average True Range)", "description": "Индикатор волатильности для расчёта адаптивных порогов." },
+          { "term": "RegimeDownFlag", "description": "Флаг медвежьего режима." },
+          { "term": "HardRegimeIs2Flag", "description": "Флаг жёсткого режима рынка." },
+          { "term": "Тихий день (технически)", "description": "День без касания уровней +/-MinMove." }
+        ]
+      },
+      "micro": {
+        "title": "Микро-модель",
+        "text": "Уточняет только FLAT-дни, не заменяя дневной слой.",
+        "notes": [
+          "Для UP/DOWN микрослой не применяется.",
+          "Для FLAT микрослой может уточнить уклон.",
+          "Это уменьшает потерю слабых направленных сигналов."
+        ],
+        "terms": [
+          { "term": "Когда включается микро-модель", "description": "Только для FLAT-предсказаний дневного слоя." },
+          { "term": "MicroTruth", "description": "Таргет микро-модели для FLAT-дней." },
+          { "term": "Минимум данных для микро", "description": "Нужен достаточный объём flat-дней и оба класса." },
+          { "term": "Зачем микро-слой", "description": "Помогает выделять слабый, но устойчивый наклон внутри боковика." }
+        ]
+      },
+      "sl": {
+        "title": "SL-модель",
+        "text": "Риск-слой: вероятность SL раньше TP.",
+        "table": {
+          "headers": { "parameter": "Параметр", "rule": "Текущее правило" },
+          "rows": [
+            ["Порог риска", "SlHighDecision=true при p >= 0.55 и HighRisk"],
+            ["TP для разметки", "3%"],
+            ["SL для разметки", "5%"]
+          ]
+        },
+        "terms": [
+          { "term": "TP (Take Profit)", "description": "Целевой уровень прибыли в разметке." },
+          { "term": "SL (Stop Loss)", "description": "Уровень ограничения убытка в разметке." },
+          { "term": "SlProb", "description": "Вероятность SL раньше TP." },
+          { "term": "SlHighDecision", "description": "Флаг риск-дня по SL-модели." },
+          { "term": "StrongSignal по MinMove", "description": "Признак сильного дня для SL-логики." }
+        ]
+      },
+      "aggregation": {
+        "title": "Сборка сигнала",
+        "text": "Каждый шаг дорабатывает предыдущий прогноз.",
+        "steps": [
+          "Строим Day-вероятности.",
+          "Для FLAT применяем микро-оверлей.",
+          "Добавляем SL-оверлей и получаем Total."
+        ],
+        "terms": [
+          { "term": "Day", "description": "Вероятности после дневного слоя." },
+          { "term": "Day+Micro", "description": "Вероятности после микро-слоя." },
+          { "term": "Total (Day+Micro+SL)", "description": "Итоговые вероятности после SL-оверлея." },
+          { "term": "ProbUp / ProbFlat / ProbDown", "description": "Три финальные вероятности, сумма = 1.0." }
+        ]
+      }
+    }
+  },
+  "branchesPage": {
+    "header": {
+      "title": "Ветки BASE / ANTI-D",
+      "subtitle": "Сравнение режима без переворота и режима с anti-direction в риск-дни."
+    },
+    "sections": {
+      "overview": {
+        "title": "Зачем нужны ветки",
+        "text": "Это разные правила исполнения одного и того же прогноза.",
+        "table": {
+          "headers": { "branch": "Ветка", "howItWorks": "Как работает", "whenUseful": "Когда полезна" },
+          "rows": [
+            ["BASE", "Торгует по исходному направлению", "Эталон сигнала без защит"],
+            ["ANTI-D", "В риск-день может перевернуть сторону", "Снижение просадок"]
+          ]
+        },
+        "terms": [
+          { "term": "Policy", "description": "Правила плеча, ставки, TP/SL и skip-условий." },
+          { "term": "Branch", "description": "Режим исполнения PnL внутри одной политики." },
+          { "term": "BASE", "description": "Прямое следование сигналу модели." },
+          { "term": "ANTI-D (anti-direction)", "description": "Переворот стороны при выполнении risk-фильтров." }
+        ]
+      },
+      "base": {
+        "title": "BASE",
+        "text": "Базовая точка отсчёта для оценки любых защитных оверлеев.",
+        "terms": [
+          { "term": "Как выбирается направление", "description": "UP -> long, DOWN -> short (с учётом micro)." },
+          { "term": "Что показывает BASE", "description": "Чистое качество модели без anti-direction." },
+          { "term": "Почему BASE важна", "description": "Без базы невозможно оценить реальную пользу защиты." }
+        ]
+      },
+      "anti": {
+        "title": "ANTI-D",
+        "text": "Включается только по условиям риска, а не всегда.",
+        "terms": [
+          { "term": "Anti-direction", "description": "Swap направления long <-> short." },
+          { "term": "RiskDay (SlHighDecision)", "description": "Главный триггер включения ANTI-D." },
+          { "term": "Где применяется переворот", "description": "До симуляции сделок, на уровне дневного решения." },
+          { "term": "Зачем ANTI-D", "description": "Снижение тяжёлых просадок ценой части прибыли." }
+        ]
+      },
+      "conditions": {
+        "title": "Условия включения ANTI-D",
+        "text": "Если один фильтр не пройден, ветка работает как BASE.",
+        "table": {
+          "headers": { "filter": "Фильтр", "threshold": "Порог", "protection": "Что защищает" },
+          "rows": [
+            ["SL риск-день", "SlHighDecision=true", "Без риска переворот не нужен"],
+            ["MinMove", "0.5%..12%", "Отсекает шум и экстремумы"],
+            ["Буфер до ликвидации", "liqAdversePct >= 2xMinMove", "Ограничивает тонкий буфер"]
+          ]
+        },
+        "terms": [
+          { "term": "SlHighDecision=true", "description": "Обязательный триггер ветки ANTI-D." },
+          { "term": "MinMove в диапазоне 0.5%-12%", "description": "Фильтр слишком тихих и слишком экстремальных дней." },
+          { "term": "Запас до ликвидации >= 2xMinMove", "description": "Контроль буфера до ликвидации после переворота." },
+          { "term": "Корректное плечо", "description": "ANTI-D требует валидного конечного leverage > 0." }
+        ]
+      },
+      "usage": {
+        "title": "Как читать результаты",
+        "text": "Сравнивайте ветки по пакету метрик, а не по одной цифре.",
+        "terms": [
+          { "term": "PnL %", "description": "Суммарная доходность ветки." },
+          { "term": "MaxDD %", "description": "Максимальная просадка по equity." },
+          { "term": "Trade% / NoTrade%", "description": "Доля торговых и пропущенных дней." },
+          { "term": "Policy Branch Mega", "description": "Главная сравнительная таблица по веткам и политикам." }
+        ]
+      }
+    }
+  },
+  "splitsPage": {
+    "header": {
+      "title": "Train / OOS / Recent / Full",
+      "subtitle": "Разделение истории показывает и устойчивость модели, и актуальность на свежих данных."
+    },
+    "sections": {
+      "overview": {
+        "title": "Зачем нужны сплиты",
+        "text": "Один срез не отвечает одновременно за историю и за текущий режим рынка.",
+        "table": {
+          "headers": { "slice": "Срез", "includes": "Что включает", "question": "Основной вопрос" },
+          "rows": [
+            ["Train", "Дни до TrainUntilExitDayKeyUtc", "На чём обучена модель?"],
+            ["OOS", "Дни после TrainUntilExitDayKeyUtc", "Как ведёт себя на новых данных?"],
+            ["Recent", "Последние 240 EntryDayKeyUtc", "Насколько модель актуальна сейчас?"],
+            ["Full", "Train + OOS", "Устойчивость на длинном горизонте"]
+          ]
+        },
+        "terms": [
+          { "term": "Train", "description": "Часть истории, используемая для обучения." },
+          { "term": "OOS (Out-of-sample)", "description": "Данные после train-границы для честной проверки." },
+          { "term": "Recent (240d)", "description": "Последние 240 торговых дней." },
+          { "term": "Full history", "description": "Совокупность train и oos." },
+          { "term": "TrainUntilExitDayKeyUtc", "description": "Каноническая граница split по дню выхода baseline." },
+          { "term": "EntryDayKeyUtc / ExitDayKeyUtc", "description": "Ключи дня входа и дня baseline-exit." }
+        ]
+      },
+      "train": {
+        "title": "Train",
+        "text": "Единственный сегмент, разрешённый для обучения.",
+        "terms": [
+          { "term": "Train-only", "description": "Подмножество до границы TrainUntilExitDayKeyUtc." },
+          { "term": "Минимальный объём train", "description": "Порог данных для стабильного обучения слоёв." },
+          { "term": "Почему train нельзя смешивать с oos", "description": "Иначе метрики теряют честность и завышаются." }
+        ]
+      },
+      "oos": {
+        "title": "OOS",
+        "text": "Сегмент реального поведения после обучения.",
+        "terms": [
+          { "term": "Честный контроль качества", "description": "Проверяет переносимость на новых данных." },
+          { "term": "Сильная просадка в OOS", "description": "Признак переобучения или смены режима рынка." },
+          { "term": "Strict split", "description": "Жёсткий режим split без тихих исключений." }
+        ]
+      },
+      "recent": {
+        "title": "Recent (последние 240 дней)",
+        "text": "Отдельный индикатор текущей работоспособности модели.",
+        "terms": [
+          { "term": "Последние 240 дней", "description": "Скользящее окно от максимальной даты назад." },
+          { "term": "Что показывает recent", "description": "Качество в текущем рынке, а не среднее по истории." },
+          { "term": "Как трактовать", "description": "Расхождение с full указывает на необходимость адаптации." }
+        ]
+      },
+      "full": {
+        "title": "Full history",
+        "text": "Длинный исторический контекст, который всегда читается вместе с recent.",
+        "terms": [
+          { "term": "Train + OOS", "description": "Общий горизонт для долгого анализа." },
+          { "term": "Зачем нужен full", "description": "Показывает устойчивость на редких рыночных режимах." },
+          { "term": "Почему full не главный сам по себе", "description": "Хороший full не гарантирует хороший текущий режим." }
+        ]
+      }
+    }
+  },
+  "projectPage": {
+    "header": {
+      "title": "О проекте",
+      "subtitle": "Техническая карта: от данных и causal-логики до отчётов, API и тестовых защит."
+    },
+    "sections": {
+      "overview": {
+        "title": "Общий пайплайн",
+        "text": "Цепочка: рынок -> causal-фичи -> прогноз -> omniscient-оценка -> отчёты -> API -> UI.",
+        "table": {
+          "headers": { "stage": "Этап", "artifact": "Артефакт", "why": "Зачем нужен" },
+          "rows": [
+            ["Подготовка данных", "Свечи + индикаторы", "Стабильный вход для модели"],
+            ["Causal слой", "CausalDataRow", "Решение без доступа к будущему"],
+            ["Omniscient слой", "BacktestRecord", "Оценка качества и PnL по факту"],
+            ["Отчёты", "ReportDocument", "Единый формат для API/UI"]
+          ]
+        },
+        "terms": [
+          { "term": "Свечи 6h / 1h / 1m", "description": "Входные ряды для дневных и внутри-дневных расчётов." },
+          { "term": "CausalDataRow", "description": "Признаки, доступные на момент входа." },
+          { "term": "PredictionEngine", "description": "Сборка day/micro/sl вероятностей." },
+          { "term": "BacktestRecord (omniscient)", "description": "Фактический outcome + PnL-контекст." },
+          { "term": "Reports", "description": "Снапшоты отчётов для API и интерфейса." },
+          { "term": "API -> Front", "description": "Выдача готовых документов во фронтенд." }
+        ]
+      },
+      "causal": {
+        "title": "Causal vs Omniscient",
+        "text": "Решение и оценка разделены контрактно и физически.",
+        "terms": [
+          { "term": "Казуальная логика (Causal)", "description": "Только данные, доступные в момент EntryUtc." },
+          { "term": "Не-казуальная логика (Omniscient)", "description": "Используется только для пост-фактум оценки." },
+          { "term": "Почему разделение критично", "description": "Защищает от утечек будущей информации." },
+          { "term": "Leakage guards", "description": "Набор тестов и архитектурных барьеров против leakage." }
+        ]
+      },
+      "structure": {
+        "title": "Проекты и структура решения",
+        "text": "Ключевые проекты и их роли в архитектуре.",
+        "table": {
+          "headers": { "project": "Проект", "task": "Техническая задача" },
+          "rows": [
+            ["SolSignalModel1D_Backtest", "Host-оркестрация пайплайна"],
+            ["Core.Causal / Core.Omniscient", "Разделение принятия решения и оценки"],
+            ["Core.Time / Core.Config", "Контракты времени и валидации"],
+            ["Infra / Reports / Api", "Хранение, отчёты и выдача"],
+            ["AppOrchestration / Interop", "Интеграция сценариев и DTO"],
+            ["SanityChecks / Tests / ArchTests / Analyzers", "Контроль корректности и зависимостей"]
+          ]
+        },
+        "terms": [
+          { "term": "SolSignalModel1D_Backtest", "description": "Главный orchestrator полного цикла." },
+          { "term": "SolSignalModel1D_Backtest.Core.Causal", "description": "Казуальный контур обучения и инференса." },
+          { "term": "SolSignalModel1D_Backtest.Core.Omniscient", "description": "Контур оценки и PnL по факту." },
+          { "term": "SolSignalModel1D_Backtest.Core.Time", "description": "Типы времени и правила NY-окон." },
+          { "term": "SolSignalModel1D_Backtest.Core.Config", "description": "Контракты конфигурации и coverage." },
+          { "term": "SolSignalModel1D_Backtest.Infra", "description": "Инфраструктура хранения и чтения." },
+          { "term": "SolSignalModel1D_Backtest.Reports", "description": "Сборка ReportDocument." },
+          { "term": "SolSignalModel1D_Backtest.Api", "description": "HTTP-контур отдачи отчётов." },
+          { "term": "SolSignalModel1D_Backtest.AppOrchestration", "description": "Сценарии запуска и runtime-интеграция." },
+          { "term": "SolSignalModel1D_Backtest.AppOrchestration.Interop", "description": "Мост DTO между слоями." },
+          { "term": "SolSignalModel1D_Backtest.SanityChecks", "description": "Пост-расчётные sanity-проверки." },
+          { "term": "SolSignalModel1D_Backtest.Tests / ArchTests / Analyzers", "description": "Unit/integration/arch/compile-time контроль." }
+        ]
+      },
+      "reports": {
+        "title": "Отчёты и API",
+        "text": "Фронтенд читает стабильный отчётный формат независимо от внутренней логики обучения.",
+        "terms": [
+          { "term": "ReportDocument", "description": "Единый формат заголовка, таблиц и key-value секций." },
+          { "term": "ReportStorage", "description": "Файловое хранилище отчётов по kind/id." },
+          { "term": "Report kind", "description": "Логический тип отчёта и его структура." },
+          { "term": "API endpoints", "description": "Маршруты чтения отчётов и текущего прогноза." }
+        ]
+      },
+      "tests": {
+        "title": "Тесты и защиты",
+        "text": "Контроль строится на нескольких слоях: leakage, архитектура, sanity и split/time контракт.",
+        "table": {
+          "headers": { "group": "Группа", "example": "Пример", "problem": "Что считается проблемой" },
+          "rows": [
+            ["Leakage / shuffle", "DailyPipelineLeakageTests", "Качество не падает после randomize"],
+            ["Изоляция моделей", "ModelTrainerIsolationTests", "Shuffle labels не портит метрики"],
+            ["Future-blind rows", "RowFeatureLeakageChecks", "Фичи повторяют будущие таргеты"],
+            ["Split/time contract", "NyTrainSplit strict", "Нарушены границы train/oos"],
+            ["Архитектурные барьеры", "AssemblyDependencyTests", "Causal зависит от Omniscient"]
+          ]
+        },
+        "terms": [
+          { "term": "Shuffle-тесты на деградацию", "description": "Проверяют падение качества на перемешанных данных." },
+          { "term": "Изоляция тренеров", "description": "Контроль чувствительности к shuffle labels." },
+          { "term": "Future-blind проверки", "description": "Будущее не должно менять causal-результаты." },
+          { "term": "Split/time контракт", "description": "Проверка границ train/oos и baseline-exit." },
+          { "term": "Архитектурные барьеры", "description": "Запрет недопустимых ссылок между слоями." },
+          { "term": "SelfCheckRunner", "description": "Пост-run пакет sanity-checks." }
+        ]
+      }
+    }
+  },
+  "timePage": {
+    "header": {
+      "title": "Время и торговые дни",
+      "subtitle": "Единый контракт времени для входа, выхода и split-границ."
+    },
+    "sections": {
+      "overview": {
+        "title": "NY-торговый день",
+        "text": "Фиксированная точка входа по локальному времени Нью-Йорка.",
+        "table": {
+          "headers": { "season": "Сезон NY", "entryTime": "Время входа", "comment": "Комментарий" },
+          "rows": [
+            ["Лето (DST)", "08:00 NY", "С учётом DST-флага"],
+            ["Зима (без DST)", "07:00 NY", "Контракт NyWindowing"]
+          ]
+        },
+        "terms": [
+          { "term": "NY-morning", "description": "Каноническая точка входа торгового дня." },
+          { "term": "DST (Daylight Saving Time)", "description": "Сезонный сдвиг времени Нью-Йорка." },
+          { "term": "EntryUtc", "description": "UTC-момент входа в торговый день." },
+          { "term": "NyTradingDay", "description": "Локальный NY-день как бизнес-ключ." }
+        ]
+      },
+      "baseline": {
+        "title": "Baseline-exit",
+        "text": "Определяет конец базового окна дня для разметки и split.",
+        "terms": [
+          { "term": "Baseline-exit", "description": "Следующее NY-утро минус 2 минуты." },
+          { "term": "Friday -> Monday", "description": "Пятничный exit переносится на понедельник." },
+          { "term": "Почему именно -2 минуты", "description": "Технический зазор перед следующим входом." }
+        ]
+      },
+      "dayKeys": {
+        "title": "Day-key и типы времени",
+        "text": "Разделяет день входа и день выхода, чтобы исключить ошибки split.",
+        "terms": [
+          { "term": "EntryDayKeyUtc", "description": "UTC day-key момента входа." },
+          { "term": "ExitDayKeyUtc", "description": "UTC day-key baseline-exit." },
+          { "term": "TrainUntilExitDayKeyUtc", "description": "Каноническая split-граница по exit-day-key." },
+          { "term": "BaselineExitUtc", "description": "UTC-время окончания baseline-окна." }
+        ]
+      },
+      "weekend": {
+        "title": "Выходные и исключения",
+        "text": "По контракту NY-выходные исключены из торгового потока.",
+        "terms": [
+          { "term": "Технический фильтр выходных", "description": "Не создаёт вход для NY-субботы/воскресенья." },
+          { "term": "Почему выходные исключены", "description": "Снижает шум и повышает информативность train." },
+          { "term": "Что это даёт", "description": "Чище связь признаков и дневного движения." },
+          { "term": "Будущее расширение", "description": "Можно вынести weekend в отдельную ветку/модель." }
+        ]
+      }
+    }
+  },
+  "featuresPage": {
+    "header": {
+      "title": "Фичи и индикаторы",
+      "subtitle": "Список признаков модели с описанием и PFI-подсказкой.",
+      "linkLabel": "PFI по моделям:"
+    },
+    "pfiNotes": {
+      "reportNotLoaded": "PFI: отчёт ещё не загружен.",
+      "featureMissing": "PFI: фича не найдена в отчёте.",
+      "summary": "PFI по {{count}} моделям: ΔAUC ≈ {{importance}}; corr ≈ {{corr}}; ΔMean ≈ {{deltaMean}}."
+    },
+    "sections": {
+      "overview": {
+        "title": "Как читать фичи",
+        "text": "Таблица ниже объясняет основные PFI-метрики.",
+        "table": {
+          "headers": { "metric": "Метрика", "meaning": "Что означает", "reading": "Как читать" },
+          "rows": [
+            ["ΔAUC", "Падение качества после перемешивания фичи", "Чем больше по модулю, тем важнее фича"],
+            ["Corr(score)", "Корреляция фичи со скором модели", "Знак = направление, модуль = сила"],
+            ["ΔMean", "Разница средних между классами", "Показывает смещение признака"]
+          ]
+        },
+        "terms": [
+          { "term": "Фича", "description": "Числовой признак, подаваемый в модель на момент входа." },
+          { "term": "PFI", "description": "Permutation Feature Importance для оценки вклада признака." },
+          { "term": "AUC", "description": "Метрика качества бинарного классификатора." },
+          { "term": "ΔAUC", "description": "Изменение AUC после пермутации фичи." },
+          { "term": "Corr(score) (корреляция)", "description": "Связь значения фичи со скором модели." },
+          { "term": "ΔMean", "description": "Разница средних значений признака между классами." }
+        ]
+      },
+      "returns": {
+        "title": "Доходности и относительная динамика",
+        "text": "Движение SOL/BTC на коротком и среднем горизонте.",
+        "terms": [
+          { "term": "SolRet30", "description": "Доходность SOL за 30 последних 6h-баров." },
+          { "term": "BtcRet30", "description": "Доходность BTC за тот же горизонт." },
+          { "term": "SolBtcRet30", "description": "Разница SolRet30 и BtcRet30." },
+          { "term": "SolRet1", "description": "Доходность SOL за 1 бар." },
+          { "term": "SolRet3", "description": "Доходность SOL за 3 бара." },
+          { "term": "BtcRet1", "description": "Доходность BTC за 1 бар." },
+          { "term": "BtcRet3", "description": "Доходность BTC за 3 бара." },
+          { "term": "GapBtcSol1", "description": "Разница BtcRet1 и SolRet1." },
+          { "term": "GapBtcSol3", "description": "Разница BtcRet3 и SolRet3." }
+        ]
+      },
+      "indicators": {
+        "title": "Индикаторы и макро",
+        "text": "Контекст рынка: настроение, долларовый фон, длинный тренд BTC.",
+        "terms": [
+          { "term": "FngNorm", "description": "Нормализованный индекс Fear & Greed." },
+          { "term": "DxyChg30", "description": "Изменение DXY за 30 дней." },
+          { "term": "GoldChg30", "description": "Изменение PAXG за 30 последних 6h-баров." },
+          { "term": "BtcVs200", "description": "Положение BTC относительно SMA200." }
+        ]
+      },
+      "momentum": {
+        "title": "Momentum и волатильность",
+        "text": "Скорость движения и нервность рынка по RSI/ATR/dynVol.",
+        "terms": [
+          { "term": "SolRsiCenteredScaled", "description": "Центрированный и масштабированный RSI(14) по SOL." },
+          { "term": "RsiSlope3Scaled", "description": "Наклон RSI за 3 шага." },
+          { "term": "AtrPct", "description": "ATR(14), нормализованный на цену входа." },
+          { "term": "DynVol", "description": "Среднее абсолютное движение за 10 баров." }
+        ]
+      },
+      "regime": {
+        "title": "Режимы и EMA",
+        "text": "Флаги режима и трендовые EMA-связки для переключения поведения модели.",
+        "terms": [
+          { "term": "RegimeDownFlag", "description": "Флаг медвежьего режима рынка." },
+          { "term": "HardRegimeIs2Flag", "description": "Флаг жёсткого рыночного режима." },
+          { "term": "SolAboveEma50", "description": "Положение SOL относительно EMA50." },
+          { "term": "SolEma50vs200", "description": "Трендовый спред EMA50/EMA200 по SOL." },
+          { "term": "BtcEma50vs200", "description": "Трендовый спред EMA50/EMA200 по BTC." }
+        ]
+      }
+    }
+  }
+}

@@ -9,4 +9,3 @@ export default function BlueBox({ children, style, className }: BlueBoxProps) {
         </div>
     )
 }
-

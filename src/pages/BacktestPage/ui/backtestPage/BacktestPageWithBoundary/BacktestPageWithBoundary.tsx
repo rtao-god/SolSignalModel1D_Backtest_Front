@@ -3,9 +3,11 @@ import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQuer
 import { useGetBacktestProfilesQuery } from '@/shared/api/api'
 import type { BacktestSummaryDto, BacktestProfileDto } from '@/shared/types/backtest.types'
 import { BacktestPageContent } from '../BacktestPageContent/BacktestPageContent'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestPageWithBoundary.module.scss'
 
 export function BacktestPageWithBoundary() {
+    const { t } = useTranslation('reports')
     const {
         data: baselineSummary,
         isError: isBaselineError,
@@ -38,7 +40,7 @@ export function BacktestPageWithBoundary() {
                 error={mergedError}
                 hasData={hasData}
                 onRetry={handleRetry}
-                errorTitle='Не удалось загрузить baseline-сводку и профили бэктеста'>
+                errorTitle={t('backtestFull.page.errorTitle')}>
                 {hasData && (
                     <BacktestPageContent
                         baselineSummary={baselineSummary as BacktestSummaryDto}

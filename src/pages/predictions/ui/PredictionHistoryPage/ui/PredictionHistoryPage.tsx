@@ -29,23 +29,34 @@ import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import {
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaBucketFromTitle,
     type PolicyBranchMegaBucketMode
 } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS,
+    type CurrentPredictionPolicyColumnKey
+} from '@/shared/utils/reportCanonicalKeys'
 import type { ReportDocumentDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import type { TableRow } from '@/shared/ui/SortableTable'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import type { BucketFilterOption } from '@/shared/ui/BucketFilterToggle'
+import { useLocale } from '@/shared/lib/i18n'
 import type { PredictionHistoryPageProps } from './types'
+import { useTranslation } from 'react-i18next'
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = Math.max(1, Math.floor(PAGE_SIZE / 2))
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
 type PredictionHistoryWindow = '365' | '730' | 'all'
-const HISTORY_WINDOW_OPTIONS: readonly BucketFilterOption[] = [
-    { value: '365', label: 'За 1 год' },
-    { value: '730', label: 'За 2 года' },
-    { value: 'all', label: 'За всё время' }
+
+interface HistoryWindowOptionDef {
+    value: PredictionHistoryWindow
+    labelKey: string
+    defaultLabel: string
+}
+
+const HISTORY_WINDOW_OPTION_DEFS: readonly HistoryWindowOptionDef[] = [
+    { value: '365', labelKey: 'predictionHistory.filters.window.oneYear', defaultLabel: 'За 1 год' },
+    { value: '730', labelKey: 'predictionHistory.filters.window.twoYears', defaultLabel: 'За 2 года' },
+    { value: 'all', labelKey: 'predictionHistory.filters.window.allTime', defaultLabel: 'За всё время' }
 ]
 type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
 interface PredictionHistoryPageInnerProps {
@@ -60,8 +71,8 @@ interface PredictionHistoryPageInnerProps {
     onHistoryWindowChange: (window: PredictionHistoryWindow) => void
 }
 
-type ReportTableSectionView = TableSectionDto & { columns: string[]; rows: string[][] }
-type ReportKeyValueSectionView = ReportSectionDto & { items: Array<{ key: string; value: string }> }
+type ReportTableSectionView = TableSectionDto & { columns: string[]; columnKeys: string[]; rows: string[][] }
+type ReportKeyValueSectionView = ReportSectionDto & { items: Array<{ itemKey?: string; key: string; value: string }> }
 
 interface PolicyTradeRow {
     policyName: string
@@ -95,25 +106,25 @@ interface ParsedPolicyTradeRows {
     skippedDirectionalSignals: PolicySkippedSignalRow[]
 }
 
-const POLICY_TABLE_TITLE_RE = /^=*\s*Политики плеча/i
-const POLICY_TABLE_REQUIRED_COLUMNS = [
-    'политика',
-    'ветка',
-    'направление',
-    'цена входа',
-    'цена выхода',
-    'причина выхода',
-    'цена tp',
-    'цена sl',
-    'цена ликвидации',
-    'капитал бакета, $',
-    'ставка, $',
-    'ставка, %'
-] as const
+const POLICY_TABLE_SECTION_KEY = 'leverage_policies'
+const POLICY_TABLE_REQUIRED_COLUMNS: readonly CurrentPredictionPolicyColumnKey[] = [
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.policy,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.branch,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.direction,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.entryPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitReason,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucketCapitalUsd,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakeUsd,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakePct
+]
 
 function isTableSection(section: ReportSectionDto): section is ReportTableSectionView {
-    const candidate = section as { columns?: unknown; rows?: unknown }
-    return Array.isArray(candidate.columns) && Array.isArray(candidate.rows)
+    const candidate = section as { columns?: unknown; columnKeys?: unknown; rows?: unknown }
+    return Array.isArray(candidate.columns) && Array.isArray(candidate.columnKeys) && Array.isArray(candidate.rows)
 }
 
 function isKeyValueSection(section: ReportSectionDto): section is ReportKeyValueSectionView {
@@ -121,12 +132,12 @@ function isKeyValueSection(section: ReportSectionDto): section is ReportKeyValue
     return Array.isArray(candidate.items) && !Array.isArray(candidate.columns)
 }
 
-function normalizeLabel(value: string): string {
-    return value.toLowerCase().replace(/\s+/g, ' ').trim()
-}
-
-function findColumnIndexOrThrow(columns: string[], matcher: (normalized: string) => boolean, label: string): number {
-    const idx = columns.findIndex(col => matcher(normalizeLabel(col)))
+function findCanonicalColumnIndexOrThrow(
+    table: ReportTableSectionView,
+    key: CurrentPredictionPolicyColumnKey,
+    label: string
+): number {
+    const idx = table.columnKeys.findIndex(columnKey => columnKey === key)
     if (idx < 0) {
         throw new Error(`[ui] Required column is missing in policy table. column=${label}.`)
     }
@@ -163,7 +174,8 @@ function parseOptionalNumber(raw: unknown): number | null {
         normalized === '-' ||
         normalized === 'n/a' ||
         normalized === 'na' ||
-        normalized.startsWith('нет')
+        normalized.startsWith('нет') ||
+        normalized.startsWith('no')
     ) {
         return null
     }
@@ -192,31 +204,31 @@ function parseBooleanTextOrThrow(raw: unknown, label: string): boolean {
     throw new Error(`[ui] Unsupported boolean-like text. field=${label}, value=${raw}.`)
 }
 
-function formatPrice(value: number): string {
+function formatPrice(value: number, locale: string): string {
     if (!Number.isFinite(value)) {
         throw new Error(`[ui] Invalid price value for formatting: ${value}.`)
     }
-    return value.toLocaleString('ru-RU', {
+    return value.toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4
     })
 }
 
-function formatMoney(value: number): string {
+function formatMoney(value: number, locale: string): string {
     if (!Number.isFinite(value)) {
         throw new Error(`[ui] Invalid money value for formatting: ${value}.`)
     }
-    return value.toLocaleString('ru-RU', {
+    return value.toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     })
 }
 
-function formatPercent(value: number): string {
+function formatPercent(value: number, locale: string): string {
     if (!Number.isFinite(value)) {
         throw new Error(`[ui] Invalid percent value for formatting: ${value}.`)
     }
-    return value.toLocaleString('ru-RU', {
+    return value.toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     })
@@ -233,53 +245,39 @@ function parsePolicyBucketModeOrThrow(raw: unknown, label: string): PolicyBranch
     }
 
     const lower = normalized.toLowerCase()
-    if (lower === 'дейли') return 'daily'
-    if (lower === 'интрадей') return 'intraday'
-    if (lower === 'делейд') return 'delayed'
-    if (lower === 'все бакеты' || lower === 'сумма бакетов' || lower === 'total buckets') return 'total'
+    if (lower === 'daily') return 'daily'
+    if (lower === 'intraday') return 'intraday'
+    if (lower === 'delayed') return 'delayed'
+    if (lower === 'total') return 'total'
 
-    try {
-        return resolvePolicyBranchMegaBucketFromQuery(normalized, 'daily')
-    } catch {
-        throw new Error(`[ui] Unsupported bucket value. field=${label}, value=${raw}.`)
-    }
+    throw new Error(`[ui] Unsupported bucket value. field=${label}, value=${raw}.`)
 }
 
 function resolvePolicyTableSectionsOrThrow(report: ReportDocumentDto): ReportTableSectionView[] {
     const tables = report.sections.filter(
         (section): section is ReportTableSectionView =>
             isTableSection(section) &&
-            POLICY_TABLE_TITLE_RE.test(section.title) &&
-            section.columns.some(col => normalizeLabel(col) === 'политика') &&
-            section.columns.some(col => normalizeLabel(col) === 'цена входа')
+            section.sectionKey === POLICY_TABLE_SECTION_KEY &&
+            section.columnKeys.some(columnKey => columnKey === CURRENT_PREDICTION_POLICY_COLUMN_KEYS.policy) &&
+            section.columnKeys.some(columnKey => columnKey === CURRENT_PREDICTION_POLICY_COLUMN_KEYS.entryPrice)
     )
 
     if (tables.length === 0) {
-        throw new Error('[ui] Policy table section is missing in report.')
+        throw new Error(
+            `[ui] Policy table section is missing in report. expectedSectionKey=${POLICY_TABLE_SECTION_KEY}.`
+        )
     }
 
     const strictTables = tables.filter(table => {
-        const normalized = new Set(table.columns.map(col => normalizeLabel(col)))
+        const normalized = new Set(table.columnKeys)
         return POLICY_TABLE_REQUIRED_COLUMNS.every(required => normalized.has(required))
     })
 
     if (strictTables.length === 0) {
         const bestCandidate = tables[0]
-        const normalized = new Set(bestCandidate.columns.map(col => normalizeLabel(col)))
+        const normalized = new Set(bestCandidate.columnKeys)
         const missingColumns = POLICY_TABLE_REQUIRED_COLUMNS.filter(required => !normalized.has(required))
-        throw new Error(
-            `[ui] Policy table schema is outdated. Missing required columns: ${missingColumns.join(', ')}.`
-        )
-    }
-
-    for (const table of strictTables) {
-        const hasBucketColumn = table.columns.some(column => normalizeLabel(column) === 'бакет')
-        const titleBucket = resolvePolicyBranchMegaBucketFromTitle(table.title)
-        if (!hasBucketColumn && titleBucket === null) {
-            throw new Error(
-                `[ui] Policy table bucket is missing. section=${table.title}. Add bucket tag in title or "Бакет" column.`
-            )
-        }
+        throw new Error(`[ui] Policy table schema is outdated. Missing required columns: ${missingColumns.join(', ')}.`)
     }
 
     return strictTables
@@ -292,33 +290,42 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
     const skippedDirectionalSignals: PolicySkippedSignalRow[] = []
 
     for (const table of tables) {
-        const sectionBucket = resolvePolicyBranchMegaBucketFromTitle(table.title)
-        const bucketIdx = table.columns.findIndex(col => normalizeLabel(col) === 'бакет')
+        const bucketIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucket, 'Bucket')
 
-        if (bucketIdx < 0 && sectionBucket === null) {
-            throw new Error(
-                `[ui] Policy table bucket is missing for section=${table.title}. Add bucket tag in title or "Бакет" column.`
-            )
-        }
-
-        const policyIdx = findColumnIndexOrThrow(table.columns, col => col === 'политика', 'Политика')
-        const branchIdx = findColumnIndexOrThrow(table.columns, col => col === 'ветка', 'Ветка')
-        const hasDirectionIdx = findColumnIndexOrThrow(table.columns, col => col === 'есть направление', 'Есть направление')
-        const skippedIdx = findColumnIndexOrThrow(table.columns, col => col === 'пропущено', 'Пропущено')
-        const directionIdx = findColumnIndexOrThrow(table.columns, col => col === 'направление', 'Направление')
-        const leverageIdx = findColumnIndexOrThrow(table.columns, col => col === 'плечо', 'Плечо')
-        const entryIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена входа', 'Цена входа')
-        const slPctIdx = findColumnIndexOrThrow(table.columns, col => col === 'sl, %', 'SL, %')
-        const tpPctIdx = findColumnIndexOrThrow(table.columns, col => col === 'tp, %', 'TP, %')
-        const slPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена sl', 'Цена SL')
-        const tpPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена tp', 'Цена TP')
-        const positionUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'размер позиции, $', 'Размер позиции, $')
-        const liqPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена ликвидации', 'Цена ликвидации')
-        const exitPriceIdx = findColumnIndexOrThrow(table.columns, col => col === 'цена выхода', 'Цена выхода')
-        const exitReasonIdx = findColumnIndexOrThrow(table.columns, col => col === 'причина выхода', 'Причина выхода')
-        const bucketCapitalUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'капитал бакета, $', 'Капитал бакета, $')
-        const stakeUsdIdx = findColumnIndexOrThrow(table.columns, col => col === 'ставка, $', 'Ставка, $')
-        const stakePctIdx = findColumnIndexOrThrow(table.columns, col => col === 'ставка, %', 'Ставка, %')
+        const policyIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.policy, 'Policy')
+        const branchIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.branch, 'Branch')
+        const hasDirectionIdx = findCanonicalColumnIndexOrThrow(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.hasDirection,
+            'HasDirection'
+        )
+        const skippedIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.skipped, 'Skipped')
+        const directionIdx = findCanonicalColumnIndexOrThrow(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.direction,
+            'Direction'
+        )
+        const leverageIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.leverage, 'Leverage')
+        const entryIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.entryPrice, 'EntryPrice')
+        const slPctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPct, 'SlPct')
+        const tpPctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPct, 'TpPct')
+        const slPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice, 'SlPrice')
+        const tpPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice, 'TpPrice')
+        const positionUsdIdx = findCanonicalColumnIndexOrThrow(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.positionUsd,
+            'PositionUsd'
+        )
+        const liqPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice, 'LiquidationPrice')
+        const exitPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitPrice, 'ExitPrice')
+        const exitReasonIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitReason, 'ExitReason')
+        const bucketCapitalUsdIdx = findCanonicalColumnIndexOrThrow(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucketCapitalUsd,
+            'BucketCapitalUsd'
+        )
+        const stakeUsdIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakeUsd, 'StakeUsd')
+        const stakePctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakePct, 'StakePct')
 
         for (const row of table.rows) {
             if (!Array.isArray(row)) {
@@ -332,7 +339,9 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
                 continue
             }
 
-            const directionRaw = String(row[directionIdx] ?? '').trim().toUpperCase()
+            const directionRaw = String(row[directionIdx] ?? '')
+                .trim()
+                .toUpperCase()
             if (directionRaw !== 'LONG' && directionRaw !== 'SHORT') {
                 throw new Error(`[ui] Unsupported direction value: ${directionRaw}.`)
             }
@@ -349,15 +358,7 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
             }
 
             const bucket =
-                bucketIdx >= 0
-                    ? parsePolicyBucketModeOrThrow(row[bucketIdx], 'Бакет')
-                    : (sectionBucket as PolicyBranchMegaBucketMode)
-
-            if (sectionBucket !== null && bucket !== sectionBucket) {
-                throw new Error(
-                    `[ui] Policy table bucket mismatch. section=${table.title}, sectionBucket=${sectionBucket}, rowBucket=${bucket}.`
-                )
-            }
+                parsePolicyBucketModeOrThrow(row[bucketIdx], 'Бакет')
 
             if (skipped) {
                 const skipReason = String(row[exitReasonIdx] ?? '').trim()
@@ -468,7 +469,11 @@ function collectUniqueDatesDesc(index: PredictionHistoryIndex | null): string[] 
     }
 
     const dates = Array.from(dateSet)
-    dates.sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+    dates.sort((a, b) =>
+        a < b ? 1
+        : a > b ? -1
+        : 0
+    )
     return dates
 }
 
@@ -537,6 +542,9 @@ function PredictionHistoryPageInner({
     historyWindow,
     onHistoryWindowChange
 }: PredictionHistoryPageInnerProps) {
+    const { t } = useTranslation('reports')
+    const { i18nLanguage } = useLocale()
+    const reportLanguage = i18nLanguage === 'ru' ? 'ru' : 'en'
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
@@ -546,10 +554,19 @@ function PredictionHistoryPageInner({
     const [pageIndex, setPageIndex] = useState(0)
     const [cardsAnimating, setCardsAnimating] = useState(false)
 
+    const historyWindowOptions: readonly BucketFilterOption[] = useMemo(
+        () =>
+            HISTORY_WINDOW_OPTION_DEFS.map(option => ({
+                value: option.value,
+                label: t(option.labelKey, { defaultValue: option.defaultLabel })
+            })),
+        [t]
+    )
+
     const allDatesDesc = useMemo(() => collectUniqueDatesDesc(index), [index])
     const allBuiltDatesDesc = useMemo(() => collectUniqueDatesDesc(allIndex), [allIndex])
     const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
-    const selectedHistoryWindowMeta = HISTORY_WINDOW_OPTIONS.find(option => option.value === historyWindow)
+    const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
         throw new Error(`[ui] Unsupported prediction history window option: ${historyWindow}.`)
     }
@@ -612,8 +629,8 @@ function PredictionHistoryPageInner({
             <div className={rootClassName}>
                 <ErrorBlock
                     code='DATA'
-                    title='История прогнозов не загружена'
-                    description='Бэкенд не вернул ни одной даты для выбранного режима обучения. Это считается ошибкой данных, а не пустым состоянием.'
+                    title={t('predictionHistory.page.emptyIndex.title')}
+                    description={t('predictionHistory.page.emptyIndex.description')}
                     details={details}
                 />
             </div>
@@ -624,23 +641,27 @@ function PredictionHistoryPageInner({
     const filteredCount = filteredDates.length
     const historyTag = `current_prediction_${HISTORY_SET}_${trainingScope}`
     const missingStats = resolveHistoryMissingStatsOrThrow(allBuiltDatesDesc)
-    const totalBuiltLabel = allIndexErrorMessage
-        ? 'н/д (ошибка индекса)'
-        : isAllIndexLoading
-            ? 'загружаю…'
-            : String(totalBuiltCount)
-    const missingBuiltLabel = allIndexErrorMessage
-        ? `н/д (${allIndexErrorMessage})`
-        : isAllIndexLoading
-            ? 'загружаю…'
-            : missingStats
-                ? `${missingStats.missingWeekdays} из ${missingStats.expectedWeekdays} будней (${missingStats.fromDateUtc}..${missingStats.toDateUtc})`
-                : 'нет данных'
+    const totalBuiltLabel =
+        allIndexErrorMessage ? t('predictionHistory.page.meta.notAvailableWithIndexError')
+        : isAllIndexLoading ? t('predictionHistory.page.meta.loading')
+        : String(totalBuiltCount)
+    const missingBuiltLabel =
+        allIndexErrorMessage ?
+            t('predictionHistory.page.meta.notAvailableWithDetails', { details: allIndexErrorMessage })
+        : isAllIndexLoading ? t('predictionHistory.page.meta.loading')
+        : missingStats ?
+            t('predictionHistory.page.meta.missingBuilt', {
+                missing: missingStats.missingWeekdays,
+                expected: missingStats.expectedWeekdays,
+                fromDateUtc: missingStats.fromDateUtc,
+                toDateUtc: missingStats.toDateUtc
+            })
+        :   t('predictionHistory.page.meta.noData')
     const latestDateUtc = allDatesDesc.length > 0 ? allDatesDesc[0] : null
     const latestReportQuery = useGetCurrentPredictionByDateQuery(
-        latestDateUtc
-            ? { set: HISTORY_SET, scope: trainingScope, dateUtc: `${latestDateUtc}T00:00:00Z` }
-            : skipToken,
+        latestDateUtc ?
+            { set: HISTORY_SET, scope: trainingScope, dateUtc: `${latestDateUtc}T00:00:00Z`, lang: reportLanguage }
+        :   skipToken,
         { refetchOnMountOrArgChange: true }
     )
     const trainingLabel = resolveTrainingLabel(latestReportQuery.data)
@@ -674,19 +695,22 @@ function PredictionHistoryPageInner({
         <div className={rootClassName}>
             <header className={cls.header}>
                 <div className={cls.headerMain}>
-                    <Text type='h1'>История прогнозов</Text>
+                    <Text type='h1'>{t('predictionHistory.page.title')}</Text>
                     <span className={cls.headerTag}>{historyTag}</span>
                 </div>
 
                 <div className={cls.headerMeta}>
-                    <span>Всего построено отчётов: {totalBuiltLabel}</span>
-                    <span>Не построено (будни в диапазоне): {missingBuiltLabel}</span>
-                    <span>Сейчас показывается пользователю: {filteredCount}</span>
-                    <span>Окно загрузки: {selectedHistoryWindowMeta.label}</span>
-                    <span>Режим обучения отчётов: {currentScopeMeta.label}</span>
+                    <span>{t('predictionHistory.page.meta.totalBuilt', { value: totalBuiltLabel })}</span>
+                    <span>{t('predictionHistory.page.meta.missingInRange', { value: missingBuiltLabel })}</span>
+                    <span>{t('predictionHistory.page.meta.currentlyVisible', { value: filteredCount })}</span>
                     <span>
-                        Модель обучения:{' '}
-                        {trainingLabel ?? 'нет данных (проверь секцию обучения в отчёте)'}
+                        {t('predictionHistory.page.meta.loadWindow', { value: selectedHistoryWindowMeta.label })}
+                    </span>
+                    <span>{t('predictionHistory.page.meta.trainingScope', { value: currentScopeMeta.label })}</span>
+                    <span>
+                        {t('predictionHistory.page.meta.trainingModel', {
+                            value: trainingLabel ?? t('predictionHistory.page.meta.trainingModelFallback')
+                        })}
                     </span>
                 </div>
             </header>
@@ -695,13 +719,13 @@ function PredictionHistoryPageInner({
                 <div className={cls.controlsPanel}>
                     <div className={cls.controlBlock}>
                         <Text type='p' className={cls.controlLabel}>
-                            На чем тренировались модели:
+                            {t('predictionHistory.filters.scope.label')}
                         </Text>
                         <CurrentPredictionTrainingScopeToggle
                             value={trainingScope}
                             onChange={onTrainingScopeChange}
                             className={cls.scopeToggle}
-                            ariaLabel='Выбор режима обучения для истории прогнозов'
+                            ariaLabel={t('predictionHistory.filters.scope.ariaLabel')}
                         />
                         <Text type='p' className={cls.controlHint}>
                             {currentScopeMeta.hint}
@@ -710,11 +734,11 @@ function PredictionHistoryPageInner({
 
                     <div className={cls.controlBlock}>
                         <Text type='p' className={cls.controlLabel}>
-                            Сколько отчётов показывать:
+                            {t('predictionHistory.filters.window.label')}
                         </Text>
                         <BucketFilterToggle
                             value={historyWindow}
-                            options={HISTORY_WINDOW_OPTIONS}
+                            options={historyWindowOptions}
                             onChange={nextValue => {
                                 if (!isPredictionHistoryWindow(nextValue)) {
                                     throw new Error(`[ui] Unsupported prediction history window value: ${nextValue}.`)
@@ -722,7 +746,7 @@ function PredictionHistoryPageInner({
                                 onHistoryWindowChange(nextValue)
                             }}
                             className={cls.historyWindowToggle}
-                            ariaLabel='Период загрузки истории прогнозов'
+                            ariaLabel={t('predictionHistory.filters.window.ariaLabel')}
                         />
                     </div>
                 </div>
@@ -730,13 +754,10 @@ function PredictionHistoryPageInner({
                 <div className={cls.filtersRow}>
                     <DatePicker className={cls.datePicker} />
                     <div className={cls.filtersInfo}>
-                        <Text type='p'>
-                            Диапазон задаётся через выбор начальной и конечной даты. Если диапазон не выбран, будут
-                            показаны последние доступные дни.
-                        </Text>
+                        <Text type='p'>{t('predictionHistory.filters.dateRange.description')}</Text>
                         {fromDate && toDate && (
                             <Text type='p' className={cls.filtersRangeSummary}>
-                                Текущий фильтр: {fromDate} — {toDate} (UTC)
+                                {t('predictionHistory.filters.dateRange.current', { fromDate, toDate })}
                             </Text>
                         )}
                     </div>
@@ -744,7 +765,7 @@ function PredictionHistoryPageInner({
             </section>
 
             <section className={cls.content}>
-                {filteredCount === 0 && <Text type='p'>В выбранном диапазоне нет прогнозов. Попробуйте изменить даты.</Text>}
+                {filteredCount === 0 && <Text type='p'>{t('predictionHistory.content.empty')}</Text>}
 
                 {filteredCount > 0 && (
                     <>
@@ -754,17 +775,23 @@ function PredictionHistoryPageInner({
                                 className={cls.paginationButton}
                                 onClick={handlePagePrev}
                                 disabled={!canPrev}
-                                aria-label='Показать предыдущие прогнозы'
-                            >
+                                aria-label={t('predictionHistory.pagination.prevAria')}>
                                 <Icon name='arrow' flipped />
                             </button>
 
                             <div className={cls.paginationInfo}>
                                 <Text type='p'>
-                                    Показано {visibleFrom}–{visibleTo} из {filteredCount}
+                                    {t('predictionHistory.pagination.shown', {
+                                        from: visibleFrom,
+                                        to: visibleTo,
+                                        total: filteredCount
+                                    })}
                                 </Text>
                                 <Text type='p' className={cls.paginationHint}>
-                                    Страница {totalPages === 0 ? 0 : clampedPageIndex + 1} из {totalPages}
+                                    {t('predictionHistory.pagination.pageOf', {
+                                        current: totalPages === 0 ? 0 : clampedPageIndex + 1,
+                                        total: totalPages
+                                    })}
                                 </Text>
                             </div>
 
@@ -773,8 +800,7 @@ function PredictionHistoryPageInner({
                                 className={cls.paginationButton}
                                 onClick={handlePageNext}
                                 disabled={!canNext}
-                                aria-label='Показать следующие прогнозы'
-                            >
+                                aria-label={t('predictionHistory.pagination.nextAria')}>
                                 <Icon name='arrow' />
                             </button>
                         </div>
@@ -804,9 +830,9 @@ function PredictionHistoryPageInner({
                             onGroupPrev={handlePagePrev}
                             onGroupNext={handlePageNext}
                             groupStatus={
-                                totalPages > 0
-                                    ? { current: clampedPageIndex + 1, total: totalPages }
-                                    : { current: 0, total: 0 }
+                                totalPages > 0 ?
+                                    { current: clampedPageIndex + 1, total: totalPages }
+                                :   { current: 0, total: 0 }
                             }
                         />
                     </>
@@ -821,20 +847,22 @@ interface PredictionHistoryReportCardProps {
     trainingScope: CurrentPredictionTrainingScope
 }
 
-function isLegacyPolicyTableSection(title: string): boolean {
-    return /^=*\s*Политики плеча/i.test(title.trim())
+function isPolicyTableSection(section: ReportSectionDto): boolean {
+    return section.sectionKey === POLICY_TABLE_SECTION_KEY
 }
 
 function sanitizeHistoryReportSectionsForView(sections: ReportSectionDto[]): ReportSectionDto[] {
     return sections
-        .filter(section => !isLegacyPolicyTableSection(section.title))
+        .filter(section => !isPolicyTableSection(section))
         .map(section => {
             if (!isKeyValueSection(section)) {
                 return section
             }
 
             // Технический пункт источника факта в истории не показываем в UI.
-            const filteredItems = section.items.filter(item => normalizeLabel(item.key) !== 'источник факта')
+            const filteredItems = section.items.filter(item => {
+                return (item.itemKey ?? '').trim().toLowerCase() !== 'fact_source'
+            })
             if (filteredItems.length === section.items.length) {
                 return section
             }
@@ -855,14 +883,20 @@ interface PredictionPolicyTradesTableProps {
 
 const POLICY_TRADES_SECTION_TITLE = 'Политики плеча (BASE vs ANTI-D)'
 
-function resolvePolicyBucketLabel(bucket: PolicyBranchMegaBucketMode): string {
-    if (bucket === 'daily') return 'Daily'
-    if (bucket === 'intraday') return 'Intraday'
-    if (bucket === 'delayed') return 'Delayed'
-    return 'Σ Все бакеты'
+function resolvePolicyBucketLabel(
+    bucket: PolicyBranchMegaBucketMode,
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string {
+    if (bucket === 'daily') return translate('predictionHistory.tradesTable.bucket.daily')
+    if (bucket === 'intraday') return translate('predictionHistory.tradesTable.bucket.intraday')
+    if (bucket === 'delayed') return translate('predictionHistory.tradesTable.bucket.delayed')
+    return translate('predictionHistory.tradesTable.bucket.total')
 }
 
-function summarizeSkipReasons(rows: PolicySkippedSignalRow[]): string | null {
+function summarizeSkipReasons(
+    rows: PolicySkippedSignalRow[],
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string | null {
     if (rows.length === 0) {
         return null
     }
@@ -890,9 +924,15 @@ function summarizeSkipReasons(rows: PolicySkippedSignalRow[]): string | null {
 
     const topReasons = sortedReasons.slice(0, 3).map(([reason, count]) => `${reason} (${count})`)
     const extraReasonsCount = sortedReasons.length - topReasons.length
-    const extraSuffix = extraReasonsCount > 0 ? `, ещё причин: ${extraReasonsCount}` : ''
+    const extraSuffix =
+        extraReasonsCount > 0 ?
+            translate('predictionHistory.tradesTable.skipReasons.extraSuffix', { count: extraReasonsCount })
+        :   ''
 
-    return `Причины: ${topReasons.join('; ')}${extraSuffix}.`
+    return translate('predictionHistory.tradesTable.skipReasons.summary', {
+        reasons: topReasons.join('; '),
+        extraSuffix
+    })
 }
 
 function PredictionPolicyTradesTable({
@@ -901,60 +941,67 @@ function PredictionPolicyTradesTable({
     executedTrades,
     skippedDirectionalSignals
 }: PredictionPolicyTradesTableProps) {
+    const { t } = useTranslation('reports')
+    const { intlLocale } = useLocale()
     const [bucketFilter, setBucketFilter] = useState<PolicyBranchMegaBucketMode>('daily')
+    const translate = (key: string, options?: Record<string, unknown>) => t(key, options)
 
     const filteredExecutedTrades =
-        bucketFilter === 'total'
-            ? executedTrades
-            : executedTrades.filter(row => row.bucket === bucketFilter)
+        bucketFilter === 'total' ? executedTrades : executedTrades.filter(row => row.bucket === bucketFilter)
 
     const filteredSkippedSignals =
-        bucketFilter === 'total'
-            ? skippedDirectionalSignals
-            : skippedDirectionalSignals.filter(row => row.bucket === bucketFilter)
+        bucketFilter === 'total' ? skippedDirectionalSignals : (
+            skippedDirectionalSignals.filter(row => row.bucket === bucketFilter)
+        )
 
     const noExecutedTradesInDay = executedTrades.length === 0
 
     const columns = [
-        'Политика',
-        'Ветка',
-        'Сторона',
-        'Вход, $',
-        'Выход, $',
-        'Причина выхода',
-        'TP, $',
-        'TP, %',
-        'SL, $',
-        'SL, %',
-        'Цена ликвидации, $',
-        'Капитал бакета, $',
-        'Ставка, $',
-        'Ставка, %'
+        t('predictionHistory.tradesTable.columns.policy'),
+        t('predictionHistory.tradesTable.columns.branch'),
+        t('predictionHistory.tradesTable.columns.side'),
+        t('predictionHistory.tradesTable.columns.entry'),
+        t('predictionHistory.tradesTable.columns.exit'),
+        t('predictionHistory.tradesTable.columns.exitReason'),
+        t('predictionHistory.tradesTable.columns.tpUsd'),
+        t('predictionHistory.tradesTable.columns.tpPct'),
+        t('predictionHistory.tradesTable.columns.slUsd'),
+        t('predictionHistory.tradesTable.columns.slPct'),
+        t('predictionHistory.tradesTable.columns.liquidationPrice'),
+        t('predictionHistory.tradesTable.columns.bucketCapital'),
+        t('predictionHistory.tradesTable.columns.stakeUsd'),
+        t('predictionHistory.tradesTable.columns.stakePct')
     ]
 
     const tradeRowsTable: TableRow[] = filteredExecutedTrades.map(row => [
         row.policyName,
         row.branch,
         row.side,
-        formatPrice(row.entryPrice),
-        formatPrice(row.exitPrice),
+        formatPrice(row.entryPrice, intlLocale),
+        formatPrice(row.exitPrice, intlLocale),
         row.exitReason,
-        formatPrice(row.tpPrice),
-        formatPercent(row.tpPct),
-        formatPrice(row.slPrice),
-        formatPercent(row.slPct),
-        row.liqPrice !== null ? formatPrice(row.liqPrice) : 'нет (плечо<=1x / не рассчитана)',
-        formatMoney(row.bucketCapitalUsd),
-        formatMoney(row.stakeUsd),
-        formatPercent(row.stakePct)
+        formatPrice(row.tpPrice, intlLocale),
+        formatPercent(row.tpPct, intlLocale),
+        formatPrice(row.slPrice, intlLocale),
+        formatPercent(row.slPct, intlLocale),
+        row.liqPrice !== null ? formatPrice(row.liqPrice, intlLocale) : t('predictionHistory.tradesTable.liqFallback'),
+        formatMoney(row.bucketCapitalUsd, intlLocale),
+        formatMoney(row.stakeUsd, intlLocale),
+        formatPercent(row.stakePct, intlLocale)
     ])
 
-    const skippedColumns = ['Политика', 'Ветка', 'Сторона', 'Плечо', 'Причина пропуска']
+    const skippedColumns = [
+        t('predictionHistory.tradesTable.skippedColumns.policy'),
+        t('predictionHistory.tradesTable.skippedColumns.branch'),
+        t('predictionHistory.tradesTable.skippedColumns.side'),
+        t('predictionHistory.tradesTable.skippedColumns.leverage'),
+        t('predictionHistory.tradesTable.skippedColumns.reason')
+    ]
     const skippedRowsTable: TableRow[] = filteredSkippedSignals.map(row => [
         row.policyName,
         row.branch,
         row.side,
-        formatPercent(row.leverage),
+        formatPercent(row.leverage, intlLocale),
         row.skipReason
     ])
 
@@ -962,37 +1009,37 @@ function PredictionPolicyTradesTable({
         <div className={cls.tradeTableBlock}>
             <div className={cls.tradeTableToolbar}>
                 <Text type='p' className={cls.tradeTableHint}>
-                    Торговые параметры за {dateUtc}. По умолчанию показан Daily бакет; можно переключить бакет и
-                    посмотреть его сделки отдельно.
+                    {t('predictionHistory.tradesTable.toolbarHint', { dateUtc })}
                 </Text>
 
                 <PolicyBucketFilterToggle
                     value={bucketFilter}
                     onChange={setBucketFilter}
                     className={cls.bucketToggle}
-                    ariaLabel='Фильтр торговой таблицы по бакету'
+                    ariaLabel={t('predictionHistory.tradesTable.bucketAriaLabel')}
                 />
             </div>
 
             {executedTrades.length === 0 && skippedDirectionalSignals.length === 0 && (
                 <Text type='p' className={cls.tradeTableHint}>
-                    По выбранному дню не было направленных сигналов для открытия сделок.
+                    {t('predictionHistory.tradesTable.noDirectionalSignals')}
                 </Text>
             )}
 
             {noExecutedTradesInDay && skippedDirectionalSignals.length > 0 && (
                 <Text type='p' className={cls.tradeTableHint}>
-                    Исполненных сделок нет ни в одной политике.{' '}
+                    {t('predictionHistory.tradesTable.noExecutedPrefix')}{' '}
                     {summarizeSkipReasons(
-                        filteredSkippedSignals.length > 0 ? filteredSkippedSignals : skippedDirectionalSignals
-                    ) ?? 'Причины пропуска в отчёте не указаны.'}
+                        filteredSkippedSignals.length > 0 ? filteredSkippedSignals : skippedDirectionalSignals,
+                        translate
+                    ) ?? t('predictionHistory.tradesTable.noSkipReasonsFallback')}
                 </Text>
             )}
 
             {!noExecutedTradesInDay && filteredExecutedTrades.length > 0 && (
                 <ReportTableCard
-                    title='Сделки по политикам'
-                    description='История торговых параметров по каждому прогнозу и ветке с фильтрацией по бакету.'
+                    title={t('predictionHistory.tradesTable.executed.title')}
+                    description={t('predictionHistory.tradesTable.executed.description')}
                     columns={columns}
                     rows={tradeRowsTable}
                     domId={`pred-trades-${dateUtc}`}
@@ -1007,21 +1054,22 @@ function PredictionPolicyTradesTable({
 
             {!noExecutedTradesInDay && filteredExecutedTrades.length === 0 && filteredSkippedSignals.length > 0 && (
                 <Text type='p' className={cls.tradeTableHint}>
-                    В выбранном бакете сигналы были, но все сделки пропущены правилами исполнения (без открытия
-                    позиции).
+                    {t('predictionHistory.tradesTable.onlySkippedInBucket')}
                 </Text>
             )}
 
             {!noExecutedTradesInDay && filteredExecutedTrades.length === 0 && filteredSkippedSignals.length === 0 && (
                 <Text type='p' className={cls.tradeTableHint}>
-                    Для бакета {resolvePolicyBucketLabel(bucketFilter)} в этом дне строк сделок нет.
+                    {t('predictionHistory.tradesTable.noRowsForBucket', {
+                        bucket: resolvePolicyBucketLabel(bucketFilter, translate)
+                    })}
                 </Text>
             )}
 
             {!noExecutedTradesInDay && filteredSkippedSignals.length > 0 && (
                 <ReportTableCard
-                    title='Сигналы без открытия сделки'
-                    description='Направленные сигналы, которые не перешли в исполненную сделку.'
+                    title={t('predictionHistory.tradesTable.skipped.title')}
+                    description={t('predictionHistory.tradesTable.skipped.description')}
                     columns={skippedColumns}
                     rows={skippedRowsTable}
                     domId={`pred-skipped-signals-${dateUtc}`}
@@ -1032,20 +1080,27 @@ function PredictionPolicyTradesTable({
 }
 
 function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: PredictionHistoryReportCardProps) {
+    const { t } = useTranslation('reports')
+    const { i18nLanguage } = useLocale()
+    const reportLanguage = i18nLanguage === 'ru' ? 'ru' : 'en'
     const requestDateUtc = `${dateUtc}T00:00:00Z`
 
-    const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery({
-        dateUtc: requestDateUtc,
-        set: HISTORY_SET,
-        scope: trainingScope
-    }, {
-        refetchOnMountOrArgChange: true
-    })
+    const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery(
+        {
+            dateUtc: requestDateUtc,
+            set: HISTORY_SET,
+            scope: trainingScope,
+            lang: reportLanguage
+        },
+        {
+            refetchOnMountOrArgChange: true
+        }
+    )
 
     if (isLoading) {
         return (
             <div id={domId} className={cls.reportCard}>
-                <Text type='p'>Загружаю отчёт за {dateUtc}…</Text>
+                <Text type='p'>{t('predictionHistory.reportCard.loading', { dateUtc })}</Text>
             </div>
         )
     }
@@ -1057,10 +1112,14 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
             <div id={domId} className={cls.reportCard}>
                 <ErrorBlock
                     code={resolved?.code ?? 'UNKNOWN'}
-                    title={resolved?.title ?? 'Не удалось загрузить отчёт'}
+                    title={resolved?.title ?? t('predictionHistory.reportCard.loadErrorTitle')}
                     description={
                         resolved?.description ??
-                        `Проверьте endpoint /current-prediction/by-date для даты ${dateUtc}, set=${HISTORY_SET}, scope=${trainingScope}.`
+                        t('predictionHistory.reportCard.loadErrorDescription', {
+                            dateUtc,
+                            reportSet: HISTORY_SET,
+                            trainingScope
+                        })
                     }
                     details={resolved?.rawMessage}
                     compact
@@ -1079,13 +1138,15 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
 
     const sanitizedSections = sanitizeHistoryReportSectionsForView(data.sections)
     const reportForView =
-        sanitizedSections.length === data.sections.length &&
-        sanitizedSections.every((section, idx) => section === data.sections[idx])
-            ? data
-            : {
-                  ...data,
-                  sections: sanitizedSections
-              }
+        (
+            sanitizedSections.length === data.sections.length &&
+            sanitizedSections.every((section, idx) => section === data.sections[idx])
+        ) ?
+            data
+        :   {
+                ...data,
+                sections: sanitizedSections
+            }
 
     return (
         <div id={domId} className={cls.reportCard}>
@@ -1094,14 +1155,13 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
                 fallback={({ error: sectionError, reset }) => (
                     <ErrorBlock
                         code='CLIENT'
-                        title={`Ошибка при отображении отчёта за ${dateUtc}`}
-                        description='При отрисовке отчёта произошла ошибка на клиенте. Остальная часть страницы продолжает работать.'
+                        title={t('predictionHistory.reportCard.renderErrorTitle', { dateUtc })}
+                        description={t('predictionHistory.reportCard.renderErrorDescription')}
                         details={sectionError.message}
                         onRetry={reset}
                         compact
                     />
-                )}
-            >
+                )}>
                 <ReportDocumentView report={reportForView} />
             </SectionErrorBoundary>
 
@@ -1110,55 +1170,52 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
                 fallback={({ error: sectionError, reset }) => (
                     <ErrorBlock
                         code='CLIENT'
-                        title={`Ошибка при построении торговой таблицы за ${dateUtc}`}
-                        description='Основной отчёт отрисован, но таблица сделок не построилась из-за несовместимых данных.'
+                        title={t('predictionHistory.reportCard.tradesBuildErrorTitle', { dateUtc })}
+                        description={t('predictionHistory.reportCard.tradesBuildErrorDescription')}
                         details={sectionError.message}
                         onRetry={reset}
                         compact
                     />
-                )}
-            >
-                {policyTradesSchemaError ? (
+                )}>
+                {policyTradesSchemaError ?
                     <ErrorBlock
                         code='DATA'
-                        title={`Торговая таблица за ${dateUtc} несовместима с текущей схемой`}
-                        description='Основной отчёт по дню доступен, но блок сделок не построен из-за нарушения схемы данных таблицы.'
+                        title={t('predictionHistory.reportCard.tradesSchemaErrorTitle', { dateUtc })}
+                        description={t('predictionHistory.reportCard.tradesSchemaErrorDescription')}
                         details={policyTradesSchemaError}
                         compact
                     />
-                ) : parsedPolicyTrades ? (
+                : parsedPolicyTrades ?
                     <PredictionPolicyTradesTable
                         report={data}
                         dateUtc={dateUtc}
                         executedTrades={parsedPolicyTrades.executedTrades}
                         skippedDirectionalSignals={parsedPolicyTrades.skippedDirectionalSignals}
                     />
-                ) : (
-                    <ErrorBlock
+                :   <ErrorBlock
                         code='DATA'
-                        title={`Торговая таблица за ${dateUtc} не инициализирована`}
-                        description='Не удалось получить данные таблицы сделок для этой даты.'
+                        title={t('predictionHistory.reportCard.tradesNotInitializedTitle', { dateUtc })}
+                        description={t('predictionHistory.reportCard.tradesNotInitializedDescription')}
                         details='[ui] Policy trade rows were not resolved.'
                         compact
                     />
-                )}
+                }
             </SectionErrorBoundary>
         </div>
     )
 }
 
 function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
+    const { t } = useTranslation('reports')
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
     const [historyWindow, setHistoryWindow] = useState<PredictionHistoryWindow>('365')
     const historyDays = resolveHistoryWindowDaysOrThrow(historyWindow)
 
-    const {
-        data,
-        isLoading,
-        isError,
-        error,
-        refetch
-    } = useCurrentPredictionIndexQuery(HISTORY_SET, historyDays, trainingScope)
+    const { data, isLoading, isError, error, refetch } = useCurrentPredictionIndexQuery(
+        HISTORY_SET,
+        historyDays,
+        trainingScope
+    )
     const {
         data: allIndexData,
         isLoading: isAllIndexLoading,
@@ -1168,8 +1225,7 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     } = useCurrentPredictionIndexQuery(HISTORY_SET, undefined, trainingScope)
 
     const allIndexResolvedError = isAllIndexError ? resolveAppError(allIndexError) : null
-    const allIndexErrorMessage =
-        allIndexResolvedError?.rawMessage ?? allIndexResolvedError?.description ?? null
+    const allIndexErrorMessage = allIndexResolvedError?.rawMessage ?? allIndexResolvedError?.description ?? null
 
     const hasData = Array.isArray(data)
 
@@ -1185,8 +1241,7 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
             error={error}
             hasData={hasData}
             onRetry={handleRetry}
-            errorTitle={`Не удалось загрузить индекс истории прогнозов (${HISTORY_SET})`}
-        >
+            errorTitle={t('predictionHistory.page.indexErrorTitle', { reportSet: HISTORY_SET })}>
             {data && (
                 <PredictionHistoryPageInner
                     {...props}
@@ -1205,8 +1260,10 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
 }
 
 export default function PredictionHistoryPage(props: PredictionHistoryPageProps) {
+    const { t } = useTranslation('reports')
+
     return (
-        <PageSuspense title='Загружаю историю прогнозов…'>
+        <PageSuspense title={t('predictionHistory.page.loadingTitle')}>
             <PredictionHistoryPageWithBoundary {...props} />
         </PageSuspense>
     )

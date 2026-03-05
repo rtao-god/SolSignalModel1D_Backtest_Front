@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import cls from './Navbar.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -6,11 +6,11 @@ import NavbarProps from './types'
 import { LangSwitcher } from '@/widgets/components'
 import { Btn, Link } from '@/shared/ui'
 import { NAVBAR_ITEMS } from '@/app/providers/router/config/routeConfig'
+import { buildRouteNavLabelI18nKey } from '@/app/providers/router/config/i18nKeys'
 import SideBarBlock from '../SideBarBlock/SideBarBlock'
-import { BugBtn } from '@/app/providers'
 
-export default function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
-    const { i18n } = useTranslation()
+function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
+    const { i18n, t } = useTranslation()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const [primaryCount, setPrimaryCount] = useState(NAVBAR_ITEMS.length)
@@ -131,14 +131,14 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
                 <div className={cls.linksRow}>
                     {primaryItems.map(item => (
                         <Link key={item.id} to={item.path}>
-                            {item.label}
+                            {t(buildRouteNavLabelI18nKey(item.id), { defaultValue: item.label })}
                         </Link>
                     ))}
 
                     {secondaryItems.length > 0 && (
                         <Btn
                             className={classNames(cls.expandToggle, { [cls.expandToggle_open]: isMenuOpen }, [])}
-                            aria-label={isMenuOpen ? 'Свернуть разделы' : 'Показать дополнительные разделы'}
+                            aria-label={isMenuOpen ? t('nav:navbar.expand.hide') : t('nav:navbar.expand.show')}
                             aria-expanded={isMenuOpen}
                             onClick={handleMenuToggle}>
                             <span className={cls.expandToggleIcon} />
@@ -150,7 +150,7 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
                     <div className={classNames(cls.secondaryLinks, { [cls.secondaryLinks_open]: isMenuOpen }, [])}>
                         {secondaryItems.map(item => (
                             <Link key={item.id} to={item.path}>
-                                {item.label}
+                                {t(buildRouteNavLabelI18nKey(item.id), { defaultValue: item.label })}
                             </Link>
                         ))}
                     </div>
@@ -159,7 +159,7 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
             <div ref={measureRef} className={cls.measureRow} aria-hidden='true'>
                 {NAVBAR_ITEMS.map(item => (
                     <span key={item.id} className={cls.measureItem}>
-                        {item.label}
+                        {t(buildRouteNavLabelI18nKey(item.id), { defaultValue: item.label })}
                     </span>
                 ))}
             </div>
@@ -167,3 +167,5 @@ export default function Navbar({ className, showSidebarToggle, onSidebarToggleCl
         </div>
     )
 }
+
+export default memo(Navbar)

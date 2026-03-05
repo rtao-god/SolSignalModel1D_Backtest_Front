@@ -10,7 +10,6 @@ export default function ErrorPlayground() {
 
     return (
         <div className={cls.ErrorPlayground}>
-
             <section className={cls.block}>
                 <Text type='h3' className={cls.blockTitle}>
                     PageError (страничная ошибка)
@@ -34,7 +33,6 @@ export default function ErrorPlayground() {
                     />
                 )}
             </section>
-
 
             <section className={cls.block}>
                 <Text type='h3' className={cls.blockTitle}>
@@ -61,4 +59,3 @@ export default function ErrorPlayground() {
         </div>
     )
 }
-

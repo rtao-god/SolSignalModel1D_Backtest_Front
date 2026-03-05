@@ -32,4 +32,3 @@ export default function AuthSection({ className }: AuthSectionProps) {
         </div>
     )
 }
-

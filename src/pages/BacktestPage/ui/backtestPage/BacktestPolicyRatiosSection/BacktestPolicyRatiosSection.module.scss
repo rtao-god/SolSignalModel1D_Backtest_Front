@@ -56,7 +56,9 @@
     color: rgba(255, 255, 255, 0.92);
     font-size: 13px;
     outline: none;
-    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
 }
 
 .metricSelect:focus-visible {
@@ -80,7 +82,9 @@
     background: transparent;
     color: inherit;
     opacity: 0.82;
-    transition: background-color 0.14s ease-in-out, opacity 0.14s ease-in-out;
+    transition:
+        background-color 0.14s ease-in-out,
+        opacity 0.14s ease-in-out;
 }
 
 .toggleBtn:hover {
@@ -165,4 +169,3 @@
         height: 260px;
     }
 }
-

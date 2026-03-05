@@ -1,6 +1,8 @@
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { TermTooltip, Text } from '@/shared/ui'
-import { useMemo } from 'react'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import type {
@@ -22,73 +24,22 @@ import {
     formatUtcDayKeyHuman
 } from './aggregationStatsUtils'
 
-const PROB_TABLE_TOOLTIPS: Record<string, string> = {
-    'Слой': 'Какая стадия агрегации используется: Day (базовая модель), Day+Micro (с учётом микро‑оверлея) и Total (с учётом SL‑оверлея).',
-    'P_up': 'Средняя вероятность роста (Up) по выбранному слою и сегменту.',
-    'P_flat': 'Средняя вероятность боковика (Flat) по выбранному слою и сегменту.',
-    'P_down': 'Средняя вероятность падения (Down) по выбранному слою и сегменту.',
-    Sum: 'Средняя сумма вероятностей P_up+P_flat+P_down. В норме близка к 1 — сильный уход указывает на проблемы нормализации.'
-}
-
-const PILL_TOOLTIPS: Record<string, string> = {
-    'Conf Day':
-        'Средняя «уверенность» базового дневного слоя. Это отдельный сигнал (не сумма вероятностей), полезный для sanity‑check.',
-    'Conf Micro':
-        'Средняя «уверенность» микро‑слоя, применяемого внутри боковика. Отдельный сигнал, не равный вероятностям.',
-    'SL-score дней':
-        'Сколько дней в сегменте имели ненулевой SL‑score. Показывает, как часто SL‑модель вообще влияла на поток.'
-}
-
-const METRICS_TOOLTIPS: Record<string, string> = {
-    Accuracy: 'Доля правильных предсказаний: Correct / N. Чем выше, тем лучше.',
-    'Micro-F1':
-        'Micro‑F1 для 3‑классовой задачи. В текущей реализации совпадает с Accuracy, но оставлен как отдельная метрика.',
-    LogLoss:
-        'Средний log‑loss по вероятностям истинного класса. Чем меньше, тем лучше. Используются только валидные записи.',
-    'N / Correct': 'N — всего записей в сегменте, Correct — сколько предсказаний совпало с истинной меткой.',
-    'Valid / Invalid log-loss':
-        'Сколько записей использовано для log‑loss. Invalid > 0 означает невалидные вероятности (в идеале 0).'
-}
-
-const CONFUSION_TOOLTIPS: Record<string, string> = {
-    'True → Pred':
-        'Матрица ошибок: строки — истинные метки, столбцы — предсказанные. Значения — количество дней.',
-    Падение: 'Класс DOWN: фактическое падение дня.',
-    Боковик: 'Класс FLAT: боковой день без выраженного тренда.',
-    Рост: 'Класс UP: фактический рост дня.'
-}
-
-const DEBUG_TOOLTIPS: Record<string, string> = {
-    'Дата (UTC)': 'Дата торгового дня (UTC), к которому относится строка.',
-    True: 'Истинный класс дня (факт): UP / FLAT / DOWN.',
-    Day: 'Предсказание базовой дневной модели (до micro/SL).',
-    'Day+Micro': 'Предсказание после применения микро‑оверлея.',
-    Total: 'Финальное предсказание после SL‑оверлея (Day+Micro+SL).',
-    'P_day (U/F/D)': 'Тройка вероятностей Up/Flat/Down для базовой модели Day.',
-    'P_day+micro (U/F/D)': 'Тройка вероятностей Up/Flat/Down после микро‑оверлея.',
-    'P_total (U/F/D)': 'Финальные вероятности Up/Flat/Down после SL‑оверлея.',
-    'Micro used': 'Флаг, что микро‑оверлей реально изменил прогноз (Day → Day+Micro).',
-    'SL used': 'Флаг, что SL‑оверлей реально повлиял на итог (Day+Micro → Total).',
-    'Micro agree': 'Совпали ли метки Day и Day+Micro (true = не изменилось).',
-    'SL pen long': 'SL‑оверлей уменьшил вероятность long (penalty по P_up).',
-    'SL pen short': 'SL‑оверлей уменьшил вероятность short (penalty по P_down).'
-}
-
 const renderTooltip = (term: string, description?: string) => {
     if (!description) return term
-    return <TermTooltip term={term} description={description} type='span' />
+    return <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
 }
 
 export function AggregationStatsPageInner({ className, probs, metrics }: AggregationStatsPageInnerProps) {
+    const { t } = useTranslation('reports')
     const rootClassName = classNames(cls.AggregationStatsPage, {}, [className ?? ''])
 
     const sections = useMemo(
         () => [
-            { id: 'agg-probs', label: 'Вероятности', anchor: 'agg-probs' },
-            { id: 'agg-metrics', label: 'Метрики', anchor: 'agg-metrics' },
-            { id: 'agg-debug', label: 'Debug последних дней', anchor: 'agg-debug' }
+            { id: 'agg-probs', label: t('aggregation.inner.sections.probs'), anchor: 'agg-probs' },
+            { id: 'agg-metrics', label: t('aggregation.inner.sections.metrics'), anchor: 'agg-metrics' },
+            { id: 'agg-debug', label: t('aggregation.inner.sections.debug'), anchor: 'agg-debug' }
         ],
-        []
+        [t]
     )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
@@ -100,28 +51,25 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
         <div className={rootClassName}>
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
-                    <Text type='h2'>Агрегация прогнозов</Text>
-                    <Text className={cls.subtitle}>
-                        Сводка вероятностей и метрик по основному и overlay-слоям (Day / Day+Micro / Total). Сегменты
-                        отражают Train / OOS / Recent / Full, ниже — детальная статистика и debug по последним дням.
-                    </Text>
+                    <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
+                    <Text className={cls.subtitle}>{t('aggregation.inner.header.subtitle')}</Text>
                 </div>
 
                 <div className={cls.metaGrid}>
                     <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>Диапазон дат</div>
+                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
                         <div className={cls.metaValue}>{formatRange(probs.MinDateUtc, probs.MaxDateUtc)}</div>
                     </div>
                     <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>Всего входных записей</div>
+                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
                         <div className={cls.metaValue}>{formatCount(probs.TotalInputRecords)}</div>
                     </div>
                     <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>Исключено из агрегации</div>
+                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
                         <div className={cls.metaValue}>{formatCount(probs.ExcludedCount)}</div>
                     </div>
                     <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>Сегментов / Debug дней</div>
+                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
                         <div className={cls.metaValue}>
                             {probs.Segments.length} / {probs.DebugLastDays.length}
                         </div>
@@ -132,12 +80,9 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
             <section id='agg-probs' className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Агрегированные вероятности
+                        {t('aggregation.inner.probs.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>
-                        Усреднённые вероятности классов по сегментам. Это проверка калибровки и дрейфа, а не доля
-                        правильных прогнозов.
-                    </Text>
+                    <Text className={cls.sectionHint}>{t('aggregation.inner.probs.hint')}</Text>
                 </div>
 
                 <div className={cls.segmentsGrid}>
@@ -150,12 +95,9 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
             <section id='agg-metrics' className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Метрики качества
+                        {t('aggregation.inner.metrics.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>
-                        Accuracy/Micro‑F1/LogLoss по каждому слою. Дополнительно — матрицы ошибок, чтобы видеть, какие
-                        классы путаются.
-                    </Text>
+                    <Text className={cls.sectionHint}>{t('aggregation.inner.metrics.hint')}</Text>
                 </div>
 
                 <div className={cls.segmentsGrid}>
@@ -168,41 +110,97 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
             <section id='agg-debug' className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h3' className={cls.sectionTitle}>
-                        Debug последних дней
+                        {t('aggregation.inner.debug.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>
-                        Последние N дней с фактом и прогнозами. Флаги показывают, где micro/SL реально меняли итоговый
-                        класс или вероятности.
-                    </Text>
+                    <Text className={cls.sectionHint}>{t('aggregation.inner.debug.hint')}</Text>
                 </div>
 
-                {probs.DebugLastDays.length === 0 ? (
-                    <Text>Debug-строк нет. Проверь корректность генерации агрегации.</Text>
-                ) : (
-                    <>
-                        <Text className={cls.tableHint}>
-                            Таблица помогает быстро увидеть, в какие дни micro/SL меняли результат. В колонках —
-                            истинная метка, прогнозы слоёв и флаги влияния оверлеев.
-                        </Text>
+                {probs.DebugLastDays.length === 0 ?
+                    <Text>{t('aggregation.inner.debug.empty')}</Text>
+                :   <>
+                        <Text className={cls.tableHint}>{t('aggregation.inner.debug.tableHint')}</Text>
                         <div className={cls.tableScroll}>
                             <table className={cls.table}>
                                 <thead>
                                     <tr>
-                                        <th>{renderTooltip('Дата (UTC)', DEBUG_TOOLTIPS['Дата (UTC)'])}</th>
-                                        <th>{renderTooltip('True', DEBUG_TOOLTIPS.True)}</th>
-                                        <th>{renderTooltip('Day', DEBUG_TOOLTIPS.Day)}</th>
-                                        <th>{renderTooltip('Day+Micro', DEBUG_TOOLTIPS['Day+Micro'])}</th>
-                                        <th>{renderTooltip('Total', DEBUG_TOOLTIPS.Total)}</th>
-                                        <th>{renderTooltip('P_day (U/F/D)', DEBUG_TOOLTIPS['P_day (U/F/D)'])}</th>
                                         <th>
-                                            {renderTooltip('P_day+micro (U/F/D)', DEBUG_TOOLTIPS['P_day+micro (U/F/D)'])}
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.dateUtc.label'),
+                                                t('aggregation.inner.tooltips.debug.dateUtc')
+                                            )}
                                         </th>
-                                        <th>{renderTooltip('P_total (U/F/D)', DEBUG_TOOLTIPS['P_total (U/F/D)'])}</th>
-                                        <th>{renderTooltip('Micro used', DEBUG_TOOLTIPS['Micro used'])}</th>
-                                        <th>{renderTooltip('SL used', DEBUG_TOOLTIPS['SL used'])}</th>
-                                        <th>{renderTooltip('Micro agree', DEBUG_TOOLTIPS['Micro agree'])}</th>
-                                        <th>{renderTooltip('SL pen long', DEBUG_TOOLTIPS['SL pen long'])}</th>
-                                        <th>{renderTooltip('SL pen short', DEBUG_TOOLTIPS['SL pen short'])}</th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.true.label'),
+                                                t('aggregation.inner.tooltips.debug.true')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.day.label'),
+                                                t('aggregation.inner.tooltips.debug.day')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.dayMicro.label'),
+                                                t('aggregation.inner.tooltips.debug.dayMicro')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.total.label'),
+                                                t('aggregation.inner.tooltips.debug.total')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.pDay.label'),
+                                                t('aggregation.inner.tooltips.debug.pDay')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.pDayMicro.label'),
+                                                t('aggregation.inner.tooltips.debug.pDayMicro')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.pTotal.label'),
+                                                t('aggregation.inner.tooltips.debug.pTotal')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.microUsed.label'),
+                                                t('aggregation.inner.tooltips.debug.microUsed')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.slUsed.label'),
+                                                t('aggregation.inner.tooltips.debug.slUsed')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.microAgree.label'),
+                                                t('aggregation.inner.tooltips.debug.microAgree')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.slPenLong.label'),
+                                                t('aggregation.inner.tooltips.debug.slPenLong')
+                                            )}
+                                        </th>
+                                        <th>
+                                            {renderTooltip(
+                                                t('aggregation.inner.debug.columns.slPenShort.label'),
+                                                t('aggregation.inner.tooltips.debug.slPenShort')
+                                            )}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -213,7 +211,7 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
                             </table>
                         </div>
                     </>
-                )}
+                }
             </section>
 
             <SectionPager
@@ -227,7 +225,9 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
         </div>
     )
 }
+
 function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshotDto }) {
+    const { t } = useTranslation('reports')
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
     const slRatio = `${formatCount(segment.RecordsWithSlScore)}/${formatCount(segment.RecordsCount)}`
@@ -236,36 +236,54 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
         <div className={cls.segmentCard}>
             <div className={cls.segmentHeader}>
                 <Text className={cls.segmentTitle}>{segment.SegmentLabel || segment.SegmentName}</Text>
-                <Text className={cls.segmentMeta}>Диапазон: {rangeText}</Text>
-                <Text className={cls.segmentMeta}>Записей: {recordsText}</Text>
+                <Text className={cls.segmentMeta}>
+                    {t('aggregation.inner.segment.rangePrefix')} {rangeText}
+                </Text>
+                <Text className={cls.segmentMeta}>
+                    {t('aggregation.inner.segment.recordsPrefix')} {recordsText}
+                </Text>
             </div>
 
             <div className={cls.segmentPills}>
                 <span className={cls.pill}>
-                    {renderTooltip('Conf Day', PILL_TOOLTIPS['Conf Day'])}: {formatPercent(segment.AvgConfDay)}
+                    {renderTooltip(
+                        t('aggregation.inner.pills.confDay.label'),
+                        t('aggregation.inner.tooltips.pills.confDay')
+                    )}
+                    : {formatPercent(segment.AvgConfDay)}
                 </span>
                 <span className={cls.pill}>
-                    {renderTooltip('Conf Micro', PILL_TOOLTIPS['Conf Micro'])}: {formatPercent(segment.AvgConfMicro)}
+                    {renderTooltip(
+                        t('aggregation.inner.pills.confMicro.label'),
+                        t('aggregation.inner.tooltips.pills.confMicro')
+                    )}
+                    : {formatPercent(segment.AvgConfMicro)}
                 </span>
                 <span className={cls.pill}>
-                    {renderTooltip('SL-score дней', PILL_TOOLTIPS['SL-score дней'])}: {slRatio}
+                    {renderTooltip(
+                        t('aggregation.inner.pills.slScoreDays.label'),
+                        t('aggregation.inner.tooltips.pills.slScoreDays')
+                    )}
+                    : {slRatio}
                 </span>
             </div>
 
-            <Text className={cls.segmentHint}>
-                Таблица ниже показывает средние вероятности классов для этого сегмента данных. Сравнивайте слои (Day /
-                Day+Micro / Total), чтобы увидеть вклад оверлеев.
-            </Text>
+            <Text className={cls.segmentHint}>{t('aggregation.inner.segment.hint')}</Text>
 
             <div className={cls.tableScroll}>
                 <table className={cls.table}>
                     <thead>
                         <tr>
-                            <th>{renderTooltip('Слой', PROB_TABLE_TOOLTIPS['Слой'])}</th>
-                            <th>{renderTooltip('P_up', PROB_TABLE_TOOLTIPS['P_up'])}</th>
-                            <th>{renderTooltip('P_flat', PROB_TABLE_TOOLTIPS['P_flat'])}</th>
-                            <th>{renderTooltip('P_down', PROB_TABLE_TOOLTIPS['P_down'])}</th>
-                            <th>{renderTooltip('Sum', PROB_TABLE_TOOLTIPS.Sum)}</th>
+                            <th>
+                                {renderTooltip(
+                                    t('aggregation.inner.probColumns.layer.label'),
+                                    t('aggregation.inner.tooltips.probTable.layer')
+                                )}
+                            </th>
+                            <th>{renderTooltip('P_up', t('aggregation.inner.tooltips.probTable.pUp'))}</th>
+                            <th>{renderTooltip('P_flat', t('aggregation.inner.tooltips.probTable.pFlat'))}</th>
+                            <th>{renderTooltip('P_down', t('aggregation.inner.tooltips.probTable.pDown'))}</th>
+                            <th>{renderTooltip('Sum', t('aggregation.inner.tooltips.probTable.sum'))}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -278,6 +296,7 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
         </div>
     )
 }
+
 function LayerAvgRow({
     name,
     layer
@@ -295,7 +314,9 @@ function LayerAvgRow({
         </tr>
     )
 }
+
 function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSnapshotDto }) {
+    const { t } = useTranslation('reports')
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
 
@@ -303,8 +324,12 @@ function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSna
         <div className={cls.segmentCard}>
             <div className={cls.segmentHeader}>
                 <Text className={cls.segmentTitle}>{segment.SegmentLabel || segment.SegmentName}</Text>
-                <Text className={cls.segmentMeta}>Диапазон: {rangeText}</Text>
-                <Text className={cls.segmentMeta}>Записей: {recordsText}</Text>
+                <Text className={cls.segmentMeta}>
+                    {t('aggregation.inner.segment.rangePrefix')} {rangeText}
+                </Text>
+                <Text className={cls.segmentMeta}>
+                    {t('aggregation.inner.segment.recordsPrefix')} {recordsText}
+                </Text>
             </div>
 
             <div className={cls.metricsGrid}>
@@ -315,7 +340,9 @@ function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSna
         </div>
     )
 }
+
 function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
+    const { t } = useTranslation('reports')
     const accuracy = formatPercent(layer.Accuracy)
     const microF1 = formatPercent(layer.MicroF1)
     const logLoss = formatNumber(layer.LogLoss, 4)
@@ -324,59 +351,76 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
         <div className={cls.layerCard}>
             <Text className={cls.layerTitle}>{layer.LayerName}</Text>
 
-            <Text className={cls.metricsHint}>
-                Ключевые метрики качества слоя: точность, log‑loss и объём данных. Наведите на метрики для пояснений.
-            </Text>
+            <Text className={cls.metricsHint}>{t('aggregation.inner.metrics.layerHint')}</Text>
 
             <div className={cls.metricsList}>
-                <span className={cls.metricsLabel}>{renderTooltip('Accuracy', METRICS_TOOLTIPS.Accuracy)}</span>
+                <span className={cls.metricsLabel}>
+                    {renderTooltip('Accuracy', t('aggregation.inner.tooltips.metrics.accuracy'))}
+                </span>
                 <span>{accuracy}</span>
-                <span className={cls.metricsLabel}>{renderTooltip('Micro-F1', METRICS_TOOLTIPS['Micro-F1'])}</span>
+                <span className={cls.metricsLabel}>
+                    {renderTooltip('Micro-F1', t('aggregation.inner.tooltips.metrics.microF1'))}
+                </span>
                 <span>{microF1}</span>
-                <span className={cls.metricsLabel}>{renderTooltip('LogLoss', METRICS_TOOLTIPS.LogLoss)}</span>
+                <span className={cls.metricsLabel}>
+                    {renderTooltip('LogLoss', t('aggregation.inner.tooltips.metrics.logLoss'))}
+                </span>
                 <span>{logLoss}</span>
-                <span className={cls.metricsLabel}>{renderTooltip('N / Correct', METRICS_TOOLTIPS['N / Correct'])}</span>
+                <span className={cls.metricsLabel}>
+                    {renderTooltip('N / Correct', t('aggregation.inner.tooltips.metrics.nCorrect'))}
+                </span>
                 <span>
                     {formatCount(layer.N)} / {formatCount(layer.Correct)}
                 </span>
                 <span className={cls.metricsLabel}>
-                    {renderTooltip('Valid / Invalid log-loss', METRICS_TOOLTIPS['Valid / Invalid log-loss'])}
+                    {renderTooltip(
+                        'Valid / Invalid log-loss',
+                        t('aggregation.inner.tooltips.metrics.validInvalidLogLoss')
+                    )}
                 </span>
                 <span>
                     {formatCount(layer.ValidForLogLoss)} / {formatCount(layer.InvalidForLogLoss)}
                 </span>
             </div>
 
-            <Text className={cls.confusionHint}>
-                Матрица ошибок показывает, как часто слой путает классы. Строки — истинные метки, столбцы —
-                предсказанные.
-            </Text>
+            <Text className={cls.confusionHint}>{t('aggregation.inner.metrics.confusionHint')}</Text>
 
             <ConfusionMatrixTable layer={layer} />
         </div>
     )
 }
+
 function ConfusionMatrixTable({ layer }: { layer: LayerMetricsSnapshotDto }) {
-    const labels = ['Падение', 'Боковик', 'Рост']
+    const { t } = useTranslation('reports')
+    const labels = [
+        { id: 'down', label: t('aggregation.inner.confusion.labels.down') },
+        { id: 'flat', label: t('aggregation.inner.confusion.labels.flat') },
+        { id: 'up', label: t('aggregation.inner.confusion.labels.up') }
+    ]
 
     return (
         <table className={cls.confusionTable}>
             <thead>
                 <tr>
                     <th className={cls.confusionHeader}>
-                        {renderTooltip('True → Pred', CONFUSION_TOOLTIPS['True → Pred'])}
+                        {renderTooltip(
+                            t('aggregation.inner.confusion.truePredLabel'),
+                            t('aggregation.inner.tooltips.confusion.truePred')
+                        )}
                     </th>
-                    {labels.map(label => (
-                        <th key={label} className={cls.confusionHeader}>
-                            {renderTooltip(label, CONFUSION_TOOLTIPS[label])}
+                    {labels.map(item => (
+                        <th key={item.id} className={cls.confusionHeader}>
+                            {renderTooltip(item.label, t(`aggregation.inner.tooltips.confusion.labels.${item.id}`))}
                         </th>
                     ))}
                 </tr>
             </thead>
             <tbody>
-                {labels.map((label, rowIdx) => (
-                    <tr key={label}>
-                        <th className={cls.confusionHeader}>{renderTooltip(label, CONFUSION_TOOLTIPS[label])}</th>
+                {labels.map((item, rowIdx) => (
+                    <tr key={item.id}>
+                        <th className={cls.confusionHeader}>
+                            {renderTooltip(item.label, t(`aggregation.inner.tooltips.confusion.labels.${item.id}`))}
+                        </th>
                         {labels.map((_, colIdx) => {
                             const value = layer.Confusion?.[rowIdx]?.[colIdx]
                             return (
@@ -391,8 +435,13 @@ function ConfusionMatrixTable({ layer }: { layer: LayerMetricsSnapshotDto }) {
         </table>
     )
 }
+
 function DebugRow({ row }: { row: AggregationProbsDebugRowDto }) {
+    const { t } = useTranslation('reports')
     const dayKeyLabel = formatUtcDayKey(row.DateUtc)
+    const yes = t('aggregation.inner.bool.yes')
+    const no = t('aggregation.inner.bool.no')
+
     return (
         <tr>
             <td>{formatUtcDayKeyHuman(row.DateUtc)}</td>
@@ -403,11 +452,11 @@ function DebugRow({ row }: { row: AggregationProbsDebugRowDto }) {
             <td>{formatProb3(row.PDay, `DebugLastDays[${dayKeyLabel}].PDay`)}</td>
             <td>{formatProb3(row.PDayMicro, `DebugLastDays[${dayKeyLabel}].PDayMicro`)}</td>
             <td>{formatProb3(row.PTotal, `DebugLastDays[${dayKeyLabel}].PTotal`)}</td>
-            <td>{row.MicroUsed ? 'да' : 'нет'}</td>
-            <td>{row.SlUsed ? 'да' : 'нет'}</td>
-            <td>{row.MicroAgree ? 'да' : 'нет'}</td>
-            <td>{row.SlPenLong ? 'да' : 'нет'}</td>
-            <td>{row.SlPenShort ? 'да' : 'нет'}</td>
+            <td>{row.MicroUsed ? yes : no}</td>
+            <td>{row.SlUsed ? yes : no}</td>
+            <td>{row.MicroAgree ? yes : no}</td>
+            <td>{row.SlPenLong ? yes : no}</td>
+            <td>{row.SlPenShort ? yes : no}</td>
         </tr>
     )
 }

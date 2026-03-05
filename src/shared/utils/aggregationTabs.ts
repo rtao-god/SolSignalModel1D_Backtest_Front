@@ -1,5 +1,3 @@
-
-
 export interface AggregationTabConfig {
     id: string
     label: string

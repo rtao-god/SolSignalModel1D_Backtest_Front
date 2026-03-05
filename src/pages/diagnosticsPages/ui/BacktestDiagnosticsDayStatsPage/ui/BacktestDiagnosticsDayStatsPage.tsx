@@ -5,6 +5,7 @@ import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { useTranslation } from 'react-i18next'
 
 /*
     BacktestDiagnosticsDayStatsPage — статистика по дням.
@@ -14,6 +15,7 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Проверка перекоса рынка и поведения модели.
 */
 export default function BacktestDiagnosticsDayStatsPage() {
+    const { t } = useTranslation('reports')
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
@@ -34,18 +36,17 @@ export default function BacktestDiagnosticsDayStatsPage() {
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить статистику по дням'>
+            errorTitle={t('diagnosticsReport.pages.dayStats.errorTitle')}>
             {data && (
                 <BacktestDiagnosticsPageLayout
                     report={data}
                     sections={split.dayStats}
-                    pageTitle='Статистика по дням'
-                    pageSubtitle='Разрезы по DayType/weekday: как рынок распределён и как ведут себя политики в разные режимы.'
-                    emptyMessage='В отчёте нет таблиц по дням.'
+                    pageTitle={t('diagnosticsReport.pages.dayStats.title')}
+                    pageSubtitle={t('diagnosticsReport.pages.dayStats.subtitle')}
+                    emptyMessage={t('diagnosticsReport.pages.dayStats.empty')}
                     renderColumnTitle={renderColumnTitle}
                 />
             )}
         </PageDataBoundary>
     )
 }
-

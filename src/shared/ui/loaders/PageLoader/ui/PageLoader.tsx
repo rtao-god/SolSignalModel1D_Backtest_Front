@@ -30,4 +30,3 @@ export default function PageLoader({ className, title, subtitle }: PageLoaderPro
         </div>
     )
 }
-

@@ -23,6 +23,15 @@ function toStringOrThrow(value: unknown, label: string): string {
     return String(value)
 }
 
+function toOptionalStringOrUndefined(value: unknown): string | undefined {
+    if (value === null || typeof value === 'undefined') {
+        return undefined
+    }
+
+    const normalized = String(value).trim()
+    return normalized.length > 0 ? normalized : undefined
+}
+
 function toObjectOrThrow(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new Error(`[ui] ${label} must be an object.`)
@@ -92,11 +101,7 @@ function parseMegaZonalModeOrThrow(raw: unknown, label: string): CapturedMegaZon
         if (normalized === 'withzonal' || normalized === 'with_zonal' || normalized === 'with-zonal') {
             return 'with-zonal'
         }
-        if (
-            normalized === 'withoutzonal' ||
-            normalized === 'without_zonal' ||
-            normalized === 'without-zonal'
-        ) {
+        if (normalized === 'withoutzonal' || normalized === 'without_zonal' || normalized === 'without-zonal') {
             return 'without-zonal'
         }
     }
@@ -246,10 +251,12 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
     if (Array.isArray(raw?.keyValueSections)) {
         for (const kv of raw.keyValueSections) {
             sections.push({
+                sectionKey: toOptionalStringOrUndefined(kv?.sectionKey),
                 title: toStringOrThrow(kv?.title, 'KeyValueSection.title'),
                 items:
                     Array.isArray(kv?.items) ?
                         kv.items.map((it: any) => ({
+                            itemKey: toOptionalStringOrUndefined(it?.itemKey),
                             key: toStringOrThrow(it?.key, 'KeyValueSection.item.key'),
                             value: toStringOrThrow(it?.value, 'KeyValueSection.item.value')
                         }))
@@ -263,29 +270,39 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
             const title = toStringOrThrow(tbl?.title, 'TableSection.title')
 
             sections.push({
+                sectionKey: toOptionalStringOrUndefined(tbl?.sectionKey),
                 title,
-                columns: Array.isArray(tbl?.columns)
-                    ? tbl.columns.map((c: any, idx: number) => toStringOrThrow(c, `TableSection.columns[${idx}]`))
-                    : [],
+                columns:
+                    Array.isArray(tbl?.columns) ?
+                        tbl.columns.map((c: any, idx: number) => toStringOrThrow(c, `TableSection.columns[${idx}]`))
+                    :   [],
+                columnKeys:
+                    Array.isArray(tbl?.columnKeys) ?
+                        tbl.columnKeys.map((key: any, idx: number) =>
+                            toStringOrThrow(key, `TableSection.columnKeys[${idx}]`)
+                        )
+                    :   undefined,
                 rows:
                     Array.isArray(tbl?.rows) ?
                         tbl.rows.map((row: any) =>
-                            Array.isArray(row)
-                                ? row.map((cell: any, idx: number) =>
-                                      toStringOrThrow(cell, `TableSection.row.cell[${idx}]`)
-                                  )
-                                : []
+                            Array.isArray(row) ?
+                                row.map((cell: any, idx: number) =>
+                                    toStringOrThrow(cell, `TableSection.row.cell[${idx}]`)
+                                )
+                            :   []
                         )
-                    : [],
+                    :   [],
                 metadata: mapTableMetadataOrThrow(tbl?.metadata, title, options)
             })
         }
     }
 
     return {
+        schemaVersion: parsePositiveIntOrThrow(raw?.schemaVersion, 'Report.schemaVersion'),
         id: toStringOrThrow(raw?.id, 'Report.id'),
         kind: toStringOrThrow(raw?.kind, 'Report.kind'),
         title: toStringOrThrow(raw?.title, 'Report.title'),
+        titleKey: toOptionalStringOrUndefined(raw?.titleKey),
         generatedAtUtc: toStringOrThrow(raw?.generatedAtUtc, 'Report.generatedAtUtc'),
         sections
     }

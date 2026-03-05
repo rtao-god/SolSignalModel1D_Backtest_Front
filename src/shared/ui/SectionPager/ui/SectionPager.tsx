@@ -18,9 +18,7 @@ interface SectionPagerProps {
     onPrev?: () => void
     onNext?: () => void
 
-
     onNavigate?: (index: number) => void
-
 
     variant?: SectionPagerVariant
     canGroupPrev?: boolean
@@ -133,8 +131,7 @@ export default function SectionPager({
         onGroupNext()
     }, [hasGroupNext, onGroupNext])
 
-    const statusText =
-        groupStatus && groupStatus.total > 0 ? `${groupStatus.current}/${groupStatus.total}` : null
+    const statusText = groupStatus && groupStatus.total > 0 ? `${groupStatus.current}/${groupStatus.total}` : null
 
     return (
         <div className={pagerClassName}>
@@ -146,8 +143,7 @@ export default function SectionPager({
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasPrev }, [])}
                         onClick={handleUp}
                         aria-label='Выше (внутри текущих отчётов)'
-                        disabled={!hasPrev}
-                    >
+                        disabled={!hasPrev}>
                         <span className={cls.arrow}>↑</span>
                     </Btn>
                 </div>
@@ -157,8 +153,7 @@ export default function SectionPager({
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasNext }, [])}
                         onClick={handleDown}
                         aria-label='Ниже (внутри текущих отчётов)'
-                        disabled={!hasNext}
-                    >
+                        disabled={!hasNext}>
                         <span className={cls.arrow}>↓</span>
                     </Btn>
                 </div>
@@ -171,8 +166,7 @@ export default function SectionPager({
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupPrev }, [])}
                         onClick={handleLeft}
                         aria-label='Предыдущая страница отчётов'
-                        disabled={!hasGroupPrev}
-                    >
+                        disabled={!hasGroupPrev}>
                         <span className={cls.arrow}>←</span>
                     </Btn>
                 </div>
@@ -185,8 +179,7 @@ export default function SectionPager({
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupNext }, [])}
                         onClick={handleRight}
                         aria-label='Следующая страница отчётов'
-                        disabled={!hasGroupNext}
-                    >
+                        disabled={!hasGroupNext}>
                         <span className={cls.arrow}>→</span>
                     </Btn>
                 </div>

@@ -23,4 +23,3 @@ export const buildUserEndpoints = (builder: ApiEndpointBuilder) => {
         })
     }
 }
-

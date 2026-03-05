@@ -8,4 +8,3 @@ export interface CustomError extends Error {
 }
 
 export type TStatus = 'idle' | 'loading' | 'succeseeded'
-

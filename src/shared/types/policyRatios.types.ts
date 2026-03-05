@@ -1,4 +1,3 @@
-
 export interface PolicyRatiosPerPolicyDto {
     policyName: string
     bucket: string

@@ -71,4 +71,3 @@ export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTerms
 
     return Array.from(termsByTitle.values())
 }
-

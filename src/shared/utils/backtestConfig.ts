@@ -83,4 +83,3 @@ export function cloneBacktestConfig(config: BacktestConfigDto): BacktestConfigDt
         policies: config.policies.map(p => ({ ...p }))
     }
 }
-

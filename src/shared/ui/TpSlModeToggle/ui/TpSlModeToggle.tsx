@@ -1,4 +1,7 @@
+import { ReactNode } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
+import TermTooltip from '@/shared/ui/TermTooltip/ui/TermTooltip'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import { Btn } from '@/shared/ui/Btn'
 import cls from './TpSlModeToggle.module.scss'
 
@@ -7,6 +10,7 @@ export type TpSlMode = 'all' | 'dynamic' | 'static'
 interface TpSlModeOption {
     value: TpSlMode
     label: string
+    tooltip?: ReactNode
 }
 
 interface TpSlModeToggleProps {
@@ -19,8 +23,8 @@ interface TpSlModeToggleProps {
 
 const DEFAULT_TP_SL_OPTIONS: readonly TpSlModeOption[] = [
     { value: 'all', label: 'ALL' },
-    { value: 'dynamic', label: 'DYNAMIC TP/SL' },
-    { value: 'static', label: 'STATIC TP/SL' }
+    { value: 'dynamic', label: 'DYNAMIC' },
+    { value: 'static', label: 'STATIC' }
 ]
 
 const TP_SL_MODES = new Set<TpSlMode>(['all', 'dynamic', 'static'])
@@ -77,7 +81,7 @@ export function TpSlModeToggle({
         <div
             className={classNames(cls.TpSlModeToggle, {}, [className ?? ''])}
             role='group'
-            aria-label={ariaLabel ?? 'Срез TP/SL'}>
+            aria-label={ariaLabel ?? 'TP/SL slice'}>
             {options.map(option => (
                 <Btn
                     key={option.value}
@@ -85,10 +89,15 @@ export function TpSlModeToggle({
                     className={classNames(cls.optionButton, { [cls.optionButtonActive]: option.value === value }, [])}
                     onClick={() => handleChange(option.value)}
                     aria-pressed={option.value === value}>
-                    {option.label}
+                    {option.tooltip ?
+                        <TermTooltip
+                            term={option.label}
+                            description={enrichTermTooltipDescription(option.tooltip, { term: option.label })}
+                            type='span'
+                        />
+                    :   option.label}
                 </Btn>
             ))}
         </div>
     )
 }
-

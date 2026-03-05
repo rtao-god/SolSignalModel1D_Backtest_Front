@@ -21,12 +21,7 @@ function isPolicyBranchMegaBucketMode(value: string): value is PolicyBranchMegaB
     return POLICY_BUCKET_VALUES.has(value as PolicyBranchMegaBucketMode)
 }
 
-export function PolicyBucketFilterToggle({
-    value,
-    onChange,
-    className,
-    ariaLabel
-}: PolicyBucketFilterToggleProps) {
+export function PolicyBucketFilterToggle({ value, onChange, className, ariaLabel }: PolicyBucketFilterToggleProps) {
     if (!isPolicyBranchMegaBucketMode(value)) {
         throw new Error(`[ui] Unsupported policy bucket filter value: ${value}.`)
     }

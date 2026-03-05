@@ -1,0 +1,23 @@
+{
+  "generatedUtc": "2026-03-04T20:33:39.9388373Z",
+  "beforeFile": "before.json",
+  "afterFile": "after.json",
+  "entryJsKbBefore": 1048.25,
+  "entryJsKbAfter": 287.83,
+  "entryJsKbDelta": -760.42,
+  "entryCssKbBefore": 38.1,
+  "entryCssKbAfter": 38.1,
+  "entryCssKbDelta": 0.0,
+  "jsTotalKbBefore": 2255.5,
+  "jsTotalKbAfter": 2185.54,
+  "jsTotalKbDelta": -69.96,
+  "cssTotalKbBefore": 152.73,
+  "cssTotalKbAfter": 152.73,
+  "cssTotalKbDelta": 0.0,
+  "buildDurationSecBefore": 23.01,
+  "buildDurationSecAfter": 25.17,
+  "buildDurationSecDelta": 2.16,
+  "notes": [
+    "Отрицательная delta = улучшение по размеру/времени."
+  ]
+}

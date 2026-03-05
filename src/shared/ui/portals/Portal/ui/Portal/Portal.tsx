@@ -6,4 +6,3 @@ export default function Portal(props: PortalProps) {
 
     return createPortal(children, element)
 }
-

@@ -8,22 +8,17 @@ export interface SectionConfig {
 }
 
 interface UseSectionPagerOptions {
-
     sections: SectionConfig[]
     syncHash?: boolean
 
-
     trackScroll?: boolean
 
-
     step?: number
-
 
     offsetTop?: number
 }
 
 interface UseSectionPagerResult {
-
     currentIndex: number
     canPrev: boolean
     canNext: boolean
@@ -90,7 +85,6 @@ export function useSectionPager({
     const stepEffective = resolveStep(step)
     const [currentIndex, setCurrentIndex] = useState(0)
 
-
     const programmaticTargetIndexRef = useRef<number | null>(null)
     const lastHandledHashRef = useRef<string | null>(null)
     const scrollSyncedHashRef = useRef<string | null>(null)
@@ -115,7 +109,6 @@ export function useSectionPager({
             setCurrentIndex(sections.length - 1)
         }
     }, [sections.length, currentIndex])
-
 
     useEffect(() => {
         if (!syncHash || sections.length === 0) return
@@ -150,7 +143,6 @@ export function useSectionPager({
             withTransitionPulse: true
         })
     }, [location.hash, sections, syncHash, offsetTop])
-
 
     useEffect(() => {
         if (!trackScrollEffective || sections.length === 0) {
@@ -231,7 +223,6 @@ export function useSectionPager({
         }
     }, [sections, trackScrollEffective, offsetTop, syncHash, navigate, location.pathname, location.search])
 
-
     useEffect(() => {
         const target = programmaticTargetIndexRef.current
         if (target === null) return
@@ -240,7 +231,6 @@ export function useSectionPager({
             programmaticTargetIndexRef.current = null
         }
     }, [currentIndex])
-
 
     const goToIndex = useCallback(
         (nextIndex: number) => {

@@ -2,7 +2,9 @@ import ReactDOM from 'react-dom/client'
 import { StrictMode } from 'react'
 import { BrowserRouter, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './providers/ThemeProvider'
+import { LocaleProvider } from './providers/LocaleProvider'
 import { StoreProvider } from './providers/StoreProvider'
+import '@/shared/configs/i18n/i18n'
 import './styles/_include.scss'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import GlobalErrorFallback from './providers/ErrorBoundary/ui/GlobalErrorFallback/GlobalErrorFallback'
@@ -43,7 +45,9 @@ const RootApp = () => (
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
                 <ThemeProvider>
-                    <AppWithGlobalErrorBoundary />
+                    <LocaleProvider>
+                        <AppWithGlobalErrorBoundary />
+                    </LocaleProvider>
                 </ThemeProvider>
             </BrowserRouter>
         </QueryClientProvider>

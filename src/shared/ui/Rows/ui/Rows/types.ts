@@ -6,4 +6,3 @@ export default interface RowsProps {
     style?: CSSProperties
     className?: string
 }
-

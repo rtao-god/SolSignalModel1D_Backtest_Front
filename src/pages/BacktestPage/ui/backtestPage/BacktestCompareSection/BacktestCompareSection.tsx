@@ -1,6 +1,7 @@
 import { Btn, Text } from '@/shared/ui'
 import { BacktestSummaryView } from '../BacktestSummaryView/BacktestSummaryView'
 import { BacktestPolicyRatiosSection } from '../BacktestPolicyRatiosSection/BacktestPolicyRatiosSection'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestCompareSection.module.scss'
 import BacktestCompareSectionProps from './types'
 
@@ -30,17 +31,18 @@ export function BacktestCompareSection({
     onProfileBChange,
     onRunCompare
 }: BacktestCompareSectionProps) {
+    const { t } = useTranslation('reports')
     const profileA = profiles?.find(p => p.id === profileAId) ?? null
     const profileB = profiles?.find(p => p.id === profileBId) ?? null
 
     return (
         <section id='compare' className={cls.compareSection}>
-            <Text type='h2'>Сравнение профилей A / B</Text>
+            <Text type='h2'>{t('backtestFull.compareSection.title')}</Text>
 
             {profiles && profiles.length > 0 && (
                 <div className={cls.compareSelectors}>
                     <label className={cls.selector}>
-                        <Text>Профиль A</Text>
+                        <Text>{t('backtestFull.compareSection.selectors.profileA')}</Text>
                         <select
                             value={profileAId ?? ''}
                             onChange={e => onProfileAChange(e.target.value)}
@@ -54,7 +56,7 @@ export function BacktestCompareSection({
                     </label>
 
                     <label className={cls.selector}>
-                        <Text>Профиль B</Text>
+                        <Text>{t('backtestFull.compareSection.selectors.profileB')}</Text>
                         <select
                             value={profileBId ?? ''}
                             onChange={e => onProfileBChange(e.target.value)}
@@ -70,7 +72,7 @@ export function BacktestCompareSection({
             )}
 
             <div className={cls.compareMetrics}>
-                <Text type='h3'>Сводка дельт (B - A)</Text>
+                <Text type='h3'>{t('backtestFull.compareSection.deltaSummaryTitle')}</Text>
                 <div className={cls.metricsValues}>
                     <Text>BestTotalPnlPct: {formatSignedDelta(deltaBestTotalPnlPct)} %</Text>
                     <Text>WorstMaxDdPct: {formatSignedDelta(deltaWorstMaxDdPct)} %</Text>
@@ -79,36 +81,50 @@ export function BacktestCompareSection({
             </div>
 
             <Btn className={cls.runButton} onClick={onRunCompare} disabled={isCompareLoading}>
-                {isCompareLoading ? 'Сравниваю профили...' : 'Запустить сравнение A/B'}
+                {isCompareLoading ?
+                    t('backtestFull.compareSection.runButton.loading')
+                :   t('backtestFull.compareSection.runButton.default')}
             </Btn>
 
             {compareError && <Text className={cls.errorText}>{compareError}</Text>}
 
             <div className={cls.columns}>
                 <div className={cls.column}>
-                    <Text type='h3'>Профиль A{profileA ? ` (${profileA.name || profileA.id})` : ''}</Text>
+                    <Text type='h3'>
+                        {t('backtestFull.compareSection.columns.profileA')}
+                        {profileA ? ` (${profileA.name || profileA.id})` : ''}
+                    </Text>
                     {summaryA ?
-                        <BacktestSummaryView summary={summaryA} title='Summary профиля A' />
-                    :   <Text>Ещё нет результата preview для профиля A.</Text>}
+                        <BacktestSummaryView
+                            summary={summaryA}
+                            title={t('backtestFull.compareSection.summaryTitle', { profile: 'A' })}
+                        />
+                    :   <Text>{t('backtestFull.compareSection.previewEmpty', { profile: 'A' })}</Text>}
                     {policyRatiosA && (
                         <BacktestPolicyRatiosSection
                             report={policyRatiosA}
-                            title='Метрики политик профиля A'
-                            subtitle='Метрики построены по тому же one-shot прогона, что и summary профиля A.'
+                            title={t('backtestFull.compareSection.policyRatiosTitle', { profile: 'A' })}
+                            subtitle={t('backtestFull.compareSection.policyRatiosSubtitle', { profile: 'A' })}
                         />
                     )}
                 </div>
 
                 <div className={cls.column}>
-                    <Text type='h3'>Профиль B{profileB ? ` (${profileB.name || profileB.id})` : ''}</Text>
+                    <Text type='h3'>
+                        {t('backtestFull.compareSection.columns.profileB')}
+                        {profileB ? ` (${profileB.name || profileB.id})` : ''}
+                    </Text>
                     {summaryB ?
-                        <BacktestSummaryView summary={summaryB} title='Summary профиля B' />
-                    :   <Text>Ещё нет результата preview для профиля B.</Text>}
+                        <BacktestSummaryView
+                            summary={summaryB}
+                            title={t('backtestFull.compareSection.summaryTitle', { profile: 'B' })}
+                        />
+                    :   <Text>{t('backtestFull.compareSection.previewEmpty', { profile: 'B' })}</Text>}
                     {policyRatiosB && (
                         <BacktestPolicyRatiosSection
                             report={policyRatiosB}
-                            title='Метрики политик профиля B'
-                            subtitle='Метрики построены по тому же one-shot прогона, что и summary профиля B.'
+                            title={t('backtestFull.compareSection.policyRatiosTitle', { profile: 'B' })}
+                            subtitle={t('backtestFull.compareSection.policyRatiosSubtitle', { profile: 'B' })}
                         />
                     )}
                 </div>
@@ -116,4 +132,3 @@ export function BacktestCompareSection({
         </section>
     )
 }
-

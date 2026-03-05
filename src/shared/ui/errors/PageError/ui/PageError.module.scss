@@ -8,8 +8,7 @@
     position: relative;
 
     /* Внешний неоновый "контур" через градиентный бордер */
-    background:
-        radial-gradient(circle at top left, rgba(59, 130, 246, 0.35), transparent 55%),
+    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.35), transparent 55%),
         radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.3), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
     border: 1px solid rgba(148, 163, 184, 0.35);
@@ -49,8 +48,7 @@
     background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.45), rgba(15, 23, 42, 0.95));
     border: 1px solid rgba(51, 65, 85, 0.9);
 
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-        monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     font-size: 12px;
     line-height: 1.4;
     color: rgba(203, 213, 225, 0.95);
@@ -124,4 +122,3 @@
         font-size: 11px;
     }
 }
-

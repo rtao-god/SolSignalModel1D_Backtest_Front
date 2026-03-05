@@ -11,4 +11,3 @@ export const useModelStatsReportQuery = createSuspenseReportHook<ReportDocumentD
     path,
     mapResponse: mapReportResponse
 })
-

@@ -183,14 +183,11 @@
 }
 
 .Btn[data-variant='chip'][data-color-scheme='accent'] {
-    --btn-bg:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.35), transparent 55%),
+    --btn-bg: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.35), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95));
-    --btn-bg-hover:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.45), transparent 55%),
+    --btn-bg-hover: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.45), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 1), rgba(15, 23, 42, 1));
-    --btn-bg-active:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.3), transparent 55%),
+    --btn-bg-active: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.3), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
     --btn-border-color: rgba(148, 163, 255, 0.4);
 }
@@ -233,4 +230,3 @@
         min-width: 30px;
     }
 }
-

@@ -2,7 +2,7 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import cls from './ContactPage.module.scss'
 import type { ContactPageProps } from './types'
-const FULL_NAME = 'Имя Фамилия'
+import { useTranslation } from 'react-i18next'
 const TELEGRAM_HANDLE = '@telegram_username'
 const TELEGRAM_URL = 'https://t.me/telegram_username'
 const LINKEDIN_URL = 'https://www.linkedin.com/in/linkedin-username/'
@@ -10,22 +10,24 @@ const PHONE_DISPLAY = '+0 000 000 00 00'
 const PHONE_TEL = '+00000000000'
 
 export default function ContactPage({ className }: ContactPageProps) {
+    const { t } = useTranslation('common')
+    const fullName = t('contact.profile.fullName')
+
     return (
         <div className={classNames(cls.ContactPage, {}, [className ?? ''])}>
             <div className={cls.inner}>
                 <header className={cls.header}>
                     <Text type='h1' className={cls.title}>
-                        Связаться со мной
+                        {t('contact.page.title')}
                     </Text>
-                    <Text className={cls.subtitle}>
-                        Короткая страница с основными контактами для связи по проекту и вопросам сотрудничества.
-                    </Text>
+                    <Text className={cls.subtitle}>{t('contact.page.subtitle')}</Text>
                 </header>
 
                 <section className={cls.profileCard}>
                     <div className={cls.avatarStub}>
                         <span className={cls.avatarInitials}>
-                            {FULL_NAME.split(' ')
+                            {fullName
+                                .split(' ')
                                 .filter(Boolean)
                                 .map(part => part[0])
                                 .join('')
@@ -34,17 +36,14 @@ export default function ContactPage({ className }: ContactPageProps) {
                     </div>
                     <div className={cls.profileInfo}>
                         <Text type='h2' className={cls.profileName}>
-                            {FULL_NAME}
+                            {fullName}
                         </Text>
-                        <Text className={cls.profileRole}>Quant / ML, Full-stack (React + .NET)</Text>
-                        <Text className={cls.profileNote}>
-                            Фокус на моделях для крипторынка, аналитике и визуализации результатов бэктестов.
-                        </Text>
+                        <Text className={cls.profileRole}>{t('contact.profile.role')}</Text>
+                        <Text className={cls.profileNote}>{t('contact.profile.note')}</Text>
                     </div>
                 </section>
 
                 <section className={cls.grid}>
-
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
                             <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -55,15 +54,12 @@ export default function ContactPage({ className }: ContactPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 Telegram
                             </Text>
-                            <Text className={cls.cardDescription}>
-                                Основной канал для быстрой связи, вопросов по модели и демо-созвонов.
-                            </Text>
+                            <Text className={cls.cardDescription}>{t('contact.cards.telegram.description')}</Text>
                             <a href={TELEGRAM_URL} target='_blank' rel='noreferrer' className={cls.cardLink}>
                                 {TELEGRAM_HANDLE}
                             </a>
                         </div>
                     </article>
-
 
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
@@ -75,15 +71,12 @@ export default function ContactPage({ className }: ContactPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 LinkedIn
                             </Text>
-                            <Text className={cls.cardDescription}>
-                                Профессиональный профиль, резюме и история проектов.
-                            </Text>
+                            <Text className={cls.cardDescription}>{t('contact.cards.linkedin.description')}</Text>
                             <a href={LINKEDIN_URL} target='_blank' rel='noreferrer' className={cls.cardLink}>
-                                Открыть профиль
+                                {t('contact.cards.linkedin.link')}
                             </a>
                         </div>
                     </article>
-
 
                     <article className={cls.contactCard}>
                         <div className={cls.cardIcon}>
@@ -93,24 +86,19 @@ export default function ContactPage({ className }: ContactPageProps) {
                         </div>
                         <div className={cls.cardBody}>
                             <Text type='h3' className={cls.cardTitle}>
-                                Телефон / WhatsApp
+                                {t('contact.cards.phone.title')}
                             </Text>
-                            <Text className={cls.cardDescription}>
-                                Для созвонов, обсуждения деталей сотрудничества и быстрых согласований.
-                            </Text>
+                            <Text className={cls.cardDescription}>{t('contact.cards.phone.description')}</Text>
                             <a href={`tel:${PHONE_TEL}`} className={cls.cardLink}>
                                 {PHONE_DISPLAY}
                             </a>
-                            <Text className={cls.cardTag}>WhatsApp доступен по этому номеру</Text>
+                            <Text className={cls.cardTag}>{t('contact.cards.phone.tag')}</Text>
                         </div>
                     </article>
                 </section>
 
                 <footer className={cls.footer}>
-                    <Text className={cls.footerText}>
-                        При необходимости могу предложить короткий онлайн-демо формат: 10–15 минут, чтобы показать
-                        ключевые метрики и UI проекта.
-                    </Text>
+                    <Text className={cls.footerText}>{t('contact.footer')}</Text>
                 </footer>
             </div>
         </div>

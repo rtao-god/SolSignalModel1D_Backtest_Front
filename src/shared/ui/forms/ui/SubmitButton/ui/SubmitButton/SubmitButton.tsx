@@ -10,4 +10,3 @@ export default function SubmitButton({ label, className }: SubmitButtonProps) {
         </Btn>
     )
 }
-

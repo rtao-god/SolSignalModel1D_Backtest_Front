@@ -50,4 +50,3 @@ export const authApi = createApi({
 })
 
 export const { useLoginUserMutation, useRegisterUserMutation } = authApi
-

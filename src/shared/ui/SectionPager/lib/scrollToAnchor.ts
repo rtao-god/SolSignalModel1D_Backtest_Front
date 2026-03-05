@@ -3,7 +3,6 @@ export interface ScrollToAnchorOptions {
 
     offsetTop?: number
 
-
     withTransitionPulse?: boolean
 }
 
@@ -193,4 +192,3 @@ export function scrollToTop(options?: { behavior?: ScrollBehavior; withTransitio
         behavior
     })
 }
-

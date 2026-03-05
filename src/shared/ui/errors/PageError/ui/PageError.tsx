@@ -54,4 +54,3 @@ export default function PageError({ title, message, error, onRetry, actionsSlot 
         </div>
     )
 }
-

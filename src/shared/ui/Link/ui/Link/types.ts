@@ -4,4 +4,3 @@ export default interface AppLinkProps extends LinkProps {
     children: ReactNode
     className?: string
 }
-

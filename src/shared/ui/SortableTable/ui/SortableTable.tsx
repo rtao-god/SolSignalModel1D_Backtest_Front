@@ -248,13 +248,10 @@ export default function SortableTable({
                             const ariaSort = effectiveAriaSort(isActive, kind, defaultDir)
 
                             const titleHint =
-                                !isActive
-                                    ? 'Сортировать'
-                                    : isAsc
-                                        ? 'Сортировка: по возрастанию'
-                                        : isDesc
-                                            ? 'Сортировка: по убыванию'
-                                            : 'Сортировать'
+                                !isActive ? 'Сортировать'
+                                : isAsc ? 'Сортировка: по возрастанию'
+                                : isDesc ? 'Сортировка: по убыванию'
+                                : 'Сортировать'
 
                             const renderedTitle = renderColumnTitle ? renderColumnTitle(title, colIdx) : title
 

@@ -4,6 +4,7 @@ import { Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestSummaryView.module.scss'
 interface BacktestSummaryViewProps {
     summary: BacktestSummaryDto
@@ -11,6 +12,7 @@ interface BacktestSummaryViewProps {
 }
 
 export function BacktestSummaryView({ summary, title }: BacktestSummaryViewProps) {
+    const { t } = useTranslation('reports')
     const generatedUtc = summary.generatedAtUtc ? new Date(summary.generatedAtUtc) : null
     const generatedUtcStr =
         generatedUtc ? new Date(generatedUtc).toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
@@ -22,10 +24,18 @@ export function BacktestSummaryView({ summary, title }: BacktestSummaryViewProps
         <div className={cls.summaryCard}>
             <header className={cls.summaryHeader}>
                 <Text type='h3'>{title}</Text>
-                <Text>ID отчёта: {summary.id}</Text>
-                <Text>Тип: {summary.kind}</Text>
-                <Text>Сгенерировано (UTC): {generatedUtcStr}</Text>
-                <Text>Сгенерировано (локальное время): {generatedLocalStr}</Text>
+                <Text>
+                    {t('backtestFull.summaryView.labels.reportId')}: {summary.id}
+                </Text>
+                <Text>
+                    {t('backtestFull.summaryView.labels.reportKind')}: {summary.kind}
+                </Text>
+                <Text>
+                    {t('backtestFull.summaryView.labels.generatedUtc')}: {generatedUtcStr}
+                </Text>
+                <Text>
+                    {t('backtestFull.summaryView.labels.generatedLocal')}: {generatedLocalStr}
+                </Text>
             </header>
 
             <div className={cls.sections}>
@@ -33,7 +43,7 @@ export function BacktestSummaryView({ summary, title }: BacktestSummaryViewProps
                     summary.sections.map((section, index) => (
                         <SectionRenderer key={index} section={section} reportKind={summary.kind} />
                     ))
-                :   <Text>Нет секций отчёта для отображения.</Text>}
+                :   <Text>{t('backtestFull.summaryView.noSections')}</Text>}
             </div>
         </div>
     )
@@ -48,7 +58,12 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
     const normalizeTitle = (title: string | undefined): string =>
-        title ? title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim() : ''
+        title ?
+            title
+                .replace(/^=+\s*/, '')
+                .replace(/\s*=+$/, '')
+                .trim()
+        :   ''
     if (Array.isArray(kv.items)) {
         const visibleTitle = normalizeTitle(kv.title) || kv.title
         const description = resolveReportSectionDescription(reportKind, kv.title)

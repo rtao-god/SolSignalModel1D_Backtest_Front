@@ -2,9 +2,13 @@ import { useMemo } from 'react'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
 import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import { getDiagnosticsGroupSections, splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
+import {
+    getDiagnosticsGroupSections,
+    splitBacktestDiagnosticsSections
+} from '@/shared/utils/backtestDiagnosticsSections'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { useTranslation } from 'react-i18next'
 
 /*
     BacktestDiagnosticsOtherPage — прочие диагностические таблицы.
@@ -14,6 +18,7 @@ import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTool
         - Позволяет не терять данные при расширении отчёта.
 */
 export default function BacktestDiagnosticsOtherPage() {
+    const { t } = useTranslation('reports')
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
 
     const tableSections = useMemo(
@@ -24,10 +29,7 @@ export default function BacktestDiagnosticsOtherPage() {
         [data]
     )
     const split = useMemo(() => splitBacktestDiagnosticsSections(tableSections), [tableSections])
-    const diagnosticsSections = useMemo(
-        () => [...split.diagnostics, ...split.unknown],
-        [split]
-    )
+    const diagnosticsSections = useMemo(() => [...split.diagnostics, ...split.unknown], [split])
     const otherSections = useMemo(
         () => getDiagnosticsGroupSections(diagnosticsSections, 'other'),
         [diagnosticsSections]
@@ -42,18 +44,17 @@ export default function BacktestDiagnosticsOtherPage() {
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить прочие диагностики'>
+            errorTitle={t('diagnosticsReport.pages.other.errorTitle')}>
             {data && (
                 <BacktestDiagnosticsPageLayout
                     report={data}
                     sections={otherSections}
-                    pageTitle='Прочие диагностики'
-                    pageSubtitle='Редкие или новые таблицы, которые пока не классифицированы по основным темам.'
-                    emptyMessage='В отчёте нет прочих диагностических таблиц.'
+                    pageTitle={t('diagnosticsReport.pages.other.title')}
+                    pageSubtitle={t('diagnosticsReport.pages.other.subtitle')}
+                    emptyMessage={t('diagnosticsReport.pages.other.empty')}
                     renderColumnTitle={renderColumnTitle}
                 />
             )}
         </PageDataBoundary>
     )
 }
-

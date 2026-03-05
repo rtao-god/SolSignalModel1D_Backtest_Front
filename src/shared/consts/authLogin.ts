@@ -1,4 +1,3 @@
-
 const ERROR_MESSAGES = {
     IDENTIFIER_REQUIRED: 'Введите номер телефона или электронную почту.',
     IDENTIFIER_INVALID: 'Такого телефона или почты не существует.',
@@ -9,4 +8,3 @@ const ERROR_MESSAGES = {
 }
 
 export const { IDENTIFIER_REQUIRED, IDENTIFIER_INVALID, PASSWORD_REQUIRED, PASSWORD_SHORT } = ERROR_MESSAGES
-

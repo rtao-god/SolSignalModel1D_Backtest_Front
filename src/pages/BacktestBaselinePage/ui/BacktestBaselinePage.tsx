@@ -1,26 +1,20 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './BacktestBaselinePage.module.scss'
 import { TermTooltip, Text } from '@/shared/ui'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import type { BacktestBaselinePageProps } from './types'
-
-const BASELINE_COLUMN_TOOLTIPS: Record<string, string> = {
-    Политика: 'Имя торговой политики (стратегии), для которой приведены итоговые метрики.',
-    Маржа: 'Режим маржи сделки: Cross или Isolated.',
-    Режим: 'Ветка логики: Base или Anti‑direction (разворот направления при триггере риска).',
-    'Итоговый PnL, %': 'Суммарная доходность по политике в процентах за период бэктеста.',
-    'Max DD, %': 'Максимальная просадка капитала в процентах — ключевой риск‑показатель.',
-    Ликвидации: 'Были ли ликвидации (Да/Нет). Критичный риск‑флаг.',
-    'Withdraw, $': 'Сколько прибыли было выведено из капитала (если применимо).',
-    Сделок: 'Количество сделок по политике за период.'
-}
+import { useTranslation } from 'react-i18next'
 
 const renderTooltip = (term: string, description?: string) =>
-    description ? <TermTooltip term={term} description={description} type='span' /> : term
+    description ?
+        <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
+    :   term
 
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
+    const { t } = useTranslation('reports')
     const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
 
     const rootClassName = classNames(cls.BacktestBaselinePage, {}, [className ?? ''])
@@ -31,7 +25,7 @@ export default function BacktestBaselinePage({ className }: BacktestBaselinePage
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить baseline бэктеста'>
+            errorTitle={t('backtestBaseline.page.errorTitle')}>
             {data && (
                 <div className={rootClassName}>
                     <Header snapshot={data} />
@@ -47,17 +41,18 @@ interface HeaderProps {
 }
 
 function Header({ snapshot }: HeaderProps) {
+    const { t } = useTranslation('reports')
     const generatedUtc = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : null
     const generatedUtcStr = generatedUtc ? generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
     const generatedLocalStr = generatedUtc ? generatedUtc.toLocaleString() : '—'
 
     return (
         <header className={cls.header}>
-            <Text type='h1'>Baseline бэктеста</Text>
-            <Text>ID снапшота: {snapshot.id}</Text>
-            <Text>Конфиг: {snapshot.configName}</Text>
-            <Text>Сгенерировано (UTC): {generatedUtcStr}</Text>
-            <Text>Сгенерировано (локальное время): {generatedLocalStr}</Text>
+            <Text type='h1'>{t('backtestBaseline.header.title')}</Text>
+            <Text>{t('backtestBaseline.header.snapshotId', { id: snapshot.id })}</Text>
+            <Text>{t('backtestBaseline.header.config', { configName: snapshot.configName })}</Text>
+            <Text>{t('backtestBaseline.header.generatedUtc', { generatedUtc: generatedUtcStr })}</Text>
+            <Text>{t('backtestBaseline.header.generatedLocal', { generatedLocal: generatedLocalStr })}</Text>
         </header>
     )
 }
@@ -66,22 +61,20 @@ interface GlobalParamsProps {
 }
 
 function GlobalParams({ snapshot }: GlobalParamsProps) {
+    const { t } = useTranslation('reports')
     const dailyStopPctStr = `${(snapshot.dailyStopPct * 100).toFixed(2)} %`
     const dailyTpPctStr = `${(snapshot.dailyTpPct * 100).toFixed(2)} %`
 
     return (
         <section className={cls.globalParams}>
-            <Text type='h2'>Глобальные параметры</Text>
-            <Text>
-                Базовые настройки риска, применяемые ко всем политикам в baseline‑запуске. Эти значения задают дневные
-                границы стоп‑лосса и тейк‑профита.
-            </Text>
+            <Text type='h2'>{t('backtestBaseline.globalParams.title')}</Text>
+            <Text>{t('backtestBaseline.globalParams.description')}</Text>
             <dl className={cls.kvList}>
                 <div className={cls.kvRow}>
                     <dt>
                         {renderTooltip(
-                            'Дневной стоп (SL)',
-                            'Процентное ограничение убытка на день. Если цена проходит дальше — позиция закрывается.'
+                            t('backtestBaseline.globalParams.dailySl.term'),
+                            t('backtestBaseline.globalParams.dailySl.tooltip')
                         )}
                     </dt>
                     <dd>{dailyStopPctStr}</dd>
@@ -89,8 +82,8 @@ function GlobalParams({ snapshot }: GlobalParamsProps) {
                 <div className={cls.kvRow}>
                     <dt>
                         {renderTooltip(
-                            'Дневной тейк-профит (TP)',
-                            'Процентное ограничение прибыли на день. При достижении уровня фиксируем прибыль.'
+                            t('backtestBaseline.globalParams.dailyTp.term'),
+                            t('backtestBaseline.globalParams.dailyTp.tooltip')
                         )}
                     </dt>
                     <dd>{dailyTpPctStr}</dd>
@@ -104,33 +97,62 @@ interface PoliciesTableProps {
 }
 
 function PoliciesTable({ policies }: PoliciesTableProps) {
+    const { t } = useTranslation('reports')
+
+    const tableColumns = [
+        {
+            label: t('backtestBaseline.table.columns.policy.label'),
+            tooltip: t('backtestBaseline.table.columns.policy.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.margin.label'),
+            tooltip: t('backtestBaseline.table.columns.margin.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.mode.label'),
+            tooltip: t('backtestBaseline.table.columns.mode.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.totalPnlPct.label'),
+            tooltip: t('backtestBaseline.table.columns.totalPnlPct.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.maxDdPct.label'),
+            tooltip: t('backtestBaseline.table.columns.maxDdPct.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.liquidations.label'),
+            tooltip: t('backtestBaseline.table.columns.liquidations.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.withdrawUsd.label'),
+            tooltip: t('backtestBaseline.table.columns.withdrawUsd.tooltip')
+        },
+        {
+            label: t('backtestBaseline.table.columns.trades.label'),
+            tooltip: t('backtestBaseline.table.columns.trades.tooltip')
+        }
+    ]
+
     if (!Array.isArray(policies) || policies.length === 0) {
         return (
             <section className={cls.policiesSection}>
-                <Text type='h2'>Политики</Text>
-                <Text>Нет данных по политикам.</Text>
+                <Text type='h2'>{t('backtestBaseline.table.empty.title')}</Text>
+                <Text>{t('backtestBaseline.table.empty.description')}</Text>
             </section>
         )
     }
 
     return (
         <section className={cls.policiesSection}>
-            <Text type='h2'>Политики (baseline, WITH SL)</Text>
-            <Text>
-                Сводная таблица результатов baseline‑запуска для каждой политики. Это быстрый способ сравнить доходность
-                и риск до детальных диагностик.
-            </Text>
+            <Text type='h2'>{t('backtestBaseline.table.title')}</Text>
+            <Text>{t('backtestBaseline.table.description')}</Text>
             <table className={cls.table}>
                 <thead>
                     <tr>
-                        <th>{renderTooltip('Политика', BASELINE_COLUMN_TOOLTIPS.Политика)}</th>
-                        <th>{renderTooltip('Маржа', BASELINE_COLUMN_TOOLTIPS.Маржа)}</th>
-                        <th>{renderTooltip('Режим', BASELINE_COLUMN_TOOLTIPS.Режим)}</th>
-                        <th>{renderTooltip('Итоговый PnL, %', BASELINE_COLUMN_TOOLTIPS['Итоговый PnL, %'])}</th>
-                        <th>{renderTooltip('Max DD, %', BASELINE_COLUMN_TOOLTIPS['Max DD, %'])}</th>
-                        <th>{renderTooltip('Ликвидации', BASELINE_COLUMN_TOOLTIPS.Ликвидации)}</th>
-                        <th>{renderTooltip('Withdraw, $', BASELINE_COLUMN_TOOLTIPS['Withdraw, $'])}</th>
-                        <th>{renderTooltip('Сделок', BASELINE_COLUMN_TOOLTIPS.Сделок)}</th>
+                        {tableColumns.map(column => (
+                            <th key={column.label}>{renderTooltip(column.label, column.tooltip)}</th>
+                        ))}
                     </tr>
                 </thead>
                 <tbody>
@@ -138,10 +160,18 @@ function PoliciesTable({ policies }: PoliciesTableProps) {
                         <tr key={`${policy.policyName}_${policy.marginMode}_${String(policy.useAntiDirectionOverlay)}`}>
                             <td>{policy.policyName}</td>
                             <td>{policy.marginMode}</td>
-                            <td>{policy.useAntiDirectionOverlay ? 'Anti-direction' : 'Base'}</td>
+                            <td>
+                                {policy.useAntiDirectionOverlay ?
+                                    t('backtestBaseline.table.mode.antiDirection')
+                                :   t('backtestBaseline.table.mode.base')}
+                            </td>
                             <td>{(policy.totalPnlPct * 100).toFixed(2)}</td>
                             <td>{(policy.maxDrawdownPct * 100).toFixed(2)}</td>
-                            <td>{policy.hadLiquidation ? 'Да' : 'Нет'}</td>
+                            <td>
+                                {policy.hadLiquidation ?
+                                    t('backtestBaseline.table.liquidations.yes')
+                                :   t('backtestBaseline.table.liquidations.no')}
+                            </td>
                             <td>{policy.withdrawnTotal.toFixed(2)}</td>
                             <td>{policy.tradesCount}</td>
                         </tr>

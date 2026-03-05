@@ -1,4 +1,3 @@
-
 export interface PageTab {
     id: string
     label: string
@@ -10,4 +9,3 @@ export const BACKTEST_FULL_TABS: PageTab[] = [
     { id: 'whatif', label: 'Изменение конфигурации', anchor: 'whatif' },
     { id: 'compare', label: 'Сравнение профилей', anchor: 'compare' }
 ]
-

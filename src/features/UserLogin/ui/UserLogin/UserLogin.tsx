@@ -13,7 +13,7 @@ import { IDENTIFIER_INVALID, IDENTIFIER_REQUIRED } from '@/shared/consts/authLog
 import { getIsAuthenticated } from '@/shared/ui/auth/AuthSection/model/getIsAuthenticated'
 
 export default function UserLogin({ className }: LoginFormProps) {
-    const { t } = useTranslation()
+    const { t } = useTranslation('auth')
     const dispatch = useDispatch()
 
     const [identifierValue, setIdentifierValue] = useState<string>('')
@@ -60,30 +60,28 @@ export default function UserLogin({ className }: LoginFormProps) {
                 <Input
                     type='text'
                     onChange={onChangeIdentifier}
-                    placeholder={t('EnterEmailOrPhone')}
-                    error={error?.includes(IDENTIFIER_REQUIRED) ? 'Ошибка в' : ''}
-
+                    placeholder={t('login.identifierPlaceholder')}
+                    error={error?.includes(IDENTIFIER_REQUIRED) ? t('login.identifierError') : ''}
                 />
                 <PasswordInputField
                     onChangePassword={onChangePassword}
-                    placeholder={t('EnterThePassword')}
+                    placeholder={t('login.passwordPlaceholder')}
                     loginError={error}
-
                 />
                 <Text color='#d64657' position='center'>
                     {error}
                 </Text>
                 <Rows gap={20} rows={['auto']}>
                     <Btn className={cls.login_btn} color='#0064FA' disabled={isLoading}>
-                        {t('Login')}
+                        {t('login.submit')}
                     </Btn>
                     <div className={cls.register}>
                         <Text color='#7D7F82' fz='16px' type='p'>
-                            {t("Don't have an account?")}
+                            {t('login.noAccount')}
                         </Text>
                         <Link to='/registration' className={cls.register_text}>
                             <Text color='#0064FA' fz='16px' type='p'>
-                                {t('Register')}
+                                {t('login.registerLink')}
                             </Text>
                         </Link>
                     </div>

@@ -1,4 +1,3 @@
-
 export interface DocsTabConfig {
     id: string
     label: string
@@ -53,4 +52,3 @@ export const DOCS_TESTS_TABS: DocsTabConfig[] = [
         anchor: 'tests-perf'
     }
 ]
-

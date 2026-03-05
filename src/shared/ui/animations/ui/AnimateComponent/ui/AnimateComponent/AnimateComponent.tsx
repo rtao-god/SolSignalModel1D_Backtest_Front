@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import AnimateComponentProps from './types'
 
@@ -10,10 +11,16 @@ export default function AnimateComponent({
     duration = 0.5,
     ...rest
 }: AnimateComponentProps) {
+    const hasMountedRef = useRef(false)
+
+    useEffect(() => {
+        hasMountedRef.current = true
+    }, [])
+
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: initialOpacity }}
+                initial={!hasMountedRef.current ? { opacity: initialOpacity } : false}
                 animate={{ opacity: animateOpacity }}
                 exit={{ opacity: exitOpacity }}
                 transition={{ duration }}>
@@ -22,4 +29,3 @@ export default function AnimateComponent({
         </AnimatePresence>
     )
 }
-

@@ -7,4 +7,3 @@ export default interface ImageWithSvgProps extends ImgHTMLAttributes<HTMLImageEl
     onClick?: MouseEventHandler<HTMLDivElement>
     className?: string
 }
-

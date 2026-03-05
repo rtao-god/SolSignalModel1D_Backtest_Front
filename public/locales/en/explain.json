@@ -1,0 +1,553 @@
+{
+  "page": { "title": "Explain" },
+  "home": {
+    "hero": {
+      "title": "Project explain",
+      "subtitle": "Project map: models, branches, splits, time contract, and system structure.",
+      "meta": {
+        "models": "Models",
+        "branches": "Branches",
+        "data": "Data",
+        "time": "Time",
+        "architecture": "Architecture"
+      }
+    },
+    "sections": {
+      "title": "Explain sections",
+      "cards": {
+        "models": {
+          "title": "Models",
+          "description": "How Day/Micro/SL layers work and how the final signal is assembled.",
+          "hint": "Open models →"
+        },
+        "branches": {
+          "title": "BASE / ANTI-D branches",
+          "description": "When anti-direction is activated and how it changes risk and returns.",
+          "hint": "Open branches →"
+        },
+        "splits": {
+          "title": "Train / OOS / Recent / Full",
+          "description": "How to read train/oos and why recent is separated.",
+          "hint": "Open splits →"
+        },
+        "project": {
+          "title": "Project overview",
+          "description": "Technical map: causal/omniscient, reports, API, and tests.",
+          "hint": "Open overview →"
+        },
+        "time": {
+          "title": "Time and trading days",
+          "description": "NY entry, baseline exit, day keys, DST, and weekends.",
+          "hint": "Open time rules →"
+        },
+        "features": {
+          "title": "Features and indicators",
+          "description": "Model feature list with PFI context.",
+          "hint": "Open features →"
+        }
+      }
+    }
+  },
+  "tabs": {
+    "explain-models-overview": "Overview",
+    "explain-models-daily": "Daily model",
+    "explain-models-micro": "Micro model",
+    "explain-models-sl": "SL model",
+    "explain-models-aggregation": "Signal assembly",
+    "explain-branches-overview": "Why branches",
+    "explain-branches-base": "BASE",
+    "explain-branches-anti": "ANTI-D",
+    "explain-branches-conditions": "ANTI-D conditions",
+    "explain-branches-usage": "How to read results",
+    "explain-splits-overview": "Why splits",
+    "explain-splits-train": "Train",
+    "explain-splits-oos": "OOS",
+    "explain-splits-recent": "Recent (240d)",
+    "explain-splits-full": "Full history",
+    "explain-project-overview": "Overall pipeline",
+    "explain-project-causal": "Causal vs Omniscient",
+    "explain-project-structure": "Projects and folders",
+    "explain-project-reports": "Reports and API",
+    "explain-project-tests": "Tests and safeguards",
+    "explain-time-overview": "NY trading day",
+    "explain-time-baseline": "Baseline exit",
+    "explain-time-day-keys": "Day keys and time types",
+    "explain-time-weekend": "Weekends and exclusions",
+    "explain-features-overview": "How to read features",
+    "explain-features-returns": "Returns and spreads",
+    "explain-features-indicators": "Indicators and macro",
+    "explain-features-momentum": "Momentum and volatility",
+    "explain-features-regime": "Regimes and EMA"
+  },
+  "modelsPage": {
+    "header": {
+      "title": "Models",
+      "subtitle": "The signal is built from three layers: Day, Micro, and SL.",
+      "linkLabel": "Detailed metrics are available on a dedicated page.",
+      "linkButton": "Details"
+    },
+    "sections": {
+      "overview": {
+        "title": "Layer overview",
+        "text": "Pipeline: Day -> Day+Micro -> Total (with SL overlay).",
+        "table": {
+          "headers": { "layer": "Layer", "role": "What it solves", "output": "Output" },
+          "rows": [
+            ["Day (Move+Dir)", "Is there a move and in which direction", "ProbUp / ProbFlat / ProbDown"],
+            ["Micro (flat-only)", "Refines FLAT days", "Day+Micro"],
+            ["SL", "Risk of SL before TP", "Total"]
+          ]
+        },
+        "terms": [
+          { "term": "Daily layer (Move + Dir)", "description": "Base prediction layer for movement and direction." },
+          { "term": "Move (P(move))", "description": "Estimates whether a meaningful move will happen." },
+          { "term": "Dir (P(up|move))", "description": "Chooses direction when movement is expected." },
+          { "term": "Micro layer (flat-only)", "description": "Runs only for FLAT scenarios." },
+          { "term": "SL risk layer", "description": "Estimates risk of hitting SL before TP." },
+          { "term": "Total prediction", "description": "Final probabilities after all overlays." }
+        ]
+      },
+      "daily": {
+        "title": "Daily model",
+        "text": "Outputs three classes: UP / FLAT / DOWN.",
+        "table": {
+          "headers": { "class": "Class", "condition": "Labeling condition" },
+          "rows": [
+            ["UP (2)", "entry * (1 + MinMove) is reached first"],
+            ["DOWN (0)", "entry * (1 - MinMove) is reached first"],
+            ["FLAT (1)", "+/-MinMove levels are not reached"]
+          ]
+        },
+        "terms": [
+          { "term": "Who defines FLAT", "description": "FLAT is defined by baseline-window conditions and runtime probabilities." },
+          { "term": "UP / FLAT / DOWN", "description": "Three target classes for daily direction." },
+          { "term": "MinMove", "description": "Threshold of meaningful daily movement." },
+          { "term": "ATR (Average True Range)", "description": "Volatility indicator used for adaptive thresholds." },
+          { "term": "RegimeDownFlag", "description": "Bearish market regime flag." },
+          { "term": "HardRegimeIs2Flag", "description": "Hard market regime flag." },
+          { "term": "Quiet day (technical)", "description": "No +/-MinMove touch inside baseline window." }
+        ]
+      },
+      "micro": {
+        "title": "Micro model",
+        "text": "Refines FLAT days and does not replace the daily layer.",
+        "notes": [
+          "For UP/DOWN outputs, micro is not applied.",
+          "For FLAT outputs, micro can refine directional tilt.",
+          "This reduces loss of weak but consistent directional signals."
+        ],
+        "terms": [
+          { "term": "When micro model is enabled", "description": "Only for FLAT predictions from the daily layer." },
+          { "term": "MicroTruth", "description": "Micro-model target for FLAT days." },
+          { "term": "Minimum data for micro", "description": "Requires enough flat days and both classes." },
+          { "term": "Why micro layer exists", "description": "Captures weak but repeatable directional tilt inside sideways days." }
+        ]
+      },
+      "sl": {
+        "title": "SL model",
+        "text": "Risk layer: probability of SL before TP.",
+        "table": {
+          "headers": { "parameter": "Parameter", "rule": "Current rule" },
+          "rows": [
+            ["Risk threshold", "SlHighDecision=true when p >= 0.55 and HighRisk"],
+            ["TP for labels", "3%"],
+            ["SL for labels", "5%"]
+          ]
+        },
+        "terms": [
+          { "term": "TP (Take Profit)", "description": "Target profit level for labeling." },
+          { "term": "SL (Stop Loss)", "description": "Loss limit level for labeling." },
+          { "term": "SlProb", "description": "Probability of SL before TP." },
+          { "term": "SlHighDecision", "description": "Risk-day flag from the SL model." },
+          { "term": "StrongSignal by MinMove", "description": "Strong-day feature used in SL logic." }
+        ]
+      },
+      "aggregation": {
+        "title": "Signal assembly",
+        "text": "Each step refines the previous output.",
+        "steps": [
+          "Build Day probabilities.",
+          "Apply micro overlay for FLAT days.",
+          "Apply SL overlay and produce Total output."
+        ],
+        "terms": [
+          { "term": "Day", "description": "Probabilities after the daily layer." },
+          { "term": "Day+Micro", "description": "Probabilities after micro refinement." },
+          { "term": "Total (Day+Micro+SL)", "description": "Final probabilities after SL overlay." },
+          { "term": "ProbUp / ProbFlat / ProbDown", "description": "Three final probabilities, sum = 1.0." }
+        ]
+      }
+    }
+  },
+  "branchesPage": {
+    "header": {
+      "title": "BASE / ANTI-D branches",
+      "subtitle": "Compares plain execution vs anti-direction mode on risk days."
+    },
+    "sections": {
+      "overview": {
+        "title": "Why branches exist",
+        "text": "These are different execution rules for the same forecast.",
+        "table": {
+          "headers": { "branch": "Branch", "howItWorks": "How it works", "whenUseful": "When useful" },
+          "rows": [
+            ["BASE", "Trades in model direction", "Reference signal quality"],
+            ["ANTI-D", "Can flip direction on risk days", "Potential drawdown reduction"]
+          ]
+        },
+        "terms": [
+          { "term": "Policy", "description": "Rules for leverage, stake, TP/SL, and skip conditions." },
+          { "term": "Branch", "description": "PnL execution mode inside one policy." },
+          { "term": "BASE", "description": "Directly follows model direction." },
+          { "term": "ANTI-D (anti-direction)", "description": "Direction flip when risk filters are met." }
+        ]
+      },
+      "base": {
+        "title": "BASE",
+        "text": "Baseline reference point for evaluating protective overlays.",
+        "terms": [
+          { "term": "How direction is selected", "description": "UP -> long, DOWN -> short (with micro adjustments)." },
+          { "term": "What BASE shows", "description": "Raw model quality without anti-direction." },
+          { "term": "Why BASE matters", "description": "Without baseline, protection impact cannot be measured." }
+        ]
+      },
+      "anti": {
+        "title": "ANTI-D",
+        "text": "Enabled only by risk conditions, not permanently.",
+        "terms": [
+          { "term": "Anti-direction", "description": "Direction swap long <-> short." },
+          { "term": "RiskDay (SlHighDecision)", "description": "Primary trigger for ANTI-D activation." },
+          { "term": "Where flip is applied", "description": "Applied before trade simulation at daily decision level." },
+          { "term": "Why ANTI-D", "description": "Reduces heavy drawdowns at the cost of some upside." }
+        ]
+      },
+      "conditions": {
+        "title": "ANTI-D activation conditions",
+        "text": "If one filter fails, branch behaves as BASE.",
+        "table": {
+          "headers": { "filter": "Filter", "threshold": "Threshold", "protection": "What it protects" },
+          "rows": [
+            ["SL risk day", "SlHighDecision=true", "No risk -> no flip"],
+            ["MinMove", "0.5%..12%", "Removes noise and extremes"],
+            ["Liquidation buffer", "liqAdversePct >= 2xMinMove", "Avoids thin liquidation buffer"]
+          ]
+        },
+        "terms": [
+          { "term": "SlHighDecision=true", "description": "Mandatory trigger for ANTI-D." },
+          { "term": "MinMove in 0.5%-12% range", "description": "Filter for too-quiet and too-extreme days." },
+          { "term": "Liquidation buffer >= 2xMinMove", "description": "Controls liquidation distance after flip." },
+          { "term": "Valid leverage", "description": "ANTI-D requires finite leverage > 0." }
+        ]
+      },
+      "usage": {
+        "title": "How to read results",
+        "text": "Compare branches as a metric package, not as one number.",
+        "terms": [
+          { "term": "PnL %", "description": "Total branch return." },
+          { "term": "MaxDD %", "description": "Maximum drawdown on equity." },
+          { "term": "Trade% / NoTrade%", "description": "Share of trading and skipped days." },
+          { "term": "Policy Branch Mega", "description": "Main comparison table for policies and branches." }
+        ]
+      }
+    }
+  },
+  "splitsPage": {
+    "header": {
+      "title": "Train / OOS / Recent / Full",
+      "subtitle": "Split view shows both long-term stability and current-market relevance."
+    },
+    "sections": {
+      "overview": {
+        "title": "Why splits are needed",
+        "text": "A single slice cannot explain both history and current regime quality.",
+        "table": {
+          "headers": { "slice": "Slice", "includes": "What it includes", "question": "Key question" },
+          "rows": [
+            ["Train", "Days up to TrainUntilExitDayKeyUtc", "What was the model trained on?"],
+            ["OOS", "Days after TrainUntilExitDayKeyUtc", "How does it generalize?"],
+            ["Recent", "Last 240 EntryDayKeyUtc", "How relevant is the model now?"],
+            ["Full", "Train + OOS", "How stable is long-horizon performance?"]
+          ]
+        },
+        "terms": [
+          { "term": "Train", "description": "History segment used for training." },
+          { "term": "OOS (Out-of-sample)", "description": "Post-train segment for honest evaluation." },
+          { "term": "Recent (240d)", "description": "Last 240 trading days." },
+          { "term": "Full history", "description": "Combined train and oos history." },
+          { "term": "TrainUntilExitDayKeyUtc", "description": "Canonical split boundary by exit day key." },
+          { "term": "EntryDayKeyUtc / ExitDayKeyUtc", "description": "Day keys for entry and baseline exit." }
+        ]
+      },
+      "train": {
+        "title": "Train",
+        "text": "The only segment allowed for model fitting.",
+        "terms": [
+          { "term": "Train-only", "description": "Subset before TrainUntilExitDayKeyUtc." },
+          { "term": "Minimum train volume", "description": "Data threshold for stable layer training." },
+          { "term": "Why train must not include oos", "description": "Mixing inflates metrics and breaks validity." }
+        ]
+      },
+      "oos": {
+        "title": "OOS",
+        "text": "Represents real behavior after training.",
+        "terms": [
+          { "term": "Honest quality control", "description": "Measures generalization on unseen data." },
+          { "term": "Strong OOS degradation", "description": "Suggests overfit or regime drift." },
+          { "term": "Strict split", "description": "Strict mode without silent exclusions." }
+        ]
+      },
+      "recent": {
+        "title": "Recent (last 240 days)",
+        "text": "Dedicated indicator of current-market performance.",
+        "terms": [
+          { "term": "Last 240 days", "description": "Rolling window from the latest day backwards." },
+          { "term": "What recent shows", "description": "Current regime quality, not historical average." },
+          { "term": "How to interpret", "description": "Gap vs full often means adaptation is needed." }
+        ]
+      },
+      "full": {
+        "title": "Full history",
+        "text": "Long-range context, always interpreted together with recent.",
+        "terms": [
+          { "term": "Train + OOS", "description": "Combined long-range horizon." },
+          { "term": "Why full is useful", "description": "Shows robustness across rare regimes." },
+          { "term": "Why full alone is not enough", "description": "Strong full does not guarantee current fit." }
+        ]
+      }
+    }
+  },
+  "projectPage": {
+    "header": {
+      "title": "Project overview",
+      "subtitle": "Technical map from market data and causal logic to reports, API, and test safeguards."
+    },
+    "sections": {
+      "overview": {
+        "title": "Overall pipeline",
+        "text": "Flow: market -> causal features -> prediction -> omniscient evaluation -> reports -> API -> UI.",
+        "table": {
+          "headers": { "stage": "Stage", "artifact": "Artifact", "why": "Why it matters" },
+          "rows": [
+            ["Data prep", "Candles + indicators", "Stable model input"],
+            ["Causal layer", "CausalDataRow", "Decision without future data"],
+            ["Omniscient layer", "BacktestRecord", "Quality and PnL by fact"],
+            ["Reports", "ReportDocument", "Single output format for API/UI"]
+          ]
+        },
+        "terms": [
+          { "term": "6h / 1h / 1m candles", "description": "Input series for daily and intraday computations." },
+          { "term": "CausalDataRow", "description": "Feature row available at entry time." },
+          { "term": "PredictionEngine", "description": "Combines day/micro/sl probabilities." },
+          { "term": "BacktestRecord (omniscient)", "description": "Observed outcomes plus PnL context." },
+          { "term": "Reports", "description": "Snapshot documents for API and UI." },
+          { "term": "API -> Front", "description": "Delivery of prebuilt report documents." }
+        ]
+      },
+      "causal": {
+        "title": "Causal vs Omniscient",
+        "text": "Decision logic and evaluation logic are separated by design.",
+        "terms": [
+          { "term": "Causal logic", "description": "Uses only data available at EntryUtc." },
+          { "term": "Omniscient logic", "description": "Used only for post-fact evaluation." },
+          { "term": "Why separation is critical", "description": "Prevents future data leakage." },
+          { "term": "Leakage guards", "description": "Tests and architecture barriers against leakage." }
+        ]
+      },
+      "structure": {
+        "title": "Projects and solution structure",
+        "text": "Key projects and their architecture roles.",
+        "table": {
+          "headers": { "project": "Project", "task": "Technical role" },
+          "rows": [
+            ["SolSignalModel1D_Backtest", "Pipeline host orchestration"],
+            ["Core.Causal / Core.Omniscient", "Decision vs evaluation split"],
+            ["Core.Time / Core.Config", "Time contracts and validation"],
+            ["Infra / Reports / Api", "Storage, report build, delivery"],
+            ["AppOrchestration / Interop", "Scenario integration and DTO bridge"],
+            ["SanityChecks / Tests / ArchTests / Analyzers", "Correctness and dependency control"]
+          ]
+        },
+        "terms": [
+          { "term": "SolSignalModel1D_Backtest", "description": "Main full-cycle orchestrator." },
+          { "term": "SolSignalModel1D_Backtest.Core.Causal", "description": "Causal training and inference loop." },
+          { "term": "SolSignalModel1D_Backtest.Core.Omniscient", "description": "Evaluation and factual PnL loop." },
+          { "term": "SolSignalModel1D_Backtest.Core.Time", "description": "Time types and NY window rules." },
+          { "term": "SolSignalModel1D_Backtest.Core.Config", "description": "Configuration and coverage contracts." },
+          { "term": "SolSignalModel1D_Backtest.Infra", "description": "Storage/read infrastructure." },
+          { "term": "SolSignalModel1D_Backtest.Reports", "description": "ReportDocument assembly." },
+          { "term": "SolSignalModel1D_Backtest.Api", "description": "HTTP report delivery layer." },
+          { "term": "SolSignalModel1D_Backtest.AppOrchestration", "description": "Scenario and runtime orchestration." },
+          { "term": "SolSignalModel1D_Backtest.AppOrchestration.Interop", "description": "Inter-layer DTO bridge." },
+          { "term": "SolSignalModel1D_Backtest.SanityChecks", "description": "Post-run sanity checks." },
+          { "term": "SolSignalModel1D_Backtest.Tests / ArchTests / Analyzers", "description": "Unit/integration/arch/compile-time safeguards." }
+        ]
+      },
+      "reports": {
+        "title": "Reports and API",
+        "text": "UI consumes stable report format regardless of internal training details.",
+        "terms": [
+          { "term": "ReportDocument", "description": "Unified format for headers, tables, and key-value blocks." },
+          { "term": "ReportStorage", "description": "Report file storage by kind/id." },
+          { "term": "Report kind", "description": "Logical report type and structure." },
+          { "term": "API endpoints", "description": "Routes for reports and current prediction." }
+        ]
+      },
+      "tests": {
+        "title": "Tests and safeguards",
+        "text": "Control stack includes leakage tests, architecture checks, sanity rules, and split/time contract.",
+        "table": {
+          "headers": { "group": "Group", "example": "Example", "problem": "Failure pattern" },
+          "rows": [
+            ["Leakage / shuffle", "DailyPipelineLeakageTests", "Quality does not degrade after randomization"],
+            ["Model isolation", "ModelTrainerIsolationTests", "Shuffle labels do not hurt metrics"],
+            ["Future-blind rows", "RowFeatureLeakageChecks", "Features mirror future targets"],
+            ["Split/time contract", "NyTrainSplit strict", "Broken train/oos boundaries"],
+            ["Architecture barriers", "AssemblyDependencyTests", "Causal depends on Omniscient"]
+          ]
+        },
+        "terms": [
+          { "term": "Degradation shuffle tests", "description": "Validate quality drop on randomized data." },
+          { "term": "Trainer isolation", "description": "Checks sensitivity to shuffled labels." },
+          { "term": "Future-blind checks", "description": "Future data must not alter causal outputs." },
+          { "term": "Split/time contract", "description": "Validates train/oos and baseline boundaries." },
+          { "term": "Architecture barriers", "description": "Prevents forbidden cross-layer dependencies." },
+          { "term": "SelfCheckRunner", "description": "Post-run sanity check bundle." }
+        ]
+      }
+    }
+  },
+  "timePage": {
+    "header": {
+      "title": "Time and trading days",
+      "subtitle": "Single time contract for entry, exit, and split boundaries."
+    },
+    "sections": {
+      "overview": {
+        "title": "NY trading day",
+        "text": "Fixed daily entry point in New York local time.",
+        "table": {
+          "headers": { "season": "NY season", "entryTime": "Entry time", "comment": "Comment" },
+          "rows": [
+            ["Summer (DST)", "08:00 NY", "Based on DST flag"],
+            ["Winter (no DST)", "07:00 NY", "NyWindowing contract"]
+          ]
+        },
+        "terms": [
+          { "term": "NY-morning", "description": "Canonical daily entry point." },
+          { "term": "DST (Daylight Saving Time)", "description": "Seasonal New York time shift." },
+          { "term": "EntryUtc", "description": "UTC timestamp of trading-day entry." },
+          { "term": "NyTradingDay", "description": "NY local day as business key." }
+        ]
+      },
+      "baseline": {
+        "title": "Baseline exit",
+        "text": "Defines end of baseline window for labels and split.",
+        "terms": [
+          { "term": "Baseline-exit", "description": "Next NY morning minus two minutes." },
+          { "term": "Friday -> Monday", "description": "Friday exits roll to Monday." },
+          { "term": "Why minus two minutes", "description": "Small technical gap before next entry." }
+        ]
+      },
+      "dayKeys": {
+        "title": "Day keys and time types",
+        "text": "Separates entry day and exit day to avoid split mistakes.",
+        "terms": [
+          { "term": "EntryDayKeyUtc", "description": "UTC day key of entry time." },
+          { "term": "ExitDayKeyUtc", "description": "UTC day key of baseline exit." },
+          { "term": "TrainUntilExitDayKeyUtc", "description": "Canonical split boundary by exit day key." },
+          { "term": "BaselineExitUtc", "description": "UTC timestamp of baseline-window end." }
+        ]
+      },
+      "weekend": {
+        "title": "Weekends and exclusions",
+        "text": "NY weekends are excluded from trading flow by contract.",
+        "terms": [
+          { "term": "Technical weekend filter", "description": "No entry for NY Saturday/Sunday." },
+          { "term": "Why weekends are excluded", "description": "Reduces noise and improves training signal quality." },
+          { "term": "What it provides", "description": "Cleaner feature-to-move relation." },
+          { "term": "Future extension", "description": "Weekend-only branch/model can be added later." }
+        ]
+      }
+    }
+  },
+  "featuresPage": {
+    "header": {
+      "title": "Features and indicators",
+      "subtitle": "Model features with explanations and PFI context.",
+      "linkLabel": "PFI by models:"
+    },
+    "pfiNotes": {
+      "reportNotLoaded": "PFI: report not loaded yet.",
+      "featureMissing": "PFI: feature not found in report.",
+      "summary": "PFI across {{count}} models: ΔAUC ≈ {{importance}}; corr ≈ {{corr}}; ΔMean ≈ {{deltaMean}}."
+    },
+    "sections": {
+      "overview": {
+        "title": "How to read features",
+        "text": "The table below explains core PFI metrics.",
+        "table": {
+          "headers": { "metric": "Metric", "meaning": "Meaning", "reading": "How to read" },
+          "rows": [
+            ["ΔAUC", "Quality drop after feature permutation", "Higher absolute value = more important feature"],
+            ["Corr(score)", "Correlation of feature value with model score", "Sign = direction, magnitude = strength"],
+            ["ΔMean", "Mean difference between classes", "Shows feature shift by target class"]
+          ]
+        },
+        "terms": [
+          { "term": "Feature", "description": "Numeric signal passed to the model at entry time." },
+          { "term": "PFI", "description": "Permutation Feature Importance for feature impact." },
+          { "term": "AUC", "description": "Binary classifier quality metric." },
+          { "term": "ΔAUC", "description": "AUC change after feature permutation." },
+          { "term": "Corr(score)", "description": "Correlation between feature value and score." },
+          { "term": "ΔMean", "description": "Difference of class means for a feature." }
+        ]
+      },
+      "returns": {
+        "title": "Returns and relative dynamics",
+        "text": "SOL/BTC movement on short and medium horizons.",
+        "terms": [
+          { "term": "SolRet30", "description": "SOL return over last 30 6h bars." },
+          { "term": "BtcRet30", "description": "BTC return over the same horizon." },
+          { "term": "SolBtcRet30", "description": "Difference between SolRet30 and BtcRet30." },
+          { "term": "SolRet1", "description": "SOL return over 1 bar." },
+          { "term": "SolRet3", "description": "SOL return over 3 bars." },
+          { "term": "BtcRet1", "description": "BTC return over 1 bar." },
+          { "term": "BtcRet3", "description": "BTC return over 3 bars." },
+          { "term": "GapBtcSol1", "description": "Difference between BtcRet1 and SolRet1." },
+          { "term": "GapBtcSol3", "description": "Difference between BtcRet3 and SolRet3." }
+        ]
+      },
+      "indicators": {
+        "title": "Indicators and macro",
+        "text": "Market context: sentiment, dollar background, long BTC trend.",
+        "terms": [
+          { "term": "FngNorm", "description": "Normalized Fear & Greed index." },
+          { "term": "DxyChg30", "description": "30-day DXY change." },
+          { "term": "GoldChg30", "description": "PAXG change over last 30 6h bars." },
+          { "term": "BtcVs200", "description": "BTC position vs SMA200." }
+        ]
+      },
+      "momentum": {
+        "title": "Momentum and volatility",
+        "text": "Speed and stress of market movement via RSI/ATR/dynVol.",
+        "terms": [
+          { "term": "SolRsiCenteredScaled", "description": "Centered and scaled RSI(14) for SOL." },
+          { "term": "RsiSlope3Scaled", "description": "RSI slope over 3 steps." },
+          { "term": "AtrPct", "description": "ATR(14) normalized by entry price." },
+          { "term": "DynVol", "description": "Average absolute move over 10 bars." }
+        ]
+      },
+      "regime": {
+        "title": "Regimes and EMA",
+        "text": "Regime flags and EMA spreads for model behavior switching.",
+        "terms": [
+          { "term": "RegimeDownFlag", "description": "Bearish market regime flag." },
+          { "term": "HardRegimeIs2Flag", "description": "Hard market regime flag." },
+          { "term": "SolAboveEma50", "description": "SOL position relative to EMA50." },
+          { "term": "SolEma50vs200", "description": "SOL EMA50/EMA200 spread." },
+          { "term": "BtcEma50vs200", "description": "BTC EMA50/EMA200 spread." }
+        ]
+      }
+    }
+  }
+}

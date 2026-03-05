@@ -18,7 +18,6 @@ export default function PostsList({ className }: PostsListProps) {
         const fetchPosts = async () => {
             try {
                 setIsLoading(true)
-
             } catch (err) {
                 setError('Failed to load posts')
             } finally {

@@ -8,4 +8,3 @@ export interface NotFoundSuggestion {
     description: string
     path: string
 }
-

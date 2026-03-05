@@ -85,4 +85,3 @@ export interface NavbarNavItem {
     label: string
     order: number
 }
-

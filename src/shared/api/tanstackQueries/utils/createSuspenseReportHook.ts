@@ -7,6 +7,9 @@ interface CreateSuspenseReportHookOptions<T> {
     mapResponse: (raw: unknown) => T
 }
 
+const REPORT_QUERY_STALE_TIME_MS = 2 * 60 * 1000
+const REPORT_QUERY_GC_TIME_MS = 15 * 60 * 1000
+
 export function createSuspenseReportHook<T>({ queryKey, path, mapResponse }: CreateSuspenseReportHookOptions<T>) {
     async function fetchReport(): Promise<T> {
         const resp = await fetch(`${API_BASE_URL}${path}`)
@@ -24,8 +27,10 @@ export function createSuspenseReportHook<T>({ queryKey, path, mapResponse }: Cre
         return useQuery({
             queryKey,
             queryFn: fetchReport,
-            retry: false
+            retry: false,
+            staleTime: REPORT_QUERY_STALE_TIME_MS,
+            gcTime: REPORT_QUERY_GC_TIME_MS,
+            refetchOnWindowFocus: false
         })
     }
 }
-

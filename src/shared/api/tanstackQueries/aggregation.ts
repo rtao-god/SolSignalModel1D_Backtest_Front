@@ -1,8 +1,5 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
-import type {
-    AggregationMetricsSnapshotDto,
-    AggregationProbsSnapshotDto
-} from '@/shared/types/aggregation.types'
+import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 

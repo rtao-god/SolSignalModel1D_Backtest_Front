@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { ReportActualStatusCard, Text } from '@/shared/ui'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
@@ -10,17 +11,12 @@ import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceE
 import cls from './ExecutionPipelinePage.module.scss'
 import type { ExecutionPipelinePageProps } from './types'
 
-const SECTION_DESCRIPTIONS: Record<string, string> = {
-    'Model Level':
-        'Распределение сигналов модели по всей истории: LONG/SHORT/NO-DIRECTION и их доли. Это верхний слой, до решений политики.',
-    'Decision Level':
-        'Слой принятия решения политикой: сколько дней реально торговали, какой охват, среднее плечо и средний размер ставки.',
-    'Execution Level':
-        'Исполнение сделок: источники входов, фактические причины выхода и факты достижимости/срабатывания ликвидации.',
-    'Accounting Level':
-        'Бухгалтерская сверка: позиционный PnL, комиссии, итоговый net и инварианты соответствия wealth-дельте.',
-    'Aggregation Level':
-        'Итоговая агрегация метрик на уровне политики: TotalPnl, Drawdown, WinRate, ликвидации и выведенный профит.'
+const SECTION_DESCRIPTION_KEYS: Record<string, string> = {
+    'Model Level': 'executionPipeline.page.sectionDescriptions.modelLevel',
+    'Decision Level': 'executionPipeline.page.sectionDescriptions.decisionLevel',
+    'Execution Level': 'executionPipeline.page.sectionDescriptions.executionLevel',
+    'Accounting Level': 'executionPipeline.page.sectionDescriptions.accountingLevel',
+    'Aggregation Level': 'executionPipeline.page.sectionDescriptions.aggregationLevel'
 }
 
 interface ParsedPipelineSections {
@@ -30,7 +26,10 @@ interface ParsedPipelineSections {
 
 function normalizeTitle(title: string | undefined): string {
     if (!title) return ''
-    return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
 }
 
 function toDomSlug(value: string): string {
@@ -109,11 +108,20 @@ function parseSectionsOrThrow(sections: ReportSectionDto[]): ParsedPipelineSecti
     return { keyValueSections, tableSections }
 }
 
-function resolveSectionDescription(title: string): string | undefined {
-    return SECTION_DESCRIPTIONS[title]
+function resolveSectionDescription(
+    title: string,
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string | undefined {
+    const key = SECTION_DESCRIPTION_KEYS[title]
+    if (!key) {
+        return undefined
+    }
+
+    return translate(key)
 }
 
 export default function ExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
+    const { t } = useTranslation('reports')
     const { data, isError, error, refetch } = useBacktestExecutionPipelineReportQuery()
 
     const generatedAtState = useMemo(() => {
@@ -174,13 +182,12 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
     if (data) {
         if (generatedAtState.error || !generatedAtState.value) {
             const safeError =
-                generatedAtState.error ??
-                new Error('[execution-pipeline] generatedAtUtc is missing after validation.')
+                generatedAtState.error ?? new Error('[execution-pipeline] generatedAtUtc is missing after validation.')
 
             content = (
                 <PageError
-                    title='Execution pipeline report has invalid generatedAtUtc'
-                    message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчёта.'
+                    title={t('executionPipeline.page.errors.invalidGeneratedAt.title')}
+                    message={t('executionPipeline.page.errors.invalidGeneratedAt.description')}
                     error={safeError}
                     onRetry={refetch}
                 />
@@ -192,21 +199,20 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
             content = (
                 <PageError
-                    title='Execution pipeline report source is invalid'
-                    message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                    title={t('executionPipeline.page.errors.invalidSource.title')}
+                    message={t('executionPipeline.page.errors.invalidSource.description')}
                     error={safeError}
                     onRetry={refetch}
                 />
             )
         } else if (parsedSectionsState.error || !parsedSectionsState.value) {
             const safeError =
-                parsedSectionsState.error ??
-                new Error('[execution-pipeline] sections are missing after validation.')
+                parsedSectionsState.error ?? new Error('[execution-pipeline] sections are missing after validation.')
 
             content = (
                 <PageError
-                    title='Execution pipeline report sections are invalid'
-                    message='Секции отчёта не распознаны или повреждены. Проверь структуру report.sections.'
+                    title={t('executionPipeline.page.errors.invalidSections.title')}
+                    message={t('executionPipeline.page.errors.invalidSections.description')}
                     error={safeError}
                     onRetry={refetch}
                 />
@@ -217,18 +223,15 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     <header className={cls.hero}>
                         <div>
                             <Text type='h1' className={cls.heroTitle}>
-                                Execution Pipeline
+                                {t('executionPipeline.page.title')}
                             </Text>
-                            <Text className={cls.heroSubtitle}>
-                                Сквозной отчёт по уровням: модель, решение, исполнение, бухгалтерия и финальная
-                                агрегация в mega-метрики.
-                            </Text>
+                            <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
                         </div>
 
                         <ReportActualStatusCard
                             statusMode='debug'
-                            statusTitle='DEBUG: freshness not verified'
-                            statusMessage='Status endpoint для backtest_execution_pipeline не настроен: показываются metadata отчёта без freshness-проверки.'
+                            statusTitle={t('executionPipeline.page.status.title')}
+                            statusMessage={t('executionPipeline.page.status.description')}
                             dataSource={sourceEndpointState.value}
                             reportTitle={data.title}
                             reportId={data.id}
@@ -240,7 +243,9 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     {parsedSectionsState.value.keyValueSections.length > 0 && (
                         <section className={cls.keyValueSection}>
                             {parsedSectionsState.value.keyValueSections.map((section, sectionIndex) => {
-                                const sectionTitle = normalizeTitle(section.title) || `Pipeline Config ${sectionIndex + 1}`
+                                const sectionTitle =
+                                    normalizeTitle(section.title) ||
+                                    t('executionPipeline.page.fallbacks.configTitle', { index: sectionIndex + 1 })
                                 return (
                                     <article key={`${sectionTitle}-${sectionIndex}`} className={cls.keyValueCard}>
                                         <Text type='h3' className={cls.keyValueTitle}>
@@ -262,13 +267,15 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
                     <section className={cls.tablesSection}>
                         {parsedSectionsState.value.tableSections.map((section, sectionIndex) => {
-                            const title = normalizeTitle(section.title) || `Execution Pipeline ${sectionIndex + 1}`
+                            const title =
+                                normalizeTitle(section.title) ||
+                                t('executionPipeline.page.fallbacks.tableTitle', { index: sectionIndex + 1 })
                             const domIdBase = toDomSlug(title) || `execution-pipeline-${sectionIndex + 1}`
                             return (
                                 <ReportTableCard
                                     key={`${title}-${sectionIndex}`}
                                     title={title}
-                                    description={resolveSectionDescription(title)}
+                                    description={resolveSectionDescription(title, (key, options) => t(key, options))}
                                     columns={section.columns ?? []}
                                     rows={section.rows ?? []}
                                     domId={`execution-pipeline-${sectionIndex + 1}-${domIdBase}`}
@@ -287,9 +294,8 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
             error={error}
             hasData={Boolean(data)}
             onRetry={refetch}
-            errorTitle='Не удалось загрузить execution pipeline'>
+            errorTitle={t('executionPipeline.page.errorTitle')}>
             {content}
         </PageDataBoundary>
     )
 }
-

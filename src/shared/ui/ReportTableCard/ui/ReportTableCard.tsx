@@ -3,7 +3,13 @@ import { Text } from '@/shared/ui'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './ReportTableCard.module.scss'
-import { SortableTable, type TableRow, getCellValue, toExportCell, tryParseNumberFromString } from '@/shared/ui/SortableTable'
+import {
+    SortableTable,
+    type TableRow,
+    getCellValue,
+    toExportCell,
+    tryParseNumberFromString
+} from '@/shared/ui/SortableTable'
 
 interface ReportTableCardProps {
     title: string
@@ -59,9 +65,7 @@ export default function ReportTableCard({
 
     const exportRows = useMemo(
         () =>
-            (rowsForExport ?? []).map(row =>
-                exportColumns.map((_, colIdx) => toExportCell(getCellValue(row, colIdx)))
-            ),
+            (rowsForExport ?? []).map(row => exportColumns.map((_, colIdx) => toExportCell(getCellValue(row, colIdx)))),
         [rowsForExport, exportColumns]
     )
 

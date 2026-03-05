@@ -12,8 +12,7 @@
     height: var(--navbar-height);
     padding: 4px 22px;
 
-    background:
-        radial-gradient(circle at 0% 0%, rgba(148, 163, 255, 0.2), transparent 55%),
+    background: radial-gradient(circle at 0% 0%, rgba(148, 163, 255, 0.2), transparent 55%),
         radial-gradient(circle at 100% 0%, rgba(248, 113, 113, 0.18), transparent 55%),
         linear-gradient(135deg, #020617, #0f172a 40%, #020617 100%);
     background-color: var(--inverted-bg-color);
@@ -110,8 +109,7 @@
     padding: 0;
 
     border: 1px solid rgba(148, 163, 255, 0.7);
-    background:
-        radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.55), transparent 55%),
+    background: radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.55), transparent 55%),
         linear-gradient(135deg, rgba(30, 64, 175, 0.98), rgba(147, 51, 234, 0.94));
     box-shadow:
         0 0 0 1px rgba(15, 23, 42, 1),
@@ -305,11 +303,11 @@
         }
     }
 
-    input:checked+.slider {
+    input:checked + .slider {
         background-color: var(--blue, #0d1117);
     }
 
-    input:checked+.slider:before {
+    input:checked + .slider:before {
         transform: translateX(16px);
         background-color: #ffe1ff;
     }

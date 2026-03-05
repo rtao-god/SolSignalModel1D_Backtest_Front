@@ -34,4 +34,3 @@ export const registrationApi = createApi({
 })
 
 export const { useRegisterUserMutation } = registrationApi
-

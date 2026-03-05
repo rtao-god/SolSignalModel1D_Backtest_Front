@@ -33,8 +33,12 @@ import {
 } from '@/shared/consts/authRegister'
 import Checkbox from '../Checkbox/Checkbox'
 import { useDebounce } from '@/shared/lib/hooks/useDebounce'
+import { useTranslation } from 'react-i18next'
+
+const DATE_MASK = 'YYYY-MM-DD'
 
 export default function RegistrationForm({ className }: RegistrationFormProps) {
+    const { t } = useTranslation('auth')
     const birthday = useSelector(getBirthday)
     const identifier = useSelector(getIdentifier)
     const [localIdentifier, setLocalIdentifier] = useState<string>('')
@@ -44,7 +48,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
     const error = useSelector(getError)
     const dispatch = useDispatch()
     const [isShowValue, setIsShowValue] = useState<boolean>(false)
-    const [inputDateValue, setInputDateValue] = useState<string>('ГГГГ-ММ-ДД')
+    const [inputDateValue, setInputDateValue] = useState<string>(DATE_MASK)
     const { register } = useRegister()
 
     const onFocusHandler = () => {
@@ -60,27 +64,27 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
         const digitsOnly = value.replace(/\D/g, '')
-        let formattedDate = 'ГГГГ-ММ-ДД'
+        let formattedDate = DATE_MASK
 
         switch (name) {
             case 'birthday':
                 for (let i = 0; i < digitsOnly.length; i++) {
                     if (i === 0) {
-                        formattedDate = formattedDate.replace('Г', digitsOnly[i])
+                        formattedDate = formattedDate.replace('Y', digitsOnly[i])
                     } else if (i === 1) {
-                        formattedDate = formattedDate.replace('Г', digitsOnly[i])
+                        formattedDate = formattedDate.replace('Y', digitsOnly[i])
                     } else if (i === 2) {
-                        formattedDate = formattedDate.replace('Г', digitsOnly[i])
+                        formattedDate = formattedDate.replace('Y', digitsOnly[i])
                     } else if (i === 3) {
-                        formattedDate = formattedDate.replace('Г', digitsOnly[i])
+                        formattedDate = formattedDate.replace('Y', digitsOnly[i])
                     } else if (i === 4) {
-                        formattedDate = formattedDate.replace('М', digitsOnly[i])
+                        formattedDate = formattedDate.replace('M', digitsOnly[i])
                     } else if (i === 5) {
-                        formattedDate = formattedDate.replace('М', digitsOnly[i])
+                        formattedDate = formattedDate.replace('M', digitsOnly[i])
                     } else if (i === 6) {
-                        formattedDate = formattedDate.replace('Д', digitsOnly[i])
+                        formattedDate = formattedDate.replace('D', digitsOnly[i])
                     } else if (i === 7) {
-                        formattedDate = formattedDate.replace('Д', digitsOnly[i])
+                        formattedDate = formattedDate.replace('D', digitsOnly[i])
                     }
                 }
 
@@ -174,14 +178,14 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                     <Rows gap={10} rows={['auto']}>
                         <Input
                             type='text'
-                            placeholder='Дата рождения'
+                            placeholder={t('registration.birthdayPlaceholder')}
                             name='birthday'
                             onChange={handleChange}
                             onFocus={onFocusHandler}
                             value={isShowValue ? inputDateValue : birthday}
                             error={
                                 error.includes(BIRTHDAY_REQUIRED) || error.includes(BIRTHDAY_COMPLETE) ?
-                                    'Ошибка в дате рождения'
+                                    t('registration.birthdayError')
                                 :   ''
                             }
                             className={classNames('auth_input_style', {
@@ -191,13 +195,13 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                         />
                         <Input
                             type='text'
-                            placeholder='Введите номер или почту'
+                            placeholder={t('registration.identifierPlaceholder')}
                             name='identifier'
                             onChange={handleChangeInput}
                             value={localIdentifier}
                             error={
                                 error.includes(IDENTIFIER_REQUIRED) || error.includes(IDENTIFIER_INVALID) ?
-                                    'Ошибка в дате рождения'
+                                    t('registration.identifierError')
                                 :   ''
                             }
                             className={classNames('auth_input_style', {
@@ -207,13 +211,13 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                         />
                         <Input
                             type='password'
-                            placeholder='Введите пароль'
+                            placeholder={t('registration.passwordPlaceholder')}
                             name='password'
                             onChange={handleChange}
                             value={password}
                             error={
                                 error.includes(PASSWORD_REQUIRED) || error.includes(PASSWORD_MISMATCH) ?
-                                    'Ошибка в дате рождения'
+                                    t('registration.passwordError')
                                 :   ''
                             }
                             className={classNames('auth_input_style', {
@@ -223,13 +227,13 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                         />
                         <Input
                             type='password'
-                            placeholder='Подтвердите пароль'
+                            placeholder={t('registration.confirmPasswordPlaceholder')}
                             name='confirmPassword'
                             onChange={handleChange}
                             value={confirmPassword}
                             error={
                                 error.includes(PASSWORD_MISMATCH) || error.includes(PASSWORD_SHORT) ?
-                                    'Ошибка в дате рождения'
+                                    t('registration.passwordError')
                                 :   ''
                             }
                             className={classNames('auth_input_style', {
@@ -243,10 +247,10 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                                 checked={isChecked}
                                 onChange={e => dispatch(setIsChecked(e.target.checked))}
                             />
-                            <label htmlFor='terms'>Я принимаю условия использования</label>
+                            <label htmlFor='terms'>{t('registration.termsLabel')}</label>
                         </div>
 
-                        <Checkbox label='Checkbox' />
+                        <Checkbox label={t('registration.checkboxLabel')} />
 
                         <Text className={cls.error}>{error}</Text>
 
@@ -259,7 +263,7 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
                                 password !== confirmPassword ||
                                 !isChecked
                             }>
-                            Продолжить
+                            {t('registration.submit')}
                         </Btn>
                     </Rows>
                 </Rows>

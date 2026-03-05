@@ -9,4 +9,3 @@ export default function WhiteContentBlock({ children, style, className }: WhiteC
         </div>
     )
 }
-

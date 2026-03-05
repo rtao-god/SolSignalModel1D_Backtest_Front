@@ -182,7 +182,7 @@ export function BacktestPolicyRatiosSection({
     }
 
     const defaultSubtitle =
-        'Сравнение политик внутри выбранного бакета капитала. Для полного покрытия проверяйте daily/intraday/delayed.'
+        'Сравнение политик внутри выбранного бакета капитала. Полное покрытие достигается при анализе daily/intraday/delayed.'
 
     const handleMetricChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
         setMetricKey(e.target.value as MetricKey)
@@ -300,7 +300,11 @@ export function BacktestPolicyRatiosSection({
                                     {chartData.map(entry => (
                                         <Cell
                                             key={entry.key}
-                                            fill={entry.value >= 0 ? 'rgba(74, 222, 128, 0.95)' : 'rgba(248, 113, 113, 0.95)'}
+                                            fill={
+                                                entry.value >= 0 ?
+                                                    'rgba(74, 222, 128, 0.95)'
+                                                :   'rgba(248, 113, 113, 0.95)'
+                                            }
                                         />
                                     ))}
                                 </Bar>
@@ -320,7 +324,9 @@ export function BacktestPolicyRatiosSection({
                                     <th>{renderTermTooltipTitle('Sortino', RATIO_COLUMN_TOOLTIPS.Sortino)}</th>
                                     <th>{renderTermTooltipTitle('Calmar', RATIO_COLUMN_TOOLTIPS.Calmar)}</th>
                                     <th>{renderTermTooltipTitle('WinRate %', RATIO_COLUMN_TOOLTIPS['WinRate %'])}</th>
-                                    <th>{renderTermTooltipTitle('Withdrawn $', RATIO_COLUMN_TOOLTIPS['Withdrawn $'])}</th>
+                                    <th>
+                                        {renderTermTooltipTitle('Withdrawn $', RATIO_COLUMN_TOOLTIPS['Withdrawn $'])}
+                                    </th>
                                     <th>{renderTermTooltipTitle('Liq?', RATIO_COLUMN_TOOLTIPS['Liq?'])}</th>
                                 </tr>
                             </thead>
@@ -350,4 +356,3 @@ export function BacktestPolicyRatiosSection({
         </section>
     )
 }
-

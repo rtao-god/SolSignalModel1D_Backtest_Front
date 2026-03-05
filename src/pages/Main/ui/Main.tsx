@@ -6,7 +6,11 @@ import { AppRoute } from '@/app/providers/router/config/types'
 import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import {
+    enrichTermTooltipDescription,
+    renderTermTooltipRichText,
+    renderTermTooltipTitle
+} from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
@@ -14,9 +18,11 @@ import {
     buildPolicyBranchMegaTermsForColumns,
     getPolicyBranchMegaTermOrThrow,
     orderPolicyBranchMegaSectionsOrThrow,
-    resolvePolicyBranchMegaSectionDescription
+    resolvePolicyBranchMegaSectionDescription,
+    resolvePolicyBranchMegaTermLocale
 } from '@/shared/utils/policyBranchMegaTerms'
 import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
+import { useTranslation } from 'react-i18next'
 import cls from './Main.module.scss'
 import MainProps from './types'
 
@@ -32,11 +38,11 @@ interface BestPolicyRowBundle {
     part3Row: string[]
 }
 
-const DEFAULT_POLICY_BRANCH_TABS = [
-    { label: 'Часть 1/3', anchor: 'policy-branch-section-1' },
-    { label: 'Часть 2/3', anchor: 'policy-branch-section-2' },
-    { label: 'Часть 3/3', anchor: 'policy-branch-section-3' }
-]
+const DEFAULT_POLICY_BRANCH_TAB_ANCHORS = [
+    'policy-branch-section-1',
+    'policy-branch-section-2',
+    'policy-branch-section-3'
+] as const
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
         (section): section is TableSectionDto =>
@@ -184,28 +190,29 @@ function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string 
 
     throw new Error(`[main] metric not found in policy branch mega parts: ${title}.`)
 }
-function renderPolicyDescription(policyName: string, branchName: string): string[] {
+function renderPolicyDescription(
+    policyName: string,
+    branchName: string,
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string[] {
     const description: string[] = []
 
     if (policyName.toLowerCase().includes('spot_conf_cap')) {
-        description.push(
-            'Кап‑доля (cap fraction) зависит от уверенности модели Conf_Day: при Conf_Day ≤ 0.50 берётся capMin = 10%, далее линейно растёт до capMax = 100%. Это чисто каузальная логика, без будущих данных.'
-        )
-        description.push('Плечо всегда 1x, поэтому стратегия ведёт себя как спотовая.')
+        description.push(translate('main.bestPolicy.description.spotConfCap.capFraction'))
+        description.push(translate('main.bestPolicy.description.spotConfCap.leverage'))
     } else {
-        description.push(
-            `Это не spot_conf_cap. Конкретные правила плеча и cap‑доли смотри в колонках Lev/Cap — они отражают фактические значения, использованные в бэктесте.`
-        )
+        description.push(translate('main.bestPolicy.description.nonSpot'))
     }
 
-    description.push(
-        `Ветка ${branchName}: если условия anti‑direction выполняются (risk‑day + MinMove 0.5–12% + запас до ликвидации ≥ 2× MinMove), направление сделки инвертируется.`
-    )
+    description.push(translate('main.bestPolicy.description.branchRule', { branchName }))
 
     return description
 }
 
 export default function Main({ className }: MainProps) {
+    const { t, i18n } = useTranslation('reports')
+    const translate = (key: string, options?: Record<string, unknown>) => t(key, options)
+    const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
     const rootClassName = classNames(cls.MainPage, {}, [className ?? ''])
 
     const { data, isError, error, refetch, isLoading } = usePolicyBranchMegaReportNavQuery({ enabled: true })
@@ -241,7 +248,11 @@ export default function Main({ className }: MainProps) {
     }, [data, megaSectionsState])
 
     const bestPolicyHighlightsState = useMemo(() => {
-        if (!bestPolicyState.best) return { items: [] as Array<{ title: string; tooltip: string; value: string }>, error: null as Error | null }
+        if (!bestPolicyState.best)
+            return {
+                items: [] as Array<{ title: string; tooltip: string; value: string }>,
+                error: null as Error | null
+            }
 
         try {
             const items = [
@@ -257,7 +268,10 @@ export default function Main({ className }: MainProps) {
             ]
 
             const mapped = items.map(title => {
-                const term = getPolicyBranchMegaTermOrThrow(title)
+                const term = getPolicyBranchMegaTermOrThrow(title, {
+                    tooltipMode: 'description',
+                    locale: termsLocale
+                })
                 const value = resolveMetricValue(bestPolicyState.best!, title)
 
                 return {
@@ -272,16 +286,23 @@ export default function Main({ className }: MainProps) {
             const safeError = err instanceof Error ? err : new Error('Failed to build best policy highlights.')
             return { items: [] as Array<{ title: string; tooltip: string; value: string }>, error: safeError }
         }
-    }, [bestPolicyState.best])
+    }, [bestPolicyState.best, termsLocale])
 
     const bestPolicyMetaState = useMemo(() => {
-        if (!bestPolicyState.best) return { items: [] as Array<{ title: string; tooltip: string; value: string }>, error: null as Error | null }
+        if (!bestPolicyState.best)
+            return {
+                items: [] as Array<{ title: string; tooltip: string; value: string }>,
+                error: null as Error | null
+            }
 
         try {
             const items = ['StartDay', 'EndDay', 'Days', 'StopReason']
 
             const mapped = items.map(title => {
-                const term = getPolicyBranchMegaTermOrThrow(title)
+                const term = getPolicyBranchMegaTermOrThrow(title, {
+                    tooltipMode: 'description',
+                    locale: termsLocale
+                })
                 const value = resolveMetricValue(bestPolicyState.best!, title)
 
                 return {
@@ -296,7 +317,7 @@ export default function Main({ className }: MainProps) {
             const safeError = err instanceof Error ? err : new Error('Failed to build best policy meta info.')
             return { items: [] as Array<{ title: string; tooltip: string; value: string }>, error: safeError }
         }
-    }, [bestPolicyState.best])
+    }, [bestPolicyState.best, termsLocale])
 
     const bestPolicyParts = useMemo(() => {
         if (!bestPolicyState.best) return []
@@ -306,109 +327,102 @@ export default function Main({ className }: MainProps) {
                 id: 'policy-branch-part-1',
                 section: bestPolicyState.best.part1,
                 row: bestPolicyState.best.part1Row,
-                label: 'Часть 1/3'
+                label: t('main.bestPolicy.parts.part1')
             },
             {
                 id: 'policy-branch-part-2',
                 section: bestPolicyState.best.part2,
                 row: bestPolicyState.best.part2Row,
-                label: 'Часть 2/3'
+                label: t('main.bestPolicy.parts.part2')
             },
             {
                 id: 'policy-branch-part-3',
                 section: bestPolicyState.best.part3,
                 row: bestPolicyState.best.part3Row,
-                label: 'Часть 3/3'
+                label: t('main.bestPolicy.parts.part3')
             }
         ]
-    }, [bestPolicyState.best])
+    }, [bestPolicyState.best, t])
+
+    const defaultPolicyBranchTabs = useMemo(
+        () => [
+            { label: t('main.bestPolicy.parts.part1'), anchor: DEFAULT_POLICY_BRANCH_TAB_ANCHORS[0] },
+            { label: t('main.bestPolicy.parts.part2'), anchor: DEFAULT_POLICY_BRANCH_TAB_ANCHORS[1] },
+            { label: t('main.bestPolicy.parts.part3'), anchor: DEFAULT_POLICY_BRANCH_TAB_ANCHORS[2] }
+        ],
+        [t]
+    )
 
     const renderColumnTitle = (title: string) => {
-        const term = getPolicyBranchMegaTermOrThrow(title)
-        return renderTermTooltipTitle(title, term.tooltip)
+        const term = getPolicyBranchMegaTermOrThrow(title, {
+            tooltipMode: 'description',
+            locale: termsLocale
+        })
+        return renderTermTooltipTitle(title, enrichTermTooltipDescription(term.tooltip, { term: title }))
     }
 
     return (
         <div className={rootClassName}>
             <section className={cls.hero}>
                 <Text type='h1' className={cls.heroTitle}>
-                    SolSignal 1D ML‑модель
+                    {t('main.hero.title')}
                 </Text>
-                <Text className={cls.heroSubtitle}>
-                    Дневная ML‑модель, которая прогнозирует движение SOL/USDT по данным BTC, макро‑индикаторам и
-                    внутренним фичам. На сайте собраны прогнозы, бэктесты и диагностики, чтобы быстро понять «что
-                    модель говорит сейчас» и «как это работало на истории».
-                </Text>
+                <Text className={cls.heroSubtitle}>{t('main.hero.subtitle')}</Text>
                 <div className={cls.heroMeta}>
-                    <div className={cls.metaPill}>24h горизонт</div>
-                    <div className={cls.metaPill}>Path-based labeling</div>
-                    <div className={cls.metaPill}>Multi-layer (day / micro / SL)</div>
-                    <div className={cls.metaPill}>Backtest + diagnostics</div>
+                    <div className={cls.metaPill}>{t('main.hero.meta.horizon')}</div>
+                    <div className={cls.metaPill}>{t('main.hero.meta.pathLabeling')}</div>
+                    <div className={cls.metaPill}>{t('main.hero.meta.multiLayer')}</div>
+                    <div className={cls.metaPill}>{t('main.hero.meta.backtest')}</div>
                 </div>
             </section>
 
             <section className={cls.overview}>
                 <Text type='h2' className={cls.sectionTitle}>
-                    Что уже делает проект
+                    {t('main.overview.title')}
                 </Text>
                 <div className={cls.overviewGrid}>
                     <article className={cls.overviewCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Прогнозы и торговые планы
+                            {t('main.overview.cards.predictions.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Модель ежедневно даёт направление дня, оценивает minMove, риск SL‑дней и формирует план
-                            сделок по политикам. Всё это доступно в «Текущем прогнозе» и «Истории прогнозов».
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.overview.cards.predictions.description')}</Text>
                     </article>
                     <article className={cls.overviewCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Бэктест на всей истории
+                            {t('main.overview.cards.backtest.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Пайплайн считает итоговую доходность, просадки и ликвидации по всем политикам, а также
-                            строит сводку и глубокие диагностические отчёты (включая mega‑таблицы).
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.overview.cards.backtest.description')}</Text>
                     </article>
                     <article className={cls.overviewCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Диагностика качества решений
+                            {t('main.overview.cards.diagnostics.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Есть отдельные блоки по guardrail/specificity, blame‑split, hotspots и статистике по дням —
-                            чтобы понимать, где стратегия теряет деньги и почему.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.overview.cards.diagnostics.description')}</Text>
                     </article>
                     <article className={cls.overviewCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Метрики моделей и PFI
+                            {t('main.overview.cards.models.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Отчёты по качеству моделей (confusion, SL‑метрики) и важности признаков. Они помогают
-                            объяснить «почему модель решает именно так».
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.overview.cards.models.description')}</Text>
                     </article>
                 </div>
             </section>
 
             <section className={cls.flow}>
                 <Text type='h2' className={cls.sectionTitle}>
-                    Рекомендуемый путь пользователя
+                    {t('main.flow.title')}
                 </Text>
-                <Text className={cls.flowSubtitle}>
-                    Если вы покупатель/инвестор/CTO, начните с факта «что модель говорит сейчас», затем проверьте
-                    историю и PnL‑метрики.
-                </Text>
+                <Text className={cls.flowSubtitle}>{t('main.flow.subtitle')}</Text>
                 <div className={cls.flowRow}>
-                    <div className={cls.flowStep}>Текущий прогноз</div>
+                    <div className={cls.flowStep}>{t('main.flow.steps.currentPrediction')}</div>
                     <div className={cls.flowArrow}>→</div>
-                    <div className={cls.flowStep}>История прогнозов</div>
+                    <div className={cls.flowStep}>{t('main.flow.steps.history')}</div>
                     <div className={cls.flowArrow}>→</div>
-                    <div className={cls.flowStep}>Сводка бэктеста (PnL)</div>
+                    <div className={cls.flowStep}>{t('main.flow.steps.backtestSummary')}</div>
                     <div className={cls.flowArrow}>→</div>
-                    <div className={cls.flowStep}>Policy Branch Mega</div>
+                    <div className={cls.flowStep}>{t('main.flow.steps.policyBranchMega')}</div>
                     <div className={cls.flowArrow}>→</div>
-                    <div className={cls.flowStep}>Диагностика</div>
+                    <div className={cls.flowStep}>{t('main.flow.steps.diagnostics')}</div>
                 </div>
             </section>
 
@@ -417,43 +431,40 @@ export default function Main({ className }: MainProps) {
                     <div className={cls.bestPolicyHeader}>
                         <div>
                             <Text type='h2' className={cls.sectionTitle}>
-                                Лучшая политика на истории
+                                {t('main.bestPolicy.title')}
                             </Text>
-                            <Text className={cls.bestPolicySubtitle}>
-                                Выбираем политику с максимальным TotalPnl% в mega‑таблице (ALL HISTORY, WITH SL).
-                                Критерий можно легко заменить, но сейчас он максимально прозрачен для бизнеса.
-                            </Text>
+                            <Text className={cls.bestPolicySubtitle}>{t('main.bestPolicy.subtitle')}</Text>
                         </div>
                         <Link to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]} className={cls.bestPolicyLink}>
-                            Открыть полный Policy Branch Mega →
+                            {t('main.bestPolicy.openMega')}
                         </Link>
                     </div>
 
-                    {isLoading ? (
-                        <Text>Загружаю mega‑таблицы…</Text>
-                    ) : isError ? (
+                    {isLoading ?
+                        <Text>{t('main.bestPolicy.loading')}</Text>
+                    : isError ?
                         <ErrorBlock
                             code='NETWORK'
-                            title='Не удалось загрузить mega‑таблицу'
-                            description='Бэкенд не вернул policy_branch_mega. Проверь генерацию отчёта.'
+                            title={t('main.bestPolicy.errors.loadTitle')}
+                            description={t('main.bestPolicy.errors.loadDescription')}
                             details={error instanceof Error ? error.message : String(error ?? '')}
                             onRetry={refetch}
                         />
-                    ) : megaSectionsState.error ? (
+                    : megaSectionsState.error ?
                         <ErrorBlock
                             code='DATA'
-                            title='Некорректная структура mega‑таблицы'
-                            description='Не удалось распознать секции Policy Branch Mega.'
+                            title={t('main.bestPolicy.errors.structureTitle')}
+                            description={t('main.bestPolicy.errors.structureDescription')}
                             details={megaSectionsState.error.message}
                         />
-                    ) : bestPolicyState.error ? (
+                    : bestPolicyState.error ?
                         <ErrorBlock
                             code='DATA'
-                            title='Не удалось определить лучшую политику'
-                            description='Проверь колонки и данные mega‑таблиц.'
+                            title={t('main.bestPolicy.errors.bestResolveTitle')}
+                            description={t('main.bestPolicy.errors.bestResolveDescription')}
                             details={bestPolicyState.error.message}
                         />
-                    ) : bestPolicyState.best ? (
+                    : bestPolicyState.best ?
                         <>
                             <div className={cls.bestPolicyHero}>
                                 <div>
@@ -461,69 +472,81 @@ export default function Main({ className }: MainProps) {
                                         {bestPolicyState.best.policy} / {bestPolicyState.best.branch}
                                     </Text>
                                     <Text className={cls.bestPolicyNote}>
-                                        Лучший результат по TotalPnl%: {bestPolicyState.best.totalPnlPct.toFixed(2)}%.
+                                        {t('main.bestPolicy.bestResult', {
+                                            value: bestPolicyState.best.totalPnlPct.toFixed(2)
+                                        })}
                                     </Text>
                                 </div>
 
-                                {bestPolicyMetaState.error ? (
+                                {bestPolicyMetaState.error ?
                                     <ErrorBlock
                                         code='DATA'
-                                        title='Ошибка при чтении мета‑параметров'
-                                        description='Не удалось собрать ключевые поля периода для лучшей политики.'
+                                        title={t('main.bestPolicy.errors.metaTitle')}
+                                        description={t('main.bestPolicy.errors.metaDescription')}
                                         details={bestPolicyMetaState.error.message}
                                     />
-                                ) : (
-                                    <div className={cls.bestPolicyMeta}>
+                                :   <div className={cls.bestPolicyMeta}>
                                         {bestPolicyMetaState.items.map(item => (
                                             <div key={item.title} className={cls.bestPolicyMetaItem}>
                                                 <TermTooltip
                                                     term={item.title}
-                                                    description={item.tooltip}
+                                                    description={enrichTermTooltipDescription(item.tooltip, {
+                                                        term: item.title
+                                                    })}
                                                     type='span'
                                                 />
                                                 <span className={cls.bestPolicyMetaValue}>{item.value}</span>
                                             </div>
                                         ))}
                                     </div>
-                                )}
+                                }
                             </div>
 
-                            {bestPolicyHighlightsState.error ? (
+                            {bestPolicyHighlightsState.error ?
                                 <ErrorBlock
                                     code='DATA'
-                                    title='Ошибка при чтении ключевых метрик'
-                                    description='Не удалось собрать основные метрики лучшей политики.'
+                                    title={t('main.bestPolicy.errors.highlightsTitle')}
+                                    description={t('main.bestPolicy.errors.highlightsDescription')}
                                     details={bestPolicyHighlightsState.error.message}
                                 />
-                            ) : (
-                                <div className={cls.bestPolicyMetrics}>
+                            :   <div className={cls.bestPolicyMetrics}>
                                     {bestPolicyHighlightsState.items.map(item => (
                                         <div key={item.title} className={cls.metricCard}>
                                             <TermTooltip
                                                 term={item.title}
-                                                description={item.tooltip}
+                                                description={enrichTermTooltipDescription(item.tooltip, {
+                                                    term: item.title
+                                                })}
                                                 type='span'
                                             />
                                             <span className={cls.metricValue}>{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
-                            )}
+                            }
 
                             <div className={cls.bestPolicyDescription}>
-                                {renderPolicyDescription(bestPolicyState.best.policy, bestPolicyState.best.branch).map(
-                                    line => (
-                                        <Text key={line} className={cls.bestPolicyText}>
-                                            {line}
-                                        </Text>
-                                    )
-                                )}
+                                {renderPolicyDescription(
+                                    bestPolicyState.best.policy,
+                                    bestPolicyState.best.branch,
+                                    translate
+                                ).map(line => (
+                                    <Text key={line} className={cls.bestPolicyText}>
+                                        {line}
+                                    </Text>
+                                ))}
                             </div>
 
                             <div className={cls.bestPolicyTables}>
                                 {bestPolicyParts.map(part => {
-                                    const terms = buildPolicyBranchMegaTermsForColumns(part.section.columns ?? [])
-                                    const description = resolvePolicyBranchMegaSectionDescription(part.section.title)
+                                    const terms = buildPolicyBranchMegaTermsForColumns(part.section.columns ?? [], {
+                                        tooltipMode: 'description',
+                                        locale: termsLocale
+                                    })
+                                    const description = resolvePolicyBranchMegaSectionDescription(
+                                        part.section.title,
+                                        termsLocale
+                                    )
                                     const normalizedTitle =
                                         normalizePolicyBranchMegaTitle(part.section.title) || part.label
 
@@ -533,23 +556,22 @@ export default function Main({ className }: MainProps) {
                                                 <div className={cls.termsBlock} data-tooltip-boundary>
                                                     <div className={cls.termsHeader}>
                                                         <Text type='h3' className={cls.termsTitle}>
-                                                            Термины {part.label}
+                                                            {t('main.bestPolicy.terms.title', { part: part.label })}
                                                         </Text>
                                                         <Text className={cls.termsSubtitle}>
-                                                            {description ??
-                                                                'Подробные определения всех метрик, которые используются в этой части.'}
+                                                            {description ?? t('main.bestPolicy.terms.subtitleFallback')}
                                                         </Text>
                                                     </div>
                                                     <div className={cls.termsGrid}>
                                                         {terms.map(term => (
-                                                            <div key={`${part.id}-${term.key}`} className={cls.termItem}>
-                                                                <TermTooltip
-                                                                    term={term.title}
-                                                                    description={term.tooltip}
-                                                                    type='span'
-                                                                />
+                                                            <div
+                                                                key={`${part.id}-${term.key}`}
+                                                                className={cls.termItem}>
+                                                                <Text type='span'>{term.title}</Text>
                                                                 <Text className={cls.termDescription}>
-                                                                    {term.description}
+                                                                    {renderTermTooltipRichText(term.description, {
+                                                                        excludeTerms: [term.title]
+                                                                    })}
                                                                 </Text>
                                                             </div>
                                                         ))}
@@ -570,76 +592,68 @@ export default function Main({ className }: MainProps) {
                                 })}
                             </div>
                         </>
-                    ) : (
-                        <Text>Нет данных по policy_branch_mega. Запусти генерацию отчётов на бэкенде.</Text>
-                    )}
+                    :   <Text>{t('main.bestPolicy.empty')}</Text>}
                 </section>
             </SectionErrorBoundary>
 
             <section className={cls.sections}>
                 <Text type='h2' className={cls.sectionTitle}>
-                    Карта разделов проекта
+                    {t('main.sections.title')}
                 </Text>
                 <div className={cls.navCards}>
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Прогнозы
+                            {t('main.sections.cards.predictions.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Главная точка входа для клиента: текущий прогноз и история решений.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.predictions.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.CURRENT_PREDICTION]} className={cls.navLink}>
-                                Текущий прогноз →
+                                {t('main.sections.cards.predictions.links.currentPrediction')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.CURRENT_PREDICTION_HISTORY]} className={cls.navLink}>
-                                История прогнозов →
+                                {t('main.sections.cards.predictions.links.history')}
                             </Link>
                         </div>
                     </article>
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Бэктест
+                            {t('main.sections.cards.backtest.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Бизнес‑точка контроля: сколько заработали, какой риск и какова устойчивость стратегии.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.backtest.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_SUMMARY]} className={cls.navLink}>
-                                Сводка бэктеста (PnL) →
+                                {t('main.sections.cards.backtest.links.summary')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_BASELINE]} className={cls.navLink}>
-                                Baseline бэктест →
+                                {t('main.sections.cards.backtest.links.baseline')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_FULL]} className={cls.navLink}>
-                                Экспериментальный бэктест (beta) →
+                                {t('main.sections.cards.backtest.links.experimental')}
                             </Link>
                         </div>
                     </article>
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Анализ
+                            {t('main.sections.cards.analysis.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Отчёты о том, где стратегия зарабатывает и как выглядят лучшие/худшие периоды.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.analysis.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]} className={cls.navLink}>
-                                Рейтинги полисов →
+                                {t('main.sections.cards.analysis.links.ratings')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]} className={cls.navLink}>
-                                Статистика по дням →
+                                {t('main.sections.cards.analysis.links.dayStats')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]} className={cls.navLink}>
-                                Уверенность и TP/SL →
+                                {t('main.sections.cards.analysis.links.confidence')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]} className={cls.navLink}>
-                                Policy Branch Mega →
+                                {t('main.sections.cards.analysis.links.policyBranchMega')}
                             </Link>
                             <div className={cls.navSublinks}>
-                                {DEFAULT_POLICY_BRANCH_TABS.map(tab => (
+                                {defaultPolicyBranchTabs.map(tab => (
                                     <Link
                                         key={tab.anchor}
                                         to={`${ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}#${tab.anchor}`}
@@ -653,87 +667,78 @@ export default function Main({ className }: MainProps) {
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Диагностика
+                            {t('main.sections.cards.diagnostics.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Где стратегия теряет деньги, какие решения ошибочны и что блокирует guardrail.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.diagnostics.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]} className={cls.navLink}>
-                                Риск и ликвидации →
+                                {t('main.sections.cards.diagnostics.links.risk')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]} className={cls.navLink}>
-                                Guardrail / Specificity →
+                                {t('main.sections.cards.diagnostics.links.guardrail')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]} className={cls.navLink}>
-                                Решения / Attribution →
+                                {t('main.sections.cards.diagnostics.links.decisions')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]} className={cls.navLink}>
-                                Hotspots / NoTrade →
+                                {t('main.sections.cards.diagnostics.links.hotspots')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER]} className={cls.navLink}>
-                                Прочее →
+                                {t('main.sections.cards.diagnostics.links.other')}
                             </Link>
                         </div>
                     </article>
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Модели и фичи
+                            {t('main.sections.cards.models.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Качество моделей, агрегации и важность признаков для объяснения решений.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.models.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.MODELS_STATS]} className={cls.navLink}>
-                                Статистика моделей →
+                                {t('main.sections.cards.models.links.modelStats')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.AGGREGATION_STATS]} className={cls.navLink}>
-                                Агрегация прогнозов →
+                                {t('main.sections.cards.models.links.aggregation')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.PFI_PER_MODEL]} className={cls.navLink}>
-                                PFI по моделям →
+                                {t('main.sections.cards.models.links.pfi')}
                             </Link>
                         </div>
                     </article>
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Документация
+                            {t('main.sections.cards.docs.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Технические описания модели, тестов и терминов для разбора «по косточкам».
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.docs.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.DOCS]} className={cls.navLink}>
-                                Документация →
+                                {t('main.sections.cards.docs.links.docsHome')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.DOCS_MODELS]} className={cls.navLink}>
-                                Модели →
+                                {t('main.sections.cards.docs.links.models')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.DOCS_TESTS]} className={cls.navLink}>
-                                Тесты →
+                                {t('main.sections.cards.docs.links.tests')}
                             </Link>
                         </div>
                     </article>
 
                     <article className={cls.navCard}>
                         <Text type='h3' className={cls.cardTitle}>
-                            Объяснение
+                            {t('main.sections.cards.explain.title')}
                         </Text>
-                        <Text className={cls.cardText}>
-                            Карта того, что есть в проекте и зачем: модели, ветки, сплиты данных, время и структура
-                            решения.
-                        </Text>
+                        <Text className={cls.cardText}>{t('main.sections.cards.explain.description')}</Text>
                         <div className={cls.navLinks}>
                             <Link to={ROUTE_PATH[AppRoute.EXPLAIN]} className={cls.navLink}>
-                                Объяснение →
+                                {t('main.sections.cards.explain.links.explainHome')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.EXPLAIN_MODELS]} className={cls.navLink}>
-                                Модели →
+                                {t('main.sections.cards.explain.links.models')}
                             </Link>
                             <Link to={ROUTE_PATH[AppRoute.EXPLAIN_PROJECT]} className={cls.navLink}>
-                                О проекте →
+                                {t('main.sections.cards.explain.links.project')}
                             </Link>
                         </div>
                     </article>
@@ -742,4 +747,3 @@ export default function Main({ className }: MainProps) {
         </div>
     )
 }
-

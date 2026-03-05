@@ -19,4 +19,3 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
 
     return (await response.json()) as T
 }
-

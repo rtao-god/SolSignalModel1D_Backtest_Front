@@ -3,4 +3,3 @@ import type { RootState, AppDispatch } from '@/app/providers/StoreProvider/confi
 
 export const useAppDispatch: () => AppDispatch = useDispatch
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
-

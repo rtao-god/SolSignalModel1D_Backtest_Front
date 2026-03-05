@@ -22,4 +22,3 @@ export const useUserMutate = () => {
 
     return { updateUser, isLoading }
 }
-

@@ -1,5 +1,6 @@
 import { Btn } from '@/shared/ui'
 import cls from './SideBarBlock.module.scss'
+import { useTranslation } from 'react-i18next'
 
 interface SideBarBlockProps {
     show?: boolean
@@ -7,6 +8,8 @@ interface SideBarBlockProps {
 }
 
 export default function SideBarBlock({ show, onClick }: SideBarBlockProps) {
+    const { t } = useTranslation('common')
+
     if (!show) {
         return null
     }
@@ -17,7 +20,7 @@ export default function SideBarBlock({ show, onClick }: SideBarBlockProps) {
             size='sm'
             colorScheme='neutral'
             className={cls.SideBarBlock}
-            aria-label='Открыть навигацию сайдбара'
+            aria-label={t('navbar.sidebarToggleAria')}
             onClick={onClick}>
             <svg
                 stroke='currentColor'

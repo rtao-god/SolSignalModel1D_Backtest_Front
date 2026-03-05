@@ -1,0 +1,1178 @@
+{
+    "table": {
+        "termsTitle": "Термины таблиц отчёта"
+    },
+    "main": {
+        "hero": {
+            "title": "SolSignal 1D ML-модель",
+            "subtitle": "Дневная ML-модель, которая прогнозирует движение SOL/USDT по данным BTC, макро-индикаторам и внутренним фичам. На сайте собраны прогнозы, бэктесты и диагностики, чтобы быстро понять, что модель говорит сейчас и как это работало на истории.",
+            "meta": {
+                "horizon": "24h горизонт",
+                "pathLabeling": "Path-based labeling",
+                "multiLayer": "Multi-layer (day / micro / SL)",
+                "backtest": "Backtest + diagnostics"
+            }
+        },
+        "overview": {
+            "title": "Что уже делает проект",
+            "cards": {
+                "predictions": {
+                    "title": "Прогнозы и торговые планы",
+                    "description": "Модель ежедневно даёт направление дня, оценивает minMove, риск SL-дней и формирует план сделок по политикам. Всё это доступно в «Текущем прогнозе» и «Истории прогнозов»."
+                },
+                "backtest": {
+                    "title": "Бэктест на всей истории",
+                    "description": "Пайплайн считает итоговую доходность, просадки и ликвидации по всем политикам, а также строит сводку и глубокие диагностические отчёты (включая mega-таблицы)."
+                },
+                "diagnostics": {
+                    "title": "Диагностика качества решений",
+                    "description": "Есть отдельные блоки по guardrail/specificity, blame-split, hotspots и статистике по дням, чтобы понимать, где стратегия теряет деньги и почему."
+                },
+                "models": {
+                    "title": "Метрики моделей и PFI",
+                    "description": "Отчёты по качеству моделей (confusion, SL-метрики) и важности признаков. Они помогают объяснить, почему модель решает именно так."
+                }
+            }
+        },
+        "flow": {
+            "title": "Рекомендуемый путь пользователя",
+            "subtitle": "Для роли покупателя/инвестора/CTO рекомендуемая последовательность: сначала факт, что модель говорит сейчас, затем история и PnL-метрики.",
+            "steps": {
+                "currentPrediction": "Текущий прогноз",
+                "history": "История прогнозов",
+                "backtestSummary": "Сводка бэктеста (PnL)",
+                "policyBranchMega": "Policy Branch Mega",
+                "diagnostics": "Диагностика"
+            }
+        },
+        "sections": {
+            "title": "Карта разделов проекта",
+            "cards": {
+                "predictions": {
+                    "title": "Прогнозы",
+                    "description": "Главная точка входа для клиента: текущий прогноз и история решений.",
+                    "links": {
+                        "currentPrediction": "Текущий прогноз →",
+                        "history": "История прогнозов →"
+                    }
+                },
+                "backtest": {
+                    "title": "Бэктест",
+                    "description": "Бизнес-точка контроля: сколько заработали, какой риск и какова устойчивость стратегии.",
+                    "links": {
+                        "summary": "Сводка бэктеста (PnL) →",
+                        "baseline": "Baseline бэктест →",
+                        "experimental": "Экспериментальный бэктест (beta) →"
+                    }
+                },
+                "analysis": {
+                    "title": "Анализ",
+                    "description": "Отчёты о том, где стратегия зарабатывает и как выглядят лучшие/худшие периоды.",
+                    "links": {
+                        "ratings": "Рейтинги полисов →",
+                        "dayStats": "Статистика по дням →",
+                        "confidence": "Уверенность и TP/SL →",
+                        "policyBranchMega": "Policy Branch Mega →"
+                    }
+                },
+                "diagnostics": {
+                    "title": "Диагностика",
+                    "description": "Где стратегия теряет деньги, какие решения ошибочны и что блокирует guardrail.",
+                    "links": {
+                        "risk": "Риск и ликвидации →",
+                        "guardrail": "Guardrail / Specificity →",
+                        "decisions": "Решения / Attribution →",
+                        "hotspots": "Hotspots / NoTrade →",
+                        "other": "Прочее →"
+                    }
+                },
+                "models": {
+                    "title": "Модели и фичи",
+                    "description": "Качество моделей, агрегации и важность признаков для объяснения решений.",
+                    "links": {
+                        "modelStats": "Статистика моделей →",
+                        "aggregation": "Агрегация прогнозов →",
+                        "pfi": "PFI по моделям →"
+                    }
+                },
+                "docs": {
+                    "title": "Документация",
+                    "description": "Технические описания модели, тестов и терминов для разбора «по косточкам».",
+                    "links": {
+                        "docsHome": "Документация →",
+                        "models": "Модели (документация) →",
+                        "tests": "Тесты →"
+                    }
+                },
+                "explain": {
+                    "title": "Объяснение",
+                    "description": "Карта того, что есть в проекте и зачем: модели, ветки, сплиты данных, время и структура решения.",
+                    "links": {
+                        "explainHome": "Объяснение →",
+                        "models": "Модели (объяснение) →",
+                        "project": "О проекте →"
+                    }
+                }
+            }
+        },
+        "bestPolicy": {
+            "title": "Лучшая политика на истории",
+            "subtitle": "Выбираем политику с максимальным TotalPnl% в mega-таблице (ALL HISTORY, WITH SL). Критерий можно легко заменить, но сейчас он максимально прозрачен для бизнеса.",
+            "openMega": "Открыть полный Policy Branch Mega →",
+            "loading": "Загружаю mega-таблицы...",
+            "bestResult": "Лучший результат по TotalPnl%: {{value}}%.",
+            "parts": {
+                "part1": "Часть 1/3",
+                "part2": "Часть 2/3",
+                "part3": "Часть 3/3"
+            },
+            "description": {
+                "spotConfCap": {
+                    "capFraction": "Кап-доля (cap fraction) зависит от уверенности модели Conf_Day: при Conf_Day <= 0.50 берется capMin = 10%, далее линейно растет до capMax = 100%. Это чисто каузальная логика, без будущих данных.",
+                    "leverage": "Плечо всегда 1x, поэтому стратегия ведет себя как спотовая."
+                },
+                "nonSpot": "Это не spot_conf_cap. Конкретные правила плеча и cap-доли смотри в колонках Lev/Cap - они отражают фактические значения, использованные в бэктесте.",
+                "branchRule": "Ветка {{branchName}}: если условия anti-direction выполняются (risk-day + MinMove 0.5-12% + запас до ликвидации >= 2x MinMove), направление сделки инвертируется."
+            },
+            "terms": {
+                "title": "Термины {{part}}",
+                "subtitleFallback": "Термины этой части таблицы."
+            },
+            "errors": {
+                "loadTitle": "Не удалось загрузить mega-таблицу",
+                "loadDescription": "Бэкенд не вернул policy_branch_mega. Проверь генерацию отчета.",
+                "structureTitle": "Некорректная структура mega-таблицы",
+                "structureDescription": "Не удалось распознать секции Policy Branch Mega.",
+                "bestResolveTitle": "Не удалось определить лучшую политику",
+                "bestResolveDescription": "Проверь колонки и данные mega-таблиц.",
+                "metaTitle": "Ошибка при чтении мета-параметров",
+                "metaDescription": "Не удалось собрать ключевые поля периода для лучшей политики.",
+                "highlightsTitle": "Ошибка при чтении ключевых метрик",
+                "highlightsDescription": "Не удалось собрать основные метрики лучшей политики."
+            },
+            "empty": "Нет данных по policy_branch_mega. Запусти генерацию отчетов на бэкенде."
+        }
+    },
+    "analysisHome": {
+        "hero": {
+            "title": "Анализ",
+            "subtitle": "Аналитические отчёты по PnL, топам сделок/дней и поведению стратегий. Здесь проще всего понять, где стратегия зарабатывает, где теряет, и в каких режимах рынка это происходит."
+        },
+        "sections": {
+            "title": "Разделы анализа"
+        },
+        "cards": {
+            "ratings": {
+                "title": "Рейтинги полисов",
+                "description": "Лучшие и худшие сделки/дни по результату, плюс сводный Equity/DD по топ-3 политикам. Идеальная точка входа, чтобы найти экстремальные просадки и аномально успешные периоды.",
+                "hint": "Открыть рейтинги →"
+            },
+            "policyBranchMega": {
+                "description": "Самая полная сводка метрик по каждой политике и ветке (BASE/ANTI-D): доходность, риск, устойчивость, восстановление, разрез long/short и средние темпы роста. Это главная таблица для сравнения политик.",
+                "hint": "Открыть mega-таблицы →"
+            },
+            "dayStats": {
+                "title": "Статистика по дням",
+                "description": "Разрезы по типам дней (UP/DOWN/FLAT) и по дням недели: WinRate, доля NoTrade и упущенная возможность. Помогает понять, в каком режиме стратегия даёт лучший edge.",
+                "hint": "Открыть статистику →"
+            },
+            "confidenceRisk": {
+                "title": "Уверенность и TP/SL",
+                "description": "Bucket-статистика по уверенности модели: как часто достигаются TP/SL и как меняются MFE/MAE при разных уровнях сигнала. Помогает понять, где можно усиливать тейк-профит, а где лучше снижать риск.",
+                "hint": "Открыть статистику уверенности →"
+            },
+            "executionPipeline": {
+                "description": "Сквозной отчёт по уровням расчёта: модель, решение, исполнение, бухгалтерия и финальная агрегация. Подходит для пошаговой сверки формул и поиска расхождений.",
+                "hint": "Открыть pipeline отчёт →"
+            }
+        }
+    },
+    "executionPipeline": {
+        "page": {
+            "errorTitle": "Не удалось загрузить execution pipeline",
+            "title": "Execution Pipeline",
+            "subtitle": "Сквозной отчёт по уровням: модель, решение, исполнение, бухгалтерия и финальная агрегация метрик.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "description": "Status endpoint для backtest_execution_pipeline не настроен: показываются metadata отчёта без freshness-проверки."
+            },
+            "fallbacks": {
+                "configTitle": "Pipeline Config {{index}}",
+                "tableTitle": "Execution Pipeline {{index}}"
+            },
+            "sectionDescriptions": {
+                "modelLevel": "Распределение сигналов модели по всей истории: LONG/SHORT/NO-DIRECTION и их доли. Это верхний слой до решений политики.",
+                "decisionLevel": "Слой принятия решения политикой: сколько дней реально торговали, какой охват, среднее плечо и средний размер ставки.",
+                "executionLevel": "Исполнение сделок: источники входов, фактические причины выхода и факты достижимости/срабатывания ликвидации.",
+                "accountingLevel": "Бухгалтерская сверка: позиционный PnL, комиссии, итоговый net и инварианты соответствия wealth-дельте.",
+                "aggregationLevel": "Итоговая агрегация метрик на уровне политики: TotalPnl, Drawdown, WinRate, ликвидации и выведенный профит."
+            },
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Execution pipeline report has invalid generatedAtUtc",
+                    "description": "generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчёта."
+                },
+                "invalidSource": {
+                    "title": "Execution pipeline report source is invalid",
+                    "description": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "invalidSections": {
+                    "title": "Execution pipeline report sections are invalid",
+                    "description": "Секции отчёта не распознаны или повреждены. Проверь структуру report.sections."
+                }
+            }
+        }
+    },
+    "diagnosticsHome": {
+        "hero": {
+            "title": "Диагностика",
+            "subtitle": "Карта диагностических отчётов: риск, guardrail, решения и hotspots. Каждый блок — отдельная страница с подробными таблицами, где видно причины просадок и ошибки модели."
+        },
+        "sections": {
+            "title": "Разделы диагностики"
+        },
+        "cards": {
+            "risk": {
+                "title": "Риск и ликвидации",
+                "description": "Equity/DD, ликвидации, дистанции до ликвидации и риск-метрики. База для поиска причин слива и оценки устойчивости.",
+                "hint": "Открыть риск-отчёт →"
+            },
+            "guardrail": {
+                "description": "Confusion matrix для фильтра, rolling-пороги и экономический эффект блокировок плохих дней. Здесь видно, спасает ли guardrail прибыль или мешает.",
+                "hint": "Открыть guardrail →"
+            },
+            "decisions": {
+                "title": "Решения / Attribution",
+                "description": "Кто и почему принял финальное решение: разложение по актёрам, причинам и blame-split. Помогает понять, виноват сигнал или фильтры политики.",
+                "hint": "Открыть решения →"
+            },
+            "hotspots": {
+                "description": "Hotspots низкого покрытия, частого NoTrade и противоположных решений. Показывает, где стратегия проваливается и теряет дни.",
+                "hint": "Открыть hotspots →"
+            },
+            "other": {
+                "title": "Прочее",
+                "description": "Редкие или новые диагностические таблицы, которые пока не попали в основные группы.",
+                "hint": "Открыть прочее →"
+            }
+        }
+    },
+    "currentPrediction": {
+        "scope": {
+            "ariaLabel": "Режим обучения модели",
+            "options": {
+                "full": {
+                    "label": "Полная история",
+                    "hint": "Train + OOS (основной боевой режим)"
+                },
+                "train": {
+                    "label": "Train-only",
+                    "hint": "Только train-дни (baseline-exit <= split)"
+                },
+                "oos": {
+                    "label": "OOS-only",
+                    "hint": "Только OOS-дни (baseline-exit > split)"
+                },
+                "recent": {
+                    "label": "Хвост истории",
+                    "hint": "Последнее окно дней (на бэкенде настраивается)"
+                }
+            }
+        },
+        "page": {
+            "errorTitle": "Не удалось загрузить текущий прогноз",
+            "scopeLabel": "Режим обучения:",
+            "statusLabel": "Статус прогноза:",
+            "meta": {
+                "currentReport": "Текущий отчёт: {{reportSet}}",
+                "selectedMode": "Выбранный режим: {{mode}}",
+                "trainingModel": "Модель обучения: {{model}}",
+                "trainingModelFallback": "нет данных (проверь секцию обучения в отчёте)"
+            },
+            "clientError": {
+                "title": "Ошибка при отображении отчёта",
+                "description": "При отрисовке текущего прогноза произошла ошибка на клиенте. Остальная часть приложения продолжает работать."
+            }
+        }
+    },
+    "backtestBaseline": {
+        "page": {
+            "errorTitle": "Не удалось загрузить baseline бэктеста"
+        },
+        "header": {
+            "title": "Baseline бэктеста",
+            "snapshotId": "ID снапшота: {{id}}",
+            "config": "Конфиг: {{configName}}",
+            "generatedUtc": "Сгенерировано (UTC): {{generatedUtc}}",
+            "generatedLocal": "Сгенерировано (локальное время): {{generatedLocal}}"
+        },
+        "globalParams": {
+            "title": "Глобальные параметры",
+            "description": "Базовые настройки риска, применяемые ко всем политикам в baseline-запуске. Эти значения задают дневные границы стоп-лосса и тейк-профита.",
+            "dailySl": {
+                "term": "Дневной стоп-лосс (SL)",
+                "tooltip": "Процентное ограничение убытка на день. Если цена проходит дальше — позиция закрывается."
+            },
+            "dailyTp": {
+                "term": "Дневной тейк-профит (TP)",
+                "tooltip": "Процентное ограничение прибыли на день. При достижении уровня фиксируем прибыль."
+            }
+        },
+        "table": {
+            "title": "Политики (baseline, WITH SL)",
+            "description": "Сводная таблица результатов baseline-запуска для каждой политики. Это быстрый способ сравнить доходность и риск до детальных диагностик.",
+            "empty": {
+                "title": "Политики",
+                "description": "Нет данных по политикам."
+            },
+            "columns": {
+                "policy": {
+                    "label": "Политика",
+                    "tooltip": "Имя торговой политики (стратегии), для которой приведены итоговые метрики."
+                },
+                "margin": {
+                    "label": "Маржа",
+                    "tooltip": "Режим маржи сделки: Cross или Isolated."
+                },
+                "mode": {
+                    "label": "Режим",
+                    "tooltip": "Ветка логики: Base или Anti-direction (разворот направления при триггере риска)."
+                },
+                "totalPnlPct": {
+                    "label": "Итоговый PnL, %",
+                    "tooltip": "Суммарная доходность по политике в процентах за период бэктеста."
+                },
+                "maxDdPct": {
+                    "label": "Max DD, %",
+                    "tooltip": "Максимальная просадка капитала в процентах — ключевой риск-показатель."
+                },
+                "liquidations": {
+                    "label": "Ликвидации",
+                    "tooltip": "Были ли ликвидации (Да/Нет). Критичный риск-флаг."
+                },
+                "withdrawUsd": {
+                    "label": "Withdraw, $",
+                    "tooltip": "Сколько прибыли было выведено из капитала (если применимо)."
+                },
+                "trades": {
+                    "label": "Сделок",
+                    "tooltip": "Количество сделок по политике за период."
+                }
+            },
+            "mode": {
+                "antiDirection": "Anti-direction",
+                "base": "Base"
+            },
+            "liquidations": {
+                "yes": "Да",
+                "no": "Нет"
+            }
+        }
+    },
+    "backtestSummary": {
+        "page": {
+            "errorTitle": "Не удалось загрузить сводку бэктеста",
+            "reportId": "ID отчёта: {{id}}",
+            "reportKind": "Тип: {{kind}}",
+            "generatedUtc": "Сгенерировано (UTC): {{generatedUtc}}",
+            "generatedLocal": "Сгенерировано (локальное время): {{generatedLocal}}"
+        }
+    },
+    "modelStats": {
+        "page": {
+            "errorTitle": "Не удалось загрузить статистику моделей"
+        },
+        "inner": {
+            "tabs": {
+                "sectionFallback": "Секция {{index}}"
+            },
+            "errors": {
+                "invalidSource": {
+                    "title": "Model stats report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Model stats bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Model stats metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Model stats TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "sections": {
+                    "title": "Model stats sections are missing",
+                    "message": "Report sections for the selected bucket/metric were not found or are tagged inconsistently."
+                },
+                "terms": {
+                    "title": "Model stats terms are invalid",
+                    "message": "Не удалось построить термины для таблиц model stats. Проверь колонки и словарь подсказок."
+                }
+            },
+            "header": {
+                "titleFallback": "Статистика моделей",
+                "subtitle": "Сводный отчёт по качеству и поведению ML-моделей на разных выборках (train / OOS / full / recent). Сначала выберите сегмент данных и режим отчёта, ниже — детальные карточки с метриками."
+            },
+            "badges": {
+                "segment": "Сегмент: {{value}}",
+                "modeLabel": "Режим:",
+                "modeBusiness": "Бизнес-представление (агрегированные показатели)",
+                "modeTechnical": "Технический (подробные матрицы ошибок)",
+                "runKind": "Тип запуска: {{value}}"
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint для backtest_model_stats не настроен: показываются metadata отчёта без freshness-проверки.",
+                "oosPresent": "есть, записей {{value}}",
+                "oosMissing": "нет (используется только train)"
+            },
+            "statusLines": {
+                "runKind": "Run kind",
+                "oos": "OOS",
+                "trainRecent": "Train / Recent"
+            },
+            "control": {
+                "title": "Как читать этот отчёт",
+                "text": "Сегменты (OOS / Train / Full / Recent) задают, на каких данных считаются метрики. Режим \"Бизнес\" показывает агрегированные показатели, \"Технарь\" — детальные матрицы ошибок и распределения для анализа модели."
+            },
+            "terms": {
+                "title": "Термины model stats",
+                "subtitle": "Подробные определения всех колонок, которые используются в текущем наборе таблиц."
+            }
+        }
+    },
+    "aggregation": {
+        "page": {
+            "errorTitle": "Не удалось загрузить агрегацию прогнозов"
+        },
+        "inner": {
+            "sections": {
+                "probs": "Вероятности",
+                "metrics": "Метрики",
+                "debug": "Debug последних дней"
+            },
+            "header": {
+                "title": "Агрегация прогнозов",
+                "subtitle": "Сводка вероятностей и метрик по основному и overlay-слоям (Day / Day+Micro / Total). Сегменты отражают Train / OOS / Recent / Full, ниже — детальная статистика и debug по последним дням."
+            },
+            "meta": {
+                "dateRange": "Диапазон дат",
+                "totalInput": "Всего входных записей",
+                "excluded": "Исключено из агрегации",
+                "segmentsAndDebug": "Сегментов / Debug дней"
+            },
+            "probs": {
+                "title": "Агрегированные вероятности",
+                "hint": "Усреднённые вероятности классов по сегментам. Это проверка калибровки и дрейфа, а не доля правильных прогнозов."
+            },
+            "metrics": {
+                "title": "Метрики качества",
+                "hint": "Accuracy/Micro‑F1/LogLoss по каждому слою. Дополнительно — матрицы ошибок, чтобы видеть, какие классы путаются.",
+                "layerHint": "Ключевые метрики качества слоя: точность, log‑loss и объём данных. Наведите на метрики для пояснений.",
+                "confusionHint": "Матрица ошибок показывает, как часто слой путает классы. Строки — истинные метки, столбцы — предсказанные."
+            },
+            "debug": {
+                "title": "Debug последних дней",
+                "hint": "Последние N дней с фактом и прогнозами. Флаги показывают, где micro/SL реально меняли итоговый класс или вероятности.",
+                "empty": "Debug-строк нет. Проверь корректность генерации агрегации.",
+                "tableHint": "Таблица помогает быстро увидеть, в какие дни micro/SL меняли результат. В колонках — истинная метка, прогнозы слоёв и флаги влияния оверлеев.",
+                "columns": {
+                    "dateUtc": {
+                        "label": "Дата (UTC)"
+                    },
+                    "true": {
+                        "label": "True"
+                    },
+                    "day": {
+                        "label": "Day"
+                    },
+                    "dayMicro": {
+                        "label": "Day+Micro"
+                    },
+                    "total": {
+                        "label": "Total"
+                    },
+                    "pDay": {
+                        "label": "P_day (U/F/D)"
+                    },
+                    "pDayMicro": {
+                        "label": "P_day+micro (U/F/D)"
+                    },
+                    "pTotal": {
+                        "label": "P_total (U/F/D)"
+                    },
+                    "microUsed": {
+                        "label": "Micro used"
+                    },
+                    "slUsed": {
+                        "label": "SL used"
+                    },
+                    "microAgree": {
+                        "label": "Micro agree"
+                    },
+                    "slPenLong": {
+                        "label": "SL pen long"
+                    },
+                    "slPenShort": {
+                        "label": "SL pen short"
+                    }
+                }
+            },
+            "segment": {
+                "rangePrefix": "Диапазон:",
+                "recordsPrefix": "Записей:",
+                "hint": "Таблица ниже показывает средние вероятности классов для этого сегмента данных. Сравнивайте слои (Day / Day+Micro / Total), чтобы увидеть вклад оверлеев."
+            },
+            "pills": {
+                "confDay": {
+                    "label": "Conf Day"
+                },
+                "confMicro": {
+                    "label": "Conf Micro"
+                },
+                "slScoreDays": {
+                    "label": "SL-score дней"
+                }
+            },
+            "probColumns": {
+                "layer": {
+                    "label": "Слой"
+                }
+            },
+            "confusion": {
+                "truePredLabel": "True → Pred",
+                "labels": {
+                    "down": "Падение",
+                    "flat": "Боковик",
+                    "up": "Рост"
+                }
+            },
+            "bool": {
+                "yes": "да",
+                "no": "нет"
+            },
+            "tooltips": {
+                "probTable": {
+                    "layer": "Какая стадия агрегации используется: Day (базовая модель), Day+Micro (с учётом микро‑оверлея) и Total (с учётом SL‑оверлея).",
+                    "pUp": "Средняя вероятность роста (Up) по выбранному слою и сегменту.",
+                    "pFlat": "Средняя вероятность боковика (Flat) по выбранному слою и сегменту.",
+                    "pDown": "Средняя вероятность падения (Down) по выбранному слою и сегменту.",
+                    "sum": "Средняя сумма вероятностей P_up+P_flat+P_down. В норме близка к 1 — сильный уход указывает на проблемы нормализации."
+                },
+                "pills": {
+                    "confDay": "Средняя «уверенность» базового дневного слоя. Это отдельный сигнал (не сумма вероятностей), полезный для sanity‑check.",
+                    "confMicro": "Средняя «уверенность» микро‑слоя, применяемого внутри боковика. Отдельный сигнал, не равный вероятностям.",
+                    "slScoreDays": "Сколько дней в сегменте имели ненулевой SL‑score. Показывает, как часто SL‑модель вообще влияла на поток."
+                },
+                "metrics": {
+                    "accuracy": "Доля правильных предсказаний: Correct / N. Чем выше, тем лучше.",
+                    "microF1": "Micro‑F1 для 3‑классовой задачи. В текущей реализации совпадает с Accuracy, но оставлен как отдельная метрика.",
+                    "logLoss": "Средний log‑loss по вероятностям истинного класса. Чем меньше, тем лучше. Используются только валидные записи.",
+                    "nCorrect": "N — всего записей в сегменте, Correct — сколько предсказаний совпало с истинной меткой.",
+                    "validInvalidLogLoss": "Сколько записей использовано для log‑loss. Invalid > 0 означает невалидные вероятности (в идеале 0)."
+                },
+                "confusion": {
+                    "truePred": "Матрица ошибок: строки — истинные метки, столбцы — предсказанные. Значения — количество дней.",
+                    "labels": {
+                        "down": "Класс DOWN: фактическое падение дня.",
+                        "flat": "Класс FLAT: боковой день без выраженного тренда.",
+                        "up": "Класс UP: фактический рост дня."
+                    }
+                },
+                "debug": {
+                    "dateUtc": "Дата торгового дня (UTC), к которому относится строка.",
+                    "true": "Истинный класс дня (факт): UP / FLAT / DOWN.",
+                    "day": "Предсказание базовой дневной модели (до micro/SL).",
+                    "dayMicro": "Предсказание после применения микро‑оверлея.",
+                    "total": "Финальное предсказание после SL‑оверлея (Day+Micro+SL).",
+                    "pDay": "Тройка вероятностей Up/Flat/Down для базовой модели Day.",
+                    "pDayMicro": "Тройка вероятностей Up/Flat/Down после микро‑оверлея.",
+                    "pTotal": "Финальные вероятности Up/Flat/Down после SL‑оверлея.",
+                    "microUsed": "Флаг, что микро‑оверлей реально изменил прогноз (Day → Day+Micro).",
+                    "slUsed": "Флаг, что SL‑оверлей реально повлиял на итог (Day+Micro → Total).",
+                    "microAgree": "Совпали ли метки Day и Day+Micro (true = не изменилось).",
+                    "slPenLong": "SL‑оверлей уменьшил вероятность long (penalty по P_up).",
+                    "slPenShort": "SL‑оверлей уменьшил вероятность short (penalty по P_down)."
+                }
+            }
+        }
+    },
+    "backtestFull": {
+        "page": {
+            "errorTitle": "Не удалось загрузить baseline-сводку и профили бэктеста"
+        },
+        "header": {
+            "title": "Backtest Full: профили, what-if и A/B сравнение",
+            "subtitle": "What-if, baseline (в dynamic/static) и A/B запускают one-shot preview по текущему backend config вместе с dynamic TP/SL, confidence-gating и policy-ratios.",
+            "tpSlSliceLabel": "Срез TP/SL в метриках",
+            "tpSlSliceAria": "Срез TP/SL для /backtest/full",
+            "tpSlSliceHint": "`ALL` включает смешанный режим. `DYNAMIC` и `STATIC` запускают отдельные симуляции: только с dynamic TP/SL или только со static TP/SL.",
+            "profileLabel": "Активный what-if профиль"
+        },
+        "content": {
+            "initializingProfile": "Инициализирую профиль бэктеста…",
+            "baselineSectionTitleAll": "Baseline (сохранённый backtest run)",
+            "baselineSectionTitleMode": "Baseline ({{mode}} mode, one-shot preview)",
+            "baselineSummaryTitleAll": "Baseline summary",
+            "baselineSummaryTitleMode": "Baseline summary ({{mode}})",
+            "errors": {
+                "baselineProfileMissing": "Профиль baseline отсутствует или не содержит config для выбранного TP/SL режима.",
+                "baselineModePreviewFailed": "Не удалось выполнить preview/full для baseline в выбранном TP/SL режиме.",
+                "previewFailed": "Не удалось выполнить preview/full.",
+                "compareProfilesRequired": "Нужно выбрать оба профиля для A/B сравнения.",
+                "backendCompareFailed": "Не удалось выполнить backend compare.",
+                "baselineMetricsBlockTitle": "Ошибка в блоке baseline-метрик",
+                "baselineMetricsBlockDescription": "Не удалось отрисовать сравнительные метрики baseline/preview."
+            }
+        },
+        "baselineMetrics": {
+            "title": "Итог по лучшей политике (baseline vs what-if)",
+            "labels": {
+                "baseline": "Baseline",
+                "whatIf": "What-if",
+                "delta": "Дельта"
+            }
+        },
+        "baselineColumn": {
+            "loadingSummary": "Пересчитываю baseline summary для выбранного TP/SL режима...",
+            "emptySummary": "Нет baseline summary для выбранного TP/SL режима.",
+            "errors": {
+                "clientTitle": "Ошибка в блоке baseline",
+                "clientDescription": "Блок baseline временно недоступен из-за ошибки на клиенте. What-if и сравнение профилей остаются доступными.",
+                "summaryTitle": "Не удалось получить baseline summary",
+                "summaryDescription": "Summary для выбранного TP/SL режима недоступен."
+            }
+        },
+        "whatIfColumn": {
+            "title": "What-if конфигурация профиля",
+            "previewTitle": "Результат preview",
+            "previewSummaryTitle": "Preview summary",
+            "previewEmpty": "Пока нет результатов превью.",
+            "previewPolicyRatiosTitle": "Метрики политик preview",
+            "previewPolicyRatiosSubtitle": "Метрики рассчитаны по тому же what-if прогону, который отображается в summary.",
+            "errors": {
+                "clientTitle": "Блок What-if временно недоступен",
+                "clientDescription": "При отрисовке блока What-if произошла ошибка на клиенте. Baseline и сравнение профилей продолжают работать."
+            }
+        },
+        "compareBlock": {
+            "errors": {
+                "clientTitle": "Блок сравнения профилей временно недоступен",
+                "clientDescription": "При отрисовке блока сравнения A/B произошла ошибка на клиенте. Baseline и What-if продолжают работать."
+            }
+        },
+        "compareSection": {
+            "title": "Сравнение профилей A / B",
+            "selectors": {
+                "profileA": "Профиль A",
+                "profileB": "Профиль B"
+            },
+            "deltaSummaryTitle": "Сводка дельт (B - A)",
+            "runButton": {
+                "loading": "Сравниваю профили...",
+                "default": "Запустить сравнение A/B"
+            },
+            "columns": {
+                "profileA": "Профиль A",
+                "profileB": "Профиль B"
+            },
+            "summaryTitle": "Summary профиля {{profile}}",
+            "previewEmpty": "Ещё нет результата preview для профиля {{profile}}.",
+            "policyRatiosTitle": "Метрики политик профиля {{profile}}",
+            "policyRatiosSubtitle": "Метрики построены по тому же one-shot прогону, что и summary профиля {{profile}}."
+        },
+        "summaryView": {
+            "labels": {
+                "reportId": "ID отчёта",
+                "reportKind": "Тип",
+                "generatedUtc": "Сгенерировано (UTC)",
+                "generatedLocal": "Сгенерировано (локальное время)"
+            },
+            "noSections": "Нет секций отчёта для отображения."
+        }
+    },
+    "diagnosticsReport": {
+        "layout": {
+            "sectionFallback": "Секция {{index}}",
+            "errors": {
+                "generatedAt": {
+                    "title": "Некорректный generatedAtUtc в diagnostics отчете",
+                    "message": "generatedAtUtc отсутствует или невалиден. Проверь сериализацию diagnostics отчета."
+                },
+                "sourceEndpoint": {
+                    "title": "Некорректный источник diagnostics отчета",
+                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Некорректный bucket query",
+                    "message": "Параметр bucket некорректен. Ожидается: daily, intraday, delayed или total."
+                },
+                "metricQuery": {
+                    "title": "Некорректный metric query",
+                    "message": "Параметр metric некорректен. Ожидается: real или no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Некорректный TP/SL query",
+                    "message": "Параметр tpsl некорректен. Ожидается: all, dynamic или static."
+                },
+                "slModeQuery": {
+                    "title": "Некорректный SL mode query",
+                    "message": "Параметр slmode некорректен. Ожидается: all, with-sl или no-sl."
+                },
+                "zonalQuery": {
+                    "title": "Некорректный zonal query",
+                    "message": "Параметр zonal некорректен. Ожидается: with-zonal или without-zonal."
+                },
+                "sections": {
+                    "title": "Не удалось собрать diagnostics секции",
+                    "message": "Секции для выбранного zonal/slmode/bucket/metric среза не найдены или размечены неконсистентно."
+                },
+                "terms": {
+                    "title": "Не удалось построить diagnostics термины",
+                    "message": "Не удалось построить термины для diagnostics таблиц. Проверь колонки и словарь подсказок."
+                }
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint для backtest_diagnostics не настроен: показываются metadata отчета без freshness-проверки."
+            },
+            "terms": {
+                "title": "Термины diagnostics",
+                "subtitle": "Подробные определения всех колонок, которые используются в текущем наборе diagnostics-таблиц."
+            }
+        },
+        "pages": {
+            "risk": {
+                "errorTitle": "Не удалось загрузить диагностику бэктеста",
+                "title": "Риск и ликвидации",
+                "subtitle": "Ликвидации, Equity/DD и риск-метрики. Здесь видно, как глубоко проседал капитал и насколько близко сделки подходили к ликвидации.",
+                "empty": "В отчете нет таблиц по риску и ликвидациям."
+            },
+            "guardrail": {
+                "errorTitle": "Не удалось загрузить guardrail-диагностику",
+                "title": "Guardrail / Specificity",
+                "subtitle": "Guardrail-метрики: специфичность, чувствительность, rolling-пороги и экономический эффект блокировок.",
+                "empty": "В отчете нет таблиц guardrail/specificity."
+            },
+            "decisions": {
+                "errorTitle": "Не удалось загрузить анализ решений",
+                "title": "Решения и Attribution",
+                "subtitle": "Почему принимается действие: разложение по актерам, причинам и blame-split для поиска виновника ошибок.",
+                "empty": "В отчете нет таблиц по решениям и attribution."
+            },
+            "hotspots": {
+                "errorTitle": "Не удалось загрузить hotspots-диагностику",
+                "title": "Hotspots / NoTrade",
+                "subtitle": "Hotspots по NoTrade, противоположным решениям и низкому покрытию - где стратегия теряет дни.",
+                "empty": "В отчете нет таблиц по hotspots."
+            },
+            "other": {
+                "errorTitle": "Не удалось загрузить прочие диагностики",
+                "title": "Прочие диагностики",
+                "subtitle": "Редкие или новые таблицы, которые пока не классифицированы по основным темам.",
+                "empty": "В отчете нет прочих диагностических таблиц."
+            },
+            "ratings": {
+                "errorTitle": "Не удалось загрузить рейтинги бэктест-диагностики",
+                "title": "Рейтинги полисов",
+                "subtitle": "Лучшие и худшие сделки/дни, а также сводный Equity/DD по топ-3 политикам.",
+                "empty": "В отчете нет таблиц рейтингов."
+            },
+            "dayStats": {
+                "errorTitle": "Не удалось загрузить статистику по дням",
+                "title": "Статистика по дням",
+                "subtitle": "Разрезы по DayType/weekday: как рынок распределен и как ведут себя политики в разные режимы.",
+                "empty": "В отчете нет таблиц по дням."
+            }
+        }
+    },
+    "pfi": {
+        "page": {
+            "errorTitle": "Не удалось загрузить PFI отчет",
+            "errors": {
+                "sourceEndpoint": {
+                    "title": "Некорректный источник PFI отчета",
+                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Некорректный bucket query",
+                    "message": "Параметр bucket некорректен. Ожидается: daily, intraday, delayed или total."
+                },
+                "metricQuery": {
+                    "title": "Некорректный metric query",
+                    "message": "Параметр metric некорректен. Ожидается: real или no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Некорректный TP/SL query",
+                    "message": "Параметр tpsl некорректен. Ожидается: all, dynamic или static."
+                },
+                "unsupportedView": {
+                    "title": "Режим отображения не поддерживается",
+                    "message": "Выбранный bucket/metric/tpsl режим не поддерживается структурой текущего отчета."
+                },
+                "sections": {
+                    "title": "Не найдены PFI секции",
+                    "message": "Секции для выбранного bucket/metric среза не найдены или размечены неконсистентно."
+                },
+                "terms": {
+                    "title": "Не удалось построить PFI термины",
+                    "message": "Не удалось построить термины для таблиц PFI. Проверь колонки и словарь подсказок."
+                }
+            },
+            "header": {
+                "titleFallback": "PFI по моделям",
+                "subtitle": "Отчет по важности признаков (Permutation Feature Importance) для всех бинарных моделей (move / dir / micro / SL и т.п.). Чем выше dAUC, тем сильнее признак влияет на качество, а знаки dMean/корреляций помогают понять направление влияния."
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint для pfi_per_model не настроен: показываются metadata отчета без freshness-проверки."
+            },
+            "empty": {
+                "title": "PFI отчет пустой",
+                "description": "Бэкенд вернул отчет без табличных секций. Имеет смысл проверить конфигурацию генерации PFI или данные в базе."
+            },
+            "terms": {
+                "title": "Термины отчета PFI",
+                "subtitle": "Подробные определения показателей важности признаков и сопутствующих статистик для всех таблиц на этой странице."
+            }
+        }
+    },
+    "predictionHistory": {
+        "page": {
+            "loadingTitle": "Загружаю историю прогнозов",
+            "indexErrorTitle": "Не удалось загрузить индекс истории прогнозов (set={{reportSet}})",
+            "title": "История прогнозов",
+            "emptyIndex": {
+                "title": "История прогнозов недоступна",
+                "description": "Бэкенд не вернул ни одной даты отчета для выбранного режима."
+            },
+            "meta": {
+                "totalBuilt": "Всего built: {{value}}",
+                "missingInRange": "Не попали в диапазон: {{value}}",
+                "currentlyVisible": "Сейчас отображается: {{value}}",
+                "loadWindow": "Окно загрузки: {{value}}",
+                "trainingScope": "Режим обучения: {{value}}",
+                "trainingModel": "Модель обучения: {{value}}",
+                "trainingModelFallback": "нет данных",
+                "notAvailableWithIndexError": "н/д (ошибка индекса)",
+                "loading": "загружаю...",
+                "notAvailableWithDetails": "н/д ({{details}})",
+                "missingBuilt": "нет в диапазоне (из built: {{built}})",
+                "noData": "нет данных"
+            }
+        },
+        "filters": {
+            "scope": {
+                "label": "Режим обучения",
+                "ariaLabel": "Режим обучения для истории прогнозов"
+            },
+            "window": {
+                "label": "Окно загрузки индекса",
+                "ariaLabel": "Окно загрузки индекса истории",
+                "oneYear": "За 1 год",
+                "twoYears": "За 2 года",
+                "allTime": "За все время"
+            },
+            "dateRange": {
+                "description": "Фильтр дат влияет только на отображение карточек.",
+                "current": "Выбранный диапазон: {{fromDate}} - {{toDate}}"
+            }
+        },
+        "content": {
+            "empty": "По выбранным фильтрам нет отчетов."
+        },
+        "pagination": {
+            "prevAria": "Предыдущая страница",
+            "nextAria": "Следующая страница",
+            "shown": "Показано {{from}}-{{to}} из {{total}}",
+            "pageOf": "Страница {{current}} из {{total}}"
+        },
+        "reportCard": {
+            "loading": "Загружаю отчет за {{dateUtc}}...",
+            "loadErrorTitle": "Не удалось загрузить отчет",
+            "loadErrorDescription": "Не удалось получить отчет за {{dateUtc}} (set={{reportSet}}, scope={{trainingScope}}).",
+            "renderErrorTitle": "Ошибка рендера отчета за {{dateUtc}}",
+            "renderErrorDescription": "Клиентская ошибка при отрисовке отчета.",
+            "tradesBuildErrorTitle": "Ошибка блока торговых параметров ({{dateUtc}})",
+            "tradesBuildErrorDescription": "Не удалось построить таблицы сделок по политикам.",
+            "tradesSchemaErrorTitle": "Схема таблиц сделок не совпадает ({{dateUtc}})",
+            "tradesSchemaErrorDescription": "В отчете отсутствуют нужные колонки или их формат изменился.",
+            "tradesNotInitializedTitle": "Торговые строки не инициализированы ({{dateUtc}})",
+            "tradesNotInitializedDescription": "Не удалось подготовить данные для таблиц сделок."
+        },
+        "tradesTable": {
+            "bucket": {
+                "daily": "Daily",
+                "intraday": "Intraday",
+                "delayed": "Delayed",
+                "total": "Σ Все бакеты"
+            },
+            "skipReasons": {
+                "extraSuffix": ", еще причин: {{count}}",
+                "summary": "Причины: {{reasons}}{{extraSuffix}}."
+            },
+            "columns": {
+                "policy": "Политика",
+                "branch": "Ветка",
+                "side": "Сторона",
+                "entry": "Вход, $",
+                "exit": "Выход, $",
+                "exitReason": "Причина выхода",
+                "tpUsd": "TP, $",
+                "tpPct": "TP, %",
+                "slUsd": "SL, $",
+                "slPct": "SL, %",
+                "liquidationPrice": "Цена ликвидации, $",
+                "bucketCapital": "Капитал бакета, $",
+                "stakeUsd": "Ставка, $",
+                "stakePct": "Ставка, %"
+            },
+            "liqFallback": "нет (плечо<=1x / не рассчитана)",
+            "skippedColumns": {
+                "policy": "Политика",
+                "branch": "Ветка",
+                "side": "Сторона",
+                "leverage": "Плечо",
+                "reason": "Причина пропуска"
+            },
+            "toolbarHint": "Торговые параметры за {{dateUtc}}. По умолчанию показан Daily бакет; можно переключить бакет и посмотреть его сделки отдельно.",
+            "bucketAriaLabel": "Фильтр торговой таблицы по бакету",
+            "noDirectionalSignals": "По выбранному дню не было направленных сигналов для открытия сделок.",
+            "noExecutedPrefix": "Исполненных сделок нет ни в одной политике.",
+            "noSkipReasonsFallback": "Причины пропуска в отчете не указаны.",
+            "executed": {
+                "title": "Сделки по политикам",
+                "description": "История торговых параметров по каждому прогнозу и ветке с фильтрацией по бакету."
+            },
+            "onlySkippedInBucket": "В выбранном бакете сигналы были, но все сделки пропущены правилами исполнения (без открытия позиции).",
+            "noRowsForBucket": "Для бакета {{bucket}} в этом дне строк сделок нет.",
+            "skipped": {
+                "title": "Сигналы без открытия сделки",
+                "description": "Направленные сигналы, которые не перешли в исполненную сделку."
+            }
+        }
+    },
+    "confidenceRisk": {
+        "page": {
+            "errorTitle": "Не удалось загрузить отчёт уверенности",
+            "title": "Уверенность и TP/SL",
+            "subtitle": "Сводка по бакетам уверенности модели: сколько дней дают направление, как часто достигаются TP/SL и какие типичные MFE/MAE. Это опорная статистика для настройки динамического тейк‑профита, стоп‑лосса и размера ставки.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint для backtest_confidence_risk не настроен: показываются metadata отчёта без freshness-проверки."
+            },
+            "config": {
+                "title": "Конфиг расчёта",
+                "subtitle": "Базовые параметры, которые использовались при сборке bucket‑статистики."
+            },
+            "termsSubtitle": "Объяснения всех показателей, которые используются в таблице уверенности.",
+            "tableTitleFallback": "Таблица confidence-бакетов {{index}}",
+            "tableDescription": "Сводка по бакетам уверенности и их торговым характеристикам.",
+            "emptyTable": "Таблица уверенности пустая. Проверь генерацию отчёта на бэкенде.",
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Отчёт уверенности без корректной даты генерации",
+                    "message": "generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчётов."
+                },
+                "invalidSource": {
+                    "title": "Confidence risk report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Confidence risk bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Confidence risk metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Confidence risk TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "unsupportedView": {
+                    "title": "Confidence risk view mode is unsupported for this report",
+                    "message": "Выбранный bucket/metric/tpsl режим не поддерживается структурой текущего отчёта."
+                },
+                "sections": {
+                    "title": "Confidence risk sections are missing",
+                    "message": "Report sections for the selected bucket/metric were not found or are tagged inconsistently."
+                },
+                "scopeQuery": {
+                    "title": "Confidence risk scope query is invalid",
+                    "message": "Query parameter \"scope\" is invalid. Expected full, train, oos, or recent."
+                },
+                "scopeMeta": {
+                    "title": "Confidence risk scope metadata is invalid",
+                    "message": "Не удалось определить метаданные выбранного scope-режима."
+                },
+                "bucketOptions": {
+                    "title": "Confidence risk bucket options are missing",
+                    "message": "Для выбранного scope не удалось построить список confidence-бакетов."
+                },
+                "confBucketQuery": {
+                    "title": "Confidence risk confidence-bucket query is invalid",
+                    "message": "Query parameter \"confBucket\" is invalid for selected scope."
+                },
+                "scopeFiltering": {
+                    "title": "Confidence risk scope filtering failed",
+                    "message": "Не удалось применить фильтр scope/confidence-bucket к таблице отчёта."
+                },
+                "config": {
+                    "title": "Отчёт уверенности имеет неверный конфиг",
+                    "message": "Секция конфигурации не распознана. Проверь ключи и формат ключ‑значение."
+                }
+            }
+        },
+        "filters": {
+            "allBuckets": "Все бакеты",
+            "scopeLabel": "Срез данных:",
+            "scopeAriaLabel": "Срез confidence-risk: full/train/oos/recent",
+            "confBucketLabel": "Бакет confidence:",
+            "confBucketAriaLabel": "Фильтр confidence-бакета для выбранного scope"
+        }
+    },
+    "policyBranchMega": {
+        "page": {
+            "errorTitle": "Не удалось загрузить Policy Branch Mega",
+            "title": "Policy Branch Mega",
+            "subtitle": "Сравнительный отчёт по Policy/Branch на одном историческом периоде. Таблица показывает не только доходность, но и риск: просадку, ликвидации, восстановление и вклад LONG/SHORT.",
+            "noDataPlaceholder": "нет данных",
+            "metricDiff": {
+                "noRows": "REAL/NO BIGGEST LIQ LOSS: нет сопоставимых строк для сравнения в выбранном бакете.",
+                "noChanges": "REAL/NO BIGGEST LIQ LOSS: в выбранном бакете строки совпадают (ликвидации не влияют на этот срез).",
+                "changedRows": "REAL/NO BIGGEST LIQ LOSS: изменено {{changed}} из {{total}} строк в выбранном бакете."
+            },
+            "status": {
+                "actualTitle": "ACTUAL: latest verified (for current API source)",
+                "debugTitle": "DEBUG: freshness not verified"
+            },
+            "statusLines": {
+                "policyBranchMegaId": "Status policy_branch_mega ID",
+                "diagnosticsId": "Status diagnostics ID",
+                "policyBranchMegaGeneratedAt": "Status policy_branch_mega generatedAt (UTC)",
+                "diagnosticsGeneratedAt": "Status diagnostics generatedAt (UTC)"
+            },
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Отчёт Policy Branch Mega без корректной даты генерации",
+                    "message": "generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчётов."
+                },
+                "invalidSource": {
+                    "title": "Policy Branch Mega report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Policy Branch Mega bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Policy Branch Mega metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Policy Branch Mega TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "slModeQuery": {
+                    "title": "Policy Branch Mega SL mode query is invalid",
+                    "message": "Query parameter \"slmode\" is invalid. Expected all, with-sl, or no-sl."
+                },
+                "zonalQuery": {
+                    "title": "Policy Branch Mega zonal query is invalid",
+                    "message": "Query parameter \"zonal\" is invalid. Expected with-zonal or without-zonal."
+                },
+                "structure": {
+                    "title": "Отчёт Policy Branch Mega имеет неверную структуру",
+                    "message": "Секции отчёта не распознаны. Проверь формат заголовков и состав таблиц."
+                },
+                "sections": {
+                    "title": "Policy Branch Mega sections are missing",
+                    "message": "Report sections for the selected zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently."
+                },
+                "terms": {
+                    "title": "Policy Branch Mega terms are invalid",
+                    "message": "Не удалось построить термины для таблиц Policy Branch Mega. Проверь состав колонок и описаний."
+                },
+                "columnsVisibility": {
+                    "title": "Policy Branch Mega columns visibility is invalid",
+                    "message": "Не удалось применить bucket-правила отображения колонок."
+                }
+            },
+            "emptyFiltered": "Policy Branch Mega пока пустой для выбранного бакета/режима метрик. Проверь генерацию отчётов на бэкенде.",
+            "emptyColumns": "Для выбранного бакета нет релевантных колонок после применения правил отображения. Проверь состав отчёта.",
+            "empty": "Policy Branch Mega пока пустой. Проверь генерацию отчётов на бэкенде.",
+            "overview": {
+                "whatIsReport": {
+                    "title": "Что это за отчёт",
+                    "items": {
+                        "item1": "Бэктест — это симуляция того, как стратегия торговала бы на исторических данных.",
+                        "item2": "Все строки считаются на одном и том же периоде и одинаковых исходных данных, поэтому сравнение между Policy корректно.",
+                        "item3": "Разница в числах между строками — это разница правил стратегии, а не разница рыночной истории."
+                    }
+                },
+                "comparison": {
+                    "title": "Что сравниваем",
+                    "items": {
+                        "policy": "Policy: когда открывать позицию, в каком направлении открывать позицию (LONG, SHORT или пропуск дня), каким размером входить и где ставить TP/SL.",
+                        "branch": "Branch — сценарий исполнения одной и той же Policy.\n\nBASE: используется исходное направление сигнала дня без инверсии (LONG остаётся LONG, SHORT остаётся SHORT).\n\nANTI-D: каждый день проверяется anti-direction. Если правило сработало, направление принудительно меняется на противоположное (LONG -> SHORT, SHORT -> LONG).\n\nОдин из обязательных фильтров anti-direction: MinMove в рабочем диапазоне (0.5%-12%).",
+                        "slMode": "SL Mode: WITH-SL включает stop-loss (выход по приоритету ликвидация -> stop-loss -> take-profit -> EndOfDay). NO-SL отключает stop-loss (выход только по take-profit, ликвидации или EndOfDay); это может обнулить капитал бакета, а в cross-марже — весь торговый баланс.",
+                        "tpSlMode": "TP/SL mode: ALL показывает все сделки, DYNAMIC — только сделки с реально применёнными динамическими уровнями, STATIC — только сделки с фиксированными уровнями.",
+                        "zonal": "ZONAL: WITH учитывает зональный фильтр входа, WITHOUT считает без этого фильтра.",
+                        "metricView": "METRIC VIEW: REAL показывает фактический результат, NO BIGGEST LIQ LOSS убирает одну самую большую ликвидацию только для анализа хвостового риска. Это контрфактный режим, а не реальная итоговая доходность.",
+                        "bucket": "bucket: daily/intraday/delayed — независимые срезы со своим капиталом; total — aggregate-сумма их метрик."
+                    }
+                },
+                "reading": {
+                    "title": "Как читать таблицу / как интерпретировать",
+                    "items": {
+                        "item1": "Порядок чтения: 1) сначала аварийный риск (HadLiq и AccRuin), 2) затем глубина просадки (MaxDD%), 3) затем сложность восстановления (Recovered, RecovDays, ReqGain%), 4) только потом итоговая доходность (TotalPnl% и Wealth%).",
+                        "item2": "Сравнение корректно только внутри одного среза: одинаковые bucket, TP/SL mode, SL Mode, ZONAL и Metric View.",
+                        "item3": "Если NO BIGGEST LIQ LOSS заметно лучше REAL, результат стратегии критично зависит от одного экстремального провала."
+                    }
+                },
+                "basics": {
+                    "title": "Базовые понятия (простыми словами)",
+                    "items": {
+                        "item1": "3.1 Позиция (сделка): LONG — ставка на рост цены. SHORT — ставка на падение цены. Если фильтры не пропускают день, позиция не открывается (no-trade).",
+                        "item2": "3.2 Плечо (Leverage): множитель к залогу. Плечо 10x означает, что движение цены на ~1% даёт около ~10% результата по залогу.",
+                        "item3": "3.3 Маржа (Margin): деньги, которые выделяются под позицию. Isolated — риск ограничен залогом конкретной позиции. Cross — общий депозит участвует как залог, и при ликвидации теряется весь баланс.",
+                        "item4": "3.4 Stop-Loss и Take-Profit: Stop-Loss автоматически закрывает позицию при убытке, Take-Profit автоматически фиксирует прибыль.",
+                        "item5": "3.5 Ликвидация: биржа принудительно закрывает позицию, когда убыток почти съел залог. Для Isolated теряется залог позиции; для Cross при ликвидации теряется весь депозит.",
+                        "item6": "3.6 Бэктест: проверка стратегии на истории. Нужен для сравнения идей и риска, но не гарантирует, что в будущем будет так же."
+                    }
+                },
+                "simulation": {
+                    "title": "Что учитывается в симуляции",
+                    "items": {
+                        "item1": "Комиссии биржи: учитываются (round-trip, комиссия на вход и на выход).",
+                        "item2": "Funding: не учитывается, поэтому при долгом удержании позиции фактический результат на бирже может отличаться от цифр отчёта.",
+                        "item3": "Проскальзывание / price impact: не учитывается.",
+                        "item4Prefix": "Порядок событий внутри first-event-правила: ликвидация → stop-loss → take-profit →"
+                    },
+                    "endOfDayTooltip": "EndOfDay (EOD) — закрытие позиции по времени в конце торгового окна, если раньше не сработали TP, SL или ликвидация."
+                }
+            },
+            "terms": {
+                "title": "Объяснение терминов {{part}}/3",
+                "subtitle": "Термины PART {{part}}/3."
+            },
+            "table": {
+                "modePrefix": {
+                    "withSl": "WITH SL: ",
+                    "noSl": "NO SL: ",
+                    "all": "WITH SL + NO SL: "
+                },
+                "part1Description": "Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).",
+                "part2Description": "Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).",
+                "part3Description": "Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.",
+                "mergedAllDescription": "Сводные метрики объединённого SL-среза.",
+                "mergedSelectedDescription": "Сводные метрики выбранного SL-среза.",
+                "titleFallback": "Policy Branch Mega [PART {{part}}/3]"
+            }
+        }
+    }
+}

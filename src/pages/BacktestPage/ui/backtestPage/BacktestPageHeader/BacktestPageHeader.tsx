@@ -1,5 +1,6 @@
 import { Text, TpSlModeToggle } from '@/shared/ui'
 import type { BacktestProfileDto, BacktestTpSlMode } from '@/shared/types/backtest.types'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestPageHeader.module.scss'
 
 interface BacktestPageHeaderProps {
@@ -17,31 +18,27 @@ export function BacktestPageHeader({
     tpSlMode,
     onTpSlModeChange
 }: BacktestPageHeaderProps) {
+    const { t } = useTranslation('reports')
+
     return (
         <header className={cls.header}>
-            <Text type='h1'>Backtest Full: профили, What-if и A/B сравнение</Text>
-            <Text>
-                What-if, baseline (в dynamic/static) и A/B запускают one-shot preview по текущему backend конфигу:
-                вместе с dynamic TP/SL, confidence-gating и policy-ratios.
-            </Text>
+            <Text type='h1'>{t('backtestFull.header.title')}</Text>
+            <Text>{t('backtestFull.header.subtitle')}</Text>
 
             <div className={cls.tpSlModeBlock}>
-                <Text>Срез TP/SL в метриках</Text>
+                <Text>{t('backtestFull.header.tpSlSliceLabel')}</Text>
                 <TpSlModeToggle
                     value={tpSlMode}
                     onChange={onTpSlModeChange}
                     className={cls.tpSlToggle}
-                    ariaLabel='Срез TP/SL для /backtest/full'
+                    ariaLabel={t('backtestFull.header.tpSlSliceAria')}
                 />
-                <Text className={cls.tpSlModeHint}>
-                    `ALL` запускает смешанный режим. `DYNAMIC` и `STATIC` запускают отдельные симуляции:
-                    только с dynamic TP/SL или только со static TP/SL.
-                </Text>
+                <Text className={cls.tpSlModeHint}>{t('backtestFull.header.tpSlSliceHint')}</Text>
             </div>
 
             {profiles.length > 0 && (
                 <label className={cls.profileSelectBlock}>
-                    <Text>Активный профиль what-if</Text>
+                    <Text>{t('backtestFull.header.profileLabel')}</Text>
                     <select
                         className={cls.profileSelect}
                         value={currentProfile?.id ?? ''}
@@ -52,7 +49,9 @@ export function BacktestPageHeader({
                             </option>
                         ))}
                     </select>
-                    {currentProfile?.description && <Text className={cls.profileDescription}>{currentProfile.description}</Text>}
+                    {currentProfile?.description && (
+                        <Text className={cls.profileDescription}>{currentProfile.description}</Text>
+                    )}
                 </label>
             )}
         </header>

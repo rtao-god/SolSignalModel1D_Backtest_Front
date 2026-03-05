@@ -8,4 +8,3 @@ export function createRootReducer(asyncReducers: ReducersMapObject<StateSchema>)
         [api.reducerPath]: api.reducer
     }
 }
-

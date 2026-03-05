@@ -11,4 +11,3 @@ export default function Rows({ children, rows, gap, className, style }: RowsProp
         </div>
     )
 }
-

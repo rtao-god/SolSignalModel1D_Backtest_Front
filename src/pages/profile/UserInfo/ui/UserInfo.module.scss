@@ -20,14 +20,13 @@
         height: 80px;
         border-radius: 100%;
 
-        input[type="file"] {
+        input[type='file'] {
             opacity: 0;
             position: absolute;
             top: 0;
             width: 80px;
             height: 80px;
         }
-
     }
 
     .data {
@@ -37,4 +36,5 @@
     }
 }
 
-@media screen and (min-width: 992px) and (max-width: 1200px) {}
+@media screen and (min-width: 992px) and (max-width: 1200px) {
+}

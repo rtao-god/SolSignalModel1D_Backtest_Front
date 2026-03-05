@@ -109,7 +109,6 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
         }),
 
         getBacktestPolicyRatios: builder.query<PolicyRatiosReportDto, string | undefined>({
-
             query: (profileId: string | undefined = 'baseline') => {
                 const effectiveId = profileId ?? 'baseline'
 
@@ -121,4 +120,3 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
         })
     }
 }
-

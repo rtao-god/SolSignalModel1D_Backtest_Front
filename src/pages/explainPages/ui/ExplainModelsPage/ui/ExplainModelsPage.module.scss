@@ -40,7 +40,9 @@
     color: inherit;
     font-size: 13px;
     text-decoration: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .linkButton:hover {

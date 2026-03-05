@@ -8,4 +8,3 @@ export const instance = axios.create({
         'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
     }
 })
-

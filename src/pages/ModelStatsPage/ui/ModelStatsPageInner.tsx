@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
@@ -17,7 +18,13 @@ import type {
     TableSection,
     ResolvedSegmentMeta
 } from './modelStatsTypes'
-import { buildGlobalMeta, collectAvailableSegments, isTableSection, resolveSegmentMeta, stripSegmentPrefix } from './modelStatsUtils'
+import {
+    buildGlobalMeta,
+    collectAvailableSegments,
+    isTableSection,
+    resolveSegmentMeta,
+    stripSegmentPrefix
+} from './modelStatsUtils'
 import {
     filterPolicyBranchMegaSectionsByBucketOrThrow,
     filterPolicyBranchMegaSectionsByMetricOrThrow,
@@ -37,6 +44,7 @@ import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceE
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 
 export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProps) {
+    const { t } = useTranslation('reports')
     const [mode, setMode] = useState<ViewMode>('business')
     const [segment, setSegment] = useState<SegmentKey | null>(null)
     const [searchParams, setSearchParams] = useSearchParams()
@@ -45,7 +53,6 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
     const allSections = useMemo(() => (data.sections as ReportSection[] | undefined) ?? [], [data.sections])
 
-
     const globalMeta = useMemo(() => buildGlobalMeta(allSections), [allSections])
 
     const rawTableSections = useMemo(() => allSections.filter(isTableSection), [allSections])
@@ -53,7 +60,10 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
     const bucketState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(
+                searchParams.get('bucket'),
+                DEFAULT_REPORT_BUCKET_MODE
+            )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats bucket query.')
@@ -63,7 +73,10 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
     const metricState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(
+                searchParams.get('metric'),
+                DEFAULT_REPORT_METRIC_MODE
+            )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats metric query.')
@@ -95,7 +108,6 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
             }
         }
     }, [])
-
 
     const viewSelectionState = useMemo(() => {
         try {
@@ -142,13 +154,19 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
                 err instanceof Error ? err : new Error('Failed to filter model-stats sections by bucket/metric.')
             return { sections: [] as TableSection[], error: safeError }
         }
-    }, [bucketState.value, metricState.value, rawTableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+    }, [
+        bucketState.value,
+        metricState.value,
+        rawTableSections,
+        tpSlState.value,
+        viewCapabilities,
+        viewSelectionState.error
+    ])
 
     const availableSegments = useMemo(
         () => collectAvailableSegments(filteredRawTableSectionsState.sections),
         [filteredRawTableSectionsState.sections]
     )
-
 
     useEffect(() => {
         if (segment !== null) {
@@ -167,7 +185,6 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
         setSegment(availableSegments[0].key)
     }, [segment, availableSegments])
-
 
     const tableSections = useMemo(() => {
         if (!filteredRawTableSectionsState.sections.length) {
@@ -219,11 +236,10 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         }
     }, [tableSections])
 
-
     const tabs = useMemo(
         () =>
             tableSections.map((section, index) => {
-                const rawTitle = section.title || `Секция ${index + 1}`
+                const rawTitle = section.title || t('modelStats.inner.tabs.sectionFallback', { index: index + 1 })
                 const label = stripSegmentPrefix(rawTitle)
 
                 return {
@@ -232,7 +248,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
                     anchor: `ml-model-${index + 1}`
                 }
             }),
-        [tableSections]
+        [tableSections, t]
     )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
@@ -271,8 +287,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (sourceEndpointState.error || !sourceEndpointState.value) {
         return (
             <PageError
-                title='Model stats report source is invalid'
-                message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                title={t('modelStats.inner.errors.invalidSource.title')}
+                message={t('modelStats.inner.errors.invalidSource.message')}
                 error={
                     sourceEndpointState.error ??
                     new Error('[model-stats] report source endpoint is missing after validation.')
@@ -284,8 +300,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (bucketState.error) {
         return (
             <PageError
-                title='Model stats bucket query is invalid'
-                message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                title={t('modelStats.inner.errors.bucketQuery.title')}
+                message={t('modelStats.inner.errors.bucketQuery.message')}
                 error={bucketState.error}
             />
         )
@@ -294,8 +310,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (metricState.error) {
         return (
             <PageError
-                title='Model stats metric query is invalid'
-                message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                title={t('modelStats.inner.errors.metricQuery.title')}
+                message={t('modelStats.inner.errors.metricQuery.message')}
                 error={metricState.error}
             />
         )
@@ -304,8 +320,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (tpSlState.error) {
         return (
             <PageError
-                title='Model stats TP/SL query is invalid'
-                message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                title={t('modelStats.inner.errors.tpSlQuery.title')}
+                message={t('modelStats.inner.errors.tpSlQuery.message')}
                 error={tpSlState.error}
             />
         )
@@ -314,8 +330,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (filteredRawTableSectionsState.error) {
         return (
             <PageError
-                title='Model stats sections are missing'
-                message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
+                title={t('modelStats.inner.errors.sections.title')}
+                message={t('modelStats.inner.errors.sections.message')}
                 error={filteredRawTableSectionsState.error}
             />
         )
@@ -324,8 +340,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     if (tableTermsState.error) {
         return (
             <PageError
-                title='Model stats terms are invalid'
-                message='Не удалось построить термины для таблиц model stats. Проверь колонки и словарь подсказок.'
+                title={t('modelStats.inner.errors.terms.title')}
+                message={t('modelStats.inner.errors.terms.message')}
                 error={tableTermsState.error}
             />
         )
@@ -335,23 +351,28 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         <div className={rootClassName}>
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
-                    <Text type='h2'>{data.title || 'Статистика моделей'}</Text>
-                    <Text className={cls.subtitle}>
-                        Сводный отчёт по качеству и поведению ML-моделей на разных выборках (train / OOS / full /
-                        recent). Сначала выберите сегмент данных и режим отчёта, ниже — детальные карточки с метриками.
-                    </Text>
+                    <Text type='h2'>{data.title || t('modelStats.inner.header.titleFallback')}</Text>
+                    <Text className={cls.subtitle}>{t('modelStats.inner.header.subtitle')}</Text>
 
                     <div className={cls.badgesRow}>
-                        {currentSegmentMeta && <span className={cls.badge}>Сегмент: {currentSegmentMeta.label}</span>}
+                        {currentSegmentMeta && (
+                            <span className={cls.badge}>
+                                {t('modelStats.inner.badges.segment', { value: currentSegmentMeta.label })}
+                            </span>
+                        )}
 
                         <span className={cls.badge}>
-                            Режим:{' '}
+                            {t('modelStats.inner.badges.modeLabel')}{' '}
                             {mode === 'business' ?
-                                'Бизнес-представление (агрегированные показатели)'
-                            :   'Технический (подробные матрицы ошибок)'}
+                                t('modelStats.inner.badges.modeBusiness')
+                            :   t('modelStats.inner.badges.modeTechnical')}
                         </span>
 
-                        {globalMeta?.runKind && <span className={cls.badge}>Тип запуска: {globalMeta.runKind}</span>}
+                        {globalMeta?.runKind && (
+                            <span className={cls.badge}>
+                                {t('modelStats.inner.badges.runKind', { value: globalMeta.runKind })}
+                            </span>
+                        )}
                     </div>
 
                     <ReportViewControls
@@ -367,33 +388,38 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
                 <ReportActualStatusCard
                     statusMode='debug'
-                    statusTitle='DEBUG: freshness not verified'
-                    statusMessage='Status endpoint для backtest_model_stats не настроен: показываются metadata отчёта без freshness-проверки.'
+                    statusTitle={t('modelStats.inner.status.title')}
+                    statusMessage={t('modelStats.inner.status.message')}
                     dataSource={sourceEndpointState.value}
                     reportTitle={data.title}
                     reportId={data.id}
                     reportKind={data.kind}
                     generatedAtUtc={data.generatedAtUtc}
                     statusLines={[
-                        ...(globalMeta?.runKind ? [{ label: 'Run kind', value: globalMeta.runKind }] : []),
-                        ...(globalMeta
-                            ? [
-                                  {
-                                      label: 'OOS',
-                                      value: globalMeta.hasOos
-                                          ? `есть, записей ${globalMeta.oosRecordsCount}`
-                                          : 'нет (используется только train)'
-                                  }
-                              ]
-                            : []),
-                        ...(globalMeta
-                            ? [
-                                  {
-                                      label: 'Train / Recent',
-                                      value: `${globalMeta.trainRecordsCount} / ${globalMeta.recentRecordsCount} (${globalMeta.recentDays} d)`
-                                  }
-                              ]
-                            : [])
+                        ...(globalMeta?.runKind ?
+                            [{ label: t('modelStats.inner.statusLines.runKind'), value: globalMeta.runKind }]
+                        :   []),
+                        ...(globalMeta ?
+                            [
+                                {
+                                    label: t('modelStats.inner.statusLines.oos'),
+                                    value:
+                                        globalMeta.hasOos ?
+                                            t('modelStats.inner.status.oosPresent', {
+                                                value: globalMeta.oosRecordsCount
+                                            })
+                                        :   t('modelStats.inner.status.oosMissing')
+                                }
+                            ]
+                        :   []),
+                        ...(globalMeta ?
+                            [
+                                {
+                                    label: t('modelStats.inner.statusLines.trainRecent'),
+                                    value: `${globalMeta.trainRecordsCount} / ${globalMeta.recentRecordsCount} (${globalMeta.recentDays} d)`
+                                }
+                            ]
+                        :   [])
                     ]}
                 />
             </header>
@@ -404,12 +430,8 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
                     <ModelStatsModeToggle mode={mode} onChange={setMode} />
                 </div>
                 <div className={cls.controlBarInfo}>
-                    <Text className={cls.controlTitle}>Как читать этот отчёт</Text>
-                    <Text className={cls.controlText}>
-                        Сегменты (OOS / Train / Full / Recent) задают, на каких данных считаются метрики. Режим
-                        &quot;Бизнес&quot; показывает агрегированные показатели, &quot;Технарь&quot; — детальные матрицы
-                        ошибок и распределения для анализа модели.
-                    </Text>
+                    <Text className={cls.controlTitle}>{t('modelStats.inner.control.title')}</Text>
+                    <Text className={cls.controlText}>{t('modelStats.inner.control.text')}</Text>
                 </div>
             </section>
 
@@ -418,15 +440,14 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
             {tableTermsState.terms.length > 0 && (
                 <ReportTableTermsBlock
                     terms={tableTermsState.terms}
-                    title='Термины model stats'
-                    subtitle='Подробные определения всех колонок, которые используются в текущем наборе таблиц.'
+                    title={t('modelStats.inner.terms.title')}
+                    subtitle={t('modelStats.inner.terms.subtitle')}
                     className={cls.tablesTerms}
                 />
             )}
 
             <div className={cls.tablesGrid}>
                 {tableSections.map((section, index) => {
-
                     const domId = tabs[index]?.anchor ?? `ml-model-${index + 1}`
                     return <ModelStatsTableCard key={section.title ?? domId} section={section} domId={domId} />
                 })}

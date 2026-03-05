@@ -8,4 +8,3 @@ export default interface AnimateComponentProps {
     duration?: number
     className?: string
 }
-

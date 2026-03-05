@@ -3,4 +3,3 @@ export default interface PortalProps {
     children: ReactNode
     element?: HTMLElement
 }
-

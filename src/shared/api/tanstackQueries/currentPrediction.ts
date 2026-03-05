@@ -3,7 +3,8 @@ import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type {
     CurrentPredictionIndexItemDto,
     CurrentPredictionSet,
-    CurrentPredictionTrainingScope
+    CurrentPredictionTrainingScope,
+    CurrentPredictionUiLanguage
 } from '../endpoints/reportEndpoints'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
@@ -19,11 +20,15 @@ interface CurrentPredictionLatestResponse {
 
 async function fetchCurrentPrediction(
     set: CurrentPredictionSet,
-    scope?: CurrentPredictionTrainingScope
+    scope?: CurrentPredictionTrainingScope,
+    lang?: CurrentPredictionUiLanguage
 ): Promise<ReportDocumentDto> {
     const search = new URLSearchParams()
     if (set === 'live' && scope) {
         search.set('scope', scope)
+    }
+    if (lang) {
+        search.set('lang', lang)
     }
 
     const querySuffix = search.toString()
@@ -77,11 +82,12 @@ async function fetchCurrentPredictionIndex(
 }
 export function useCurrentPredictionReportQuery(
     set: CurrentPredictionSet = 'live',
-    scope?: CurrentPredictionTrainingScope
+    scope?: CurrentPredictionTrainingScope,
+    lang?: CurrentPredictionUiLanguage
 ): UseQueryResult<ReportDocumentDto, Error> {
     return useQuery({
-        queryKey: ['current-prediction', 'latest', set, scope ?? 'default'],
-        queryFn: () => fetchCurrentPrediction(set, scope),
+        queryKey: ['current-prediction', 'latest', set, scope ?? 'default', lang ?? 'default'],
+        queryFn: () => fetchCurrentPrediction(set, scope, lang),
         retry: false
     })
 }
@@ -104,4 +110,3 @@ export function useCurrentPredictionIndexQuery(
         refetchOnWindowFocus: false
     })
 }
-

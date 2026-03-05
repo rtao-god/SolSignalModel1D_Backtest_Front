@@ -6,4 +6,3 @@ export default interface ModalProps {
     height?: string
     className?: string
 }
-

@@ -9,4 +9,3 @@ import type {
 type AppBaseQuery = BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, {}, FetchBaseQueryMeta>
 
 export type ApiEndpointBuilder = EndpointBuilder<AppBaseQuery, 'BacktestProfiles', 'api'>
-

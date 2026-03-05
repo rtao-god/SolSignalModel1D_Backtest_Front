@@ -1,110 +1,122 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { TermTooltip, Text } from '@/shared/ui'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import { useTranslation } from 'react-i18next'
 import cls from './DocsPage.module.scss'
 import type { DocsPageProps } from './types'
 
 export default function DocsPage({ className }: DocsPageProps) {
+    const { t } = useTranslation('docs')
+    const renderTooltipDescription = (term: string, description: string) =>
+        enrichTermTooltipDescription(description, { term })
+
     return (
         <div className={classNames(cls.DocsPageRoot, {}, [className ?? ''])}>
             <header className={cls.hero}>
                 <Text type='h1' className={cls.heroTitle}>
-                    Документация
+                    {t('page.title')}
                 </Text>
-                <Text className={cls.heroSubtitle}>
-                    Короткие гайды по чтению ключевых страниц. Здесь собраны простые объяснения метрик и терминов, чтобы
-                    даже начинающий инвестор понимал, что именно показывает каждый отчёт.
-                </Text>
+                <Text className={cls.heroSubtitle}>{t('page.subtitle')}</Text>
                 <div className={cls.heroMeta}>
-                    <span className={cls.metaPill}>ML‑модель</span>
-                    <span className={cls.metaPill}>Бэктесты</span>
-                    <span className={cls.metaPill}>Диагностика</span>
-                    <span className={cls.metaPill}>Текущие прогнозы</span>
+                    <span className={cls.metaPill}>{t('page.meta.model')}</span>
+                    <span className={cls.metaPill}>{t('page.meta.backtests')}</span>
+                    <span className={cls.metaPill}>{t('page.meta.diagnostics')}</span>
+                    <span className={cls.metaPill}>{t('page.meta.currentPredictions')}</span>
                 </div>
             </header>
 
             <section className={cls.sections}>
                 <Text type='h2' className={cls.sectionsTitle}>
-                    Как читать отчёты
+                    {t('sections.readingReports')}
                 </Text>
                 <div className={cls.cards}>
                     <article className={cls.card} id='model-stats-overview'>
                         <Text type='h3' className={cls.cardTitle}>
-                            Статистика моделей (ModelStats)
+                            {t('cards.modelStats.title')}
                         </Text>
                         <Text className={cls.cardText}>
-                            Здесь оценивается качество ML‑моделей на разных выборках. Сегменты{' '}
+                            {t('cards.modelStats.text.beforeOos')}{' '}
                             <TermTooltip
                                 term='OOS'
                                 type='span'
-                                description='OOS (out‑of‑sample) — данные, полностью исключённые из обучения. Метрики на OOS дают честную оценку качества без переобучения.'
+                                description={renderTooltipDescription('OOS', t('cards.modelStats.tooltips.oos'))}
                             />{' '}
-                            и{' '}
+                            {t('cards.modelStats.text.between')}{' '}
                             <TermTooltip
                                 term='Train'
                                 type='span'
-                                description='Train — обучающая выборка. Метрики обычно выше, чем на OOS, поэтому сравнение Train vs OOS важно для контроля переобучения.'
+                                description={renderTooltipDescription('Train', t('cards.modelStats.tooltips.train'))}
                             />{' '}
-                            показывают, насколько модель «держится» на новых данных. В режиме «Технический» отображаются
-                            матрицы ошибок и пороги SL‑модели.
+                            {t('cards.modelStats.text.afterTrain')}
                         </Text>
                     </article>
 
                     <article className={cls.card} id='current-prediction-overview'>
                         <Text type='h3' className={cls.cardTitle}>
-                            Текущий прогноз
+                            {t('cards.currentPrediction.title')}
                         </Text>
                         <Text className={cls.cardText}>
-                            Страница показывает финальный прогноз по дню: направление, план сделок и риски. Обратите
-                            внимание на{' '}
+                            {t('cards.currentPrediction.text.beforeMinMove')}{' '}
                             <TermTooltip
                                 term='MinMove'
                                 type='span'
-                                description='MinMove — минимальный осмысленный ход цены. Это прокси волатильности: чем выше, тем «размашистее» день.'
+                                description={renderTooltipDescription(
+                                    'MinMove',
+                                    t('cards.currentPrediction.tooltips.minMove')
+                                )}
                             />{' '}
-                            и сигналы{' '}
+                            {t('cards.currentPrediction.text.between')}{' '}
                             <TermTooltip
-                                term='SL‑модели'
+                                term={t('cards.currentPrediction.terms.slModel')}
                                 type='span'
-                                description='SL‑модель оценивает риск попадания в стоп‑лосс. Высокий SL‑риск означает, что входы стоит делать осторожнее.'
+                                description={renderTooltipDescription(
+                                    t('cards.currentPrediction.terms.slModel'),
+                                    t('cards.currentPrediction.tooltips.slModel')
+                                )}
                             />{' '}
-                            — они отвечают за контроль риска.
+                            {t('cards.currentPrediction.text.afterSlModel')}
                         </Text>
                     </article>
 
                     <article className={cls.card} id='aggregation-overview'>
                         <Text type='h3' className={cls.cardTitle}>
-                            Агрегация прогнозов
+                            {t('cards.aggregation.title')}
                         </Text>
                         <Text className={cls.cardText}>
-                            Здесь усредняются вероятности классов и считаются метрики качества по слоям Day /
-                            Day+Micro / Total. Метрики{' '}
+                            {t('cards.aggregation.text.beforeAccuracy')}{' '}
                             <TermTooltip
                                 term='Accuracy'
                                 type='span'
-                                description='Accuracy — доля правильных предсказаний (Correct / N). Чем выше, тем лучше.'
+                                description={renderTooltipDescription(
+                                    'Accuracy',
+                                    t('cards.aggregation.tooltips.accuracy')
+                                )}
                             />{' '}
-                            и{' '}
+                            {t('cards.aggregation.text.between')}{' '}
                             <TermTooltip
                                 term='LogLoss'
                                 type='span'
-                                description='LogLoss измеряет, насколько вероятности «доверчивы» к правильному классу. Чем меньше, тем лучше.'
+                                description={renderTooltipDescription(
+                                    'LogLoss',
+                                    t('cards.aggregation.tooltips.logLoss')
+                                )}
                             />{' '}
-                            помогают понять, насколько модель уверенно предсказывает результат.
+                            {t('cards.aggregation.text.afterLogLoss')}
                         </Text>
                     </article>
 
                     <article className={cls.card} id='pfi-overview'>
                         <Text type='h3' className={cls.cardTitle}>
-                            PFI — важность признаков
+                            {t('cards.pfi.title')}
                         </Text>
                         <Text className={cls.cardText}>
-                            PFI показывает, насколько падает качество модели, если перемешать признак. Ключевая метрика{' '}
+                            {t('cards.pfi.text.beforeDeltaAuc')}{' '}
                             <TermTooltip
                                 term='ΔAUC'
                                 type='span'
-                                description='ΔAUC — насколько падает AUC при перемешивании признака. Чем больше падение, тем важнее признак.'
+                                description={renderTooltipDescription('ΔAUC', t('cards.pfi.tooltips.deltaAuc'))}
                             />{' '}
-                            помогает понять, какие фичи реально влияют на прогноз.
+                            {t('cards.pfi.text.afterDeltaAuc')}
                         </Text>
                     </article>
                 </div>

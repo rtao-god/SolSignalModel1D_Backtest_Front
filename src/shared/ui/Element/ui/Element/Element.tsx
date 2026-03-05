@@ -6,11 +6,8 @@ export default function Element({ type = 'div', className, children, ...rest }: 
     const Tag = type
 
     return (
-        <Tag
-            {...rest}
-            className={classNames(cls.Element, {}, [className ?? ''])}>
+        <Tag {...rest} className={classNames(cls.Element, {}, [className ?? ''])}>
             {children}
         </Tag>
     )
 }
-

@@ -20,4 +20,3 @@ export interface CustomInputProps {
 }
 
 export type InputProps = CustomInputProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'style'>
-

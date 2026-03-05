@@ -1,6 +1,5 @@
 /* === Универсальный миксин для локальных скроллбаров (например, Sidebar.links) === */
 @mixin Scrollbar($size: 1em, $thumbColor: rebeccapurple, $trackColor: white) {
-
     /* Firefox */
     & {
         scrollbar-width: thin;
@@ -21,5 +20,40 @@
         background-color: $thumbColor;
         border-radius: 0.5em;
         border: 3px solid $trackColor;
+    }
+}
+
+/* === Скроллбар страницы через глобальные CSS-переменные темы === */
+@mixin PageScrollbar($size: 10px, $radius: 10px) {
+    /* Firefox */
+    & {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-page-thumb-color) var(--scrollbar-page-track-bg);
+    }
+
+    /* Chrome / Edge / Safari */
+    &::-webkit-scrollbar {
+        width: $size;
+        height: $size;
+    }
+
+    &::-webkit-scrollbar-track {
+        background-color: var(--scrollbar-page-track-bg);
+        transition: background-color 420ms ease-in-out;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-image: var(--scrollbar-page-thumb-bg);
+        background-color: var(--scrollbar-page-track-bg);
+        border-radius: $radius;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+        transition:
+            background-image 420ms ease-in-out,
+            background-color 420ms ease-in-out,
+            box-shadow 420ms ease-in-out;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
     }
 }

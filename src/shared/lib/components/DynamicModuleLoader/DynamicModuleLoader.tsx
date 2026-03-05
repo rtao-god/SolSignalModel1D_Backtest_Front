@@ -42,4 +42,3 @@ export default function DynamicModuleLoader({
 
     return <div>{children}</div>
 }
-

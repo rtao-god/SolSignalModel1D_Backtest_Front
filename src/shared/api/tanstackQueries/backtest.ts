@@ -41,4 +41,3 @@ export function useBacktestBaselineSnapshotQuery(): UseQueryResult<BacktestBasel
         retry: false
     })
 }
-

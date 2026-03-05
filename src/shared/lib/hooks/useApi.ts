@@ -43,4 +43,3 @@ function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; erro
 }
 
 export default useApi
-

@@ -10,6 +10,7 @@ export interface CurrentPredictionIndexItemDto {
 }
 export type CurrentPredictionSet = 'live' | 'backfilled'
 export type CurrentPredictionTrainingScope = 'train' | 'full' | 'oos' | 'recent'
+export type CurrentPredictionUiLanguage = 'ru' | 'en'
 
 export interface CurrentPredictionLatestDto {
     live: ReportDocumentDto | null
@@ -22,11 +23,26 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
     const { baselineSummaryGet, baselineSnapshotGet, diagnosticsGet } = API_ROUTES.backtest
 
     return {
-        getCurrentPrediction: builder.query<CurrentPredictionLatestDto, void>({
-            query: () => ({
-                url: latestReport.path,
-                method: latestReport.method
-            }),
+        getCurrentPrediction: builder.query<
+            CurrentPredictionLatestDto,
+            { scope?: CurrentPredictionTrainingScope; lang?: CurrentPredictionUiLanguage } | void
+        >({
+            query: args => {
+                const params: { scope?: CurrentPredictionTrainingScope; lang?: CurrentPredictionUiLanguage } = {}
+
+                if (args?.scope) {
+                    params.scope = args.scope
+                }
+                if (args?.lang) {
+                    params.lang = args.lang
+                }
+
+                return {
+                    url: latestReport.path,
+                    method: latestReport.method,
+                    params: Object.keys(params).length > 0 ? params : undefined
+                }
+            },
             transformResponse: raw => {
                 const payload = raw as { live?: unknown; backfilled?: unknown }
 
@@ -62,10 +78,28 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
         }),
         getCurrentPredictionByDate: builder.query<
             ReportDocumentDto,
-            { set: CurrentPredictionSet; dateUtc: string; scope?: CurrentPredictionTrainingScope }
+            {
+                set: CurrentPredictionSet
+                dateUtc: string
+                scope?: CurrentPredictionTrainingScope
+                lang?: CurrentPredictionUiLanguage
+            }
         >({
-            query: ({ set, dateUtc, scope }) => {
-                const params = scope ? { set, dateUtc, scope } : { set, dateUtc }
+            query: ({ set, dateUtc, scope, lang }) => {
+                const params: {
+                    set: CurrentPredictionSet
+                    dateUtc: string
+                    scope?: CurrentPredictionTrainingScope
+                    lang?: CurrentPredictionUiLanguage
+                } = { set, dateUtc }
+
+                if (scope) {
+                    params.scope = scope
+                }
+                if (lang) {
+                    params.lang = lang
+                }
+
                 return {
                     url: byDateReport.path,
                     method: byDateReport.method,
@@ -96,4 +130,3 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
         })
     }
 }
-

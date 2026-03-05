@@ -1,4 +1,14 @@
-import { KeyboardEvent, MouseEvent, ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import {
+    KeyboardEvent,
+    MouseEvent,
+    ReactNode,
+    useCallback,
+    useEffect,
+    useId,
+    useLayoutEffect,
+    useRef,
+    useState
+} from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Portal, Text } from '@/shared/ui'
 import useClickOutside from '@/shared/lib/hooks/useClickOutside'
@@ -8,20 +18,89 @@ import { TextTag } from '../../Text/ui/Text/types'
 interface TermTooltipProps {
     term: string
     description: ReactNode
+    tooltipTitle?: string
     type?: TextTag
     className?: string
     align?: 'left' | 'right'
 }
 
-export default function TermTooltip({ term, description, type = 'h3', className, align = 'left' }: TermTooltipProps) {
+const HOVER_OPEN_DELAY_MS = 170
+const HOVER_HIDE_DELAY_MS = 120
+
+const OPEN_TOOLTIP_COUNT_BY_TREE = new Map<string, number>()
+let ACTIVE_TOOLTIP_TREE_ID: string | null = null
+const ACTIVE_NESTED_TOOLTIP_BY_TREE = new Map<string, { instanceId: string; close: () => void }>()
+
+function canActivateTooltipTree(treeId: string): boolean {
+    if (ACTIVE_TOOLTIP_TREE_ID !== null && !OPEN_TOOLTIP_COUNT_BY_TREE.has(ACTIVE_TOOLTIP_TREE_ID)) {
+        ACTIVE_TOOLTIP_TREE_ID = null
+    }
+
+    return ACTIVE_TOOLTIP_TREE_ID === null || ACTIVE_TOOLTIP_TREE_ID === treeId
+}
+
+function registerTooltipOpen(treeId: string): void {
+    ACTIVE_TOOLTIP_TREE_ID = treeId
+    OPEN_TOOLTIP_COUNT_BY_TREE.set(treeId, (OPEN_TOOLTIP_COUNT_BY_TREE.get(treeId) ?? 0) + 1)
+}
+
+function registerTooltipClose(treeId: string): void {
+    const currentCount = OPEN_TOOLTIP_COUNT_BY_TREE.get(treeId)
+    if (!currentCount) {
+        return
+    }
+
+    if (currentCount <= 1) {
+        OPEN_TOOLTIP_COUNT_BY_TREE.delete(treeId)
+    } else {
+        OPEN_TOOLTIP_COUNT_BY_TREE.set(treeId, currentCount - 1)
+    }
+
+    if (ACTIVE_TOOLTIP_TREE_ID === treeId && !OPEN_TOOLTIP_COUNT_BY_TREE.has(treeId)) {
+        ACTIVE_TOOLTIP_TREE_ID = null
+    }
+}
+
+export default function TermTooltip({
+    term,
+    description,
+    tooltipTitle,
+    type = 'h3',
+    className,
+    align = 'left'
+}: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
 
+    const instanceId = useId()
     const rootRef = useRef<HTMLSpanElement | null>(null)
     const tooltipRef = useRef<HTMLDivElement | null>(null)
+    const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const treeIdRef = useRef<string>(instanceId)
+    const isNestedTooltipRef = useRef(false)
+    const isRegisteredOpenRef = useRef(false)
 
     const open = hovered || pinned
+
+    const resolveTooltipTreeId = useCallback((): string => {
+        const rootEl = rootRef.current
+        if (!rootEl) {
+            isNestedTooltipRef.current = false
+            return instanceId
+        }
+
+        const parentTooltipOverlay = rootEl.closest('[data-term-tooltip-overlay]') as HTMLElement | null
+        isNestedTooltipRef.current = Boolean(parentTooltipOverlay)
+        const inheritedTreeId = parentTooltipOverlay?.dataset.termTooltipTreeId
+        return inheritedTreeId && inheritedTreeId.trim().length > 0 ? inheritedTreeId : instanceId
+    }, [instanceId])
+
+    const tryActivateTooltipTree = useCallback((): boolean => {
+        const treeId = resolveTooltipTreeId()
+        treeIdRef.current = treeId
+        return canActivateTooltipTree(treeId)
+    }, [resolveTooltipTreeId])
 
     const cancelHide = useCallback(() => {
         if (hideTimeoutRef.current) {
@@ -30,34 +109,81 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         }
     }, [])
 
+    const cancelShow = useCallback(() => {
+        if (showTimeoutRef.current) {
+            clearTimeout(showTimeoutRef.current)
+            showTimeoutRef.current = null
+        }
+    }, [])
+
+    const scheduleShow = useCallback(() => {
+        cancelShow()
+        showTimeoutRef.current = setTimeout(() => {
+            if (!tryActivateTooltipTree()) {
+                return
+            }
+
+            setHovered(true)
+        }, HOVER_OPEN_DELAY_MS)
+    }, [cancelShow, tryActivateTooltipTree])
+
     const scheduleHide = useCallback(() => {
+        cancelShow()
         cancelHide()
         hideTimeoutRef.current = setTimeout(() => {
             setHovered(false)
-        }, 120)
-    }, [cancelHide])
+        }, HOVER_HIDE_DELAY_MS)
+    }, [cancelHide, cancelShow])
 
     const handleTermEnter = useCallback(() => {
         cancelHide()
-        setHovered(true)
-    }, [cancelHide])
+        if (!tryActivateTooltipTree()) {
+            return
+        }
+        scheduleShow()
+    }, [cancelHide, tryActivateTooltipTree, scheduleShow])
 
     const handleTermLeave = useCallback(() => {
         scheduleHide()
     }, [scheduleHide])
 
     const handleTooltipEnter = useCallback(() => {
+        cancelShow()
         cancelHide()
         setHovered(true)
-    }, [cancelHide])
+    }, [cancelHide, cancelShow])
 
     const handleTooltipLeave = useCallback(() => {
         scheduleHide()
     }, [scheduleHide])
 
     const togglePinned = useCallback(() => {
-        setPinned(prev => !prev)
-    }, [])
+        cancelShow()
+        cancelHide()
+        setPinned(prev => {
+            if (prev) {
+                if (isNestedTooltipRef.current) {
+                    // Для вложенных подсказок повторный клик оставляет закрепление.
+                    // Снятие закрепления происходит только внешним кликом/переключением на другой термин.
+                    return true
+                }
+                return false
+            }
+
+            if (!tryActivateTooltipTree()) {
+                return prev
+            }
+
+            return true
+        })
+    }, [cancelHide, cancelShow, tryActivateTooltipTree])
+
+    const closeTooltipImmediately = useCallback(() => {
+        cancelShow()
+        cancelHide()
+        setHovered(false)
+        setPinned(false)
+    }, [cancelHide, cancelShow])
 
     const clickParentButtonIfExists = useCallback((target: HTMLElement): boolean => {
         const parentButton = target.closest('button')
@@ -94,11 +220,65 @@ export default function TermTooltip({ term, description, type = 'h3', className,
         [clickParentButtonIfExists, togglePinned]
     )
 
-    useClickOutside(rootRef, () => {
-        cancelHide()
-        setHovered(false)
-        setPinned(false)
-    }, tooltipRef)
+    useClickOutside(
+        rootRef,
+        () => {
+            cancelShow()
+            cancelHide()
+            setHovered(false)
+            setPinned(false)
+        },
+        tooltipRef
+    )
+
+    useEffect(() => {
+        if (open && isNestedTooltipRef.current) {
+            activateNestedTooltip(treeIdRef.current, instanceId, closeTooltipImmediately)
+            return
+        }
+
+        if (!open && isNestedTooltipRef.current) {
+            releaseNestedTooltip(treeIdRef.current, instanceId)
+        }
+    }, [closeTooltipImmediately, instanceId, open])
+
+    useEffect(() => {
+        if (open && !isRegisteredOpenRef.current) {
+            registerTooltipOpen(treeIdRef.current)
+            isRegisteredOpenRef.current = true
+            return
+        }
+
+        if (!open && isRegisteredOpenRef.current) {
+            registerTooltipClose(treeIdRef.current)
+            isRegisteredOpenRef.current = false
+        }
+    }, [open])
+
+    useEffect(() => {
+        return () => {
+            cancelShow()
+            cancelHide()
+        }
+    }, [cancelHide, cancelShow])
+
+    useEffect(() => {
+        return () => {
+            if (!isRegisteredOpenRef.current) {
+                return
+            }
+
+            registerTooltipClose(treeIdRef.current)
+            isRegisteredOpenRef.current = false
+        }
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            releaseNestedTooltip(treeIdRef.current, instanceId)
+        }
+    }, [instanceId])
+
     useLayoutEffect(() => {
         if (!open) return
         if (typeof window === 'undefined') return
@@ -109,6 +289,8 @@ export default function TermTooltip({ term, description, type = 'h3', className,
             const viewportHeight = document.documentElement.clientHeight
             const tooltipEl = tooltipRef.current
             const rootEl = rootRef.current
+            const parentTooltipOverlay = rootEl.closest('[data-term-tooltip-overlay]') as HTMLDivElement | null
+            const isNestedTooltip = Boolean(parentTooltipOverlay)
 
             const isNarrow = viewportWidth <= 576
             const MAIN_PADDING = isNarrow ? 15 : 12
@@ -165,30 +347,57 @@ export default function TermTooltip({ term, description, type = 'h3', className,
 
             const minLeft = bounds.left
             const maxLeft = Math.max(minLeft, bounds.right - tooltipRect.width)
+            const minTop = bounds.top
+            const maxTop = Math.max(minTop, bounds.bottom - tooltipRect.height)
 
-            const termCenterX = rootRect.left + rootRect.width / 2
-            let desiredLeft = termCenterX - tooltipRect.width / 2
+            let desiredLeft = 0
+            let desiredTop = 0
+
+            if (isNestedTooltip) {
+                // Для вложенного tooltip привязываемся к контейнеру основной подсказки:
+                // размещаем сразу за её правой/левой границей.
+                const sideGap = 8
+                const parentRect = parentTooltipOverlay ? parentTooltipOverlay.getBoundingClientRect() : rootRect
+                const rightSpace = bounds.right - parentRect.right
+                const leftSpace = parentRect.left - bounds.left
+                const canPlaceRight = parentRect.right + sideGap + tooltipRect.width <= bounds.right
+                const canPlaceLeft = parentRect.left - sideGap - tooltipRect.width >= bounds.left
+
+                if (canPlaceRight && (!canPlaceLeft || rightSpace >= leftSpace)) {
+                    desiredLeft = parentRect.right + sideGap
+                } else if (canPlaceLeft) {
+                    desiredLeft = parentRect.left - sideGap - tooltipRect.width
+                } else {
+                    desiredLeft =
+                        rightSpace >= leftSpace ?
+                            parentRect.right + sideGap
+                        :   parentRect.left - sideGap - tooltipRect.width
+                }
+
+                desiredTop = parentRect.top
+            } else {
+                const termCenterX = rootRect.left + rootRect.width / 2
+                desiredLeft = termCenterX - tooltipRect.width / 2
+
+                const gap = 6
+                const fitsBelow = rootRect.bottom + gap + tooltipRect.height <= bounds.bottom
+                const fitsAbove = rootRect.top - gap - tooltipRect.height >= bounds.top
+                desiredTop = rootRect.bottom + gap
+                if (!fitsBelow && fitsAbove) {
+                    desiredTop = rootRect.top - gap - tooltipRect.height
+                }
+            }
 
             if (desiredLeft < minLeft) desiredLeft = minLeft
             if (desiredLeft > maxLeft) desiredLeft = maxLeft
-
-            const gap = 6
-            const fitsBelow = rootRect.bottom + gap + tooltipRect.height <= bounds.bottom
-            const fitsAbove = rootRect.top - gap - tooltipRect.height >= bounds.top
-            let desiredTop = rootRect.bottom + gap
-            if (!fitsBelow && fitsAbove) {
-                desiredTop = rootRect.top - gap - tooltipRect.height
-            }
-
-            if (desiredTop + tooltipRect.height > bounds.bottom) {
-                desiredTop = bounds.bottom - tooltipRect.height
-            }
-            if (desiredTop < bounds.top) desiredTop = bounds.top
+            if (desiredTop < minTop) desiredTop = minTop
+            if (desiredTop > maxTop) desiredTop = maxTop
 
             const docLeft = desiredLeft + window.scrollX
             const docTop = desiredTop + window.scrollY
 
             tooltipEl.style.position = 'absolute'
+            tooltipEl.style.zIndex = isNestedTooltip ? '2200' : '2000'
             tooltipEl.style.left = `${docLeft}px`
             tooltipEl.style.top = `${docTop}px`
             tooltipEl.style.right = 'auto'
@@ -212,6 +421,7 @@ export default function TermTooltip({ term, description, type = 'h3', className,
             <span ref={rootRef} className={classNames(cls.TermTooltip, {}, [className ?? ''])}>
                 <Text type={type} className={cls.termText}>
                     <span
+                        data-term-tooltip-instance-id={instanceId}
                         className={cls.termInner}
                         onMouseEnter={handleTermEnter}
                         onMouseLeave={handleTermLeave}
@@ -226,21 +436,44 @@ export default function TermTooltip({ term, description, type = 'h3', className,
                 </Text>
             </span>
 
-            <Portal>
-                <div
-                    ref={tooltipRef}
-                    className={classNames(cls.tooltip, { [cls.tooltipVisible]: open }, [tooltipAlignClass])}
-                    role='tooltip'
-                    onMouseEnter={handleTooltipEnter}
-                    onMouseLeave={handleTooltipLeave}>
-                    <div className={cls.tooltipContent}>
-                        <Text type='p' className={cls.tooltipTitle}>
-                            {term}
-                        </Text>
-                        <div className={cls.tooltipBody}>{description}</div>
+            {open && (
+                <Portal>
+                    <div
+                        ref={tooltipRef}
+                        className={classNames(cls.tooltip, { [cls.tooltipVisible]: open }, [tooltipAlignClass])}
+                        data-term-tooltip-overlay
+                        data-term-tooltip-instance-id={instanceId}
+                        data-term-tooltip-tree-id={treeIdRef.current}
+                        role='tooltip'
+                        onMouseEnter={handleTooltipEnter}
+                        onMouseLeave={handleTooltipLeave}>
+                        <div className={cls.tooltipContent}>
+                            <Text type='p' className={cls.tooltipTitle}>
+                                {tooltipTitle ?? term}
+                            </Text>
+                            <div className={cls.tooltipBody}>{description}</div>
+                        </div>
                     </div>
-                </div>
-            </Portal>
+                </Portal>
+            )}
         </>
     )
+}
+
+function activateNestedTooltip(treeId: string, instanceId: string, close: () => void): void {
+    const currentNestedTooltip = ACTIVE_NESTED_TOOLTIP_BY_TREE.get(treeId)
+    if (currentNestedTooltip && currentNestedTooltip.instanceId !== instanceId) {
+        currentNestedTooltip.close()
+    }
+
+    ACTIVE_NESTED_TOOLTIP_BY_TREE.set(treeId, { instanceId, close })
+}
+
+function releaseNestedTooltip(treeId: string, instanceId: string): void {
+    const currentNestedTooltip = ACTIVE_NESTED_TOOLTIP_BY_TREE.get(treeId)
+    if (!currentNestedTooltip || currentNestedTooltip.instanceId !== instanceId) {
+        return
+    }
+
+    ACTIVE_NESTED_TOOLTIP_BY_TREE.delete(treeId)
 }

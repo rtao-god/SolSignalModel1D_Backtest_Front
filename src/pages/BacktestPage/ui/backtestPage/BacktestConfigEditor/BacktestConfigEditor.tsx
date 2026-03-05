@@ -1,4 +1,5 @@
 import { Btn, Input, TermTooltip, Text } from '@/shared/ui'
+import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import type { BacktestPolicyConfigDto } from '@/shared/types/backtest.types'
 import cls from './BacktestConfigEditor.module.scss'
 import BacktestConfigEditorProps from './types'
@@ -12,7 +13,9 @@ const CONFIG_COLUMN_TOOLTIPS: Record<string, string> = {
 }
 
 const renderTooltip = (term: string, description?: string) =>
-    description ? <TermTooltip term={term} description={description} type='span' /> : term
+    description ?
+        <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
+    :   term
 
 function formatPct(value01: number): string {
     return (value01 * 100).toFixed(2)
@@ -153,10 +156,7 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
-                                'Daily TP max (%)',
-                                'Жёсткий верхний кламп итогового dynamic TP.'
-                            )}
+                            {renderTooltip('Daily TP max (%)', 'Жёсткий верхний кламп итогового dynamic TP.')}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -165,10 +165,7 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
-                                'Daily SL min (%)',
-                                'Жёсткий нижний кламп итогового dynamic SL.'
-                            )}
+                            {renderTooltip('Daily SL min (%)', 'Жёсткий нижний кламп итогового dynamic SL.')}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -177,10 +174,7 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
-                                'Daily SL max (%)',
-                                'Жёсткий верхний кламп итогового dynamic SL.'
-                            )}
+                            {renderTooltip('Daily SL max (%)', 'Жёсткий верхний кламп итогового dynamic SL.')}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -251,11 +245,14 @@ export function BacktestConfigEditor({
                         В этом профиле confidence-risk overlay отсутствует или отключён. Preview будет идти по baseline
                         TP/SL без динамических модификаций.
                     </Text>
-                </section>}
+                </section>
+            }
 
             <div className={cls.policiesBlock}>
                 <Text type='h3'>Политики плеча</Text>
-                <Text>Выберите, какие политики участвуют в preview, и при необходимости скорректируйте const плечо.</Text>
+                <Text>
+                    Выберите, какие политики участвуют в preview, и при необходимости скорректируйте const плечо.
+                </Text>
 
                 <div className={cls.tableWrap}>
                     <table className={cls.table}>
@@ -311,4 +308,3 @@ export function BacktestConfigEditor({
         </section>
     )
 }
-

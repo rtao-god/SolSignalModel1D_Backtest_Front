@@ -3,6 +3,7 @@ import type { PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { BacktestCompareSection } from '../BacktestCompareSection/BacktestCompareSection'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestCompareBlock.module.scss'
 interface BacktestCompareBlockProps {
     profiles: BacktestProfileDto[]
@@ -39,6 +40,8 @@ export function BacktestCompareBlock({
     onProfileBChange,
     onRunCompare
 }: BacktestCompareBlockProps) {
+    const { t } = useTranslation('reports')
+
     return (
         <div className={cls.root}>
             <SectionErrorBoundary
@@ -46,8 +49,8 @@ export function BacktestCompareBlock({
                 fallback={({ error, reset }) => (
                     <ErrorBlock
                         code='CLIENT'
-                        title='Блок сравнения профилей временно недоступен'
-                        description='При отрисовке блока сравнения A/B произошла ошибка на клиенте. Baseline и What-if продолжают работать.'
+                        title={t('backtestFull.compareBlock.errors.clientTitle')}
+                        description={t('backtestFull.compareBlock.errors.clientDescription')}
                         details={error.message}
                         onRetry={reset}
                     />

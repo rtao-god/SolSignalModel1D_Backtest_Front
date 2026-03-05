@@ -1,7 +1,4 @@
-import type {
-    AggregationMetricsSnapshotDto,
-    AggregationProbsSnapshotDto
-} from '@/shared/types/aggregation.types'
+import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 
 export interface AggregationStatsPageProps {
     className?: string

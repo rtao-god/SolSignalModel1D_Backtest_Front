@@ -31,8 +31,7 @@ export default function Layout({ children, className }: LayoutProps) {
             <div className={cls.content}>
                 {isDesktop && <Sidebar />}
 
-                <div className={cls.main} data-tooltip-boundary>
-
+                <main className={cls.main} data-tooltip-boundary>
                     <ErrorBoundary
                         resetKeys={[location.pathname]}
                         onError={(error, errorInfo) =>
@@ -42,14 +41,12 @@ export default function Layout({ children, className }: LayoutProps) {
                             })
                         }
                         fallbackRender={props => <PageErrorFallback {...props} />}>
-
                         {children ?? <Outlet />}
                     </ErrorBoundary>
-                </div>
+                </main>
             </div>
 
             <Footer />
-
 
             {!isDesktop && isSidebarModalOpen && (
                 <Modal width='min(90vw, 420px)' height='auto' onClose={handleCloseSidebarModal}>

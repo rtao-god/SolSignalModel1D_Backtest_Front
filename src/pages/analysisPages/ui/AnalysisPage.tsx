@@ -2,37 +2,34 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import { useTranslation } from 'react-i18next'
 import cls from './AnalysisPage.module.scss'
 import type { AnalysisPageProps } from './types'
 
 export default function AnalysisPage({ className }: AnalysisPageProps) {
+    const { t } = useTranslation('reports')
+
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
             <section className={cls.hero}>
                 <Text type='h1' className={cls.heroTitle}>
-                    Анализ
+                    {t('analysisHome.hero.title')}
                 </Text>
-                <Text className={cls.heroSubtitle}>
-                    Аналитические отчёты по PnL, топам сделок/дней и поведению стратегий. Здесь проще всего понять, где
-                    стратегия зарабатывает, где теряет, и в каких режимах рынка это происходит.
-                </Text>
+                <Text className={cls.heroSubtitle}>{t('analysisHome.hero.subtitle')}</Text>
             </section>
 
             <section className={cls.sections}>
                 <Text type='h2' className={cls.sectionsTitle}>
-                    Разделы анализа
+                    {t('analysisHome.sections.title')}
                 </Text>
                 <div className={cls.cards}>
                     <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]} className={cls.cardLink}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
-                                Рейтинги полисов
+                                {t('analysisHome.cards.ratings.title')}
                             </Text>
-                            <Text className={cls.cardText}>
-                                Лучшие и худшие сделки/дни по результату, плюс сводный Equity/DD по топ‑3 политикам.
-                                Идеальная точка входа, чтобы найти экстремальные просадки и аномально успешные периоды.
-                            </Text>
-                            <span className={cls.cardHint}>Открыть рейтинги →</span>
+                            <Text className={cls.cardText}>{t('analysisHome.cards.ratings.description')}</Text>
+                            <span className={cls.cardHint}>{t('analysisHome.cards.ratings.hint')}</span>
                         </article>
                     </Link>
                     <Link to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]} className={cls.cardLink}>
@@ -40,37 +37,26 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 Policy Branch Mega
                             </Text>
-                            <Text className={cls.cardText}>
-                                Самая полная сводка метрик по каждой политике и ветке (BASE/ANTI‑D): доходность,
-                                риск, устойчивость, восстановление, разрез long/short и средние темпы роста. Это
-                                «главная таблица» для сравнения политик.
-                            </Text>
-                            <span className={cls.cardHint}>Открыть mega‑таблицы →</span>
+                            <Text className={cls.cardText}>{t('analysisHome.cards.policyBranchMega.description')}</Text>
+                            <span className={cls.cardHint}>{t('analysisHome.cards.policyBranchMega.hint')}</span>
                         </article>
                     </Link>
                     <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]} className={cls.cardLink}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
-                                Статистика по дням
+                                {t('analysisHome.cards.dayStats.title')}
                             </Text>
-                            <Text className={cls.cardText}>
-                                Разрезы по типам дней (UP/DOWN/FLAT) и по дням недели: WinRate, доля NoTrade и упущенная
-                                возможность. Помогает понять, в каком режиме стратегия даёт лучший edge.
-                            </Text>
-                            <span className={cls.cardHint}>Открыть статистику →</span>
+                            <Text className={cls.cardText}>{t('analysisHome.cards.dayStats.description')}</Text>
+                            <span className={cls.cardHint}>{t('analysisHome.cards.dayStats.hint')}</span>
                         </article>
                     </Link>
                     <Link to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]} className={cls.cardLink}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
-                                Уверенность и TP/SL
+                                {t('analysisHome.cards.confidenceRisk.title')}
                             </Text>
-                            <Text className={cls.cardText}>
-                                Bucket‑статистика по уверенности модели: как часто достигаются TP/SL и как меняются
-                                MFE/MAE при разных уровнях сигнала. Помогает понять, где можно усиливать тейк‑профит,
-                                а где лучше снижать риск.
-                            </Text>
-                            <span className={cls.cardHint}>Открыть статистику уверенности →</span>
+                            <Text className={cls.cardText}>{t('analysisHome.cards.confidenceRisk.description')}</Text>
+                            <span className={cls.cardHint}>{t('analysisHome.cards.confidenceRisk.hint')}</span>
                         </article>
                     </Link>
                     <Link to={ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE]} className={cls.cardLink}>
@@ -79,10 +65,9 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                                 Execution Pipeline
                             </Text>
                             <Text className={cls.cardText}>
-                                Сквозной отчёт по уровням расчёта: модель, решение, исполнение, бухгалтерия и
-                                финальная агрегация. Подходит для пошаговой сверки формул и поиска расхождений.
+                                {t('analysisHome.cards.executionPipeline.description')}
                             </Text>
-                            <span className={cls.cardHint}>Открыть pipeline отчёт →</span>
+                            <span className={cls.cardHint}>{t('analysisHome.cards.executionPipeline.hint')}</span>
                         </article>
                     </Link>
                 </div>

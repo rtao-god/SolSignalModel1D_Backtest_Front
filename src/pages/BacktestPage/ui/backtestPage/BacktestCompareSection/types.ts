@@ -17,4 +17,3 @@ export default interface BacktestCompareSectionProps {
     onProfileBChange: (id: string | null) => void
     onRunCompare: () => void
 }
-

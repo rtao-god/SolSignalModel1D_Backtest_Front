@@ -1,5 +1,3 @@
-
-
 import type { TableSectionDto } from '@/shared/types/report.types'
 
 export type BacktestDiagnosticsCategory = 'ratings' | 'diagnostics' | 'dayStats' | 'unknown'
@@ -40,7 +38,10 @@ const CATEGORY_RULES: CategoryRules[] = [
 
 function normalizeReportTitle(title: string): string {
     if (!title) return ''
-    return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
 }
 
 function classifyTitle(title: string): BacktestDiagnosticsCategory {
@@ -168,20 +169,12 @@ const DIAGNOSTICS_GROUP_RULES: DiagnosticsGroupRules[] = [
     {
         id: 'decisions',
         label: 'Решения/Blame',
-        rules: [
-            /^Decision Attribution/i,
-            /^Model vs Policy Blame Split/i,
-            /^Top Decision Days/i
-        ]
+        rules: [/^Decision Attribution/i, /^Model vs Policy Blame Split/i, /^Top Decision Days/i]
     },
     {
         id: 'hotspots',
         label: 'Hotspots/NoTrade',
-        rules: [
-            /^Policy Low-Coverage Hotspots/i,
-            /^Policy NoTrade Hotspots/i,
-            /^Policy Opposite Hotspots/i
-        ]
+        rules: [/^Policy Low-Coverage Hotspots/i, /^Policy NoTrade Hotspots/i, /^Policy Opposite Hotspots/i]
     }
 ]
 

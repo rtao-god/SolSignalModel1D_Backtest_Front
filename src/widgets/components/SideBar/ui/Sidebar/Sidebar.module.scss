@@ -13,8 +13,7 @@
     padding: 12px;
 
     /* Премиальный тёмный градиент для всего фона сайдбара */
-    background:
-        radial-gradient(circle at top left, #0b1220 0%, #020617 40%, #000000 100%);
+    background: radial-gradient(circle at top left, #0b1220 0%, #020617 40%, #000000 100%);
     box-shadow: 5px 20px 20px 2px rgba(0, 0, 0, 0.35);
     transition: all 0.3s;
 
@@ -83,9 +82,7 @@
     margin-bottom: 20px;
     padding: 6px 8px;
     border-radius: 18px;
-    background: radial-gradient(circle at top left,
-            rgba(15, 23, 42, 0.98),
-            rgba(15, 23, 42, 1));
+    background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
     border: 1px solid rgba(148, 163, 184, 0.26);
     transition:
         background-color 0.2s ease-out,
@@ -96,9 +93,7 @@
 
 /* Активная карточка (есть подвкладки и роут активен) */
 .itemBlockGroupActive {
-    background: radial-gradient(circle at top left,
-            rgba(15, 23, 42, 1),
-            rgba(15, 23, 42, 1));
+    background: radial-gradient(circle at top left, rgba(15, 23, 42, 1), rgba(15, 23, 42, 1));
     border-color: rgba(56, 189, 248, 0.7);
     box-shadow:
         0 0 0 1px rgba(56, 189, 248, 0.5),
@@ -147,9 +142,7 @@
 
 /* Активная основная ссылка (только для пунктов БЕЗ подвкладок) */
 .linkActive {
-    background: radial-gradient(circle at left center,
-            rgba(0, 200, 255, 0.2),
-            rgba(15, 23, 42, 0.95));
+    background: radial-gradient(circle at left center, rgba(0, 200, 255, 0.2), rgba(15, 23, 42, 0.95));
     color: #f9fafb;
     box-shadow:
         0 0 0 1px rgba(56, 189, 248, 0.65),
@@ -217,9 +210,7 @@
     height: 100%;
     margin-right: 8px;
     border-radius: 999px;
-    background: linear-gradient(180deg,
-            rgba(148, 163, 184, 0.6),
-            rgba(148, 163, 184, 0.06));
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.6), rgba(148, 163, 184, 0.06));
     opacity: 0.9;
 }
 
@@ -228,7 +219,6 @@
     flex-direction: column;
     gap: 4px;
 }
-
 
 /* Подвкладка */
 .subLink {
@@ -262,9 +252,7 @@
 }
 
 .subLinkActive {
-    background: linear-gradient(120deg,
-            rgba(0, 200, 255, 0.18),
-            rgba(120, 80, 255, 0.26));
+    background: linear-gradient(120deg, rgba(0, 200, 255, 0.18), rgba(120, 80, 255, 0.26));
     color: var(--text-primary, #ffffff);
     transform: translateX(4px);
     opacity: 1;
@@ -299,9 +287,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(circle at left center,
-            rgba(255, 255, 255, 0.18),
-            transparent 60%);
+    background: radial-gradient(circle at left center, rgba(255, 255, 255, 0.18), transparent 60%);
     opacity: 0;
     transform: translateX(-20%);
     transition:

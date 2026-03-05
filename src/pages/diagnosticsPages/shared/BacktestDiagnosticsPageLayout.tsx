@@ -31,6 +31,7 @@ import {
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestDiagnosticsPageLayout.module.scss'
 
 interface BacktestDiagnosticsPageLayoutProps {
@@ -64,6 +65,7 @@ export default function BacktestDiagnosticsPageLayout({
     className,
     renderColumnTitle
 }: BacktestDiagnosticsPageLayoutProps) {
+    const { t } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
@@ -276,9 +278,12 @@ export default function BacktestDiagnosticsPageLayout({
             filteredSectionsState.sections.map((section, index) => ({
                 id: sectionDomId(index),
                 anchor: sectionDomId(index),
-                label: normalizeReportTitle(section.title) || section.title || `Секция ${index + 1}`
+                label:
+                    normalizeReportTitle(section.title) ||
+                    section.title ||
+                    t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
             })),
-        [filteredSectionsState.sections]
+        [filteredSectionsState.sections, t]
     )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
@@ -324,8 +329,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (generatedAtState.error || !generatedAtState.value) {
         return (
             <PageError
-                title='Diagnostics report has invalid generatedAtUtc'
-                message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию diagnostics отчёта.'
+                title={t('diagnosticsReport.layout.errors.generatedAt.title')}
+                message={t('diagnosticsReport.layout.errors.generatedAt.message')}
                 error={generatedAtState.error ?? new Error('[diagnostics-layout] generatedAtUtc is invalid.')}
             />
         )
@@ -334,8 +339,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (sourceEndpointState.error || !sourceEndpointState.value) {
         return (
             <PageError
-                title='Diagnostics report source is invalid'
-                message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
+                title={t('diagnosticsReport.layout.errors.sourceEndpoint.title')}
+                message={t('diagnosticsReport.layout.errors.sourceEndpoint.message')}
                 error={
                     sourceEndpointState.error ??
                     new Error('[diagnostics-layout] report source endpoint is missing after validation.')
@@ -347,8 +352,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (bucketState.error) {
         return (
             <PageError
-                title='Diagnostics bucket query is invalid'
-                message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
+                title={t('diagnosticsReport.layout.errors.bucketQuery.title')}
+                message={t('diagnosticsReport.layout.errors.bucketQuery.message')}
                 error={bucketState.error}
             />
         )
@@ -357,8 +362,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (metricState.error) {
         return (
             <PageError
-                title='Diagnostics metric query is invalid'
-                message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
+                title={t('diagnosticsReport.layout.errors.metricQuery.title')}
+                message={t('diagnosticsReport.layout.errors.metricQuery.message')}
                 error={metricState.error}
             />
         )
@@ -367,8 +372,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (tpSlState.error) {
         return (
             <PageError
-                title='Diagnostics TP/SL query is invalid'
-                message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
+                title={t('diagnosticsReport.layout.errors.tpSlQuery.title')}
+                message={t('diagnosticsReport.layout.errors.tpSlQuery.message')}
                 error={tpSlState.error}
             />
         )
@@ -377,8 +382,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (slModeState.error) {
         return (
             <PageError
-                title='Diagnostics SL mode query is invalid'
-                message='Query parameter \"slmode\" is invalid. Expected all, with-sl, or no-sl.'
+                title={t('diagnosticsReport.layout.errors.slModeQuery.title')}
+                message={t('diagnosticsReport.layout.errors.slModeQuery.message')}
                 error={slModeState.error}
             />
         )
@@ -387,8 +392,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (zonalState.error) {
         return (
             <PageError
-                title='Diagnostics zonal query is invalid'
-                message='Query parameter \"zonal\" is invalid. Expected with-zonal or without-zonal.'
+                title={t('diagnosticsReport.layout.errors.zonalQuery.title')}
+                message={t('diagnosticsReport.layout.errors.zonalQuery.message')}
                 error={zonalState.error}
             />
         )
@@ -397,8 +402,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (filteredSectionsState.error) {
         return (
             <PageError
-                title='Diagnostics sections are missing'
-                message='Report sections for the selected zonal/slmode/bucket/metric slice were not found or are tagged inconsistently.'
+                title={t('diagnosticsReport.layout.errors.sections.title')}
+                message={t('diagnosticsReport.layout.errors.sections.message')}
                 error={filteredSectionsState.error}
             />
         )
@@ -407,8 +412,8 @@ export default function BacktestDiagnosticsPageLayout({
     if (termsState.error) {
         return (
             <PageError
-                title='Diagnostics terms are invalid'
-                message='Не удалось построить термины для diagnostics таблиц. Проверь колонки и словарь подсказок.'
+                title={t('diagnosticsReport.layout.errors.terms.title')}
+                message={t('diagnosticsReport.layout.errors.terms.message')}
                 error={termsState.error}
             />
         )
@@ -437,8 +442,8 @@ export default function BacktestDiagnosticsPageLayout({
 
                 <ReportActualStatusCard
                     statusMode='debug'
-                    statusTitle='DEBUG: freshness not verified'
-                    statusMessage='Status endpoint для backtest_diagnostics не настроен: показываются metadata отчёта без freshness-проверки.'
+                    statusTitle={t('diagnosticsReport.layout.status.title')}
+                    statusMessage={t('diagnosticsReport.layout.status.message')}
                     dataSource={sourceEndpointState.value}
                     reportTitle={report.title}
                     reportId={report.id}
@@ -452,8 +457,8 @@ export default function BacktestDiagnosticsPageLayout({
             :   <>
                     <ReportTableTermsBlock
                         terms={termsState.terms}
-                        title='Термины diagnostics'
-                        subtitle='Подробные определения всех колонок, которые используются в текущем наборе diagnostics-таблиц.'
+                        title={t('diagnosticsReport.layout.terms.title')}
+                        subtitle={t('diagnosticsReport.layout.terms.subtitle')}
                         className={cls.termsBlock}
                     />
 
@@ -465,7 +470,9 @@ export default function BacktestDiagnosticsPageLayout({
                                 id={sectionDomId(index)}>
                                 <ReportTableCard
                                     title={
-                                        normalizeReportTitle(section.title) || section.title || `Секция ${index + 1}`
+                                        normalizeReportTitle(section.title) ||
+                                        section.title ||
+                                        t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
                                     }
                                     description={resolveBacktestDiagnosticsDescription(section.title) ?? undefined}
                                     columns={section.columns ?? []}

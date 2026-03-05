@@ -10,4 +10,3 @@ export const usePfiPerModelReportQuery = createSuspenseReportHook<ReportDocument
     path,
     mapResponse: mapReportResponse
 })
-

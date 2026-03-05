@@ -77,7 +77,10 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
     const bucketState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(searchParams.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
+            const bucket = resolvePolicyBranchMegaBucketFromQuery(
+                searchParams.get('bucket'),
+                DEFAULT_REPORT_BUCKET_MODE
+            )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse report bucket query.')
@@ -87,7 +90,10 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
     const metricState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(searchParams.get('metric'), DEFAULT_REPORT_METRIC_MODE)
+            const metric = resolvePolicyBranchMegaMetricFromQuery(
+                searchParams.get('metric'),
+                DEFAULT_REPORT_METRIC_MODE
+            )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse report metric query.')
@@ -150,9 +156,19 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 err instanceof Error ? err : new Error('Failed to filter report table sections by bucket/metric.')
             return { sections: [] as TableSectionDto[], error: safeError }
         }
-    }, [bucketState.value, metricState.value, tableSections, tpSlState.value, viewCapabilities, viewSelectionState.error])
+    }, [
+        bucketState.value,
+        metricState.value,
+        tableSections,
+        tpSlState.value,
+        viewCapabilities,
+        viewSelectionState.error
+    ])
 
-    const filteredTableSet = useMemo(() => new Set(filteredTableSectionsState.sections), [filteredTableSectionsState.sections])
+    const filteredTableSet = useMemo(
+        () => new Set(filteredTableSectionsState.sections),
+        [filteredTableSectionsState.sections]
+    )
     const termsState = useMemo(() => {
         if (filteredTableSectionsState.sections.length === 0) {
             return {
@@ -167,7 +183,8 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                     sections: filteredTableSectionsState.sections,
                     reportKind: report.kind,
                     contextTag: 'report-document-view',
-                    resolveSectionTitle: section => normalizeReportTitle(section.title) || section.title || 'report-table'
+                    resolveSectionTitle: section =>
+                        normalizeReportTitle(section.title) || section.title || 'report-table'
                 }),
                 error: null as Error | null
             }
@@ -376,7 +393,10 @@ function detectDirection(value: unknown): DirectionKind | null {
 
 function normalizeReportTitle(title: string | undefined): string {
     if (!title) return ''
-    return title.replace(/^=+\s*/, '').replace(/\s*=+$/, '').trim()
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
 }
 
 function SectionRenderer({ section, reportKind }: SectionRendererProps) {

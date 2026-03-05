@@ -1,5 +1,3 @@
-
-
 export const API_ROUTES = {
     user: {
         detailGet: {
@@ -113,4 +111,3 @@ export const API_ROUTES = {
         }
     }
 } as const
-

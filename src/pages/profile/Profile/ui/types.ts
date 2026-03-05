@@ -1,3 +1,3 @@
 export default interface ProfileProps {
-  className?: string
+    className?: string
 }

@@ -21,6 +21,7 @@ import { BacktestPageHeader } from '../BacktestPageHeader/BacktestPageHeader'
 import { BacktestBaselineColumn } from '../BacktestBaselineColumn/BacktestBaselineColumn'
 import { BacktestWhatIfColumn } from '../BacktestWhatIfColumn/BacktestWhatIfColumn'
 import { BacktestCompareBlock } from '../BacktestCompareBlock/BacktestCompareBlock'
+import { useTranslation } from 'react-i18next'
 
 interface BacktestPageContentProps {
     baselineSummary: BacktestSummaryDto
@@ -42,6 +43,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageContentProps) {
+    const { t } = useTranslation('reports')
     const [runPreviewFull, { isLoading: isPreviewLoading }] = usePreviewBacktestFullMutation()
     const [runBaselineModePreview] = usePreviewBacktestFullMutation()
     const [runCompare, { isLoading: isCompareLoading }] = useCompareBacktestProfilesMutation()
@@ -149,7 +151,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
 
         if (!baselineProfile?.config) {
             setBaselineModeBundle(null)
-            setBaselineModeError('Профиль baseline отсутствует или не содержит config для выбранного TP/SL режима.')
+            setBaselineModeError(t('backtestFull.content.errors.baselineProfileMissing'))
             return
         }
 
@@ -170,7 +172,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
             } catch (error: any) {
                 if (cancelled) return
                 const message =
-                    error?.data?.message ?? error?.error ?? 'Не удалось выполнить preview/full для baseline в выбранном TP/SL режиме.'
+                    error?.data?.message ?? error?.error ?? t('backtestFull.content.errors.baselineModePreviewFailed')
                 setBaselineModeError(String(message))
             }
         }
@@ -180,7 +182,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         return () => {
             cancelled = true
         }
-    }, [tpSlMode, baselineProfile, runBaselineModePreview])
+    }, [tpSlMode, baselineProfile, runBaselineModePreview, t])
 
     const pagerSections = BACKTEST_FULL_TABS
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
@@ -191,7 +193,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
     if (!currentProfile || !currentProfile.config || !draftConfig) {
         return (
             <div className={cls.content}>
-                <Text type='h2'>Инициализирую профиль бэктеста…</Text>
+                <Text type='h2'>{t('backtestFull.content.initializingProfile')}</Text>
             </div>
         )
     }
@@ -324,14 +326,14 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
 
             setPreviewBundle(result)
         } catch (error: any) {
-            const message = error?.data?.message ?? error?.error ?? 'Не удалось выполнить preview/full.'
+            const message = error?.data?.message ?? error?.error ?? t('backtestFull.content.errors.previewFailed')
             setPreviewError(String(message))
         }
     }
 
     const handleRunCompare = async () => {
         if (!profileAId || !profileBId) {
-            setCompareError('Нужно выбрать оба профиля для A/B сравнения.')
+            setCompareError(t('backtestFull.content.errors.compareProfilesRequired'))
             return
         }
 
@@ -347,7 +349,8 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
 
             setCompareResult(result)
         } catch (error: any) {
-            const message = error?.data?.message ?? error?.error ?? 'Не удалось выполнить backend compare.'
+            const message =
+                error?.data?.message ?? error?.error ?? t('backtestFull.content.errors.backendCompareFailed')
             setCompareError(String(message))
         }
     }
@@ -364,15 +367,21 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
     const deltaTotalTrades = compareResult?.delta.totalTradesDelta ?? null
 
     const isModeScopedBaseline = tpSlMode !== 'all'
-    const baselineSummaryForView = isModeScopedBaseline ? baselineModeBundle?.summary ?? null : baselineSummary
+    const baselineSummaryForView = isModeScopedBaseline ? (baselineModeBundle?.summary ?? null) : baselineSummary
     const baselineSummaryLoading = isModeScopedBaseline && baselineModeBundle === null && baselineModeError === null
     const baselineSummaryError = isModeScopedBaseline ? baselineModeError : null
-    const baselinePolicyRatiosReport = isModeScopedBaseline ? baselineModeBundle?.policyRatios ?? null : undefined
-    const baselinePolicyRatiosLoading = isModeScopedBaseline && baselineModeBundle === null && baselineModeError === null
+    const baselinePolicyRatiosReport = isModeScopedBaseline ? (baselineModeBundle?.policyRatios ?? null) : undefined
+    const baselinePolicyRatiosLoading =
+        isModeScopedBaseline && baselineModeBundle === null && baselineModeError === null
     const baselinePolicyRatiosError = isModeScopedBaseline ? baselineModeError : null
     const baselineSectionTitle =
-        tpSlMode === 'all' ? 'Baseline (сохранённый backtest run)' : `Baseline (${tpSlMode.toUpperCase()} mode, one-shot preview)`
-    const baselineSummaryTitle = tpSlMode === 'all' ? 'Baseline summary' : `Baseline summary (${tpSlMode})`
+        tpSlMode === 'all' ?
+            t('backtestFull.content.baselineSectionTitleAll')
+        :   t('backtestFull.content.baselineSectionTitleMode', { mode: tpSlMode.toUpperCase() })
+    const baselineSummaryTitle =
+        tpSlMode === 'all' ?
+            t('backtestFull.content.baselineSummaryTitleAll')
+        :   t('backtestFull.content.baselineSummaryTitleMode', { mode: tpSlMode })
 
     return (
         <div className={cls.content}>
@@ -389,8 +398,8 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
                 fallback={({ error, reset }) => (
                     <ErrorBlock
                         code='CLIENT'
-                        title='Ошибка в блоке baseline-метрик'
-                        description='Не удалось отрисовать сравнительные метрики baseline/preview.'
+                        title={t('backtestFull.content.errors.baselineMetricsBlockTitle')}
+                        description={t('backtestFull.content.errors.baselineMetricsBlockDescription')}
                         details={error.message}
                         onRetry={reset}
                         compact

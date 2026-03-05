@@ -58,4 +58,3 @@ export function ErrorBlock({ className, code, title, description, details, onRet
         </div>
     )
 }
-

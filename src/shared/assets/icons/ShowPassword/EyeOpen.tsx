@@ -1,4 +1,3 @@
-
 interface EyeOpenProps {
     className?: string
 }
@@ -24,4 +23,3 @@ export function EyeOpen({ className }: EyeOpenProps) {
         </svg>
     )
 }
-

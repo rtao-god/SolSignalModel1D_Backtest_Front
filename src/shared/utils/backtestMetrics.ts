@@ -21,4 +21,3 @@ export function getMetricValue(summary: BacktestSummaryDto | null, key: string):
 
     return null
 }
-

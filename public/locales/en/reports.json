@@ -1,0 +1,1178 @@
+{
+    "table": {
+        "termsTitle": "Report table terms"
+    },
+    "main": {
+        "hero": {
+            "title": "SolSignal 1D ML model",
+            "subtitle": "A daily ML model that predicts SOL/USDT movement using BTC data, macro indicators, and internal features. The website includes predictions, backtests, and diagnostics so you can quickly understand what the model says now and how it worked historically.",
+            "meta": {
+                "horizon": "24h horizon",
+                "pathLabeling": "Path-based labeling",
+                "multiLayer": "Multi-layer (day / micro / SL)",
+                "backtest": "Backtest + diagnostics"
+            }
+        },
+        "overview": {
+            "title": "What the project already does",
+            "cards": {
+                "predictions": {
+                    "title": "Predictions and trading plans",
+                    "description": "The model gives a daily direction, estimates minMove, evaluates SL-day risk, and builds policy-level trade plans. All of this is available in Current prediction and Prediction history."
+                },
+                "backtest": {
+                    "title": "Backtest across full history",
+                    "description": "The pipeline computes total return, drawdowns, and liquidations for all policies, and also builds summary and deep diagnostic reports (including mega tables)."
+                },
+                "diagnostics": {
+                    "title": "Decision quality diagnostics",
+                    "description": "There are dedicated blocks for guardrail/specificity, blame split, hotspots, and day statistics to show where the strategy loses money and why."
+                },
+                "models": {
+                    "title": "Model metrics and PFI",
+                    "description": "Reports on model quality (confusion, SL metrics) and feature importance. They help explain why the model makes specific decisions."
+                }
+            }
+        },
+        "flow": {
+            "title": "Recommended user path",
+            "subtitle": "For buyer/investor/CTO roles, the recommended sequence is: first the current model signal, then history and PnL metrics.",
+            "steps": {
+                "currentPrediction": "Current prediction",
+                "history": "Prediction history",
+                "backtestSummary": "Backtest summary (PnL)",
+                "policyBranchMega": "Policy Branch Mega",
+                "diagnostics": "Diagnostics"
+            }
+        },
+        "sections": {
+            "title": "Project section map",
+            "cards": {
+                "predictions": {
+                    "title": "Predictions",
+                    "description": "Main entry point for clients: current prediction and decision history.",
+                    "links": {
+                        "currentPrediction": "Current prediction →",
+                        "history": "Prediction history →"
+                    }
+                },
+                "backtest": {
+                    "title": "Backtest",
+                    "description": "Business control point: profit, risk, and strategy stability.",
+                    "links": {
+                        "summary": "Backtest summary (PnL) →",
+                        "baseline": "Baseline backtest →",
+                        "experimental": "Experimental backtest (beta) →"
+                    }
+                },
+                "analysis": {
+                    "title": "Analysis",
+                    "description": "Reports showing where the strategy earns and how the best/worst periods look.",
+                    "links": {
+                        "ratings": "Policy ratings →",
+                        "dayStats": "Day statistics →",
+                        "confidence": "Confidence and TP/SL →",
+                        "policyBranchMega": "Policy Branch Mega →"
+                    }
+                },
+                "diagnostics": {
+                    "title": "Diagnostics",
+                    "description": "Where the strategy loses money, which decisions are wrong, and what blocks guardrail.",
+                    "links": {
+                        "risk": "Risk and liquidations →",
+                        "guardrail": "Guardrail / Specificity →",
+                        "decisions": "Decisions / Attribution →",
+                        "hotspots": "Hotspots / NoTrade →",
+                        "other": "Other diagnostics →"
+                    }
+                },
+                "models": {
+                    "title": "Models and features",
+                    "description": "Model quality, aggregation, and feature importance for explaining decisions.",
+                    "links": {
+                        "modelStats": "Model statistics →",
+                        "aggregation": "Prediction aggregation →",
+                        "pfi": "PFI by models →"
+                    }
+                },
+                "docs": {
+                    "title": "Documentation",
+                    "description": "Technical descriptions of models, tests, and terms for deep analysis.",
+                    "links": {
+                        "docsHome": "Documentation →",
+                        "models": "Models (documentation) →",
+                        "tests": "Tests →"
+                    }
+                },
+                "explain": {
+                    "title": "Explain",
+                    "description": "Map of what exists in the project and why: models, branches, data splits, time logic, and decision structure.",
+                    "links": {
+                        "explainHome": "Explain →",
+                        "models": "Models (explain) →",
+                        "project": "Project overview →"
+                    }
+                }
+            }
+        },
+        "bestPolicy": {
+            "title": "Best historical policy",
+            "subtitle": "The policy with the maximum TotalPnl% in the mega table (ALL HISTORY, WITH SL). The criterion is easy to replace, but this one is currently the most transparent for business.",
+            "openMega": "Open full Policy Branch Mega →",
+            "loading": "Loading mega tables...",
+            "bestResult": "Best TotalPnl% result: {{value}}%.",
+            "parts": {
+                "part1": "Part 1/3",
+                "part2": "Part 2/3",
+                "part3": "Part 3/3"
+            },
+            "description": {
+                "spotConfCap": {
+                    "capFraction": "Cap fraction depends on model confidence Conf_Day: when Conf_Day <= 0.50, capMin = 10% is used, then it grows linearly up to capMax = 100%. This is purely causal logic with no future data.",
+                    "leverage": "Leverage is always 1x, so the strategy behaves like spot trading."
+                },
+                "nonSpot": "This is not spot_conf_cap. See the exact leverage and cap-fraction rules in Lev/Cap columns - they reflect actual values used in backtest.",
+                "branchRule": "Branch {{branchName}}: if anti-direction conditions are met (risk-day + MinMove 0.5-12% + liquidation buffer >= 2x MinMove), trade direction is inverted."
+            },
+            "terms": {
+                "title": "Terms {{part}}",
+                "subtitleFallback": "Terms for this table part."
+            },
+            "errors": {
+                "loadTitle": "Failed to load mega table",
+                "loadDescription": "Backend did not return policy_branch_mega. Check report generation.",
+                "structureTitle": "Invalid mega table structure",
+                "structureDescription": "Failed to parse Policy Branch Mega sections.",
+                "bestResolveTitle": "Failed to resolve best policy",
+                "bestResolveDescription": "Check mega table columns and data.",
+                "metaTitle": "Failed to read meta fields",
+                "metaDescription": "Failed to collect key period fields for the best policy.",
+                "highlightsTitle": "Failed to read key metrics",
+                "highlightsDescription": "Failed to collect core metrics for the best policy."
+            },
+            "empty": "No policy_branch_mega data. Run report generation on backend."
+        }
+    },
+    "analysisHome": {
+        "hero": {
+            "title": "Analysis",
+            "subtitle": "Analytical reports on PnL, top trades/days, and strategy behavior. This is the quickest way to see where the strategy earns, where it loses, and under which market regimes."
+        },
+        "sections": {
+            "title": "Analysis sections"
+        },
+        "cards": {
+            "ratings": {
+                "title": "Policy ratings",
+                "description": "Best and worst trades/days by outcome, plus summary Equity/DD for top-3 policies. Ideal entry point to find extreme drawdowns and unusually successful periods.",
+                "hint": "Open ratings →"
+            },
+            "policyBranchMega": {
+                "description": "The most complete metric summary for each policy and branch (BASE/ANTI-D): return, risk, stability, recovery, long/short split, and average growth pace. This is the main table for policy comparison.",
+                "hint": "Open mega tables →"
+            },
+            "dayStats": {
+                "title": "Day statistics",
+                "description": "Breakdowns by day types (UP/DOWN/FLAT) and weekdays: WinRate, NoTrade share, and missed opportunity. Helps identify the regime where the strategy has the strongest edge.",
+                "hint": "Open statistics →"
+            },
+            "confidenceRisk": {
+                "title": "Confidence and TP/SL",
+                "description": "Bucket statistics by model confidence: TP/SL hit frequency and MFE/MAE dynamics across signal levels. Helps decide where to increase take-profit and where to reduce risk.",
+                "hint": "Open confidence statistics →"
+            },
+            "executionPipeline": {
+                "description": "End-to-end report by computation layers: model, decision, execution, accounting, and final aggregation. Useful for step-by-step formula validation and mismatch analysis.",
+                "hint": "Open pipeline report →"
+            }
+        }
+    },
+    "executionPipeline": {
+        "page": {
+            "errorTitle": "Failed to load execution pipeline report",
+            "title": "Execution Pipeline",
+            "subtitle": "End-to-end report by layers: model, decision, execution, accounting, and final metric aggregation.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "description": "Status endpoint for backtest_execution_pipeline is not configured: report metadata is shown without freshness verification."
+            },
+            "fallbacks": {
+                "configTitle": "Pipeline Config {{index}}",
+                "tableTitle": "Execution Pipeline {{index}}"
+            },
+            "sectionDescriptions": {
+                "modelLevel": "Model signal distribution across full history: LONG/SHORT/NO-DIRECTION and their shares. This is the top layer before policy decisions.",
+                "decisionLevel": "Policy decision layer: how many days were actually traded, coverage, average leverage, and average stake size.",
+                "executionLevel": "Trade execution layer: entry sources, actual exit reasons, and liquidation reach/trigger facts.",
+                "accountingLevel": "Accounting reconciliation: positional PnL, fees, net result, and wealth-delta consistency invariants.",
+                "aggregationLevel": "Final policy-level metric aggregation: TotalPnl, Drawdown, WinRate, liquidations, and withdrawn profit."
+            },
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Execution pipeline report has invalid generatedAtUtc",
+                    "description": "generatedAtUtc is missing or invalid. Check report serialization."
+                },
+                "invalidSource": {
+                    "title": "Execution pipeline report source is invalid",
+                    "description": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "invalidSections": {
+                    "title": "Execution pipeline report sections are invalid",
+                    "description": "Report sections were not recognized or are malformed. Check report.sections structure."
+                }
+            }
+        }
+    },
+    "diagnosticsHome": {
+        "hero": {
+            "title": "Diagnostics",
+            "subtitle": "Map of diagnostic reports: risk, guardrail, decisions, and hotspots. Each block is a dedicated page with detailed tables showing drawdown causes and model errors."
+        },
+        "sections": {
+            "title": "Diagnostics sections"
+        },
+        "cards": {
+            "risk": {
+                "title": "Risk and liquidations",
+                "description": "Equity/DD, liquidations, distance-to-liquidation, and risk metrics. Core base for finding loss causes and assessing stability.",
+                "hint": "Open risk report →"
+            },
+            "guardrail": {
+                "description": "Filter confusion matrix, rolling thresholds, and economic effect of blocking bad days. Shows whether guardrail protects profit or hurts it.",
+                "hint": "Open guardrail →"
+            },
+            "decisions": {
+                "title": "Decisions / Attribution",
+                "description": "Who made the final decision and why: decomposition by actors, reasons, and blame split. Helps determine whether signal quality or policy filters are at fault.",
+                "hint": "Open decisions →"
+            },
+            "hotspots": {
+                "description": "Hotspots with low coverage, frequent NoTrade, and opposite decisions. Shows where the strategy breaks down and loses days.",
+                "hint": "Open hotspots →"
+            },
+            "other": {
+                "title": "Other",
+                "description": "Rare or new diagnostic tables that are not yet assigned to the main groups.",
+                "hint": "Open other diagnostics →"
+            }
+        }
+    },
+    "currentPrediction": {
+        "scope": {
+            "ariaLabel": "Model training scope",
+            "options": {
+                "full": {
+                    "label": "Full history",
+                    "hint": "Train + OOS (main production mode)"
+                },
+                "train": {
+                    "label": "Train-only",
+                    "hint": "Train days only (baseline-exit <= split)"
+                },
+                "oos": {
+                    "label": "OOS-only",
+                    "hint": "OOS days only (baseline-exit > split)"
+                },
+                "recent": {
+                    "label": "Recent tail",
+                    "hint": "Latest rolling day window (configured on backend)"
+                }
+            }
+        },
+        "page": {
+            "errorTitle": "Failed to load current prediction",
+            "scopeLabel": "Training scope:",
+            "statusLabel": "Prediction status:",
+            "meta": {
+                "currentReport": "Current report: {{reportSet}}",
+                "selectedMode": "Selected mode: {{mode}}",
+                "trainingModel": "Training model: {{model}}",
+                "trainingModelFallback": "no data (check training section in the report)"
+            },
+            "clientError": {
+                "title": "Report rendering error",
+                "description": "A client-side error occurred while rendering current prediction. The rest of the app keeps working."
+            }
+        }
+    },
+    "backtestBaseline": {
+        "page": {
+            "errorTitle": "Failed to load baseline backtest"
+        },
+        "header": {
+            "title": "Baseline backtest",
+            "snapshotId": "Snapshot ID: {{id}}",
+            "config": "Config: {{configName}}",
+            "generatedUtc": "Generated (UTC): {{generatedUtc}}",
+            "generatedLocal": "Generated (local time): {{generatedLocal}}"
+        },
+        "globalParams": {
+            "title": "Global parameters",
+            "description": "Base risk settings applied to all policies in baseline run. These values define daily stop-loss and take-profit boundaries.",
+            "dailySl": {
+                "term": "Daily stop-loss (SL)",
+                "tooltip": "Daily loss limit in percent. If price moves further, the position is closed."
+            },
+            "dailyTp": {
+                "term": "Daily take-profit (TP)",
+                "tooltip": "Daily profit limit in percent. Profit is fixed when this level is reached."
+            }
+        },
+        "table": {
+            "title": "Policies (baseline, WITH SL)",
+            "description": "Summary table of baseline-run results for each policy. A quick way to compare return and risk before detailed diagnostics.",
+            "empty": {
+                "title": "Policies",
+                "description": "No policy data available."
+            },
+            "columns": {
+                "policy": {
+                    "label": "Policy",
+                    "tooltip": "Trading policy name for which final metrics are shown."
+                },
+                "margin": {
+                    "label": "Margin",
+                    "tooltip": "Trade margin mode: Cross or Isolated."
+                },
+                "mode": {
+                    "label": "Mode",
+                    "tooltip": "Logic branch: Base or Anti-direction (direction inversion on risk trigger)."
+                },
+                "totalPnlPct": {
+                    "label": "Total PnL, %",
+                    "tooltip": "Total policy return in percent over the backtest period."
+                },
+                "maxDdPct": {
+                    "label": "Max DD, %",
+                    "tooltip": "Maximum capital drawdown in percent - key risk metric."
+                },
+                "liquidations": {
+                    "label": "Liquidations",
+                    "tooltip": "Whether liquidations occurred (Yes/No). Critical risk flag."
+                },
+                "withdrawUsd": {
+                    "label": "Withdraw, $",
+                    "tooltip": "How much profit was withdrawn from capital (if applicable)."
+                },
+                "trades": {
+                    "label": "Trades",
+                    "tooltip": "Number of trades for the policy over the period."
+                }
+            },
+            "mode": {
+                "antiDirection": "Anti-direction",
+                "base": "Base"
+            },
+            "liquidations": {
+                "yes": "Yes",
+                "no": "No"
+            }
+        }
+    },
+    "backtestSummary": {
+        "page": {
+            "errorTitle": "Failed to load backtest summary",
+            "reportId": "Report ID: {{id}}",
+            "reportKind": "Type: {{kind}}",
+            "generatedUtc": "Generated (UTC): {{generatedUtc}}",
+            "generatedLocal": "Generated (local time): {{generatedLocal}}"
+        }
+    },
+    "modelStats": {
+        "page": {
+            "errorTitle": "Failed to load model statistics"
+        },
+        "inner": {
+            "tabs": {
+                "sectionFallback": "Section {{index}}"
+            },
+            "errors": {
+                "invalidSource": {
+                    "title": "Model stats report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Model stats bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Model stats metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Model stats TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "sections": {
+                    "title": "Model stats sections are missing",
+                    "message": "Report sections for the selected bucket/metric were not found or are tagged inconsistently."
+                },
+                "terms": {
+                    "title": "Model stats terms are invalid",
+                    "message": "Failed to build terms for model-stats tables. Check columns and term dictionary."
+                }
+            },
+            "header": {
+                "titleFallback": "Model statistics",
+                "subtitle": "Consolidated report on ML-model quality and behavior across train / OOS / full / recent samples. Select segment and report mode first, then inspect detailed metric cards."
+            },
+            "badges": {
+                "segment": "Segment: {{value}}",
+                "modeLabel": "Mode:",
+                "modeBusiness": "Business view (aggregated indicators)",
+                "modeTechnical": "Technical view (detailed confusion matrices)",
+                "runKind": "Run kind: {{value}}"
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_model_stats is not configured: report metadata is shown without freshness verification.",
+                "oosPresent": "present, records {{value}}",
+                "oosMissing": "absent (train-only mode)"
+            },
+            "statusLines": {
+                "runKind": "Run kind",
+                "oos": "OOS",
+                "trainRecent": "Train / Recent"
+            },
+            "control": {
+                "title": "How to read this report",
+                "text": "Segments (OOS / Train / Full / Recent) define which data is used for metrics. \"Business\" mode shows aggregated indicators, while \"Tech\" mode shows detailed confusion matrices and distributions for model analysis."
+            },
+            "terms": {
+                "title": "Model stats terms",
+                "subtitle": "Detailed definitions of all columns used in the current table set."
+            }
+        }
+    },
+    "aggregation": {
+        "page": {
+            "errorTitle": "Failed to load prediction aggregation"
+        },
+        "inner": {
+            "sections": {
+                "probs": "Probabilities",
+                "metrics": "Metrics",
+                "debug": "Recent-days debug"
+            },
+            "header": {
+                "title": "Prediction aggregation",
+                "subtitle": "Summary of probabilities and metrics across base and overlay layers (Day / Day+Micro / Total). Segments represent Train / OOS / Recent / Full, followed by detailed stats and recent-day debug."
+            },
+            "meta": {
+                "dateRange": "Date range",
+                "totalInput": "Total input records",
+                "excluded": "Excluded from aggregation",
+                "segmentsAndDebug": "Segments / Debug days"
+            },
+            "probs": {
+                "title": "Aggregated probabilities",
+                "hint": "Average class probabilities by segment. This checks calibration and drift, not prediction hit-rate."
+            },
+            "metrics": {
+                "title": "Quality metrics",
+                "hint": "Accuracy/Micro‑F1/LogLoss by layer. Confusion matrices show which classes are confused.",
+                "layerHint": "Core layer-quality metrics: accuracy, log-loss, and data volume. Hover metrics for definitions.",
+                "confusionHint": "Confusion matrix shows how often the layer mixes classes. Rows are true labels, columns are predicted labels."
+            },
+            "debug": {
+                "title": "Recent-days debug",
+                "hint": "Last N days with ground truth and predictions. Flags show where micro/SL actually changed final class or probabilities.",
+                "empty": "No debug rows. Check aggregation generation consistency.",
+                "tableHint": "This table helps quickly spot days where micro/SL changed result. Columns include true label, layer predictions, and overlay-impact flags.",
+                "columns": {
+                    "dateUtc": {
+                        "label": "Date (UTC)"
+                    },
+                    "true": {
+                        "label": "True"
+                    },
+                    "day": {
+                        "label": "Day"
+                    },
+                    "dayMicro": {
+                        "label": "Day+Micro"
+                    },
+                    "total": {
+                        "label": "Total"
+                    },
+                    "pDay": {
+                        "label": "P_day (U/F/D)"
+                    },
+                    "pDayMicro": {
+                        "label": "P_day+micro (U/F/D)"
+                    },
+                    "pTotal": {
+                        "label": "P_total (U/F/D)"
+                    },
+                    "microUsed": {
+                        "label": "Micro used"
+                    },
+                    "slUsed": {
+                        "label": "SL used"
+                    },
+                    "microAgree": {
+                        "label": "Micro agree"
+                    },
+                    "slPenLong": {
+                        "label": "SL pen long"
+                    },
+                    "slPenShort": {
+                        "label": "SL pen short"
+                    }
+                }
+            },
+            "segment": {
+                "rangePrefix": "Range:",
+                "recordsPrefix": "Records:",
+                "hint": "The table below shows average class probabilities for this data segment. Compare Day / Day+Micro / Total to see overlay contribution."
+            },
+            "pills": {
+                "confDay": {
+                    "label": "Conf Day"
+                },
+                "confMicro": {
+                    "label": "Conf Micro"
+                },
+                "slScoreDays": {
+                    "label": "SL-score days"
+                }
+            },
+            "probColumns": {
+                "layer": {
+                    "label": "Layer"
+                }
+            },
+            "confusion": {
+                "truePredLabel": "True → Pred",
+                "labels": {
+                    "down": "Down",
+                    "flat": "Flat",
+                    "up": "Up"
+                }
+            },
+            "bool": {
+                "yes": "yes",
+                "no": "no"
+            },
+            "tooltips": {
+                "probTable": {
+                    "layer": "Aggregation stage: Day (base model), Day+Micro (with micro overlay), and Total (with SL overlay).",
+                    "pUp": "Average probability of Up class for selected layer and segment.",
+                    "pFlat": "Average probability of Flat class for selected layer and segment.",
+                    "pDown": "Average probability of Down class for selected layer and segment.",
+                    "sum": "Average sum P_up+P_flat+P_down. Normally close to 1; strong drift indicates normalization issues."
+                },
+                "pills": {
+                    "confDay": "Average confidence signal of the base Day layer. This is a separate signal (not probability sum), useful for sanity checks.",
+                    "confMicro": "Average confidence signal of micro layer used inside flat regime. Separate from class probabilities.",
+                    "slScoreDays": "How many days in segment had non-zero SL-score. Shows how often SL model affected the flow."
+                },
+                "metrics": {
+                    "accuracy": "Share of correct predictions: Correct / N. Higher is better.",
+                    "microF1": "Micro-F1 for 3-class task. In current implementation it equals Accuracy, but kept as a separate metric.",
+                    "logLoss": "Average log-loss on probabilities of true class. Lower is better. Only valid records are used.",
+                    "nCorrect": "N is total records in segment, Correct is number of predictions matching true label.",
+                    "validInvalidLogLoss": "Records used for log-loss. Invalid > 0 means invalid probabilities (ideally 0)."
+                },
+                "confusion": {
+                    "truePred": "Confusion matrix: rows are true labels, columns are predicted labels. Values are day counts.",
+                    "labels": {
+                        "down": "DOWN class: factual down day.",
+                        "flat": "FLAT class: sideways day without strong trend.",
+                        "up": "UP class: factual up day."
+                    }
+                },
+                "debug": {
+                    "dateUtc": "Trading day date (UTC) for this row.",
+                    "true": "True day class (fact): UP / FLAT / DOWN.",
+                    "day": "Prediction of base day model (before micro/SL overlays).",
+                    "dayMicro": "Prediction after micro overlay is applied.",
+                    "total": "Final prediction after SL overlay (Day+Micro+SL).",
+                    "pDay": "Probability triple Up/Flat/Down for base Day model.",
+                    "pDayMicro": "Probability triple Up/Flat/Down after micro overlay.",
+                    "pTotal": "Final Up/Flat/Down probabilities after SL overlay.",
+                    "microUsed": "Flag that micro overlay actually changed prediction (Day → Day+Micro).",
+                    "slUsed": "Flag that SL overlay affected final outcome (Day+Micro → Total).",
+                    "microAgree": "Whether Day and Day+Micro labels match (true = unchanged).",
+                    "slPenLong": "SL overlay reduced long probability (penalty to P_up).",
+                    "slPenShort": "SL overlay reduced short probability (penalty to P_down)."
+                }
+            }
+        }
+    },
+    "backtestFull": {
+        "page": {
+            "errorTitle": "Failed to load baseline summary and backtest profiles"
+        },
+        "header": {
+            "title": "Backtest Full: profiles, what-if, and A/B comparison",
+            "subtitle": "What-if, baseline (in dynamic/static), and A/B run one-shot previews with the current backend config, including dynamic TP/SL, confidence gating, and policy ratios.",
+            "tpSlSliceLabel": "TP/SL slice in metrics",
+            "tpSlSliceAria": "TP/SL slice for /backtest/full",
+            "tpSlSliceHint": "`ALL` runs merged mode. `DYNAMIC` and `STATIC` run separate simulations: dynamic TP/SL only or static TP/SL only.",
+            "profileLabel": "Active what-if profile"
+        },
+        "content": {
+            "initializingProfile": "Initializing backtest profile...",
+            "baselineSectionTitleAll": "Baseline (saved backtest run)",
+            "baselineSectionTitleMode": "Baseline ({{mode}} mode, one-shot preview)",
+            "baselineSummaryTitleAll": "Baseline summary",
+            "baselineSummaryTitleMode": "Baseline summary ({{mode}})",
+            "errors": {
+                "baselineProfileMissing": "Baseline profile is missing or does not contain config for selected TP/SL mode.",
+                "baselineModePreviewFailed": "Failed to run baseline preview/full for selected TP/SL mode.",
+                "previewFailed": "Failed to run preview/full.",
+                "compareProfilesRequired": "Both profiles must be selected for A/B comparison.",
+                "backendCompareFailed": "Failed to run backend compare.",
+                "baselineMetricsBlockTitle": "Baseline metrics block failed",
+                "baselineMetricsBlockDescription": "Failed to render baseline/preview comparison metrics."
+            }
+        },
+        "baselineMetrics": {
+            "title": "Best-policy result (baseline vs what-if)",
+            "labels": {
+                "baseline": "Baseline",
+                "whatIf": "What-if",
+                "delta": "Delta"
+            }
+        },
+        "baselineColumn": {
+            "loadingSummary": "Recalculating baseline summary for selected TP/SL mode...",
+            "emptySummary": "No baseline summary for selected TP/SL mode.",
+            "errors": {
+                "clientTitle": "Baseline block failed",
+                "clientDescription": "Baseline block is temporarily unavailable due to a client-side error. What-if and profile comparison remain available.",
+                "summaryTitle": "Failed to load baseline summary",
+                "summaryDescription": "Summary for selected TP/SL mode is unavailable."
+            }
+        },
+        "whatIfColumn": {
+            "title": "What-if profile configuration",
+            "previewTitle": "Preview result",
+            "previewSummaryTitle": "Preview summary",
+            "previewEmpty": "No preview results yet.",
+            "previewPolicyRatiosTitle": "Preview policy metrics",
+            "previewPolicyRatiosSubtitle": "Metrics are calculated from the same what-if run shown in summary.",
+            "errors": {
+                "clientTitle": "What-if block is temporarily unavailable",
+                "clientDescription": "What-if block failed to render on the client. Baseline and profile comparison remain available."
+            }
+        },
+        "compareBlock": {
+            "errors": {
+                "clientTitle": "Profile comparison block is temporarily unavailable",
+                "clientDescription": "A client-side error occurred while rendering A/B comparison. Baseline and What-if remain available."
+            }
+        },
+        "compareSection": {
+            "title": "Profile comparison A / B",
+            "selectors": {
+                "profileA": "Profile A",
+                "profileB": "Profile B"
+            },
+            "deltaSummaryTitle": "Delta summary (B - A)",
+            "runButton": {
+                "loading": "Comparing profiles...",
+                "default": "Run A/B comparison"
+            },
+            "columns": {
+                "profileA": "Profile A",
+                "profileB": "Profile B"
+            },
+            "summaryTitle": "Profile {{profile}} summary",
+            "previewEmpty": "No preview result yet for profile {{profile}}.",
+            "policyRatiosTitle": "Profile {{profile}} policy metrics",
+            "policyRatiosSubtitle": "Metrics are built from the same one-shot run as profile {{profile}} summary."
+        },
+        "summaryView": {
+            "labels": {
+                "reportId": "Report ID",
+                "reportKind": "Kind",
+                "generatedUtc": "Generated (UTC)",
+                "generatedLocal": "Generated (local time)"
+            },
+            "noSections": "No report sections available to display."
+        }
+    },
+    "diagnosticsReport": {
+        "layout": {
+            "sectionFallback": "Section {{index}}",
+            "errors": {
+                "generatedAt": {
+                    "title": "Invalid generatedAtUtc in diagnostics report",
+                    "message": "generatedAtUtc is missing or invalid. Check diagnostics report serialization."
+                },
+                "sourceEndpoint": {
+                    "title": "Invalid diagnostics report source",
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Invalid bucket query",
+                    "message": "Query parameter bucket is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Invalid metric query",
+                    "message": "Query parameter metric is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Invalid TP/SL query",
+                    "message": "Query parameter tpsl is invalid. Expected all, dynamic, or static."
+                },
+                "slModeQuery": {
+                    "title": "Invalid SL mode query",
+                    "message": "Query parameter slmode is invalid. Expected all, with-sl, or no-sl."
+                },
+                "zonalQuery": {
+                    "title": "Invalid zonal query",
+                    "message": "Query parameter zonal is invalid. Expected with-zonal or without-zonal."
+                },
+                "sections": {
+                    "title": "Diagnostics sections are missing",
+                    "message": "Report sections for selected zonal/slmode/bucket/metric slice were not found or are inconsistently tagged."
+                },
+                "terms": {
+                    "title": "Diagnostics terms are invalid",
+                    "message": "Failed to build terms for diagnostics tables. Check columns and tooltip dictionary."
+                }
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_diagnostics is not configured: report metadata is shown without freshness validation."
+            },
+            "terms": {
+                "title": "Diagnostics terms",
+                "subtitle": "Detailed definitions for all columns used in the current diagnostics table set."
+            }
+        },
+        "pages": {
+            "risk": {
+                "errorTitle": "Failed to load backtest diagnostics",
+                "title": "Risk and liquidations",
+                "subtitle": "Liquidations, Equity/DD, and risk metrics. Shows how deep capital drawdowns were and how close trades came to liquidation.",
+                "empty": "No risk and liquidation tables in report."
+            },
+            "guardrail": {
+                "errorTitle": "Failed to load guardrail diagnostics",
+                "title": "Guardrail / Specificity",
+                "subtitle": "Guardrail metrics: specificity, sensitivity, rolling thresholds, and economic impact of blocked trades.",
+                "empty": "No guardrail/specificity tables in report."
+            },
+            "decisions": {
+                "errorTitle": "Failed to load decision analysis",
+                "title": "Decisions and Attribution",
+                "subtitle": "Why actions are taken: decomposition by actors, reasons, and blame split to identify the source of errors.",
+                "empty": "No decisions and attribution tables in report."
+            },
+            "hotspots": {
+                "errorTitle": "Failed to load hotspots diagnostics",
+                "title": "Hotspots / NoTrade",
+                "subtitle": "Hotspots by NoTrade, opposite decisions, and low coverage - where the strategy loses days.",
+                "empty": "No hotspots tables in report."
+            },
+            "other": {
+                "errorTitle": "Failed to load additional diagnostics",
+                "title": "Other diagnostics",
+                "subtitle": "Rare or new tables that are not yet classified into main categories.",
+                "empty": "No additional diagnostics tables in report."
+            },
+            "ratings": {
+                "errorTitle": "Failed to load backtest ratings diagnostics",
+                "title": "Policy ratings",
+                "subtitle": "Best and worst trades/days, plus summary Equity/DD for top-3 policies.",
+                "empty": "No ratings tables in report."
+            },
+            "dayStats": {
+                "errorTitle": "Failed to load day statistics",
+                "title": "Day statistics",
+                "subtitle": "DayType/weekday slices: market distribution and policy behavior across regimes.",
+                "empty": "No day statistics tables in report."
+            }
+        }
+    },
+    "pfi": {
+        "page": {
+            "errorTitle": "Failed to load PFI report",
+            "errors": {
+                "sourceEndpoint": {
+                    "title": "Invalid PFI report source",
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Invalid bucket query",
+                    "message": "Query parameter bucket is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Invalid metric query",
+                    "message": "Query parameter metric is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Invalid TP/SL query",
+                    "message": "Query parameter tpsl is invalid. Expected all, dynamic, or static."
+                },
+                "unsupportedView": {
+                    "title": "Unsupported view mode",
+                    "message": "Selected bucket/metric/tpsl mode is not supported by current report structure."
+                },
+                "sections": {
+                    "title": "PFI sections are missing",
+                    "message": "Report sections for selected bucket/metric slice were not found or tagged inconsistently."
+                },
+                "terms": {
+                    "title": "PFI terms are invalid",
+                    "message": "Failed to build terms for PFI tables. Check columns and tooltip dictionary."
+                }
+            },
+            "header": {
+                "titleFallback": "PFI by models",
+                "subtitle": "Feature-importance report (Permutation Feature Importance) for all binary models (move / dir / micro / SL, etc.). Higher dAUC means stronger impact on quality, while dMean/correlation signs show direction of influence."
+            },
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for pfi_per_model is not configured: report metadata is shown without freshness validation."
+            },
+            "empty": {
+                "title": "PFI report is empty",
+                "description": "Backend returned a report without table sections. Check PFI generation config or source data."
+            },
+            "terms": {
+                "title": "PFI report terms",
+                "subtitle": "Detailed definitions of feature-importance metrics and related statistics for all tables on this page."
+            }
+        }
+    },
+    "predictionHistory": {
+        "page": {
+            "loadingTitle": "Loading prediction history",
+            "indexErrorTitle": "Failed to load prediction history index (set={{reportSet}})",
+            "title": "Prediction history",
+            "emptyIndex": {
+                "title": "Prediction history is unavailable",
+                "description": "Backend returned no report dates for selected mode."
+            },
+            "meta": {
+                "totalBuilt": "Total built: {{value}}",
+                "missingInRange": "Missing in range: {{value}}",
+                "currentlyVisible": "Currently visible: {{value}}",
+                "loadWindow": "Load window: {{value}}",
+                "trainingScope": "Training scope: {{value}}",
+                "trainingModel": "Training model: {{value}}",
+                "trainingModelFallback": "no data",
+                "notAvailableWithIndexError": "n/a (index error)",
+                "loading": "loading...",
+                "notAvailableWithDetails": "n/a ({{details}})",
+                "missingBuilt": "missing in range (built: {{built}})",
+                "noData": "no data"
+            }
+        },
+        "filters": {
+            "scope": {
+                "label": "Training scope",
+                "ariaLabel": "Training scope for prediction history"
+            },
+            "window": {
+                "label": "Index load window",
+                "ariaLabel": "History index load window",
+                "oneYear": "Last 1 year",
+                "twoYears": "Last 2 years",
+                "allTime": "All time"
+            },
+            "dateRange": {
+                "description": "Date range filter affects only card visibility.",
+                "current": "Selected range: {{fromDate}} - {{toDate}}"
+            }
+        },
+        "content": {
+            "empty": "No reports for selected filters."
+        },
+        "pagination": {
+            "prevAria": "Previous page",
+            "nextAria": "Next page",
+            "shown": "Showing {{from}}-{{to}} of {{total}}",
+            "pageOf": "Page {{current}} of {{total}}"
+        },
+        "reportCard": {
+            "loading": "Loading report for {{dateUtc}}...",
+            "loadErrorTitle": "Failed to load report",
+            "loadErrorDescription": "Failed to fetch report for {{dateUtc}} (set={{reportSet}}, scope={{trainingScope}}).",
+            "renderErrorTitle": "Report render error for {{dateUtc}}",
+            "renderErrorDescription": "Client-side error while rendering report.",
+            "tradesBuildErrorTitle": "Trade parameters block error ({{dateUtc}})",
+            "tradesBuildErrorDescription": "Failed to build policy trade tables.",
+            "tradesSchemaErrorTitle": "Trade table schema mismatch ({{dateUtc}})",
+            "tradesSchemaErrorDescription": "Required report columns are missing or changed.",
+            "tradesNotInitializedTitle": "Trade rows are not initialized ({{dateUtc}})",
+            "tradesNotInitializedDescription": "Failed to prepare data for trade tables."
+        },
+        "tradesTable": {
+            "bucket": {
+                "daily": "Daily",
+                "intraday": "Intraday",
+                "delayed": "Delayed",
+                "total": "Σ Total buckets"
+            },
+            "skipReasons": {
+                "extraSuffix": ", more reasons: {{count}}",
+                "summary": "Reasons: {{reasons}}{{extraSuffix}}."
+            },
+            "columns": {
+                "policy": "Policy",
+                "branch": "Branch",
+                "side": "Side",
+                "entry": "Entry, $",
+                "exit": "Exit, $",
+                "exitReason": "Exit reason",
+                "tpUsd": "TP, $",
+                "tpPct": "TP, %",
+                "slUsd": "SL, $",
+                "slPct": "SL, %",
+                "liquidationPrice": "Liquidation price, $",
+                "bucketCapital": "Bucket capital, $",
+                "stakeUsd": "Stake, $",
+                "stakePct": "Stake, %"
+            },
+            "liqFallback": "no (leverage<=1x / not calculated)",
+            "skippedColumns": {
+                "policy": "Policy",
+                "branch": "Branch",
+                "side": "Side",
+                "leverage": "Leverage",
+                "reason": "Skip reason"
+            },
+            "toolbarHint": "Trade parameters for {{dateUtc}}. Daily bucket is shown by default; switch buckets to inspect trades separately.",
+            "bucketAriaLabel": "Trade table bucket filter",
+            "noDirectionalSignals": "No directional signals to open trades for selected day.",
+            "noExecutedPrefix": "No executed trades in any policy.",
+            "noSkipReasonsFallback": "Skip reasons are not provided in report.",
+            "executed": {
+                "title": "Policy trades",
+                "description": "Trade parameter history for each forecast and branch with bucket filtering."
+            },
+            "onlySkippedInBucket": "Signals existed in selected bucket, but all trades were skipped by execution rules (no position opened).",
+            "noRowsForBucket": "No trade rows for bucket {{bucket}} on this day.",
+            "skipped": {
+                "title": "Signals without opened trade",
+                "description": "Directional signals that did not turn into executed trades."
+            }
+        }
+    },
+    "confidenceRisk": {
+        "page": {
+            "errorTitle": "Failed to load confidence risk report",
+            "title": "Confidence and TP/SL",
+            "subtitle": "Summary by model-confidence buckets: how often days produce direction, TP/SL hit frequency, and typical MFE/MAE values. This is the core reference for tuning dynamic take-profit, stop-loss, and stake sizing.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_confidence_risk is not configured: report metadata is shown without freshness validation."
+            },
+            "config": {
+                "title": "Calculation config",
+                "subtitle": "Base parameters used to build bucket-level confidence statistics."
+            },
+            "termsSubtitle": "Definitions for all indicators used in the confidence table.",
+            "tableTitleFallback": "Confidence bucket table {{index}}",
+            "tableDescription": "Summary by confidence buckets and their trading characteristics.",
+            "emptyTable": "Confidence table is empty. Check backend report generation.",
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Confidence report has invalid generatedAtUtc",
+                    "message": "generatedAtUtc is missing or invalid. Check report serialization."
+                },
+                "invalidSource": {
+                    "title": "Confidence risk report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Confidence risk bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Confidence risk metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Confidence risk TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "unsupportedView": {
+                    "title": "Confidence risk view mode is unsupported for this report",
+                    "message": "Selected bucket/metric/tpsl mode is not supported by the current report structure."
+                },
+                "sections": {
+                    "title": "Confidence risk sections are missing",
+                    "message": "Report sections for the selected bucket/metric were not found or are tagged inconsistently."
+                },
+                "scopeQuery": {
+                    "title": "Confidence risk scope query is invalid",
+                    "message": "Query parameter \"scope\" is invalid. Expected full, train, oos, or recent."
+                },
+                "scopeMeta": {
+                    "title": "Confidence risk scope metadata is invalid",
+                    "message": "Failed to resolve metadata for selected scope mode."
+                },
+                "bucketOptions": {
+                    "title": "Confidence risk bucket options are missing",
+                    "message": "Failed to build confidence-bucket options for selected scope."
+                },
+                "confBucketQuery": {
+                    "title": "Confidence risk confidence-bucket query is invalid",
+                    "message": "Query parameter \"confBucket\" is invalid for selected scope."
+                },
+                "scopeFiltering": {
+                    "title": "Confidence risk scope filtering failed",
+                    "message": "Failed to apply scope/confidence-bucket filter to report table."
+                },
+                "config": {
+                    "title": "Confidence report config is invalid",
+                    "message": "Config section is not recognized. Check key/value format and supported keys."
+                }
+            }
+        },
+        "filters": {
+            "allBuckets": "All buckets",
+            "scopeLabel": "Data scope:",
+            "scopeAriaLabel": "Confidence-risk scope: full/train/oos/recent",
+            "confBucketLabel": "Confidence bucket:",
+            "confBucketAriaLabel": "Confidence-bucket filter for selected scope"
+        }
+    },
+    "policyBranchMega": {
+        "page": {
+            "errorTitle": "Failed to load Policy Branch Mega",
+            "title": "Policy Branch Mega",
+            "subtitle": "Comparative report by Policy/Branch on the same historical period. The table shows not only return but also risk: drawdown, liquidations, recovery, and LONG/SHORT contribution.",
+            "noDataPlaceholder": "no data",
+            "metricDiff": {
+                "noRows": "REAL/NO BIGGEST LIQ LOSS: no comparable rows for selected bucket.",
+                "noChanges": "REAL/NO BIGGEST LIQ LOSS: rows are identical in selected bucket (liquidations do not affect this slice).",
+                "changedRows": "REAL/NO BIGGEST LIQ LOSS: changed {{changed}} of {{total}} rows in selected bucket."
+            },
+            "status": {
+                "actualTitle": "ACTUAL: latest verified (for current API source)",
+                "debugTitle": "DEBUG: freshness not verified"
+            },
+            "statusLines": {
+                "policyBranchMegaId": "Status policy_branch_mega ID",
+                "diagnosticsId": "Status diagnostics ID",
+                "policyBranchMegaGeneratedAt": "Status policy_branch_mega generatedAt (UTC)",
+                "diagnosticsGeneratedAt": "Status diagnostics generatedAt (UTC)"
+            },
+            "errors": {
+                "invalidGeneratedAt": {
+                    "title": "Policy Branch Mega report has invalid generatedAtUtc",
+                    "message": "generatedAtUtc is missing or invalid. Check report serialization."
+                },
+                "invalidSource": {
+                    "title": "Policy Branch Mega report source is invalid",
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                },
+                "bucketQuery": {
+                    "title": "Policy Branch Mega bucket query is invalid",
+                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "metricQuery": {
+                    "title": "Policy Branch Mega metric query is invalid",
+                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                },
+                "tpSlQuery": {
+                    "title": "Policy Branch Mega TP/SL query is invalid",
+                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                },
+                "slModeQuery": {
+                    "title": "Policy Branch Mega SL mode query is invalid",
+                    "message": "Query parameter \"slmode\" is invalid. Expected all, with-sl, or no-sl."
+                },
+                "zonalQuery": {
+                    "title": "Policy Branch Mega zonal query is invalid",
+                    "message": "Query parameter \"zonal\" is invalid. Expected with-zonal or without-zonal."
+                },
+                "structure": {
+                    "title": "Policy Branch Mega report has invalid structure",
+                    "message": "Report sections were not recognized. Check section titles and table composition."
+                },
+                "sections": {
+                    "title": "Policy Branch Mega sections are missing",
+                    "message": "Report sections for the selected zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently."
+                },
+                "terms": {
+                    "title": "Policy Branch Mega terms are invalid",
+                    "message": "Failed to build terms for Policy Branch Mega tables. Check columns and descriptions."
+                },
+                "columnsVisibility": {
+                    "title": "Policy Branch Mega columns visibility is invalid",
+                    "message": "Failed to apply bucket-based column visibility rules."
+                }
+            },
+            "emptyFiltered": "Policy Branch Mega is empty for selected bucket/metric mode. Check backend report generation.",
+            "emptyColumns": "No relevant columns after applying bucket visibility rules. Check report composition.",
+            "empty": "Policy Branch Mega is empty. Check backend report generation.",
+            "overview": {
+                "whatIsReport": {
+                    "title": "What this report is",
+                    "items": {
+                        "item1": "Backtest is a simulation of how the strategy would trade on historical data.",
+                        "item2": "All rows are computed on the same period and identical source data, so Policy-to-Policy comparison is valid.",
+                        "item3": "Differences between rows reflect strategy-rule differences, not differences in market history."
+                    }
+                },
+                "comparison": {
+                    "title": "What we compare",
+                    "items": {
+                        "policy": "Policy: when to open a position, in which direction to open (LONG, SHORT, or skip day), what size to use, and where TP/SL are set.",
+                        "branch": "Branch is an execution scenario for the same Policy.\n\nBASE: uses original daily signal direction without inversion (LONG stays LONG, SHORT stays SHORT).\n\nANTI-D: anti-direction rule is checked daily. If triggered, direction is forcibly inverted (LONG -> SHORT, SHORT -> LONG).\n\nOne mandatory anti-direction filter: MinMove in working range (0.5%-12%).",
+                        "slMode": "SL Mode: WITH-SL enables stop-loss (exit priority liquidation -> stop-loss -> take-profit -> EndOfDay). NO-SL disables stop-loss (exit only by take-profit, liquidation, or EndOfDay); this can wipe bucket capital and, in cross margin, the entire trading balance.",
+                        "tpSlMode": "TP/SL mode: ALL shows all trades, DYNAMIC shows only trades with actually applied dynamic levels, STATIC shows only trades with fixed levels.",
+                        "zonal": "ZONAL: WITH applies zonal entry filter, WITHOUT runs without this filter.",
+                        "metricView": "METRIC VIEW: REAL shows factual result, NO BIGGEST LIQ LOSS removes one largest liquidation only for tail-risk analysis. This is counterfactual mode, not real final return.",
+                        "bucket": "bucket: daily/intraday/delayed are independent slices with separate capital; total is aggregate sum of their metrics."
+                    }
+                },
+                "reading": {
+                    "title": "How to read / interpret the table",
+                    "items": {
+                        "item1": "Reading order: 1) emergency risk first (HadLiq and AccRuin), 2) then drawdown depth (MaxDD%), 3) then recovery difficulty (Recovered, RecovDays, ReqGain%), 4) only after that final return (TotalPnl% and Wealth%).",
+                        "item2": "Comparison is valid only inside one slice: same bucket, TP/SL mode, SL Mode, ZONAL, and Metric View.",
+                        "item3": "If NO BIGGEST LIQ LOSS is significantly better than REAL, strategy result critically depends on one extreme failure."
+                    }
+                },
+                "basics": {
+                    "title": "Basic concepts (plain language)",
+                    "items": {
+                        "item1": "3.1 Position (trade): LONG is a bet on price growth. SHORT is a bet on price decline. If filters block the day, no position is opened (no-trade).",
+                        "item2": "3.2 Leverage: multiplier over margin. 10x leverage means ~1% price move gives ~10% margin-level result.",
+                        "item3": "3.3 Margin: funds allocated to position. Isolated limits risk to that position margin. Cross uses shared deposit as margin, and liquidation can wipe full balance.",
+                        "item4": "3.4 Stop-Loss and Take-Profit: Stop-Loss auto-closes on loss, Take-Profit auto-locks profit.",
+                        "item5": "3.5 Liquidation: exchange force-closes position when loss almost consumes margin. In Isolated, position margin is lost; in Cross, liquidation may wipe full deposit.",
+                        "item6": "3.6 Backtest: strategy check on history. Useful for idea/risk comparison, but does not guarantee future behavior."
+                    }
+                },
+                "simulation": {
+                    "title": "What simulation includes",
+                    "items": {
+                        "item1": "Exchange fees: included (round-trip, entry and exit fees).",
+                        "item2": "Funding: not included, so real exchange result may differ for long-held positions.",
+                        "item3": "Slippage / price impact: not included.",
+                        "item4Prefix": "Event order inside first-event rule: liquidation → stop-loss → take-profit →"
+                    },
+                    "endOfDayTooltip": "EndOfDay (EOD) means time-based close at end of trading window if TP, SL, or liquidation did not trigger earlier."
+                }
+            },
+            "terms": {
+                "title": "Terms explanation {{part}}/3",
+                "subtitle": "Terms for PART {{part}}/3."
+            },
+            "table": {
+                "modePrefix": {
+                    "withSl": "WITH SL: ",
+                    "noSl": "NO SL: ",
+                    "all": "WITH SL + NO SL: "
+                },
+                "part1Description": "Part 1/3: base summary by days, risk days, leverage/cap fraction, and core PnL metrics (up to MaxDD_Ratio%).",
+                "part2Description": "Part 2/3: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).",
+                "part3Description": "Part 3/3: horizon and average growth rates, long/short split, and diagnostic counters.",
+                "mergedAllDescription": "Summary metrics of merged SL slice.",
+                "mergedSelectedDescription": "Summary metrics of selected SL slice.",
+                "titleFallback": "Policy Branch Mega [PART {{part}}/3]"
+            }
+        }
+    }
+}

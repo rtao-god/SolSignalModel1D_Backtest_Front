@@ -2,12 +2,35 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
 import { CONSTANS } from '@/shared/consts/localStorage'
 import { User, userActions } from '@/entities/User'
-import i18n from '@/shared/configs/i18n/i18n'
 import { API_BASE_URL } from '@/shared/configs/config'
 
 interface loginByIdentifierProps {
     identifier: string
     password: string
+}
+
+function resolveLoginErrorMessage(error: unknown): string {
+    if (axios.isAxiosError(error)) {
+        const messageFromBody =
+            (
+                typeof error.response?.data === 'object' &&
+                error.response?.data !== null &&
+                'message' in error.response.data &&
+                typeof (error.response.data as { message?: unknown }).message === 'string'
+            ) ?
+                (error.response.data as { message: string }).message.trim()
+            :   null
+
+        if (messageFromBody && messageFromBody.length > 0) {
+            return messageFromBody
+        }
+
+        if (typeof error.message === 'string' && error.message.trim().length > 0) {
+            return error.message.trim()
+        }
+    }
+
+    return 'Authorization failed.'
 }
 
 export const loginByIdentifier = createAsyncThunk<User, loginByIdentifierProps>(
@@ -20,12 +43,11 @@ export const loginByIdentifier = createAsyncThunk<User, loginByIdentifierProps>(
             } else {
                 thunkAPI.dispatch(userActions.setAuthData(response.data))
                 localStorage.setItem(CONSTANS.userLocalStorageKey, JSON.stringify(response.data))
-                console.log('RESPONSE: ', response.config.data)
             }
             return response.data
         } catch (error) {
             console.error(error)
-            return thunkAPI.rejectWithValue(i18n.t('authorisationError'))
+            return thunkAPI.rejectWithValue(resolveLoginErrorMessage(error))
         }
     }
 )

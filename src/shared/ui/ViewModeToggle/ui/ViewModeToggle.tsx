@@ -41,4 +41,3 @@ export function ViewModeToggle({ mode, onChange, className, labels }: ViewModeTo
         </div>
     )
 }
-

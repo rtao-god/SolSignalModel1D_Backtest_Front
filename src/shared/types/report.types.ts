@@ -1,9 +1,11 @@
 export interface BaseSectionDto {
     title: string
+    sectionKey?: string
     sectionType?: string
     [key: string]: unknown
 }
 export interface KeyValueItemDto {
+    itemKey?: string
     key: string
     value: string
 }
@@ -14,19 +16,22 @@ export interface TableSectionDto extends BaseSectionDto {
     title: string
     detailLevel?: TableDetailLevel
     columns?: string[]
+    columnKeys?: string[]
     rows?: string[][]
     metadata?: CapturedTableMetadataDto
 }
 export type ReportSectionDto = KeyValueSectionDto | TableSectionDto
 export interface ReportDocumentDto {
+    schemaVersion: number
     id: string
     kind: string
     title: string
+    titleKey?: string
     generatedAtUtc: string // DateTime → ISO-строка.
     sections: ReportSectionDto[]
 }
 
-export type TableDetailLevel = 'simple' | 'technical';
+export type TableDetailLevel = 'simple' | 'technical'
 
 export type CapturedTableKindDto = 'unknown' | 'policy-branch-mega' | 'top-trades'
 export type CapturedMegaModeDto = 'with-sl' | 'no-sl'

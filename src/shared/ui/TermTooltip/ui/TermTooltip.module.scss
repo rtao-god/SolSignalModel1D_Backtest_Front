@@ -27,6 +27,8 @@
 /* базовое состояние: элемент вообще не участвует в раскладке и в расчёте ширины */
 
 .tooltip {
+    --tooltip-max-height: min(72vh, calc(100vh - 24px));
+
     position: absolute;
     z-index: 2000;
 
@@ -39,8 +41,11 @@
     /* <- главное изменение */
     opacity: 0;
     pointer-events: none;
-    transform: translateY(4px) scale(0.97);
-    transition: opacity 120ms ease-out, transform 120ms ease-out;
+    transform: translateY(6px) scale(0.965);
+    will-change: transform, opacity;
+    transition:
+        opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* базовое выравнивание (для десктопа), на мобиле поверх этого работает useLayoutEffect */
@@ -59,6 +64,7 @@
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);
+    animation: tooltipFadeIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tooltipContent {
@@ -72,6 +78,13 @@
     user-select: text;
     color: #f8fafc;
     font: var(--font-m);
+    max-height: var(--tooltip-max-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    @include PageScrollbar(10px, 10px);
 }
 
 .tooltipTitle {
@@ -84,7 +97,7 @@
 .tooltipBody {
     font-size: 16px;
     line-height: 1.5;
-    white-space: normal;
+    white-space: pre-line;
     overflow-wrap: anywhere;
     word-break: break-word;
     hyphens: auto;
@@ -94,7 +107,19 @@
 
 @media (max-width: 767px) {
     .tooltip {
+        --tooltip-max-height: min(78vh, calc(100vh - 30px));
         max-width: min(360px, 100vw - 30px);
     }
 }
 
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.965);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

@@ -8,4 +8,3 @@ export interface PfiTableCardProps {
 export interface PfiPageProps {
     className?: string
 }
-

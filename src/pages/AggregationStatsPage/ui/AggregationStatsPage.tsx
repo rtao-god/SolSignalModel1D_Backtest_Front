@@ -3,8 +3,10 @@ import { useAggregationMetricsQuery, useAggregationProbsQuery } from '@/shared/a
 import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 import type { AggregationStatsPageProps } from './types'
 import { AggregationStatsPageInner } from './AggregationStatsPageInner'
+import { useTranslation } from 'react-i18next'
 
 export default function AggregationStatsPage({ className }: AggregationStatsPageProps) {
+    const { t } = useTranslation('reports')
     const probsQuery = useAggregationProbsQuery()
     const metricsQuery = useAggregationMetricsQuery()
 
@@ -34,7 +36,7 @@ export default function AggregationStatsPage({ className }: AggregationStatsPage
             error={error}
             hasData={hasData}
             onRetry={handleRetry}
-            errorTitle='Не удалось загрузить агрегацию прогнозов'>
+            errorTitle={t('aggregation.page.errorTitle')}>
             {hasData && normalizedProbs && normalizedMetrics && (
                 <AggregationStatsPageInner className={className} probs={normalizedProbs} metrics={normalizedMetrics} />
             )}
@@ -68,12 +70,8 @@ function normalizeProbsSnapshot(input: AggregationProbsSnapshotDto | undefined |
         }
     }
 
-    const segments = rawSegments.map((segment: any, index: number) =>
-        normalizeProbsSegment(segment, index, errors)
-    )
-    const debugLastDays = rawDebugLastDays.map((row: any, index: number) =>
-        normalizeDebugRow(row, index, errors)
-    )
+    const segments = rawSegments.map((segment: any, index: number) => normalizeProbsSegment(segment, index, errors))
+    const debugLastDays = rawDebugLastDays.map((row: any, index: number) => normalizeDebugRow(row, index, errors))
 
     if (errors.length > 0) {
         return {
@@ -121,9 +119,7 @@ function normalizeMetricsSnapshot(input: AggregationMetricsSnapshotDto | undefin
     }
 
     const errors: string[] = []
-    const segments = rawSegments.map((segment: any, index: number) =>
-        normalizeMetricsSegment(segment, index, errors)
-    )
+    const segments = rawSegments.map((segment: any, index: number) => normalizeMetricsSegment(segment, index, errors))
 
     if (errors.length > 0) {
         return {
@@ -289,11 +285,7 @@ function normalizeDebugRow(
     }
 
     const pDay = normalizeProb3(row.PDay ?? row.pDay, errors, `DebugLastDays[${index}].PDay`)
-    const pDayMicro = normalizeProb3(
-        row.PDayMicro ?? row.pDayMicro,
-        errors,
-        `DebugLastDays[${index}].PDayMicro`
-    )
+    const pDayMicro = normalizeProb3(row.PDayMicro ?? row.pDayMicro, errors, `DebugLastDays[${index}].PDayMicro`)
     const pTotal = normalizeProb3(row.PTotal ?? row.pTotal, errors, `DebugLastDays[${index}].PTotal`)
 
     const microUsed = requireBool(
@@ -301,11 +293,7 @@ function normalizeDebugRow(
         errors,
         `DebugLastDays[${index}].MicroUsed`
     )
-    const slUsed = requireBool(
-        toBoolOrNull(row.SlUsed ?? row.slUsed),
-        errors,
-        `DebugLastDays[${index}].SlUsed`
-    )
+    const slUsed = requireBool(toBoolOrNull(row.SlUsed ?? row.slUsed), errors, `DebugLastDays[${index}].SlUsed`)
     const microAgree = requireBool(
         toBoolOrNull(row.MicroAgree ?? row.microAgree),
         errors,
@@ -371,7 +359,11 @@ function normalizeLayerMetrics(
         Confusion: confusion,
         N: toNumberOrNaNWithError(layer.N ?? layer.n, errors, `${segmentName}.${layerKey}.N`),
         Correct: toNumberOrNaNWithError(layer.Correct ?? layer.correct, errors, `${segmentName}.${layerKey}.Correct`),
-        Accuracy: toNumberOrNaNWithError(layer.Accuracy ?? layer.accuracy, errors, `${segmentName}.${layerKey}.Accuracy`),
+        Accuracy: toNumberOrNaNWithError(
+            layer.Accuracy ?? layer.accuracy,
+            errors,
+            `${segmentName}.${layerKey}.Accuracy`
+        ),
         MicroF1: toNumberOrNaNWithError(layer.MicroF1 ?? layer.microF1, errors, `${segmentName}.${layerKey}.MicroF1`),
         LogLoss: toNumberOrNaNWithError(layer.LogLoss ?? layer.logLoss, errors, `${segmentName}.${layerKey}.LogLoss`),
         InvalidForLogLoss: toNumberOrNaNWithError(
@@ -433,8 +425,7 @@ function normalizeProb3(
     if (!Number.isFinite(flat)) errors.push(`${label}.Flat missing or invalid`)
     if (!Number.isFinite(down)) errors.push(`${label}.Down missing or invalid`)
     if (!Number.isFinite(sum)) errors.push(`${label}.Sum missing or invalid`)
-    if (Number.isFinite(sum) && sum <= 0.0)
-        errors.push(`${label}.Sum <= 0 (up=${up}, flat=${flat}, down=${down})`)
+    if (Number.isFinite(sum) && sum <= 0.0) errors.push(`${label}.Sum <= 0 (up=${up}, flat=${flat}, down=${down})`)
 
     if (!Number.isFinite(up) && !Number.isFinite(flat) && !Number.isFinite(down)) {
         errors.push(`${label} invalid`)
@@ -443,11 +434,7 @@ function normalizeProb3(
     return { Up: up, Flat: flat, Down: down, Sum: sum }
 }
 
-function normalizeConfusionMatrix(
-    value: any,
-    errors: string[],
-    label: string
-): number[][] {
+function normalizeConfusionMatrix(value: any, errors: string[], label: string): number[][] {
     if (!Array.isArray(value)) {
         errors.push(`${label} missing or invalid`)
         return [

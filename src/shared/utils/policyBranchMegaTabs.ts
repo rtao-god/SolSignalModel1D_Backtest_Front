@@ -334,10 +334,6 @@ export function filterPolicyBranchMegaSectionsByTpSlModeOrThrow(
         throw new Error('[policy-branch-mega] report has no sections.')
     }
 
-    if (tpSlMode === 'all') {
-        return sections
-    }
-
     const tagged = sections.map(section => ({
         section,
         tpSlMode: tryResolvePolicyBranchMegaTpSlModeFromMetadataOrNull(section)
@@ -345,6 +341,10 @@ export function filterPolicyBranchMegaSectionsByTpSlModeOrThrow(
 
     const taggedCount = tagged.filter(item => item.tpSlMode !== null).length
     if (taggedCount === 0) {
+        // Legacy reports without metadata.tpSlMode содержат только универсальный срез.
+        if (tpSlMode === 'all') {
+            return sections
+        }
         throw new Error('[policy-branch-mega] no tp/sl tags found for tpsl filter.')
     }
     if (taggedCount !== sections.length) {
@@ -514,27 +514,78 @@ function resolvePartLabel(title: string | undefined, index: number): string {
 
     return `Секция ${index + 1}`
 }
+
+function resolvePartOrdinal(title: string | undefined, index: number): number {
+    const part = extractPartNumber(title)
+    if (part !== null && Number.isInteger(part) && part > 0) {
+        return part
+    }
+
+    return index + 1
+}
+
+export function buildPolicyBranchMegaTableSectionAnchor(partOrdinal: number): string {
+    if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
+        throw new Error(`[policy-branch-mega] invalid table section ordinal: ${partOrdinal}.`)
+    }
+
+    return `policy-branch-section-${partOrdinal}`
+}
+
+export function buildPolicyBranchMegaTermsSectionAnchor(partOrdinal: number): string {
+    if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
+        throw new Error(`[policy-branch-mega] invalid terms section ordinal: ${partOrdinal}.`)
+    }
+
+    return `policy-branch-terms-section-${partOrdinal}`
+}
+
 export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[]): PolicyBranchMegaTabConfig[] {
-    const tabs: PolicyBranchMegaTabConfig[] = []
-    const usedLabels = new Set<string>()
+    const deduped = new Map<string, { label: string; part: number | null; partOrdinal: number; sourceIndex: number }>()
 
     sections.forEach((section, index) => {
-        const id = `policy-branch-section-${index + 1}`
         const label = resolvePartLabel(section.title, index)
-        if (usedLabels.has(label)) {
+        const part = extractPartNumber(section.title)
+        const partOrdinal = resolvePartOrdinal(section.title, index)
+        const key = part !== null ? `part:${part}` : `label:${label}`
+        if (deduped.has(key)) {
             return
         }
 
-        usedLabels.add(label)
-
-        tabs.push({
-            id,
+        deduped.set(key, {
             label,
-            anchor: id
+            part,
+            partOrdinal,
+            sourceIndex: index
         })
     })
 
-    return tabs
+    const ordered = Array.from(deduped.values()).sort((a, b) => {
+        if (a.part !== null && b.part !== null) return a.part - b.part
+        if (a.part !== null) return -1
+        if (b.part !== null) return 1
+        return a.sourceIndex - b.sourceIndex
+    })
+
+    return ordered.flatMap(entry => {
+        const partLabel =
+            entry.part !== null ? `Часть ${entry.part}/3`
+            : entry.label.startsWith('Часть ') ? entry.label
+            : `Часть ${entry.partOrdinal}/3`
+
+        return [
+            {
+                id: `policy-branch-terms-tab-${entry.partOrdinal}`,
+                label: `Объяснение терминов ${entry.partOrdinal}/3`,
+                anchor: buildPolicyBranchMegaTermsSectionAnchor(entry.partOrdinal)
+            },
+            {
+                id: `policy-branch-table-tab-${entry.partOrdinal}`,
+                label: partLabel,
+                anchor: buildPolicyBranchMegaTableSectionAnchor(entry.partOrdinal)
+            }
+        ]
+    })
 }
 
 function tryResolvePolicyBranchMegaBucketFromMetadataOrNull(
