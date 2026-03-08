@@ -11,7 +11,7 @@ export const CURRENT_PREDICTION_POLICY_COLUMN_KEYS = {
     tpPct: 'tp_pct',
     slPrice: 'sl_price',
     tpPrice: 'tp_price',
-    positionUsd: 'position_usd',
+    notionalUsd: 'notional_usd',
     liqPrice: 'liq_price',
     exitPrice: 'exit_price',
     exitReason: 'exit_reason',

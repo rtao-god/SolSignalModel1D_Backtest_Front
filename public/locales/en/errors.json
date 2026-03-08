@@ -32,5 +32,20 @@
                 "description": "Short overview of the system idea, architecture, and capabilities."
             }
         }
+    },
+    "ui": {
+        "errorBlock": {
+            "retry": "Try again"
+        },
+        "pageError": {
+            "retry": "Retry request"
+        },
+        "pageDataBoundary": {
+            "loading": "Loading data"
+        },
+        "sectionErrorBoundary": {
+            "title": "Section render error",
+            "description": "This block is temporarily unavailable due to a client-side error. The rest of the page remains available."
+        }
     }
 }

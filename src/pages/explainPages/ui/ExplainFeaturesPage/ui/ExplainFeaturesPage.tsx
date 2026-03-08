@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -11,6 +11,9 @@ import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 import type { ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import {
     readExplainTableRowsOrThrow,
     readExplainTermItemsOrThrow,
@@ -199,7 +202,12 @@ function TermGrid({ items }: { items: TermItem[] }) {
 
 export default function ExplainFeaturesPage({ className }: ExplainFeaturesPageProps) {
     const { t } = useTranslation('explain')
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
     const { data: pfiReport } = usePfiPerModelReportNavQuery({ enabled: true })
+    const handlePfiWarmup = useCallback(() => {
+        warmupRouteNavigation(AppRoute.PFI_PER_MODEL, queryClient, dispatch)
+    }, [dispatch, queryClient])
 
     const pfiStats = useMemo(() => buildPfiStats(pfiReport?.sections), [pfiReport])
     const hasPfiReport = Boolean(pfiReport)
@@ -255,7 +263,11 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                     <Text className={cls.subtitle}>{t('featuresPage.header.subtitle')}</Text>
                     <div className={cls.linkRow}>
                         <Text className={cls.linkLabel}>{t('featuresPage.header.linkLabel')}</Text>
-                        <Link to={ROUTE_PATH[AppRoute.PFI_PER_MODEL]} className={cls.inlineLink}>
+                        <Link
+                            to={ROUTE_PATH[AppRoute.PFI_PER_MODEL]}
+                            className={cls.inlineLink}
+                            onMouseEnter={handlePfiWarmup}
+                            onFocus={handlePfiWarmup}>
                             {ROUTE_PATH[AppRoute.PFI_PER_MODEL]}
                         </Link>
                     </div>

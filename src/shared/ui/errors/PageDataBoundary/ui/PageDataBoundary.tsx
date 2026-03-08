@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { PageLoader } from '@/shared/ui/loaders/PageLoader'
+import { useTranslation } from 'react-i18next'
 
 interface PageDataBoundaryProps {
     isLoading?: boolean
@@ -23,10 +24,15 @@ export default function PageDataBoundary({
     loadingTitle,
     children
 }: PageDataBoundaryProps) {
+    const { t } = useTranslation('errors')
     const shouldShowLoading = isLoading ?? (!isError && !hasData)
 
     if (shouldShowLoading) {
-        return <PageLoader title={loadingTitle ?? 'Загружаю данные'} />
+        return (
+            <PageLoader
+                title={loadingTitle ?? t('ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+            />
+        )
     }
 
     if (isError || !hasData) {

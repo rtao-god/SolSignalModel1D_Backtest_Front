@@ -7,6 +7,7 @@ import type {
     KeyValueSection,
     TableSection
 } from './modelStatsTypes'
+import type { TFunction } from 'i18next'
 import { SEGMENT_INIT_ORDER, SEGMENT_PREFIX } from './modelStatsConstants'
 
 export function stripSegmentPrefix(title: string | undefined | null): string {
@@ -31,7 +32,7 @@ export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
 
     const metaSection = sections.filter(isKeyValueSection).find(section => {
         const title = section.title ?? ''
-        return title.includes('multi-segment') || title.includes('Параметры модельных статистик')
+        return title.includes('multi-segment') || title.includes('Model statistics parameters')
     })
 
     if (!metaSection || !Array.isArray(metaSection.items)) {
@@ -95,30 +96,48 @@ export function collectAvailableSegments(sections: TableSection[]): SegmentInfo[
     return ordered
 }
 
-export function resolveSegmentMeta(segment: SegmentKey, meta: GlobalMeta | null): ResolvedSegmentMeta | null {
+export function resolveSegmentMeta(
+    segment: SegmentKey,
+    meta: GlobalMeta | null,
+    t: TFunction
+): ResolvedSegmentMeta | null {
     if (!meta) {
         return null
     }
 
     switch (segment) {
         case 'OOS': {
-            const label = 'OOS (честная проверка)'
-            const description = `${label}: записей ${meta.oosRecordsCount}. Используется для оценки качества на данных, которых модель не видела при обучении.`
+            const label = t('reports:modelStats.inner.segmentMeta.oos.label')
+            const description = t('reports:modelStats.inner.segmentMeta.oos.description', {
+                label,
+                count: meta.oosRecordsCount
+            })
             return { label, description }
         }
         case 'TRAIN': {
-            const label = 'Train (обучение)'
-            const description = `${label}: записей ${meta.trainRecordsCount}. Показывает поведение модели на обучающей выборке.`
+            const label = t('reports:modelStats.inner.segmentMeta.train.label')
+            const description = t('reports:modelStats.inner.segmentMeta.train.description', {
+                label,
+                count: meta.trainRecordsCount
+            })
             return { label, description }
         }
         case 'FULL': {
-            const label = 'Full history'
-            const description = `${label}: записей ${meta.totalRecordsCount}. Вся доступная история данных.`
+            const label = t('reports:modelStats.inner.segmentMeta.full.label')
+            const description = t('reports:modelStats.inner.segmentMeta.full.description', {
+                label,
+                count: meta.totalRecordsCount
+            })
             return { label, description }
         }
         case 'RECENT': {
-            const label = `Recent (${meta.recentDays} d)`
-            const description = `${label}: записей ${meta.recentRecordsCount}. Свежий отрезок данных за последние дни.`
+            const label = t('reports:modelStats.inner.segmentMeta.recent.label', {
+                days: meta.recentDays
+            })
+            const description = t('reports:modelStats.inner.segmentMeta.recent.description', {
+                label,
+                count: meta.recentRecordsCount
+            })
             return { label, description }
         }
         default:

@@ -37,3 +37,18 @@
     flex-direction: column;
     gap: 14px;
 }
+
+.sharedBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sharedTitle {
+    margin: 0;
+}
+
+.sharedSubtitle {
+    opacity: 0.75;
+    max-width: 780px;
+}

@@ -98,6 +98,10 @@
         "fallback": {
             "business": "Описание раздела.",
             "tech": "Техническое описание раздела."
+        },
+        "controls": {
+            "viewModeLabel": "Режим представления",
+            "viewModeAriaLabel": "Режим представления страницы моделей"
         }
     },
     "testsPage": {

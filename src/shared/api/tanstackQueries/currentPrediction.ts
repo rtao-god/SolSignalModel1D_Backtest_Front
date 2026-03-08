@@ -1,10 +1,9 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type {
     CurrentPredictionIndexItemDto,
     CurrentPredictionSet,
-    CurrentPredictionTrainingScope,
-    CurrentPredictionUiLanguage
+    CurrentPredictionTrainingScope
 } from '../endpoints/reportEndpoints'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
@@ -12,6 +11,9 @@ import { API_ROUTES } from '../routes'
 
 const { latestReport, datesIndex } = API_ROUTES.currentPrediction
 const CURRENT_PREDICTION_INDEX_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const DEFAULT_CURRENT_PREDICTION_SCOPE: CurrentPredictionTrainingScope = 'full'
+const DEFAULT_CURRENT_PREDICTION_SET: CurrentPredictionSet = 'live'
+const DEFAULT_HISTORY_PREDICTION_SET: CurrentPredictionSet = 'backfilled'
 
 interface CurrentPredictionLatestResponse {
     live?: unknown
@@ -20,15 +22,11 @@ interface CurrentPredictionLatestResponse {
 
 async function fetchCurrentPrediction(
     set: CurrentPredictionSet,
-    scope?: CurrentPredictionTrainingScope,
-    lang?: CurrentPredictionUiLanguage
+    scope?: CurrentPredictionTrainingScope
 ): Promise<ReportDocumentDto> {
     const search = new URLSearchParams()
     if (set === 'live' && scope) {
         search.set('scope', scope)
-    }
-    if (lang) {
-        search.set('lang', lang)
     }
 
     const querySuffix = search.toString()
@@ -82,14 +80,10 @@ async function fetchCurrentPredictionIndex(
 }
 export function useCurrentPredictionReportQuery(
     set: CurrentPredictionSet = 'live',
-    scope?: CurrentPredictionTrainingScope,
-    lang?: CurrentPredictionUiLanguage
+    scope?: CurrentPredictionTrainingScope
 ): UseQueryResult<ReportDocumentDto, Error> {
-    return useQuery({
-        queryKey: ['current-prediction', 'latest', set, scope ?? 'default', lang ?? 'default'],
-        queryFn: () => fetchCurrentPrediction(set, scope, lang),
-        retry: false
-    })
+    const queryOptions = buildCurrentPredictionReportQueryOptions(set, scope)
+    return useQuery(queryOptions)
 }
 
 export function useCurrentPredictionIndexQuery(
@@ -97,8 +91,28 @@ export function useCurrentPredictionIndexQuery(
     days?: number,
     scope?: CurrentPredictionTrainingScope
 ): UseQueryResult<CurrentPredictionIndexItemDto[], Error> {
-    return useQuery({
-        queryKey: ['current-prediction', 'dates', set, scope ?? 'train', days ?? 'all'],
+    const queryOptions = buildCurrentPredictionIndexQueryOptions(set, days, scope)
+    return useQuery(queryOptions)
+}
+
+function buildCurrentPredictionReportQueryOptions(
+    set: CurrentPredictionSet,
+    scope?: CurrentPredictionTrainingScope
+) {
+    return {
+        queryKey: ['current-prediction', 'latest', set, scope ?? 'default'] as const,
+        queryFn: () => fetchCurrentPrediction(set, scope),
+        retry: false
+    }
+}
+
+function buildCurrentPredictionIndexQueryOptions(
+    set: CurrentPredictionSet,
+    days?: number,
+    scope?: CurrentPredictionTrainingScope
+) {
+    return {
+        queryKey: ['current-prediction', 'dates', set, scope ?? 'train', days ?? 'all'] as const,
         queryFn: () => fetchCurrentPredictionIndex(set, days, scope),
         retry: false,
         // Индекс истории по текущему прогнозу фактически статичен в рамках пользовательской сессии:
@@ -108,5 +122,22 @@ export function useCurrentPredictionIndexQuery(
         refetchOnMount: false,
         refetchOnReconnect: false,
         refetchOnWindowFocus: false
-    })
+    }
+}
+
+export async function prefetchCurrentPredictionLatestReport(queryClient: QueryClient): Promise<void> {
+    const queryOptions = buildCurrentPredictionReportQueryOptions(
+        DEFAULT_CURRENT_PREDICTION_SET,
+        DEFAULT_CURRENT_PREDICTION_SCOPE
+    )
+    await queryClient.prefetchQuery(queryOptions)
+}
+
+export async function prefetchCurrentPredictionHistoryIndex(queryClient: QueryClient): Promise<void> {
+    const queryOptions = buildCurrentPredictionIndexQueryOptions(
+        DEFAULT_HISTORY_PREDICTION_SET,
+        undefined,
+        DEFAULT_CURRENT_PREDICTION_SCOPE
+    )
+    await queryClient.prefetchQuery(queryOptions)
 }

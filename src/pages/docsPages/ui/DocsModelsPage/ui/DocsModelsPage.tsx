@@ -1,16 +1,35 @@
 import { useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import {
+    ReportViewControls,
+    Text,
+    buildBusinessTechnicalViewControlGroup,
+    type BusinessTechnicalViewControlValue
+} from '@/shared/ui'
 import { DOCS_MODELS_TABS } from '@/shared/utils/docsTabs'
-import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/ViewModeToggle'
 import { useTranslation } from 'react-i18next'
 import cls from './DocsModelsPage.module.scss'
 import type { DocsModelsPageProps } from './types'
 export default function DocsModelsPage({ className }: DocsModelsPageProps) {
-    const { t } = useTranslation('docs')
-    const [mode, setMode] = useState<ViewMode>('business')
+    const { t } = useTranslation(['docs', 'common'])
+    const [mode, setMode] = useState<BusinessTechnicalViewControlValue>('business')
 
     const sections = useMemo(() => DOCS_MODELS_TABS, [])
+    const viewControlGroups = useMemo(
+        () => [
+            buildBusinessTechnicalViewControlGroup({
+                value: mode,
+                onChange: setMode,
+                label: t('modelsPage.controls.viewModeLabel', { ns: 'docs' }),
+                ariaLabel: t('modelsPage.controls.viewModeAriaLabel', { ns: 'docs' }),
+                labels: {
+                    business: t('viewMode.business', { ns: 'common' }),
+                    technical: t('viewMode.technical', { ns: 'common' })
+                }
+            })
+        ],
+        [mode, t]
+    )
 
     const resolveSectionText = (sectionId: string): string => {
         const fallbackKey = mode === 'business' ? 'modelsPage.fallback.business' : 'modelsPage.fallback.tech'
@@ -25,7 +44,7 @@ export default function DocsModelsPage({ className }: DocsModelsPageProps) {
                     <Text className={cls.subtitle}>{t('modelsPage.subtitle')}</Text>
                 </div>
 
-                <ViewModeToggle mode={mode} onChange={setMode} className={cls.modeToggle} />
+                <ReportViewControls groups={viewControlGroups} className={cls.modeControls} />
             </header>
 
             <div className={cls.sectionsGrid}>

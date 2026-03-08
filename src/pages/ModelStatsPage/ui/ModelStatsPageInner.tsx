@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
+import {
+    ReportActualStatusCard,
+    ReportTableTermsBlock,
+    ReportViewControls,
+    Text,
+    buildModelStatsSegmentControlGroup,
+    buildModelStatsViewControlGroup
+} from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import cls from './ModelStatsPage.module.scss'
-import { SEGMENT_PREFIX, SEGMENT_INIT_ORDER } from './modelStatsConstants'
-import { ModelStatsModeToggle, SegmentToggle } from './ModelStatsControls'
 import { ModelStatsTableCard } from './ModelStatsTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import type {
@@ -18,79 +23,85 @@ import type {
     TableSection,
     ResolvedSegmentMeta
 } from './modelStatsTypes'
-import {
-    buildGlobalMeta,
-    collectAvailableSegments,
-    isTableSection,
-    resolveSegmentMeta,
-    stripSegmentPrefix
-} from './modelStatsUtils'
-import {
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaTpSlModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    resolveReportViewCapabilities,
-    validateReportViewSelectionOrThrow
-} from '@/shared/utils/reportViewCapabilities'
+import { buildGlobalMeta, isTableSection, resolveSegmentMeta, stripSegmentPrefix } from './modelStatsUtils'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 
+const DEFAULT_MODEL_STATS_SEGMENT: SegmentKey = 'OOS'
+const DEFAULT_MODEL_STATS_VIEW: ViewMode = 'business'
+
+function resolveModelStatsSegmentFromQueryOrThrow(raw: string | null): SegmentKey {
+    if (!raw) return DEFAULT_MODEL_STATS_SEGMENT
+
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'oos' || normalized === 'out_of_sample' || normalized === 'out-of-sample') return 'OOS'
+    if (normalized === 'recent') return 'RECENT'
+    if (normalized === 'train') return 'TRAIN'
+    if (normalized === 'full' || normalized === 'full_history' || normalized === 'full-history') return 'FULL'
+
+    throw new Error(`[model-stats] invalid segment query: ${raw}.`)
+}
+
+function resolveModelStatsViewFromQueryOrThrow(raw: string | null): ViewMode {
+    if (!raw) return DEFAULT_MODEL_STATS_VIEW
+
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'business') return 'business'
+    if (normalized === 'technical') return 'technical'
+
+    throw new Error(`[model-stats] invalid view query: ${raw}.`)
+}
+
+function mapSegmentToApiValue(segment: SegmentKey): string {
+    switch (segment) {
+        case 'OOS':
+            return 'oos'
+        case 'RECENT':
+            return 'recent'
+        case 'TRAIN':
+            return 'train'
+        case 'FULL':
+            return 'full'
+        default:
+            return segment
+    }
+}
+
 export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProps) {
     const { t } = useTranslation('reports')
-    const [mode, setMode] = useState<ViewMode>('business')
-    const [segment, setSegment] = useState<SegmentKey | null>(null)
     const [searchParams, setSearchParams] = useSearchParams()
 
     const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
-
     const allSections = useMemo(() => (data.sections as ReportSection[] | undefined) ?? [], [data.sections])
-
     const globalMeta = useMemo(() => buildGlobalMeta(allSections), [allSections])
 
-    const rawTableSections = useMemo(() => allSections.filter(isTableSection), [allSections])
-    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(rawTableSections), [rawTableSections])
-
-    const bucketState = useMemo(() => {
+    const segmentState = useMemo(() => {
         try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(
-                searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
-            )
-            return { value: bucket, error: null as Error | null }
+            return {
+                value: resolveModelStatsSegmentFromQueryOrThrow(searchParams.get('segment')),
+                error: null as Error | null
+            }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
+            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats segment query.')
+            return {
+                value: DEFAULT_MODEL_STATS_SEGMENT,
+                error: safeError
+            }
         }
     }, [searchParams])
 
-    const metricState = useMemo(() => {
+    const viewState = useMemo(() => {
         try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(
-                searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
-            )
-            return { value: metric, error: null as Error | null }
+            return {
+                value: resolveModelStatsViewFromQueryOrThrow(searchParams.get('view')),
+                error: null as Error | null
+            }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const tpSlState = useMemo(() => {
-        try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            return { value: mode, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
+            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats view query.')
+            return {
+                value: DEFAULT_MODEL_STATS_VIEW,
+                error: safeError
+            }
         }
     }, [searchParams])
 
@@ -109,112 +120,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         }
     }, [])
 
-    const viewSelectionState = useMemo(() => {
-        try {
-            validateReportViewSelectionOrThrow(
-                {
-                    bucket: bucketState.value,
-                    metric: metricState.value,
-                    tpSl: tpSlState.value
-                },
-                viewCapabilities,
-                'model-stats'
-            )
-
-            return { error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate model-stats view state.')
-            return { error: safeError }
-        }
-    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
-
-    const filteredRawTableSectionsState = useMemo(() => {
-        if (viewSelectionState.error) {
-            return { sections: [] as TableSection[], error: viewSelectionState.error }
-        }
-
-        try {
-            let nextSections = rawTableSections
-
-            if (viewCapabilities.supportsBucketFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
-            }
-
-            if (viewCapabilities.supportsMetricFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
-            }
-
-            if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
-            }
-
-            return { sections: nextSections, error: null as Error | null }
-        } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to filter model-stats sections by bucket/metric.')
-            return { sections: [] as TableSection[], error: safeError }
-        }
-    }, [
-        bucketState.value,
-        metricState.value,
-        rawTableSections,
-        tpSlState.value,
-        viewCapabilities,
-        viewSelectionState.error
-    ])
-
-    const availableSegments = useMemo(
-        () => collectAvailableSegments(filteredRawTableSectionsState.sections),
-        [filteredRawTableSectionsState.sections]
-    )
-
-    useEffect(() => {
-        if (segment !== null) {
-            return
-        }
-        if (!availableSegments.length) {
-            return
-        }
-
-        for (const key of SEGMENT_INIT_ORDER) {
-            if (availableSegments.some(seg => seg.key === key)) {
-                setSegment(key)
-                return
-            }
-        }
-
-        setSegment(availableSegments[0].key)
-    }, [segment, availableSegments])
-
-    const tableSections = useMemo(() => {
-        if (!filteredRawTableSectionsState.sections.length) {
-            return [] as TableSection[]
-        }
-
-        return filteredRawTableSectionsState.sections.filter(section => {
-            const title = section.title ?? ''
-
-            if (segment) {
-                const prefix = SEGMENT_PREFIX[segment]
-                if (!title.startsWith(prefix)) {
-                    return false
-                }
-            }
-
-            const isDailyBusiness = title.includes('Daily label summary (business)')
-            const isDailyTechnical = title.includes('Daily label confusion (3-class, technical)')
-
-            if (mode === 'business' && isDailyTechnical) {
-                return false
-            }
-
-            if (mode === 'technical' && isDailyBusiness) {
-                return false
-            }
-
-            return true
-        })
-    }, [filteredRawTableSectionsState.sections, segment, mode])
+    const tableSections = useMemo(() => allSections.filter(isTableSection), [allSections]) as TableSection[]
 
     const tableTermsState = useMemo(() => {
         try {
@@ -257,32 +163,34 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
     })
 
     const currentSegmentMeta: ResolvedSegmentMeta | null = useMemo(
-        () => (segment ? resolveSegmentMeta(segment, globalMeta) : null),
-        [segment, globalMeta]
+        () => resolveSegmentMeta(segmentState.value, globalMeta, t),
+        [globalMeta, segmentState.value, t]
     )
 
+    const controlGroups = useMemo(() => {
+        return [
+            buildModelStatsSegmentControlGroup({
+                value: segmentState.value,
+                onChange: next => {
+                    if (next === segmentState.value) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('segment', mapSegmentToApiValue(next))
+                    setSearchParams(nextParams, { replace: true })
+                }
+            }),
+            buildModelStatsViewControlGroup({
+                value: viewState.value,
+                onChange: next => {
+                    if (next === viewState.value) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('view', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            })
+        ]
+    }, [searchParams, segmentState.value, setSearchParams, viewState.value])
+
     const segmentDescription = currentSegmentMeta?.description ?? ''
-
-    const handleBucketChange = (next: typeof bucketState.value) => {
-        if (next === bucketState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('bucket', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleMetricChange = (next: typeof metricState.value) => {
-        if (next === metricState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('metric', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
-        if (next === tpSlState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('tpsl', next)
-        setSearchParams(nextParams, { replace: true })
-    }
 
     if (sourceEndpointState.error || !sourceEndpointState.value) {
         return (
@@ -297,42 +205,22 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
         )
     }
 
-    if (bucketState.error) {
+    if (segmentState.error) {
         return (
             <PageError
                 title={t('modelStats.inner.errors.bucketQuery.title')}
                 message={t('modelStats.inner.errors.bucketQuery.message')}
-                error={bucketState.error}
+                error={segmentState.error}
             />
         )
     }
 
-    if (metricState.error) {
+    if (viewState.error) {
         return (
             <PageError
                 title={t('modelStats.inner.errors.metricQuery.title')}
                 message={t('modelStats.inner.errors.metricQuery.message')}
-                error={metricState.error}
-            />
-        )
-    }
-
-    if (tpSlState.error) {
-        return (
-            <PageError
-                title={t('modelStats.inner.errors.tpSlQuery.title')}
-                message={t('modelStats.inner.errors.tpSlQuery.message')}
-                error={tpSlState.error}
-            />
-        )
-    }
-
-    if (filteredRawTableSectionsState.error) {
-        return (
-            <PageError
-                title={t('modelStats.inner.errors.sections.title')}
-                message={t('modelStats.inner.errors.sections.message')}
-                error={filteredRawTableSectionsState.error}
+                error={viewState.error}
             />
         )
     }
@@ -363,7 +251,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
 
                         <span className={cls.badge}>
                             {t('modelStats.inner.badges.modeLabel')}{' '}
-                            {mode === 'business' ?
+                            {viewState.value === 'business' ?
                                 t('modelStats.inner.badges.modeBusiness')
                             :   t('modelStats.inner.badges.modeTechnical')}
                         </span>
@@ -375,15 +263,7 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
                         )}
                     </div>
 
-                    <ReportViewControls
-                        bucket={bucketState.value}
-                        metric={metricState.value}
-                        tpSlMode={tpSlState.value}
-                        capabilities={viewCapabilities}
-                        onBucketChange={handleBucketChange}
-                        onMetricChange={handleMetricChange}
-                        onTpSlModeChange={handleTpSlModeChange}
-                    />
+                    <ReportViewControls groups={controlGroups} />
                 </div>
 
                 <ReportActualStatusCard
@@ -423,17 +303,6 @@ export function ModelStatsPageInner({ className, data }: ModelStatsPageInnerProp
                     ]}
                 />
             </header>
-
-            <section className={cls.controlBar}>
-                <div className={cls.controlBarMain}>
-                    <SegmentToggle segments={availableSegments} value={segment} onChange={setSegment} />
-                    <ModelStatsModeToggle mode={mode} onChange={setMode} />
-                </div>
-                <div className={cls.controlBarInfo}>
-                    <Text className={cls.controlTitle}>{t('modelStats.inner.control.title')}</Text>
-                    <Text className={cls.controlText}>{t('modelStats.inner.control.text')}</Text>
-                </div>
-            </section>
 
             {segmentDescription && <Text className={cls.segmentSubtitle}>{segmentDescription}</Text>}
 

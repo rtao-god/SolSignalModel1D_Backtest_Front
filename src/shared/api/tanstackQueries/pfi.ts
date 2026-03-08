@@ -1,17 +1,23 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { API_BASE_URL } from '../../configs/config'
-import { createSuspenseReportHook } from './utils/createSuspenseReportHook'
+import {
+    createSuspenseReportHook,
+    prefetchSuspenseReport,
+    type SuspenseReportQueryConfig
+} from './utils/createSuspenseReportHook'
 const PFI_PER_MODEL_QUERY_KEY = ['ml', 'pfi', 'per-model'] as const
 const { path } = API_ROUTES.ml.pfiPerModel
 
-export const usePfiPerModelReportQuery = createSuspenseReportHook<ReportDocumentDto>({
+const PFI_PER_MODEL_REPORT_CONFIG: SuspenseReportQueryConfig<ReportDocumentDto> = {
     queryKey: PFI_PER_MODEL_QUERY_KEY,
     path,
     mapResponse: mapReportResponse
-})
+}
+
+export const usePfiPerModelReportQuery = createSuspenseReportHook<ReportDocumentDto>(PFI_PER_MODEL_REPORT_CONFIG)
 
 interface UsePfiPerModelNavOptions {
     enabled: boolean
@@ -37,4 +43,8 @@ export function usePfiPerModelReportNavQuery(
         queryFn: fetchPfiPerModelReport,
         enabled: options.enabled
     })
+}
+
+export async function prefetchPfiPerModelReport(queryClient: QueryClient): Promise<void> {
+    await prefetchSuspenseReport(queryClient, PFI_PER_MODEL_REPORT_CONFIG)
 }

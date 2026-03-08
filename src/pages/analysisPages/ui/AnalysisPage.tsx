@@ -2,12 +2,22 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
+import { useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { useTranslation } from 'react-i18next'
 import cls from './AnalysisPage.module.scss'
 import type { AnalysisPageProps } from './types'
 
 export default function AnalysisPage({ className }: AnalysisPageProps) {
     const { t } = useTranslation('reports')
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
+
+    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
+        warmupRouteNavigation(routeId, queryClient, dispatch)
+    }, [dispatch, queryClient])
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
@@ -23,7 +33,11 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                     {t('analysisHome.sections.title')}
                 </Text>
                 <div className={cls.cards}>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_RATINGS)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_RATINGS)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('analysisHome.cards.ratings.title')}
@@ -32,7 +46,11 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>{t('analysisHome.cards.ratings.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 Policy Branch Mega
@@ -41,7 +59,11 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>{t('analysisHome.cards.policyBranchMega.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('analysisHome.cards.dayStats.title')}
@@ -50,7 +72,11 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>{t('analysisHome.cards.dayStats.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_CONFIDENCE_RISK)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_CONFIDENCE_RISK)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('analysisHome.cards.confidenceRisk.title')}
@@ -59,7 +85,11 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             <span className={cls.cardHint}>{t('analysisHome.cards.confidenceRisk.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_EXECUTION_PIPELINE)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_EXECUTION_PIPELINE)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 Execution Pipeline

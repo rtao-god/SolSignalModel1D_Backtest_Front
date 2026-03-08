@@ -6,6 +6,7 @@ import {
     useEffect,
     useId,
     useLayoutEffect,
+    useMemo,
     useRef,
     useState
 } from 'react'
@@ -17,11 +18,15 @@ import { TextTag } from '../../Text/ui/Text/types'
 
 interface TermTooltipProps {
     term: string
-    description: ReactNode
+    description: ReactNode | (() => ReactNode)
     tooltipTitle?: string
     type?: TextTag
     className?: string
     align?: 'left' | 'right'
+}
+
+function resolveTooltipDescription(description: ReactNode | (() => ReactNode)): ReactNode {
+    return typeof description === 'function' ? description() : description
 }
 
 const HOVER_OPEN_DELAY_MS = 170
@@ -30,6 +35,14 @@ const HOVER_HIDE_DELAY_MS = 120
 const OPEN_TOOLTIP_COUNT_BY_TREE = new Map<string, number>()
 let ACTIVE_TOOLTIP_TREE_ID: string | null = null
 const ACTIVE_NESTED_TOOLTIP_BY_TREE = new Map<string, { instanceId: string; close: () => void }>()
+const PINNED_DESCENDANT_COUNT_BY_INSTANCE = new Map<string, number>()
+const TOOLTIP_INSTANCE_CONTROLLERS = new Map<
+    string,
+    {
+        setPinnedDescendantCount: (count: number) => void
+        getParentInstanceId: () => string | null
+    }
+>()
 
 function canActivateTooltipTree(treeId: string): boolean {
     if (ACTIVE_TOOLTIP_TREE_ID !== null && !OPEN_TOOLTIP_COUNT_BY_TREE.has(ACTIVE_TOOLTIP_TREE_ID)) {
@@ -61,6 +74,39 @@ function registerTooltipClose(treeId: string): void {
     }
 }
 
+function registerTooltipInstanceController(
+    instanceId: string,
+    controller: {
+        setPinnedDescendantCount: (count: number) => void
+        getParentInstanceId: () => string | null
+    }
+): void {
+    TOOLTIP_INSTANCE_CONTROLLERS.set(instanceId, controller)
+    controller.setPinnedDescendantCount(PINNED_DESCENDANT_COUNT_BY_INSTANCE.get(instanceId) ?? 0)
+}
+
+function unregisterTooltipInstanceController(instanceId: string): void {
+    TOOLTIP_INSTANCE_CONTROLLERS.delete(instanceId)
+}
+
+function propagatePinnedStateToAncestors(instanceId: string | null, delta: 1 | -1): void {
+    let currentInstanceId = instanceId
+
+    while (currentInstanceId) {
+        const currentCount = PINNED_DESCENDANT_COUNT_BY_INSTANCE.get(currentInstanceId) ?? 0
+        const nextCount = Math.max(0, currentCount + delta)
+
+        if (nextCount === 0) {
+            PINNED_DESCENDANT_COUNT_BY_INSTANCE.delete(currentInstanceId)
+        } else {
+            PINNED_DESCENDANT_COUNT_BY_INSTANCE.set(currentInstanceId, nextCount)
+        }
+
+        TOOLTIP_INSTANCE_CONTROLLERS.get(currentInstanceId)?.setPinnedDescendantCount(nextCount)
+        currentInstanceId = TOOLTIP_INSTANCE_CONTROLLERS.get(currentInstanceId)?.getParentInstanceId() ?? null
+    }
+}
+
 export default function TermTooltip({
     term,
     description,
@@ -71,6 +117,7 @@ export default function TermTooltip({
 }: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
+    const [pinnedDescendantCount, setPinnedDescendantCount] = useState(0)
 
     const instanceId = useId()
     const rootRef = useRef<HTMLSpanElement | null>(null)
@@ -80,8 +127,17 @@ export default function TermTooltip({
     const treeIdRef = useRef<string>(instanceId)
     const isNestedTooltipRef = useRef(false)
     const isRegisteredOpenRef = useRef(false)
+    const parentTooltipInstanceIdRef = useRef<string | null>(null)
+    const isPinnedPropagatedRef = useRef(false)
 
-    const open = hovered || pinned
+    const open = hovered || pinned || pinnedDescendantCount > 0
+    const resolvedDescription = useMemo(() => {
+        if (!open) {
+            return null
+        }
+
+        return resolveTooltipDescription(description)
+    }, [description, open])
 
     const resolveTooltipTreeId = useCallback((): string => {
         const rootEl = rootRef.current
@@ -92,6 +148,7 @@ export default function TermTooltip({
 
         const parentTooltipOverlay = rootEl.closest('[data-term-tooltip-overlay]') as HTMLElement | null
         isNestedTooltipRef.current = Boolean(parentTooltipOverlay)
+        parentTooltipInstanceIdRef.current = parentTooltipOverlay?.dataset.termTooltipInstanceId?.trim() ?? null
         const inheritedTreeId = parentTooltipOverlay?.dataset.termTooltipTreeId
         return inheritedTreeId && inheritedTreeId.trim().length > 0 ? inheritedTreeId : instanceId
     }, [instanceId])
@@ -185,6 +242,16 @@ export default function TermTooltip({
         setPinned(false)
     }, [cancelHide, cancelShow])
 
+    const pinTooltipIfNested = useCallback(() => {
+        if (!isNestedTooltipRef.current) {
+            return
+        }
+
+        cancelShow()
+        cancelHide()
+        setPinned(true)
+    }, [cancelHide, cancelShow])
+
     const clickParentButtonIfExists = useCallback((target: HTMLElement): boolean => {
         const parentButton = target.closest('button')
         if (!parentButton) {
@@ -220,6 +287,10 @@ export default function TermTooltip({
         [clickParentButtonIfExists, togglePinned]
     )
 
+    const handleTooltipClick = useCallback(() => {
+        pinTooltipIfNested()
+    }, [pinTooltipIfNested])
+
     useClickOutside(
         rootRef,
         () => {
@@ -228,8 +299,44 @@ export default function TermTooltip({
             setHovered(false)
             setPinned(false)
         },
-        tooltipRef
+        tooltipRef,
+        event => {
+            const target = event.target
+            if (!(target instanceof HTMLElement)) {
+                return false
+            }
+
+            const overlay = target.closest('[data-term-tooltip-overlay]') as HTMLElement | null
+            return overlay?.dataset.termTooltipTreeId === treeIdRef.current
+        }
     )
+
+    useEffect(() => {
+        registerTooltipInstanceController(instanceId, {
+            setPinnedDescendantCount: setPinnedDescendantCount,
+            getParentInstanceId: () => parentTooltipInstanceIdRef.current
+        })
+
+        return () => {
+            unregisterTooltipInstanceController(instanceId)
+        }
+    }, [instanceId])
+
+    useEffect(() => {
+        if (pinned && !isPinnedPropagatedRef.current) {
+            // Закреплённая вложенная подсказка должна удерживать открытыми все свои
+            // родительские overlay в текущем tooltip-tree, иначе дочерний tooltip исчезнет
+            // при обычном mouseleave родителя.
+            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, 1)
+            isPinnedPropagatedRef.current = true
+            return
+        }
+
+        if (!pinned && isPinnedPropagatedRef.current) {
+            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, -1)
+            isPinnedPropagatedRef.current = false
+        }
+    }, [pinned])
 
     useEffect(() => {
         if (open && isNestedTooltipRef.current) {
@@ -270,6 +377,17 @@ export default function TermTooltip({
 
             registerTooltipClose(treeIdRef.current)
             isRegisteredOpenRef.current = false
+        }
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (!isPinnedPropagatedRef.current) {
+                return
+            }
+
+            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, -1)
+            isPinnedPropagatedRef.current = false
         }
     }, [])
 
@@ -446,12 +564,13 @@ export default function TermTooltip({
                         data-term-tooltip-tree-id={treeIdRef.current}
                         role='tooltip'
                         onMouseEnter={handleTooltipEnter}
-                        onMouseLeave={handleTooltipLeave}>
+                        onMouseLeave={handleTooltipLeave}
+                        onClick={handleTooltipClick}>
                         <div className={cls.tooltipContent}>
                             <Text type='p' className={cls.tooltipTitle}>
                                 {tooltipTitle ?? term}
                             </Text>
-                            <div className={cls.tooltipBody}>{description}</div>
+                            <div className={cls.tooltipBody}>{resolvedDescription}</div>
                         </div>
                     </div>
                 </Portal>

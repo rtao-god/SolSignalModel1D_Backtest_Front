@@ -11,6 +11,7 @@ import {
     stableSortByCol,
     toExportCell
 } from '../model/utils'
+import { useTranslation } from 'react-i18next'
 
 interface SortableTableProps {
     columns: string[]
@@ -24,6 +25,10 @@ interface SortableTableProps {
     onSortedRowsChange?: (rows: TableRow[]) => void
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
+
+const CHUNK_RENDER_THRESHOLD_ROWS = 250
+const INITIAL_RENDERED_ROWS = 120
+const CHUNK_RENDER_STEP_ROWS = 180
 
 function ChevronUpIcon({ className }: { className: string }) {
     return (
@@ -108,7 +113,9 @@ export default function SortableTable({
     onSortedRowsChange,
     renderColumnTitle
 }: SortableTableProps) {
+    const { t } = useTranslation('common')
     const [sort, setSort] = useState<SortState>({ colIdx: null, kind: 'none' })
+    const [renderedRowCount, setRenderedRowCount] = useState(0)
 
     const resolvedVisibleIndexes = useMemo(() => {
         if (!columns || columns.length === 0) {
@@ -187,6 +194,69 @@ export default function SortableTable({
 
         return stableSortByCol(rowEntries, sort.colIdx, resolved)
     }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx])
+
+    // Для больших таблиц отдаем строки батчами через rAF, чтобы первый рендер не блокировал main thread.
+    useEffect(() => {
+        const totalRows = displayEntries.length
+        if (totalRows === 0) {
+            setRenderedRowCount(0)
+            return
+        }
+
+        if (totalRows <= CHUNK_RENDER_THRESHOLD_ROWS || typeof window === 'undefined') {
+            setRenderedRowCount(totalRows)
+            return
+        }
+
+        let animationFrameId: number | null = null
+        let cancelled = false
+
+        setRenderedRowCount(Math.min(INITIAL_RENDERED_ROWS, totalRows))
+
+        const renderNextChunk = () => {
+            if (cancelled) {
+                return
+            }
+
+            setRenderedRowCount(prevCount => {
+                const nextCount = Math.min(prevCount + CHUNK_RENDER_STEP_ROWS, totalRows)
+                if (nextCount < totalRows) {
+                    animationFrameId = window.requestAnimationFrame(renderNextChunk)
+                }
+                return nextCount
+            })
+        }
+
+        animationFrameId = window.requestAnimationFrame(renderNextChunk)
+
+        return () => {
+            cancelled = true
+            if (animationFrameId !== null) {
+                window.cancelAnimationFrame(animationFrameId)
+            }
+        }
+    }, [displayEntries])
+
+    const effectiveRenderedRowCount = useMemo(() => {
+        if (displayEntries.length === 0) {
+            return 0
+        }
+
+        if (displayEntries.length <= CHUNK_RENDER_THRESHOLD_ROWS) {
+            return displayEntries.length
+        }
+
+        if (renderedRowCount > 0) {
+            return Math.min(renderedRowCount, displayEntries.length)
+        }
+
+        return Math.min(INITIAL_RENDERED_ROWS, displayEntries.length)
+    }, [displayEntries.length, renderedRowCount])
+
+    const visibleEntries = useMemo(
+        () => displayEntries.slice(0, effectiveRenderedRowCount),
+        [displayEntries, effectiveRenderedRowCount]
+    )
     useEffect(() => {
         if (!onSortedRowsChange) {
             return
@@ -248,10 +318,13 @@ export default function SortableTable({
                             const ariaSort = effectiveAriaSort(isActive, kind, defaultDir)
 
                             const titleHint =
-                                !isActive ? 'Сортировать'
-                                : isAsc ? 'Сортировка: по возрастанию'
-                                : isDesc ? 'Сортировка: по убыванию'
-                                : 'Сортировать'
+                                !isActive ?
+                                    t('sortableTable.sort', { defaultValue: 'Sort' })
+                                : isAsc ?
+                                    t('sortableTable.sortAsc', { defaultValue: 'Sort: ascending' })
+                                : isDesc ?
+                                    t('sortableTable.sortDesc', { defaultValue: 'Sort: descending' })
+                                :   t('sortableTable.sort', { defaultValue: 'Sort' })
 
                             const renderedTitle = renderColumnTitle ? renderColumnTitle(title, colIdx) : title
 
@@ -297,7 +370,7 @@ export default function SortableTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {displayEntries.map((entry, rowIndex) => {
+                    {visibleEntries.map((entry, rowIndex) => {
                         const rowClass = getRowClassName?.(entry.row, rowIndex)
 
                         return (

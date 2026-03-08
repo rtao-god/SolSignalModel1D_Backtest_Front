@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
+import { useLocale } from '@/shared/lib/i18n'
 import { TermTooltip, Text } from '@/shared/ui'
 import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
@@ -438,17 +439,23 @@ function ConfusionMatrixTable({ layer }: { layer: LayerMetricsSnapshotDto }) {
 
 function DebugRow({ row }: { row: AggregationProbsDebugRowDto }) {
     const { t } = useTranslation('reports')
+    const { intlLocale } = useLocale()
     const dayKeyLabel = formatUtcDayKey(row.DateUtc)
     const yes = t('aggregation.inner.bool.yes')
     const no = t('aggregation.inner.bool.no')
+    const positionLabels = {
+        down: t('aggregation.inner.positions.short'),
+        flat: t('aggregation.inner.positions.flat'),
+        up: t('aggregation.inner.positions.long')
+    }
 
     return (
         <tr>
-            <td>{formatUtcDayKeyHuman(row.DateUtc)}</td>
-            <td>{formatDayDirectionPositionLabel(row.TrueLabel)}</td>
-            <td>{formatDayDirectionPositionLabel(row.PredDay)}</td>
-            <td>{formatDayDirectionPositionLabel(row.PredDayMicro)}</td>
-            <td>{formatDayDirectionPositionLabel(row.PredTotal)}</td>
+            <td>{formatUtcDayKeyHuman(row.DateUtc, intlLocale)}</td>
+            <td>{formatDayDirectionPositionLabel(row.TrueLabel, positionLabels)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredDay, positionLabels)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredDayMicro, positionLabels)}</td>
+            <td>{formatDayDirectionPositionLabel(row.PredTotal, positionLabels)}</td>
             <td>{formatProb3(row.PDay, `DebugLastDays[${dayKeyLabel}].PDay`)}</td>
             <td>{formatProb3(row.PDayMicro, `DebugLastDays[${dayKeyLabel}].PDayMicro`)}</td>
             <td>{formatProb3(row.PTotal, `DebugLastDays[${dayKeyLabel}].PTotal`)}</td>

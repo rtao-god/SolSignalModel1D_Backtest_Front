@@ -222,7 +222,7 @@ export function resolvePolicyBranchMegaMetricFromTitle(title: string | undefined
     if (normalized.includes('NO BIGGEST LIQ LOSS')) return 'no-biggest-liq-loss'
     if (normalized.includes('[REAL]')) return 'real'
 
-    // Backward compatibility: old reports had no explicit metric tag and represent REAL.
+    // Отчёты без явного metric tag трактуем как общий REAL-срез.
     return 'real'
 }
 
@@ -341,7 +341,7 @@ export function filterPolicyBranchMegaSectionsByTpSlModeOrThrow(
 
     const taggedCount = tagged.filter(item => item.tpSlMode !== null).length
     if (taggedCount === 0) {
-        // Legacy reports without metadata.tpSlMode содержат только универсальный срез.
+        // Отчёты без metadata.tpSlMode содержат только универсальный TP/SL-срез.
         if (tpSlMode === 'all') {
             return sections
         }

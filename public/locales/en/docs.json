@@ -98,6 +98,10 @@
         "fallback": {
             "business": "Section description.",
             "tech": "Technical section description."
+        },
+        "controls": {
+            "viewModeLabel": "View mode",
+            "viewModeAriaLabel": "Models page view mode"
         }
     },
     "testsPage": {

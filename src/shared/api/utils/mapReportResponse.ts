@@ -190,10 +190,6 @@ function mapTableMetadataOrThrow(
         kind
     }
 
-    if (kind !== 'policy-branch-mega') {
-        return metadata
-    }
-
     const isStrict = policyMegaMetadataMode === 'strict'
     const modeLabel = `TableSection.metadata.mode (${tableTitle})`
     const tpSlModeLabel = `TableSection.metadata.tpSlMode (${tableTitle})`
@@ -202,42 +198,39 @@ function mapTableMetadataOrThrow(
     const bucketLabel = `TableSection.metadata.bucket (${tableTitle})`
     const partLabel = `TableSection.metadata.part (${tableTitle})`
 
-    // В report-agnostic режиме допускаем legacy policy-branch-metadata без zonal-полей,
-    // чтобы нерелевантные страницы (например day-stats) не падали из-за чужих секций.
-    // Для policy_branch_mega endpoint включается strict-режим и эти поля обязательны.
     if (payload.mode !== null && typeof payload.mode !== 'undefined') {
         metadata.mode = parseMegaModeOrThrow(payload.mode, modeLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${modeLabel} is missing.`)
     }
 
     if (payload.tpSlMode !== null && typeof payload.tpSlMode !== 'undefined') {
         metadata.tpSlMode = parseMegaTpSlModeOrThrow(payload.tpSlMode, tpSlModeLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${tpSlModeLabel} is missing.`)
     }
 
     if (payload.zonalMode !== null && typeof payload.zonalMode !== 'undefined') {
         metadata.zonalMode = parseMegaZonalModeOrThrow(payload.zonalMode, zonalModeLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${zonalModeLabel} is missing.`)
     }
 
     if (payload.metricVariant !== null && typeof payload.metricVariant !== 'undefined') {
         metadata.metricVariant = parseMegaMetricVariantOrThrow(payload.metricVariant, metricVariantLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${metricVariantLabel} is missing.`)
     }
 
     if (payload.bucket !== null && typeof payload.bucket !== 'undefined') {
         metadata.bucket = parseMegaBucketOrThrow(payload.bucket, bucketLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${bucketLabel} is missing.`)
     }
 
     if (payload.part !== null && typeof payload.part !== 'undefined') {
         metadata.part = parsePositiveIntOrThrow(payload.part, partLabel)
-    } else if (isStrict) {
+    } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${partLabel} is missing.`)
     }
 

@@ -6,18 +6,25 @@ const stopTooltipPropagation = (event: SyntheticEvent) => {
     event.stopPropagation()
 }
 
-export function renderTermTooltipTitle(term: string, description?: ReactNode): ReactNode {
+export function renderTermTooltipTitle(term: string, description?: ReactNode | (() => ReactNode)): ReactNode {
     if (!description) {
         return term
     }
 
-    const resolvedDescription = enrichTermTooltipDescription(description, {
-        term
-    })
-
     return (
         <span onClick={stopTooltipPropagation} onMouseDown={stopTooltipPropagation}>
-            <TermTooltip term={term} description={resolvedDescription} type='span' />
+            <TermTooltip
+                term={term}
+                description={() =>
+                    enrichTermTooltipDescription(
+                        typeof description === 'function' ? description() : description,
+                        {
+                            term
+                        }
+                    )
+                }
+                type='span'
+            />
         </span>
     )
 }

@@ -10,7 +10,6 @@ export interface CurrentPredictionIndexItemDto {
 }
 export type CurrentPredictionSet = 'live' | 'backfilled'
 export type CurrentPredictionTrainingScope = 'train' | 'full' | 'oos' | 'recent'
-export type CurrentPredictionUiLanguage = 'ru' | 'en'
 
 export interface CurrentPredictionLatestDto {
     live: ReportDocumentDto | null
@@ -25,16 +24,13 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
     return {
         getCurrentPrediction: builder.query<
             CurrentPredictionLatestDto,
-            { scope?: CurrentPredictionTrainingScope; lang?: CurrentPredictionUiLanguage } | void
+            { scope?: CurrentPredictionTrainingScope } | void
         >({
             query: args => {
-                const params: { scope?: CurrentPredictionTrainingScope; lang?: CurrentPredictionUiLanguage } = {}
+                const params: { scope?: CurrentPredictionTrainingScope } = {}
 
                 if (args?.scope) {
                     params.scope = args.scope
-                }
-                if (args?.lang) {
-                    params.lang = args.lang
                 }
 
                 return {
@@ -82,22 +78,17 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
                 set: CurrentPredictionSet
                 dateUtc: string
                 scope?: CurrentPredictionTrainingScope
-                lang?: CurrentPredictionUiLanguage
             }
         >({
-            query: ({ set, dateUtc, scope, lang }) => {
+            query: ({ set, dateUtc, scope }) => {
                 const params: {
                     set: CurrentPredictionSet
                     dateUtc: string
                     scope?: CurrentPredictionTrainingScope
-                    lang?: CurrentPredictionUiLanguage
                 } = { set, dateUtc }
 
                 if (scope) {
                     params.scope = scope
-                }
-                if (lang) {
-                    params.lang = lang
                 }
 
                 return {

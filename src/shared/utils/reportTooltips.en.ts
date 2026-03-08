@@ -65,7 +65,7 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     'Цена TP': 'Price level where take-profit would trigger.',
     'SL, $': 'Absolute instrument price at stop-loss level.',
     'TP, $': 'Absolute instrument price at take-profit level.',
-    'Размер позиции, $': 'Position size in USD (capital/margin actually allocated).',
+    'Номинал позиции, $': 'Full position notional after leverage. Used for exposure and quantity math; it is not the same as margin.',
     'Размер позиции, qty': 'Position size in asset quantity units.',
     'Цена ликвидации': 'Estimated liquidation price for selected leverage.',
     'Цена ликвидации, $': 'Estimated liquidation price for selected leverage.',

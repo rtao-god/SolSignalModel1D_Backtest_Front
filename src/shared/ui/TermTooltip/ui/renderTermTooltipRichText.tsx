@@ -47,6 +47,7 @@ import {
     REQ_GAIN_DESCRIPTION,
     RECOVERED_DESCRIPTION,
     RECOV_DAYS_DESCRIPTION,
+    RISK_LAYERS_DESCRIPTION,
     RISK_THROTTLE_DESCRIPTION,
     SIGNAL_DIRECTION_DESCRIPTION,
     SLIPPAGE_DESCRIPTION,
@@ -72,6 +73,11 @@ import {
     EXPOSURE_DESCRIPTION,
     MARGIN_USED_DESCRIPTION,
     P90_QUANTILE_DESCRIPTION,
+    TRADE_COUNT_DESCRIPTION,
+    RECOVERY_DESCRIPTION,
+    REAL_METRIC_DESCRIPTION,
+    NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
+    WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
     CAP_POLICY_DESCRIPTION,
     TRACE_DESCRIPTION,
     START_CAP_DESCRIPTION,
@@ -79,7 +85,9 @@ import {
     SHARPE_DESCRIPTION,
     SORTINO_DESCRIPTION,
     WITHDRAWN_PROFIT_DESCRIPTION,
-    ZONAL_MODE_DESCRIPTION
+    ZONAL_MODE_DESCRIPTION,
+    WITH_ZONAL_MODE_DESCRIPTION,
+    WITHOUT_ZONAL_MODE_DESCRIPTION
 } from '@/shared/consts/tooltipDomainTerms'
 import {
     ATR_INDICATOR_DESCRIPTION,
@@ -221,10 +229,10 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     },
     {
         id: 'tp-sl-mode-term',
-        pattern: /TP\/SL mode|режим\s+TP\/SL/i,
-        title: 'TP/SL mode',
+        pattern: /TP\/SL mode|режим\s+TP\/SL|dynamic[-\s]?risk\s+mode|режим\s+dynamic[-\s]?risk/i,
+        title: 'Dynamic-risk mode',
         description: TP_SL_MODE_DESCRIPTION,
-        aliases: ['TP/SL mode', 'режим TP/SL'],
+        aliases: ['TP/SL mode', 'режим TP/SL', 'Dynamic-risk mode', 'режим dynamic-risk'],
         priority: 140
     },
     {
@@ -234,6 +242,22 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         description: ZONAL_MODE_DESCRIPTION,
         aliases: ['ZONAL', 'with-zonal', 'without-zonal', 'зональный фильтр'],
         priority: 110
+    },
+    {
+        id: 'with-zonal-mode',
+        pattern: /\bWITH(?:[-‑_\s]+)ZONAL\b|с\s+зональност/i,
+        title: 'WITH ZONAL',
+        description: WITH_ZONAL_MODE_DESCRIPTION,
+        aliases: ['WITH ZONAL', 'WITH-ZONAL', 'С зональностью'],
+        priority: 160
+    },
+    {
+        id: 'without-zonal-mode',
+        pattern: /\bWITHOUT(?:[-‑_\s]+)ZONAL\b|без\s+зональност/i,
+        title: 'WITHOUT ZONAL',
+        description: WITHOUT_ZONAL_MODE_DESCRIPTION,
+        aliases: ['WITHOUT ZONAL', 'WITHOUT-ZONAL', 'Без зональности'],
+        priority: 160
     },
     {
         id: 'with-sl-mode',
@@ -298,6 +322,12 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         description: WHY_NO_SL_DESCRIPTION
     },
     {
+        id: 'why-no-biggest-liq-loss',
+        pattern: /Почему\?\s*\(NO\s+BIGGEST\s+LIQ\s+LOSS\)/i,
+        title: 'Почему? (NO BIGGEST LIQ LOSS)',
+        description: WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION
+    },
+    {
         id: 'why-first-event',
         pattern: /Почему\?\s*\(first[-‑\s]?event\)/i,
         title: 'Почему? (first-event)',
@@ -328,19 +358,19 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     {
         id: 'dynamic-tp-sl',
         pattern:
-            /\bDynTP\/SL\b|dynamic\s*TP\/SL|\bDYNAMIC\b|динам(?:ический|ические|ических|ическим)\s*TP\/SL|динам(?:ический|ическая)\s+режим/i,
-        title: 'DYNAMIC',
+            /\bDynTP\/SL\b|dynamic\s*TP\/SL|dynamic[-\s]?risk|\bDYNAMIC(?:\s+RISK)?\b|динам(?:ический|ические|ических|ическим)\s*TP\/SL|динам(?:ический|ическая)\s+режим/i,
+        title: 'DYNAMIC risk',
         description: DYNAMIC_TP_SL_DESCRIPTION,
-        aliases: ['DYNAMIC', 'DynTP/SL', 'dynamic TP/SL', 'Dynamic TP/SL'],
+        aliases: ['DYNAMIC', 'DYNAMIC risk', 'DynTP/SL', 'dynamic TP/SL', 'Dynamic TP/SL', 'dynamic risk'],
         priority: 240
     },
     {
         id: 'static-tp-sl',
         pattern:
-            /\bStatTP\/SL\b|static\s*TP\/SL|\bSTATIC\b|стат(?:ический|ические|ических|ическим)\s*TP\/SL|стат(?:ический|ическая)\s+режим/i,
-        title: 'STATIC',
+            /\bStatTP\/SL\b|static\s*TP\/SL|static[-\s]?base|\bSTATIC(?:\s+BASE)?\b|стат(?:ический|ические|ических|ическим)\s*TP\/SL|стат(?:ический|ическая)\s+режим/i,
+        title: 'STATIC base',
         description: STATIC_TP_SL_DESCRIPTION,
-        aliases: ['STATIC', 'StatTP/SL', 'static TP/SL', 'Static TP/SL'],
+        aliases: ['STATIC', 'STATIC base', 'StatTP/SL', 'static TP/SL', 'Static TP/SL', 'static base'],
         priority: 240
     },
     {
@@ -375,6 +405,22 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         priority: 170
     },
     {
+        id: 'trade-count',
+        pattern: /\bTr\b|trade[-\s]?count|числ(?:о|а)\s+сделок|количеств(?:о|а)\s+сделок/i,
+        title: 'Tr',
+        description: TRADE_COUNT_DESCRIPTION,
+        aliases: ['Tr', 'trade count', 'число сделок', 'количество сделок'],
+        priority: 175
+    },
+    {
+        id: 'recovery',
+        pattern: /\brecovery\b|восстановлени(?:е|я|ю|ем|и)\b/i,
+        title: 'recovery',
+        description: RECOVERY_DESCRIPTION,
+        aliases: ['recovery', 'восстановление'],
+        priority: 165
+    },
+    {
         id: 'net-return-pct',
         pattern: /\bNetReturnPct\b|\bNetReturnPc\b|чист(?:ая|ой)\s+доходност[ьи]\s+сделк[аи]/i,
         title: 'NetReturnPct',
@@ -402,7 +448,7 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     },
     {
         id: 'recovered',
-        pattern: /\bRecovered\b|восстановлен(?:ие|а|о)?/i,
+        pattern: /\bRecovered\b|Recovered\s*=\s*(?:true|false)|флаг\s+восстановлени(?:я|е)/i,
         title: 'Recovered',
         description: RECOVERED_DESCRIPTION
     },
@@ -505,6 +551,15 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         description: BRANCH_DESCRIPTION
     },
     {
+        id: 'risk-layers',
+        pattern:
+            /risk[-\s]?сло(?:й|и|я|ю|ем|е|ев|ёв|ям|ями|ях)|risk[-\s]?layers?|сло(?:й|и|я|ю|ем|е)\s+риска/i,
+        title: 'Risk-слои',
+        description: RISK_LAYERS_DESCRIPTION,
+        aliases: ['risk-слои', 'risk-слой', 'risk layers', 'risk layer', 'слои риска'],
+        priority: 188
+    },
+    {
         id: 'bucket-daily',
         pattern: /\bdaily bucket\b|бакет\s+daily/i,
         title: 'daily bucket',
@@ -550,9 +605,25 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     },
     {
         id: 'metric-view',
-        pattern: /metric view|режим метрик|no biggest liq loss/i,
+        pattern: /metric view|режим метрик/i,
         title: 'Metric View',
         description: METRIC_VIEW_DESCRIPTION
+    },
+    {
+        id: 'real-metric',
+        pattern: /\bREAL\b/i,
+        title: 'REAL',
+        description: REAL_METRIC_DESCRIPTION,
+        aliases: ['REAL'],
+        priority: 155
+    },
+    {
+        id: 'no-biggest-liq-loss-metric',
+        pattern: /NO\s+BIGGEST\s+LIQ\s+LOSS/i,
+        title: 'NO BIGGEST LIQ LOSS',
+        description: NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
+        aliases: ['NO BIGGEST LIQ LOSS'],
+        priority: 156
     },
     {
         id: 'funding',
@@ -1029,20 +1100,14 @@ function renderAutolinkedTextSegment(
             nodes.push(text.slice(cursor, match.start))
         }
 
-        const nestedDescription = buildNestedDescription(
-            match.rule,
-            match.value,
-            excludedRuleIds,
-            recursionDepth,
-            maxRecursionDepth
-        )
-
         nodes.push(
             <TermTooltip
                 key={`${keyPrefix}-${match.rule.id}-${index}-${match.start}`}
                 term={match.value}
                 tooltipTitle={match.rule.title}
-                description={nestedDescription}
+                description={() =>
+                    buildNestedDescription(match.rule, match.value, excludedRuleIds, recursionDepth, maxRecursionDepth)
+                }
                 type='span'
                 className={cls.inlineTerm}
             />
@@ -1101,9 +1166,29 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
         expectedRuleIds: ['executed-at-utc']
     },
     {
+        id: 'trade-count',
+        text: 'Tr, PnL и DD пересчитываются',
+        expectedRuleIds: ['trade-count', 'pnl', 'dd']
+    },
+    {
+        id: 'recovery',
+        text: 'recovery после глубокой просадки затянулся',
+        expectedRuleIds: ['recovery', 'drawdown']
+    },
+    {
+        id: 'risk-layers',
+        text: 'Policy, Branch и risk-слои формируют вход на день',
+        expectedRuleIds: ['policy', 'branch', 'risk-layers']
+    },
+    {
         id: 'why-first-event',
         text: 'Почему? (first-event)',
         expectedRuleIds: ['why-first-event']
+    },
+    {
+        id: 'why-no-biggest-liq-loss',
+        text: 'Почему? (NO BIGGEST LIQ LOSS)',
+        expectedRuleIds: ['why-no-biggest-liq-loss']
     },
     {
         id: 'why-bucket',
@@ -1171,20 +1256,14 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
                 return
             }
 
-            const nestedDescription = buildNestedDescription(
-                rule,
-                segment.label,
-                excludedRuleIds,
-                recursionDepth,
-                maxRecursionDepth
-            )
-
             nodes.push(
                 <TermTooltip
                     key={`explicit-${rule.id}-${segmentKey}`}
                     term={segment.label}
                     tooltipTitle={rule.title}
-                    description={nestedDescription}
+                    description={() =>
+                        buildNestedDescription(rule, segment.label, excludedRuleIds, recursionDepth, maxRecursionDepth)
+                    }
                     type='span'
                     className={cls.inlineTerm}
                 />

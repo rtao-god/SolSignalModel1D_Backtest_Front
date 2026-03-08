@@ -1,16 +1,43 @@
 import { Btn, Input, TermTooltip, Text } from '@/shared/ui'
 import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import type { BacktestPolicyConfigDto } from '@/shared/types/backtest.types'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestConfigEditor.module.scss'
 import BacktestConfigEditorProps from './types'
 
-const CONFIG_COLUMN_TOOLTIPS: Record<string, string> = {
-    Вкл: 'Включить/выключить политику в текущем one-shot preview.',
-    Имя: 'Имя политики.',
-    Тип: 'Тип логики политики (const, risk_aware, ultra_safe, dynamic, spot).',
-    Плечо: 'Для const-политик можно вручную изменить плечо. Для остальных типов не используется.',
-    Маржа: 'Режим маржи политики: Cross или Isolated.'
+interface ConfigColumnDefinition {
+    id: 'enabled' | 'name' | 'type' | 'leverage' | 'margin'
+    defaultLabel: string
+    defaultTooltip: string
 }
+
+const CONFIG_COLUMN_DEFINITIONS: readonly ConfigColumnDefinition[] = [
+    {
+        id: 'enabled',
+        defaultLabel: 'Enabled',
+        defaultTooltip: 'Enable or disable policy in the current one-shot preview.'
+    },
+    {
+        id: 'name',
+        defaultLabel: 'Policy',
+        defaultTooltip: 'Policy name.'
+    },
+    {
+        id: 'type',
+        defaultLabel: 'Type',
+        defaultTooltip: 'Policy logic type (const, risk_aware, ultra_safe, dynamic, spot).'
+    },
+    {
+        id: 'leverage',
+        defaultLabel: 'Leverage',
+        defaultTooltip: 'For const policies leverage can be edited manually. Other policy types ignore this field.'
+    },
+    {
+        id: 'margin',
+        defaultLabel: 'Margin',
+        defaultTooltip: 'Policy margin mode: Cross or Isolated.'
+    }
+]
 
 const renderTooltip = (term: string, description?: string) =>
     description ?
@@ -37,20 +64,30 @@ export function BacktestConfigEditor({
     onPolicyLeverageChange,
     onRunPreview
 }: BacktestConfigEditorProps) {
+    const { t } = useTranslation('reports')
     const confidenceRisk = draftConfig.confidenceRisk
+    const profileName = currentProfile?.name ?? t('backtestFull.configEditor.profileUnnamed', { defaultValue: 'unnamed' })
+    const profileIntro = t('backtestFull.configEditor.profileIntro', {
+        profileName,
+        defaultValue: 'What-if baseline: profile "{{profileName}}".'
+    })
+    const resolveText = (key: string, defaultValue: string) => t(key, { defaultValue })
+    const renderLocalizedTooltip = (term: string, descriptionKey: string, defaultDescription: string) =>
+        renderTooltip(term, t(descriptionKey, { defaultValue: defaultDescription }))
 
     return (
         <section id='whatif' className={cls.configEditor}>
             <Text>
-                Основа what-if: профиль {currentProfile ? `«${currentProfile.name}»` : 'без названия'}.
+                {profileIntro}
                 {currentProfile?.description ? ` ${currentProfile.description}` : ''}
             </Text>
 
             <div className={cls.configRow}>
                 <label className={cls.label}>
-                    {renderTooltip(
+                    {renderLocalizedTooltip(
                         'Baseline SL (%)',
-                        'Базовый дневной stop-loss. Если dynamic TP/SL для дня не активируется, применяется это значение.'
+                        'backtestFull.configEditor.fields.baselineSl.tooltip',
+                        'Base daily stop-loss. If dynamic TP/SL is not activated for the day, this value is used.'
                     )}
                     <Input
                         type='number'
@@ -61,9 +98,10 @@ export function BacktestConfigEditor({
                 </label>
 
                 <label className={cls.label}>
-                    {renderTooltip(
+                    {renderLocalizedTooltip(
                         'Baseline TP (%)',
-                        'Базовый дневной take-profit. Dynamic-оверлей масштабирует его только при прохождении confidence-правил.'
+                        'backtestFull.configEditor.fields.baselineTp.tooltip',
+                        'Base daily take-profit. Dynamic overlay scales it only when confidence rules allow it.'
                     )}
                     <Input
                         type='number'
@@ -76,26 +114,34 @@ export function BacktestConfigEditor({
 
             {confidenceRisk ?
                 <section className={cls.dynamicBlock}>
-                    <Text type='h3'>Dynamic TP/SL overlay (confidence-risk)</Text>
+                    <Text type='h3'>
+                        {resolveText(
+                            'backtestFull.configEditor.dynamic.titleEnabled',
+                            'Dynamic TP/SL overlay (confidence-risk)'
+                        )}
+                    </Text>
                     <Text className={cls.dynamicInfo}>
-                        Dynamic TP/SL применяется только если confidence bucket проходит исторические ограничения
-                        (минимум samples + минимальный win-rate). В остальных днях остаются baseline TP/SL.
+                        {resolveText(
+                            'backtestFull.configEditor.dynamic.infoEnabled',
+                            'Dynamic TP/SL is applied only when confidence bucket passes historical constraints (minimum samples + minimum win-rate). Baseline TP/SL is used on all other days.'
+                        )}
                     </Text>
 
                     <div className={cls.quickActions}>
                         <Btn variant='secondary' colorScheme='blue' onClick={() => onShiftDynamicTpSl('tighter')}>
-                            Сделать TP/SL ближе
+                            {resolveText('backtestFull.configEditor.dynamic.actions.tighten', 'Tighten TP/SL')}
                         </Btn>
                         <Btn variant='secondary' colorScheme='blue' onClick={() => onShiftDynamicTpSl('wider')}>
-                            Сделать TP/SL дальше
+                            {resolveText('backtestFull.configEditor.dynamic.actions.widen', 'Widen TP/SL')}
                         </Btn>
                     </div>
 
                     <div className={cls.configRow}>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'TP mult min',
-                                'Нижний множитель динамического TP относительно baseline TP (доли, не проценты).'
+                                'backtestFull.configEditor.dynamic.fields.tpMultMin.tooltip',
+                                'Lower multiplier of dynamic TP relative to baseline TP (fraction, not percent).'
                             )}
                             <Input
                                 type='number'
@@ -105,9 +151,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'TP mult max',
-                                'Верхний множитель динамического TP относительно baseline TP.'
+                                'backtestFull.configEditor.dynamic.fields.tpMultMax.tooltip',
+                                'Upper multiplier of dynamic TP relative to baseline TP.'
                             )}
                             <Input
                                 type='number'
@@ -117,9 +164,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'SL mult min',
-                                'Нижний множитель динамического SL относительно baseline SL.'
+                                'backtestFull.configEditor.dynamic.fields.slMultMin.tooltip',
+                                'Lower multiplier of dynamic SL relative to baseline SL.'
                             )}
                             <Input
                                 type='number'
@@ -129,9 +177,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'SL mult max',
-                                'Верхний множитель динамического SL относительно baseline SL.'
+                                'backtestFull.configEditor.dynamic.fields.slMultMax.tooltip',
+                                'Upper multiplier of dynamic SL relative to baseline SL.'
                             )}
                             <Input
                                 type='number'
@@ -144,9 +193,10 @@ export function BacktestConfigEditor({
 
                     <div className={cls.configRow}>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'Daily TP min (%)',
-                                'Жёсткий нижний кламп итогового dynamic TP после всех множителей.'
+                                'backtestFull.configEditor.dynamic.fields.dailyTpMin.tooltip',
+                                'Hard lower clamp for final dynamic TP after all multipliers.'
                             )}
                             <Input
                                 type='number'
@@ -156,7 +206,11 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip('Daily TP max (%)', 'Жёсткий верхний кламп итогового dynamic TP.')}
+                            {renderLocalizedTooltip(
+                                'Daily TP max (%)',
+                                'backtestFull.configEditor.dynamic.fields.dailyTpMax.tooltip',
+                                'Hard upper clamp for final dynamic TP.'
+                            )}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -165,7 +219,11 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip('Daily SL min (%)', 'Жёсткий нижний кламп итогового dynamic SL.')}
+                            {renderLocalizedTooltip(
+                                'Daily SL min (%)',
+                                'backtestFull.configEditor.dynamic.fields.dailySlMin.tooltip',
+                                'Hard lower clamp for final dynamic SL.'
+                            )}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -174,7 +232,11 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip('Daily SL max (%)', 'Жёсткий верхний кламп итогового dynamic SL.')}
+                            {renderLocalizedTooltip(
+                                'Daily SL max (%)',
+                                'backtestFull.configEditor.dynamic.fields.dailySlMax.tooltip',
+                                'Hard upper clamp for final dynamic SL.'
+                            )}
                             <Input
                                 type='number'
                                 className={cls.input}
@@ -186,9 +248,10 @@ export function BacktestConfigEditor({
 
                     <div className={cls.configRow}>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'Min bucket samples',
-                                'Минимум исторических наблюдений в confidence-bucket, после которого разрешается dynamic TP/SL.'
+                                'backtestFull.configEditor.dynamic.fields.minBucketSamples.tooltip',
+                                'Minimum historical observations in confidence bucket required to allow dynamic TP/SL.'
                             )}
                             <Input
                                 type='number'
@@ -200,9 +263,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'Min bucket win-rate (%)',
-                                'Минимальный исторический win-rate в confidence-bucket для включения dynamic TP/SL.'
+                                'backtestFull.configEditor.dynamic.fields.minBucketWinRate.tooltip',
+                                'Minimum historical win-rate in confidence bucket required to enable dynamic TP/SL.'
                             )}
                             <Input
                                 type='number'
@@ -214,9 +278,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'Conf gate min (%)',
-                                'Минимальная directional confidence для допуска сделки.'
+                                'backtestFull.configEditor.dynamic.fields.confGateMin.tooltip',
+                                'Minimum directional confidence required to allow a trade.'
                             )}
                             <Input
                                 type='number'
@@ -226,9 +291,10 @@ export function BacktestConfigEditor({
                             />
                         </label>
                         <label className={cls.label}>
-                            {renderTooltip(
+                            {renderLocalizedTooltip(
                                 'Conf gate risk-day (%)',
-                                'Минимальная confidence для RiskDay (если 0, используется Conf gate min).'
+                                'backtestFull.configEditor.dynamic.fields.confGateRiskDayMin.tooltip',
+                                'Minimum confidence for RiskDay. If 0, Conf gate min is used.'
                             )}
                             <Input
                                 type='number'
@@ -240,29 +306,47 @@ export function BacktestConfigEditor({
                     </div>
                 </section>
             :   <section className={cls.dynamicBlock}>
-                    <Text type='h3'>Dynamic TP/SL overlay</Text>
+                    <Text type='h3'>
+                        {resolveText('backtestFull.configEditor.dynamic.titleDisabled', 'Dynamic TP/SL overlay')}
+                    </Text>
                     <Text className={cls.dynamicInfo}>
-                        В этом профиле confidence-risk overlay отсутствует или отключён. Preview будет идти по baseline
-                        TP/SL без динамических модификаций.
+                        {resolveText(
+                            'backtestFull.configEditor.dynamic.infoDisabled',
+                            'This profile has confidence-risk overlay disabled or missing. Preview runs with baseline TP/SL without dynamic modifiers.'
+                        )}
                     </Text>
                 </section>
             }
 
             <div className={cls.policiesBlock}>
-                <Text type='h3'>Политики плеча</Text>
+                <Text type='h3'>{resolveText('backtestFull.configEditor.policyTable.title', 'Leverage policies')}</Text>
                 <Text>
-                    Выберите, какие политики участвуют в preview, и при необходимости скорректируйте const плечо.
+                    {resolveText(
+                        'backtestFull.configEditor.policyTable.subtitle',
+                        'Select policies included in preview and adjust const leverage if needed.'
+                    )}
                 </Text>
 
                 <div className={cls.tableWrap}>
                     <table className={cls.table}>
                         <thead>
                             <tr>
-                                <th>{renderTooltip('Вкл', CONFIG_COLUMN_TOOLTIPS.Вкл)}</th>
-                                <th>{renderTooltip('Имя', CONFIG_COLUMN_TOOLTIPS.Имя)}</th>
-                                <th>{renderTooltip('Тип', CONFIG_COLUMN_TOOLTIPS.Тип)}</th>
-                                <th>{renderTooltip('Плечо', CONFIG_COLUMN_TOOLTIPS.Плечо)}</th>
-                                <th>{renderTooltip('Маржа', CONFIG_COLUMN_TOOLTIPS.Маржа)}</th>
+                                {CONFIG_COLUMN_DEFINITIONS.map(column => {
+                                    const label = t(
+                                        `backtestFull.configEditor.policyTable.columns.${column.id}.label`,
+                                        {
+                                            defaultValue: column.defaultLabel
+                                        }
+                                    )
+                                    const tooltip = t(
+                                        `backtestFull.configEditor.policyTable.columns.${column.id}.tooltip`,
+                                        {
+                                            defaultValue: column.defaultTooltip
+                                        }
+                                    )
+
+                                    return <th key={column.id}>{renderTooltip(label, tooltip)}</th>
+                                })}
                             </tr>
                         </thead>
                         <tbody>
@@ -301,7 +385,9 @@ export function BacktestConfigEditor({
             </div>
 
             <Btn className={cls.runButton} onClick={onRunPreview} disabled={isPreviewLoading}>
-                {isPreviewLoading ? 'Запускаю preview...' : 'Запустить preview'}
+                {isPreviewLoading ?
+                    resolveText('backtestFull.configEditor.runButton.loading', 'Running preview...')
+                :   resolveText('backtestFull.configEditor.runButton.default', 'Run preview')}
             </Btn>
 
             {previewError && <Text className={cls.errorText}>{previewError}</Text>}

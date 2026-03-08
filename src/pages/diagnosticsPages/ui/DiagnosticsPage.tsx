@@ -2,12 +2,22 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
+import { useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { useTranslation } from 'react-i18next'
 import cls from './DiagnosticsPage.module.scss'
 import type { DiagnosticsPageProps } from './types'
 
 export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
     const { t } = useTranslation('reports')
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
+
+    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
+        warmupRouteNavigation(routeId, queryClient, dispatch)
+    }, [dispatch, queryClient])
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
@@ -23,7 +33,11 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                     {t('diagnosticsHome.sections.title')}
                 </Text>
                 <div className={cls.cards}>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('diagnosticsHome.cards.risk.title')}
@@ -32,7 +46,11 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                             <span className={cls.cardHint}>{t('diagnosticsHome.cards.risk.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 Guardrail / Specificity
@@ -41,7 +59,11 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                             <span className={cls.cardHint}>{t('diagnosticsHome.cards.guardrail.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('diagnosticsHome.cards.decisions.title')}
@@ -50,7 +72,11 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                             <span className={cls.cardHint}>{t('diagnosticsHome.cards.decisions.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 Hotspots / NoTrade
@@ -59,7 +85,11 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                             <span className={cls.cardHint}>{t('diagnosticsHome.cards.hotspots.hint')}</span>
                         </article>
                     </Link>
-                    <Link to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER]} className={cls.cardLink}>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_OTHER)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_OTHER)}>
                         <article className={cls.card}>
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('diagnosticsHome.cards.other.title')}

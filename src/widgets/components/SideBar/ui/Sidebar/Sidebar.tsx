@@ -1,11 +1,14 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { Link } from '@/shared/ui'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
 import {
     buildRouteNavLabelI18nKey,
     buildRouteSubTabLabelI18nKey,
@@ -27,26 +30,7 @@ import {
     EXPLAIN_TIME_TABS
 } from '@/shared/utils/explainTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
-import {
-    buildPolicyBranchMegaTabsFromSections,
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsBySlModeOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    filterPolicyBranchMegaSectionsByZonalModeOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaSlModeFromQuery,
-    resolvePolicyBranchMegaTpSlModeFromQuery,
-    resolvePolicyBranchMegaZonalModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_SL_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    DEFAULT_REPORT_ZONAL_MODE
-} from '@/shared/utils/reportViewCapabilities'
+import { buildPolicyBranchMegaTabsFromSections } from '@/shared/utils/policyBranchMegaTabs'
 import {
     buildDiagnosticsTabsFromSections,
     getDiagnosticsGroupSections,
@@ -92,19 +76,21 @@ const SECTION_ORDER: RouteSection[] = [
     'explain'
 ]
 const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
-    predictions: 'Прогнозы',
-    models: 'Модели',
-    backtest: 'Бэктест',
-    analysis: 'Анализ',
-    diagnostics: 'Диагностика',
-    features: 'Фичи',
-    docs: 'Документация',
-    explain: 'Объяснение'
+    predictions: 'Predictions',
+    models: 'Models',
+    backtest: 'Backtest',
+    analysis: 'Analysis',
+    diagnostics: 'Diagnostics',
+    features: 'Features',
+    docs: 'Documentation',
+    explain: 'Explain'
 }
 
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t } = useTranslation()
     const location = useLocation()
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
 
     // Режим страницы определяет, какие секции вообще должны быть видимы в сайдбаре.
     const isModal = mode === 'modal'
@@ -144,17 +130,40 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         enabled: isOnPfiPage
     })
 
+    const diagnosticsNavArgs = useMemo(
+        () => ({
+            tpSlMode: new URLSearchParams(location.search).get('tpsl'),
+            zonalMode: new URLSearchParams(location.search).get('zonal')
+        }),
+        [location.search]
+    )
+
     // Подгружаем данные для поднавигации только на тех страницах, где она реально используется.
     const shouldLoadDiagnosticsNav = isDiagnosticsRoute || isAnalysisRoute
     const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery({
         enabled: shouldLoadDiagnosticsNav
-    })
+    }, diagnosticsNavArgs)
+
+    const policyBranchMegaArgs = useMemo(
+        () => ({
+            bucket: new URLSearchParams(location.search).get('bucket'),
+            metric: new URLSearchParams(location.search).get('metric'),
+            tpSlMode: new URLSearchParams(location.search).get('tpsl'),
+            slMode: new URLSearchParams(location.search).get('slmode'),
+            zonalMode: new URLSearchParams(location.search).get('zonal')
+        }),
+        [location.search]
+    )
 
     const shouldLoadPolicyBranchMegaNav = isOnPolicyBranchMegaPage
-    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery({
+    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgs, {
         enabled: shouldLoadPolicyBranchMegaNav
     })
     const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
+
+    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
+        warmupRouteNavigation(routeId, queryClient, dispatch)
+    }, [dispatch, queryClient])
 
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
@@ -213,32 +222,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                 Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
         )
 
-        try {
-            const search = new URLSearchParams(location.search)
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(search.get('bucket'), DEFAULT_REPORT_BUCKET_MODE)
-            const metric = resolvePolicyBranchMegaMetricFromQuery(search.get('metric'), DEFAULT_REPORT_METRIC_MODE)
-            const tpSlMode = resolvePolicyBranchMegaTpSlModeFromQuery(search.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            const slMode = resolvePolicyBranchMegaSlModeFromQuery(search.get('slmode'), DEFAULT_REPORT_SL_MODE)
-            const zonalMode = resolvePolicyBranchMegaZonalModeFromQuery(search.get('zonal'), DEFAULT_REPORT_ZONAL_MODE)
-            const byZonal = filterPolicyBranchMegaSectionsByZonalModeOrThrow(tableSections, zonalMode)
-            const bySlMode = filterPolicyBranchMegaSectionsBySlModeOrThrow(byZonal, slMode)
-            const byTpSlMode = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(bySlMode, tpSlMode)
-            const byBucket = filterPolicyBranchMegaSectionsByBucketOrThrow(byTpSlMode, bucket)
-            const byMetric = filterPolicyBranchMegaSectionsByMetricOrThrow(byBucket, metric)
-            return buildPolicyBranchMegaTabsFromSections(byMetric)
-        } catch (error) {
-            // Сайдбар не должен падать: на ошибке фильтров оставляем базовую навигацию по частям
-            // и одновременно логируем причину, чтобы ошибка не была "тихой".
-            console.error('[sidebar.policy-branch-mega] failed to build filtered tabs.', error)
-
-            try {
-                return buildPolicyBranchMegaTabsFromSections(tableSections)
-            } catch (fallbackError) {
-                console.error('[sidebar.policy-branch-mega] failed to build fallback tabs.', fallbackError)
-                return []
-            }
-        }
-    }, [location.search, policyBranchMegaReport])
+        return buildPolicyBranchMegaTabsFromSections(tableSections)
+    }, [policyBranchMegaReport])
 
     // На специализированных страницах оставляем только профильную секцию в сайдбаре.
     const grouped = useMemo(() => {
@@ -454,25 +439,25 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : []
 
                                 const subNavAriaDefaultLabel =
-                                    isBacktestFull ? 'Разделы бэктеста'
-                                    : isPfiPerModel ? 'Модели PFI'
-                                    : isDocsModels ? 'Описание моделей'
-                                    : isDocsTests ? 'Описание тестов'
-                                    : isExplainModels ? 'Объяснение моделей'
-                                    : isExplainBranches ? 'Объяснение веток'
-                                    : isExplainSplits ? 'Объяснение сплитов'
-                                    : isExplainProject ? 'Объяснение проекта'
-                                    : isExplainTime ? 'Объяснение времени'
-                                    : isExplainFeatures ? 'Объяснение фич'
-                                    : isAggregationStats ? 'Разделы агрегации прогнозов'
-                                    : isBacktestDiagnostics ? 'Разделы диагностики'
-                                    : isBacktestDiagnosticsGuardrail ? 'Разделы guardrail'
-                                    : isBacktestDiagnosticsDecisions ? 'Разделы решений'
-                                    : isBacktestDiagnosticsHotspots ? 'Разделы hotspots'
-                                    : isBacktestDiagnosticsOther ? 'Разделы прочего'
-                                    : isBacktestRatings ? 'Разделы анализа'
-                                    : isBacktestDayStats ? 'Разделы статистики по дням'
-                                    : isPolicyBranchMega ? 'Разделы Policy Branch Mega'
+                                    isBacktestFull ? 'Backtest sections'
+                                    : isPfiPerModel ? 'PFI models'
+                                    : isDocsModels ? 'Model docs'
+                                    : isDocsTests ? 'Test docs'
+                                    : isExplainModels ? 'Model explain'
+                                    : isExplainBranches ? 'Branch explain'
+                                    : isExplainSplits ? 'Split explain'
+                                    : isExplainProject ? 'Project explain'
+                                    : isExplainTime ? 'Time explain'
+                                    : isExplainFeatures ? 'Feature explain'
+                                    : isAggregationStats ? 'Aggregation sections'
+                                    : isBacktestDiagnostics ? 'Diagnostics sections'
+                                    : isBacktestDiagnosticsGuardrail ? 'Guardrail sections'
+                                    : isBacktestDiagnosticsDecisions ? 'Decision sections'
+                                    : isBacktestDiagnosticsHotspots ? 'Hotspot sections'
+                                    : isBacktestDiagnosticsOther ? 'Other sections'
+                                    : isBacktestRatings ? 'Analysis sections'
+                                    : isBacktestDayStats ? 'Day-stat sections'
+                                    : isPolicyBranchMega ? 'Policy Branch Mega sections'
                                     : undefined
 
                                 const subNavAriaLabel =
@@ -487,6 +472,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                         <Link
                                             to={item.path}
                                             onClick={onItemClick}
+                                            onMouseEnter={() => handleRouteWarmup(item.id)}
+                                            onFocus={() => handleRouteWarmup(item.id)}
                                             className={classNames(cls.link, {
                                                 [cls.linkActive]: isRouteActiveBase && !hasSubNav,
                                                 [cls.linkGroup]: hasSubNav
@@ -544,6 +531,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                                 key={tab.id}
                                                                 to={`${linkBase}#${tab.anchor}`}
                                                                 onClick={onItemClick}
+                                                                onMouseEnter={() => handleRouteWarmup(item.id)}
+                                                                onFocus={() => handleRouteWarmup(item.id)}
                                                                 className={classNames(cls.subLink, {
                                                                     [cls.subLinkActive]: isActiveTab
                                                                 })}>

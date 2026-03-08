@@ -60,6 +60,10 @@
     border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
+.filtersControls {
+    margin-top: 0 !important;
+}
+
 .controlBlock {
     display: flex;
     flex-wrap: wrap;
@@ -210,6 +214,11 @@
     font-size: 12px;
     opacity: 0.78;
     max-width: 860px;
+}
+
+.bucketControls {
+    margin-top: 0 !important;
+    flex-shrink: 0;
 }
 
 .bucketToggle {

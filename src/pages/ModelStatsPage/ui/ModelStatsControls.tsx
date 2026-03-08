@@ -1,9 +1,12 @@
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn } from '@/shared/ui'
+import { useTranslation } from 'react-i18next'
 import cls from './ModelStatsPage.module.scss'
 import type { ModelStatsModeToggleProps, SegmentKey, SegmentToggleProps } from './modelStatsTypes'
 
 export function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeToggleProps) {
+    const { t } = useTranslation()
+
     const handleBusinessClick = () => {
         if (mode !== 'business') {
             onChange('business')
@@ -22,19 +25,21 @@ export function ModelStatsModeToggle({ mode, onChange }: ModelStatsModeTogglePro
                 size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'business' }, [])}
                 onClick={handleBusinessClick}>
-                Бизнес
+                {t('common:viewMode.business')}
             </Btn>
             <Btn
                 size='sm'
                 className={classNames(cls.modeButton, { [cls.modeButtonActive]: mode === 'technical' }, [])}
                 onClick={handleTechnicalClick}>
-                Технарь
+                {t('common:viewMode.technical')}
             </Btn>
         </div>
     )
 }
 
 export function SegmentToggle({ segments, value, onChange }: SegmentToggleProps) {
+    const { t } = useTranslation()
+
     if (!segments.length) {
         return null
     }
@@ -48,13 +53,13 @@ export function SegmentToggle({ segments, value, onChange }: SegmentToggleProps)
     const renderLabel = (segment: SegmentKey) => {
         switch (segment) {
             case 'OOS':
-                return 'OOS (честный)'
+                return t('reports:modelStats.inner.segmentToggle.oos')
             case 'TRAIN':
-                return 'Train'
+                return t('reports:modelStats.inner.segmentToggle.train')
             case 'FULL':
-                return 'Full history'
+                return t('reports:modelStats.inner.segmentToggle.full')
             case 'RECENT':
-                return 'Recent'
+                return t('reports:modelStats.inner.segmentToggle.recent')
             default:
                 return segment
         }

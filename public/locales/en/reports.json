@@ -423,6 +423,30 @@
                 "modeTechnical": "Technical view (detailed confusion matrices)",
                 "runKind": "Run kind: {{value}}"
             },
+            "segmentToggle": {
+                "oos": "OOS (fair)",
+                "train": "Train",
+                "full": "Full history",
+                "recent": "Recent"
+            },
+            "segmentMeta": {
+                "oos": {
+                    "label": "OOS (fair evaluation)",
+                    "description": "{{label}}: {{count}} records. Measures quality on data not seen during training."
+                },
+                "train": {
+                    "label": "Train",
+                    "description": "{{label}}: {{count}} records. Shows model behavior on the training sample."
+                },
+                "full": {
+                    "label": "Full history",
+                    "description": "{{label}}: {{count}} records. Covers the full available data history."
+                },
+                "recent": {
+                    "label": "Recent ({{days}} d)",
+                    "description": "{{label}}: {{count}} records. Focuses on the latest tail window."
+                }
+            },
             "status": {
                 "title": "DEBUG: freshness not verified",
                 "message": "Status endpoint for backtest_model_stats is not configured: report metadata is shown without freshness verification.",
@@ -554,6 +578,11 @@
                 "yes": "yes",
                 "no": "no"
             },
+            "positions": {
+                "short": "Short",
+                "flat": "Flat",
+                "long": "Long"
+            },
             "tooltips": {
                 "probTable": {
                     "layer": "Aggregation stage: Day (base model), Day+Micro (with micro overlay), and Total (with SL overlay).",
@@ -656,6 +685,177 @@
             "errors": {
                 "clientTitle": "What-if block is temporarily unavailable",
                 "clientDescription": "What-if block failed to render on the client. Baseline and profile comparison remain available."
+            }
+        },
+        "configEditor": {
+            "profileUnnamed": "unnamed",
+            "profileIntro": "What-if baseline: profile \"{{profileName}}\".",
+            "fields": {
+                "baselineSl": {
+                    "tooltip": "Base daily stop-loss. If dynamic TP/SL is not activated for the day, this value is used."
+                },
+                "baselineTp": {
+                    "tooltip": "Base daily take-profit. Dynamic overlay scales it only when confidence rules allow it."
+                }
+            },
+            "dynamic": {
+                "titleEnabled": "Dynamic TP/SL overlay (confidence-risk)",
+                "infoEnabled": "Dynamic TP/SL is applied only when confidence bucket passes historical constraints (minimum samples + minimum win-rate). Baseline TP/SL is used on all other days.",
+                "actions": {
+                    "tighten": "Tighten TP/SL",
+                    "widen": "Widen TP/SL"
+                },
+                "fields": {
+                    "tpMultMin": {
+                        "tooltip": "Lower multiplier of dynamic TP relative to baseline TP (fraction, not percent)."
+                    },
+                    "tpMultMax": {
+                        "tooltip": "Upper multiplier of dynamic TP relative to baseline TP."
+                    },
+                    "slMultMin": {
+                        "tooltip": "Lower multiplier of dynamic SL relative to baseline SL."
+                    },
+                    "slMultMax": {
+                        "tooltip": "Upper multiplier of dynamic SL relative to baseline SL."
+                    },
+                    "dailyTpMin": {
+                        "tooltip": "Hard lower clamp for final dynamic TP after all multipliers."
+                    },
+                    "dailyTpMax": {
+                        "tooltip": "Hard upper clamp for final dynamic TP."
+                    },
+                    "dailySlMin": {
+                        "tooltip": "Hard lower clamp for final dynamic SL."
+                    },
+                    "dailySlMax": {
+                        "tooltip": "Hard upper clamp for final dynamic SL."
+                    },
+                    "minBucketSamples": {
+                        "tooltip": "Minimum historical observations in confidence bucket required to allow dynamic TP/SL."
+                    },
+                    "minBucketWinRate": {
+                        "tooltip": "Minimum historical win-rate in confidence bucket required to enable dynamic TP/SL."
+                    },
+                    "confGateMin": {
+                        "tooltip": "Minimum directional confidence required to allow a trade."
+                    },
+                    "confGateRiskDayMin": {
+                        "tooltip": "Minimum confidence for RiskDay. If 0, Conf gate min is used."
+                    }
+                },
+                "titleDisabled": "Dynamic TP/SL overlay",
+                "infoDisabled": "This profile has confidence-risk overlay disabled or missing. Preview runs with baseline TP/SL without dynamic modifiers."
+            },
+            "policyTable": {
+                "title": "Leverage policies",
+                "subtitle": "Select policies included in preview and adjust const leverage if needed.",
+                "columns": {
+                    "enabled": {
+                        "label": "Enabled",
+                        "tooltip": "Enable or disable policy in the current one-shot preview."
+                    },
+                    "name": {
+                        "label": "Policy",
+                        "tooltip": "Policy name."
+                    },
+                    "type": {
+                        "label": "Type",
+                        "tooltip": "Policy logic type (const, risk_aware, ultra_safe, dynamic, spot)."
+                    },
+                    "leverage": {
+                        "label": "Leverage",
+                        "tooltip": "For const policies leverage can be edited manually. Other policy types ignore this field."
+                    },
+                    "margin": {
+                        "label": "Margin",
+                        "tooltip": "Policy margin mode: Cross or Isolated."
+                    }
+                }
+            },
+            "runButton": {
+                "loading": "Running preview...",
+                "default": "Run preview"
+            }
+        },
+        "policyRatios": {
+            "title": "Policy metrics (Sharpe / Sortino / PnL)",
+            "subtitle": "Policy comparison inside selected capital bucket. Full coverage requires checking daily/intraday/delayed.",
+            "loading": "Loading policy metrics...",
+            "empty": "No saved policy-ratios report yet.",
+            "windowLabel": "Backtest window",
+            "controls": {
+                "bucket": "Bucket",
+                "metric": "Metric"
+            },
+            "viewMode": {
+                "chart": "Chart",
+                "table": "Table"
+            },
+            "chart": {
+                "policyLabel": "Policy: {{label}}"
+            },
+            "metrics": {
+                "totalPnlPct": "PnL %",
+                "sharpe": "Sharpe",
+                "sortino": "Sortino",
+                "calmar": "Calmar",
+                "winRatePct": "WinRate %"
+            },
+            "columns": {
+                "policy": {
+                    "label": "Policy",
+                    "tooltip": "Trading policy name."
+                },
+                "bucket": {
+                    "label": "Bucket",
+                    "tooltip": "Capital bucket: daily, intraday, delayed, or total."
+                },
+                "trades": {
+                    "label": "Trades",
+                    "tooltip": "Number of trades in selected bucket."
+                },
+                "pnl": {
+                    "label": "PnL %",
+                    "tooltip": "Total policy return in selected bucket, %."
+                },
+                "maxDd": {
+                    "label": "MaxDD %",
+                    "tooltip": "Maximum equity drawdown, %."
+                },
+                "sharpe": {
+                    "label": "Sharpe",
+                    "tooltip": "Return normalized by total volatility."
+                },
+                "sortino": {
+                    "label": "Sortino",
+                    "tooltip": "Return normalized by downside volatility."
+                },
+                "calmar": {
+                    "label": "Calmar",
+                    "tooltip": "Return-to-drawdown ratio."
+                },
+                "winRate": {
+                    "label": "WinRate %",
+                    "tooltip": "Share of profitable trades, %."
+                },
+                "withdrawn": {
+                    "label": "Withdrawn $",
+                    "tooltip": "Withdrawn profit amount, USD."
+                },
+                "liq": {
+                    "label": "Liq?",
+                    "tooltip": "Liquidation occurred in selected bucket."
+                }
+            },
+            "rows": {
+                "liqYes": "YES",
+                "liqNo": "no"
+            },
+            "errors": {
+                "dataTitle": "Failed to load policy ratios",
+                "dataDescription": "Policy metrics section is unavailable due to data error.",
+                "clientTitle": "Policy metrics section failed",
+                "clientDescription": "Client-side error while rendering policy metrics block."
             }
         },
         "compareBlock": {
@@ -837,6 +1037,10 @@
             "terms": {
                 "title": "PFI report terms",
                 "subtitle": "Detailed definitions of feature-importance metrics and related statistics for all tables on this page."
+            },
+            "controls": {
+                "viewModeLabel": "View mode",
+                "viewModeAriaLabel": "PFI table view mode"
             }
         }
     },
@@ -926,6 +1130,7 @@
                 "slUsd": "SL, $",
                 "slPct": "SL, %",
                 "liquidationPrice": "Liquidation price, $",
+                "notionalUsd": "Position notional, $",
                 "bucketCapital": "Bucket capital, $",
                 "stakeUsd": "Stake, $",
                 "stakePct": "Stake, %"

@@ -3,10 +3,11 @@ import { skipToken } from '@reduxjs/toolkit/query'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
-    BucketFilterToggle,
-    CurrentPredictionTrainingScopeToggle,
+    buildPredictionHistoryWindowControlGroup,
+    buildPredictionPolicyBucketControlGroup,
+    buildTrainingScopeControlGroup,
     Icon,
-    PolicyBucketFilterToggle,
+    ReportViewControls,
     ReportTableCard,
     Text,
     resolveCurrentPredictionTrainingScopeMeta
@@ -38,7 +39,6 @@ import {
 import type { ReportDocumentDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import type { TableRow } from '@/shared/ui/SortableTable'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
-import type { BucketFilterOption } from '@/shared/ui/BucketFilterToggle'
 import { useLocale } from '@/shared/lib/i18n'
 import type { PredictionHistoryPageProps } from './types'
 import { useTranslation } from 'react-i18next'
@@ -54,9 +54,9 @@ interface HistoryWindowOptionDef {
 }
 
 const HISTORY_WINDOW_OPTION_DEFS: readonly HistoryWindowOptionDef[] = [
-    { value: '365', labelKey: 'predictionHistory.filters.window.oneYear', defaultLabel: 'За 1 год' },
-    { value: '730', labelKey: 'predictionHistory.filters.window.twoYears', defaultLabel: 'За 2 года' },
-    { value: 'all', labelKey: 'predictionHistory.filters.window.allTime', defaultLabel: 'За всё время' }
+    { value: '365', labelKey: 'predictionHistory.filters.window.oneYear', defaultLabel: 'Last 1 year' },
+    { value: '730', labelKey: 'predictionHistory.filters.window.twoYears', defaultLabel: 'Last 2 years' },
+    { value: 'all', labelKey: 'predictionHistory.filters.window.allTime', defaultLabel: 'All time' }
 ]
 type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
 interface PredictionHistoryPageInnerProps {
@@ -87,6 +87,7 @@ interface PolicyTradeRow {
     slPrice: number
     slPct: number
     liqPrice: number | null
+    notionalUsd: number
     bucketCapitalUsd: number
     stakeUsd: number
     stakePct: number
@@ -117,6 +118,7 @@ const POLICY_TABLE_REQUIRED_COLUMNS: readonly CurrentPredictionPolicyColumnKey[]
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice,
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice,
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice,
+    CURRENT_PREDICTION_POLICY_COLUMN_KEYS.notionalUsd,
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucketCapitalUsd,
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakeUsd,
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakePct
@@ -174,7 +176,6 @@ function parseOptionalNumber(raw: unknown): number | null {
         normalized === '-' ||
         normalized === 'n/a' ||
         normalized === 'na' ||
-        normalized.startsWith('нет') ||
         normalized.startsWith('no')
     ) {
         return null
@@ -311,10 +312,10 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
         const tpPctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPct, 'TpPct')
         const slPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice, 'SlPrice')
         const tpPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice, 'TpPrice')
-        const positionUsdIdx = findCanonicalColumnIndexOrThrow(
+        const notionalUsdIdx = findCanonicalColumnIndexOrThrow(
             table,
-            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.positionUsd,
-            'PositionUsd'
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.notionalUsd,
+            'NotionalUsd'
         )
         const liqPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice, 'LiquidationPrice')
         const exitPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitPrice, 'ExitPrice')
@@ -381,13 +382,13 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
             const slPrice = parseNumberOrThrow(row[slPriceIdx], 'Цена SL')
             const tpPrice = parseNumberOrThrow(row[tpPriceIdx], 'Цена TP')
             const liqPrice = parseOptionalNumber(row[liqPriceIdx])
-            const positionUsd = parseNumberOrThrow(row[positionUsdIdx], 'Размер позиции, $')
+            const notionalUsd = parseNumberOrThrow(row[notionalUsdIdx], 'Номинал позиции, $')
 
             if (!(entryPrice > 0 && slPrice > 0 && tpPrice > 0)) {
                 throw new Error('[ui] Trade prices must be positive.')
             }
-            if (!(positionUsd > 0) || !Number.isFinite(positionUsd)) {
-                throw new Error(`[ui] Position usd is invalid. value=${positionUsd}.`)
+            if (!(notionalUsd > 0) || !Number.isFinite(notionalUsd)) {
+                throw new Error(`[ui] Notional usd is invalid. value=${notionalUsd}.`)
             }
 
             const slPctFromEntry = parseNumberOrThrow(row[slPctIdx], 'SL, %')
@@ -427,6 +428,7 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
                 slPrice,
                 slPct: slPctFromEntry,
                 liqPrice,
+                notionalUsd,
                 bucketCapitalUsd,
                 stakeUsd,
                 stakePct
@@ -543,8 +545,6 @@ function PredictionHistoryPageInner({
     onHistoryWindowChange
 }: PredictionHistoryPageInnerProps) {
     const { t } = useTranslation('reports')
-    const { i18nLanguage } = useLocale()
-    const reportLanguage = i18nLanguage === 'ru' ? 'ru' : 'en'
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
@@ -554,7 +554,7 @@ function PredictionHistoryPageInner({
     const [pageIndex, setPageIndex] = useState(0)
     const [cardsAnimating, setCardsAnimating] = useState(false)
 
-    const historyWindowOptions: readonly BucketFilterOption[] = useMemo(
+    const historyWindowOptions = useMemo(
         () =>
             HISTORY_WINDOW_OPTION_DEFS.map(option => ({
                 value: option.value,
@@ -570,6 +570,32 @@ function PredictionHistoryPageInner({
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
         throw new Error(`[ui] Unsupported prediction history window option: ${historyWindow}.`)
     }
+    const controlGroups = useMemo(
+        () => [
+            buildTrainingScopeControlGroup({
+                value: trainingScope,
+                onChange: onTrainingScopeChange,
+                label: t('predictionHistory.filters.scope.label'),
+                ariaLabel: t('predictionHistory.filters.scope.ariaLabel'),
+                infoTooltip:
+                    'Что это: выбор training scope для current prediction history. Как работает в движке: страница запрашивает с backend другой history index и другой daily report snapshot для Full, Train, OOS или Recent модели, без локального пересчёта прогнозов. Какие числа меняются: доступные даты в index, training model label, карточки отчётов за день и все policy sections внутри них. Зачем сравнивать: видно, как current prediction вёл себя на полном обучении, на train-only, на unseen OOS и на recent-tail режиме.'
+            }),
+            buildPredictionHistoryWindowControlGroup({
+                value: historyWindow,
+                options: historyWindowOptions,
+                onChange: nextValue => {
+                    if (!isPredictionHistoryWindow(nextValue)) {
+                        throw new Error(`[ui] Unsupported prediction history window value: ${nextValue}.`)
+                    }
+
+                    onHistoryWindowChange(nextValue)
+                },
+                label: t('predictionHistory.filters.window.label'),
+                ariaLabel: t('predictionHistory.filters.window.ariaLabel')
+            })
+        ],
+        [historyWindow, historyWindowOptions, onHistoryWindowChange, onTrainingScopeChange, t, trainingScope]
+    )
 
     const filteredDates = useMemo(() => {
         if (!allDatesDesc.length) {
@@ -660,7 +686,7 @@ function PredictionHistoryPageInner({
     const latestDateUtc = allDatesDesc.length > 0 ? allDatesDesc[0] : null
     const latestReportQuery = useGetCurrentPredictionByDateQuery(
         latestDateUtc ?
-            { set: HISTORY_SET, scope: trainingScope, dateUtc: `${latestDateUtc}T00:00:00Z`, lang: reportLanguage }
+            { set: HISTORY_SET, scope: trainingScope, dateUtc: `${latestDateUtc}T00:00:00Z` }
         :   skipToken,
         { refetchOnMountOrArgChange: true }
     )
@@ -717,38 +743,10 @@ function PredictionHistoryPageInner({
 
             <section className={cls.filters}>
                 <div className={cls.controlsPanel}>
-                    <div className={cls.controlBlock}>
-                        <Text type='p' className={cls.controlLabel}>
-                            {t('predictionHistory.filters.scope.label')}
-                        </Text>
-                        <CurrentPredictionTrainingScopeToggle
-                            value={trainingScope}
-                            onChange={onTrainingScopeChange}
-                            className={cls.scopeToggle}
-                            ariaLabel={t('predictionHistory.filters.scope.ariaLabel')}
-                        />
-                        <Text type='p' className={cls.controlHint}>
-                            {currentScopeMeta.hint}
-                        </Text>
-                    </div>
-
-                    <div className={cls.controlBlock}>
-                        <Text type='p' className={cls.controlLabel}>
-                            {t('predictionHistory.filters.window.label')}
-                        </Text>
-                        <BucketFilterToggle
-                            value={historyWindow}
-                            options={historyWindowOptions}
-                            onChange={nextValue => {
-                                if (!isPredictionHistoryWindow(nextValue)) {
-                                    throw new Error(`[ui] Unsupported prediction history window value: ${nextValue}.`)
-                                }
-                                onHistoryWindowChange(nextValue)
-                            }}
-                            className={cls.historyWindowToggle}
-                            ariaLabel={t('predictionHistory.filters.window.ariaLabel')}
-                        />
-                    </div>
+                    <ReportViewControls groups={controlGroups} className={cls.filtersControls} />
+                    <Text type='p' className={cls.controlHint}>
+                        {currentScopeMeta.hint}
+                    </Text>
                 </div>
 
                 <div className={cls.filtersRow}>
@@ -881,7 +879,7 @@ interface PredictionPolicyTradesTableProps {
     skippedDirectionalSignals: PolicySkippedSignalRow[]
 }
 
-const POLICY_TRADES_SECTION_TITLE = 'Политики плеча (BASE vs ANTI-D)'
+const POLICY_TRADES_SECTION_TITLE = 'Leverage policies (BASE vs ANTI-D)'
 
 function resolvePolicyBucketLabel(
     bucket: PolicyBranchMegaBucketMode,
@@ -945,6 +943,16 @@ function PredictionPolicyTradesTable({
     const { intlLocale } = useLocale()
     const [bucketFilter, setBucketFilter] = useState<PolicyBranchMegaBucketMode>('daily')
     const translate = (key: string, options?: Record<string, unknown>) => t(key, options)
+    const bucketControlGroups = useMemo(
+        () => [
+            buildPredictionPolicyBucketControlGroup({
+                value: bucketFilter,
+                onChange: setBucketFilter,
+                ariaLabel: t('predictionHistory.tradesTable.bucketAriaLabel')
+            })
+        ],
+        [bucketFilter, t]
+    )
 
     const filteredExecutedTrades =
         bucketFilter === 'total' ? executedTrades : executedTrades.filter(row => row.bucket === bucketFilter)
@@ -968,6 +976,7 @@ function PredictionPolicyTradesTable({
         t('predictionHistory.tradesTable.columns.slUsd'),
         t('predictionHistory.tradesTable.columns.slPct'),
         t('predictionHistory.tradesTable.columns.liquidationPrice'),
+        t('predictionHistory.tradesTable.columns.notionalUsd'),
         t('predictionHistory.tradesTable.columns.bucketCapital'),
         t('predictionHistory.tradesTable.columns.stakeUsd'),
         t('predictionHistory.tradesTable.columns.stakePct')
@@ -985,6 +994,7 @@ function PredictionPolicyTradesTable({
         formatPrice(row.slPrice, intlLocale),
         formatPercent(row.slPct, intlLocale),
         row.liqPrice !== null ? formatPrice(row.liqPrice, intlLocale) : t('predictionHistory.tradesTable.liqFallback'),
+        formatMoney(row.notionalUsd, intlLocale),
         formatMoney(row.bucketCapitalUsd, intlLocale),
         formatMoney(row.stakeUsd, intlLocale),
         formatPercent(row.stakePct, intlLocale)
@@ -1012,12 +1022,7 @@ function PredictionPolicyTradesTable({
                     {t('predictionHistory.tradesTable.toolbarHint', { dateUtc })}
                 </Text>
 
-                <PolicyBucketFilterToggle
-                    value={bucketFilter}
-                    onChange={setBucketFilter}
-                    className={cls.bucketToggle}
-                    ariaLabel={t('predictionHistory.tradesTable.bucketAriaLabel')}
-                />
+                <ReportViewControls groups={bucketControlGroups} className={cls.bucketControls} />
             </div>
 
             {executedTrades.length === 0 && skippedDirectionalSignals.length === 0 && (
@@ -1081,16 +1086,13 @@ function PredictionPolicyTradesTable({
 
 function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: PredictionHistoryReportCardProps) {
     const { t } = useTranslation('reports')
-    const { i18nLanguage } = useLocale()
-    const reportLanguage = i18nLanguage === 'ru' ? 'ru' : 'en'
     const requestDateUtc = `${dateUtc}T00:00:00Z`
 
     const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery(
         {
             dateUtc: requestDateUtc,
             set: HISTORY_SET,
-            scope: trainingScope,
-            lang: reportLanguage
+            scope: trainingScope
         },
         {
             refetchOnMountOrArgChange: true

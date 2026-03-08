@@ -12,6 +12,11 @@ export interface PolicyBranchMegaTermDefinition {
     tooltip: string
 }
 
+export interface PolicyBranchMegaTermReference {
+    key: string
+    title: string
+}
+
 export const POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION = '__POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION__' as const
 type PolicyBranchMegaTooltipDraft = string | typeof POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION
 export type PolicyBranchMegaTooltipResolutionMode = 'description' | 'draft'
@@ -26,6 +31,13 @@ interface PolicyBranchMegaTermDraft {
     title: string
     description: string
     tooltip?: PolicyBranchMegaTooltipDraft
+}
+
+interface PolicyBranchMegaResolvedLocaleContent {
+    description: string
+    readingHint: string
+    example: string | null
+    tooltip: string
 }
 
 export function resolvePolicyBranchMegaTermLocale(language: string | null | undefined): PolicyBranchMegaTermLocale {
@@ -56,7 +68,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'SL Mode',
         title: 'SL Mode',
         description:
-            'SL Mode — переключатель механики выхода из сделки.\n\nВ проекте доступны два режима.\n\nWITH SL: выход по first-event цепочке liquidation -> stop-loss -> take-profit -> EndOfDay.\n\nNO SL: защитный стоп-лосс отключён, поэтому закрытие только по take-profit, liquidation или EndOfDay.\n\nРиск NO SL внутри дня:\nпока позиция открыта в торговом окне, убыток не ограничивается стоп-лоссом и может дойти до liquidation.\n\nЭто может обнулить капитал выбранного бакета, а в cross-марже — весь торговый баланс.\n\nЕсли внутри дня не сработали ни take-profit, ни liquidation, сделка закрывается принудительно по EndOfDay.\n\nПочему? (NO SL)',
+            'SL Mode — переключатель механики выхода из сделки.\n\nWITH SL: защитный стоп-лосс включён. Сделка может закрыться раньше конца окна по стоп-лоссу, тейк-профиту или ликвидации; если этого не произошло, в конце дня срабатывает EndOfDay.\n\nNO SL: защитный стоп-лосс отключён. Сделка остаётся открытой до тейк-профита, ликвидации или EndOfDay.\n\nРиск NO SL: для isolated-маржи это повышает шанс потерять весь залог сделки.\n\nДля cross-маржи это повышает шанс потерять весь баланс бакета.\n\nПочему? (NO SL)',
         tooltip: 'Режим расчёта строки: WITH SL или NO SL.'
     },
     Days: {
@@ -231,42 +243,42 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'DynTP/SL Days',
         title: 'DynTP/SL Days',
         description:
-            'Количество уникальных дней, где TP/SL применялись в dynamic-режиме: уровни менялись по уверенности модели. День попадает в dynamic только после прохождения условий confidence-bucket по минимуму наблюдений и качеству (win-rate).',
+            'Количество уникальных дней, где реально включился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этих днях движок не только менял уровни [[tp-sl|stop-loss]] / [[tp-sl|take-profit]], но и масштабировал [[cap-fraction|cap fraction]] по уверенности модели.\n\nДень попадает сюда только после прохождения [[confidence-bucket|confidence-bucket]] по минимуму наблюдений и качеству (win-rate).',
         tooltip: 'Уникальные дни с dynamic TP/SL (Daily/Intraday).'
     },
     'DynTP/SL Tr': {
         key: 'DynTP/SL Tr',
         title: 'DynTP/SL Tr',
         description:
-            'Количество сделок, где сработал dynamic TP/SL (адаптивные уровни по уверенности модели). Обычно меньше общего числа сделок: пока модель не набрала достаточное подтверждение на истории, система оставляет сделки в static-режиме.',
+            'Количество сделок, где реально применился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этом режиме движок масштабирует уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]], а также [[cap-fraction|cap fraction]] по уверенности модели.\n\nОбычно таких сделок меньше общего числа: без подтверждения по [[confidence-bucket|confidence-bucket]] день не попадает в dynamic-срез.',
         tooltip: 'Число сделок с dynamic TP/SL.'
     },
     'DynTP/SL PnL%': {
         key: 'DynTP/SL PnL%',
         title: 'DynTP/SL PnL%',
         description:
-            'Вклад в итоговую доходность только от сделок с [[dynamic-tp-sl|dynamic TP/SL]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nЭто не отдельный бэктест, а часть общего результата строки.',
+            'Вклад в итоговую доходность только от сделок с [[dynamic-tp-sl|DYNAMIC risk]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nЭто не отдельный бэктест, а часть общего результата строки.',
         tooltip: 'Вклад в PnL% только от dynamic TP/SL сделок.'
     },
     'StatTP/SL Days': {
         key: 'StatTP/SL Days',
         title: 'StatTP/SL Days',
         description:
-            'Количество дней, где использовались static TP/SL, то есть фиксированные уровни без адаптации по уверенности модели.',
+            'Количество дней, где сделка прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея, то есть в режиме [[static-tp-sl|STATIC base]].\n\nВ этом режиме используются базовые правила сделки без dynamic-множителей по уровням выхода и [[cap-fraction|cap fraction]].',
         tooltip: 'Уникальные дни со static TP/SL (Daily/Intraday).'
     },
     'StatTP/SL Tr': {
         key: 'StatTP/SL Tr',
         title: 'StatTP/SL Tr',
         description:
-            'Количество сделок со static TP/SL (фиксированные уровни). Рост этой метрики означает, что dynamic-режим реже проходил условия допуска по исторической статистике.',
+            'Количество сделок, где [[dynamic-tp-sl|DYNAMIC risk]] не применился и расчёт остался в режиме [[static-tp-sl|STATIC base]].\n\nРост этой метрики означает, что dynamic-оверлей реже проходил условия допуска по исторической статистике.',
         tooltip: 'Число сделок со static TP/SL.'
     },
     'StatTP/SL PnL%': {
         key: 'StatTP/SL PnL%',
         title: 'StatTP/SL PnL%',
         description:
-            'Вклад в итоговую доходность только от сделок с [[static-tp-sl|static TP/SL]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nПоказатель читается вместе с [[dynamic-tp-sl|DynTP/SL PnL%]], чтобы видеть, какой режим уровней выхода дал основную часть результата.\n\nПереключатель TP/SL mode меняет состав сделок этого среза, но не пересчитывает задним числом уже применённые плечо и долю капитала в самих сделках.',
+            'Вклад в итоговую доходность только от сделок режима [[static-tp-sl|STATIC base]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nПоказатель читается вместе с [[dynamic-tp-sl|DynTP/SL PnL%]], чтобы видеть, какой режим дал основную часть результата.\n\nПереключатель dynamic-risk режима меняет состав сделок этого среза, но не пересчитывает задним числом уже применённые в сделке [[leverage|плечо]] и [[cap-fraction|долю капитала на сделку]].',
         tooltip: 'Вклад в PnL% только от static TP/SL сделок.'
     },
     'DelayedTP%': {
@@ -378,7 +390,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'MeanRet%',
         title: 'MeanRet%',
         description:
-            'Средняя дневная доходность (mean) после агрегации сделок в дневную серию. Каждая сделка даёт вклад = NetReturn% * (PositionUsd / TotalCapital). Выводится в процентах.',
+            'Средняя дневная доходность (mean) после агрегации сделок в дневную серию. Каждая сделка даёт вклад = NetReturn% * (использованная маржа / общий капитал). Выводится в процентах.',
         tooltip: 'Средняя дневная доходность, %.'
     },
     'StdRet%': {
@@ -498,7 +510,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Подмножество LiqBeforeSL_n, где SL и ликвидация (принудительное закрытие биржей) коснулись цены в одной минутной свече. Это зона повышенной чувствительности к правилу приоритета событий внутри минуты.',
         tooltip:
-            'Количество конфликтных кейсов в одной 1m-свече: одновременно касаются SL и ликвидации. Влияет на чувствительность к first-event и порядку событий.'
+            'Количество конфликтных кейсов в одной 1m-свече: одновременно касаются SL и ликвидации. Это редкие случаи, где особенно важно правило приоритета событий внутри минуты.'
     },
     LiqBeforeSL$: {
         key: 'LiqBeforeSL$',
@@ -677,6 +689,8 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         tooltip: 'Аномалии минутных данных.'
     }
 }
+
+export const POLICY_BRANCH_MEGA_TERM_KEYS = Object.freeze(Object.keys(TERMS)) as readonly string[]
 function extractMegaPartNumber(title: string | undefined): number | null {
     if (!title) return null
 
@@ -879,7 +893,9 @@ function ensureSemanticParagraphBreaks(text: string): string {
     let next = text
 
     next = next.replace(/([^\n])\s+(Пример:)/g, '$1\n\n$2')
+    next = next.replace(/([^\n])\s+(Example:)/g, '$1\n\n$2')
     next = next.replace(/([^\n])\s+(Как читать:)/g, '$1\n\n$2')
+    next = next.replace(/([^\n])\s+(How to read:)/g, '$1\n\n$2')
     next = next.replace(/([^\n])\s+(Ориентир чтения:)/g, '$1\n\n$2')
     next = next.replace(/([^\n])\s+(First-event цепочка:)/g, '$1\n\n$2')
     next = next.replace(/([^\n])\s+(Риск NO SL:|Риск NO-SL:)/g, '$1\n\n$2')
@@ -888,7 +904,21 @@ function ensureSemanticParagraphBreaks(text: string): string {
     return next
 }
 
-function resolveTermImportanceHintOrDefault(key: string): string {
+function normalizeLocaleAwareTermBlock(text: string, locale: PolicyBranchMegaTermLocale): string {
+    const cleaned = removeRedundantGlossaryFromDescription(text)
+    const humanized = locale === 'ru' ? humanizeInternalTerms(cleaned) : cleaned
+    return ensureSentenceEnding(ensureSemanticParagraphBreaks(humanized))
+}
+
+function resolveReadingLabel(locale: PolicyBranchMegaTermLocale): string {
+    return locale === 'ru' ? 'Как читать' : 'How to read'
+}
+
+function resolveExampleLabel(locale: PolicyBranchMegaTermLocale): string {
+    return locale === 'ru' ? 'Пример' : 'Example'
+}
+
+function _resolveTermImportanceHintOrDefault(key: string): string {
     if (key === 'Policy') {
         return 'по этой строке сравнивается конкретный набор торговых правил с другими политиками в одинаковых рыночных условиях.'
     }
@@ -1025,13 +1055,13 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'слишком широкий SL увеличивает убыток на сделку; слишком узкий резко снижает долю успешных сделок.'
     }
     if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
-        return 'чаще меньше общего объёма, потому что dynamic требует подтверждённой статистики по confidence.'
+        return 'обычно меньше общего объёма, потому что [[dynamic-tp-sl|DYNAMIC risk]] требует подтверждённой статистики по [[confidence-bucket|confidence-bucket]].'
     }
     if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
-        return 'если статических сделок резко больше динамических, dynamic-слой редко проходит условия допуска в этом периоде.'
+        return 'если сделок [[static-tp-sl|STATIC base]] резко больше, чем [[dynamic-tp-sl|DYNAMIC risk]], значит dynamic-оверлей редко проходит условия допуска в этом периоде.'
     }
     if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
-        return 'вклад dynamic и static в итог оценивается совместно: так видно, какой режим реально “делает” результат.'
+        return 'вклад [[dynamic-tp-sl|DYNAMIC risk]] и [[static-tp-sl|STATIC base]] оценивается совместно: так видно, какой режим реально даёт результат.'
     }
     if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
         return 'чем выше, тем лучше по доходности, но финальное решение только вместе с MaxDD%, HadLiq и AccRuin.'
@@ -1100,7 +1130,132 @@ function resolveTermReadingHintOrDefault(key: string): string {
     return 'корректное сравнение возможно только для строк в одном и том же срезе (bucket, SL mode, TP/SL mode, zonal, metric view), иначе вывод будет некорректным.'
 }
 
-function resolveTermDecisionContextHintOrDefault(key: string): string {
+function resolveEnglishTermReadingHintOrDefault(key: string): string {
+    if (key === 'Policy') {
+        return 'Policy is assessed through [[total-pnl|TotalPnl%]], [[wealth-pct|Wealth%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]], and [[req-gain|ReqGain%]].\n\nReading guide:\n- higher [[total-pnl|TotalPnl%]] and [[wealth-pct|Wealth%]] are better;\n- shallower [[drawdown|MaxDD%]] is better (for example, -22% is better than -48%);\n- best case is [[liquidation|HadLiq]]=0 and [[account-ruin|AccRuin]]=0;\n- better when [[recovered|Recovered]]=true and [[recov-days|RecovDays]] / [[req-gain|ReqGain%]] are lower.'
+    }
+    if (key === 'Branch') {
+        return 'Comparison is valid only inside the same Policy and the same mode slice (bucket, SL mode, TP/SL mode, metric view).\n\nEvaluate risk first: MaxDD%, HadLiq, AccRuin.\n\nThen evaluate how much return was sacrificed or preserved: TotalPnl% and Wealth%.\n\nExample inside the branch comparison itself: BASE = TotalPnl% 26, MaxDD -44, HadLiq 2, AccRuin 1. ANTI-D = TotalPnl% 22, MaxDD -24, HadLiq 0, AccRuin 0.\n\nConclusion: ANTI-D reduces emergency risk; the price of that improvement is 4 p.p. of TotalPnl%.'
+    }
+    if (key === 'SL Mode') {
+        return 'WITH SL and NO SL must be compared only inside the same Policy/Branch row.\n\nIf NO SL increases MaxDD%, HadLiq, and AccRuin, the extra return was bought at the cost of bucket wipeout risk (and, in cross margin, full trading-balance wipeout risk).'
+    }
+    if (key === 'StartDay' || key === 'EndDay') {
+        return 'These dates must match the comparison window; different date boundaries make policy comparison invalid.'
+    }
+    if (key === 'StopReason') {
+        return 'The normal case is reaching the end of the period; early stop because of liquidation is a red flag.'
+    }
+    if (key === 'Days' || key === 'Tr') {
+        return 'High return based on very few days or trades is less reliable than comparable return on a broad sample.'
+    }
+    if (key === 'Trade%') {
+        return 'Example reading: 35% means the strategy traded on 35 out of 100 days.'
+    }
+    if (key === 'NoTrade%') {
+        return 'A higher value means rarer trading; that is not bad by itself, but it affects statistical stability.'
+    }
+    if (key === 'Long%' || key === 'Short%') {
+        return 'These metrics are not “good” or “bad” on their own; interpret them together with Long$/Short$ and AvgLong%/AvgShort%.'
+    }
+    if (key === 'RiskDay%') {
+        return 'Higher values mean the strategy spent more time in elevated-risk conditions; interpret together with MaxDD%, HadLiq, and AccRuin.'
+    }
+    if (key === 'AntiD%' || key === 'AntiD|Risk%') {
+        return 'High values mean direction inversion is active often; then assess whether that improves PnL at the same or lower risk.'
+    }
+    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+        return 'Higher leverage means more aggressive risk; the upper tail (p90/max) is especially informative.'
+    }
+    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+        return 'The larger the capital fraction per trade, the stronger the impact of each mistake; interpret together with MaxDD and liquidation metrics.'
+    }
+    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+        return 'Growth in the upper levels (p90/p99/max, >=50%) means tail risk is increasing.'
+    }
+    if (key === 'DailyTP%' || key === 'DelayedTP%') {
+        return 'This is the profit target level; compare it with the matching SL to see the risk/reward profile.'
+    }
+    if (key === 'DailySL%' || key === 'DelayedSL%') {
+        return 'An excessively wide SL increases loss per trade; an excessively tight SL sharply reduces the share of successful trades.'
+    }
+    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
+        return 'These values are usually smaller than the full trade volume because [[dynamic-tp-sl|DYNAMIC risk]] requires confirmed statistics inside [[confidence-bucket|confidence-bucket]].'
+    }
+    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
+        return 'If [[static-tp-sl|STATIC base]] trade count is much larger than [[dynamic-tp-sl|DYNAMIC risk]], the dynamic overlay rarely passes admission conditions in this period.'
+    }
+    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
+        return 'The contribution of [[dynamic-tp-sl|DYNAMIC risk]] and [[static-tp-sl|STATIC base]] must be read together to see which mode actually drives the result.'
+    }
+    if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
+        return 'Higher is better for return, but the final decision must always be made together with MaxDD%, HadLiq, and AccRuin.'
+    }
+    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
+        return 'Higher is better for risk-adjusted return, but comparison is valid only inside the same bucket and the same metric mode.'
+    }
+    if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
+        return 'These must be interpreted together: high average return without control over dispersion and drawdown usually means unstable risk profile.'
+    }
+    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$') {
+        return 'Interpret them together: OnExch$ + Withdrawn$ must explain the final wealth-based return.'
+    }
+    if (key === 'StartCap$') {
+        return 'This is the scale baseline: percentages can be compared between strategies, but dollar amounts only when start capital is the same.'
+    }
+    if (DRAW_DOWN_KEYS.has(key)) {
+        return 'For drawdown, the rule is simple: the shallower the decline and the rarer the deep episodes, the more robust the strategy.'
+    }
+    if (key === 'HadLiq') {
+        return 'Best case is false/0. Even a single liquidation is a reason to inspect tail risk.'
+    }
+    if (key === 'AccRuin') {
+        return 'Best case is 0. A value of 1 means the strategy effectively “died” on the selected horizon.'
+    }
+    if (
+        key === 'RealLiq' ||
+        key === 'LiqBeforeSL_n' ||
+        key === 'LiqBeforeSL_BadSL_n' ||
+        key === 'LiqBeforeSL_Same1m_n'
+    ) {
+        return 'Preferably these values stay at 0 or near 0; growth here calls for leverage, capital fraction, and SL revision.'
+    }
+    if (key === 'LiqBeforeSL$') {
+        return 'A large negative value means “liquidation before SL” events are expensive for the business.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%') {
+        return 'Higher values mean trades reach end-of-window closure more often instead of exiting by TP/SL; that changes both risk profile and exit quality.'
+    }
+    if (key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+        return 'If this metric is consistently negative, EndOfDay behavior harms the final result more often than it helps.'
+    }
+    if (RECOVERY_KEYS.has(key)) {
+        return 'Better when recovery exists (Recovered=true), is faster (lower RecovDays/RecovSignals), and requires less growth (lower ReqGain%).'
+    }
+    if (key === 'HorizonDays' || key === 'AvgDay%' || key === 'AvgWeek%' || key === 'AvgMonth%' || key === 'AvgYear%') {
+        return 'These growth rates are convenient for comparison, but they must be read alongside drawdowns: average growth can hide severe capital collapses.'
+    }
+    if (
+        key === 'Long n' ||
+        key === 'Short n' ||
+        key === 'Long $' ||
+        key === 'Short $' ||
+        key === 'AvgLong%' ||
+        key === 'AvgShort%'
+    ) {
+        return 'Interpret this as direction split: where the strategy earns more often and where it loses more often.'
+    }
+    if (DIAGNOSTIC_ZERO_KEYS.has(key)) {
+        return 'The normal value is 0; any non-zero value is a signal to recheck data and simulation mechanics.'
+    }
+    if (key === 'Miss') {
+        return 'In the "weekday | weekend" format, the left number (weekday misses) should normally be 0; the right number reflects weekend skips and is expected.'
+    }
+
+    return 'Correct comparison is possible only for rows inside the same slice (bucket, SL mode, TP/SL mode, zonal, metric view); otherwise the conclusion is invalid.'
+}
+
+function _resolveTermDecisionContextHintOrDefault(key: string): string {
     if (key === 'Policy') {
         return 'в ежедневном решении это главный набор правил: открыть LONG, открыть SHORT или пропустить день, если условий для входа недостаточно.'
     }
@@ -1150,7 +1305,7 @@ function resolveTermDecisionContextHintOrDefault(key: string): string {
         key === 'StatTP/SL Tr' ||
         key === 'StatTP/SL PnL%'
     ) {
-        return 'это разбор вклада двух режимов выхода: adaptive-режим меняет уровни по состоянию рынка, fixed-режим держит уровни постоянными.'
+        return 'это разбор вклада двух режимов: [[dynamic-tp-sl|DYNAMIC risk]] меняет уровни выхода и [[cap-fraction|cap fraction]] по уверенности, а [[static-tp-sl|STATIC base]] оставляет базовые правила сделки.'
     }
     if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
         return 'это итог результата: проценты удобны для сравнения стратегий, деньги показывают реальный финансовый эффект.'
@@ -1215,6 +1370,32 @@ function resolveFallbackExampleHint(key: string): string {
     return `${key} читается в связке с соседними метриками той же строки: доходность, просадка, ликвидации и восстановление.`
 }
 
+function resolveEnglishFallbackExampleHint(key: string): string {
+    if (key === 'StartDay' || key === 'EndDay') {
+        return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the comparison was run on the same historical window.'
+    }
+    if (key.includes('$')) {
+        return `${key}=12,500 shows the effect in dollars, not in percentages.`
+    }
+    if (key.includes('%')) {
+        return `${key}=28 means the metric equals 28% in the selected table slice.`
+    }
+    if (/_n$/.test(key) || /Days|Tr|Signals|n$/.test(key)) {
+        return `${key}=120 means 120 events (days, trades, or signals) for the selected row.`
+    }
+    if (key === 'Policy') {
+        return 'If Policy A has lower return but much lower drawdown and no liquidations, the business often chooses it as the more robust option.'
+    }
+    if (key === 'Branch') {
+        return 'If ANTI-D has slightly lower return but materially lower drawdown, it provides a safer risk profile for launch.'
+    }
+    if (key === 'SL Mode') {
+        return 'If NO SL gives slightly higher PnL in the same row but MaxDD%, HadLiq, or AccRuin rise, the extra return was bought at the cost of emergency risk.'
+    }
+
+    return `${key} must be read together with neighboring metrics in the same row: return, drawdown, liquidations, and recovery.`
+}
+
 function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'Policy') {
         return 'если Policy A дала +48% при MaxDD -18%, а Policy B дала +55% при MaxDD -52%, бизнес чаще выберет A как более устойчивую.'
@@ -1253,13 +1434,13 @@ function resolveTermExampleHintOrNull(key: string): string | null {
         return 'TP=2.0% и SL=1.0% означает, что на бумаге цель прибыли в 2 раза больше лимита убытка.'
     }
     if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
-        return 'DynTP/SL Tr=120 при Tr=460 означает, что dynamic-логика применялась только к части сделок.'
+        return 'DynTP/SL Tr=120 при Tr=460 означает, что [[dynamic-tp-sl|DYNAMIC risk]] применился только к части сделок, а остальные остались в [[static-tp-sl|STATIC base]].'
     }
     if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
-        return 'StatTP/SL Tr=340 при DynTP/SL Tr=120 показывает, что основная масса сделок прошла по фиксированным уровням.'
+        return 'StatTP/SL Tr=340 при DynTP/SL Tr=120 показывает, что основная масса сделок прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея.'
     }
     if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
-        return 'DynTP/SL PnL%=14 и StatTP/SL PnL%=6 означает, что основной вклад в доходность дал dynamic-срез.'
+        return 'DynTP/SL PnL%=14 и StatTP/SL PnL%=6 означает, что основной вклад в доходность дал [[dynamic-tp-sl|DYNAMIC risk]]-срез.'
     }
     if (key === 'Tr') {
         return 'Tr=520 означает, что в этом срезе у этой политики было 520 сделок.'
@@ -1352,25 +1533,168 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     return resolveFallbackExampleHint(key)
 }
 
+function resolveEnglishTermExampleHintOrNull(key: string): string | null {
+    if (key === 'Policy') {
+        return 'If Policy A delivered +48% with MaxDD -18%, while Policy B delivered +55% with MaxDD -52%, the business usually prefers A as the more stable option.'
+    }
+    if (key === 'Branch') {
+        return 'If BASE = +22% and ANTI-D = +19%, but MaxDD drops from -40% to -24%, ANTI-D is more practical for a risk-limited launch.'
+    }
+    if (key === 'SL Mode') {
+        return 'For the same Policy/Branch row, WITH SL vs NO SL shows the price of risk: if NO SL improves PnL but increases liquidations and/or AccRuin, the mode becomes unacceptable for production use.'
+    }
+    if (key === 'Days') {
+        return 'A value of 365 means the calculation covered 365 trading days (excluding weekends).'
+    }
+    if (key === 'StartDay' || key === 'EndDay') {
+        return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the simulation was read on exactly that date window.'
+    }
+    if (key === 'Trade%') {
+        return '35% means there were trades on 35 out of 100 days.'
+    }
+    if (key === 'NoTrade%') {
+        return '65% means the strategy skipped roughly 65 out of 100 days.'
+    }
+    if (key === 'Long%' || key === 'Short%') {
+        return 'Long%=70 and Short%=20 with NoTrade%=10 mean the strategy is heavily biased toward long entries.'
+    }
+    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+        return 'avg=4, p90=9 means leverage is moderate most of the time, but the upper tail shifts into aggressive mode.'
+    }
+    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+        return 'AvgStake%=12 means roughly 12% of bucket start capital is risked per trade on average.'
+    }
+    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+        return 'If the >=50% share rises from 4% to 19%, the strategy became materially more aggressive.'
+    }
+    if (key === 'DailyTP%' || key === 'DelayedTP%' || key === 'DailySL%' || key === 'DelayedSL%') {
+        return 'TP=2.0% and SL=1.0% mean the paper profit target is twice the loss limit.'
+    }
+    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
+        return 'DynTP/SL Tr=120 with Tr=460 means [[dynamic-tp-sl|DYNAMIC risk]] applied only to part of the trades, while the rest stayed in [[static-tp-sl|STATIC base]].'
+    }
+    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
+        return 'StatTP/SL Tr=340 with DynTP/SL Tr=120 shows that most trades ran without the [[dynamic-tp-sl|DYNAMIC risk]] overlay.'
+    }
+    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
+        return 'DynTP/SL PnL%=14 and StatTP/SL PnL%=6 mean the main return contribution came from the [[dynamic-tp-sl|DYNAMIC risk]] slice.'
+    }
+    if (key === 'Tr') {
+        return 'Tr=520 means this policy had 520 trades in the selected slice.'
+    }
+    if (key === 'TotalPnl%') {
+        return 'TotalPnl%=38 means a 38% gain from the start capital of the selected bucket.'
+    }
+    if (key === 'TotalPnl$') {
+        return 'TotalPnl$=19,000 means net profit of 19,000 USD in this slice.'
+    }
+    if (key === 'BucketNow$') {
+        return 'BucketNow$=62,000 means the current bucket capital after all closed trades.'
+    }
+    if (key === 'Wealth%') {
+        return 'Wealth%=52 means total wealth grew by 52% including withdrawn profit.'
+    }
+    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active%' || key === 'MaxDD_Ratio%') {
+        return 'MaxDD=-41% means capital fell 41% from the local peak at the worst point.'
+    }
+    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
+        return 'Sharpe=1.2 is better than Sharpe=0.6 when the comparison is made inside the same slice.'
+    }
+    if (key === 'CAGR%' || key === 'AvgYear%') {
+        return 'CAGR%=24 means the average annualized growth rate is about 24% on the selected horizon.'
+    }
+    if (key === 'WinRate%') {
+        return 'WinRate%=58 means 58 out of 100 trades were profitable.'
+    }
+    if (key === 'MeanRet%') {
+        return 'MeanRet%=0.35 means the average daily return of the series was +0.35%.'
+    }
+    if (key === 'StdRet%') {
+        return 'StdRet%=1.8 means daily return usually deviated by about 1.8 p.p. from its mean.'
+    }
+    if (key === 'DownStd%') {
+        return 'DownStd%=1.1 means the typical spread of losing days was about 1.1 p.p.'
+    }
+    if (key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
+        return 'For a single bucket StartCap$ is usually 20,000, while total aggregate is usually 60,000; together with Withdrawn$ and OnExch$ this shows the money structure of the result.'
+    }
+    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq') {
+        return 'HadLiq=1 means at least one position was force-closed by the exchange.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+        return 'EODExit%=42 means 42% of trades were closed by time at end of window, not by TP/SL.'
+    }
+    if (
+        key === 'LiqBeforeSL_n' ||
+        key === 'LiqBeforeSL_BadSL_n' ||
+        key === 'LiqBeforeSL_Same1m_n' ||
+        key === 'LiqBeforeSL$'
+    ) {
+        return 'LiqBeforeSL_n=7 means there were 7 cases where liquidation happened before the protective SL.'
+    }
+    if (key === 'BalMin%' || key === 'BalDead' || key === 'Time<35%') {
+        return 'Time<35%=18% means capital spent 18% of the time below 35% of its start baseline.'
+    }
+    if (
+        key === 'Recovered' ||
+        key === 'RecovDays' ||
+        key === 'RecovSignals' ||
+        key === 'ReqGain%' ||
+        key === 'DD70_Min%' ||
+        key === 'DD70_Recov' ||
+        key === 'DD70_RecovDays' ||
+        key === 'DD70_n'
+    ) {
+        return 'RecovDays=140 means the strategy needed about 140 days to return to its previous peak after a major drawdown.'
+    }
+    if (key === 'HorizonDays' || key === 'AvgDay%' || key === 'AvgWeek%' || key === 'AvgMonth%' || key === 'AvgYear%') {
+        return 'AvgMonth%=1.8 means the average monthly pace is about 1.8%, but it must always be checked against MaxDD.'
+    }
+    if (
+        key === 'Long n' ||
+        key === 'Short n' ||
+        key === 'Long $' ||
+        key === 'Short $' ||
+        key === 'AvgLong%' ||
+        key === 'AvgShort%'
+    ) {
+        return 'Long$=14,000 and Short$=-2,000 mean profit came mainly from upward trades.'
+    }
+    if (key === 'Miss') {
+        return 'The format "0 | 18" means: no weekday misses (normal), 18 weekends skipped by the expected weekend-skip rule.'
+    }
+    if (key === 'inv_liq_mismatch' || key === 'minutes_anomaly') {
+        return 'Normal case: 0. Any visible deviation is a reason to recheck both data and calculation logic.'
+    }
+
+    return resolveEnglishFallbackExampleHint(key)
+}
+
 interface PolicyBranchMegaManualTranslation {
     description: string
     tooltip: string
+    readingHint?: string
+    example?: string | null
 }
 
 const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTranslation> = {
     Policy: {
-        description: 'Name of the trading policy (entry, sizing, leverage, and exit rule set) used for this row.',
-        tooltip: 'Trading policy name.'
+        description:
+            'Name of the trading policy. A policy is the full rule set for this row: when a position may open, which action is chosen on that day (LONG, SHORT, or no trade), what size is used, what leverage is applied, and where stop-loss / take-profit are defined.\n\nThe day is skipped when entry conditions are not satisfied (for example: no valid signal direction, policy-skip fired, risk filter blocked entry, or cap fraction = 0).\n\nPolicy name therefore stands for the full entry, exit, and risk configuration.',
+        tooltip:
+            'Trading policy name and its full entry, exit, and risk configuration.'
     },
     Branch: {
         description:
-            'Execution branch of the same policy. BASE keeps original direction, ANTI-D can invert direction on qualified risk days.',
-        tooltip: 'BASE or ANTI-D execution branch.'
+            'Branch is the execution scenario of the same Policy.\n\nBASE keeps the original daily signal direction without inversion (LONG stays LONG, SHORT stays SHORT).\n\nANTI-D checks the anti-direction rule every day. If the rule fires, direction is forcibly inverted (LONG -> SHORT, SHORT -> LONG).\n\nOne mandatory anti-direction filter is MinMove inside the working range (0.5%-12%).\n\nThis comparison shows whether inversion reduces stress-day risk without causing a critical loss of return.',
+        tooltip:
+            'Execution scenario of the same Policy: BASE keeps the original direction, ANTI-D can invert it when anti-direction conditions fire.'
     },
     'SL Mode': {
         description:
-            'Exit regime for this row. WITH SL includes stop-loss in first-event chain. NO SL exits only by TP, liquidation, or EndOfDay.',
-        tooltip: 'WITH SL or NO SL mode.'
+            'SL Mode is the switch for trade-exit mechanics.\n\nWITH SL keeps protective stop-loss enabled. The trade can close by stop-loss, take-profit, liquidation, or EndOfDay.\n\nNO SL disables the protective stop-loss, so the trade can close only by take-profit, liquidation, or EndOfDay.\n\nRisk in NO SL:\nfor isolated margin this raises the chance of losing the full trade margin.\n\nFor cross margin this raises the chance of losing the whole bucket balance.',
+        tooltip:
+            'Exit-mechanics mode for the row: WITH SL keeps protective stop-loss, NO SL removes it and leaves only take-profit, liquidation, or EndOfDay exits.'
     },
     Days: {
         description: 'Total trading days in this policy/branch slice (trade and no-trade days).',
@@ -1386,8 +1710,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     StopReason: {
         description:
-            'Why the simulation ended: normal end of window, liquidation-driven early stop, or early stop without liquidation.',
-        tooltip: 'Reason simulation stopped.'
+            'Why the series ended.\n\nEnd of period means the test reached the final day of the window. That is the normal and healthy completion path.\n\nLiquidation (early stop) means the exchange force-closed a position because loss became critical.\n\nEarly stop without liquidation means the exchange did not force-close the trade, but the working balance was destroyed by a sequence of losses and the ruin scenario (AccRuin) fired.',
+        tooltip: 'Why this simulation slice ended exactly here.'
     },
     Miss: {
         description:
@@ -1395,8 +1719,9 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Missing days: weekday | weekend.'
     },
     'Trade%': {
-        description: 'Share of days with real trades: TradeDays / Days * 100.',
-        tooltip: 'Percent of trade days.'
+        description:
+            'Share of days with a real trade: TradeDays / Days * 100. A day counts as a trading day only after all filters are passed: a valid direction exists, policy-skip did not fire, cap fraction is above 0, and entry is not blocked by the risk filter.',
+        tooltip: 'Percent of days that actually turned into trades.'
     },
     'Long%': {
         description: 'Share of days where final action was LONG.',
@@ -1407,8 +1732,9 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Percent of SHORT days.'
     },
     'NoTrade%': {
-        description: 'Share of days without trades (no direction, policy-skip, risk filter, or cap fraction = 0).',
-        tooltip: 'Percent of no-trade days.'
+        description:
+            'Share of days without trades. A no-trade day appears when the model has no valid direction, policy-skip blocks the day, a risk filter blocks entry, or cap fraction is reduced to 0.\n\nA high value does not automatically mean the policy is bad, but it does mean the strategy acts less often and the sample of actual trades becomes thinner.',
+        tooltip: 'Percent of days where the strategy did not open a trade.'
     },
     'RiskDay%': {
         description: 'Share of days flagged as risk days by the SL layer.',
@@ -1471,27 +1797,27 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Daily SL avg/min/max, %.'
     },
     'DynTP/SL Days': {
-        description: 'Unique days where dynamic TP/SL regime was used.',
+        description: 'Unique days where the DYNAMIC risk overlay was actually applied.',
         tooltip: 'Days with dynamic TP/SL.'
     },
     'DynTP/SL Tr': {
-        description: 'Trades where dynamic TP/SL regime was used.',
+        description: 'Trades where the DYNAMIC risk overlay was actually applied.',
         tooltip: 'Trades with dynamic TP/SL.'
     },
     'DynTP/SL PnL%': {
-        description: 'PnL contribution from dynamic TP/SL trades, in % of StartCap$.',
+        description: 'PnL contribution from DYNAMIC risk trades, in % of StartCap$.',
         tooltip: 'Dynamic TP/SL contribution, %.'
     },
     'StatTP/SL Days': {
-        description: 'Unique days where static TP/SL regime was used.',
+        description: 'Unique days where trades stayed in STATIC base mode without dynamic overlay.',
         tooltip: 'Days with static TP/SL.'
     },
     'StatTP/SL Tr': {
-        description: 'Trades where static TP/SL regime was used.',
+        description: 'Trades that stayed in STATIC base mode without dynamic overlay.',
         tooltip: 'Trades with static TP/SL.'
     },
     'StatTP/SL PnL%': {
-        description: 'PnL contribution from static TP/SL trades, in % of StartCap$.',
+        description: 'PnL contribution from STATIC base trades, in % of StartCap$.',
         tooltip: 'Static TP/SL contribution, %.'
     },
     'DelayedTP%': {
@@ -1507,24 +1833,28 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Trade count.'
     },
     'TotalPnl%': {
-        description: 'Total return in % for the selected slice.',
-        tooltip: 'Total PnL, %.'
+        description:
+            'Total profit or loss relative to the start capital of the selected slice, in %. This metric answers how much the slice earned or lost from its initial capital base.\n\nIts value also depends on the selected metric mode: in REAL it is the factual result, while in NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation for tail-risk analysis.',
+        tooltip: 'Total profit or loss relative to slice start capital, in %.'
     },
     TotalPnl$: {
-        description: 'Total PnL in USD for the selected slice.',
-        tooltip: 'Total PnL, $.'
+        description:
+            'Total profit or loss in USD for the selected slice. Unlike TotalPnl%, this is the absolute money result, not a normalized percentage.\n\nIt is useful for business reading because it shows how large the effect is in dollars, not only in relative return terms.',
+        tooltip: 'Total profit or loss in USD for the slice.'
     },
     BucketNow$: {
         description: 'Current capital of selected bucket after all closed trades.',
         tooltip: 'Current bucket capital, $.'
     },
     'Wealth%': {
-        description: 'Wealth growth in % including withdrawn profit.',
-        tooltip: 'Wealth growth, %.'
+        description:
+            'Wealth-based growth in %: (equity now + withdrawn profit - start capital) / start capital * 100.\n\nUnlike TotalPnl%, Wealth% explicitly includes money already withdrawn from the slice, so it reflects total accumulated wealth rather than only current in-slice capital.',
+        tooltip: 'Total wealth growth including withdrawn profit, in %.'
     },
     'MaxDD%': {
-        description: 'Maximum drawdown from local equity peak, in %.',
-        tooltip: 'Max drawdown, %.'
+        description:
+            'Maximum drawdown: the deepest capital drop from a local peak to the following minimum, in %.\n\nIn REAL it is the factual drawdown. In NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation.\n\nThis is one of the main survival metrics of the row: a deeper MaxDD means the business must tolerate a larger capital collapse before recovery starts.',
+        tooltip: 'Deepest peak-to-trough capital decline, in %.'
     },
     'MaxDD_NoLiq%': {
         description: 'Maximum drawdown excluding liquidation effects, in %.',
@@ -1583,12 +1913,14 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Start capital, $.'
     },
     HadLiq: {
-        description: 'Flag/count indicating liquidation events in this row.',
-        tooltip: 'Had liquidation.'
+        description:
+            'HadLiq tracks liquidation events in this row.\n\nFor a single bucket row it behaves like a flag: 0 means no liquidation, 1 means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
+        tooltip: 'Whether the row had liquidation events.'
     },
     AccRuin: {
-        description: 'Account ruin flag: whether equity reached ruin threshold.',
-        tooltip: 'Account ruin flag.'
+        description:
+            'AccRuin is the ruin metric of the working bucket capital.\n\nA bucket is considered ruined when it is explicitly marked as dead or when EquityNow / StartCapital falls to 20% or below, which means 80% or more of the start capital was lost.\n\nFor a single bucket row this is usually 0 or 1. For total aggregate it can show how many buckets were ruined.\n\nThis is stricter than ordinary drawdown: ruin means the strategy is no longer operational on that capital base.',
+        tooltip: 'Whether working capital reached the ruin threshold.'
     },
     RealLiq: {
         description: 'Count/flag of real liquidations using strict liquidation criterion.',
@@ -1635,12 +1967,14 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Balance-death flag.'
     },
     Recovered: {
-        description: 'Whether equity fully recovered after MaxDD episode.',
-        tooltip: 'Recovered after MaxDD.'
+        description:
+            'Recovered is the recovery flag after the MaxDD episode on active equity.\n\nThe check is simple: after the MaxDD bottom, the current balance must return to the peak that existed before that drawdown.\n\ntrue means the old peak was regained; false means the series ended without full recovery.',
+        tooltip: 'Whether the row fully recovered after its deepest drawdown.'
     },
     RecovDays: {
-        description: 'Calendar days from MaxDD bottom to full recovery.',
-        tooltip: 'Recovery time, days.'
+        description:
+            'Calendar days from the MaxDD bottom to the moment when balance returns to the peak before that drawdown.\n\nIf recovery never happened, the raw calculation keeps -1 and the table renders an empty / unavailable marker instead.\n\nThis metric shows not only whether recovery exists, but also how long the business has to wait for it.',
+        tooltip: 'Time needed to recover from MaxDD, in calendar days.'
     },
     RecovSignals: {
         description: 'Trade-day count needed for recovery after MaxDD.',
@@ -1651,8 +1985,9 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Time below 35%, days.'
     },
     'ReqGain%': {
-        description: 'Required gain from MaxDD bottom to return to previous peak.',
-        tooltip: 'Required gain after MaxDD, %.'
+        description:
+            'Required gain from the MaxDD bottom to return to the peak before that drawdown.\n\nFormula: ReqGain% = (1 / (1 - MaxDD) - 1) * 100.\n\nInterpretation is direct: the lower the value, the more realistic the recovery. 100%+ already means a heavy comeback requirement, and 200%+ is extremely demanding.',
+        tooltip: 'Required rebound from drawdown bottom back to the previous peak, in %.'
     },
     'DD70_Min%': {
         description: 'Minimum equity in deepest episode where equity fell below 70% of start.',
@@ -1737,32 +2072,66 @@ function resolveManualEnglishTermTranslationOrThrow(key: string): PolicyBranchMe
     return translation
 }
 
+function resolveEnglishTermContentOrThrow(key: string): PolicyBranchMegaResolvedLocaleContent {
+    const translation = resolveManualEnglishTermTranslationOrThrow(key)
+
+    return {
+        description: translation.description,
+        readingHint: translation.readingHint ?? resolveEnglishTermReadingHintOrDefault(key),
+        example:
+            typeof translation.example === 'undefined' ? resolveEnglishTermExampleHintOrNull(key) : translation.example,
+        tooltip: translation.tooltip
+    }
+}
+
+function resolveRuTermContentOrThrow(term: PolicyBranchMegaTermDraft, key: string): PolicyBranchMegaResolvedLocaleContent {
+    if (!term.description || term.description.trim().length === 0) {
+        throw new Error(`[policy-branch-mega] description is empty for term=${key}.`)
+    }
+
+    const tooltip =
+        typeof term.tooltip === 'undefined' || term.tooltip === POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION ?
+            term.description
+        :   term.tooltip
+
+    if (typeof tooltip !== 'string' || tooltip.trim().length === 0) {
+        throw new Error(`[policy-branch-mega] tooltip is empty for term=${key}.`)
+    }
+
+    return {
+        description: term.description,
+        readingHint: resolveTermReadingHintOrDefault(key),
+        example: resolveTermExampleHintOrNull(key),
+        tooltip
+    }
+}
+
+function resolvePolicyBranchMegaTermContentOrThrow(
+    term: PolicyBranchMegaTermDraft,
+    key: string,
+    locale: PolicyBranchMegaTermLocale
+): PolicyBranchMegaResolvedLocaleContent {
+    return locale === 'en' ? resolveEnglishTermContentOrThrow(key) : resolveRuTermContentOrThrow(term, key)
+}
+
 function buildUserFacingTermDescriptionOrThrow(
     term: PolicyBranchMegaTermDraft,
     key: string,
     locale: PolicyBranchMegaTermLocale
 ): string {
-    if (!term.description || term.description.trim().length === 0) {
-        throw new Error(`[policy-branch-mega] description is empty for term=${key}.`)
-    }
-
-    if (locale === 'en') {
-        return resolveManualEnglishTermTranslationOrThrow(key).description
-    }
-
-    const base = ensureSentenceEnding(
-        ensureSemanticParagraphBreaks(humanizeInternalTerms(removeRedundantGlossaryFromDescription(term.description)))
-    )
-    const reading = ensureSentenceEnding(
-        ensureSemanticParagraphBreaks(humanizeInternalTerms(resolveTermReadingHintOrDefault(key)))
-    )
-    const example = resolveTermExampleHintOrNull(key)
+    const content = resolvePolicyBranchMegaTermContentOrThrow(term, key, locale)
+    const base = normalizeLocaleAwareTermBlock(content.description, locale)
+    const reading = normalizeLocaleAwareTermBlock(content.readingHint, locale)
     const exampleBlock =
-        typeof example === 'string' && example.trim().length > 0 ?
-            ensureSentenceEnding(ensureSemanticParagraphBreaks(humanizeInternalTerms(`Пример: ${example}`)))
+        typeof content.example === 'string' && content.example.trim().length > 0 ?
+            normalizeLocaleAwareTermBlock(`${resolveExampleLabel(locale)}: ${content.example}`, locale)
         :   ''
 
-    const blocks = [base, `Как читать: ${reading}`, exampleBlock].filter((block): block is string => Boolean(block))
+    const blocks = [
+        base,
+        `${resolveReadingLabel(locale)}: ${reading}`,
+        exampleBlock
+    ].filter((block): block is string => Boolean(block))
 
     return blocks.join('\n\n')
 }
@@ -1774,28 +2143,21 @@ function resolvePolicyBranchMegaTermTooltipOrThrow(
     resolvedDescription: string,
     locale: PolicyBranchMegaTermLocale
 ): string {
-    if (locale === 'en') {
-        const translation = resolveManualEnglishTermTranslationOrThrow(key)
-        if (tooltipMode === 'description') {
-            return resolvedDescription
-        }
-
-        return translation.tooltip
-    }
-
     if (tooltipMode === 'description') {
         return resolvedDescription
     }
 
-    if (typeof term.tooltip === 'undefined' || term.tooltip === POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION) {
-        return resolvedDescription
+    const content = resolvePolicyBranchMegaTermContentOrThrow(term, key, locale)
+    return normalizeLocaleAwareTermBlock(content.tooltip, locale)
+}
+
+function resolvePolicyBranchMegaTermDraftOrThrow(key: string): PolicyBranchMegaTermDraft {
+    const term = TERMS[key]
+    if (!term) {
+        throw new Error(`[policy-branch-mega] unknown column term: ${key}`)
     }
 
-    if (typeof term.tooltip !== 'string' || term.tooltip.trim().length === 0) {
-        throw new Error(`[policy-branch-mega] tooltip is empty for term=${key}.`)
-    }
-
-    return term.tooltip
+    return term
 }
 
 export function getPolicyBranchMegaTermOrThrow(
@@ -1807,10 +2169,7 @@ export function getPolicyBranchMegaTermOrThrow(
         throw new Error('[policy-branch-mega] column title is empty.')
     }
 
-    const term = TERMS[key]
-    if (!term) {
-        throw new Error(`[policy-branch-mega] unknown column term: ${key}`)
-    }
+    const term = resolvePolicyBranchMegaTermDraftOrThrow(key)
 
     const locale = options?.locale ?? 'ru'
     const resolvedDescription = buildUserFacingTermDescriptionOrThrow(term, key, locale)
@@ -1828,6 +2187,40 @@ export function getPolicyBranchMegaTermOrThrow(
         )
     }
 }
+
+export function buildPolicyBranchMegaTermReferencesForColumns(columns: string[]): PolicyBranchMegaTermReference[] {
+    if (!columns || columns.length === 0) {
+        throw new Error('[policy-branch-mega] columns list is empty.')
+    }
+
+    const normalizedColumns = columns.map(column => normalizeTermKey(column ?? ''))
+    const normalizedSet = new Set(normalizedColumns.filter(Boolean))
+    const resolved: PolicyBranchMegaTermReference[] = []
+
+    normalizedColumns.forEach((column, index) => {
+        if (!column) {
+            throw new Error(`[policy-branch-mega] column at index=${index} is empty.`)
+        }
+
+        const primaryKey = MERGED_SECONDARY_TO_PRIMARY.get(column)
+        if (primaryKey && normalizedSet.has(primaryKey)) {
+            return
+        }
+
+        const term = resolvePolicyBranchMegaTermDraftOrThrow(column)
+        const secondaryKey = MERGED_PRIMARY_TO_SECONDARY.get(column)
+        const hasSecondaryPair = Boolean(secondaryKey && normalizedSet.has(secondaryKey))
+        const mergedTitle = hasSecondaryPair ? (MERGED_PRIMARY_TITLE_BY_KEY.get(column) ?? term.title) : term.title
+
+        resolved.push({
+            key: term.key,
+            title: mergedTitle
+        })
+    })
+
+    return resolved
+}
+
 export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]): TableSectionDto[] {
     if (!sections || sections.length === 0) {
         throw new Error('[policy-branch-mega] report has no sections.')

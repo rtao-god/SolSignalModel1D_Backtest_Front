@@ -3,10 +3,15 @@ import { useModelStatsReportQuery } from '@/shared/api/tanstackQueries/modelStat
 import type { ModelStatsPageProps } from './modelStatsTypes'
 import { ModelStatsPageInner } from './ModelStatsPageInner'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 
 export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     const { t } = useTranslation('reports')
-    const { data, isError, error, refetch } = useModelStatsReportQuery()
+    const [searchParams] = useSearchParams()
+    const { data, isError, error, refetch } = useModelStatsReportQuery({
+        segment: searchParams.get('segment'),
+        view: searchParams.get('view')
+    })
 
     return (
         <PageDataBoundary

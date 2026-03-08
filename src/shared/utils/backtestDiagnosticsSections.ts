@@ -54,6 +54,10 @@ function classifyTitle(title: string): BacktestDiagnosticsCategory {
     return 'diagnostics'
 }
 
+function isPolicyBranchMegaSection(section: TableSectionDto): boolean {
+    return section.metadata?.kind === 'policy-branch-mega'
+}
+
 export interface BacktestDiagnosticsSectionsSplit {
     ratings: TableSectionDto[]
     diagnostics: TableSectionDto[]
@@ -88,6 +92,10 @@ export function splitBacktestDiagnosticsSections(sections: TableSectionDto[]): B
     }
 
     for (const section of sections) {
+        if (isPolicyBranchMegaSection(section)) {
+            continue
+        }
+
         const category = classifyTitle(section.title ?? '')
         if (category === 'ratings') {
             result.ratings.push(section)
@@ -242,6 +250,10 @@ export function splitDiagnosticsSectionGroups(sections: TableSectionDto[]): Diag
     map.set('other', [])
 
     for (const section of sections) {
+        if (isPolicyBranchMegaSection(section)) {
+            continue
+        }
+
         const group = classifyDiagnosticsGroup(section.title ?? '')
         if (group) {
             map.get(group.id)!.push(section)

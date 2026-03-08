@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Link, TermTooltip, Text } from '@/shared/ui'
@@ -8,6 +8,9 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { EXPLAIN_MODELS_TABS } from '@/shared/utils/explainTabs'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import {
     readExplainStringListOrThrow,
     readExplainTableRowsOrThrow,
@@ -35,6 +38,11 @@ function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
 
 export default function ExplainModelsPage({ className }: ExplainModelsPageProps) {
     const { t } = useTranslation('explain')
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
+    const handleModelsStatsWarmup = useCallback(() => {
+        warmupRouteNavigation(AppRoute.MODELS_STATS, queryClient, dispatch)
+    }, [dispatch, queryClient])
 
     const sections = useMemo(
         () =>
@@ -72,7 +80,11 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                     <Text className={cls.subtitle}>{t('modelsPage.header.subtitle')}</Text>
                     <div className={cls.linkRow}>
                         <Text className={cls.linkLabel}>{t('modelsPage.header.linkLabel')}</Text>
-                        <Link to={ROUTE_PATH[AppRoute.MODELS_STATS]} className={cls.linkButton}>
+                        <Link
+                            to={ROUTE_PATH[AppRoute.MODELS_STATS]}
+                            className={cls.linkButton}
+                            onMouseEnter={handleModelsStatsWarmup}
+                            onFocus={handleModelsStatsWarmup}>
                             {t('modelsPage.header.linkButton')}
                         </Link>
                     </div>

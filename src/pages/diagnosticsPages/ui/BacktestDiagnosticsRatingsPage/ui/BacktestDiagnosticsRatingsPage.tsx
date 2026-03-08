@@ -6,6 +6,7 @@ import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnos
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 
 /*
     BacktestDiagnosticsRatingsPage — рейтинги и топы по бэктесту.
@@ -19,7 +20,11 @@ const renderRatingColumnTitle = (title: string) =>
 
 export default function BacktestDiagnosticsRatingsPage() {
     const { t } = useTranslation('reports')
-    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery()
+    const [searchParams] = useSearchParams()
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery({
+        tpSlMode: searchParams.get('tpsl'),
+        zonalMode: searchParams.get('zonal')
+    })
 
     const tableSections = useMemo(
         () =>

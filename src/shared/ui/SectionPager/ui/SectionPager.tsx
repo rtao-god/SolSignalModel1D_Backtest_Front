@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './SectionPager.module.scss'
 import { Btn } from '../../Btn'
+import { useTranslation } from 'react-i18next'
 
 interface SectionPagerItem {
     id: string
@@ -45,6 +46,8 @@ export default function SectionPager({
     groupStatus,
     tightRight = false
 }: SectionPagerProps) {
+    const { t } = useTranslation('common')
+
     const hasPrev = typeof canPrev === 'boolean' ? canPrev : currentIndex > 0
     const hasNext = typeof canNext === 'boolean' ? canNext : currentIndex < sections.length - 1
 
@@ -83,12 +86,22 @@ export default function SectionPager({
         return (
             <div className={pagerClassName}>
                 {hasPrev && (
-                    <Btn className={cls.btn} onClick={handlePrevClick} aria-label='Предыдущий раздел'>
+                    <Btn
+                        className={cls.btn}
+                        onClick={handlePrevClick}
+                        aria-label={t('sectionPager.vertical.prevAria', {
+                            defaultValue: 'Previous section'
+                        })}>
                         <span className={cls.arrow}>↑</span>
                     </Btn>
                 )}
                 {hasNext && (
-                    <Btn className={cls.btn} onClick={handleNextClick} aria-label='Следующий раздел'>
+                    <Btn
+                        className={cls.btn}
+                        onClick={handleNextClick}
+                        aria-label={t('sectionPager.vertical.nextAria', {
+                            defaultValue: 'Next section'
+                        })}>
                         <span className={cls.arrow}>↓</span>
                     </Btn>
                 )}
@@ -135,14 +148,20 @@ export default function SectionPager({
 
     return (
         <div className={pagerClassName}>
-            <div className={cls.dpad} aria-label='Навигация по отчётам'>
+            <div
+                className={cls.dpad}
+                aria-label={t('sectionPager.dpad.ariaLabel', {
+                    defaultValue: 'Report navigation'
+                })}>
                 <div className={cls.dpadBase} aria-hidden='true' />
 
                 <div className={cls.dpadUpWrap}>
                     <Btn
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasPrev }, [])}
                         onClick={handleUp}
-                        aria-label='Выше (внутри текущих отчётов)'
+                        aria-label={t('sectionPager.dpad.upAria', {
+                            defaultValue: 'Up (inside current reports)'
+                        })}
                         disabled={!hasPrev}>
                         <span className={cls.arrow}>↑</span>
                     </Btn>
@@ -152,7 +171,9 @@ export default function SectionPager({
                     <Btn
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasNext }, [])}
                         onClick={handleDown}
-                        aria-label='Ниже (внутри текущих отчётов)'
+                        aria-label={t('sectionPager.dpad.downAria', {
+                            defaultValue: 'Down (inside current reports)'
+                        })}
                         disabled={!hasNext}>
                         <span className={cls.arrow}>↓</span>
                     </Btn>
@@ -165,7 +186,9 @@ export default function SectionPager({
                     <Btn
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupPrev }, [])}
                         onClick={handleLeft}
-                        aria-label='Предыдущая страница отчётов'
+                        aria-label={t('sectionPager.dpad.prevPageAria', {
+                            defaultValue: 'Previous report page'
+                        })}
                         disabled={!hasGroupPrev}>
                         <span className={cls.arrow}>←</span>
                     </Btn>
@@ -178,7 +201,9 @@ export default function SectionPager({
                     <Btn
                         className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupNext }, [])}
                         onClick={handleRight}
-                        aria-label='Следующая страница отчётов'
+                        aria-label={t('sectionPager.dpad.nextPageAria', {
+                            defaultValue: 'Next report page'
+                        })}
                         disabled={!hasGroupNext}>
                         <span className={cls.arrow}>→</span>
                     </Btn>

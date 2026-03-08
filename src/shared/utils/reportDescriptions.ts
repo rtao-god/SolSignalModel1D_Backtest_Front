@@ -47,8 +47,8 @@ const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     },
     {
         match: /^(Политики бэктеста|Backtest policies)/i,
-        ru: 'Сводная таблица результатов по политикам и веткам (BASE/ANTI‑D) с вариантами WITH-SL/NO-SL. NO-SL отключает защитный стоп-лосс и может довести капитал бакета до нуля (в cross-марже — весь торговый баланс), поэтому TotalPnl% обязательно читается вместе с MaxDD%, HadLiq и AccRuin.',
-        en: 'Policy result summary by branch (BASE/ANTI-D) and SL mode (WITH-SL/NO-SL). NO-SL disables the protective stop-loss and can reduce bucket capital to zero (or the whole trading balance in cross margin), so TotalPnl% must be interpreted together with MaxDD%, HadLiq, and AccRuin.'
+        ru: 'Сводная таблица результатов по политикам и веткам (BASE/ANTI‑D) с вариантами WITH-SL/NO-SL. NO-SL отключает защитный стоп-лосс: для isolated-маржи это повышает шанс потерять весь залог сделки, а для cross-маржи — весь баланс бакета. Поэтому TotalPnl% обязательно читается вместе с MaxDD%, HadLiq и AccRuin.',
+        en: 'Policy result summary by branch (BASE/ANTI-D) and SL mode (WITH-SL/NO-SL). NO-SL disables the protective stop-loss: in isolated margin it raises the chance of losing the full trade margin, and in cross margin it raises the chance of losing the whole bucket balance. Therefore TotalPnl% must be interpreted together with MaxDD%, HadLiq, and AccRuin.'
     }
 ]
 

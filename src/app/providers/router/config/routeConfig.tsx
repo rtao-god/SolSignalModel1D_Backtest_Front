@@ -2,65 +2,94 @@ import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection, NavbarNavItem }
 import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
-const MainPage = lazyPage(() => import('@/pages/Main'))
-
-const ModelStatsPage = lazyPage(() => import('@/pages/ModelStatsPage'))
-const AggregationStatsPage = lazyPage(() => import('@/pages/AggregationStatsPage'))
-const RegistrationPage = lazyPage(() => import('@/pages/Registration'))
-const LoginPage = lazyPage(() => import('@/pages/Login'))
-const AboutPage = lazyPage(() => import('@/pages/About'))
-const ContactPage = lazyPage(() => import('@/pages/ContactPage'))
-const NotFoundPage = lazyPage(() => import('@/pages/404'))
-const ProfilePage = lazyPage(() => import('@/pages/profile/Profile'))
-const DiagnosticsHomePage = lazyPage(() => import('@/pages/diagnosticsPages/ui/DiagnosticsPage'))
-const AnalysisHomePage = lazyPage(() => import('@/pages/analysisPages/ui/AnalysisPage'))
-const BacktestBaselinePage = lazyPage(() => import('@/pages/BacktestBaselinePage'))
-const BacktestPage = lazyPage(() => import('@/pages/BacktestPage'))
-const BacktestSummaryReportPage = lazyPage(() => import('@/pages/BacktestSummaryReport'))
-const BacktestDiagnosticsPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsPage/ui/BacktestDiagnosticsPage')
-)
-const BacktestDiagnosticsGuardrailPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsGuardrailPage/ui/BacktestDiagnosticsGuardrailPage')
-)
-const BacktestDiagnosticsDecisionsPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDecisionsPage/ui/BacktestDiagnosticsDecisionsPage')
-)
-const BacktestDiagnosticsHotspotsPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsHotspotsPage/ui/BacktestDiagnosticsHotspotsPage')
-)
-const BacktestDiagnosticsOtherPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsOtherPage/ui/BacktestDiagnosticsOtherPage')
-)
-const BacktestDiagnosticsRatingsPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsRatingsPage/ui/BacktestDiagnosticsRatingsPage')
-)
-const BacktestDiagnosticsDayStatsPage = lazyPage(
-    () => import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDayStatsPage/ui/BacktestDiagnosticsDayStatsPage')
-)
-const PolicyBranchMegaPage = lazyPage(() => import('@/pages/analysisPages/ui/PolicyBranchMegaPage'))
-const ConfidenceRiskPage = lazyPage(() => import('@/pages/analysisPages/ui/ConfidenceRiskPage'))
-const ExecutionPipelinePage = lazyPage(() => import('@/pages/analysisPages/ui/ExecutionPipelinePage'))
-const CurrentMLModelPredictionPage = lazyPage(() => import('@/pages/predictions/ui/CurrentMLModelPredictionPage'))
-const PredictionHistoryPage = lazyPage(() => import('@/pages/predictions/ui/PredictionHistoryPage'))
-const PfiPage = lazyPage(() => import('@/pages/PfiPage'))
-const DocsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsPage'))
-const DocsModelsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsModelsPage'))
-const DocsTestsPage = lazyPage(() => import('@/pages/docsPages/ui/DocsTestsPage'))
-const ExplainPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainPage'))
-const ExplainModelsPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainModelsPage'))
-const ExplainBranchesPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainBranchesPage'))
-const ExplainSplitsPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainSplitsPage'))
-const ExplainProjectPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainProjectPage'))
-const ExplainTimePage = lazyPage(() => import('@/pages/explainPages/ui/ExplainTimePage'))
-const ExplainFeaturesPage = lazyPage(() => import('@/pages/explainPages/ui/ExplainFeaturesPage'))
+const importMainPage = () => import('@/pages/Main')
+const MainPage = lazyPage(importMainPage)
+const importModelStatsPage = () => import('@/pages/ModelStatsPage')
+const ModelStatsPage = lazyPage(importModelStatsPage)
+const importAggregationStatsPage = () => import('@/pages/AggregationStatsPage')
+const AggregationStatsPage = lazyPage(importAggregationStatsPage)
+const importRegistrationPage = () => import('@/pages/Registration')
+const RegistrationPage = lazyPage(importRegistrationPage)
+const importLoginPage = () => import('@/pages/Login')
+const LoginPage = lazyPage(importLoginPage)
+const importAboutPage = () => import('@/pages/About')
+const AboutPage = lazyPage(importAboutPage)
+const importContactPage = () => import('@/pages/ContactPage')
+const ContactPage = lazyPage(importContactPage)
+const importNotFoundPage = () => import('@/pages/404')
+const NotFoundPage = lazyPage(importNotFoundPage)
+const importProfilePage = () => import('@/pages/profile/Profile')
+const ProfilePage = lazyPage(importProfilePage)
+const importDiagnosticsHomePage = () => import('@/pages/diagnosticsPages/ui/DiagnosticsPage')
+const DiagnosticsHomePage = lazyPage(importDiagnosticsHomePage)
+const importAnalysisHomePage = () => import('@/pages/analysisPages/ui/AnalysisPage')
+const AnalysisHomePage = lazyPage(importAnalysisHomePage)
+const importBacktestBaselinePage = () => import('@/pages/BacktestBaselinePage')
+const BacktestBaselinePage = lazyPage(importBacktestBaselinePage)
+const importBacktestPage = () => import('@/pages/BacktestPage')
+const BacktestPage = lazyPage(importBacktestPage)
+const importBacktestSummaryReportPage = () => import('@/pages/BacktestSummaryReport')
+const BacktestSummaryReportPage = lazyPage(importBacktestSummaryReportPage)
+const importBacktestDiagnosticsPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsPage/ui/BacktestDiagnosticsPage')
+const BacktestDiagnosticsPage = lazyPage(importBacktestDiagnosticsPage)
+const importBacktestDiagnosticsGuardrailPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsGuardrailPage/ui/BacktestDiagnosticsGuardrailPage')
+const BacktestDiagnosticsGuardrailPage = lazyPage(importBacktestDiagnosticsGuardrailPage)
+const importBacktestDiagnosticsDecisionsPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDecisionsPage/ui/BacktestDiagnosticsDecisionsPage')
+const BacktestDiagnosticsDecisionsPage = lazyPage(importBacktestDiagnosticsDecisionsPage)
+const importBacktestDiagnosticsHotspotsPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsHotspotsPage/ui/BacktestDiagnosticsHotspotsPage')
+const BacktestDiagnosticsHotspotsPage = lazyPage(importBacktestDiagnosticsHotspotsPage)
+const importBacktestDiagnosticsOtherPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsOtherPage/ui/BacktestDiagnosticsOtherPage')
+const BacktestDiagnosticsOtherPage = lazyPage(importBacktestDiagnosticsOtherPage)
+const importBacktestDiagnosticsRatingsPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsRatingsPage/ui/BacktestDiagnosticsRatingsPage')
+const BacktestDiagnosticsRatingsPage = lazyPage(importBacktestDiagnosticsRatingsPage)
+const importBacktestDiagnosticsDayStatsPage = () =>
+    import('@/pages/diagnosticsPages/ui/BacktestDiagnosticsDayStatsPage/ui/BacktestDiagnosticsDayStatsPage')
+const BacktestDiagnosticsDayStatsPage = lazyPage(importBacktestDiagnosticsDayStatsPage)
+const importPolicyBranchMegaPage = () => import('@/pages/analysisPages/ui/PolicyBranchMegaPage')
+const PolicyBranchMegaPage = lazyPage(importPolicyBranchMegaPage)
+const importConfidenceRiskPage = () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
+const ConfidenceRiskPage = lazyPage(importConfidenceRiskPage)
+const importExecutionPipelinePage = () => import('@/pages/analysisPages/ui/ExecutionPipelinePage')
+const ExecutionPipelinePage = lazyPage(importExecutionPipelinePage)
+const importCurrentMLModelPredictionPage = () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
+const CurrentMLModelPredictionPage = lazyPage(importCurrentMLModelPredictionPage)
+const importPredictionHistoryPage = () => import('@/pages/predictions/ui/PredictionHistoryPage')
+const PredictionHistoryPage = lazyPage(importPredictionHistoryPage)
+const importPfiPage = () => import('@/pages/PfiPage')
+const PfiPage = lazyPage(importPfiPage)
+const importDocsPage = () => import('@/pages/docsPages/ui/DocsPage')
+const DocsPage = lazyPage(importDocsPage)
+const importDocsModelsPage = () => import('@/pages/docsPages/ui/DocsModelsPage')
+const DocsModelsPage = lazyPage(importDocsModelsPage)
+const importDocsTestsPage = () => import('@/pages/docsPages/ui/DocsTestsPage')
+const DocsTestsPage = lazyPage(importDocsTestsPage)
+const importExplainPage = () => import('@/pages/explainPages/ui/ExplainPage')
+const ExplainPage = lazyPage(importExplainPage)
+const importExplainModelsPage = () => import('@/pages/explainPages/ui/ExplainModelsPage')
+const ExplainModelsPage = lazyPage(importExplainModelsPage)
+const importExplainBranchesPage = () => import('@/pages/explainPages/ui/ExplainBranchesPage')
+const ExplainBranchesPage = lazyPage(importExplainBranchesPage)
+const importExplainSplitsPage = () => import('@/pages/explainPages/ui/ExplainSplitsPage')
+const ExplainSplitsPage = lazyPage(importExplainSplitsPage)
+const importExplainProjectPage = () => import('@/pages/explainPages/ui/ExplainProjectPage')
+const ExplainProjectPage = lazyPage(importExplainProjectPage)
+const importExplainTimePage = () => import('@/pages/explainPages/ui/ExplainTimePage')
+const ExplainTimePage = lazyPage(importExplainTimePage)
+const importExplainFeaturesPage = () => import('@/pages/explainPages/ui/ExplainFeaturesPage')
+const ExplainFeaturesPage = lazyPage(importExplainFeaturesPage)
 export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MAIN,
         path: ROUTE_PATH[AppRoute.MAIN],
         element: <MainPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю главную страницу',
+        loadingTitle: 'Loading main page',
         nav: {
             sidebar: false, // главную из сайдбара пока не показываем
             navbar: true,
@@ -73,11 +102,11 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME],
         element: <DiagnosticsHomePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю диагностику',
+        loadingTitle: 'Loading diagnostics',
         nav: {
             sidebar: false,
             navbar: true,
-            label: 'Диагностика',
+            label: 'Diagnostics',
             section: 'diagnostics',
             navbarOrder: 1
         }
@@ -87,11 +116,11 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.ANALYSIS_HOME],
         element: <AnalysisHomePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю анализ',
+        loadingTitle: 'Loading analysis',
         nav: {
             sidebar: false,
             navbar: true,
-            label: 'Анализ',
+            label: 'Analysis',
             section: 'analysis',
             navbarOrder: 2
         }
@@ -101,10 +130,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
         element: <CurrentMLModelPredictionPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю текущий прогноз',
+        loadingTitle: 'Loading current prediction',
         nav: {
             sidebar: true,
-            label: 'Текущий прогноз',
+            label: 'Current prediction',
             section: 'predictions',
             order: 1
         }
@@ -114,10 +143,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_HISTORY],
         element: <PredictionHistoryPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю историю прогнозов',
+        loadingTitle: 'Loading prediction history',
         nav: {
             sidebar: true,
-            label: 'История прогнозов',
+            label: 'Prediction history',
             section: 'predictions',
             order: 2
         }
@@ -127,10 +156,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
         element: <ModelStatsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю статистику моделей',
+        loadingTitle: 'Loading model statistics',
         nav: {
             sidebar: true,
-            label: 'Статистика моделей',
+            label: 'Model statistics',
             section: 'models',
             order: 1
         }
@@ -140,10 +169,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.AGGREGATION_STATS],
         element: <AggregationStatsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю агрегацию прогнозов',
+        loadingTitle: 'Loading prediction aggregation',
         nav: {
             sidebar: true,
-            label: 'Агрегация прогнозов',
+            label: 'Prediction aggregation',
             section: 'models',
             order: 2
         }
@@ -153,10 +182,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_BASELINE],
         element: <BacktestBaselinePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю baseline бэктеста',
+        loadingTitle: 'Loading baseline backtest',
         nav: {
             sidebar: true,
-            label: 'Baseline бэктест',
+            label: 'Baseline backtest',
             section: 'backtest',
             order: 1
         }
@@ -166,10 +195,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_SUMMARY],
         element: <BacktestSummaryReportPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю сводку бэктеста',
+        loadingTitle: 'Loading backtest summary',
         nav: {
             sidebar: true,
-            label: 'Сводка бэктеста',
+            label: 'Backtest summary',
             section: 'backtest',
             order: 2
         }
@@ -179,10 +208,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_FULL],
         element: <BacktestPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю экспериментальный бэктест',
+        loadingTitle: 'Loading experimental backtest',
         nav: {
             sidebar: true,
-            label: 'Экспериментальный бэктест',
+            label: 'Experimental backtest',
             section: 'backtest',
             order: 3
         }
@@ -192,10 +221,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS],
         element: <BacktestDiagnosticsRatingsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю рейтинги бэктеста',
+        loadingTitle: 'Loading backtest ratings',
         nav: {
             sidebar: true,
-            label: 'Рейтинги полисов',
+            label: 'Policy ratings',
             section: 'analysis',
             order: 1
         }
@@ -205,10 +234,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS],
         element: <BacktestDiagnosticsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю риск и ликвидации',
+        loadingTitle: 'Loading risk and liquidations diagnostics',
         nav: {
             sidebar: true,
-            label: 'Риск и ликвидации',
+            label: 'Risk and liquidations',
             section: 'diagnostics',
             order: 1
         }
@@ -218,7 +247,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL],
         element: <BacktestDiagnosticsGuardrailPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю guardrail-диагностику',
+        loadingTitle: 'Loading guardrail diagnostics',
         nav: {
             sidebar: true,
             label: 'Guardrail / Specificity',
@@ -231,10 +260,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS],
         element: <BacktestDiagnosticsDecisionsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю анализ решений',
+        loadingTitle: 'Loading decision analysis',
         nav: {
             sidebar: true,
-            label: 'Решения / Attribution',
+            label: 'Decisions / Attribution',
             section: 'diagnostics',
             order: 3
         }
@@ -244,7 +273,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS],
         element: <BacktestDiagnosticsHotspotsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю hotspots',
+        loadingTitle: 'Loading hotspots diagnostics',
         nav: {
             sidebar: true,
             label: 'Hotspots / NoTrade',
@@ -257,10 +286,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER],
         element: <BacktestDiagnosticsOtherPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю прочие диагностики',
+        loadingTitle: 'Loading additional diagnostics',
         nav: {
             sidebar: true,
-            label: 'Прочее',
+            label: 'Other diagnostics',
             section: 'diagnostics',
             order: 5
         }
@@ -270,10 +299,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS],
         element: <BacktestDiagnosticsDayStatsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю статистику по дням',
+        loadingTitle: 'Loading day statistics',
         nav: {
             sidebar: true,
-            label: 'Статистика по дням',
+            label: 'Day statistics',
             section: 'analysis',
             order: 2
         }
@@ -283,7 +312,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
         element: <PolicyBranchMegaPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю Policy Branch Mega',
+        loadingTitle: 'Loading Policy Branch Mega',
         nav: {
             sidebar: true,
             label: 'Policy Branch Mega',
@@ -296,10 +325,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK],
         element: <ConfidenceRiskPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю статистику уверенности',
+        loadingTitle: 'Loading confidence statistics',
         nav: {
             sidebar: true,
-            label: 'Статистика уверенности',
+            label: 'Confidence statistics',
             section: 'analysis',
             order: 3
         }
@@ -309,7 +338,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE],
         element: <ExecutionPipelinePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю execution pipeline',
+        loadingTitle: 'Loading execution pipeline',
         nav: {
             sidebar: true,
             label: 'Execution pipeline',
@@ -322,10 +351,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
         element: <PfiPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю PFI отчёт',
+        loadingTitle: 'Loading PFI report',
         nav: {
             sidebar: true,
-            label: 'PFI по моделям',
+            label: 'PFI by models',
             section: 'features',
             order: 2
         }
@@ -335,7 +364,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS],
         element: <DocsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю документацию',
+        loadingTitle: 'Loading documentation',
         nav: {
             sidebar: false, // НЕ показываем /docs в сайдбаре, только в navbar
             navbar: true,
@@ -349,10 +378,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS_MODELS],
         element: <DocsModelsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание моделей',
+        loadingTitle: 'Loading model documentation',
         nav: {
             sidebar: true,
-            label: 'Модели',
+            label: 'Models',
             section: 'docs',
             order: 1
         }
@@ -362,10 +391,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.DOCS_TESTS],
         element: <DocsTestsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание тестов',
+        loadingTitle: 'Loading test documentation',
         nav: {
             sidebar: true,
-            label: 'Тесты',
+            label: 'Tests',
             section: 'docs',
             order: 2
         }
@@ -375,11 +404,11 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN],
         element: <ExplainPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю объяснение проекта',
+        loadingTitle: 'Loading project explain section',
         nav: {
             sidebar: false,
             navbar: true,
-            label: 'Объяснение',
+            label: 'Explain',
             section: 'explain',
             navbarOrder: 4
         }
@@ -389,10 +418,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_MODELS],
         element: <ExplainModelsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю объяснение моделей',
+        loadingTitle: 'Loading model explanation',
         nav: {
             sidebar: true,
-            label: 'Модели',
+            label: 'Models',
             section: 'explain',
             order: 1
         }
@@ -402,10 +431,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_BRANCHES],
         element: <ExplainBranchesPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю объяснение веток',
+        loadingTitle: 'Loading branch explanation',
         nav: {
             sidebar: true,
-            label: 'Ветки BASE/ANTI-D',
+            label: 'BASE/ANTI-D branches',
             section: 'explain',
             order: 2
         }
@@ -415,7 +444,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_SPLITS],
         element: <ExplainSplitsPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю объяснение сплитов',
+        loadingTitle: 'Loading split explanation',
         nav: {
             sidebar: true,
             label: 'Train/OOS/Recent',
@@ -428,10 +457,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_PROJECT],
         element: <ExplainProjectPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание проекта',
+        loadingTitle: 'Loading project overview',
         nav: {
             sidebar: true,
-            label: 'О проекте',
+            label: 'Project overview',
             section: 'explain',
             order: 4
         }
@@ -441,10 +470,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_TIME],
         element: <ExplainTimePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю объяснение времени',
+        loadingTitle: 'Loading time explanation',
         nav: {
             sidebar: true,
-            label: 'Время и дни',
+            label: 'Time and days',
             section: 'explain',
             order: 5
         }
@@ -454,10 +483,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.EXPLAIN_FEATURES],
         element: <ExplainFeaturesPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю описание фич',
+        loadingTitle: 'Loading feature explanation',
         nav: {
             sidebar: true,
-            label: 'Фичи и индикаторы',
+            label: 'Features and indicators',
             section: 'explain',
             order: 6
         }
@@ -467,7 +496,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.ABOUT],
         element: <AboutPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу About',
+        loadingTitle: 'Loading About page',
         nav: {
             sidebar: false,
             navbar: true,
@@ -481,7 +510,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.CONTACT],
         element: <ContactPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу контактов',
+        loadingTitle: 'Loading contact page',
         nav: {
             sidebar: false,
             navbar: true,
@@ -495,10 +524,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.REGISTRATION],
         element: <RegistrationPage />,
         layout: 'bare',
-        loadingTitle: 'Загружаю страницу регистрации',
+        loadingTitle: 'Loading registration page',
         nav: {
             sidebar: false,
-            label: 'Регистрация',
+            label: 'Registration',
             section: 'system'
         }
     },
@@ -507,10 +536,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.LOGIN],
         element: <LoginPage />,
         layout: 'bare',
-        loadingTitle: 'Загружаю страницу входа',
+        loadingTitle: 'Loading login page',
         nav: {
             sidebar: false,
-            label: 'Вход',
+            label: 'Login',
             section: 'system'
         }
     },
@@ -520,7 +549,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.PROFILE],
         element: <ProfilePage />,
         layout: 'app',
-        loadingTitle: 'Загружаю профиль',
+        loadingTitle: 'Loading profile',
         nav: {
             sidebar: false,
             navbar: true,
@@ -534,7 +563,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.NOT_FOUND],
         element: <NotFoundPage />,
         layout: 'app',
-        loadingTitle: 'Загружаю страницу'
+        loadingTitle: 'Loading page'
     }
 ]
 export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = buildSidebarNavItems(ROUTE_CONFIG)
@@ -551,5 +580,54 @@ export const NAVBAR_ITEMS: NavbarNavItem[] = ROUTE_CONFIG.filter(route => route.
         }
         return a.label.localeCompare(b.label)
     })
+
+const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
+    [AppRoute.MAIN]: importMainPage,
+    [AppRoute.CURRENT_PREDICTION]: importCurrentMLModelPredictionPage,
+    [AppRoute.CURRENT_PREDICTION_HISTORY]: importPredictionHistoryPage,
+    [AppRoute.DIAGNOSTICS_HOME]: importDiagnosticsHomePage,
+    [AppRoute.ANALYSIS_HOME]: importAnalysisHomePage,
+    [AppRoute.BACKTEST_BASELINE]: importBacktestBaselinePage,
+    [AppRoute.BACKTEST_SUMMARY]: importBacktestSummaryReportPage,
+    [AppRoute.BACKTEST_FULL]: importBacktestPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS]: importBacktestDiagnosticsPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]: importBacktestDiagnosticsGuardrailPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]: importBacktestDiagnosticsDecisionsPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]: importBacktestDiagnosticsHotspotsPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_OTHER]: importBacktestDiagnosticsOtherPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]: importBacktestDiagnosticsRatingsPage,
+    [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: importBacktestDiagnosticsDayStatsPage,
+    [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: importPolicyBranchMegaPage,
+    [AppRoute.BACKTEST_CONFIDENCE_RISK]: importConfidenceRiskPage,
+    [AppRoute.BACKTEST_EXECUTION_PIPELINE]: importExecutionPipelinePage,
+    [AppRoute.PFI_PER_MODEL]: importPfiPage,
+    [AppRoute.MODELS_STATS]: importModelStatsPage,
+    [AppRoute.AGGREGATION_STATS]: importAggregationStatsPage,
+    [AppRoute.DOCS]: importDocsPage,
+    [AppRoute.DOCS_MODELS]: importDocsModelsPage,
+    [AppRoute.DOCS_TESTS]: importDocsTestsPage,
+    [AppRoute.EXPLAIN]: importExplainPage,
+    [AppRoute.EXPLAIN_MODELS]: importExplainModelsPage,
+    [AppRoute.EXPLAIN_BRANCHES]: importExplainBranchesPage,
+    [AppRoute.EXPLAIN_SPLITS]: importExplainSplitsPage,
+    [AppRoute.EXPLAIN_PROJECT]: importExplainProjectPage,
+    [AppRoute.EXPLAIN_TIME]: importExplainTimePage,
+    [AppRoute.EXPLAIN_FEATURES]: importExplainFeaturesPage,
+    [AppRoute.ABOUT]: importAboutPage,
+    [AppRoute.CONTACT]: importContactPage,
+    [AppRoute.REGISTRATION]: importRegistrationPage,
+    [AppRoute.LOGIN]: importLoginPage,
+    [AppRoute.PROFILE]: importProfilePage,
+    [AppRoute.NOT_FOUND]: importNotFoundPage
+}
+
+export function prefetchRouteChunk(routeId: AppRoute): void {
+    const prefetcher = ROUTE_PREFETCHERS[routeId]
+    if (!prefetcher) {
+        return
+    }
+
+    void prefetcher()
+}
 
 export type { RouteSection }

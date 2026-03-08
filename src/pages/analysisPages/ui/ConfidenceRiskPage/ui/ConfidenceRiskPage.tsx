@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
-    BucketFilterToggle,
-    CurrentPredictionTrainingScopeToggle,
     ReportActualStatusCard,
     ReportTableTermsBlock,
     ReportViewControls,
     Text,
     TermTooltip,
-    resolveCurrentPredictionTrainingScopeMeta
+    resolveCurrentPredictionTrainingScopeMeta,
+    type ReportViewControlGroup,
+    buildConfidenceBucketControlGroup,
+    buildTrainingScopeControlGroup
 } from '@/shared/ui'
 import { enrichTermTooltipDescription, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.types'
@@ -19,23 +20,7 @@ import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBou
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { useBacktestConfidenceRiskReportQuery } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
-import {
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaTpSlModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    resolveReportViewCapabilities,
-    validateReportViewSelectionOrThrow
-} from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import type { BucketFilterOption } from '@/shared/ui/BucketFilterToggle'
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
 
@@ -53,6 +38,11 @@ interface ConfidenceRiskTermTemplate {
     title: string
     description: Record<ConfidenceRiskUiLocale, string>
     tooltip: Record<ConfidenceRiskUiLocale, string>
+}
+
+interface ConfidenceBucketOption {
+    value: string
+    label: string
 }
 
 const TERMS_TABLE_TEMPLATES: readonly ConfidenceRiskTermTemplate[] = [
@@ -491,7 +481,7 @@ function buildConfidenceBucketOptionsOrThrow(
     sections: TableSectionDto[],
     scope: CurrentPredictionTrainingScope,
     allBucketsLabel: string
-): BucketFilterOption[] {
+): ConfidenceBucketOption[] {
     if (!Array.isArray(sections) || sections.length === 0) {
         throw new Error('[confidence-risk] table sections are missing for bucket options.')
     }
@@ -535,7 +525,7 @@ function buildConfidenceBucketOptionsOrThrow(
     ]
 }
 
-function resolveConfidenceBucketFromQueryOrThrow(raw: string | null, options: BucketFilterOption[]): string {
+function resolveConfidenceBucketFromQueryOrThrow(raw: string | null, options: ConfidenceBucketOption[]): string {
     if (!raw) {
         return DEFAULT_CONFIDENCE_BUCKET
     }
@@ -547,60 +537,6 @@ function resolveConfidenceBucketFromQueryOrThrow(raw: string | null, options: Bu
     }
 
     return normalized
-}
-
-function filterConfidenceRowsByScopeAndBucketOrThrow(
-    sections: TableSectionDto[],
-    scope: CurrentPredictionTrainingScope,
-    bucket: string
-): TableSectionDto[] {
-    if (!Array.isArray(sections) || sections.length === 0) {
-        throw new Error('[confidence-risk] table sections are missing for scope filtering.')
-    }
-
-    const splitLabel = CONFIDENCE_SCOPE_TO_SPLIT[scope]
-
-    const filtered = sections.map(section => {
-        if (!Array.isArray(section.columns) || !Array.isArray(section.rows)) {
-            throw new Error('[confidence-risk] invalid table section while filtering by scope.')
-        }
-
-        const splitIndex = findColumnIndexByTitleOrThrow(section.columns, 'Split')
-        const bucketIndex = findColumnIndexByTitleOrThrow(section.columns, 'Bucket')
-
-        const rows = section.rows.filter((row, rowIndex) => {
-            if (!Array.isArray(row)) {
-                throw new Error(`[confidence-risk] row is not an array while filtering. rowIndex=${rowIndex}.`)
-            }
-
-            const splitValue = row[splitIndex]?.trim().toUpperCase()
-            const bucketValue = row[bucketIndex]?.trim()
-
-            if (splitValue !== splitLabel) {
-                return false
-            }
-
-            if (bucket === DEFAULT_CONFIDENCE_BUCKET) {
-                return true
-            }
-
-            return bucketValue === bucket
-        })
-
-        return {
-            ...section,
-            rows
-        }
-    })
-
-    const rowsCount = filtered.reduce((sum, section) => sum + (section.rows?.length ?? 0), 0)
-    if (rowsCount === 0) {
-        throw new Error(
-            `[confidence-risk] no rows found after scope/bucket filtering. scope=${scope}, bucket=${bucket}.`
-        )
-    }
-
-    return filtered
 }
 
 function getTableTermOrThrow(title: string, tableTermMap: ReadonlyMap<string, ConfidenceRiskTerm>): ConfidenceRiskTerm {
@@ -647,8 +583,20 @@ function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
 
 export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
     const { t, i18n } = useTranslation('reports')
-    const { data, isError, error, refetch } = useBacktestConfidenceRiskReportQuery()
     const [searchParams, setSearchParams] = useSearchParams()
+    const { data, isLoading, isError, error, refetch } = useBacktestConfidenceRiskReportQuery({
+        scope: searchParams.get('scope'),
+        confidenceBucket: searchParams.get('confBucket')
+    })
+    const {
+        data: optionsData,
+        isLoading: isOptionsLoading,
+        isError: isOptionsError,
+        error: optionsError
+    } = useBacktestConfidenceRiskReportQuery({
+        scope: searchParams.get('scope'),
+        confidenceBucket: null
+    })
     const termsLocale = useMemo(
         () => resolveConfidenceRiskUiLocale(i18n.resolvedLanguage ?? i18n.language),
         [i18n.language, i18n.resolvedLanguage]
@@ -679,8 +627,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const configTermsMap = useMemo(() => new Map(configTerms.map(term => [term.key, term])), [configTerms])
 
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
+    const optionsTableSections = useMemo(() => buildTableSections(optionsData?.sections ?? []), [optionsData])
     const keyValueSections = useMemo(() => buildKeyValueSections(data?.sections ?? []), [data])
-    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(tableSections), [tableSections])
     const scopeState = useMemo(() => {
         try {
             return {
@@ -711,42 +659,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         }
     }, [scopeState.value])
 
-    const bucketState = useMemo(() => {
-        try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(
-                searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
-            )
-            return { value: bucket, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const metricState = useMemo(() => {
-        try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(
-                searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
-            )
-            return { value: metric, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const tpSlState = useMemo(() => {
-        try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            return { value: mode, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
-        }
-    }, [searchParams])
-
     const sourceEndpointState = useMemo(() => {
         try {
             return {
@@ -762,78 +674,18 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         }
     }, [])
 
-    const viewSelectionState = useMemo(() => {
-        try {
-            validateReportViewSelectionOrThrow(
-                {
-                    bucket: bucketState.value,
-                    metric: metricState.value,
-                    tpSl: tpSlState.value
-                },
-                viewCapabilities,
-                'confidence-risk'
-            )
-            return { error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate confidence-risk view state.')
-            return { error: safeError }
-        }
-    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
-
-    const filteredTableSectionsState = useMemo(() => {
-        if (viewSelectionState.error) {
-            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
-        }
-
-        try {
-            let nextSections = tableSections
-
-            if (viewCapabilities.supportsBucketFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
-            }
-
-            if (viewCapabilities.supportsMetricFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
-            }
-
-            if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
-            }
-
-            return { sections: nextSections, error: null as Error | null }
-        } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to filter confidence-risk sections by bucket/metric.')
-            return { sections: [] as TableSectionDto[], error: safeError }
-        }
-    }, [
-        bucketState.value,
-        metricState.value,
-        tableSections,
-        tpSlState.value,
-        viewCapabilities,
-        viewSelectionState.error
-    ])
-
     const confidenceBucketOptionsState = useMemo(() => {
         if (scopeState.error) {
             return {
-                options: [] as BucketFilterOption[],
+                options: [] as ConfidenceBucketOption[],
                 error: scopeState.error
-            }
-        }
-
-        if (filteredTableSectionsState.error) {
-            return {
-                options: [] as BucketFilterOption[],
-                error: filteredTableSectionsState.error
             }
         }
 
         try {
             return {
                 options: buildConfidenceBucketOptionsOrThrow(
-                    filteredTableSectionsState.sections,
+                    optionsTableSections,
                     scopeState.value,
                     t('confidenceRisk.filters.allBuckets')
                 ),
@@ -843,11 +695,11 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             const safeError =
                 err instanceof Error ? err : new Error('Failed to build confidence bucket options for selected scope.')
             return {
-                options: [] as BucketFilterOption[],
+                options: [] as ConfidenceBucketOption[],
                 error: safeError
             }
         }
-    }, [filteredTableSectionsState.error, filteredTableSectionsState.sections, scopeState.error, scopeState.value, t])
+    }, [optionsTableSections, scopeState.error, scopeState.value, t])
 
     const confidenceBucketState = useMemo(() => {
         if (confidenceBucketOptionsState.error) {
@@ -873,54 +725,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         }
     }, [confidenceBucketOptionsState.error, confidenceBucketOptionsState.options, searchParams])
-
-    const scopeFilteredTableSectionsState = useMemo(() => {
-        if (filteredTableSectionsState.error) {
-            return {
-                sections: [] as TableSectionDto[],
-                error: filteredTableSectionsState.error
-            }
-        }
-
-        if (scopeState.error) {
-            return {
-                sections: [] as TableSectionDto[],
-                error: scopeState.error
-            }
-        }
-
-        if (confidenceBucketState.error) {
-            return {
-                sections: [] as TableSectionDto[],
-                error: confidenceBucketState.error
-            }
-        }
-
-        try {
-            return {
-                sections: filterConfidenceRowsByScopeAndBucketOrThrow(
-                    filteredTableSectionsState.sections,
-                    scopeState.value,
-                    confidenceBucketState.value
-                ),
-                error: null as Error | null
-            }
-        } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to filter confidence-risk rows by scope and bucket.')
-            return {
-                sections: [] as TableSectionDto[],
-                error: safeError
-            }
-        }
-    }, [
-        confidenceBucketState.error,
-        confidenceBucketState.value,
-        filteredTableSectionsState.error,
-        filteredTableSectionsState.sections,
-        scopeState.error,
-        scopeState.value
-    ])
 
     const configState = useMemo(() => {
         if (!data) {
@@ -988,30 +792,34 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         setSearchParams(nextParams, { replace: true })
     }
 
-    const handleBucketChange = (next: typeof bucketState.value) => {
-        if (next === bucketState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('bucket', next)
-        setSearchParams(nextParams, { replace: true })
-    }
+    const controlGroups = useMemo(() => {
+        if (scopeMetaState.error || !scopeMetaState.value || confidenceBucketOptionsState.error) {
+            return [] as ReportViewControlGroup[]
+        }
 
-    const handleMetricChange = (next: typeof metricState.value) => {
-        if (next === metricState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('metric', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
-        if (next === tpSlState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('tpsl', next)
-        setSearchParams(nextParams, { replace: true })
-    }
+        return [
+            buildTrainingScopeControlGroup({
+                value: scopeState.value,
+                onChange: handleScopeChange
+            }),
+            buildConfidenceBucketControlGroup({
+                value: confidenceBucketState.value,
+                options: confidenceBucketOptionsState.options,
+                onChange: handleConfidenceBucketChange
+            })
+        ] as ReportViewControlGroup[]
+    }, [
+        confidenceBucketOptionsState.error,
+        confidenceBucketOptionsState.options,
+        confidenceBucketState.value,
+        scopeMetaState.error,
+        scopeMetaState.value,
+        scopeState.value
+    ])
 
     let content: JSX.Element | null = null
 
-    if (data) {
+    if (data && optionsData) {
         if (generatedAtState.error || !generatedAtState.value) {
             const err =
                 generatedAtState.error ?? new Error('[confidence-risk] generatedAtUtc is missing after validation.')
@@ -1034,51 +842,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     title={t('confidenceRisk.page.errors.invalidSource.title')}
                     message={t('confidenceRisk.page.errors.invalidSource.message')}
                     error={err}
-                    onRetry={refetch}
-                />
-            )
-        } else if (bucketState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.bucketQuery.title')}
-                    message={t('confidenceRisk.page.errors.bucketQuery.message')}
-                    error={bucketState.error}
-                    onRetry={refetch}
-                />
-            )
-        } else if (metricState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.metricQuery.title')}
-                    message={t('confidenceRisk.page.errors.metricQuery.message')}
-                    error={metricState.error}
-                    onRetry={refetch}
-                />
-            )
-        } else if (tpSlState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.tpSlQuery.title')}
-                    message={t('confidenceRisk.page.errors.tpSlQuery.message')}
-                    error={tpSlState.error}
-                    onRetry={refetch}
-                />
-            )
-        } else if (viewSelectionState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.unsupportedView.title')}
-                    message={t('confidenceRisk.page.errors.unsupportedView.message')}
-                    error={viewSelectionState.error}
-                    onRetry={refetch}
-                />
-            )
-        } else if (filteredTableSectionsState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.sections.title')}
-                    message={t('confidenceRisk.page.errors.sections.message')}
-                    error={filteredTableSectionsState.error}
                     onRetry={refetch}
                 />
             )
@@ -1121,15 +884,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     onRetry={refetch}
                 />
             )
-        } else if (scopeFilteredTableSectionsState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.scopeFiltering.title')}
-                    message={t('confidenceRisk.page.errors.scopeFiltering.message')}
-                    error={scopeFilteredTableSectionsState.error}
-                    onRetry={refetch}
-                />
-            )
         } else if (configState.error) {
             content = (
                 <PageError
@@ -1139,7 +893,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     onRetry={refetch}
                 />
             )
-        } else if (scopeFilteredTableSectionsState.sections.length === 0) {
+        } else if (tableSections.length === 0) {
             content = <Text>{t('confidenceRisk.page.emptyTable')}</Text>
         } else {
             content = (
@@ -1151,42 +905,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                             </Text>
                             <Text className={cls.heroSubtitle}>{t('confidenceRisk.page.subtitle')}</Text>
 
-                            <ReportViewControls
-                                bucket={bucketState.value}
-                                metric={metricState.value}
-                                tpSlMode={tpSlState.value}
-                                capabilities={viewCapabilities}
-                                onBucketChange={handleBucketChange}
-                                onMetricChange={handleMetricChange}
-                                onTpSlModeChange={handleTpSlModeChange}
-                            />
-
-                            <div className={cls.scopeControls}>
-                                <div className={cls.scopeControlBlock}>
-                                    <Text className={cls.scopeControlLabel}>
-                                        {t('confidenceRisk.filters.scopeLabel')}
-                                    </Text>
-                                    <CurrentPredictionTrainingScopeToggle
-                                        value={scopeState.value}
-                                        onChange={handleScopeChange}
-                                        className={cls.scopeToggle}
-                                        ariaLabel={t('confidenceRisk.filters.scopeAriaLabel')}
-                                    />
-                                    <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>
-                                </div>
-                                <div className={cls.scopeControlBlock}>
-                                    <Text className={cls.scopeControlLabel}>
-                                        {t('confidenceRisk.filters.confBucketLabel')}
-                                    </Text>
-                                    <BucketFilterToggle
-                                        value={confidenceBucketState.value}
-                                        options={confidenceBucketOptionsState.options}
-                                        onChange={handleConfidenceBucketChange}
-                                        className={cls.scopeBucketToggle}
-                                        ariaLabel={t('confidenceRisk.filters.confBucketAriaLabel')}
-                                    />
-                                </div>
-                            </div>
+                            <ReportViewControls groups={controlGroups} />
+                            <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>
                         </div>
 
                         <ReportActualStatusCard
@@ -1241,7 +961,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                             className={cls.termsBlock}
                         />
 
-                        {scopeFilteredTableSectionsState.sections.map((section, index) => {
+                        {tableSections.map((section, index) => {
                             const domId = `confidence-risk-${index + 1}`
                             const title =
                                 section.title || t('confidenceRisk.page.tableTitleFallback', { index: index + 1 })
@@ -1266,9 +986,10 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
     return (
         <PageDataBoundary
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
+            isLoading={isLoading || isOptionsLoading}
+            isError={isError || isOptionsError}
+            error={error ?? optionsError}
+            hasData={Boolean(data && optionsData)}
             onRetry={refetch}
             errorTitle={t('confidenceRisk.page.errorTitle')}>
             {content}

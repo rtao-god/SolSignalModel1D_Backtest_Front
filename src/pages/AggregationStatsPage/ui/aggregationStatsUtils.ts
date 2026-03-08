@@ -2,6 +2,12 @@ import type { DayDirectionLabelDto, UtcDayKeyDto } from '@/shared/types/aggregat
 import { formatIsoDateHuman } from '@/shared/utils/dateFormat'
 import { formatCount, formatPercent, formatProb3, formatNumber } from '@/shared/utils/numberFormat'
 
+interface DayDirectionTextMap {
+    down: string
+    flat: string
+    up: string
+}
+
 function pad2(value: number): string {
     return value < 10 ? `0${value}` : String(value)
 }
@@ -52,33 +58,33 @@ export function formatUtcDayKey(value: UtcDayKeyDto | null | undefined): string 
 
     throw new Error('[ui] UtcDayKey value is invalid or incomplete.')
 }
-export function formatUtcDayKeyHuman(value: UtcDayKeyDto | null | undefined): string {
+export function formatUtcDayKeyHuman(value: UtcDayKeyDto | null | undefined, locale: string): string {
     const iso = formatUtcDayKey(value)
-    return formatIsoDateHuman(iso, { locale: 'ru-RU', omitYearForCurrent: true, timeZone: 'UTC' })
+    return formatIsoDateHuman(iso, { locale, omitYearForCurrent: true, timeZone: 'UTC' })
 }
-export function formatDayDirectionLabel(label: DayDirectionLabelDto): string {
+export function formatDayDirectionLabel(label: DayDirectionLabelDto, text: DayDirectionTextMap): string {
     if (label === null || typeof label === 'undefined') {
         throw new Error('[ui] Missing DayDirectionLabel value.')
     }
     if (typeof label === 'number' && !Number.isFinite(label)) {
         throw new Error('[ui] Invalid DayDirectionLabel value.')
     }
-    if (label === 'Down' || label === 0) return 'Падение'
-    if (label === 'Flat' || label === 1) return 'Боковик'
-    if (label === 'Up' || label === 2) return 'Рост'
+    if (label === 'Down' || label === 0) return text.down
+    if (label === 'Flat' || label === 1) return text.flat
+    if (label === 'Up' || label === 2) return text.up
     throw new Error(`[ui] Unknown DayDirectionLabel value: ${String(label)}.`)
 }
 
-export function formatDayDirectionPositionLabel(label: DayDirectionLabelDto): string {
+export function formatDayDirectionPositionLabel(label: DayDirectionLabelDto, text: DayDirectionTextMap): string {
     if (label === null || typeof label === 'undefined') {
         throw new Error('[ui] Missing DayDirectionLabel value.')
     }
     if (typeof label === 'number' && !Number.isFinite(label)) {
         throw new Error('[ui] Invalid DayDirectionLabel value.')
     }
-    if (label === 'Down' || label === 0) return 'Short'
-    if (label === 'Flat' || label === 1) return 'Flat'
-    if (label === 'Up' || label === 2) return 'Long'
+    if (label === 'Down' || label === 0) return text.down
+    if (label === 'Flat' || label === 1) return text.flat
+    if (label === 'Up' || label === 2) return text.up
     throw new Error(`[ui] Unknown DayDirectionLabel value: ${String(label)}.`)
 }
 

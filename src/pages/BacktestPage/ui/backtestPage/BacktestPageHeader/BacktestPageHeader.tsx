@@ -1,4 +1,5 @@
-import { Text, TpSlModeToggle } from '@/shared/ui'
+import { useMemo } from 'react'
+import { ReportViewControls, Text, buildMegaTpSlControlGroup } from '@/shared/ui'
 import type { BacktestProfileDto, BacktestTpSlMode } from '@/shared/types/backtest.types'
 import { useTranslation } from 'react-i18next'
 import cls from './BacktestPageHeader.module.scss'
@@ -19,6 +20,17 @@ export function BacktestPageHeader({
     onTpSlModeChange
 }: BacktestPageHeaderProps) {
     const { t } = useTranslation('reports')
+    const tpSlControlGroups = useMemo(
+        () => [
+            buildMegaTpSlControlGroup({
+                value: tpSlMode,
+                onChange: onTpSlModeChange,
+                label: t('backtestFull.header.tpSlSliceLabel'),
+                ariaLabel: t('backtestFull.header.tpSlSliceAria')
+            })
+        ],
+        [onTpSlModeChange, t, tpSlMode]
+    )
 
     return (
         <header className={cls.header}>
@@ -26,13 +38,7 @@ export function BacktestPageHeader({
             <Text>{t('backtestFull.header.subtitle')}</Text>
 
             <div className={cls.tpSlModeBlock}>
-                <Text>{t('backtestFull.header.tpSlSliceLabel')}</Text>
-                <TpSlModeToggle
-                    value={tpSlMode}
-                    onChange={onTpSlModeChange}
-                    className={cls.tpSlToggle}
-                    ariaLabel={t('backtestFull.header.tpSlSliceAria')}
-                />
+                <ReportViewControls groups={tpSlControlGroups} className={cls.tpSlControls} />
                 <Text className={cls.tpSlModeHint}>{t('backtestFull.header.tpSlSliceHint')}</Text>
             </div>
 

@@ -1,7 +1,7 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
 
 const BACKTEST_DIAGNOSTICS_QUERY_KEY = ['backtest', 'diagnostics'] as const
@@ -9,6 +9,11 @@ const { path } = API_ROUTES.backtest.diagnosticsGet
 
 interface UseBacktestDiagnosticsNavOptions {
     enabled: boolean
+}
+
+export interface BacktestDiagnosticsReportQueryArgs {
+    tpSlMode?: string | null
+    zonalMode?: string | null
 }
 
 interface ApiErrorPayload {
@@ -39,8 +44,34 @@ function formatBacktestDiagnosticsError(status: number, bodyText: string): strin
     return `Failed to load backtest diagnostics report: ${status} ${bodyText}`
 }
 
-async function fetchBacktestDiagnosticsReport(): Promise<ReportDocumentDto> {
-    const resp = await fetch(`${API_BASE_URL}${path}`)
+function buildBacktestDiagnosticsPath(args?: BacktestDiagnosticsReportQueryArgs): string {
+    const params = new URLSearchParams()
+
+    if (args?.tpSlMode) {
+        params.set('tpsl', args.tpSlMode)
+    }
+
+    if (args?.zonalMode) {
+        params.set('zonal', args.zonalMode)
+    }
+
+    const query = params.toString()
+    return query ? `${path}?${query}` : path
+}
+
+function buildBacktestDiagnosticsQueryKey(args?: BacktestDiagnosticsReportQueryArgs) {
+    return [
+        ...BACKTEST_DIAGNOSTICS_QUERY_KEY,
+        args?.tpSlMode ?? null,
+        args?.zonalMode ?? null
+    ] as const
+}
+
+async function fetchBacktestDiagnosticsReport(
+    args?: BacktestDiagnosticsReportQueryArgs
+): Promise<ReportDocumentDto> {
+    const reportPath = buildBacktestDiagnosticsPath(args)
+    const resp = await fetch(`${API_BASE_URL}${reportPath}`)
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
@@ -51,21 +82,48 @@ async function fetchBacktestDiagnosticsReport(): Promise<ReportDocumentDto> {
     return mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'report-agnostic' })
 }
 
-function useBacktestDiagnosticsQuery(enabled: boolean): UseQueryResult<ReportDocumentDto, Error> {
-    return useQuery({
-        queryKey: BACKTEST_DIAGNOSTICS_QUERY_KEY,
-        queryFn: fetchBacktestDiagnosticsReport,
-        enabled,
-        retry: false
-    })
+function useBacktestDiagnosticsQuery(
+    args: BacktestDiagnosticsReportQueryArgs | undefined,
+    enabled: boolean
+): UseQueryResult<ReportDocumentDto, Error> {
+    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, enabled)
+
+    return useQuery(queryOptions)
 }
 
-export function useBacktestDiagnosticsReportQuery(): UseQueryResult<ReportDocumentDto, Error> {
-    return useBacktestDiagnosticsQuery(true)
+function buildBacktestDiagnosticsQueryOptions(
+    args: BacktestDiagnosticsReportQueryArgs | undefined,
+    enabled: boolean
+) {
+    return {
+        queryKey: buildBacktestDiagnosticsQueryKey(args),
+        queryFn: () => fetchBacktestDiagnosticsReport(args),
+        enabled,
+        retry: false
+    }
+}
+
+export function useBacktestDiagnosticsReportQuery(
+    args?: BacktestDiagnosticsReportQueryArgs
+): UseQueryResult<ReportDocumentDto, Error> {
+    return useBacktestDiagnosticsQuery(args, true)
 }
 
 export function useBacktestDiagnosticsReportNavQuery(
-    options: UseBacktestDiagnosticsNavOptions
+    options: UseBacktestDiagnosticsNavOptions,
+    args?: BacktestDiagnosticsReportQueryArgs
 ): UseQueryResult<ReportDocumentDto, Error> {
-    return useBacktestDiagnosticsQuery(options.enabled)
+    return useBacktestDiagnosticsQuery(args, options.enabled)
+}
+
+export async function prefetchBacktestDiagnosticsReport(
+    queryClient: QueryClient,
+    args?: BacktestDiagnosticsReportQueryArgs
+): Promise<void> {
+    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, true)
+    await queryClient.prefetchQuery({
+        queryKey: queryOptions.queryKey,
+        queryFn: queryOptions.queryFn,
+        retry: queryOptions.retry
+    })
 }

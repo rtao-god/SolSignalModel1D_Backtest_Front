@@ -11,6 +11,5 @@ import type { AboutPageProps } from './types'
 */
 export default function About({ className }: AboutPageProps) {
     const { t } = useTranslation('about')
-    // Временный контент страницы, пока раздел About не заполнен целевыми блоками.
     return <DatePicker />
 }

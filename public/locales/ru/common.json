@@ -77,5 +77,32 @@
     "profile": {
         "avatarAlt": "Аватар пользователя",
         "avatarAltWithName": "Аватар пользователя {{name}}"
+    },
+    "viewMode": {
+        "business": "Бизнес",
+        "technical": "Технический"
+    },
+    "tableExport": {
+        "ariaLabel": "Скачать таблицу",
+        "loading": "Готовлю файл...",
+        "downloadAs": "Скачать как {{format}}"
+    },
+    "sectionPager": {
+        "vertical": {
+            "prevAria": "Предыдущий раздел",
+            "nextAria": "Следующий раздел"
+        },
+        "dpad": {
+            "ariaLabel": "Навигация по отчётам",
+            "upAria": "Выше (внутри текущих отчётов)",
+            "downAria": "Ниже (внутри текущих отчётов)",
+            "prevPageAria": "Предыдущая страница отчётов",
+            "nextPageAria": "Следующая страница отчётов"
+        }
+    },
+    "sortableTable": {
+        "sort": "Сортировать",
+        "sortAsc": "Сортировка: по возрастанию",
+        "sortDesc": "Сортировка: по убыванию"
     }
 }

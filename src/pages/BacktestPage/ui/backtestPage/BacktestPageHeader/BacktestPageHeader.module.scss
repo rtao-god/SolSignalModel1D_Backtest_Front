@@ -58,7 +58,8 @@
     background: rgba(2, 6, 23, 0.45);
 }
 
-.tpSlToggle {
+.tpSlControls {
+    margin-top: 0 !important;
     width: max-content;
 }
 
@@ -81,7 +82,7 @@
         max-width: 100%;
     }
 
-    .tpSlToggle {
+    .tpSlControls {
         width: 100%;
     }
 }

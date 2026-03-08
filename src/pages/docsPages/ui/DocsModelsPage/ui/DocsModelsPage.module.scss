@@ -19,25 +19,8 @@
     opacity: 0.8;
 }
 
-.modeToggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-.modeButton {
-    min-width: 80px;
-    padding-inline: 12px;
-    border-radius: 999px;
-    background: transparent;
-}
-
-.modeButtonActive {
-    background: rgba(255, 255, 255, 0.12);
+.modeControls {
+    margin-top: 0 !important;
 }
 
 .sectionsGrid {

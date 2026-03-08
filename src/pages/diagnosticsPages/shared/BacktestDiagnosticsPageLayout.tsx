@@ -1,6 +1,14 @@
 import classNames from '@/shared/lib/helpers/classNames'
-import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
-import { ReactNode, useMemo } from 'react'
+import {
+    ReportActualStatusCard,
+    ReportTableTermsBlock,
+    ReportViewControls,
+    Text,
+    buildMegaTpSlControlGroup,
+    buildMegaZonalControlGroup
+} from '@/shared/ui'
+import type { ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
@@ -8,26 +16,10 @@ import type { ReportDocumentDto, TableSectionDto } from '@/shared/types/report.t
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import { resolveBacktestDiagnosticsDescription } from '@/shared/utils/backtestDiagnosticsDescriptions'
 import {
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsBySlModeKeepingSharedOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    filterPolicyBranchMegaSectionsByZonalModeKeepingSharedOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaSlModeFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery,
     resolvePolicyBranchMegaZonalModeFromQuery
 } from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_SL_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    DEFAULT_REPORT_ZONAL_MODE,
-    resolveReportViewCapabilities,
-    validateReportViewSelectionOrThrow
-} from '@/shared/utils/reportViewCapabilities'
+import { DEFAULT_REPORT_TP_SL_MODE, DEFAULT_REPORT_ZONAL_MODE } from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
@@ -56,6 +48,10 @@ function sectionDomId(index: number): string {
     return `diag-section-${index + 1}`
 }
 
+function isVariantDiagnosticsSection(section: TableSectionDto): boolean {
+    return Boolean(section.metadata?.tpSlMode && section.metadata?.zonalMode)
+}
+
 export default function BacktestDiagnosticsPageLayout({
     report,
     sections,
@@ -69,7 +65,6 @@ export default function BacktestDiagnosticsPageLayout({
     const [searchParams, setSearchParams] = useSearchParams()
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
-    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(sections), [sections])
 
     const generatedAtState = useMemo(() => {
         if (!report.generatedAtUtc) {
@@ -105,148 +100,48 @@ export default function BacktestDiagnosticsPageLayout({
         }
     }, [])
 
-    const bucketState = useMemo(() => {
-        try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(
-                searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
-            )
-            return { value: bucket, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const metricState = useMemo(() => {
-        try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(
-                searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
-            )
-            return { value: metric, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
-        }
-    }, [searchParams])
-
     const tpSlState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            return { value: mode, error: null as Error | null }
+            return {
+                value: resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE),
+                error: null as Error | null
+            }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const slModeState = useMemo(() => {
-        try {
-            const mode = resolvePolicyBranchMegaSlModeFromQuery(searchParams.get('slmode'), DEFAULT_REPORT_SL_MODE)
-            return { value: mode, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics slmode query.')
-            return { value: DEFAULT_REPORT_SL_MODE, error: safeError }
+            return {
+                value: DEFAULT_REPORT_TP_SL_MODE,
+                error: safeError
+            }
         }
     }, [searchParams])
 
     const zonalState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaZonalModeFromQuery(searchParams.get('zonal'), DEFAULT_REPORT_ZONAL_MODE)
-            return { value: mode, error: null as Error | null }
+            return {
+                value: resolvePolicyBranchMegaZonalModeFromQuery(searchParams.get('zonal'), DEFAULT_REPORT_ZONAL_MODE),
+                error: null as Error | null
+            }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics zonal query.')
-            return { value: DEFAULT_REPORT_ZONAL_MODE, error: safeError }
+            return {
+                value: DEFAULT_REPORT_ZONAL_MODE,
+                error: safeError
+            }
         }
     }, [searchParams])
 
-    const viewSelectionState = useMemo(() => {
-        try {
-            validateReportViewSelectionOrThrow(
-                {
-                    bucket: bucketState.value,
-                    metric: metricState.value,
-                    tpSl: tpSlState.value
-                },
-                viewCapabilities,
-                'backtest-diagnostics'
-            )
-
-            if (!viewCapabilities.supportsSlModeFiltering && slModeState.value !== DEFAULT_REPORT_SL_MODE) {
-                throw new Error(
-                    `[backtest-diagnostics] slmode switch is not supported for this report. requested=${slModeState.value}.`
-                )
-            }
-
-            if (!viewCapabilities.supportsZonalFiltering && zonalState.value !== DEFAULT_REPORT_ZONAL_MODE) {
-                throw new Error(
-                    `[backtest-diagnostics] zonal switch is not supported for this report. requested=${zonalState.value}.`
-                )
-            }
-
-            return { error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate diagnostics view state.')
-            return { error: safeError }
-        }
-    }, [bucketState.value, metricState.value, slModeState.value, tpSlState.value, viewCapabilities, zonalState.value])
-
-    const filteredSectionsState = useMemo(() => {
-        if (viewSelectionState.error) {
-            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
-        }
-
-        try {
-            let nextSections = sections
-
-            if (viewCapabilities.supportsZonalFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByZonalModeKeepingSharedOrThrow(
-                    nextSections,
-                    zonalState.value
-                )
-            }
-
-            if (viewCapabilities.supportsSlModeFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsBySlModeKeepingSharedOrThrow(
-                    nextSections,
-                    slModeState.value
-                )
-            }
-
-            if (viewCapabilities.supportsBucketFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
-            }
-
-            if (viewCapabilities.supportsMetricFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
-            }
-
-            if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
-            }
-
-            return { sections: nextSections, error: null as Error | null }
-        } catch (err) {
-            const safeError =
-                err instanceof Error ? err : (
-                    new Error('Failed to filter diagnostics sections by zonal/slmode/bucket/metric.')
-                )
-            return { sections: [] as TableSectionDto[], error: safeError }
-        }
-    }, [
-        bucketState.value,
-        metricState.value,
-        sections,
-        slModeState.value,
-        tpSlState.value,
-        viewCapabilities,
-        viewSelectionState.error,
-        zonalState.value
-    ])
+    const sharedSections = useMemo(
+        () => sections.filter(section => !isVariantDiagnosticsSection(section)),
+        [sections]
+    )
+    const variantSections = useMemo(
+        () => sections.filter(isVariantDiagnosticsSection),
+        [sections]
+    )
+    const sectionsForView = useMemo(() => [...variantSections, ...sharedSections], [sharedSections, variantSections])
 
     const termsState = useMemo(() => {
-        if (filteredSectionsState.sections.length === 0) {
+        if (sectionsForView.length === 0) {
             return {
                 terms: [] as ReportTermItem[],
                 error: null as Error | null
@@ -256,7 +151,7 @@ export default function BacktestDiagnosticsPageLayout({
         try {
             return {
                 terms: buildReportTermsFromSectionsOrThrow({
-                    sections: filteredSectionsState.sections,
+                    sections: sectionsForView,
                     reportKind: report.kind,
                     contextTag: 'backtest-diagnostics',
                     resolveSectionTitle: section =>
@@ -271,11 +166,11 @@ export default function BacktestDiagnosticsPageLayout({
                 error: safeError
             }
         }
-    }, [filteredSectionsState.sections, report.kind])
+    }, [report.kind, sectionsForView])
 
     const pagerSections = useMemo(
         () =>
-            filteredSectionsState.sections.map((section, index) => ({
+            sectionsForView.map((section, index) => ({
                 id: sectionDomId(index),
                 anchor: sectionDomId(index),
                 label:
@@ -283,7 +178,7 @@ export default function BacktestDiagnosticsPageLayout({
                     section.title ||
                     t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
             })),
-        [filteredSectionsState.sections, t]
+        [sectionsForView, t]
     )
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
@@ -291,40 +186,32 @@ export default function BacktestDiagnosticsPageLayout({
         syncHash: true
     })
 
-    const handleBucketChange = (next: typeof bucketState.value) => {
-        if (next === bucketState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('bucket', next)
-        setSearchParams(nextParams, { replace: true })
-    }
+    const controlGroups = useMemo(() => {
+        if (variantSections.length === 0) {
+            return []
+        }
 
-    const handleMetricChange = (next: typeof metricState.value) => {
-        if (next === metricState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('metric', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
-        if (next === tpSlState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('tpsl', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleSlModeChange = (next: typeof slModeState.value) => {
-        if (next === slModeState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('slmode', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleZonalModeChange = (next: typeof zonalState.value) => {
-        if (next === zonalState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('zonal', next)
-        setSearchParams(nextParams, { replace: true })
-    }
+        return [
+            buildMegaTpSlControlGroup({
+                value: tpSlState.value,
+                onChange: next => {
+                    if (next === tpSlState.value) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('tpsl', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            }),
+            buildMegaZonalControlGroup({
+                value: zonalState.value,
+                onChange: next => {
+                    if (next === zonalState.value) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('zonal', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            })
+        ]
+    }, [searchParams, setSearchParams, tpSlState.value, variantSections.length, zonalState.value])
 
     if (generatedAtState.error || !generatedAtState.value) {
         return (
@@ -349,26 +236,6 @@ export default function BacktestDiagnosticsPageLayout({
         )
     }
 
-    if (bucketState.error) {
-        return (
-            <PageError
-                title={t('diagnosticsReport.layout.errors.bucketQuery.title')}
-                message={t('diagnosticsReport.layout.errors.bucketQuery.message')}
-                error={bucketState.error}
-            />
-        )
-    }
-
-    if (metricState.error) {
-        return (
-            <PageError
-                title={t('diagnosticsReport.layout.errors.metricQuery.title')}
-                message={t('diagnosticsReport.layout.errors.metricQuery.message')}
-                error={metricState.error}
-            />
-        )
-    }
-
     if (tpSlState.error) {
         return (
             <PageError
@@ -379,32 +246,12 @@ export default function BacktestDiagnosticsPageLayout({
         )
     }
 
-    if (slModeState.error) {
-        return (
-            <PageError
-                title={t('diagnosticsReport.layout.errors.slModeQuery.title')}
-                message={t('diagnosticsReport.layout.errors.slModeQuery.message')}
-                error={slModeState.error}
-            />
-        )
-    }
-
     if (zonalState.error) {
         return (
             <PageError
                 title={t('diagnosticsReport.layout.errors.zonalQuery.title')}
                 message={t('diagnosticsReport.layout.errors.zonalQuery.message')}
                 error={zonalState.error}
-            />
-        )
-    }
-
-    if (filteredSectionsState.error) {
-        return (
-            <PageError
-                title={t('diagnosticsReport.layout.errors.sections.title')}
-                message={t('diagnosticsReport.layout.errors.sections.message')}
-                error={filteredSectionsState.error}
             />
         )
     }
@@ -425,19 +272,7 @@ export default function BacktestDiagnosticsPageLayout({
                 <div>
                     <Text type='h1'>{pageTitle}</Text>
                     <Text className={cls.subtitle}>{pageSubtitle}</Text>
-                    <ReportViewControls
-                        bucket={bucketState.value}
-                        metric={metricState.value}
-                        tpSlMode={tpSlState.value}
-                        slMode={slModeState.value}
-                        zonalMode={zonalState.value}
-                        capabilities={viewCapabilities}
-                        onBucketChange={handleBucketChange}
-                        onMetricChange={handleMetricChange}
-                        onTpSlModeChange={handleTpSlModeChange}
-                        onSlModeChange={handleSlModeChange}
-                        onZonalModeChange={handleZonalModeChange}
-                    />
+                    <ReportViewControls groups={controlGroups} />
                 </div>
 
                 <ReportActualStatusCard
@@ -452,7 +287,7 @@ export default function BacktestDiagnosticsPageLayout({
                 />
             </header>
 
-            {filteredSectionsState.sections.length === 0 ?
+            {sectionsForView.length === 0 ?
                 <Text>{emptyMessage}</Text>
             :   <>
                     <ReportTableTermsBlock
@@ -462,27 +297,70 @@ export default function BacktestDiagnosticsPageLayout({
                         className={cls.termsBlock}
                     />
 
-                    <div className={cls.tableGrid}>
-                        {filteredSectionsState.sections.map((section, index) => (
-                            <div
-                                key={`${section.title}-${index}`}
-                                className={cls.sectionBlock}
-                                id={sectionDomId(index)}>
-                                <ReportTableCard
-                                    title={
-                                        normalizeReportTitle(section.title) ||
-                                        section.title ||
-                                        t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
-                                    }
-                                    description={resolveBacktestDiagnosticsDescription(section.title) ?? undefined}
-                                    columns={section.columns ?? []}
-                                    rows={section.rows ?? []}
-                                    domId={`${sectionDomId(index)}-table`}
-                                    renderColumnTitle={renderColumnTitle}
-                                />
+                    {variantSections.length > 0 && (
+                        <div className={cls.tableGrid}>
+                            {variantSections.map((section, index) => (
+                                <div
+                                    key={`${section.title}-${index}`}
+                                    className={cls.sectionBlock}
+                                    id={sectionDomId(index)}>
+                                    <ReportTableCard
+                                        title={
+                                            normalizeReportTitle(section.title) ||
+                                            section.title ||
+                                            t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
+                                        }
+                                        description={resolveBacktestDiagnosticsDescription(section.title) ?? undefined}
+                                        columns={section.columns ?? []}
+                                        rows={section.rows ?? []}
+                                        domId={`${sectionDomId(index)}-table`}
+                                        renderColumnTitle={renderColumnTitle}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {sharedSections.length > 0 && (
+                        <section className={cls.sharedBlock}>
+                            <Text type='h3' className={cls.sharedTitle}>
+                                Общие таблицы
+                            </Text>
+                            <Text className={cls.sharedSubtitle}>
+                                Эти секции не зависят от выбранного режима tp/sl и zonal risk.
+                            </Text>
+
+                            <div className={cls.tableGrid}>
+                                {sharedSections.map((section, index) => {
+                                    const domIndex = variantSections.length + index
+
+                                    return (
+                                        <div
+                                            key={`${section.title}-${domIndex}`}
+                                            className={cls.sectionBlock}
+                                            id={sectionDomId(domIndex)}>
+                                            <ReportTableCard
+                                                title={
+                                                    normalizeReportTitle(section.title) ||
+                                                    section.title ||
+                                                    t('diagnosticsReport.layout.sectionFallback', {
+                                                        index: domIndex + 1
+                                                    })
+                                                }
+                                                description={
+                                                    resolveBacktestDiagnosticsDescription(section.title) ?? undefined
+                                                }
+                                                columns={section.columns ?? []}
+                                                rows={section.rows ?? []}
+                                                domId={`${sectionDomId(domIndex)}-table`}
+                                                renderColumnTitle={renderColumnTitle}
+                                            />
+                                        </div>
+                                    )
+                                })}
                             </div>
-                        ))}
-                    </div>
+                        </section>
+                    )}
 
                     {pagerSections.length > 1 && (
                         <SectionPager

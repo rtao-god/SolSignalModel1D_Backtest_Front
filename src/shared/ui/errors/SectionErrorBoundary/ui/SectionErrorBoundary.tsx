@@ -1,5 +1,6 @@
 import React from 'react'
 import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
+import i18n from '@/shared/configs/i18n/i18n'
 
 interface SectionErrorBoundaryProps {
     name?: string
@@ -58,8 +59,13 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
         return (
             <ErrorBlock
                 code='CLIENT'
-                title='Ошибка при отрисовке блока'
-                description='Этот блок временно недоступен из-за ошибки на клиенте. Остальная часть страницы продолжает работать.'
+                title={i18n.t('errors:ui.sectionErrorBoundary.title', {
+                    defaultValue: 'Section render error'
+                })}
+                description={i18n.t('errors:ui.sectionErrorBoundary.description', {
+                    defaultValue:
+                        'This block is temporarily unavailable due to a client-side error. The rest of the page remains available.'
+                })}
                 details={safeError.message}
                 onRetry={this.reset}
             />

@@ -1,37 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
-import { ViewModeToggle, type ViewMode } from '@/shared/ui/ViewModeToggle/ui/ViewModeToggle'
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
 import cls from './PfiPage.module.scss'
 import { usePfiPerModelReportQuery } from '@/shared/api/tanstackQueries/pfi'
-import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
+import {
+    ReportActualStatusCard,
+    ReportTableTermsBlock,
+    ReportViewControls,
+    Text,
+    buildBusinessTechnicalViewControlGroup,
+    type BusinessTechnicalViewControlValue
+} from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
-import {
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaTpSlModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    resolveReportViewCapabilities,
-    validateReportViewSelectionOrThrow
-} from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import type { PfiPageProps, PfiTableCardProps } from './types'
@@ -39,8 +29,24 @@ import { useTranslation } from 'react-i18next'
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
-    const [mode, setMode] = useState<ViewMode>('business')
+    const { t } = useTranslation(['reports', 'common'])
+    const [mode, setMode] = useState<BusinessTechnicalViewControlValue>('business')
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
+    const viewControlGroups = useMemo(
+        () => [
+            buildBusinessTechnicalViewControlGroup({
+                value: mode,
+                onChange: setMode,
+                label: t('pfi.page.controls.viewModeLabel', { ns: 'reports' }),
+                ariaLabel: t('pfi.page.controls.viewModeAriaLabel', { ns: 'reports' }),
+                labels: {
+                    business: t('viewMode.business', { ns: 'common' }),
+                    technical: t('viewMode.technical', { ns: 'common' })
+                }
+            })
+        ],
+        [mode, t]
+    )
 
     const columns: string[] = section.columns ?? []
     const normalizedRows = useMemo<TableRow[]>(
@@ -96,7 +102,7 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
                         {section.title}
                     </Text>
                     {description && <Text className={cls.cardSubtitle}>{description}</Text>}
-                    <ViewModeToggle mode={mode} onChange={setMode} className={cls.modeToggle} />
+                    <ReportViewControls groups={viewControlGroups} className={cls.modeControls} />
                 </div>
 
                 <TableExportButton
@@ -122,7 +128,6 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
 export default function PfiPage({ className }: PfiPageProps) {
     const { t } = useTranslation('reports')
     const { data, isError, error, refetch } = usePfiPerModelReportQuery()
-    const [searchParams, setSearchParams] = useSearchParams()
 
     const tableSections = useMemo(
         () =>
@@ -133,43 +138,6 @@ export default function PfiPage({ className }: PfiPageProps) {
             ),
         [data]
     )
-    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(tableSections), [tableSections])
-
-    const bucketState = useMemo(() => {
-        try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(
-                searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
-            )
-            return { value: bucket, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse pfi bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const metricState = useMemo(() => {
-        try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(
-                searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
-            )
-            return { value: metric, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse pfi metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const tpSlState = useMemo(() => {
-        try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            return { value: mode, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse pfi tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
-        }
-    }, [searchParams])
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -186,63 +154,11 @@ export default function PfiPage({ className }: PfiPageProps) {
         }
     }, [])
 
-    const viewSelectionState = useMemo(() => {
-        try {
-            validateReportViewSelectionOrThrow(
-                {
-                    bucket: bucketState.value,
-                    metric: metricState.value,
-                    tpSl: tpSlState.value
-                },
-                viewCapabilities,
-                'pfi'
-            )
-            return { error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate pfi view state.')
-            return { error: safeError }
-        }
-    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
-
-    const filteredTableSectionsState = useMemo(() => {
-        if (viewSelectionState.error) {
-            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
-        }
-
-        try {
-            let nextSections = tableSections
-
-            if (viewCapabilities.supportsBucketFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
-            }
-
-            if (viewCapabilities.supportsMetricFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
-            }
-
-            if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
-            }
-
-            return { sections: nextSections, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to filter pfi sections by bucket/metric.')
-            return { sections: [] as TableSectionDto[], error: safeError }
-        }
-    }, [
-        bucketState.value,
-        metricState.value,
-        tableSections,
-        tpSlState.value,
-        viewCapabilities,
-        viewSelectionState.error
-    ])
-
     const termsState = useMemo(() => {
         try {
             return {
                 terms: buildReportTermsFromSectionsOrThrow({
-                    sections: filteredTableSectionsState.sections,
+                    sections: tableSections,
                     reportKind: 'pfi_per_model',
                     contextTag: 'pfi'
                 }),
@@ -255,38 +171,14 @@ export default function PfiPage({ className }: PfiPageProps) {
                 error: safeError
             }
         }
-    }, [filteredTableSectionsState.sections])
+    }, [tableSections])
 
-    const tabs = useMemo(
-        () => buildPfiTabsFromSections(filteredTableSectionsState.sections),
-        [filteredTableSectionsState.sections]
-    )
+    const tabs = useMemo(() => buildPfiTabsFromSections(tableSections), [tableSections])
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
         syncHash: true
     })
-
-    const handleBucketChange = (next: typeof bucketState.value) => {
-        if (next === bucketState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('bucket', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleMetricChange = (next: typeof metricState.value) => {
-        if (next === metricState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('metric', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
-        if (next === tpSlState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('tpsl', next)
-        setSearchParams(nextParams, { replace: true })
-    }
 
     const rootClassName = classNames(cls.PfiPage, {}, [className ?? ''])
 
@@ -309,41 +201,6 @@ export default function PfiPage({ className }: PfiPageProps) {
                             }
                             onRetry={refetch}
                         />
-                    : bucketState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.bucketQuery.title')}
-                            message={t('pfi.page.errors.bucketQuery.message')}
-                            error={bucketState.error}
-                            onRetry={refetch}
-                        />
-                    : metricState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.metricQuery.title')}
-                            message={t('pfi.page.errors.metricQuery.message')}
-                            error={metricState.error}
-                            onRetry={refetch}
-                        />
-                    : tpSlState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.tpSlQuery.title')}
-                            message={t('pfi.page.errors.tpSlQuery.message')}
-                            error={tpSlState.error}
-                            onRetry={refetch}
-                        />
-                    : viewSelectionState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.unsupportedView.title')}
-                            message={t('pfi.page.errors.unsupportedView.message')}
-                            error={viewSelectionState.error}
-                            onRetry={refetch}
-                        />
-                    : filteredTableSectionsState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.sections.title')}
-                            message={t('pfi.page.errors.sections.message')}
-                            error={filteredTableSectionsState.error}
-                            onRetry={refetch}
-                        />
                     : termsState.error ?
                         <PageError
                             title={t('pfi.page.errors.terms.title')}
@@ -356,15 +213,6 @@ export default function PfiPage({ className }: PfiPageProps) {
                                 <div>
                                     <Text type='h2'>{data.title || t('pfi.page.header.titleFallback')}</Text>
                                     <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
-                                    <ReportViewControls
-                                        bucket={bucketState.value}
-                                        metric={metricState.value}
-                                        tpSlMode={tpSlState.value}
-                                        capabilities={viewCapabilities}
-                                        onBucketChange={handleBucketChange}
-                                        onMetricChange={handleMetricChange}
-                                        onTpSlModeChange={handleTpSlModeChange}
-                                    />
                                 </div>
                                 <ReportActualStatusCard
                                     statusMode='debug'
@@ -378,7 +226,7 @@ export default function PfiPage({ className }: PfiPageProps) {
                                 />
                             </header>
 
-                            {filteredTableSectionsState.sections.length === 0 ?
+                            {tableSections.length === 0 ?
                                 <div>
                                     <Text type='h2'>{t('pfi.page.empty.title')}</Text>
                                     <Text>{t('pfi.page.empty.description')}</Text>
@@ -392,7 +240,7 @@ export default function PfiPage({ className }: PfiPageProps) {
                                     />
 
                                     <div className={cls.tablesGrid}>
-                                        {filteredTableSectionsState.sections.map((section, index) => {
+                                        {tableSections.map((section, index) => {
                                             const tab = tabs[index]
                                             const domId = tab?.anchor ?? `pfi-model-${index + 1}`
 

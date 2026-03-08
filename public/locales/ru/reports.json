@@ -423,6 +423,30 @@
                 "modeTechnical": "Технический (подробные матрицы ошибок)",
                 "runKind": "Тип запуска: {{value}}"
             },
+            "segmentToggle": {
+                "oos": "OOS (честная проверка)",
+                "train": "Train",
+                "full": "Вся история",
+                "recent": "Свежий хвост"
+            },
+            "segmentMeta": {
+                "oos": {
+                    "label": "OOS (честная проверка)",
+                    "description": "{{label}}: записей {{count}}. Показывает качество на данных, которых модель не видела при обучении."
+                },
+                "train": {
+                    "label": "Train",
+                    "description": "{{label}}: записей {{count}}. Показывает поведение модели на обучающей выборке."
+                },
+                "full": {
+                    "label": "Вся история",
+                    "description": "{{label}}: записей {{count}}. Включает всю доступную историю данных."
+                },
+                "recent": {
+                    "label": "Свежий хвост ({{days}} дн.)",
+                    "description": "{{label}}: записей {{count}}. Фокусируется на последних доступных днях."
+                }
+            },
             "status": {
                 "title": "DEBUG: freshness not verified",
                 "message": "Status endpoint для backtest_model_stats не настроен: показываются metadata отчёта без freshness-проверки.",
@@ -554,6 +578,11 @@
                 "yes": "да",
                 "no": "нет"
             },
+            "positions": {
+                "short": "Шорт",
+                "flat": "Флэт",
+                "long": "Лонг"
+            },
             "tooltips": {
                 "probTable": {
                     "layer": "Какая стадия агрегации используется: Day (базовая модель), Day+Micro (с учётом микро‑оверлея) и Total (с учётом SL‑оверлея).",
@@ -656,6 +685,177 @@
             "errors": {
                 "clientTitle": "Блок What-if временно недоступен",
                 "clientDescription": "При отрисовке блока What-if произошла ошибка на клиенте. Baseline и сравнение профилей продолжают работать."
+            }
+        },
+        "configEditor": {
+            "profileUnnamed": "без названия",
+            "profileIntro": "Основа what-if: профиль «{{profileName}}».",
+            "fields": {
+                "baselineSl": {
+                    "tooltip": "Базовый дневной stop-loss. Если dynamic TP/SL для дня не активируется, применяется это значение."
+                },
+                "baselineTp": {
+                    "tooltip": "Базовый дневной take-profit. Dynamic-оверлей масштабирует его только при прохождении confidence-правил."
+                }
+            },
+            "dynamic": {
+                "titleEnabled": "Dynamic TP/SL overlay (confidence-risk)",
+                "infoEnabled": "Dynamic TP/SL применяется только если confidence bucket проходит исторические ограничения (минимум samples + минимальный win-rate). В остальных днях остаются baseline TP/SL.",
+                "actions": {
+                    "tighten": "Сделать TP/SL ближе",
+                    "widen": "Сделать TP/SL дальше"
+                },
+                "fields": {
+                    "tpMultMin": {
+                        "tooltip": "Нижний множитель динамического TP относительно baseline TP (доли, не проценты)."
+                    },
+                    "tpMultMax": {
+                        "tooltip": "Верхний множитель динамического TP относительно baseline TP."
+                    },
+                    "slMultMin": {
+                        "tooltip": "Нижний множитель динамического SL относительно baseline SL."
+                    },
+                    "slMultMax": {
+                        "tooltip": "Верхний множитель динамического SL относительно baseline SL."
+                    },
+                    "dailyTpMin": {
+                        "tooltip": "Жёсткий нижний кламп итогового dynamic TP после всех множителей."
+                    },
+                    "dailyTpMax": {
+                        "tooltip": "Жёсткий верхний кламп итогового dynamic TP."
+                    },
+                    "dailySlMin": {
+                        "tooltip": "Жёсткий нижний кламп итогового dynamic SL."
+                    },
+                    "dailySlMax": {
+                        "tooltip": "Жёсткий верхний кламп итогового dynamic SL."
+                    },
+                    "minBucketSamples": {
+                        "tooltip": "Минимум исторических наблюдений в confidence-bucket, после которого разрешается dynamic TP/SL."
+                    },
+                    "minBucketWinRate": {
+                        "tooltip": "Минимальный исторический win-rate в confidence-bucket для включения dynamic TP/SL."
+                    },
+                    "confGateMin": {
+                        "tooltip": "Минимальная directional confidence для допуска сделки."
+                    },
+                    "confGateRiskDayMin": {
+                        "tooltip": "Минимальная confidence для RiskDay (если 0, используется Conf gate min)."
+                    }
+                },
+                "titleDisabled": "Dynamic TP/SL overlay",
+                "infoDisabled": "В этом профиле confidence-risk overlay отсутствует или отключён. Preview будет идти по baseline TP/SL без динамических модификаций."
+            },
+            "policyTable": {
+                "title": "Политики плеча",
+                "subtitle": "Выберите, какие политики участвуют в preview, и при необходимости скорректируйте const плечо.",
+                "columns": {
+                    "enabled": {
+                        "label": "Вкл",
+                        "tooltip": "Включить/выключить политику в текущем one-shot preview."
+                    },
+                    "name": {
+                        "label": "Имя",
+                        "tooltip": "Имя политики."
+                    },
+                    "type": {
+                        "label": "Тип",
+                        "tooltip": "Тип логики политики (const, risk_aware, ultra_safe, dynamic, spot)."
+                    },
+                    "leverage": {
+                        "label": "Плечо",
+                        "tooltip": "Для const-политик можно вручную изменить плечо. Для остальных типов не используется."
+                    },
+                    "margin": {
+                        "label": "Маржа",
+                        "tooltip": "Режим маржи политики: Cross или Isolated."
+                    }
+                }
+            },
+            "runButton": {
+                "loading": "Запускаю preview...",
+                "default": "Запустить preview"
+            }
+        },
+        "policyRatios": {
+            "title": "Метрики политик (Sharpe / Sortino / PnL)",
+            "subtitle": "Сравнение политик внутри выбранного бакета капитала. Полное покрытие достигается при анализе daily/intraday/delayed.",
+            "loading": "Загружаю метрики политик...",
+            "empty": "Пока нет сохранённого отчёта с метриками политик.",
+            "windowLabel": "Окно бэктеста",
+            "controls": {
+                "bucket": "Бакет",
+                "metric": "Метрика"
+            },
+            "viewMode": {
+                "chart": "График",
+                "table": "Таблица"
+            },
+            "chart": {
+                "policyLabel": "Политика: {{label}}"
+            },
+            "metrics": {
+                "totalPnlPct": "PnL %",
+                "sharpe": "Sharpe",
+                "sortino": "Sortino",
+                "calmar": "Calmar",
+                "winRatePct": "WinRate %"
+            },
+            "columns": {
+                "policy": {
+                    "label": "Политика",
+                    "tooltip": "Имя торговой политики (стратегии)."
+                },
+                "bucket": {
+                    "label": "Бакет",
+                    "tooltip": "Капитальный бакет расчёта: daily, intraday, delayed или total."
+                },
+                "trades": {
+                    "label": "Сделок",
+                    "tooltip": "Количество сделок по политике в выбранном бакете."
+                },
+                "pnl": {
+                    "label": "PnL %",
+                    "tooltip": "Суммарная доходность по политике в процентах за выбранный бакет."
+                },
+                "maxDd": {
+                    "label": "MaxDD %",
+                    "tooltip": "Максимальная просадка капитала в процентах."
+                },
+                "sharpe": {
+                    "label": "Sharpe",
+                    "tooltip": "Доходность, нормированная на общую волатильность."
+                },
+                "sortino": {
+                    "label": "Sortino",
+                    "tooltip": "Доходность, нормированная на downside-волатильность."
+                },
+                "calmar": {
+                    "label": "Calmar",
+                    "tooltip": "Отношение доходности к максимальной просадке."
+                },
+                "winRate": {
+                    "label": "WinRate %",
+                    "tooltip": "Доля прибыльных сделок, %."
+                },
+                "withdrawn": {
+                    "label": "Withdrawn $",
+                    "tooltip": "Сумма выведенной прибыли (если применимо)."
+                },
+                "liq": {
+                    "label": "Liq?",
+                    "tooltip": "Была ли ликвидация в выбранном бакете."
+                }
+            },
+            "rows": {
+                "liqYes": "YES",
+                "liqNo": "no"
+            },
+            "errors": {
+                "dataTitle": "Не удалось получить policy-ratios",
+                "dataDescription": "Секция метрик политик недоступна из-за ошибки данных.",
+                "clientTitle": "Ошибка в секции метрик политик",
+                "clientDescription": "При отрисовке блока метрик политик произошла ошибка на клиенте."
             }
         },
         "compareBlock": {
@@ -837,6 +1037,10 @@
             "terms": {
                 "title": "Термины отчета PFI",
                 "subtitle": "Подробные определения показателей важности признаков и сопутствующих статистик для всех таблиц на этой странице."
+            },
+            "controls": {
+                "viewModeLabel": "Режим представления",
+                "viewModeAriaLabel": "Режим представления PFI-таблицы"
             }
         }
     },
@@ -926,6 +1130,7 @@
                 "slUsd": "SL, $",
                 "slPct": "SL, %",
                 "liquidationPrice": "Цена ликвидации, $",
+                "notionalUsd": "Номинал позиции, $",
                 "bucketCapital": "Капитал бакета, $",
                 "stakeUsd": "Ставка, $",
                 "stakePct": "Ставка, %"

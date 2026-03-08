@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { ReportActualStatusCard, ReportTableTermsBlock, ReportViewControls, Text } from '@/shared/ui'
+import { ReportActualStatusCard, ReportTableTermsBlock, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
@@ -13,21 +12,6 @@ import type {
 } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
-import {
-    filterPolicyBranchMegaSectionsByBucketOrThrow,
-    filterPolicyBranchMegaSectionsByMetricOrThrow,
-    filterPolicyBranchMegaSectionsByTpSlModeOrThrow,
-    resolvePolicyBranchMegaBucketFromQuery,
-    resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaTpSlModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    resolveReportViewCapabilities,
-    validateReportViewSelectionOrThrow
-} from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
 import cls from './ReportDocumentView.module.scss'
@@ -38,7 +22,6 @@ interface ReportDocumentViewProps {
 }
 
 export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
-    const [searchParams, setSearchParams] = useSearchParams()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
 
     const generatedAtState = useMemo(() => {
@@ -73,104 +56,8 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
         () => report.sections.filter(section => isTableSection(section)) as TableSectionDto[],
         [report.sections]
     )
-    const viewCapabilities = useMemo(() => resolveReportViewCapabilities(tableSections), [tableSections])
-
-    const bucketState = useMemo(() => {
-        try {
-            const bucket = resolvePolicyBranchMegaBucketFromQuery(
-                searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
-            )
-            return { value: bucket, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse report bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const metricState = useMemo(() => {
-        try {
-            const metric = resolvePolicyBranchMegaMetricFromQuery(
-                searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
-            )
-            return { value: metric, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse report metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const tpSlState = useMemo(() => {
-        try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
-            return { value: mode, error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse report tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
-        }
-    }, [searchParams])
-
-    const viewSelectionState = useMemo(() => {
-        try {
-            validateReportViewSelectionOrThrow(
-                {
-                    bucket: bucketState.value,
-                    metric: metricState.value,
-                    tpSl: tpSlState.value
-                },
-                viewCapabilities,
-                'report-document-view'
-            )
-
-            return { error: null as Error | null }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate report view state.')
-            return { error: safeError }
-        }
-    }, [bucketState.value, metricState.value, tpSlState.value, viewCapabilities])
-
-    const filteredTableSectionsState = useMemo(() => {
-        if (viewSelectionState.error) {
-            return { sections: [] as TableSectionDto[], error: viewSelectionState.error }
-        }
-
-        try {
-            let nextSections = tableSections
-
-            if (viewCapabilities.supportsBucketFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByBucketOrThrow(nextSections, bucketState.value)
-            }
-
-            if (viewCapabilities.supportsMetricFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByMetricOrThrow(nextSections, metricState.value)
-            }
-
-            if (viewCapabilities.supportsTpSlFiltering) {
-                nextSections = filterPolicyBranchMegaSectionsByTpSlModeOrThrow(nextSections, tpSlState.value)
-            }
-
-            return { sections: nextSections, error: null as Error | null }
-        } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to filter report table sections by bucket/metric.')
-            return { sections: [] as TableSectionDto[], error: safeError }
-        }
-    }, [
-        bucketState.value,
-        metricState.value,
-        tableSections,
-        tpSlState.value,
-        viewCapabilities,
-        viewSelectionState.error
-    ])
-
-    const filteredTableSet = useMemo(
-        () => new Set(filteredTableSectionsState.sections),
-        [filteredTableSectionsState.sections]
-    )
     const termsState = useMemo(() => {
-        if (filteredTableSectionsState.sections.length === 0) {
+        if (tableSections.length === 0) {
             return {
                 terms: [] as ReportTermItem[],
                 error: null as Error | null
@@ -180,7 +67,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
         try {
             return {
                 terms: buildReportTermsFromSectionsOrThrow({
-                    sections: filteredTableSectionsState.sections,
+                    sections: tableSections,
                     reportKind: report.kind,
                     contextTag: 'report-document-view',
                     resolveSectionTitle: section =>
@@ -195,40 +82,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 error: safeError
             }
         }
-    }, [filteredTableSectionsState.sections, report.kind])
-
-    const sectionsForView = useMemo(
-        () =>
-            report.sections.filter(section => {
-                if (!isTableSection(section)) {
-                    return true
-                }
-
-                return filteredTableSet.has(section)
-            }),
-        [filteredTableSet, report.sections]
-    )
-
-    const handleBucketChange = (next: typeof bucketState.value) => {
-        if (next === bucketState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('bucket', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleMetricChange = (next: typeof metricState.value) => {
-        if (next === metricState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('metric', next)
-        setSearchParams(nextParams, { replace: true })
-    }
-
-    const handleTpSlModeChange = (next: typeof tpSlState.value) => {
-        if (next === tpSlState.value) return
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('tpsl', next)
-        setSearchParams(nextParams, { replace: true })
-    }
+    }, [report.kind, tableSections])
 
     if (generatedAtState.error) {
         return (
@@ -253,46 +107,6 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
         )
     }
 
-    if (bucketState.error) {
-        return (
-            <PageError
-                title='Report bucket query is invalid'
-                message='Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total.'
-                error={bucketState.error}
-            />
-        )
-    }
-
-    if (metricState.error) {
-        return (
-            <PageError
-                title='Report metric query is invalid'
-                message='Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss.'
-                error={metricState.error}
-            />
-        )
-    }
-
-    if (tpSlState.error) {
-        return (
-            <PageError
-                title='Report TP/SL query is invalid'
-                message='Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static.'
-                error={tpSlState.error}
-            />
-        )
-    }
-
-    if (filteredTableSectionsState.error) {
-        return (
-            <PageError
-                title='Report sections are missing'
-                message='Report sections for the selected bucket/metric were not found or are tagged inconsistently.'
-                error={filteredTableSectionsState.error}
-            />
-        )
-    }
-
     if (termsState.error) {
         return (
             <PageError
@@ -303,8 +117,8 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
         )
     }
 
-    const hasSections = Array.isArray(sectionsForView) && sectionsForView.length > 0
-    const hasTableSections = filteredTableSectionsState.sections.length > 0
+    const hasSections = Array.isArray(report.sections) && report.sections.length > 0
+    const hasTableSections = tableSections.length > 0
 
     return (
         <div className={rootClassName}>
@@ -312,15 +126,6 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 <div className={cls.headerMain}>
                     <Text type='h1'>{report.title}</Text>
                     <span className={cls.kindTag}>{report.kind}</span>
-                    <ReportViewControls
-                        bucket={bucketState.value}
-                        metric={metricState.value}
-                        tpSlMode={tpSlState.value}
-                        capabilities={viewCapabilities}
-                        onBucketChange={handleBucketChange}
-                        onMetricChange={handleMetricChange}
-                        onTpSlModeChange={handleTpSlModeChange}
-                    />
                 </div>
 
                 <ReportActualStatusCard
@@ -346,7 +151,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 )}
 
                 {hasSections ?
-                    sectionsForView.map((section, index) => (
+                    report.sections.map((section, index) => (
                         <SectionRenderer key={index} section={section} reportKind={report.kind} />
                     ))
                 :   <Text>Нет секций отчёта для отображения.</Text>}

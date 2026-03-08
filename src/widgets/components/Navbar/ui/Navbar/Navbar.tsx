@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import cls from './Navbar.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -6,11 +6,17 @@ import NavbarProps from './types'
 import { LangSwitcher } from '@/widgets/components'
 import { Btn, Link } from '@/shared/ui'
 import { NAVBAR_ITEMS } from '@/app/providers/router/config/routeConfig'
+import { AppRoute } from '@/app/providers/router/config/types'
+import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
 import { buildRouteNavLabelI18nKey } from '@/app/providers/router/config/i18nKeys'
 import SideBarBlock from '../SideBarBlock/SideBarBlock'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/shared/lib/hooks/redux'
 
 function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
     const { i18n, t } = useTranslation()
+    const queryClient = useQueryClient()
+    const dispatch = useAppDispatch()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const [primaryCount, setPrimaryCount] = useState(NAVBAR_ITEMS.length)
@@ -23,6 +29,13 @@ function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarPr
     const handleMenuToggle = () => {
         setIsMenuOpen(prev => !prev)
     }
+
+    const handleRouteWarmup = useCallback(
+        (routeId: AppRoute) => {
+            warmupRouteNavigation(routeId, queryClient, dispatch)
+        },
+        [dispatch, queryClient]
+    )
 
     useEffect(() => {
         const closeMenu = () => setIsMenuOpen(false)
@@ -130,7 +143,11 @@ function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarPr
             <div className={cls.linksWrapper}>
                 <div className={cls.linksRow}>
                     {primaryItems.map(item => (
-                        <Link key={item.id} to={item.path}>
+                        <Link
+                            key={item.id}
+                            to={item.path}
+                            onMouseEnter={() => handleRouteWarmup(item.id)}
+                            onFocus={() => handleRouteWarmup(item.id)}>
                             {t(buildRouteNavLabelI18nKey(item.id), { defaultValue: item.label })}
                         </Link>
                     ))}
@@ -149,7 +166,11 @@ function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarPr
                 {secondaryItems.length > 0 && (
                     <div className={classNames(cls.secondaryLinks, { [cls.secondaryLinks_open]: isMenuOpen }, [])}>
                         {secondaryItems.map(item => (
-                            <Link key={item.id} to={item.path}>
+                            <Link
+                                key={item.id}
+                                to={item.path}
+                                onMouseEnter={() => handleRouteWarmup(item.id)}
+                                onFocus={() => handleRouteWarmup(item.id)}>
                                 {t(buildRouteNavLabelI18nKey(item.id), { defaultValue: item.label })}
                             </Link>
                         ))}

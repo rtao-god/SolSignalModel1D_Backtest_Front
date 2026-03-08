@@ -77,5 +77,32 @@
     "profile": {
         "avatarAlt": "User avatar",
         "avatarAltWithName": "User avatar {{name}}"
+    },
+    "viewMode": {
+        "business": "Business",
+        "technical": "Technical"
+    },
+    "tableExport": {
+        "ariaLabel": "Download table",
+        "loading": "Preparing file...",
+        "downloadAs": "Download as {{format}}"
+    },
+    "sectionPager": {
+        "vertical": {
+            "prevAria": "Previous section",
+            "nextAria": "Next section"
+        },
+        "dpad": {
+            "ariaLabel": "Report navigation",
+            "upAria": "Up (inside current reports)",
+            "downAria": "Down (inside current reports)",
+            "prevPageAria": "Previous report page",
+            "nextPageAria": "Next report page"
+        }
+    },
+    "sortableTable": {
+        "sort": "Sort",
+        "sortAsc": "Sort: ascending",
+        "sortDesc": "Sort: descending"
     }
 }

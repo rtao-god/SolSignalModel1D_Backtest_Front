@@ -10,16 +10,21 @@ interface ReportTableTermsBlockProps {
     terms?: ReportTableTermItem[]
     enhanceDomainTerms?: boolean
     showTermTitleTooltip?: boolean
+    displayMode?: 'inline' | 'tooltipOnly'
     title?: string
     subtitle?: string
     className?: string
 }
 
+type ReportTableTermTextResolver = () => string
+
 export interface ReportTableTermItem {
     key: string
     title: string
-    description: string
-    tooltip: string
+    description?: string
+    tooltip?: string
+    resolveDescription?: ReportTableTermTextResolver
+    resolveTooltip?: ReportTableTermTextResolver
 }
 
 function buildSelfTooltipExclusions(termTitle: string) {
@@ -35,6 +40,27 @@ function ensureNonEmptyValueOrThrow(value: string | undefined, label: string): s
     }
 
     return value.trim()
+}
+
+function resolveLazyTextOrThrow(
+    value: string | undefined,
+    resolver: ReportTableTermTextResolver | undefined,
+    label: string
+): string {
+    if (typeof value === 'string' && value.trim().length > 0) {
+        return value.trim()
+    }
+
+    if (!resolver) {
+        throw new Error(`[report-terms] ${label} is missing.`)
+    }
+
+    const resolved = resolver()
+    if (!resolved || resolved.trim().length === 0) {
+        throw new Error(`[report-terms] ${label} resolved to empty value.`)
+    }
+
+    return resolved.trim()
 }
 
 function buildTermsFromColumnsOrThrow(
@@ -76,19 +102,15 @@ function buildProvidedTermsOrThrow(terms: ReportTableTermItem[]): ReportTableTer
         throw new Error('[report-terms] provided terms are empty.')
     }
 
-    return terms.map((term, index) => {
-        const key = ensureNonEmptyValueOrThrow(term.key, `terms[${index}].key`)
-        const title = ensureNonEmptyValueOrThrow(term.title, `terms[${index}].title`)
-        const description = ensureNonEmptyValueOrThrow(term.description, `terms[${index}].description`)
-        const tooltip = ensureNonEmptyValueOrThrow(term.tooltip, `terms[${index}].tooltip`)
-
-        return {
-            key,
-            title,
-            description,
-            tooltip
-        }
-    })
+    return terms.map((term, index) => ({
+        key: ensureNonEmptyValueOrThrow(term.key, `terms[${index}].key`),
+        title: ensureNonEmptyValueOrThrow(term.title, `terms[${index}].title`),
+        description:
+            typeof term.description === 'string' && term.description.trim().length > 0 ? term.description.trim() : undefined,
+        tooltip: typeof term.tooltip === 'string' && term.tooltip.trim().length > 0 ? term.tooltip.trim() : undefined,
+        resolveDescription: term.resolveDescription,
+        resolveTooltip: term.resolveTooltip
+    }))
 }
 
 export default function ReportTableTermsBlock({
@@ -98,6 +120,7 @@ export default function ReportTableTermsBlock({
     terms,
     enhanceDomainTerms = false,
     showTermTitleTooltip = true,
+    displayMode = 'inline',
     title = 'Термины таблицы',
     subtitle = 'Подробные определения всех колонок, которые используются в таблице ниже.',
     className
@@ -121,26 +144,51 @@ export default function ReportTableTermsBlock({
             </div>
 
             <div className={cls.grid}>
-                {resolvedTerms.map(term => (
-                    <div key={`${sectionTitle}:${term.key}`} className={cls.item}>
-                        {showTermTitleTooltip ?
-                            <TermTooltip
-                                term={term.title}
-                                description={
-                                    enhanceDomainTerms ?
-                                        renderTermTooltipRichText(term.tooltip, buildSelfTooltipExclusions(term.title))
-                                    :   term.tooltip
-                                }
-                                type='span'
-                            />
-                        :   <Text type='span'>{term.title}</Text>}
-                        <Text className={cls.description}>
-                            {enhanceDomainTerms ?
-                                renderTermTooltipRichText(term.description, buildSelfTooltipExclusions(term.title))
-                            :   term.description}
-                        </Text>
-                    </div>
-                ))}
+                {resolvedTerms.map(term => {
+                    const itemClassName =
+                        displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
+
+                    return (
+                        <div key={`${sectionTitle}:${term.key}`} className={itemClassName}>
+                            {showTermTitleTooltip ?
+                                <TermTooltip
+                                    term={term.title}
+                                    description={() => {
+                                        const tooltip = resolveLazyTextOrThrow(
+                                            term.tooltip,
+                                            term.resolveTooltip,
+                                            `terms.${term.key}.tooltip`
+                                        )
+
+                                        return enhanceDomainTerms ?
+                                                renderTermTooltipRichText(tooltip, buildSelfTooltipExclusions(term.title))
+                                            :   tooltip
+                                    }}
+                                    type='span'
+                                />
+                            :   <Text type='span'>{term.title}</Text>}
+
+                            {displayMode === 'inline' && (
+                                <Text className={cls.description}>
+                                    {(() => {
+                                        const description = resolveLazyTextOrThrow(
+                                            term.description,
+                                            term.resolveDescription,
+                                            `terms.${term.key}.description`
+                                        )
+
+                                        return enhanceDomainTerms ?
+                                                renderTermTooltipRichText(
+                                                    description,
+                                                    buildSelfTooltipExclusions(term.title)
+                                                )
+                                            :   description
+                                    })()}
+                                </Text>
+                            )}
+                        </div>
+                    )
+                })}
             </div>
         </div>
     )

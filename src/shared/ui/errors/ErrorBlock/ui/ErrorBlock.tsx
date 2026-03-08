@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
 import cls from './ErrorBlock.module.scss'
+import { useTranslation } from 'react-i18next'
 
 interface ErrorBlockProps {
     className?: string
@@ -14,6 +15,7 @@ interface ErrorBlockProps {
 }
 
 export function ErrorBlock({ className, code, title, description, details, onRetry, compact }: ErrorBlockProps) {
+    const { t } = useTranslation('errors')
     const rootClasses = classNames(
         cls.ErrorBlock,
         {
@@ -49,7 +51,7 @@ export function ErrorBlock({ className, code, title, description, details, onRet
                     {onRetry && (
                         <div className={cls.actions}>
                             <Btn className={cls.retryButton} onClick={onRetry}>
-                                Повторить попытку
+                                {t('ui.errorBlock.retry', { defaultValue: 'Try again' })}
                             </Btn>
                         </div>
                     )}

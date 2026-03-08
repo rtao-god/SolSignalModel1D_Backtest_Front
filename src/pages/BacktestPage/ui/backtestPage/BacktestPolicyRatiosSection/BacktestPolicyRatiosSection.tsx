@@ -5,10 +5,12 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useGetBacktestPolicyRatiosQuery } from '@/shared/api/api'
 import type { PolicyRatiosReportDto, PolicyRatiosPerPolicyDto } from '@/shared/types/policyRatios.types'
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import cls from './BacktestPolicyRatiosSection.module.scss'
 import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
+import { useLocale } from '@/shared/lib/i18n'
 
 interface BacktestPolicyRatiosSectionProps {
     profileId?: string
@@ -21,27 +23,44 @@ interface BacktestPolicyRatiosSectionProps {
 
 type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
 
-const metricOptions: { key: MetricKey; label: string; isPercent?: boolean }[] = [
-    { key: 'totalPnlPct', label: 'PnL %', isPercent: true },
-    { key: 'sharpe', label: 'Sharpe' },
-    { key: 'sortino', label: 'Sortino' },
-    { key: 'calmar', label: 'Calmar' },
-    { key: 'winRatePct', label: 'WinRate %', isPercent: true }
+const metricOptions: { key: MetricKey; labelKey: string; defaultLabel: string; isPercent?: boolean }[] = [
+    { key: 'totalPnlPct', labelKey: 'backtestFull.policyRatios.metrics.totalPnlPct', defaultLabel: 'PnL %', isPercent: true },
+    { key: 'sharpe', labelKey: 'backtestFull.policyRatios.metrics.sharpe', defaultLabel: 'Sharpe' },
+    { key: 'sortino', labelKey: 'backtestFull.policyRatios.metrics.sortino', defaultLabel: 'Sortino' },
+    { key: 'calmar', labelKey: 'backtestFull.policyRatios.metrics.calmar', defaultLabel: 'Calmar' },
+    { key: 'winRatePct', labelKey: 'backtestFull.policyRatios.metrics.winRatePct', defaultLabel: 'WinRate %', isPercent: true }
 ]
 
-const RATIO_COLUMN_TOOLTIPS: Record<string, string> = {
-    Политика: 'Имя торговой политики (стратегии).',
-    Бакет: 'Капитальный бакет расчёта: daily, intraday или delayed.',
-    Сделок: 'Количество сделок по политике в выбранном бакете.',
-    'PnL %': 'Суммарная доходность по политике в процентах за выбранный бакет.',
-    'MaxDD %': 'Максимальная просадка капитала в процентах.',
-    Sharpe: 'Доходность, нормированная на общую волатильность.',
-    Sortino: 'Доходность, нормированная на downside-волатильность.',
-    Calmar: 'Отношение доходности к максимальной просадке.',
-    'WinRate %': 'Доля прибыльных сделок, %.',
-    'Withdrawn $': 'Сумма выведенной прибыли (если применимо).',
-    'Liq?': 'Была ли ликвидация в выбранном бакете.'
+interface RatioColumnDefinition {
+    id:
+        | 'policy'
+        | 'bucket'
+        | 'trades'
+        | 'pnl'
+        | 'maxDd'
+        | 'sharpe'
+        | 'sortino'
+        | 'calmar'
+        | 'winRate'
+        | 'withdrawn'
+        | 'liq'
+    defaultLabel: string
+    defaultTooltip: string
 }
+
+const RATIO_COLUMN_DEFINITIONS: readonly RatioColumnDefinition[] = [
+    { id: 'policy', defaultLabel: 'Policy', defaultTooltip: 'Trading policy name.' },
+    { id: 'bucket', defaultLabel: 'Bucket', defaultTooltip: 'Capital bucket: daily, intraday, delayed, or total.' },
+    { id: 'trades', defaultLabel: 'Trades', defaultTooltip: 'Number of trades in selected bucket.' },
+    { id: 'pnl', defaultLabel: 'PnL %', defaultTooltip: 'Total policy return in selected bucket, %.' },
+    { id: 'maxDd', defaultLabel: 'MaxDD %', defaultTooltip: 'Maximum equity drawdown, %.' },
+    { id: 'sharpe', defaultLabel: 'Sharpe', defaultTooltip: 'Return normalized by total volatility.' },
+    { id: 'sortino', defaultLabel: 'Sortino', defaultTooltip: 'Return normalized by downside volatility.' },
+    { id: 'calmar', defaultLabel: 'Calmar', defaultTooltip: 'Return-to-drawdown ratio.' },
+    { id: 'winRate', defaultLabel: 'WinRate %', defaultTooltip: 'Share of profitable trades, %.' },
+    { id: 'withdrawn', defaultLabel: 'Withdrawn $', defaultTooltip: 'Withdrawn profit amount, USD.' },
+    { id: 'liq', defaultLabel: 'Liq?', defaultTooltip: 'Liquidation occurred in selected bucket.' }
+]
 
 function selectMetric(row: PolicyRatiosPerPolicyDto, key: MetricKey): number {
     switch (key) {
@@ -83,9 +102,18 @@ export function BacktestPolicyRatiosSection({
     report,
     isLoadingExternal = false,
     externalError = null,
-    title = 'Метрики политик (Sharpe / Sortino / PnL)',
+    title,
     subtitle
 }: BacktestPolicyRatiosSectionProps) {
+    const { t } = useTranslation('reports')
+    const { formatDate } = useLocale()
+
+    const resolvedTitle =
+        title ??
+        t('backtestFull.policyRatios.title', {
+            defaultValue: 'Policy metrics (Sharpe / Sortino / PnL)'
+        })
+
     const shouldUseExternal = typeof report !== 'undefined' || isLoadingExternal || externalError !== null
 
     const {
@@ -105,6 +133,7 @@ export function BacktestPolicyRatiosSection({
     const resolvedError = shouldUseExternal ? externalError : resolveAppError(fetchedError).rawMessage
 
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
+    const currentMetricLabel = t(currentMetric.labelKey, { defaultValue: currentMetric.defaultLabel })
     const isPercentMetric = Boolean(currentMetric.isPercent)
 
     const bucketOptions = useMemo(() => {
@@ -147,8 +176,10 @@ export function BacktestPolicyRatiosSection({
     if (isLoading) {
         return (
             <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{title}</Text>
-                <Text>Загружаю метрики политик...</Text>
+                <Text type='h3'>{resolvedTitle}</Text>
+                <Text>
+                    {t('backtestFull.policyRatios.loading', { defaultValue: 'Loading policy metrics...' })}
+                </Text>
             </section>
         )
     }
@@ -156,11 +187,15 @@ export function BacktestPolicyRatiosSection({
     if (isError) {
         return (
             <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{title}</Text>
+                <Text type='h3'>{resolvedTitle}</Text>
                 <ErrorBlock
                     code='DATA'
-                    title='Не удалось получить policy-ratios'
-                    description='Секция метрик политик недоступна из-за ошибки данных.'
+                    title={t('backtestFull.policyRatios.errors.dataTitle', {
+                        defaultValue: 'Failed to load policy ratios'
+                    })}
+                    description={t('backtestFull.policyRatios.errors.dataDescription', {
+                        defaultValue: 'Policy metrics section is unavailable due to data error.'
+                    })}
                     details={resolvedError ?? 'Unknown policy-ratios error.'}
                     compact
                 />
@@ -171,8 +206,12 @@ export function BacktestPolicyRatiosSection({
     if (!activeReport || !activeReport.policies || activeReport.policies.length === 0) {
         return (
             <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{title}</Text>
-                <Text>Пока нет сохранённого отчёта с метриками политик.</Text>
+                <Text type='h3'>{resolvedTitle}</Text>
+                <Text>
+                    {t('backtestFull.policyRatios.empty', {
+                        defaultValue: 'No saved policy-ratios report yet.'
+                    })}
+                </Text>
             </section>
         )
     }
@@ -181,8 +220,10 @@ export function BacktestPolicyRatiosSection({
         throw new Error(`No policy-ratios rows found for bucket '${selectedBucket}'.`)
     }
 
-    const defaultSubtitle =
-        'Сравнение политик внутри выбранного бакета капитала. Полное покрытие достигается при анализе daily/intraday/delayed.'
+    const defaultSubtitle = t('backtestFull.policyRatios.subtitle', {
+        defaultValue:
+            'Policy comparison inside selected capital bucket. Full coverage requires checking daily/intraday/delayed.'
+    })
 
     const handleMetricChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
         setMetricKey(e.target.value as MetricKey)
@@ -196,19 +237,21 @@ export function BacktestPolicyRatiosSection({
         <section className={cls.PolicyRatiosSection}>
             <div className={cls.headerRow}>
                 <div className={cls.headerText}>
-                    <Text type='h3'>{title}</Text>
+                    <Text type='h3'>{resolvedTitle}</Text>
                     <Text className={cls.headerSubtitle}>{subtitle ?? defaultSubtitle}</Text>
                     {activeReport.fromDateUtc && activeReport.toDateUtc && (
                         <Text>
-                            Окно бэктеста: {new Date(activeReport.fromDateUtc).toLocaleDateString()} —{' '}
-                            {new Date(activeReport.toDateUtc).toLocaleDateString()}
+                            {t('backtestFull.policyRatios.windowLabel', {
+                                defaultValue: 'Backtest window'
+                            })}
+                            : {formatDate(activeReport.fromDateUtc)} - {formatDate(activeReport.toDateUtc)}
                         </Text>
                     )}
                 </div>
 
                 <div className={cls.controls}>
                     <label className={cls.metricLabel}>
-                        <span>Бакет:</span>
+                        <span>{t('backtestFull.policyRatios.controls.bucket', { defaultValue: 'Bucket' })}:</span>
                         <select className={cls.metricSelect} value={selectedBucket} onChange={handleBucketChange}>
                             {bucketOptions.map(bucket => (
                                 <option key={bucket} value={bucket}>
@@ -219,11 +262,11 @@ export function BacktestPolicyRatiosSection({
                     </label>
 
                     <label className={cls.metricLabel}>
-                        <span>Метрика:</span>
+                        <span>{t('backtestFull.policyRatios.controls.metric', { defaultValue: 'Metric' })}:</span>
                         <select className={cls.metricSelect} value={metricKey} onChange={handleMetricChange}>
                             {metricOptions.map(opt => (
                                 <option key={opt.key} value={opt.key}>
-                                    {opt.label}
+                                    {t(opt.labelKey, { defaultValue: opt.defaultLabel })}
                                 </option>
                             ))}
                         </select>
@@ -235,14 +278,14 @@ export function BacktestPolicyRatiosSection({
                                 [cls.toggleBtnActive]: viewMode === 'chart'
                             })}
                             onClick={() => setViewMode('chart')}>
-                            График
+                            {t('backtestFull.policyRatios.viewMode.chart', { defaultValue: 'Chart' })}
                         </Btn>
                         <Btn
                             className={classNames(cls.toggleBtn, {
                                 [cls.toggleBtnActive]: viewMode === 'table'
                             })}
                             onClick={() => setViewMode('table')}>
-                            Таблица
+                            {t('backtestFull.policyRatios.viewMode.table', { defaultValue: 'Table' })}
                         </Btn>
                     </div>
                 </div>
@@ -253,8 +296,12 @@ export function BacktestPolicyRatiosSection({
                 fallback={({ error: sectionError, reset }) => (
                     <ErrorBlock
                         code='CLIENT'
-                        title='Ошибка в секции метрик политик'
-                        description='При отрисовке блока метрик политик произошла ошибка на клиенте.'
+                        title={t('backtestFull.policyRatios.errors.clientTitle', {
+                            defaultValue: 'Policy metrics section failed'
+                        })}
+                        description={t('backtestFull.policyRatios.errors.clientDescription', {
+                            defaultValue: 'Client-side error while rendering policy metrics block.'
+                        })}
                         details={sectionError.message}
                         onRetry={reset}
                         compact
@@ -291,12 +338,17 @@ export function BacktestPolicyRatiosSection({
                                     formatter={(value: unknown) => {
                                         if (typeof value !== 'number') return String(value)
                                         const formatted = isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3)
-                                        return [formatted, currentMetric.label]
+                                        return [formatted, currentMetricLabel]
                                     }}
-                                    labelFormatter={label => `Политика: ${label}`}
+                                    labelFormatter={label =>
+                                        t('backtestFull.policyRatios.chart.policyLabel', {
+                                            label,
+                                            defaultValue: 'Policy: {{label}}'
+                                        })
+                                    }
                                 />
                                 <ReferenceLine y={0} stroke='rgba(255, 255, 255, 0.4)' strokeDasharray='3 3' />
-                                <Bar dataKey='value' name={currentMetric.label} radius={[4, 4, 0, 0]} barSize={26}>
+                                <Bar dataKey='value' name={currentMetricLabel} radius={[4, 4, 0, 0]} barSize={26}>
                                     {chartData.map(entry => (
                                         <Cell
                                             key={entry.key}
@@ -315,19 +367,22 @@ export function BacktestPolicyRatiosSection({
                         <table className={cls.table}>
                             <thead>
                                 <tr>
-                                    <th>{renderTermTooltipTitle('Политика', RATIO_COLUMN_TOOLTIPS.Политика)}</th>
-                                    <th>{renderTermTooltipTitle('Бакет', RATIO_COLUMN_TOOLTIPS.Бакет)}</th>
-                                    <th>{renderTermTooltipTitle('Сделок', RATIO_COLUMN_TOOLTIPS.Сделок)}</th>
-                                    <th>{renderTermTooltipTitle('PnL %', RATIO_COLUMN_TOOLTIPS['PnL %'])}</th>
-                                    <th>{renderTermTooltipTitle('MaxDD %', RATIO_COLUMN_TOOLTIPS['MaxDD %'])}</th>
-                                    <th>{renderTermTooltipTitle('Sharpe', RATIO_COLUMN_TOOLTIPS.Sharpe)}</th>
-                                    <th>{renderTermTooltipTitle('Sortino', RATIO_COLUMN_TOOLTIPS.Sortino)}</th>
-                                    <th>{renderTermTooltipTitle('Calmar', RATIO_COLUMN_TOOLTIPS.Calmar)}</th>
-                                    <th>{renderTermTooltipTitle('WinRate %', RATIO_COLUMN_TOOLTIPS['WinRate %'])}</th>
-                                    <th>
-                                        {renderTermTooltipTitle('Withdrawn $', RATIO_COLUMN_TOOLTIPS['Withdrawn $'])}
-                                    </th>
-                                    <th>{renderTermTooltipTitle('Liq?', RATIO_COLUMN_TOOLTIPS['Liq?'])}</th>
+                                    {RATIO_COLUMN_DEFINITIONS.map(column => {
+                                        const label = t(
+                                            `backtestFull.policyRatios.columns.${column.id}.label`,
+                                            {
+                                                defaultValue: column.defaultLabel
+                                            }
+                                        )
+                                        const tooltip = t(
+                                            `backtestFull.policyRatios.columns.${column.id}.tooltip`,
+                                            {
+                                                defaultValue: column.defaultTooltip
+                                            }
+                                        )
+
+                                        return <th key={column.id}>{renderTermTooltipTitle(label, tooltip)}</th>
+                                    })}
                                 </tr>
                             </thead>
                             <tbody>
@@ -344,7 +399,9 @@ export function BacktestPolicyRatiosSection({
                                         <td>{row.winRatePct.toFixed(1)}</td>
                                         <td>{row.withdrawnUsd.toFixed(0)}</td>
                                         <td className={row.hadLiquidation ? cls.badLiq : undefined}>
-                                            {row.hadLiquidation ? 'YES' : 'no'}
+                                            {row.hadLiquidation ?
+                                                t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
+                                            :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })}
                                         </td>
                                     </tr>
                                 ))}
