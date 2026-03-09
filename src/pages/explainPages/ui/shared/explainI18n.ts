@@ -1,4 +1,5 @@
-import type { TFunction } from 'i18next'
+import type { i18n as I18nInstance } from 'i18next'
+import { readActiveLocaleResource } from '@/shared/lib/i18n'
 
 export interface ExplainLocalizedTermItem {
     term: string
@@ -8,8 +9,8 @@ export interface ExplainLocalizedTermItem {
 /**
  * Читает список терминов из i18n и валидирует контракт для Explain-страниц.
  */
-export function readExplainTermItemsOrThrow(t: TFunction<'explain'>, key: string): ExplainLocalizedTermItem[] {
-    const value = t(key, { returnObjects: true }) as unknown
+export function readExplainTermItemsOrThrow(i18n: I18nInstance, key: string): ExplainLocalizedTermItem[] {
+    const value = readActiveLocaleResource(i18n, 'explain', key, 'explain.i18n')
     if (!Array.isArray(value)) {
         throw new Error(`[explain.i18n] term list is missing or invalid. key=${key}.`)
     }
@@ -37,8 +38,8 @@ export function readExplainTermItemsOrThrow(t: TFunction<'explain'>, key: string
 /**
  * Читает список строк из i18n (например, для bullet/ordered списков).
  */
-export function readExplainStringListOrThrow(t: TFunction<'explain'>, key: string): string[] {
-    const value = t(key, { returnObjects: true }) as unknown
+export function readExplainStringListOrThrow(i18n: I18nInstance, key: string): string[] {
+    const value = readActiveLocaleResource(i18n, 'explain', key, 'explain.i18n')
     if (!Array.isArray(value)) {
         throw new Error(`[explain.i18n] string list is missing or invalid. key=${key}.`)
     }
@@ -55,8 +56,8 @@ export function readExplainStringListOrThrow(t: TFunction<'explain'>, key: strin
 /**
  * Читает таблицу как массив строк (rows -> cells) и валидирует типы.
  */
-export function readExplainTableRowsOrThrow(t: TFunction<'explain'>, key: string): string[][] {
-    const value = t(key, { returnObjects: true }) as unknown
+export function readExplainTableRowsOrThrow(i18n: I18nInstance, key: string): string[][] {
+    const value = readActiveLocaleResource(i18n, 'explain', key, 'explain.i18n')
     if (!Array.isArray(value)) {
         throw new Error(`[explain.i18n] table rows are missing or invalid. key=${key}.`)
     }

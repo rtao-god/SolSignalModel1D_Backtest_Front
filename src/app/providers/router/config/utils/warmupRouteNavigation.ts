@@ -17,12 +17,16 @@ import {
 import { prefetchModelStatsReport } from '@/shared/api/tanstackQueries/modelStats'
 import { prefetchPfiPerModelReport } from '@/shared/api/tanstackQueries/pfi'
 import { prefetchPolicyBranchMegaReportWithFreshness } from '@/shared/api/tanstackQueries/policyBranchMega'
+import type { BacktestDiagnosticsReportQueryArgs } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import type { PolicyBranchMegaReportQueryArgs } from '@/shared/api/tanstackQueries/policyBranchMega'
 import { prefetchRouteChunk } from '../routeConfig'
 import { AppRoute } from '../types'
 
 interface RouteWarmupContext {
     queryClient: QueryClient
     dispatch?: AppDispatch
+    diagnosticsArgs?: BacktestDiagnosticsReportQueryArgs
+    policyBranchMegaArgs?: PolicyBranchMegaReportQueryArgs
 }
 
 type RouteDataPrefetcher = (context: RouteWarmupContext) => Promise<void>
@@ -52,7 +56,8 @@ function dispatchWarmupThunk(dispatch: AppDispatch, thunk: unknown): void {
 }
 
 const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
-    [AppRoute.MAIN]: ({ queryClient }) => prefetchPolicyBranchMegaReportWithFreshness(queryClient),
+    [AppRoute.MAIN]: ({ queryClient, policyBranchMegaArgs }) =>
+        prefetchPolicyBranchMegaReportWithFreshness(queryClient, policyBranchMegaArgs),
     [AppRoute.CURRENT_PREDICTION]: ({ queryClient }) => prefetchCurrentPredictionLatestReport(queryClient),
     [AppRoute.CURRENT_PREDICTION_HISTORY]: async ({ queryClient, dispatch }) => {
         await prefetchCurrentPredictionHistoryIndex(queryClient)
@@ -75,7 +80,7 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
                 {
                     set: 'backfilled',
                     scope: 'full',
-                    dateUtc: `${latestDateUtc}T00:00:00Z`
+                    dateUtc: latestDateUtc
                 },
                 { subscribe: false, forceRefetch: false }
             )
@@ -107,7 +112,8 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
             })
         )
     },
-    [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: ({ queryClient }) => prefetchPolicyBranchMegaReportWithFreshness(queryClient),
+    [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: ({ queryClient, policyBranchMegaArgs }) =>
+        prefetchPolicyBranchMegaReportWithFreshness(queryClient, policyBranchMegaArgs),
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: ({ queryClient }) => prefetchBacktestConfidenceRiskReport(queryClient),
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: ({ queryClient }) => prefetchBacktestExecutionPipelineReport(queryClient),
     [AppRoute.PFI_PER_MODEL]: ({ queryClient }) => prefetchPfiPerModelReport(queryClient),
@@ -115,10 +121,21 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
 }
 
 for (const routeId of DIAGNOSTICS_REPORT_PREFETCH_ROUTES) {
-    ROUTE_DATA_PREFETCHERS[routeId] = ({ queryClient }) => prefetchBacktestDiagnosticsReport(queryClient)
+    ROUTE_DATA_PREFETCHERS[routeId] = ({ queryClient, diagnosticsArgs }) =>
+        prefetchBacktestDiagnosticsReport(queryClient, diagnosticsArgs)
 }
 
-export function warmupRouteNavigation(routeId: AppRoute, queryClient: QueryClient, dispatch?: AppDispatch): void {
+interface WarmupRouteNavigationOptions {
+    diagnosticsArgs?: BacktestDiagnosticsReportQueryArgs
+    policyBranchMegaArgs?: PolicyBranchMegaReportQueryArgs
+}
+
+export function warmupRouteNavigation(
+    routeId: AppRoute,
+    queryClient: QueryClient,
+    dispatch?: AppDispatch,
+    options?: WarmupRouteNavigationOptions
+): void {
     prefetchRouteChunk(routeId)
 
     const dataPrefetcher = ROUTE_DATA_PREFETCHERS[routeId]
@@ -127,5 +144,10 @@ export function warmupRouteNavigation(routeId: AppRoute, queryClient: QueryClien
     }
 
     // Prefetch в навигации является best-effort оптимизацией и не должен ломать переход.
-    void dataPrefetcher({ queryClient, dispatch }).catch(() => {})
+    void dataPrefetcher({
+        queryClient,
+        dispatch,
+        diagnosticsArgs: options?.diagnosticsArgs,
+        policyBranchMegaArgs: options?.policyBranchMegaArgs
+    }).catch(() => {})
 }

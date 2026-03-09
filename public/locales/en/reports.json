@@ -3,154 +3,207 @@
         "termsTitle": "Report table terms"
     },
     "main": {
-        "hero": {
-            "title": "SolSignal 1D ML model",
-            "subtitle": "A daily ML model that predicts SOL/USDT movement using BTC data, macro indicators, and internal features. The website includes predictions, backtests, and diagnostics so you can quickly understand what the model says now and how it worked historically.",
-            "meta": {
-                "horizon": "24h horizon",
-                "pathLabeling": "Path-based labeling",
-                "multiLayer": "Multi-layer (day / micro / SL)",
-                "backtest": "Backtest + diagnostics"
-            }
-        },
-        "overview": {
-            "title": "What the project already does",
+        "intro": {
+            "eyebrow": "Project",
+            "title": "What SolSignal 1D is",
+            "subtitle": "SolSignal 1D is an ML project that forecasts [[landing-sol-usdt|SOL/USDT]] inside one New York trading day. The historical archive and the long-history validation in this project start on April 13, 2022.\n\nThe trading day in the project starts at 07:00 New York local time in winter or 08:00 in summer and ends at 16:00 New York local time. In UTC that is the interval from 12:00 to 21:00 in winter and from 12:00 to 20:00 in summer.\n\nInside that interval the project builds features, calculates the forecast, records the realized day outcome, and validates the same logic on history.",
             "cards": {
-                "predictions": {
-                    "title": "Predictions and trading plans",
-                    "description": "The model gives a daily direction, estimates minMove, evaluates SL-day risk, and builds policy-level trade plans. All of this is available in Current prediction and Prediction history."
+                "project": {
+                    "title": "What the project does",
+                    "body": [
+                        "The project builds a day-level [[landing-forecast|forecast]] for [[landing-sol-usdt|SOL/USDT]]: position direction, model [[landing-model-confidence|confidence]], and risk profile for one trading day.",
+                        "The model output is then translated into a [[landing-trading-policy|trading policy]] that defines position size, entry rules, protective limits, and exit conditions.",
+                        "The final calculation is meant to produce a repeatable daily decision that can later be compared with history on the same time window."
+                    ]
                 },
-                "backtest": {
-                    "title": "Backtest across full history",
-                    "description": "The pipeline computes total return, drawdowns, and liquidations for all policies, and also builds summary and deep diagnostic reports (including mega tables)."
+                "data": {
+                    "title": "Which data the forecast uses",
+                    "body": [
+                        "The project is built on candles from several timeframes and on day-level [[landing-features|features]] derived from them.",
+                        "Alongside the target [[landing-sol-usdt|SOL/USDT]] series, the features include broader market context, volatility, and contextual instruments. This helps the model see more than just one coin in isolation.",
+                        "At the feature layer the project works with a reproducible numeric input set rather than analyst commentary, and the same input family is reused in training, forecasting, and historical validation."
+                    ]
                 },
-                "diagnostics": {
-                    "title": "Decision quality diagnostics",
-                    "description": "There are dedicated blocks for guardrail/specificity, blame split, hotspots, and day statistics to show where the strategy loses money and why."
+                "window": {
+                    "title": "How the project defines the trading day",
+                    "body": [
+                        "The day in the project is one fixed New York window. The window starts at 07:00 New York local time in winter or 08:00 in summer.",
+                        "In UTC the day always starts at 12:00 UTC. The window closes at 16:00 New York local time, which is 21:00 UTC in winter and 20:00 UTC in summer.",
+                        "That same interval is used in training, in forecasting, and in historical outcome labeling. The day in the model and the day in the reports therefore mean the same slice of time."
+                    ]
                 },
                 "models": {
-                    "title": "Model metrics and PFI",
-                    "description": "Reports on model quality (confusion, SL metrics) and feature importance. They help explain why the model makes specific decisions."
+                    "title": "How the models work",
+                    "body": [
+                        "The base [[landing-ml-model|daily model]] first evaluates movement relative to [[min-move|MinMove]]. That threshold separates weak displacement from a day that is directional enough for a trading scenario.",
+                        "ATR is part of the [[min-move|MinMove]] calculation, so the project evaluates not only direction but also the expected scale of the move.",
+                        "If the daily layer classifies the day as sideways relative to [[min-move|MinMove]], some modes add the [[landing-micro-model|micro model]]. It refines weak directional bias only inside that subset of days.",
+                        "After the model layer, trading rules apply position size, stop-loss, take-profit, and end-of-day closing."
+                    ]
+                },
+                "history": {
+                    "title": "How the project is validated",
+                    "body": [
+                        "The project stores an archive of past forecast reports starting on April 13, 2022. For each date it keeps the forecast at the start of the window and the realized result after the window closes.",
+                        "This archive reflects past project forecasts, not a log of real executed trades. It compares the model decision with the later outcome of the same day.",
+                        "The same history is used for [[backtest|backtest]] validation. It shows return, [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]] across a long series of trading days.",
+                        "The same day format is used in the current calculation and in the historical validation, so results stay comparable without changing the time logic."
+                    ]
                 }
+            },
+            "tooltipRules": {
+                "solana": "Solana is the network and SOL is its native asset. On the home page the important object is not the network itself but the [[landing-sol-usdt|SOL/USDT]] pair used for forecast and historical validation.",
+                "solUsdt": "[[landing-sol-usdt|SOL/USDT]] is a trading pair: how much USDT the market pays for 1 SOL.\n\nThe public website currently concentrates on this single pair so [[landing-current-prediction|current prediction]], [[landing-prediction-history|prediction history]], and [[backtest|backtest]] stay comparable on one instrument without mixing multiple coins.",
+                "mlModel": "An algorithm trained on historical data that estimates the scenario for one New York trading day on [[landing-sol-usdt|SOL/USDT]]. Training and [[backtest|backtest]] use the same time window that later appears on the website as the forecast day."
             }
         },
-        "flow": {
-            "title": "Recommended user path",
-            "subtitle": "For buyer/investor/CTO roles, the recommended sequence is: first the current model signal, then history and PnL metrics.",
-            "steps": {
-                "currentPrediction": "Current prediction",
-                "history": "Prediction history",
-                "backtestSummary": "Backtest summary (PnL)",
-                "policyBranchMega": "Policy Branch Mega",
-                "diagnostics": "Diagnostics"
-            }
+        "tooltipRules": {
+            "btc": "Bitcoin. On the home page it works as an external reference for the [[landing-ml-model|ML model]] alongside [[landing-solana|Solana]], making it easier to see whether [[landing-sol-usdt|SOL/USDT]] moves with the broader crypto market.",
+            "macroIndicators": "External market and economic signals that help the [[landing-ml-model|model]] distinguish local [[landing-solana|Solana]] movement from a broader market regime.",
+            "features": "Features are numeric inputs for the [[landing-ml-model|ML model]]. They are built from price, volatility, [[landing-btc|BTC]] behavior, and other observable factors, then transformed into a [[landing-forecast|forecast]].",
+            "signal": "The output of the [[landing-ml-model|model]] for one [[landing-time-horizon|NY session]]: position direction, [[landing-model-confidence|confidence]], and risk constraints. This output is then passed through the [[landing-trading-policy|trading policy]].",
+            "forecast": "The expected scenario for [[landing-sol-usdt|SOL/USDT]] over one working trading window. On the website this format is used both for the nearest live calculation and for past dates inside [[landing-prediction-history|prediction history]].",
+            "currentPrediction": "A page with the nearest forecast for [[landing-sol-usdt|SOL/USDT]] for one New York trading day. It shows the main calculation for the current trading window and, when published in advance, the [[landing-early-preview|early preview]] for the same day.",
+            "predictionHistory": "An archive of past forecasts rebuilt from the [[backtest|backtest]] by date. Each date contains both the forecast itself and the realized result of the corresponding trading window. The history available on the website starts on April 13, 2022.",
+            "backtestSummary": "A historical validation page for the same logic. It is read not only through return, but also through [[drawdown|drawdown]], [[liquidation|liquidations]], emergency risk, and [[recovery|recovery speed after major drawdowns]].",
+            "diagnostics": "A set of pages showing where the result is lost: at entry, in the risk filter, in [[landing-no-trade|no-trade]] days, or in specific market regimes.",
+            "analysis": "A comparison section for strategies, day slices, and confidence slices. It is used when one headline number is no longer enough.",
+            "explain": "A plain-language section for project terms and mechanics: models, forecast windows, tables, and report-reading logic.",
+            "truthfulness": "Documentation about data truthfulness: which data was available at forecast time, how the day outcome is calculated separately, and why future information must not flow back into the decision.",
+            "timeHorizon": "The working trading window is tied to the New York trading day.\n\nThe main calculation covers the interval from 07:00 New York local time in winter or 08:00 in summer, which is 12:00 UTC, until 16:00 New York local time.\n\nModel training, historical labels, and [[backtest|backtest]] use that same window.\n\nThe [[landing-early-preview|early preview]] refers to the same window, but is calculated earlier, before the main window opens.",
+            "pathBasedLabeling": "A way to label historical days not only by close price but also by the path price traveled inside the window. This helps the [[landing-ml-model|model]] separate a tradable move from a formally similar but unstable scenario.",
+            "earlyPreview": "The early preview is a forecast for the same trading window, but published in advance before the main NY window opens. It is marked separately because it is needed earlier than the main calculation.",
+            "microModel": "The micro model is applied only to the subset of days where the base daily model returned FLAT.\n\nIts job is to refine a weak directional bias inside a sideways scenario, not to reclassify every day from scratch.\n\nOn the page this is visible in the Day -> Day+Micro transition.",
+            "multiLayer": "A day / micro / SL pipeline. The daily model sets the class relative to [[min-move|MinMove]], the [[landing-micro-model|micro model]] refines only the FLAT subset, and the SL layer adds a risk overlay to the final interpretation.",
+            "slRisk": "Metrics that describe fast stop-loss risk and days where entries are especially vulnerable. They help show when the strategy is more likely to fall into protective constraints.",
+            "guardrail": "A protective filter that tries to keep the strategy out of bad days. It is read through [[landing-specificity|specificity]], block rate, and overall economic impact.",
+            "specificity": "A filter-purity metric for bad days: it shows how cleanly [[landing-guardrail|guardrail]] separates truly problematic regimes from normal ones.",
+            "blameSplit": "A split of failure source by decision layer: signal error, filter error, or trading-rule error. It helps separate a weak [[landing-ml-model|model]] from an overly strict [[landing-trading-policy|trading policy]].",
+            "hotspots": "Slices where the strategy repeatedly underperforms: too few trades, too much [[landing-no-trade|NoTrade]], or frequent decisions against the market. Useful for finding recurring weak regimes.",
+            "pfi": "Permutation Feature Importance — a report showing how much model quality degrades when one feature is shuffled. The larger the drop, the more important the feature is for the [[landing-forecast|forecast]].",
+            "confusionMatrix": "A table of correct and incorrect classifications. In this product it helps show where the [[landing-ml-model|model]] and [[landing-guardrail|guardrail]] correctly identify good and bad days.",
+            "modelMetrics": "Model-quality metrics: scenario accuracy, stability across day types, and behavior under risk. They are usually read together with [[landing-confusion-matrix|confusion matrix]] and [[landing-pfi|PFI]].",
+            "policyBranchMega": "The full historical table for [[policy|Policy]] / [[branch|Branch]] combinations. It brings together return, drawdown, liquidations, LONG/SHORT structure, and other metrics for each configuration.",
+            "noTrade": "A day with no trade. It happens when the strategy has no direction, a risk filter blocks the entry, or the final [[cap-fraction|capital share]] becomes zero.",
+            "attribution": "A breakdown of which causes shaped the final decision. It helps show whether [[landing-signal|signal]], risk filtering, or the [[landing-trading-policy|trading policy]] had the strongest effect.",
+            "featureImportance": "An estimate of how strongly each feature affects the [[landing-ml-model|model]] decision. On the website this view is represented through [[landing-pfi|PFI]] and explain reports.",
+            "predictionAggregation": "The layer that combines several model signals into one final day-level decision. It is used to compare individual models with the final [[landing-forecast|forecast]].",
+            "allHistory": "A view over the full available history without selecting separate periods. It is used to compare [[landing-trading-policy|trading policies]] on the same time scale.",
+            "baselineBacktest": "A control [[landing-backtest|backtest]] with the base rule configuration. It serves as the reference point for comparing other modes.",
+            "experimentalBacktest": "An exploratory [[landing-backtest|backtest]] for new or unstable configurations. It should be read as a research scenario, not as the primary business benchmark.",
+            "modelConfidence": "A numeric estimate of how confident the model is in the selected day scenario. In this product it affects risk sizing and, in some modes, [[cap-fraction|capital share]] and dynamic exit control.",
+            "liquidationBuffer": "The distance between the current price and the level where the position would be forcibly closed. In [[anti-direction|anti-direction]], this buffer acts as a safety filter: if it is too small relative to [[min-move|MinMove]], inversion becomes risky."
         },
         "sections": {
-            "title": "Project section map",
+            "eyebrow": "Website",
+            "title": "How the website is structured",
+            "subtitle": "The block below is the interface map: where the nearest forecast lives, where the historical archive is stored, where long-history validation is shown, and where diagnostics, comparisons, and documentation are grouped.",
             "cards": {
                 "predictions": {
-                    "title": "Predictions",
-                    "description": "Main entry point for clients: current prediction and decision history.",
+                    "title": "[[landing-current-prediction|Current prediction]] and [[landing-prediction-history|prediction history]]",
+                    "description": "This section shows the nearest market forecast and the archive of past forecasts from the [[backtest|backtest]]. It puts the current trading day next to past dates that can be compared with it.",
                     "links": {
-                        "currentPrediction": "Current prediction →",
-                        "history": "Prediction history →"
+                        "currentPrediction": "[[landing-current-prediction|Current prediction]] →",
+                        "history": "[[landing-prediction-history|Prediction history]] →"
                     }
                 },
                 "backtest": {
-                    "title": "Backtest",
-                    "description": "Business control point: profit, risk, and strategy stability.",
+                    "title": "Validation on long history",
+                    "description": "This section shows how the same logic behaves across a long sequence of trading days. The reading includes not only return, but also [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]].",
                     "links": {
-                        "summary": "Backtest summary (PnL) →",
-                        "baseline": "Baseline backtest →",
-                        "experimental": "Experimental backtest (beta) →"
+                        "summary": "[[landing-backtest-summary|Backtest summary]] →",
+                        "baseline": "[[landing-baseline-backtest|Baseline backtest]] →",
+                        "experimental": "[[landing-experimental-backtest|Extended backtest]] →"
                     }
                 },
                 "analysis": {
-                    "title": "Analysis",
-                    "description": "Reports showing where the strategy earns and how the best/worst periods look.",
+                    "title": "Comparisons and rankings",
+                    "description": "This section is used when one headline number is not enough. It compares configurations, day types, confidence slices, and historical outcomes across different cuts of the data.",
                     "links": {
-                        "ratings": "Policy ratings →",
+                        "ratings": "Configuration ranking →",
                         "dayStats": "Day statistics →",
-                        "confidence": "Confidence and TP/SL →",
-                        "policyBranchMega": "Policy Branch Mega →"
+                        "confidence": "[[landing-model-confidence|Confidence]] and exit levels →",
+                        "policyBranchMega": "[[landing-policy-branch-mega|Full historical table]] →"
                     }
                 },
                 "diagnostics": {
-                    "title": "Diagnostics",
-                    "description": "Where the strategy loses money, which decisions are wrong, and what blocks guardrail.",
+                    "title": "Reasons for strong and weak days",
+                    "description": "This section helps separate model problems from risk-filter problems and trading-rule problems. It shows blocked entries, [[landing-no-trade|no-trade]] days, weak market regimes, and recurring error zones.",
                     "links": {
-                        "risk": "Risk and liquidations →",
-                        "guardrail": "Guardrail / Specificity →",
-                        "decisions": "Decisions / Attribution →",
-                        "hotspots": "Hotspots / NoTrade →",
-                        "other": "Other diagnostics →"
+                        "risk": "Risk and [[liquidation|liquidations]] →",
+                        "guardrail": "[[landing-guardrail|Guardrail]] and [[landing-specificity|specificity]] →",
+                        "decisions": "Decision causes →",
+                        "hotspots": "[[landing-hotspots|Hotspots]] and [[landing-no-trade|no-trade]] →",
+                        "other": "Other diagnostic tables →"
                     }
                 },
                 "models": {
                     "title": "Models and features",
-                    "description": "Model quality, aggregation, and feature importance for explaining decisions.",
+                    "description": "This section shows model quality, the role of [[landing-features|features]], and how several model-level signals are assembled into the final forecast for one trading day.",
                     "links": {
-                        "modelStats": "Model statistics →",
-                        "aggregation": "Prediction aggregation →",
-                        "pfi": "PFI by models →"
+                        "modelStats": "Model quality →",
+                        "aggregation": "[[landing-aggregation|Final forecast assembly]] →",
+                        "pfi": "[[landing-pfi|Feature impact]] →"
                     }
                 },
                 "docs": {
-                    "title": "Documentation",
-                    "description": "Technical descriptions of models, tests, and terms for deep analysis.",
+                    "title": "Documentation and checks",
+                    "description": "This section is used for technical validation of the product: contracts, tests, model documentation, and calculation rules.",
                     "links": {
-                        "docsHome": "Documentation →",
-                        "models": "Models (documentation) →",
-                        "tests": "Tests →"
+                        "docsHome": "Documentation overview →",
+                        "models": "Model documentation →",
+                        "tests": "Tests →",
+                        "truthfulness": "[[landing-truthfulness|Truthfulness contour]] →"
                     }
                 },
                 "explain": {
-                    "title": "Explain",
-                    "description": "Map of what exists in the project and why: models, branches, data splits, time logic, and decision structure.",
+                    "title": "[[landing-explain|Explain]] and terms",
+                    "description": "This section translates internal project names into business language: how models work, what reports mean, and how the main terms are read without internal jargon.",
                     "links": {
-                        "explainHome": "Explain →",
-                        "models": "Models (explain) →",
+                        "explainHome": "[[landing-explain|Explain]] →",
+                        "models": "Models in plain language →",
                         "project": "Project overview →"
                     }
                 }
             }
         },
         "bestPolicy": {
-            "title": "Best historical policy",
-            "subtitle": "The policy with the maximum TotalPnl% in the mega table (ALL HISTORY, WITH SL). The criterion is easy to replace, but this one is currently the most transparent for business.",
-            "openMega": "Open full Policy Branch Mega →",
-            "loading": "Loading mega tables...",
-            "bestResult": "Best TotalPnl% result: {{value}}%.",
+            "title": "Example of one strong historical configuration",
+            "subtitle": "The Policy configuration below is taken from the [[landing-policy-branch-mega|full historical table]]: the configuration with the highest [[total-pnl|TotalPnl%]] for [[landing-all-history|all history]] in [[with-sl-mode|stop-loss mode]]. This block shows which metrics the project stores for one configuration and why a strong headline result still has to be read together with [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]].",
+            "openMega": "Open full historical table →",
+            "loading": "Loading full historical table...",
+            "bestResult": "Best [[total-pnl|TotalPnl%]] result: {{value}}%.",
             "parts": {
-                "part1": "Part 1/3",
-                "part2": "Part 2/3",
-                "part3": "Part 3/3"
+                "part1": "Result and activity",
+                "part2": "Liquidations and recovery",
+                "part3": "Direction mix and growth pace",
+                "part4": "Trades and extremes"
             },
             "description": {
                 "spotConfCap": {
-                    "capFraction": "Cap fraction depends on model confidence Conf_Day: when Conf_Day <= 0.50, capMin = 10% is used, then it grows linearly up to capMax = 100%. This is purely causal logic with no future data.",
-                    "leverage": "Leverage is always 1x, so the strategy behaves like spot trading."
+                    "capFraction": "For this Policy configuration the position size depends on [[cap-fraction|capital share]], which changes together with [[landing-model-confidence|Conf_Day]]. That is how this configuration sized entries in the historical calculation.",
+                    "leverage": "This configuration keeps [[leverage|leverage]] fixed at 1x, so the result is not amplified with borrowed capital."
                 },
-                "nonSpot": "This is not spot_conf_cap. See the exact leverage and cap-fraction rules in Lev/Cap columns - they reflect actual values used in backtest.",
-                "branchRule": "Branch {{branchName}}: if anti-direction conditions are met (risk-day + MinMove 0.5-12% + liquidation buffer >= 2x MinMove), trade direction is inverted."
+                "nonSpot": "For this Policy configuration the [[leverage|leverage]] and [[cap-fraction|capital share]] rules come directly from the selected configuration. These are the exact values used in the historical calculation.",
+                "branchRule": "[[branch|Branch]] {{branchName}} shows which execution scenario was used for this Policy configuration. BASE keeps the original signal direction, while ANTI-D applies [[anti-direction|anti-direction]] only when conditions on [[high-risk-day|risk-day]], [[min-move|MinMove]], and [[landing-liquidation-buffer|liquidation buffer]] are satisfied."
             },
             "terms": {
-                "title": "Terms {{part}}",
+                "title": "Terms: {{part}}",
                 "subtitleFallback": "Terms for this table part."
             },
             "errors": {
-                "loadTitle": "Failed to load mega table",
-                "loadDescription": "Backend did not return policy_branch_mega. Check report generation.",
-                "structureTitle": "Invalid mega table structure",
-                "structureDescription": "Failed to parse Policy Branch Mega sections.",
-                "bestResolveTitle": "Failed to resolve best policy",
-                "bestResolveDescription": "Check mega table columns and data.",
-                "metaTitle": "Failed to read meta fields",
-                "metaDescription": "Failed to collect key period fields for the best policy.",
-                "highlightsTitle": "Failed to read key metrics",
-                "highlightsDescription": "Failed to collect core metrics for the best policy."
+                "loadTitle": "Failed to load the full historical table",
+                "loadDescription": "The server did not return data for the historical-configuration showcase.",
+                "structureTitle": "The full historical table structure could not be parsed",
+                "structureDescription": "The received report could not be turned into the configuration showcase block.",
+                "bestResolveTitle": "Failed to choose a configuration for the showcase",
+                "bestResolveDescription": "The full historical table does not contain a valid Policy configuration for this block.",
+                "metaTitle": "Failed to read configuration meta fields",
+                "metaDescription": "The selected Policy configuration does not provide a valid period and service fields for the showcase.",
+                "highlightsTitle": "Failed to read configuration highlights",
+                "highlightsDescription": "The selected Policy configuration does not provide the highlight metrics required by the showcase."
             },
-            "empty": "No policy_branch_mega data. Run report generation on backend."
+            "empty": "No data is currently available in the full historical table for this showcase block."
         }
     },
     "analysisHome": {
@@ -275,7 +328,7 @@
                 },
                 "recent": {
                     "label": "Recent tail",
-                    "hint": "Latest rolling day window (configured on backend)"
+                    "hint": "Latest 240 trading days in the active model row"
                 }
             }
         },
@@ -1247,9 +1300,9 @@
             "subtitle": "Comparative report by Policy/Branch on the same historical period. The table shows not only return but also risk: drawdown, liquidations, recovery, and LONG/SHORT contribution.",
             "noDataPlaceholder": "no data",
             "metricDiff": {
-                "noRows": "REAL/NO BIGGEST LIQ LOSS: no comparable rows for selected bucket.",
-                "noChanges": "REAL/NO BIGGEST LIQ LOSS: rows are identical in selected bucket (liquidations do not affect this slice).",
-                "changedRows": "REAL/NO BIGGEST LIQ LOSS: changed {{changed}} of {{total}} rows in selected bucket."
+                "noRows": "REAL/NO BIGGEST LIQ LOSS: no comparable Policy configurations for the selected bucket.",
+                "noChanges": "REAL/NO BIGGEST LIQ LOSS: Policy configurations are identical in the selected bucket (liquidations do not affect this slice).",
+                "changedRows": "REAL/NO BIGGEST LIQ LOSS: changed {{changed}} of {{total}} Policy configurations in the selected bucket."
             },
             "status": {
                 "actualTitle": "ACTUAL: latest verified (for current API source)",
@@ -1273,6 +1326,10 @@
                 "bucketQuery": {
                     "title": "Policy Branch Mega bucket query is invalid",
                     "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                },
+                "bucketViewQuery": {
+                    "title": "Policy Branch Mega total-bucket view query is invalid",
+                    "message": "Query parameter \"bucketview\" is invalid. Expected aggregate or separate."
                 },
                 "metricQuery": {
                     "title": "Policy Branch Mega metric query is invalid",
@@ -1305,18 +1362,114 @@
                 "columnsVisibility": {
                     "title": "Policy Branch Mega columns visibility is invalid",
                     "message": "Failed to apply bucket-based column visibility rules."
+                },
+                "chartModel": {
+                    "title": "Policy Branch Mega chart layer is unavailable",
+                    "message": "Failed to build a chart model from current mega-table sections. Check columns, part composition, and numeric value formats."
                 }
+            },
+            "controls": {
+                "displayModeLabel": "View mode",
+                "displayModeAriaLabel": "Switch between chart and table modes for the mega page",
+                "displayModeTooltip": "Chart mode is for quick Policy comparison by a metric pair. Table mode shows the source columns and the raw values."
+            },
+            "viewMode": {
+                "chart": "Chart",
+                "table": "Table"
             },
             "emptyFiltered": "Policy Branch Mega is empty for selected bucket/metric mode. Check backend report generation.",
             "emptyColumns": "No relevant columns after applying bucket visibility rules. Check report composition.",
             "empty": "Policy Branch Mega is empty. Check backend report generation.",
+            "chart": {
+                "title": "Mega table chart explorer",
+                "subtitle": "Charts do not replace the source-value table. This mode provides a first reading layer: ranking, risk/return scatter, and drill-down into the selected Policy.",
+                "metricSource": "Current ranking metric: {{metric}}, source column: {{source}}.",
+                "summary": {
+                    "totalRows": "Total Policy configurations: {{value}}",
+                    "filteredRows": "After filters: {{value}}",
+                    "missingMetric": "Without selected metric: {{value}}"
+                },
+                "controls": {
+                    "partLabel": "Report part",
+                    "branchLabel": "Branch",
+                    "rowSlModeLabel": "Policy SL mode",
+                    "sortLabel": "Sort",
+                    "limitLabel": "Policy limit",
+                    "allRows": "All",
+                    "presetLabel": "Chart preset",
+                    "rankingMetricLabel": "Ranking metric",
+                    "scatterXLabel": "Scatter: X axis",
+                    "scatterYLabel": "Scatter: Y axis",
+                    "policySearchLabel": "Policy / Branch search",
+                    "policySearchPlaceholder": "For example: UltraSafe or ANTI-D",
+                    "presetSummary": "Left: {{ranking}}. Right: {{x}} vs {{y}}.",
+                    "presetSummaryCustom": "Custom pair: left {{ranking}}, right {{x}} vs {{y}}.",
+                    "preset": {
+                        "options": {
+                            "pnlVsDrawdown": "Total PnL vs MaxDD",
+                            "tradeVsReturn": "Trade rate vs Total PnL",
+                            "recoveryVsDrawdown": "Required gain vs MaxDD",
+                            "ruinVsLiquidation": "AccRuin vs HadLiq",
+                            "liquidationVsRecovery": "HadLiq vs RecovDays",
+                            "recoveryDaysVsGain": "RecovDays vs ReqGain%",
+                            "avgDayVsTotalPnl": "AvgDay% vs Total PnL",
+                            "longVsShortCash": "Long $ vs Short $",
+                            "longVsTotalPnl": "Long $ vs Total PnL",
+                            "shortVsTotalPnl": "Short $ vs Total PnL",
+                            "eodVsTradeRate": "EODExit% vs Trade%",
+                            "custom": "Custom pair"
+                        }
+                    },
+                    "sort": {
+                        "metricDesc": "Metric ↓",
+                        "metricAsc": "Metric ↑",
+                        "policyAsc": "Policy A-Z"
+                    },
+                    "limit": {
+                        "all": "All"
+                    }
+                },
+                "ranking": {
+                    "title": "Policy-configuration ranking by selected metric",
+                    "subtitle": "Selecting a ranking bar opens the selected Policy for detailed reading and comparison of its Branch / SL Mode configurations.",
+                    "part": "PART {{part}}/{{total}}",
+                    "shown": "Shown {{value}}",
+                    "available": "Policy configurations with metric: {{value}}",
+                    "emptyTitle": "No Policy configurations for selected metric",
+                    "emptyDescription": "After branch/SL/search filters there are no Policy configurations where the selected metric has a numeric value."
+                },
+                "scatter": {
+                    "title": "Risk / return scatter",
+                    "subtitle": "X and Y axes are selected independently, so return, drawdown, recovery, and growth-rate metrics can be compared in one field.",
+                    "points": "Points: {{value}}",
+                    "emptyTitle": "Nothing to plot on scatter",
+                    "emptyDescription": "No Policy configurations remain where both selected metrics are available at the same time."
+                },
+                "detail": {
+                    "subtitle": "A Policy was selected from the chart. Below are the values of the selected Branch / SL Mode configuration and the comparison of the same Policy across other execution variants.",
+                    "riskLabel": "Risk",
+                    "clearSelection": "Clear selection",
+                    "policyCompareTitle": "Configuration comparison inside this Policy",
+                    "policyCompareSubtitle": "This bar chart uses the same ranking metric and shows how the selected Policy changes across Branch / SL Mode configurations.",
+                    "policyCompareEmptyTitle": "Selected Policy has no values for the ranking metric",
+                    "policyCompareEmptyDescription": "Other Branch / SL Mode configurations exist for this Policy, but they do not contain the currently selected ranking metric.",
+                    "partTitle": "PART {{part}}/{{total}}",
+                    "empty": "After selecting a ranking bar or scatter point, this panel opens the selected Policy and the values of its current Branch / SL Mode configuration.",
+                    "risk": {
+                        "ruin": "AccRuin > 0",
+                        "liquidation": "Liquidation present",
+                        "negative": "PnL below 0",
+                        "safe": "No emergency events"
+                    }
+                }
+            },
             "overview": {
                 "whatIsReport": {
                     "title": "What this report is",
                     "items": {
                         "item1": "Backtest is a simulation of how the strategy would trade on historical data.",
-                        "item2": "All rows are computed on the same period and identical source data, so Policy-to-Policy comparison is valid.",
-                        "item3": "Differences between rows reflect strategy-rule differences, not differences in market history."
+                        "item2": "All Policy configurations are computed on the same period and identical source data, so Policy-to-Policy comparison is valid.",
+                        "item3": "Differences between Policy configurations reflect strategy-rule differences, not differences in market history."
                     }
                 },
                 "comparison": {
@@ -1362,8 +1515,8 @@
                 }
             },
             "terms": {
-                "title": "Terms explanation {{part}}/3",
-                "subtitle": "Terms for PART {{part}}/3."
+                "title": "Terms explanation {{part}}/4",
+                "subtitle": "Terms for PART {{part}}/4."
             },
             "table": {
                 "modePrefix": {
@@ -1371,12 +1524,13 @@
                     "noSl": "NO SL: ",
                     "all": "WITH SL + NO SL: "
                 },
-                "part1Description": "Part 1/3: base summary by days, risk days, leverage/cap fraction, and core PnL metrics (up to MaxDD_Ratio%).",
-                "part2Description": "Part 2/3: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).",
-                "part3Description": "Part 3/3: horizon and average growth rates, long/short split, and diagnostic counters.",
+                "part1Description": "Part 1/4: base summary by days, risk days, leverage/cap fraction, and core PnL metrics (up to MaxDD_Ratio%).",
+                "part2Description": "Part 2/4: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).",
+                "part3Description": "Part 3/4: horizon and average growth rates, long/short split, and diagnostic counters.",
+                "part4Description": "Part 4/4: trade-derived and advanced daily-series metrics (ProfitFactor, Expectancy, Best/Worst day, PSR, MinTRL).",
                 "mergedAllDescription": "Summary metrics of merged SL slice.",
                 "mergedSelectedDescription": "Summary metrics of selected SL slice.",
-                "titleFallback": "Policy Branch Mega [PART {{part}}/3]"
+                "titleFallback": "Policy Branch Mega [PART {{part}}/4]"
             }
         }
     }

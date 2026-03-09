@@ -8,3 +8,9 @@ export {
     normalizeI18nLanguage,
     resolveIntlLocaleByI18nLanguage
 } from './locale'
+export {
+    isLocalizedContentError,
+    isLocalizedContentPendingError,
+    resolveAlternativeI18nLanguage
+} from './localizedContentError'
+export { readActiveLocaleResource, readActiveLocaleString } from './readActiveLocaleResource'

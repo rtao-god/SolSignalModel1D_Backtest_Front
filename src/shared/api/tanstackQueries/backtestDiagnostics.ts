@@ -12,7 +12,9 @@ interface UseBacktestDiagnosticsNavOptions {
 }
 
 export interface BacktestDiagnosticsReportQueryArgs {
+    bucket?: string | null
     tpSlMode?: string | null
+    slMode?: string | null
     zonalMode?: string | null
 }
 
@@ -47,8 +49,16 @@ function formatBacktestDiagnosticsError(status: number, bodyText: string): strin
 function buildBacktestDiagnosticsPath(args?: BacktestDiagnosticsReportQueryArgs): string {
     const params = new URLSearchParams()
 
+    if (args?.bucket) {
+        params.set('bucket', args.bucket)
+    }
+
     if (args?.tpSlMode) {
         params.set('tpsl', args.tpSlMode)
+    }
+
+    if (args?.slMode) {
+        params.set('slmode', args.slMode)
     }
 
     if (args?.zonalMode) {
@@ -62,7 +72,9 @@ function buildBacktestDiagnosticsPath(args?: BacktestDiagnosticsReportQueryArgs)
 function buildBacktestDiagnosticsQueryKey(args?: BacktestDiagnosticsReportQueryArgs) {
     return [
         ...BACKTEST_DIAGNOSTICS_QUERY_KEY,
+        args?.bucket ?? null,
         args?.tpSlMode ?? null,
+        args?.slMode ?? null,
         args?.zonalMode ?? null
     ] as const
 }

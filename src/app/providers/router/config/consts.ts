@@ -30,6 +30,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.DOCS]: '/docs',
     [AppRoute.DOCS_MODELS]: '/docs/models',
     [AppRoute.DOCS_TESTS]: '/docs/tests',
+    [AppRoute.DOCS_TRUTHFULNESS]: '/docs/truthfulness',
     [AppRoute.EXPLAIN]: '/explain',
     [AppRoute.EXPLAIN_MODELS]: '/explain/models',
     [AppRoute.EXPLAIN_BRANCHES]: '/explain/branches',

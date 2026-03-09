@@ -1,5 +1,10 @@
 import ReactDOM from 'react-dom/client'
 import { StrictMode } from 'react'
+import {
+    markApplicationBootstrapped,
+    setupGlobalErrorHandlers,
+    showFatalErrorOverlay
+} from '@/shared/lib/logging/setupGlobalErrorHandlers'
 import { BrowserRouter, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { LocaleProvider } from './providers/LocaleProvider'
@@ -9,9 +14,17 @@ import './styles/_include.scss'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import GlobalErrorFallback from './providers/ErrorBoundary/ui/GlobalErrorFallback/GlobalErrorFallback'
 import { logError } from '@/shared/lib/logging/logError'
-import { setupGlobalErrorHandlers } from '@/shared/lib/logging/setupGlobalErrorHandlers'
 import { ErrorBoundary } from './providers/ErrorBoundary/ErrorBoundary'
 import App from './App'
+
+declare global {
+    interface Window {
+        __SOLSIGNAL_PREBOOT_FATAL__?: {
+            markBootCompleted?: () => void
+        }
+    }
+}
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -61,9 +74,19 @@ if (!rootElement) {
 } else {
     const root = ReactDOM.createRoot(rootElement)
 
-    root.render(
-        <StrictMode>
-            <RootApp />
-        </StrictMode>
-    )
+    try {
+        root.render(
+            <StrictMode>
+                <RootApp />
+            </StrictMode>
+        )
+        markApplicationBootstrapped()
+        window.__SOLSIGNAL_PREBOOT_FATAL__?.markBootCompleted?.()
+    } catch (error) {
+        const safeError = error instanceof Error ? error : new Error(String(error ?? 'Unknown bootstrap error.'))
+        logError(safeError, undefined, {
+            source: 'root.render'
+        })
+        showFatalErrorOverlay(safeError, 'root.render')
+    }
 }

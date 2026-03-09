@@ -54,27 +54,27 @@ const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
 
 const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
     {
-        match: /^(Общие параметры прогноза|Prediction summary parameters)/i,
-        ru: 'Контекст формирования прогноза: режим (Live или Backfilled), строгие/мягкие правила обработки пропусков, ключевые временные метки входа/выхода и срез данных. Это «паспорт» прогноза, чтобы понимать на каких данных он построен.',
+        match: /^(Общие параметры прогноза|Prediction summary|Prediction summary parameters)/i,
+        ru: 'Контекст формирования прогноза: live это или исторический пересчёт, как система обращается с пропусками, где начинаются и заканчиваются 24 часа прогноза и до какой границы данных модель могла видеть рынок. Этот блок нужен, чтобы понимать, на каком временном срезе построена карточка.',
         en: 'Prediction context: mode (Live or Backfilled), strictness level for missing-data handling, key entry/exit timestamps, and data snapshot markers. This is the prediction passport that explains what data and timing the output is based on.'
     },
     {
         match: /^(Вероятности прогноза|Prediction probabilities)/i,
-        ru: 'Вероятности трёх классов (рост/боковик/падение) для трёх слоёв: базовый Day, Day+Micro и итоговый Total с учётом SL. Нужны для оценки уверенности модели, а не для «точного процента дохода».',
+        ru: 'Вероятности трёх классов (рост/боковик/падение) для трёх слоёв прогноза: базовый Daily, слой Daily + Micro и итоговый Total с учётом SL. Этот блок нужен для чтения уверенности модели и того, как дополнительные слои меняют исходный сценарий дня.',
         en: 'Three-class probabilities (up/flat/down) for three layers: base Day, Day+Micro, and final Total including SL overlay. These values describe model confidence, not a direct expected-return percentage.'
     },
     {
-        match: /^(Диапазон цены за 24 часа|Price range for 24 hours)/i,
+        match: /^(Диапазон цены за 24 часа|24h price range \(historical baseline\)|Price range for 24 hours)/i,
         ru: 'Исторический baseline для понимания диапазона цены на 24 часа вперёд. Это справочная статистика по прошлым данным, а не прямой прогноз сегодняшней цены.',
         en: 'Historical baseline for the next-24h price range. It is reference statistics from past data, not a direct forecast of today’s exact price.'
     },
     {
-        match: /^(Почему модель дала такой прогноз|Why the model gave this prediction)/i,
+        match: /^(Почему модель дала такой прогноз|Why the model produced this forecast \(top factors\)|Why the model gave this prediction)/i,
         ru: 'Топ факторов (фичей/сигналов), которые сильнее всего повлияли на решение. Колонки показывают тип фактора, его имя, краткое описание, значение и ранг важности.',
         en: 'Top factors (features/signals) that contributed most to the decision. Columns show factor type, name, short description, current value, and importance rank.'
     },
     {
-        match: /^(Факт дня и расхождение с прогнозом|Day outcome and prediction mismatch)/i,
+        match: /^(Факт дня и расхождение с прогнозом|Actual day outcome vs forecast|Day outcome and prediction mismatch)/i,
         ru: 'Сводка post-factum по backfilled-дню: что реально случилось, совпал ли итоговый прогноз с фактом, как отличились MinMove и диапазон цены, и какой фактор explain/PFI был ключевым. Эти данные появляются только после закрытия окна и не используются в causal/live решении.',
         en: 'Post-factum summary for a backfilled day: actual outcome, whether Total prediction matched the fact, MinMove and range deviations, and the key explain/PFI factor. These fields appear only after window close and are not used in causal/live decision-making.'
     },

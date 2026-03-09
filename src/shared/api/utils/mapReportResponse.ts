@@ -62,10 +62,12 @@ function parseMegaModeOrThrow(raw: unknown, label: string): CapturedMegaModeDto 
     if (typeof raw === 'number') {
         if (raw === 0) return 'with-sl'
         if (raw === 1) return 'no-sl'
+        if (raw === 2) return 'all'
     }
 
     if (typeof raw === 'string') {
         const normalized = raw.trim().toLowerCase()
+        if (normalized === 'all') return 'all'
         if (normalized === 'withsl' || normalized === 'with_sl' || normalized === 'with-sl') return 'with-sl'
         if (normalized === 'nosl' || normalized === 'no_sl' || normalized === 'no-sl') return 'no-sl'
     }
@@ -136,6 +138,7 @@ function parseMegaBucketOrThrow(raw: unknown, label: string): CapturedMegaBucket
         if (raw === 1) return 'intraday'
         if (raw === 2) return 'delayed'
         if (raw === 3) return 'total-aggregate'
+        if (raw === 4) return 'total'
     }
 
     if (typeof raw === 'string') {
@@ -143,6 +146,10 @@ function parseMegaBucketOrThrow(raw: unknown, label: string): CapturedMegaBucket
         if (normalized === 'daily') return 'daily'
         if (normalized === 'intraday') return 'intraday'
         if (normalized === 'delayed') return 'delayed'
+        if (normalized === 'totalcombined' || normalized === 'total_combined' || normalized === 'total-combined') {
+            return 'total'
+        }
+        if (normalized === 'total') return 'total'
         if (normalized === 'totalaggregate' || normalized === 'total_aggregate' || normalized === 'total-aggregate') {
             return 'total-aggregate'
         }

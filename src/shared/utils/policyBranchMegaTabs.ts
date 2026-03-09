@@ -7,6 +7,7 @@ export interface PolicyBranchMegaTabConfig {
 }
 
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
+export type PolicyBranchMegaTotalBucketView = 'aggregate' | 'separate'
 export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
 export type PolicyBranchMegaTpSlMode = 'all' | 'dynamic' | 'static'
 export type PolicyBranchMegaSlMode = 'all' | 'with-sl' | 'no-sl'
@@ -81,6 +82,17 @@ const ZONAL_QUERY_ALIASES: Record<string, PolicyBranchMegaZonalMode> = {
     nozonal: 'without-zonal',
     'without-zonal': 'without-zonal',
     without_zonal: 'without-zonal'
+}
+
+const TOTAL_BUCKET_VIEW_QUERY_ALIASES: Record<string, PolicyBranchMegaTotalBucketView> = {
+    aggregate: 'aggregate',
+    agg: 'aggregate',
+    'total-aggregate': 'aggregate',
+    separate: 'separate',
+    split: 'separate',
+    raw: 'separate',
+    'per-bucket': 'separate',
+    per_bucket: 'separate'
 }
 
 export function normalizePolicyBranchMegaTitle(title: string | undefined): string {
@@ -173,6 +185,30 @@ export function resolvePolicyBranchMegaZonalModeFromQuery(
     }
 
     return mapped
+}
+
+export function resolvePolicyBranchMegaTotalBucketViewFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaTotalBucketView {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = TOTAL_BUCKET_VIEW_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown bucketview query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaBucketLabel(bucket: PolicyBranchMegaBucketMode): string {
+    if (bucket === 'daily') return 'Daily'
+    if (bucket === 'intraday') return 'Intraday'
+    if (bucket === 'delayed') return 'Delayed'
+    return 'Σ Все бакеты'
 }
 
 export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined): PolicyBranchMegaBucketMode | null {
@@ -483,30 +519,31 @@ export function filterPolicyBranchMegaSectionsByZonalModeKeepingSharedOrThrow(
 
     return tagged.filter(item => item.zonalMode === null || item.zonalMode === zonalMode).map(item => item.section)
 }
-function extractPartNumber(title: string | undefined): number | null {
+interface PolicyBranchMegaPartTag {
+    part: number
+    total: number
+}
+
+function extractPartTag(title: string | undefined): PolicyBranchMegaPartTag | null {
     if (!title) return null
 
     const normalized = normalizePolicyBranchMegaTitle(title)
-    const partIndex = normalized.toLowerCase().indexOf('[part')
-    if (partIndex < 0) return null
+    const match = normalized.match(/\[part\s+(\d+)\/(\d+)\]/i)
+    if (!match?.[1] || !match[2]) return null
 
-    const slashIndex = normalized.indexOf('/', partIndex)
-    const endIndex = normalized.indexOf(']', partIndex)
-    if (slashIndex < 0 || endIndex < 0 || slashIndex > endIndex) return null
+    const part = Number(match[1])
+    const total = Number(match[2])
+    if (!Number.isInteger(part) || !Number.isInteger(total) || part < 1 || total < 1 || part > total) {
+        return null
+    }
 
-    const numberStart = normalized.indexOf(' ', partIndex)
-    if (numberStart < 0 || numberStart > slashIndex) return null
-
-    const raw = normalized.slice(numberStart, slashIndex).trim()
-    const parsed = Number(raw)
-    if (!Number.isFinite(parsed)) return null
-
-    return parsed
+    return { part, total }
 }
+
 function resolvePartLabel(title: string | undefined, index: number): string {
-    const part = extractPartNumber(title)
-    if (part) {
-        return `Часть ${part}/3`
+    const partTag = extractPartTag(title)
+    if (partTag) {
+        return `Часть ${partTag.part}/${partTag.total}`
     }
 
     const normalized = normalizePolicyBranchMegaTitle(title)
@@ -516,38 +553,72 @@ function resolvePartLabel(title: string | undefined, index: number): string {
 }
 
 function resolvePartOrdinal(title: string | undefined, index: number): number {
-    const part = extractPartNumber(title)
-    if (part !== null && Number.isInteger(part) && part > 0) {
-        return part
+    const partTag = extractPartTag(title)
+    if (partTag !== null) {
+        return partTag.part
     }
 
     return index + 1
 }
 
-export function buildPolicyBranchMegaTableSectionAnchor(partOrdinal: number): string {
+export function buildPolicyBranchMegaTableSectionAnchor(
+    partOrdinal: number,
+    bucket?: PolicyBranchMegaBucketMode | null
+): string {
     if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
         throw new Error(`[policy-branch-mega] invalid table section ordinal: ${partOrdinal}.`)
+    }
+
+    if (bucket) {
+        return `policy-branch-section-${bucket}-${partOrdinal}`
     }
 
     return `policy-branch-section-${partOrdinal}`
 }
 
-export function buildPolicyBranchMegaTermsSectionAnchor(partOrdinal: number): string {
+export function buildPolicyBranchMegaTermsSectionAnchor(
+    partOrdinal: number,
+    bucket?: PolicyBranchMegaBucketMode | null
+): string {
     if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
         throw new Error(`[policy-branch-mega] invalid terms section ordinal: ${partOrdinal}.`)
+    }
+
+    if (bucket) {
+        return `policy-branch-terms-section-${bucket}-${partOrdinal}`
     }
 
     return `policy-branch-terms-section-${partOrdinal}`
 }
 
 export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[]): PolicyBranchMegaTabConfig[] {
-    const deduped = new Map<string, { label: string; part: number | null; partOrdinal: number; sourceIndex: number }>()
+    const deduped = new Map<
+        string,
+        {
+            label: string
+            part: number | null
+            total: number | null
+            partOrdinal: number
+            sourceIndex: number
+            bucket: PolicyBranchMegaBucketMode | null
+        }
+    >()
+    const bucketSet = new Set<PolicyBranchMegaBucketMode>()
 
     sections.forEach((section, index) => {
         const label = resolvePartLabel(section.title, index)
-        const part = extractPartNumber(section.title)
+        const partTag = extractPartTag(section.title)
+        const part = partTag?.part ?? null
         const partOrdinal = resolvePartOrdinal(section.title, index)
-        const key = part !== null ? `part:${part}` : `label:${label}`
+        const bucket =
+            tryResolvePolicyBranchMegaBucketFromMetadataOrNull(section) ??
+            resolvePolicyBranchMegaBucketFromTitle(section.title)
+        if (bucket !== null) {
+            bucketSet.add(bucket)
+        }
+
+        const bucketKey = bucket ?? 'unknown'
+        const key = part !== null ? `bucket:${bucketKey}:part:${part}` : `bucket:${bucketKey}:label:${label}`
         if (deduped.has(key)) {
             return
         }
@@ -555,34 +626,45 @@ export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[
         deduped.set(key, {
             label,
             part,
+            total: partTag?.total ?? null,
             partOrdinal,
-            sourceIndex: index
+            sourceIndex: index,
+            bucket
         })
     })
 
-    const ordered = Array.from(deduped.values()).sort((a, b) => {
-        if (a.part !== null && b.part !== null) return a.part - b.part
-        if (a.part !== null) return -1
-        if (b.part !== null) return 1
-        return a.sourceIndex - b.sourceIndex
-    })
+    const hasMultipleBuckets = bucketSet.size > 1
+    const ordered = Array.from(deduped.values()).sort((a, b) => a.sourceIndex - b.sourceIndex)
+
+    const fallbackTotal = ordered.length
 
     return ordered.flatMap(entry => {
+        const total = entry.total ?? fallbackTotal
+        const bucketLabel = entry.bucket ? resolvePolicyBranchMegaBucketLabel(entry.bucket) : null
+        const anchorBucket = hasMultipleBuckets ? entry.bucket : null
         const partLabel =
-            entry.part !== null ? `Часть ${entry.part}/3`
+            entry.part !== null ? `Часть ${entry.part}/${total}`
             : entry.label.startsWith('Часть ') ? entry.label
-            : `Часть ${entry.partOrdinal}/3`
+            : `Часть ${entry.partOrdinal}/${total}`
+        const tableLabel =
+            hasMultipleBuckets && bucketLabel ? `${bucketLabel} · ${partLabel}` : partLabel
+        const termsLabel =
+            hasMultipleBuckets && bucketLabel ?
+                `Термины · ${bucketLabel} · ${entry.partOrdinal}/${total}`
+            :   `Объяснение терминов ${entry.partOrdinal}/${total}`
+        const tabIdPrefix =
+            anchorBucket ? `policy-branch-${anchorBucket}-${entry.partOrdinal}` : `policy-branch-${entry.partOrdinal}`
 
         return [
             {
-                id: `policy-branch-terms-tab-${entry.partOrdinal}`,
-                label: `Объяснение терминов ${entry.partOrdinal}/3`,
-                anchor: buildPolicyBranchMegaTermsSectionAnchor(entry.partOrdinal)
+                id: `${tabIdPrefix}-terms-tab`,
+                label: termsLabel,
+                anchor: buildPolicyBranchMegaTermsSectionAnchor(entry.partOrdinal, anchorBucket)
             },
             {
-                id: `policy-branch-table-tab-${entry.partOrdinal}`,
-                label: partLabel,
-                anchor: buildPolicyBranchMegaTableSectionAnchor(entry.partOrdinal)
+                id: `${tabIdPrefix}-table-tab`,
+                label: tableLabel,
+                anchor: buildPolicyBranchMegaTableSectionAnchor(entry.partOrdinal, anchorBucket)
             }
         ]
     })

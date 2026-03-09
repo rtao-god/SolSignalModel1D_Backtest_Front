@@ -1,5 +1,6 @@
 import { Btn } from '@/shared/ui'
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { markErrorHandledByBoundary } from '@/shared/lib/logging/setupGlobalErrorHandlers'
 
 export interface ErrorBoundaryFallbackProps {
     error: Error | null
@@ -27,10 +28,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+        markErrorHandledByBoundary(error)
         return { hasError: true, error }
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        markErrorHandledByBoundary(error)
         this.props.onError?.(error, errorInfo)
     }
 

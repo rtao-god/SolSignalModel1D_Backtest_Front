@@ -6,6 +6,7 @@ import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { EXPLAIN_BRANCHES_TABS } from '@/shared/utils/explainTabs'
+import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readExplainTableRowsOrThrow,
     readExplainTermItemsOrThrow,
@@ -31,7 +32,7 @@ function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
 }
 
 export default function ExplainBranchesPage({ className }: ExplainBranchesPageProps) {
-    const { t } = useTranslation('explain')
+    const { t, i18n } = useTranslation('explain')
 
     const sections = useMemo(
         () =>
@@ -45,18 +46,6 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
         sections,
         syncHash: true
     })
-
-    const overviewTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'branchesPage.sections.overview.terms'), [t])
-    const baseTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'branchesPage.sections.base.terms'), [t])
-    const antiTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'branchesPage.sections.anti.terms'), [t])
-    const conditionsTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'branchesPage.sections.conditions.terms'), [t])
-    const usageTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'branchesPage.sections.usage.terms'), [t])
-
-    const overviewRows = useMemo(() => readExplainTableRowsOrThrow(t, 'branchesPage.sections.overview.table.rows'), [t])
-    const conditionsRows = useMemo(
-        () => readExplainTableRowsOrThrow(t, 'branchesPage.sections.conditions.table.rows'),
-        [t]
-    )
 
     return (
         <div className={classNames(cls.ExplainBranchesPage, {}, [className ?? ''])} data-tooltip-boundary>
@@ -73,27 +62,37 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
                         {t('branchesPage.sections.overview.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('branchesPage.sections.overview.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('branchesPage.sections.overview.table.headers.branch')}</th>
-                                    <th>{t('branchesPage.sections.overview.table.headers.howItWorks')}</th>
-                                    <th>{t('branchesPage.sections.overview.table.headers.whenUseful')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {overviewRows.map((row, rowIndex) => (
-                                    <tr key={`overview-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={overviewTerms} />
+                    <LocalizedContentBoundary name='ExplainBranches:overview:table'>
+                        {() => {
+                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'branchesPage.sections.overview.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('branchesPage.sections.overview.table.headers.branch')}</th>
+                                                <th>{t('branchesPage.sections.overview.table.headers.howItWorks')}</th>
+                                                <th>{t('branchesPage.sections.overview.table.headers.whenUseful')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {overviewRows.map((row, rowIndex) => (
+                                                <tr key={`overview-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainBranches:overview:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'branchesPage.sections.overview.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-branches-base' className={cls.sectionCard}>
@@ -101,7 +100,9 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
                         {t('branchesPage.sections.base.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('branchesPage.sections.base.text')}</Text>
-                    <TermGrid items={baseTerms} />
+                    <LocalizedContentBoundary name='ExplainBranches:base:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'branchesPage.sections.base.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-branches-anti' className={cls.sectionCard}>
@@ -109,7 +110,9 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
                         {t('branchesPage.sections.anti.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('branchesPage.sections.anti.text')}</Text>
-                    <TermGrid items={antiTerms} />
+                    <LocalizedContentBoundary name='ExplainBranches:anti:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'branchesPage.sections.anti.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-branches-conditions' className={cls.sectionCard}>
@@ -117,27 +120,37 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
                         {t('branchesPage.sections.conditions.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('branchesPage.sections.conditions.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('branchesPage.sections.conditions.table.headers.filter')}</th>
-                                    <th>{t('branchesPage.sections.conditions.table.headers.threshold')}</th>
-                                    <th>{t('branchesPage.sections.conditions.table.headers.protection')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {conditionsRows.map((row, rowIndex) => (
-                                    <tr key={`conditions-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`conditions-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={conditionsTerms} />
+                    <LocalizedContentBoundary name='ExplainBranches:conditions:table'>
+                        {() => {
+                            const conditionsRows = readExplainTableRowsOrThrow(i18n, 'branchesPage.sections.conditions.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('branchesPage.sections.conditions.table.headers.filter')}</th>
+                                                <th>{t('branchesPage.sections.conditions.table.headers.threshold')}</th>
+                                                <th>{t('branchesPage.sections.conditions.table.headers.protection')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {conditionsRows.map((row, rowIndex) => (
+                                                <tr key={`conditions-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`conditions-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainBranches:conditions:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'branchesPage.sections.conditions.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-branches-usage' className={cls.sectionCard}>
@@ -145,7 +158,9 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
                         {t('branchesPage.sections.usage.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('branchesPage.sections.usage.text')}</Text>
-                    <TermGrid items={usageTerms} />
+                    <LocalizedContentBoundary name='ExplainBranches:usage:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'branchesPage.sections.usage.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
             </div>
 
@@ -160,3 +175,6 @@ export default function ExplainBranchesPage({ className }: ExplainBranchesPagePr
         </div>
     )
 }
+
+
+

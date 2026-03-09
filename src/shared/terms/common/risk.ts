@@ -1,0 +1,137 @@
+export const HIGH_RISK_DAY_DESCRIPTION =
+    'Повышенный риск дня (risk day) — день, где риск-модель оценивает вероятность проблемного исхода как высокую. В таком дне вход фильтруется строже, а защитные ограничения риска имеют приоритет.'
+
+export const CAP_FRACTION_DESCRIPTION =
+    'cap fraction — доля капитала на сделку в диапазоне [0..1]. Это лимит маржи на вход: сначала выбирается cap fraction, потом к марже применяется плечо.'
+
+export const CAP_ZERO_DESCRIPTION =
+    'cap_zero означает cap fraction = 0 в конкретный день. Это прямой запрет на сделку: вход не выполняется даже при наличии направления.'
+
+export const CONFIDENCE_OUT_OF_RANGE_DESCRIPTION =
+    'confidence_out_of_range означает, что уверенность модели вышла за допустимый диапазон confidence-конфига. При режиме OutOfRangeBehavior=NoTrade такой день принудительно пропускается.'
+
+export const LOW_EDGE_DESCRIPTION =
+    'low_edge — динамическая политика считает ожидаемое преимущество (edge) слишком маленьким для входа и пропускает день.'
+
+export const RISK_THROTTLE_DESCRIPTION =
+    'risk_throttle — динамический ограничитель риска. День пропускается, когда комбинация edge/confidence/drawdown попадает в запрещённую зону.'
+
+export const BUCKET_DEAD_AFTER_LIQ_DESCRIPTION =
+    'bucket_dead_after_liquidation: рабочий бакет капитала уже «мертв» после ликвидации/обнуления, поэтому новые сделки в этом бакете запрещены.'
+
+export const ANTI_D_NOT_APPLIED_DESCRIPTION =
+    'anti_d_not_applied означает, что обязательные условия anti-direction не выполнены, поэтому в ветке ANTI-D вход не открывается (no-trade).\n\nТиповые причины:\n- MinMove вне рабочего диапазона (0.5%-12.0%);\n- не пройден фильтр запаса до ликвидации при текущем плече;\n- невалидное плечо для расчёта anti-direction.'
+
+export const CONF_BUCKET_DESCRIPTION =
+    'confidence-bucket — корзина уверенности, где накапливается история по сделкам (число наблюдений и доля успешных сделок). Dynamic TP/SL включается только после набора минимального числа наблюдений и прохождения порога доли успешных сделок.'
+
+export const RISK_LAYERS_DESCRIPTION =
+    'Risk-слои — дополнительные правила управления риском поверх [[policy|Policy]].\n\nОни не выбирают саму Policy и не создают отдельную ветку [[branch|Branch]], а корректируют уже готовое торговое решение дня.\n\nЧто могут менять risk-слои:\n- уменьшать [[leverage|плечо]];\n- уменьшать [[cap-fraction|cap fraction]];\n- ужесточать условия входа;\n- полностью запрещать сделку в слишком рискованный день.\n\nПримеры в этом отчёте:\n[[zonal-mode-term|ZONAL]], [[dynamic-tp-sl|DYNAMIC risk]], ограничения [[high-risk-day|риск-дня]] по [[sl-model|SL-модели]].'
+
+export const SL_MODE_TERM_DESCRIPTION =
+    'SL Mode — переключатель механики выхода из сделки.\n\n- [[with-sl-mode|WITH SL]]: защитный [[tp-sl|stop-loss]] включён. Сделка может закрыться раньше конца окна по [[tp-sl|stop-loss]], [[tp-sl|take-profit]] или [[liquidation|ликвидации]]. Если этого не произошло, в конце дня срабатывает [[eod|EndOfDay]].\n- [[no-sl-mode|NO SL]]: защитный [[tp-sl|stop-loss]] отключён. Сделка остаётся открытой до [[tp-sl|take-profit]], [[liquidation|ликвидации]] или [[eod|EndOfDay]].\n\nРиск NO SL:\n- для [[isolated-margin|isolated]]-маржи это повышает шанс потерять весь залог сделки.\n- для [[cross-margin|cross]]-маржи это повышает шанс потерять весь баланс бакета.\n\n[[why-no-sl|Почему?]]'
+
+export const TP_SL_MODE_DESCRIPTION =
+    'Dynamic-risk режим — фильтр по тому, был ли в сделке включён динамический слой риска.\n\nALL (Mixed):\nв срез попадают и [[dynamic-tp-sl|DYNAMIC risk]], и [[static-tp-sl|STATIC base]] сделки.\n\nDYNAMIC RISK (DynamicOnly):\nостаются только сделки, где движок действительно включил dynamic-слой после проверки [[confidence-bucket|confidence-bucket]]. В этих сделках пересчитываются уровни выхода и [[cap-fraction|cap fraction]].\n\nSTATIC BASE (StaticOnly):\nостаются только сделки без dynamic-слоя. Сделка идёт по базовым правилам [[policy|Policy]], а внешние [[risk-layers|risk-слои]] продолжают работать как обычно.\n\nЧто меняется в таблице:\nпри переключении меняются набор сделок и пересчитываются [[trade-count|Tr]], [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]], [[req-gain|ReqGain%]] и [[recovery|recovery]].'
+
+export const ZONAL_MODE_DESCRIPTION =
+    'ZONAL — отдельный [[risk-layers|risk-слой]], который уменьшает размер риска уже после того, как день допущен к торговле.\n\nОн не меняет направление сделки и не решает, входить или нет. Его задача — сделать слабые по качеству дни менее агрессивными по размеру позиции.\n\nWITH ZONAL:\nдвижок сначала оценивает силу прогноза, потом относит день к одной из зон уверенности: high, mid или low.\n\nHigh:\nриск не урезается — сделка идёт с базовыми [[leverage|плечом]] и [[cap-fraction|cap fraction]].\n\nMid:\nриск снижается — [[leverage|плечо]] режется до 65% от базы, [[cap-fraction|cap fraction]] до 60% от базы.\n\nLow:\nостаётся только микро-позиция — [[leverage|плечо]] 20% от базы, [[cap-fraction|cap fraction]] 10% от базы, при этом cap не выше 0.15, а плечо не выше 3x.\n\nГраницы зон:\nв обычный день high начинается от 0.62, mid от 0.56; в [[high-risk-day|риск-день]] high от 0.66, mid от 0.60.\n\nWITHOUT ZONAL:\nубирается именно это зональное урезание риска. Остальные [[risk-layers|risk-слои]] и [[dynamic-tp-sl|DYNAMIC risk]] продолжают работать.\n\nКак читать:\nесли WITH ZONAL заметно снижает [[drawdown|MaxDD%]], [[liquidation|HadLiq]] и [[account-ruin|AccRuin]] без критической потери [[total-pnl|TotalPnl%]], значит именно зональное урезание улучшает профиль риска.'
+
+export const WITH_ZONAL_MODE_DESCRIPTION =
+    'WITH ZONAL — режим, где включён зональный [[risk-layers|risk-слой]] после оценки силы прогноза.\n\nHigh:\nсделка идёт с базовыми [[leverage|плечом]] и [[cap-fraction|cap fraction]].\n\nMid:\nриск режется до 65% / 60% от базы.\n\nLow:\nостаётся микро-позиция: [[leverage|плечо]] 20% от базы, [[cap-fraction|cap fraction]] 10% от базы, cap <= 0.15, плечо <= 3x.\n\nЭтот режим нужен, чтобы проверить, помогает ли зональное урезание риска снизить [[drawdown|MaxDD%]], [[liquidation|HadLiq]] и [[account-ruin|AccRuin]].'
+
+export const WITHOUT_ZONAL_MODE_DESCRIPTION =
+    'WITHOUT ZONAL — контрольный режим без зонального урезания риска.\n\nДвижок оставляет базовые [[leverage|плечо]] и [[cap-fraction|cap fraction]] без деления на high / mid / low зоны.\n\nПри этом остальные [[risk-layers|risk-слои]] не выключаются:\n[[dynamic-tp-sl|DYNAMIC risk]], исторический допуск dynamic и прочие confidence-механики продолжают работать.\n\nЭтот режим нужен, чтобы отдельно увидеть эффект именно ZONAL, а не всего риск-слоя целиком.'
+
+export const ISOLATED_MARGIN_DESCRIPTION =
+    'Isolated (изолированная маржа): у позиции отдельный залог. При ликвидации теряется только залог этой конкретной сделки, а остальной баланс бакета не затрагивается.'
+
+export const CROSS_MARGIN_DESCRIPTION =
+    'Cross (кросс-маржа): позиция использует общий баланс бакета как залог. При ликвидации теряется весь баланс этого бакета.'
+
+export const SL_MODEL_DESCRIPTION =
+    'SL-модель — риск-модуль, который оценивает вероятность срабатывания stop-loss в потенциальной сделке. Если риск SL повышен, стратегия снижает риск входа: уменьшает размер позиции и плечо. Если риск превышает порог фильтра, вход в этот день блокируется (no-trade).'
+
+export const ANTI_DIRECTION_DESCRIPTION =
+    'anti-direction — правило ветки ANTI-D, которое может перевернуть сторону входа в риск-день.\n\nКогда срабатывает:\n- день помечен как риск-день по SL-модели;\n- MinMove в рабочем диапазоне (0.5%-12.0%);\n- плечо валидно (> 0);\n- для плеча >1 пройден фильтр запаса до ликвидации относительно MinMove.\n\nЧто делает:\nLONG меняется на SHORT, SHORT меняется на LONG.'
+
+export const WHY_NO_SL_DESCRIPTION =
+    'Почему NO-SL рискованнее: в этом режиме убирается жёсткая граница убытка на сделку. Если цена идёт против позиции, убыток растёт до закрытия по ликвидации или по EndOfDay, а не останавливается заранее по SL.\n\nДля [[isolated-margin|isolated]]-маржи это повышает шанс потерять весь залог конкретной сделки.\n\nДля [[cross-margin|cross]]-маржи это повышает шанс потерять весь баланс бакета.\n\nПоэтому глубина просадки и хвостовые убытки обычно выше.'
+
+export const LIQUIDATION_DESCRIPTION =
+    'Ликвидация — принудительное закрытие позиции биржей, когда убыток почти съел залог.\n\nДля [[isolated-margin|isolated]] потеря ограничена залогом позиции.\n\nДля [[cross-margin|cross]] при ликвидации теряется весь баланс бакета.'
+
+export const ACCOUNT_RUIN_DESCRIPTION =
+    'AccRuin — метрика руины рабочего капитала бакета.\n\nКогда бакет считается руинированным:\n- бакет помечен как IsDead=true;\n- или текущий баланс (EquityNow) упал до 20% и ниже от стартового капитала (StartCapital), то есть потеря 80% и более.\n\nКак читать:\n- в строке одного бакета: 0 = бакет жив, 1 = бакет руинирован;\n- в total aggregate: число руинированных бакетов среди daily/intraday/delayed (0..3).\n\nПочему важно:\nAccRuin > 0 означает, что в этом срезе стратегия теряет рабочий капитал и фактически выходит в аварийный режим.'
+
+export const RECOVERY_DESCRIPTION =
+    'recovery — общий блок метрик восстановления после максимальной [[drawdown|просадки]].\n\nВ этот блок входят [[recovered|Recovered]], [[recov-days|RecovDays]] и [[req-gain|ReqGain%]].\n\nОн показывает, удалось ли капиталу вернуться к прежнему пику, сколько времени это заняло и какой рост нужен от дна для полного возврата.'
+
+export const RECOVERED_DESCRIPTION =
+    'Recovered — флаг восстановления после MaxDD по кривой [[active-equity|active equity]].\n\nЧто проверяется:\nпосле дна MaxDD [[current-balance|текущий баланс]] должен вернуться к пику, который был до этой просадки.\n\ntrue:\nвозврат к предыдущему пику произошёл внутри периода.\n\nfalse:\nк концу периода возврата к предыдущему пику не было.\n\nПример:\nпик 78 000 -> дно 49 000 -> 79 000: Recovered=true.\n\nпик 78 000 -> дно 49 000 -> 73 000: Recovered=false.'
+
+export const RECOV_DAYS_DESCRIPTION =
+    'RecovDays — количество календарных дней от дна MaxDD до даты, когда [[current-balance|текущий баланс]] снова стал не ниже пика перед этой просадкой.\n\nПоле считается только когда Recovered=true.\n\nЕсли восстановления нет, в расчёте остаётся -1, а в таблице показывается «—».\n\nКак читать:\n20-60 дней — быстрое восстановление,\n120+ дней — долгое восстановление и длительный «замороженный» капитал.\n\nПример:\nдно 2024-08-01,\nвосстановление 2024-09-15 -> RecovDays=45.'
+
+export const REQ_GAIN_DESCRIPTION =
+    'ReqGain% — какой рост нужен от дна MaxDD, чтобы вернуть [[current-balance|текущий баланс]] к пику до просадки.\n\nФормула:\nReqGain% = (1 / (1 - MaxDD) - 1) * 100.\n\nПример:\nMaxDD=40% -> ReqGain%=66.7%.\n\nMaxDD=60% -> ReqGain%=150%.\n\nMaxDD=80% -> ReqGain%=400%.\n\nЕсли MaxDD близок к 100%, показатель уходит в INF.\n\nКак читать:\nчем ниже ReqGain%, тем реалистичнее восстановление;\n100%+ уже означает тяжёлый возврат, 200%+ — очень тяжёлый.'
+
+export const LEVERAGE_DESCRIPTION =
+    'Плечо — множитель позиции к залогу. Пример: 10x означает, что движение цены на ~1% даёт около ~10% результата по залогу (в плюс или минус).'
+
+export const MARGIN_DESCRIPTION =
+    'Маржа (залог) — деньги, которые реально выделяются под позицию. Это базовый риск на сделку до применения плеча.'
+
+export const DRAWDOWN_DESCRIPTION =
+    'MaxDD (максимальная просадка, drawdown) — падение капитала от локального пика до следующего минимума.\n\nПороговые метрики в этом отчёте:\n- DD70: эпизоды, где капитал опускался ниже 70% от стартового уровня.\n- BalDead / Time<35%: зона ниже 35% от стартового уровня.\n- AccRuin: руин used-бакета по правилу IsDead=true или EquityNow/StartCapital <= 20%.\n\nПример:\n- Старт 100 000, пик 140 000, минимум 60 000 -> MaxDD = (140 000 - 60 000) / 140 000 = 57.1%.'
+
+export const ACTIVE_EQUITY_DESCRIPTION =
+    'Active equity — кривая [[current-balance|текущего баланса]] стратегии в ходе симуляции.\n\nВ расчёте это сумма EquityNow по всем используемым бакетам на каждой точке закрытия сделки.\n\nЭта кривая используется для MaxDD, Recovered, RecovDays и ReqGain%.'
+
+export const START_BALANCE_DESCRIPTION =
+    'Стартовый баланс — капитал на старте теста. Это базовая точка, от которой считаются проценты доходности и просадки.\n\nДля Policy Branch Mega в движке старт каждого рабочего бакета задан как 20 000$, поэтому:\n- daily/intraday/delayed: StartCap = 20 000$;\n- total aggregate: сумма трёх бакетов, то есть 60 000$.'
+
+export const START_CAP_DESCRIPTION =
+    'StartCap (StartCap$) — стартовый капитал выбранного среза в долларах.\n\nДля Policy Branch Mega:\n- отдельный бакет (daily/intraday/delayed) стартует с 20 000$;\n- total aggregate стартует с 60 000$ (3 бакета по 20 000$).\n\nМетрика нужна как база для расчёта процентов, включая Exposure%, TotalPnl% и MaxDD%.'
+
+export const MARGIN_USED_DESCRIPTION =
+    'MarginUsed — фактически использованный залог (маржа) в конкретной сделке до применения плеча.\n\nЭто не полный размер позиции в долларах: полный размер позиции считается как MarginUsed * LeverageUsed.\n\nВ Policy Branch Mega MarginUsed участвует в формуле Exposure% и показывает, какой объём капитала реально был поставлен в сделку.'
+
+export const EXPOSURE_DESCRIPTION =
+    'Экспозиция (Exposure) — доля стартового капитала, которая фактически была задействована в сделке с учётом плеча.\n\nВ отчёте используется формула: Exposure = MarginUsed * LeverageUsed / StartCap * 100.\n\nРост p90/p99/max по экспозиции означает усиление хвостового риска.'
+
+export const P90_QUANTILE_DESCRIPTION =
+    'p90 — 90-й процентиль распределения. Значение p90 показывает уровень, ниже которого лежит 90% наблюдений, и только 10% значений выше него.\n\nДля risk-метрик это индикатор верхнего рабочего хвоста: если p90 растёт, стратегия чаще заходит в более агрессивные состояния.'
+
+export const CAP_POLICY_DESCRIPTION =
+    'cap-политика — набор правил, который рассчитывает долю капитала на сделку (cap fraction) для конкретного дня.\n\nИтог cap fraction может быть снижен риск-слоями или обнулён фильтром, тогда сделка не открывается.'
+
+export const TRACE_DESCRIPTION =
+    'trace — журнал расчётных решений на день: направление, плечо, доля капитала, причины no-trade и другие служебные поля движка.\n\nВ отчёте часть метрик читается из trace, чтобы показать, какое решение реально применилось в симуляции.'
+
+export const DYNAMIC_TP_SL_DESCRIPTION =
+    'DYNAMIC risk — режим DynamicOnly.\n\nДень попадает в этот срез только если [[confidence-bucket|confidence-bucket]] подтвердил, что для такой уверенности уже есть достаточно истории и нужный win-rate.\n\nЧто меняет dynamic-оверлей:\n- уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]] масштабируются confidence-множителями и клампятся в рабочих границах;\n- [[cap-fraction|cap fraction]] тоже масштабируется по уверенности.\n\nЧто не меняет сам dynamic-оверлей:\nнаправление сделки и базовое [[leverage|плечо]] [[policy|Policy]]. Если итоговое плечо изменилось, это уже работа других [[risk-layers|risk-слоёв]], например ZONAL.\n\nЕсли подтверждения нет, день становится no-trade: fallback в [[static-tp-sl|STATIC base]] в этом режиме не выполняется.'
+
+export const STATIC_TP_SL_DESCRIPTION =
+    'STATIC base — режим StaticOnly.\n\nConfidence-dynamic оверлей выключен: сделка считается с базовыми уровнями выхода и без dynamic-множителей риска.\n\nЧто остаётся активным:\nправила [[policy|Policy]] по направлению, базовому [[leverage|плечу]] и базовой [[cap-fraction|доле капитала на сделку]], а также внешние [[risk-layers|risk-слои]], например ZONAL и ограничения риск-дня.\n\nСрез обычно шире [[dynamic-tp-sl|DYNAMIC risk]], потому что не требует подтверждения [[confidence-bucket|confidence-bucket]].'
+
+export const NET_RETURN_PCT_DESCRIPTION =
+    'NetReturnPct — чистая доходность одной сделки в процентах от MarginUsed после учёта комиссий.\n\nПоложительное значение означает прибыль по сделке, отрицательное — убыток.'
+
+export const SHARPE_DESCRIPTION =
+    'Sharpe — коэффициент доходность/риск: средняя дневная доходность делится на стандартное отклонение дневных доходностей (annualized).\n\nЧем выше Sharpe при сопоставимом MaxDD, тем устойчивее профиль результата.'
+
+export const SORTINO_DESCRIPTION =
+    'Sortino — коэффициент доходность/риск, где в знаменателе учитывается только отрицательная волатильность (DownStd).\n\nПоказатель фокусируется на риске падений, а не на общем разбросе.'
+
+export const RATIO_CURVE_DESCRIPTION =
+    'Ratio-кривая — кривая накопленного результата, построенная из агрегированной дневной доходности (ratio-return series), а не напрямую из bucket equity.\n\nПо этой кривой считаются отдельные риск-метрики, включая MaxDD_Ratio%.'
+
+export const CURRENT_BALANCE_DESCRIPTION =
+    'Текущий баланс — капитал после уже закрытых сделок на текущей точке времени. В расчётах это active equity (сумма EquityNow по используемым бакетам).'
+
+export const SL_PROB_DESCRIPTION =
+    'SlProb — оценка вероятности срабатывания stop-loss в текущем дне. Чем выше значение, тем осторожнее стратегия управляет риском.'
+
+export const REGIME_DOWN_FLAG_DESCRIPTION =
+    'RegimeDownFlag — флаг нисходящего режима рынка. При активном флаге часть политик усиливает защитные ограничения риска.'

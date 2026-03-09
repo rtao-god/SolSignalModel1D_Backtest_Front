@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Btn, Text } from '@/shared/ui'
+import { Btn, ReportMetricBarChart, type ReportMetricBarDatum, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useGetBacktestPolicyRatiosQuery } from '@/shared/api/api'
 import type { PolicyRatiosReportDto, PolicyRatiosPerPolicyDto } from '@/shared/types/policyRatios.types'
-import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Cell } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import cls from './BacktestPolicyRatiosSection.module.scss'
 import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
@@ -22,6 +21,13 @@ interface BacktestPolicyRatiosSectionProps {
 }
 
 type MetricKey = 'totalPnlPct' | 'sharpe' | 'sortino' | 'calmar' | 'winRatePct'
+type PolicyRatioChartDatum = ReportMetricBarDatum & {
+    bucket: string
+    tradesCount: number
+    maxDdPct: number
+    winRatePct: number
+    hadLiquidation: boolean
+}
 
 const metricOptions: { key: MetricKey; labelKey: string; defaultLabel: string; isPercent?: boolean }[] = [
     { key: 'totalPnlPct', labelKey: 'backtestFull.policyRatios.metrics.totalPnlPct', defaultLabel: 'PnL %', isPercent: true },
@@ -166,12 +172,23 @@ export function BacktestPolicyRatiosSection({
 
                 return {
                     key: `${row.policyName}::${row.bucket}`,
+                    id: `${row.policyName}::${row.bucket}`,
                     policyName: row.policyName,
-                    value: rawValue
+                    label: row.policyName,
+                    value: rawValue,
+                    tone:
+                        row.hadLiquidation ? 'warning'
+                        : rawValue >= 0 ? 'positive'
+                        : 'negative',
+                    bucket: row.bucket,
+                    tradesCount: row.tradesCount,
+                    maxDdPct: row.maxDdPct,
+                    winRatePct: row.winRatePct,
+                    hadLiquidation: row.hadLiquidation
                 }
             }),
         [filteredPolicies, metricKey]
-    )
+    ) as PolicyRatioChartDatum[]
 
     if (isLoading) {
         return (
@@ -309,59 +326,52 @@ export function BacktestPolicyRatiosSection({
                 )}>
                 {viewMode === 'chart' ?
                     <div className={cls.chartContainer}>
-                        <ResponsiveContainer width='100%' height='100%'>
-                            <BarChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 42 }}>
-                                <CartesianGrid strokeDasharray='3 3' vertical={false} />
-                                <XAxis
-                                    dataKey='policyName'
-                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
-                                    angle={-30}
-                                    textAnchor='end'
-                                    height={56}
-                                />
-                                <YAxis
-                                    tick={{ fill: 'rgba(255, 255, 255, 0.85)', fontSize: 11 }}
-                                    width={62}
-                                    tickFormatter={value => {
-                                        if (typeof value !== 'number') return value
-                                        return isPercentMetric ? `${value.toFixed(0)}%` : value.toFixed(1)
-                                    }}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(5, 8, 14, 0.96)',
-                                        borderRadius: 8,
-                                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                                        padding: '8px 10px',
-                                        fontSize: 12
-                                    }}
-                                    formatter={(value: unknown) => {
-                                        if (typeof value !== 'number') return String(value)
-                                        const formatted = isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3)
-                                        return [formatted, currentMetricLabel]
-                                    }}
-                                    labelFormatter={label =>
-                                        t('backtestFull.policyRatios.chart.policyLabel', {
-                                            label,
-                                            defaultValue: 'Policy: {{label}}'
-                                        })
-                                    }
-                                />
-                                <ReferenceLine y={0} stroke='rgba(255, 255, 255, 0.4)' strokeDasharray='3 3' />
-                                <Bar dataKey='value' name={currentMetricLabel} radius={[4, 4, 0, 0]} barSize={26}>
-                                    {chartData.map(entry => (
-                                        <Cell
-                                            key={entry.key}
-                                            fill={
-                                                entry.value >= 0 ?
-                                                    'rgba(74, 222, 128, 0.95)'
-                                                :   'rgba(248, 113, 113, 0.95)'
-                                            }
-                                        />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <ReportMetricBarChart
+                            data={chartData}
+                            height={300}
+                            valueLabel={currentMetricLabel}
+                            emptyTitle={t('backtestFull.policyRatios.chart.emptyTitle', {
+                                defaultValue: 'Нет строк для графика'
+                            })}
+                            emptyDescription={t('backtestFull.policyRatios.chart.emptyDescription', {
+                                defaultValue: 'Для выбранного бакета не удалось построить chart dataset.'
+                            })}
+                            valueFormatter={value =>
+                                isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3)
+                            }
+                            getTooltipTitle={datum =>
+                                t('backtestFull.policyRatios.chart.policyLabel', {
+                                    label: datum.label,
+                                    defaultValue: 'Policy: {{label}}'
+                                })
+                            }
+                            getTooltipRows={datum => [
+                                { label: currentMetricLabel, value: isPercentMetric ? `${datum.value.toFixed(2)} %` : datum.value.toFixed(3) },
+                                {
+                                    label: t('backtestFull.policyRatios.controls.bucket', { defaultValue: 'Bucket' }),
+                                    value: datum.bucket
+                                },
+                                {
+                                    label: t('backtestFull.policyRatios.columns.trades.label', { defaultValue: 'Trades' }),
+                                    value: String(datum.tradesCount)
+                                },
+                                {
+                                    label: t('backtestFull.policyRatios.columns.maxDd.label', { defaultValue: 'MaxDD %' }),
+                                    value: `${datum.maxDdPct.toFixed(2)}`
+                                },
+                                {
+                                    label: t('backtestFull.policyRatios.columns.winRate.label', { defaultValue: 'WinRate %' }),
+                                    value: `${datum.winRatePct.toFixed(1)}`
+                                },
+                                {
+                                    label: t('backtestFull.policyRatios.columns.liq.label', { defaultValue: 'Liq?' }),
+                                    value:
+                                        datum.hadLiquidation ?
+                                            t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
+                                        :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })
+                                }
+                            ]}
+                        />
                     </div>
                 :   <div className={cls.tableWrapper}>
                         <table className={cls.table}>

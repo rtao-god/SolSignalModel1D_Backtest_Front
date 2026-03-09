@@ -11,7 +11,7 @@ const CATEGORY_RULES: CategoryRules[] = [
     {
         category: 'ratings',
         rules: [
-            /^Top \d+ trades by NetPnlUsd/i,
+            /^Top \d+ trades by (CapitalDeltaUsd|NetPnlUsd)/i,
             /^Top \d+ trades by NetReturnPct/i,
             /^Top Trade Days \(BEST/i,
             /^Top Trade Days \(WORST/i,

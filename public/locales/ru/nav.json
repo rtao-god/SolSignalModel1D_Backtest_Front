@@ -44,6 +44,7 @@
         "pfi_per_model": "PFI по моделям",
         "docs_models": "Модели",
         "docs_tests": "Тесты",
+        "docs_truthfulness": "Правдивость данных",
         "explain_models": "Модели",
         "explain_branches": "Ветки BASE/ANTI-D",
         "explain_splits": "Train/OOS/Recent",
@@ -56,6 +57,7 @@
         "pfi_per_model": "Модели PFI",
         "docs_models": "Описание моделей",
         "docs_tests": "Описание тестов",
+        "docs_truthfulness": "Описание правдивости данных",
         "explain_models": "Объяснение моделей",
         "explain_branches": "Объяснение веток",
         "explain_splits": "Объяснение сплитов",
@@ -74,7 +76,7 @@
     },
     "tab": {
         "docs_models": {
-            "models-overview": "Общий обзор",
+            "models-overview": "Что означает каждая модель",
             "models-daily": "Дневная модель (Daily)",
             "models-micro": "Микро-модель",
             "models-sl": "SL-модель",
@@ -85,6 +87,14 @@
             "tests-sanity": "Sanity-checks",
             "tests-leakage": "Leakage-тесты",
             "tests-perf": "Перфоманс-тесты"
+        },
+        "docs_truthfulness": {
+            "truth-overview": "Контур правдивости",
+            "truth-causal": "Казуальный слой",
+            "truth-omniscient": "Post-fact слой",
+            "truth-structure": "Проекты и Interop",
+            "truth-delivery": "Отчёты, API и UI",
+            "truth-tests": "Тесты и барьеры"
         },
         "explain_models": {
             "explain-models-overview": "Общий обзор",

@@ -34,10 +34,10 @@ export interface ReportDocumentDto {
 export type TableDetailLevel = 'simple' | 'technical'
 
 export type CapturedTableKindDto = 'unknown' | 'policy-branch-mega' | 'top-trades'
-export type CapturedMegaModeDto = 'with-sl' | 'no-sl'
+export type CapturedMegaModeDto = 'all' | 'with-sl' | 'no-sl'
 export type CapturedMegaZonalModeDto = 'with-zonal' | 'without-zonal'
 export type CapturedMegaMetricVariantDto = 'real' | 'no-biggest-liq-loss'
-export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total-aggregate'
+export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total' | 'total-aggregate'
 export type CapturedMegaTpSlModeDto = 'all' | 'dynamic' | 'static'
 
 export interface CapturedTableMetadataDto {

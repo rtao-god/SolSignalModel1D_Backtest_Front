@@ -2,8 +2,19 @@ import { useMemo } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { ReportActualStatusCard, ReportTableTermsBlock, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
+import {
+    resolveReportColumnTooltip,
+    resolveReportKeyTooltip,
+    resolveReportTooltipSelfAliases
+} from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
+import {
+    localizeReportColumnTitle,
+    localizeReportDocumentTitle,
+    localizeReportKeyLabel,
+    localizeReportKeyValue,
+    localizeReportSectionTitle
+} from '@/shared/utils/reportPresentationLocalization'
 import type {
     ReportDocumentDto,
     ReportSectionDto,
@@ -14,6 +25,7 @@ import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { useTranslation } from 'react-i18next'
 import cls from './ReportDocumentView.module.scss'
 
 interface ReportDocumentViewProps {
@@ -22,7 +34,9 @@ interface ReportDocumentViewProps {
 }
 
 export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
+    const { i18n } = useTranslation()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
+    const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
 
     const generatedAtState = useMemo(() => {
         if (!report.generatedAtUtc) {
@@ -70,6 +84,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                     sections: tableSections,
                     reportKind: report.kind,
                     contextTag: 'report-document-view',
+                    locale: reportUiLanguage,
                     resolveSectionTitle: section =>
                         normalizeReportTitle(section.title) || section.title || 'report-table'
                 }),
@@ -82,7 +97,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 error: safeError
             }
         }
-    }, [report.kind, tableSections])
+    }, [report.kind, reportUiLanguage, tableSections])
 
     if (generatedAtState.error) {
         return (
@@ -119,12 +134,13 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
     const hasSections = Array.isArray(report.sections) && report.sections.length > 0
     const hasTableSections = tableSections.length > 0
+    const localizedReportTitle = localizeReportDocumentTitle(report.kind, report.title, reportUiLanguage)
 
     return (
         <div className={rootClassName}>
             <header className={cls.header}>
                 <div className={cls.headerMain}>
-                    <Text type='h1'>{report.title}</Text>
+                    <Text type='h1'>{localizedReportTitle}</Text>
                     <span className={cls.kindTag}>{report.kind}</span>
                 </div>
 
@@ -143,9 +159,11 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
             <div className={cls.sections}>
                 {hasTableSections && (
                     <ReportTableTermsBlock
+                        reportKind={report.kind}
                         terms={termsState.terms}
                         title='Термины таблиц отчёта'
                         subtitle='Подробные определения всех колонок, которые используются в текущем наборе таблиц.'
+                        enhanceDomainTerms
                         className={cls.termsBlock}
                     />
                 )}
@@ -181,11 +199,17 @@ function detectDirection(value: unknown): DirectionKind | null {
 
     const v = String(value).toLowerCase()
 
-    if (v.includes('long') || v.includes('лонг') || v.includes('bull')) {
+    if (v.includes('long') || v.includes('лонг') || v.includes('bull') || v.includes('рост')) {
         return 'long'
     }
 
-    if (v.includes('short') || v.includes('шорт') || v.includes('bear')) {
+    if (
+        v.includes('short') ||
+        v.includes('шорт') ||
+        v.includes('bear') ||
+        v.includes('падение') ||
+        v.includes('микро-падение')
+    ) {
         return 'short'
     }
 
@@ -205,12 +229,14 @@ function normalizeReportTitle(title: string | undefined): string {
 }
 
 function SectionRenderer({ section, reportKind }: SectionRendererProps) {
+    const { i18n } = useTranslation()
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
     const description = (section as any)?.description as string | undefined
 
     if (isKeyValueSection(section)) {
-        const visibleTitle = normalizeReportTitle(kv.title) || kv.title
+        const rawVisibleTitle = normalizeReportTitle(kv.title) || kv.title
+        const visibleTitle = localizeReportSectionTitle(reportKind, rawVisibleTitle, i18n.language)
         const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, kv.title)
         return (
             <section className={cls.section}>
@@ -224,9 +250,14 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
 
                 <dl className={cls.kvList}>
                     {kv.items!.map(item => {
-                        const direction = detectDirection(item.value)
-                        const keyTooltip = resolveReportKeyTooltip(reportKind, visibleTitle, item.key)
-                        const renderedKey = renderTermTooltipTitle(item.key, keyTooltip)
+                        const localizedValue = localizeReportKeyValue(reportKind, item.key, item.value, i18n.language)
+                        const localizedKey = localizeReportKeyLabel(reportKind, item.key, i18n.language)
+                        const direction = detectDirection(localizedValue)
+                        const keyTooltip = resolveReportKeyTooltip(reportKind, rawVisibleTitle, item.key)
+                        const keySelfAliases = resolveReportTooltipSelfAliases(reportKind, item.key)
+                        const renderedKey = renderTermTooltipTitle(localizedKey, keyTooltip, {
+                            selfAliases: [item.key, ...keySelfAliases]
+                        })
 
                         return (
                             <div key={item.key} className={cls.kvRow}>
@@ -242,7 +273,7 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
                                         },
                                         []
                                     )}>
-                                    {item.value}
+                                    {localizedValue}
                                 </dd>
                             </div>
                         )
@@ -255,25 +286,32 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     if (isTableSection(section)) {
         const columns = tbl.columns ?? []
         const rows = tbl.rows ?? []
-        const visibleTitle = normalizeReportTitle(tbl.title) || tbl.title || 'table'
+        const rawVisibleTitle = normalizeReportTitle(tbl.title) || tbl.title || 'table'
+        const visibleTitle = localizeReportSectionTitle(reportKind, rawVisibleTitle, i18n.language)
         const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, tbl.title)
-        const safeTitle = visibleTitle
+        const safeTitle = rawVisibleTitle
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '')
         const domId = `report-${safeTitle || 'table'}`
 
         const renderColumnTitle = (title: string) => {
-            const tooltip = resolveReportColumnTooltip(reportKind, visibleTitle, title)
-            return renderTermTooltipTitle(title, tooltip)
+            const tooltip = resolveReportColumnTooltip(reportKind, rawVisibleTitle, title)
+            const localizedTitle = localizeReportColumnTitle(reportKind, title, i18n.language)
+            const columnSelfAliases = resolveReportTooltipSelfAliases(reportKind, title)
+            return renderTermTooltipTitle(localizedTitle, tooltip, {
+                selfAliases: [title, ...columnSelfAliases]
+            })
         }
+
+        const localizedColumns = columns.map(column => localizeReportColumnTitle(reportKind, column, i18n.language))
 
         return (
             <section className={cls.section}>
                 <ReportTableCard
                     title={visibleTitle}
                     description={resolvedDescription ?? undefined}
-                    columns={columns}
+                    columns={localizedColumns}
                     rows={rows}
                     domId={domId}
                     renderColumnTitle={renderColumnTitle}

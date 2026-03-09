@@ -1,10 +1,15 @@
 export { default as ReportViewControls } from './ui/ReportViewControls'
 export type { ReportViewControlGroup, ReportViewControlOption } from './ui/ReportViewControls'
 export {
+    CURRENT_PREDICTION_HISTORY_TRAINING_SCOPE_DESCRIPTION,
+    CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION,
     buildBusinessTechnicalViewControlGroup,
     buildConfidenceBucketControlGroup,
+    buildCurrentPredictionHistoryTrainingScopeDescription,
+    buildCurrentPredictionLiveTrainingScopeDescription,
     buildMegaBucketControlGroup,
     buildMegaMetricControlGroup,
+    buildMegaTotalBucketViewControlGroup,
     buildPredictionHistoryWindowControlGroup,
     buildPredictionPolicyBucketControlGroup,
     buildMegaSlModeControlGroup,

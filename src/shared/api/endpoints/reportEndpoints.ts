@@ -1,5 +1,6 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSummaryDto, BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
+import { normalizeCurrentPredictionDateUtcOrThrow } from '@/shared/utils/currentPredictionDate'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
@@ -70,6 +71,28 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
                     method: datesIndex.method,
                     params
                 }
+            },
+            transformResponse: raw => {
+                const payload = raw as Array<{ id?: unknown; predictionDateUtc?: unknown }>
+                if (!Array.isArray(payload)) {
+                    throw new Error('[current-prediction] index payload must be an array.')
+                }
+
+                return payload.map((item, index) => {
+                    if (typeof item?.id !== 'string' || !item.id.trim()) {
+                        throw new Error(`[current-prediction] index item id is invalid at index=${index}.`)
+                    }
+                    if (typeof item?.predictionDateUtc !== 'string') {
+                        throw new Error(
+                            `[current-prediction] index item predictionDateUtc is invalid at index=${index}.`
+                        )
+                    }
+
+                    return {
+                        id: item.id,
+                        predictionDateUtc: normalizeCurrentPredictionDateUtcOrThrow(item.predictionDateUtc)
+                    }
+                })
             }
         }),
         getCurrentPredictionByDate: builder.query<
@@ -81,11 +104,12 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
             }
         >({
             query: ({ set, dateUtc, scope }) => {
+                const normalizedDateUtc = normalizeCurrentPredictionDateUtcOrThrow(dateUtc)
                 const params: {
                     set: CurrentPredictionSet
                     dateUtc: string
                     scope?: CurrentPredictionTrainingScope
-                } = { set, dateUtc }
+                } = { set, dateUtc: normalizedDateUtc }
 
                 if (scope) {
                     params.scope = scope

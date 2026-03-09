@@ -1,0 +1,28 @@
+.list {
+    display: block;
+}
+
+.item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.65rem;
+    align-items: start;
+}
+
+.item + .item {
+    margin-top: 0.5em;
+}
+
+.marker {
+    width: 0.42rem;
+    height: 0.42rem;
+    margin-top: 0.5em;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.72;
+}
+
+.content {
+    display: block;
+    min-width: 0;
+}

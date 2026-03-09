@@ -42,15 +42,45 @@ export const BACKTEST_SUMMARY_KEYS_EN: Record<string, string> = {
         'Behavior for invalid confidence: NoTrade skips the day, MinRisk uses minimum-risk profile.'
 }
 
+const CURRENT_PREDICTION_BUCKET_DESCRIPTION_EN =
+    'Bucket is an independent execution track with its own starting capital, equity curve, and drawdown.\n\nDaily, intraday, and delayed are calculated separately: loss or ruin in one bucket does not spill into another.\n\nPolicy defines entry and risk rules, Branch defines the direction scenario, and Bucket defines the execution mechanics and the separate balance.\n\nRisk layers work on top of that decision and can further cut risk or block entry.\n\nSwitching bucket changes the trade set and recalculates Tr, TotalPnl%, MaxDD%, HadLiq, AccRuin, Recovered, and recovery.\n\nOn this page:\nthe field shows which bucket actually executed the signal or, instead, failed to turn it into a trade inside the selected Policy.'
+
+const CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION_EN =
+    'HadLiq shows whether this [[policy|Policy]] had at least one [[liquidation|liquidation]] inside the selected slice.\n\nEven one positive value means the strategy reached an exchange-forced emergency close at least once instead of finishing trades by its normal risk plan.\n\nHow to read it:\nthis flag must be judged together with [[total-pnl|TotalPnl%]] and [[drawdown|MaxDD%]]. A profitable итог with HadLiq=true still means heavy tail risk.'
+
+const CURRENT_PREDICTION_POSITION_QTY_DESCRIPTION_EN =
+    'Position size, qty is how many units of the instrument actually entered the trade.\n\nFor a trading pair this is the physical amount of the base asset inside the position. The value is derived from position notional and entry price.\n\nHow to read it:\nif qty rises at a similar entry price, the strategy controls a larger market amount and becomes more sensitive to each price move.'
+
+const CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION_EN =
+    'Market regime is the current day phase from the risk-model point of view: normal regime or drawdown / stress regime.\n\nIt is not a separate trading signal. It is context for [[risk-layers|risk layers]] and for part of [[policy|Policy]] rules.\n\nHow to read it:\nnormal regime keeps standard risk, while stress regime usually leads to tighter entry limits, lower [[leverage|leverage]], or lower [[cap-fraction|cap fraction]].'
+
+const CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION_EN =
+    'Stop-loss trigger probability is the [[sl-model|SL model]] estimate of how likely the trade is to reach [[tp-sl|stop-loss]] quickly after entry.\n\nIt is a dedicated risk estimate, not a probability of price going up or down.\n\nHow to read it:\nhigher values mean [[risk-layers|risk layers]] should behave more defensively and are more likely to cut [[cap-fraction|cap fraction]], [[leverage|leverage]], or the entry itself.'
+
+const CURRENT_PREDICTION_CURRENT_PRICE_DESCRIPTION_EN =
+    'Current SOL/USDT price is the exchange price of the trading pair, meaning how many USDT the market currently pays for 1 SOL.\n\nIt is not a separate "Solana mode" and not the main value of the product by itself. It is the common working instrument used to compare [[landing-current-prediction|current prediction]], decision history, and [[backtest|backtest]].\n\nHow to read it:\nthis price is the base reference for [[min-move|MinMove]], direction expectation, and entry/exit levels in the policy table.'
+
+const CURRENT_PREDICTION_MIN_MOVE_DESCRIPTION_EN =
+    'Minimum meaningful price move is the MinMove threshold that separates a tradeable move from market noise.\n\nIf the expected move is too small, the system treats the day as weak for a quality trade.\n\nOn this page:\nthe field shows the exact [[min-move|MinMove]] that was available to the model at prediction time, not a post-fact value after the window closed.'
+
+const CURRENT_PREDICTION_MIN_PRICE_24H_DESCRIPTION_EN =
+    '24h minimum price is the lowest price the market reached inside the factual 24-hour window after entry.\n\nIt does not show the closing result of the day. It answers how deep price went during the window even if the market later recovered.\n\nHow to read it:\nfor [[position|LONG]] it is the largest move against the position. For [[position|SHORT]] it is the best intraday move in favor of the short.\n\nExample:\nentry at 100 and a minimum of 97.9 mean the market reached as much as -2.1% from entry inside the window.'
+
+const CURRENT_PREDICTION_CLOSE_PRICE_24H_DESCRIPTION_EN =
+    '24h close price is the instrument price at the very end of the factual 24-hour window after entry.\n\nIt is the final comparison point for forecast versus fact at close, not the intraday extreme.\n\nHow to read it:\nthis field answers how the day finished by the window close. It must be read together with 24h maximum and minimum so intraday opportunity is not confused with the final close outcome.'
+
 export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     Политика: 'Trading policy/strategy name. Identifies which decision logic produced this row.',
     Ветка: 'BASE is baseline branch, ANTI-D is anti-direction branch on risk trigger.',
-    Бакет: 'Execution bucket (daily/intraday/delayed): independent capital track with its own equity curve.',
-    Bucket: 'Execution bucket (daily/intraday/delayed): independent capital track with its own equity curve.',
+    Бакет: CURRENT_PREDICTION_BUCKET_DESCRIPTION_EN,
+    Bucket: CURRENT_PREDICTION_BUCKET_DESCRIPTION_EN,
     Сторона: POSITION_DESCRIPTION,
-    'Рискованный день': 'RiskDay flag: day marked as elevated-risk by SL logic.',
-    'Есть направление': 'Whether the model has direction (long/short). If not, day becomes no-trade.',
-    Пропущено: 'Flag that policy skipped this day (no-trade).',
+    'Рискованный день':
+        'Risk day marks that this day was classified as an [[high-risk-day|elevated-risk day]] by the [[sl-model|SL model]].\n\nThis does not mean entry is automatically forbidden. The day then passes through stricter [[filters|filters]] and [[risk-layers|risk layers]]: [[leverage|leverage]] and [[cap-fraction|cap fraction]] may be reduced, and some policies may refuse entry completely.\n\nHow to read it:\nif the flag is on, this row must be judged more strictly by risk, [[drawdown|drawdown]], and [[liquidation|liquidation]], not only by forecast direction.',
+    'Есть направление':
+        'Has direction shows whether the model was able to produce a valid [[signal-direction|signal direction]] for that day.\n\nA yes/true value means the pipeline produced a LONG or SHORT candidate and the row can move to the next risk checks.\n\nA no/false value means the day ended in [[no-direction|no_direction]]: there was no clear edge toward growth or decline, so trade construction stops at this point.\n\nHow to read it:\nif direction is missing, this row should not be interpreted as a ready trade even if service fields below are still populated.',
+    Пропущено:
+        'Skipped is the final flag that this policy did not open a [[position|position]] on that day.\n\nThe reason may differ: the day could fail [[filters|filters]], lose [[signal-direction|signal direction]], fall into an [[high-risk-day|elevated-risk day]] with blocked entry, or receive zero [[cap-fraction|cap fraction]].\n\nHow to read it:\nif the flag is on, the row describes a rejected entry rather than an executed trade. In that case the key question is why entry was blocked for this [[policy|Policy]], [[branch|Branch]], and [[bucket|Bucket]].',
     Направление: 'Final trade direction: LONG, SHORT, or no-trade when filters block entry.',
     Плечо: 'Effective leverage applied by policy for entry.',
     'Цена входа': 'Position entry price from report.',
@@ -58,15 +88,22 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     'Цена выхода': 'Actual exit price by first event (TP/SL/liquidation/window close).',
     'Выход, $': 'Actual exit price by first event (TP/SL/liquidation/window close).',
     'Причина выхода': 'First event that closed position: take-profit, stop-loss, liquidation, or forced close.',
-    'Выход PnL, %': 'Return of this specific trade in %, relative to entry price.',
-    'SL, %': 'Stop-loss level in % of entry price.',
-    'TP, %': 'Take-profit level in % of entry price.',
-    'Цена SL': 'Price level where stop-loss would trigger.',
-    'Цена TP': 'Price level where take-profit would trigger.',
-    'SL, $': 'Absolute instrument price at stop-loss level.',
-    'TP, $': 'Absolute instrument price at take-profit level.',
+    'Выход PnL, %':
+        'Exit [[pnl|PnL]], % is the result of this specific trade in percent relative to entry price.\n\nIt shows the raw price move of the trade itself: a larger plus means price moved further in favor of the position, while a deeper minus means stronger adverse movement.\n\nThis is not the same as capital-level outcome after full [[leverage|leverage]] impact and strategy-level aggregation. For overall evaluation, it must be read together with [[total-pnl|TotalPnl%]] and the rest of the risk profile.\n\nHow to read it:\npositive means profitable exit, negative means losing exit. An exit by [[liquidation|liquidation]] can still be very damaging even when the price percent looks small.',
+    'SL, %':
+        'SL, % shows how far the [[tp-sl|stop-loss]] sits from entry price in percentage terms.\n\nIt answers how much adverse price move the trade is allowed to absorb before defensive exit.\n\nHow to read it:\na smaller value means earlier protection, while a larger value leaves more room for noise but also allows a bigger loss before exit.',
+    'TP, %':
+        'TP, % shows how far the [[tp-sl|take-profit]] sits from entry price in percentage terms.\n\nIt answers how much favorable price move the trade needs before profit is locked in.\n\nHow to read it:\na smaller target realizes profit sooner, while a larger target requires a stronger market move.',
+    'Цена SL':
+        'SL price is the exact market level where [[tp-sl|stop-loss]] would trigger.\n\nIt is the absolute-price version of SL, % rather than the percentage distance.\n\nHow to read it:\nit is useful when checking how close the stop sits to entry and to [[liquidation|liquidation]].',
+    'Цена TP':
+        'TP price is the exact market level where [[tp-sl|take-profit]] would trigger.\n\nIt is the absolute-price version of TP, % rather than the percentage distance.\n\nHow to read it:\nit is useful when comparing the planned profit target with the actual intraday maximum.',
+    'SL, $':
+        'SL, $ is the instrument price at the [[tp-sl|stop-loss]] level.\n\nIt repeats the meaning of SL price, but in the explicit dollar form used for the trading pair.\n\nHow to read it:\nit is useful when comparing stop placement with entry, liquidation, and the factual intraday minimum.',
+    'TP, $':
+        'TP, $ is the instrument price at the [[tp-sl|take-profit]] level.\n\nIt repeats the meaning of TP price, but in the explicit dollar form used for the trading pair.\n\nHow to read it:\nit is useful when comparing target placement with the factual intraday maximum and the final exit price.',
     'Номинал позиции, $': 'Full position notional after leverage. Used for exposure and quantity math; it is not the same as margin.',
-    'Размер позиции, qty': 'Position size in asset quantity units.',
+    'Размер позиции, qty': CURRENT_PREDICTION_POSITION_QTY_DESCRIPTION_EN,
     'Цена ликвидации': 'Estimated liquidation price for selected leverage.',
     'Цена ликвидации, $': 'Estimated liquidation price for selected leverage.',
     'Дистанция до ликвидации, %': 'Price buffer to liquidation level, in %.',
@@ -76,8 +113,9 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     Trades: 'How many trades this policy already has in current report window.',
     'TotalPnl%': 'Total policy return in %.',
     'MaxDD%': 'Maximum policy drawdown in %.',
-    HadLiq: 'Liquidation presence flag (yes/no).',
-    Withdrawn$: 'Withdrawn policy profit in USD (if applicable).',
+    HadLiq: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION_EN,
+    Withdrawn$:
+        'Withdrawn$ is the amount of profit this policy already moved out of active trading balance.\n\nIt is not current on-exchange balance, but profit already taken out of the live equity curve.\n\nHow to read it:\nit matters for wealth interpretation because a strategy may have realized and withdrawn part of its gains even if current balance now looks smaller.',
     Тип: 'Factor type in explanation block (feature, rule, signal, etc.).',
     Имя: 'Factor/feature name affecting the decision.',
     Описание: 'Human-readable explanation of factor role.',
@@ -85,9 +123,38 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     Ранг: 'Importance rank in explanation list: lower means stronger impact.'
 }
 
+Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
+    Policy: CURRENT_PREDICTION_COLUMNS_EN['Политика'],
+    Branch: CURRENT_PREDICTION_COLUMNS_EN['Ветка'],
+    Bucket: CURRENT_PREDICTION_COLUMNS_EN.Bucket,
+    Type: CURRENT_PREDICTION_COLUMNS_EN['Тип'],
+    Name: CURRENT_PREDICTION_COLUMNS_EN['Имя'],
+    Description: CURRENT_PREDICTION_COLUMNS_EN['Описание'],
+    Value: CURRENT_PREDICTION_COLUMNS_EN['Значение'],
+    Rank: CURRENT_PREDICTION_COLUMNS_EN['Ранг'],
+    'Risk day': CURRENT_PREDICTION_COLUMNS_EN['Рискованный день'],
+    'Has direction': CURRENT_PREDICTION_COLUMNS_EN['Есть направление'],
+    Skipped: CURRENT_PREDICTION_COLUMNS_EN['Пропущено'],
+    Direction: CURRENT_PREDICTION_COLUMNS_EN['Направление'],
+    Leverage: CURRENT_PREDICTION_COLUMNS_EN['Плечо'],
+    'Entry price': CURRENT_PREDICTION_COLUMNS_EN['Цена входа'],
+    'Exit price': CURRENT_PREDICTION_COLUMNS_EN['Цена выхода'],
+    'Exit reason': CURRENT_PREDICTION_COLUMNS_EN['Причина выхода'],
+    'Position notional, $': CURRENT_PREDICTION_COLUMNS_EN['Номинал позиции, $'],
+    'Liquidation price': CURRENT_PREDICTION_COLUMNS_EN['Цена ликвидации'],
+    'Distance to liquidation, %': CURRENT_PREDICTION_COLUMNS_EN['Дистанция до ликвидации, %'],
+    'Bucket capital, $': CURRENT_PREDICTION_COLUMNS_EN['Капитал бакета, $'],
+    'Stake, $': CURRENT_PREDICTION_COLUMNS_EN['Ставка, $'],
+    'Stake, %': CURRENT_PREDICTION_COLUMNS_EN['Ставка, %'],
+    'Total return, %': CURRENT_PREDICTION_COLUMNS_EN['TotalPnl%'],
+    'Max drawdown, %': CURRENT_PREDICTION_COLUMNS_EN['MaxDD%'],
+    'Had liquidation': CURRENT_PREDICTION_COLUMNS_EN.HadLiq
+})
+
 export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     Набор: 'Dataset mode: Live is current-day forecast, Backfilled is historical recomputation.',
     Строгость: 'Pipeline strictness level (how aggressively missing data is filtered).',
+    'Статус прогноза': 'Optional status note for the current prediction snapshot.',
     'Время генерации отчёта (UTC)': 'Report generation timestamp (UTC).',
     'Дата прогноза (UTC)': 'Forecast date this prediction targets.',
     SessionDayKeyUtc: 'Session day key (UTC) used as unique trading-day identifier.',
@@ -99,18 +166,19 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Микро-модель': 'Micro-model output (used inside flat regime handling).',
     'Общий ответ (интерпретация моделей)': 'Final interpretation with micro and SL overlays applied.',
     'Обучение моделей (диапазон)': 'Training data scope used for this prediction (scope + range + records).',
-    'Режим рынка': 'Detected market regime (normal / decline phase).',
-    'Вероятность срабатывания стоп-лосса': 'SL probability from SL model (if available).',
+    'Режим рынка': CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION_EN,
+    'Вероятность срабатывания стоп-лосса': CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION_EN,
     'Сигнал SL-модели': 'Interpreted SL signal (normal risk / high risk).',
-    'Текущая цена SOL/USDT': 'Current SOL/USDT price used for forecast context.',
-    'Минимальный осмысленный ход цены': 'Minimum meaningful daily price-move threshold (minMove).',
+    'Текущая цена SOL/USDT': CURRENT_PREDICTION_CURRENT_PRICE_DESCRIPTION_EN,
+    'Минимальный осмысленный ход цены': CURRENT_PREDICTION_MIN_MOVE_DESCRIPTION_EN,
     'Комментарий модели': 'Model text comment explaining decision (if present).',
     'Daily (основная модель)': 'UP/FLAT/DOWN probabilities for base daily model.',
     'Day + Micro': 'Probabilities after micro-model overlay.',
     'Total (Day + Micro + SL)': 'Probabilities after SL overlay on top of Day+Micro.',
-    'Максимальная цена за 24 часа': 'Maximum price over next 24h (historical baseline field).',
-    'Минимальная цена за 24 часа': 'Minimum price over next 24h (historical baseline field).',
-    'Цена закрытия через 24 часа': 'Closing price after 24h (historical baseline field).',
+    'Максимальная цена за 24 часа':
+        '24h maximum price is the highest market price reached inside the factual 24-hour window after entry.\n\nIt does not tell where the day closed. It only answers how high the market managed to go during that window, even if price later gave the move back.\n\nHow to read it:\nfor [[position|LONG]] it shows the best upward excursion available during the day. For [[position|SHORT]] it shows the strongest upward move against the short.\n\nExample:\nentry at 100 and a maximum of 104.4 means the market reached as much as +4.4% upward from entry inside the window.',
+    'Минимальная цена за 24 часа': CURRENT_PREDICTION_MIN_PRICE_24H_DESCRIPTION_EN,
+    'Цена закрытия через 24 часа': CURRENT_PREDICTION_CLOSE_PRICE_24H_DESCRIPTION_EN,
     'Фактический исход дня':
         'Realized 24h outcome after entry (up/flat/down/micro outcome). Present only for backfilled mode.',
     'Прогноз модели (Total)': 'Main class from Total layer (Day + Micro + SL), compared against realized day outcome.',
@@ -130,6 +198,40 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Источник факта':
         'Fact source is backfilled/omniscient after 24h window closes and is not mixed into causal/live decisions.'
 }
+
+Object.assign(CURRENT_PREDICTION_KEYS_EN, {
+    Set: CURRENT_PREDICTION_KEYS_EN['Набор'],
+    Strictness: CURRENT_PREDICTION_KEYS_EN['Строгость'],
+    'Prediction status': CURRENT_PREDICTION_KEYS_EN['Статус прогноза'],
+    'Report generated at (UTC)': CURRENT_PREDICTION_KEYS_EN['Время генерации отчёта (UTC)'],
+    'Prediction date (UTC)': CURRENT_PREDICTION_KEYS_EN['Дата прогноза (UTC)'],
+    'Primary model (Daily)': CURRENT_PREDICTION_KEYS_EN['Основная модель (Daily)'],
+    'Micro model': CURRENT_PREDICTION_KEYS_EN['Микро-модель'],
+    'Combined response (model interpretation)': CURRENT_PREDICTION_KEYS_EN['Общий ответ (интерпретация моделей)'],
+    'Model training window': CURRENT_PREDICTION_KEYS_EN['Обучение моделей (диапазон)'],
+    'Market regime': CURRENT_PREDICTION_KEYS_EN['Режим рынка'],
+    'Stop-loss trigger probability': CURRENT_PREDICTION_KEYS_EN['Вероятность срабатывания стоп-лосса'],
+    'SL model signal': CURRENT_PREDICTION_KEYS_EN['Сигнал SL-модели'],
+    'Current SOL/USDT price': CURRENT_PREDICTION_KEYS_EN['Текущая цена SOL/USDT'],
+    'Minimum meaningful price move': CURRENT_PREDICTION_KEYS_EN['Минимальный осмысленный ход цены'],
+    'Model comment': CURRENT_PREDICTION_KEYS_EN['Комментарий модели'],
+    '24h max price': CURRENT_PREDICTION_KEYS_EN['Максимальная цена за 24 часа'],
+    '24h min price': CURRENT_PREDICTION_KEYS_EN['Минимальная цена за 24 часа'],
+    '24h close price': CURRENT_PREDICTION_KEYS_EN['Цена закрытия через 24 часа'],
+    'Actual day outcome': CURRENT_PREDICTION_KEYS_EN['Фактический исход дня'],
+    'Model forecast (Total)': CURRENT_PREDICTION_KEYS_EN['Прогноз модели (Total)'],
+    'Match vs forecast': CURRENT_PREDICTION_KEYS_EN['Совпадение с прогнозом'],
+    'Why it differs': CURRENT_PREDICTION_KEYS_EN['Почему отличается'],
+    'Key explain/PFI factor': CURRENT_PREDICTION_KEYS_EN['Ключевой фактор explain/PFI'],
+    'Return to close, %': CURRENT_PREDICTION_KEYS_EN['Доходность к закрытию, %'],
+    '24h max from entry, %': CURRENT_PREDICTION_KEYS_EN['Максимум за 24ч от входа, %'],
+    '24h min from entry, %': CURRENT_PREDICTION_KEYS_EN['Минимум за 24ч от входа, %'],
+    '24h high-low range, %': CURRENT_PREDICTION_KEYS_EN['Диапазон high-low за 24ч, %'],
+    'Actual MinMove over 24h': CURRENT_PREDICTION_KEYS_EN['Факт MinMove за 24ч'],
+    'Forecast MinMove (causal)': CURRENT_PREDICTION_KEYS_EN['Прогнозный MinMove (causal)'],
+    'Delta MinMove (actual - forecast)': CURRENT_PREDICTION_KEYS_EN['Δ MinMove (факт - прогноз)'],
+    'Probability of actual outcome (Total)': CURRENT_PREDICTION_KEYS_EN['Вероятность фактического исхода (Total)']
+})
 
 export const PFI_COLUMNS_EN: Record<string, string> = {
     '#': 'Feature rank index inside table ordering.',

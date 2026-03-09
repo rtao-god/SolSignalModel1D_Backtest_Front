@@ -4,6 +4,7 @@ import {
     resolvePolicyBranchMegaBucketFromTitle,
     resolvePolicyBranchMegaModeFromTitle,
     type PolicyBranchMegaBucketMode,
+    type PolicyBranchMegaTotalBucketView,
     type PolicyBranchMegaMetricMode,
     type PolicyBranchMegaSlMode,
     type PolicyBranchMegaTpSlMode,
@@ -11,6 +12,7 @@ import {
 } from '@/shared/utils/policyBranchMegaTabs'
 
 export const DEFAULT_REPORT_BUCKET_MODE: PolicyBranchMegaBucketMode = 'daily'
+export const DEFAULT_REPORT_TOTAL_BUCKET_VIEW: PolicyBranchMegaTotalBucketView = 'aggregate'
 export const DEFAULT_REPORT_METRIC_MODE: PolicyBranchMegaMetricMode = 'real'
 export const DEFAULT_REPORT_TP_SL_MODE: PolicyBranchMegaTpSlMode = 'all'
 export const DEFAULT_REPORT_SL_MODE: PolicyBranchMegaSlMode = 'all'

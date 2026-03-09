@@ -1,9 +1,9 @@
 .TermTooltip {
     position: relative;
-    display: inline-flex;
-    align-items: baseline;
+    display: inline;
+    vertical-align: baseline;
     cursor: help;
-    margin-right: 0.25em; // визуальный пробел после термина
+    margin: 0;
 }
 
 .termText {
@@ -24,8 +24,6 @@
     outline-offset: 2px;
 }
 
-/* базовое состояние: элемент вообще не участвует в раскладке и в расчёте ширины */
-
 .tooltip {
     --tooltip-max-height: min(72vh, calc(100vh - 24px));
 
@@ -38,7 +36,6 @@
     max-width: min(360px, 90vw);
 
     display: none;
-    /* <- главное изменение */
     opacity: 0;
     pointer-events: none;
     transform: translateY(6px) scale(0.965);
@@ -60,7 +57,6 @@
 
 .tooltipVisible {
     display: block;
-    /* появляемся только когда открыто */
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);

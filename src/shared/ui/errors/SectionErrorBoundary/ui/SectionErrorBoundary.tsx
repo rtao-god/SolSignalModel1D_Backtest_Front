@@ -1,11 +1,13 @@
 import React from 'react'
 import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 import i18n from '@/shared/configs/i18n/i18n'
+import { markErrorHandledByBoundary } from '@/shared/lib/logging/setupGlobalErrorHandlers'
 
 interface SectionErrorBoundaryProps {
     name?: string
     fallback?: React.ReactNode | ((args: { error: Error; reset: () => void; name?: string }) => React.ReactNode)
     children: React.ReactNode
+    resetKeys?: unknown[]
 }
 
 interface SectionErrorBoundaryState {
@@ -20,6 +22,7 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
+        markErrorHandledByBoundary(error)
         return {
             hasError: true,
             error
@@ -27,8 +30,27 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
+        markErrorHandledByBoundary(error)
         // eslint-disable-next-line no-console
         console.error('[SectionErrorBoundary]', this.props.name, error, info)
+    }
+
+    componentDidUpdate(prevProps: SectionErrorBoundaryProps): void {
+        const { resetKeys } = this.props
+        if (!this.state.hasError || !resetKeys) {
+            return
+        }
+
+        const prevResetKeys = prevProps.resetKeys
+        if (!prevResetKeys || prevResetKeys.length !== resetKeys.length) {
+            this.reset()
+            return
+        }
+
+        const changed = resetKeys.some((key, index) => !Object.is(key, prevResetKeys[index]))
+        if (changed) {
+            this.reset()
+        }
     }
 
     private reset = () => {

@@ -1,3 +1,27 @@
 .inlineTerm {
     margin-right: 0;
 }
+
+.paragraph {
+    display: block;
+}
+
+.paragraph + .paragraph {
+    margin-top: 0.8em;
+}
+
+.paragraphBlock {
+    display: block;
+}
+
+.paragraphBlock + .paragraphBlock {
+    margin-top: 0.42em;
+}
+
+.line {
+    display: block;
+}
+
+.line + .line {
+    margin-top: 0.18em;
+}

@@ -1,8 +1,9 @@
 import { ReactNode } from 'react'
-import { renderTermTooltipRichText } from '../ui/renderTermTooltipRichText'
+import { renderTermTooltipRichText, resolveMatchingTermTooltipRuleIds } from '../ui/renderTermTooltipRichText'
 
 interface EnrichTermTooltipDescriptionOptions {
     term?: string | null
+    selfAliases?: string[]
     excludeTerms?: string[]
     excludeRuleIds?: string[]
     excludeRuleTitles?: string[]
@@ -22,13 +23,19 @@ export function enrichTermTooltipDescription(
     }
 
     const term = options?.term?.trim() ?? ''
-    const excludeTerms = normalizeNonEmptyValues([...(options?.excludeTerms ?? []), term || undefined])
-    const excludeRuleTitles = normalizeNonEmptyValues([...(options?.excludeRuleTitles ?? []), term || undefined])
+    const selfAliases = normalizeNonEmptyValues([term || undefined, ...(options?.selfAliases ?? [])])
+    const excludeTerms = normalizeNonEmptyValues([...(options?.excludeTerms ?? []), ...selfAliases])
+    const excludeRuleTitles = normalizeNonEmptyValues([...(options?.excludeRuleTitles ?? []), ...selfAliases])
+    const matchedRuleIds = Array.from(new Set(selfAliases.flatMap(alias => resolveMatchingTermTooltipRuleIds(alias))))
+    const excludeRuleIds = Array.from(
+        new Set(normalizeNonEmptyValues([...(options?.excludeRuleIds ?? []), ...matchedRuleIds]))
+    )
 
     return renderTermTooltipRichText(description, {
         excludeTerms,
-        excludeRuleIds: normalizeNonEmptyValues(options?.excludeRuleIds ?? []),
+        excludeRuleIds,
         excludeRuleTitles,
-        maxRecursionDepth: options?.maxRecursionDepth ?? 1
+        // Два уровня оставляют вложенные glossary-ссылки интерактивными и при этом ограничивают циклы.
+        maxRecursionDepth: options?.maxRecursionDepth ?? 2
     })
 }

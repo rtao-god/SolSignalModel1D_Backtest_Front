@@ -16,6 +16,7 @@ import {
     type PolicyBranchMegaTermLocale,
     type PolicyBranchMegaTermReference
 } from '@/shared/utils/policyBranchMegaTerms'
+import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
 import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
 import cls from './Main.module.scss'
 
@@ -26,9 +27,11 @@ interface BestPolicyRowBundle {
     part1: TableSectionDto
     part2: TableSectionDto
     part3: TableSectionDto
+    part4: TableSectionDto
     part1Row: string[]
     part2Row: string[]
     part3Row: string[]
+    part4Row: string[]
 }
 
 interface BestPolicyPartViewModel {
@@ -99,11 +102,11 @@ function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: s
 }
 
 function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRowBundle {
-    if (!sections || sections.length < 3) {
-        throw new Error('[main] policy branch mega sections count is less than 3.')
+    if (!sections || sections.length < 4) {
+        throw new Error('[main] policy branch mega sections count is less than 4.')
     }
 
-    const [part1, part2, part3] = sections
+    const [part1, part2, part3, part4] = sections
     const part1Columns = part1.columns ?? []
     const part1Rows = part1.rows ?? []
 
@@ -155,9 +158,11 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
         part1,
         part2,
         part3,
+        part4,
         part1Row: bestRow,
         part2Row: resolveRowByPolicyOrThrow(part2, key, 'part2'),
-        part3Row: resolveRowByPolicyOrThrow(part3, key, 'part3')
+        part3Row: resolveRowByPolicyOrThrow(part3, key, 'part3'),
+        part4Row: resolveRowByPolicyOrThrow(part4, key, 'part4')
     }
 }
 
@@ -165,7 +170,8 @@ function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string 
     const candidates: Array<{ columns: string[]; row: string[] }> = [
         { columns: bundle.part1.columns ?? [], row: bundle.part1Row },
         { columns: bundle.part2.columns ?? [], row: bundle.part2Row },
-        { columns: bundle.part3.columns ?? [], row: bundle.part3Row }
+        { columns: bundle.part3.columns ?? [], row: bundle.part3Row },
+        { columns: bundle.part4.columns ?? [], row: bundle.part4Row }
     ]
 
     for (const candidate of candidates) {
@@ -318,7 +324,7 @@ export default function MainBestPolicySection() {
             return {
                 items: ['StartDay', 'EndDay', 'Days', 'StopReason'].map(title => ({
                     title,
-                    value: resolveMetricValue(bestPolicyState.best!, title)
+                    value: localizeReportCellValue(title, resolveMetricValue(bestPolicyState.best!, title), i18n.language)
                 })),
                 error: null as Error | null
             }
@@ -328,7 +334,7 @@ export default function MainBestPolicySection() {
                 error: err instanceof Error ? err : new Error('Failed to build best policy meta info.')
             }
         }
-    }, [bestPolicyState.best])
+    }, [bestPolicyState.best, i18n.language])
 
     const bestPolicyPartsState = useMemo(() => {
         if (!bestPolicyState.best) {
@@ -361,6 +367,13 @@ export default function MainBestPolicySection() {
                         row: bestPolicyState.best.part3Row,
                         label: t('main.bestPolicy.parts.part3'),
                         terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part3.columns ?? [])
+                    },
+                    {
+                        id: 'policy-branch-part-4',
+                        section: bestPolicyState.best.part4,
+                        row: bestPolicyState.best.part4Row,
+                        label: t('main.bestPolicy.parts.part4'),
+                        terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part4.columns ?? [])
                     }
                 ],
                 error: null as Error | null
@@ -379,7 +392,7 @@ export default function MainBestPolicySection() {
     )
 
     if (isLoading) {
-        return <Text>{t('main.bestPolicy.loading')}</Text>
+        return <Text>{renderTermTooltipRichText(t('main.bestPolicy.loading'))}</Text>
     }
 
     if (isError) {
@@ -425,12 +438,14 @@ export default function MainBestPolicySection() {
             <div className={cls.bestPolicyHero}>
                 <div>
                     <Text type='h3' className={cls.bestPolicyName}>
-                        {bestPolicyState.best.policy} / {bestPolicyState.best.branch}
+                        {renderTermTooltipRichText(`${bestPolicyState.best.policy} / ${bestPolicyState.best.branch}`)}
                     </Text>
                     <Text className={cls.bestPolicyNote}>
-                        {t('main.bestPolicy.bestResult', {
-                            value: bestPolicyState.best.totalPnlPct.toFixed(2)
-                        })}
+                        {renderTermTooltipRichText(
+                            t('main.bestPolicy.bestResult', {
+                                value: bestPolicyState.best.totalPnlPct.toFixed(2)
+                            })
+                        )}
                     </Text>
                 </div>
 
@@ -480,7 +495,7 @@ export default function MainBestPolicySection() {
             <div className={cls.bestPolicyDescription}>
                 {renderPolicyDescription(bestPolicyState.best.policy, bestPolicyState.best.branch, translate).map(line => (
                     <Text key={line} className={cls.bestPolicyText}>
-                        {line}
+                        {renderTermTooltipRichText(line)}
                     </Text>
                 ))}
             </div>

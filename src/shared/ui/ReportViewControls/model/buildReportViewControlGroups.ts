@@ -1,7 +1,11 @@
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
+import type { CurrentPredictionBackfilledSplitStats } from '@/shared/api/tanstackQueries/currentPrediction'
 import {
     BUCKET_DESCRIPTION,
     CONF_BUCKET_DESCRIPTION,
+    DAILY_BUCKET_DESCRIPTION,
+    DELAYED_BUCKET_DESCRIPTION,
+    INTRADAY_BUCKET_DESCRIPTION,
     METRIC_VIEW_DESCRIPTION,
     SL_MODE_TERM_DESCRIPTION,
     TP_SL_MODE_DESCRIPTION,
@@ -9,6 +13,7 @@ import {
 } from '@/shared/consts/tooltipDomainTerms'
 import type {
     PolicyBranchMegaBucketMode,
+    PolicyBranchMegaTotalBucketView,
     PolicyBranchMegaMetricMode,
     PolicyBranchMegaSlMode,
     PolicyBranchMegaTpSlMode,
@@ -29,6 +34,11 @@ interface BuildMegaBucketControlGroupArgs {
 interface BuildMegaMetricControlGroupArgs {
     value: PolicyBranchMegaMetricMode
     onChange: (next: PolicyBranchMegaMetricMode) => void
+}
+
+interface BuildMegaTotalBucketViewControlGroupArgs {
+    value: PolicyBranchMegaTotalBucketView
+    onChange: (next: PolicyBranchMegaTotalBucketView) => void
 }
 
 interface BuildMegaTpSlControlGroupArgs {
@@ -78,6 +88,7 @@ interface BuildTrainingScopeControlGroupArgs {
     label?: string
     ariaLabel?: string
     infoTooltip?: string
+    splitStats?: CurrentPredictionBackfilledSplitStats | null
 }
 
 interface BuildConfidenceBucketControlGroupArgs {
@@ -101,6 +112,101 @@ interface BuildPredictionPolicyBucketControlGroupArgs {
     ariaLabel?: string
 }
 
+const PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION =
+    'Σ Все бакеты — режим просмотра всех сделок из daily, intraday и delayed одновременно.\n\nКак работает:\nв таблицу попадают все строки трёх бакетов без объединения их в новый отдельный контур.\n\nЧто важно:\nэто не отдельный четвёртый бакет и не новая симуляция. Страница просто показывает все уже построенные строки вместе, чтобы можно было быстро сравнить, где сигнал реально дошёл до сделки, а где остался без исполнения.'
+
+const PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION =
+    'На этой странице:\nпереключатель не пересчитывает прогноз и не меняет секции current prediction выше.\n\nОн только меняет, из какого bucket показываются строки в таблицах исполненных и пропущенных сигналов.'
+
+const PREDICTION_HISTORY_BUCKET_FILTER_DESCRIPTION =
+    `${BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION}\n\n${DAILY_BUCKET_DESCRIPTION}\n\n${INTRADAY_BUCKET_DESCRIPTION}\n\n${DELAYED_BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION}\n\nКак читать:\nесли строка есть только в одном bucket, значит именно этот механизм исполнения реально довёл сигнал до сделки.`
+
+const TRAINING_SCOPE_FULL_DESCRIPTION =
+    'Полная история — самый широкий срез данных для этой версии модели.\n\nВ него попадают и обучающая часть истории, и более новые дни после train-границы.\n\nЭтот режим нужен, когда важно увидеть общую историческую устойчивость модели на длинной дистанции, а не только качество на одном участке.\n\nКак читать:\nхороший результат здесь полезен как общий фон, но его нельзя оценивать отдельно от OOS и от свежего хвоста, потому что старые режимы могут сглаживать текущие проблемы.'
+
+const TRAINING_SCOPE_RECENT_DESCRIPTION =
+    'Хвост истории — только самый свежий участок истории, который считается актуальным для текущего рынка. В текущем контракте это последние 240 торговых дней рабочего ряда модели.\n\nСюда попадает не весь OOS-период, а только его последняя часть, максимально близкая к сегодняшнему режиму рынка.\n\nЭтот режим нужен, когда важнее понять, как модель работает сейчас, а не как она выглядела в среднем по всему новому периоду.\n\nКак читать:\nесли Full и OOS выглядят терпимо, а хвост истории резко хуже, это ранний сигнал, что модель уже начала терять актуальность.'
+
+function formatTrainingScopeDayCount(value: number): string {
+    if (!Number.isInteger(value) || value <= 0) {
+        throw new Error(`[training-scope] day count must be a positive integer. value=${value}.`)
+    }
+
+    return new Intl.NumberFormat('ru-RU').format(value)
+}
+
+function formatTrainingScopeShare(value: number): string {
+    if (!Number.isFinite(value) || value <= 0 || value >= 1) {
+        throw new Error(`[training-scope] share must be within (0, 1). value=${value}.`)
+    }
+
+    return new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    }).format(value * 100)
+}
+
+function buildTrainingScopeSplitSummary(splitStats: CurrentPredictionBackfilledSplitStats): string {
+    return `Фактическая split-структура текущего архива: Train = ${formatTrainingScopeDayCount(splitStats.trainDays)} из ${formatTrainingScopeDayCount(splitStats.totalDays)} дней (${formatTrainingScopeShare(splitStats.trainShare)}%), OOS = ${formatTrainingScopeDayCount(splitStats.oosDays)} из ${formatTrainingScopeDayCount(splitStats.totalDays)} дней (${formatTrainingScopeShare(splitStats.oosShare)}%).\n\nТекущая [[split-boundaries|split-граница]] проходит так: Train <= ${splitStats.lastTrainDateUtc}, OOS >= ${splitStats.firstOosDateUtc}.`
+}
+
+function buildTrainingScopeTrainDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
+    const splitSummary = splitStats ? `\n\n${buildTrainingScopeSplitSummary(splitStats)}` : ''
+
+    return `Train-only — только дни до [[split-boundaries|split-границы]], то есть до начала [[oos-segment|OOS]]-участка.\n\nЭтот режим использует только train-дни, на которых модель и обучалась. Поэтому такой срез полезен как внутренний ориентир качества обучения, но не как честная проверка на новых днях: для каждого train-дня причина «модель уже видела этот день на обучении» здесь не снята.\n\nЭто не доказывает автоматически любую возможную утечку, но именно самый прямой источник самооценки на знакомых примерах в Train-only остаётся.${splitSummary}\n\nКак читать:\nTrain-only нужен для контроля того, собрала ли модель рабочий паттерн на знакомой истории. Главная проверка всегда идёт через сравнение с OOS-only.`
+}
+
+function buildTrainingScopeOosDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
+    const splitSummary = splitStats ? `\n\n${buildTrainingScopeSplitSummary(splitStats)}` : ''
+
+    return `OOS-only — только дни после [[split-boundaries|split-границы]].\n\nЗдесь модель не обучалась на самих этих днях внутри выбранного scope, поэтому причина «модель уже видела именно этот день на обучении» убрана.\n\nЭто не гарантирует отсутствие других утечек или идеальную переносимость, но именно эта самая грубая причина завышенной самооценки здесь снимается.${splitSummary}\n\nКак читать:\nэто основной срез для сравнения с Train-only. Если OOS-only заметно слабее, модель выглядит лучше на знакомой истории, чем на новых днях.`
+}
+
+function buildTrainingScopeOverviewDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
+    return `Режим обучения — выбор того, на каком историческом срезе собрана текущая версия модели и какой участок истории сейчас показывается на странице.\n\n${TRAINING_SCOPE_FULL_DESCRIPTION}\n\n${buildTrainingScopeTrainDescription(splitStats)}\n\n${buildTrainingScopeOosDescription(splitStats)}\n\n${TRAINING_SCOPE_RECENT_DESCRIPTION}`
+}
+
+export function buildCurrentPredictionLiveTrainingScopeDescription(
+    splitStats?: CurrentPredictionBackfilledSplitStats | null
+): string {
+    return `${buildTrainingScopeOverviewDescription(splitStats)}\n\nНа этой странице:\nпри переключении загружается другая версия live-отчёта, поэтому меняются направление, вероятности, уверенность модели, статус и торговые блоки по политикам.`
+}
+
+export function buildCurrentPredictionHistoryTrainingScopeDescription(
+    splitStats?: CurrentPredictionBackfilledSplitStats | null
+): string {
+    return `${buildTrainingScopeOverviewDescription(splitStats)}\n\nНа этой странице:\nпри переключении меняются доступные даты, подпись обучающего окна, карточки прогнозов за день и торговые блоки внутри них.`
+}
+
+export const CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION =
+    buildCurrentPredictionLiveTrainingScopeDescription()
+
+export const CURRENT_PREDICTION_HISTORY_TRAINING_SCOPE_DESCRIPTION =
+    buildCurrentPredictionHistoryTrainingScopeDescription()
+
+function buildTrainingScopeTooltipByValue(
+    splitStats?: CurrentPredictionBackfilledSplitStats | null
+): Record<CurrentPredictionTrainingScope, string> {
+    return {
+        full: TRAINING_SCOPE_FULL_DESCRIPTION,
+        train: buildTrainingScopeTrainDescription(splitStats),
+        oos: buildTrainingScopeOosDescription(splitStats),
+        recent: TRAINING_SCOPE_RECENT_DESCRIPTION
+    }
+}
+
+const MEGA_TOTAL_BUCKET_VIEW_DESCRIPTION =
+    'Режим показа всех бакетов — выбор того, как читать набор daily, intraday и delayed при `Σ Все бакеты`.\n\nС агрегацией: backend возвращает отдельный total-aggregate срез, где числа уже пересчитаны как общий результат по всем бакетам.\n\nБез агрегации: страница показывает реальные daily, intraday и delayed секции рядом друг с другом без пересчёта в новый synthetic bucket.\n\nКак читать:\nагрегация нужна для общего итога, раздельный режим — для сравнения, какой бакет дал результат сам по себе.'
+
+const PREDICTION_HISTORY_WINDOW_ONE_YEAR_DESCRIPTION =
+    '1 год — показывает только последний год history-ленты.\n\nЭтот режим нужен, когда важнее быстро проверить самое свежее поведение прогнозов, а не читать весь архив целиком.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
+
+const PREDICTION_HISTORY_WINDOW_TWO_YEARS_DESCRIPTION =
+    '2 года — показывает последние два года history-ленты.\n\nЭто компромисс между свежестью и глубиной: уже видно смену рыночных режимов, но экран ещё не перегружается всей историей.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
+
+const PREDICTION_HISTORY_WINDOW_ALL_DESCRIPTION =
+    'Вся история — показывает весь доступный history-архив по выбранному training-scope.\n\nЭтот режим нужен, когда важно увидеть полную хронологию решений без обрезания по свежему хвосту.\n\nЧисла выше по странице не пересчитываются: страница просто перестаёт скрывать более старые даты.'
+
 export function buildMegaBucketControlGroup({
     value,
     onChange
@@ -109,6 +215,7 @@ export function buildMegaBucketControlGroup({
         key: 'mega-bucket',
         label: 'Бакет капитала',
         infoTooltip: BUCKET_DESCRIPTION,
+        infoTooltipExcludeRuleIds: ['bucket'],
         value,
         options: [
             { value: 'daily', label: 'Daily' },
@@ -132,6 +239,23 @@ export function buildMegaMetricControlGroup({
         options: [
             { value: 'real', label: 'REAL' },
             { value: 'no-biggest-liq-loss', label: 'NO BIGGEST LIQ LOSS' }
+        ],
+        onChange
+    }
+}
+
+export function buildMegaTotalBucketViewControlGroup({
+    value,
+    onChange
+}: BuildMegaTotalBucketViewControlGroupArgs): ReportViewControlGroup<PolicyBranchMegaTotalBucketView> {
+    return {
+        key: 'mega-total-bucket-view',
+        label: 'Показ всех бакетов',
+        infoTooltip: MEGA_TOTAL_BUCKET_VIEW_DESCRIPTION,
+        value,
+        options: [
+            { value: 'aggregate', label: 'С агрегацией' },
+            { value: 'separate', label: 'Без агрегации' }
         ],
         onChange
     }
@@ -262,20 +386,39 @@ export function buildTrainingScopeControlGroup({
     onChange,
     label = 'Срез данных',
     ariaLabel,
-    infoTooltip =
-        'Что это: выбор split истории для confidence-risk. Как работает в движке: backend пересчитывает таблицу только для выбранного Full, Train, OOS или Recent среза. Какие числа меняются: Days, TradeDays, WinRate, TP/SL reach и MFE/MAE по выбранному split. Зачем сравнивать: видно, держится ли зависимость качества от confidence на свежих и unseen данных.'
+    infoTooltip,
+    splitStats
 }: BuildTrainingScopeControlGroupArgs): ReportViewControlGroup<CurrentPredictionTrainingScope> {
+    const trainingScopeOverviewDescription = infoTooltip ?? buildTrainingScopeOverviewDescription(splitStats)
+    const tooltipByValue = buildTrainingScopeTooltipByValue(splitStats)
+
     return {
         key: 'training-scope',
         label,
         ariaLabel,
-        infoTooltip,
+        infoTooltip: trainingScopeOverviewDescription,
         value,
         options: [
-            { value: 'full', label: resolveCurrentPredictionTrainingScopeMeta('full').label },
-            { value: 'train', label: resolveCurrentPredictionTrainingScopeMeta('train').label },
-            { value: 'oos', label: resolveCurrentPredictionTrainingScopeMeta('oos').label },
-            { value: 'recent', label: resolveCurrentPredictionTrainingScopeMeta('recent').label }
+            {
+                value: 'full',
+                label: resolveCurrentPredictionTrainingScopeMeta('full').label,
+                tooltip: tooltipByValue.full
+            },
+            {
+                value: 'train',
+                label: resolveCurrentPredictionTrainingScopeMeta('train').label,
+                tooltip: tooltipByValue.train
+            },
+            {
+                value: 'oos',
+                label: resolveCurrentPredictionTrainingScopeMeta('oos').label,
+                tooltip: tooltipByValue.oos
+            },
+            {
+                value: 'recent',
+                label: resolveCurrentPredictionTrainingScopeMeta('recent').label,
+                tooltip: tooltipByValue.recent
+            }
         ],
         onChange
     }
@@ -293,11 +436,15 @@ export function buildPredictionHistoryWindowControlGroup<TValue extends string>(
         label,
         ariaLabel,
         infoTooltip:
-            'Что это: диапазон уже построенной history-ленты current prediction. Как работает в движке: backend по-прежнему отдаёт index built-снимков, а frontend режет только видимый диапазон дат на 1 год, 2 года или всю историю без пересчёта самих report snapshots. Какие числа меняются: total visible cards, pagination, currently visible count и набор загружаемых дат в списке. Зачем сравнивать: можно быстро перейти от свежего хвоста к длинной истории и проверить, где именно менялось поведение прогнозов.',
+            'Окно истории — переключатель видимого диапазона ленты исторических прогнозов.\n\nПереключение не пересчитывает сами прогнозы заново. Страница меняет только то, какая часть уже построенной истории сейчас показана: последний год, два года или весь архив.\n\nЧто меняется:\nсписок карточек, пагинация, число видимых дней и доступный диапазон дат.\n\nЧто не меняется:\nсодержимое самих карточек и логика прогноза.\n\nКак читать:\nкороткое окно нужно для свежего хвоста, длинное — для поиска момента, где поведение модели изменилось.',
         value,
         options: options.map(option => ({
             value: option.value,
-            label: option.label
+            label: option.label,
+            tooltip:
+                option.value === '365' ? PREDICTION_HISTORY_WINDOW_ONE_YEAR_DESCRIPTION
+                : option.value === '730' ? PREDICTION_HISTORY_WINDOW_TWO_YEARS_DESCRIPTION
+                : PREDICTION_HISTORY_WINDOW_ALL_DESCRIPTION
         })),
         onChange
     }
@@ -313,14 +460,34 @@ export function buildPredictionPolicyBucketControlGroup({
         key: 'prediction-policy-bucket',
         label,
         ariaLabel,
-        infoTooltip:
-            'Что это: выбор bucket внутри leverage-policies таблицы в карточке дня. Как работает в движке: backend уже присылает строки по daily, intraday и delayed бакетам, а переключатель на странице только выбирает, какой bucket показать в executed и skipped секциях для текущего отчёта. Какие числа меняются: набор строк сделок, skipped signals и summary причин пропуска по выбранному bucket. Зачем сравнивать: видно, в каком bucket политика реально открыла позицию, а где сигнал был отфильтрован или не дошёл до входа.',
+        infoTooltip: PREDICTION_HISTORY_BUCKET_FILTER_DESCRIPTION,
+        infoTooltipExcludeRuleIds: ['bucket'],
         value,
         options: [
-            { value: 'daily', label: 'Daily' },
-            { value: 'intraday', label: 'Intraday' },
-            { value: 'delayed', label: 'Delayed' },
-            { value: 'total', label: 'Σ Все бакеты' }
+            {
+                value: 'daily',
+                label: 'Daily',
+                tooltip: DAILY_BUCKET_DESCRIPTION,
+                tooltipExcludeRuleIds: ['bucket-daily']
+            },
+            {
+                value: 'intraday',
+                label: 'Intraday',
+                tooltip: INTRADAY_BUCKET_DESCRIPTION,
+                tooltipExcludeRuleIds: ['bucket-intraday']
+            },
+            {
+                value: 'delayed',
+                label: 'Delayed',
+                tooltip: DELAYED_BUCKET_DESCRIPTION,
+                tooltipExcludeRuleIds: ['bucket-delayed']
+            },
+            {
+                value: 'total',
+                label: 'Σ Все бакеты',
+                tooltip: PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION,
+                tooltipExcludeRuleIds: ['bucket-total-aggregate']
+            }
         ],
         onChange
     }

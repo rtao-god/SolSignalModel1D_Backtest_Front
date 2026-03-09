@@ -1,6 +1,9 @@
 import { Text, TermTooltip } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
-import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { resolveMatchingTermTooltipRuleIds } from '@/shared/ui/TermTooltip/ui/renderTermTooltipRichText'
+import { resolveReportColumnTooltip, resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
+import { localizeReportColumnTitle } from '@/shared/utils/reportPresentationLocalization'
+import i18n from '@/shared/configs/i18n/i18n'
 import cls from './ReportTableTermsBlock.module.scss'
 
 interface ReportTableTermsBlockProps {
@@ -27,10 +30,18 @@ export interface ReportTableTermItem {
     resolveTooltip?: ReportTableTermTextResolver
 }
 
-function buildSelfTooltipExclusions(termTitle: string) {
+function normalizeNonEmptyAliases(values: string[]): string[] {
+    return Array.from(new Set(values.map(value => value.trim()).filter(value => value.length > 0)))
+}
+
+export function buildSelfTooltipExclusions(termKey: string, termTitle: string, selfAliases: string[] = []) {
+    const allAliases = normalizeNonEmptyAliases([termTitle, termKey, ...selfAliases])
+    const excludeRuleIds = Array.from(new Set(allAliases.flatMap(alias => resolveMatchingTermTooltipRuleIds(alias))))
+
     return {
-        excludeTerms: [termTitle],
-        excludeRuleTitles: [termTitle]
+        excludeTerms: allAliases,
+        excludeRuleIds,
+        excludeRuleTitles: allAliases
     }
 }
 
@@ -63,6 +74,15 @@ function resolveLazyTextOrThrow(
     return resolved.trim()
 }
 
+function shouldSkipReportTermItem(reportKind: string, columnTitle: string): boolean {
+    if (!reportKind.startsWith('current_prediction')) {
+        return false
+    }
+
+    const normalized = columnTitle.trim().toLowerCase()
+    return normalized === 'description' || normalized === 'описание'
+}
+
 function buildTermsFromColumnsOrThrow(
     reportKind: string,
     sectionTitle: string,
@@ -80,21 +100,28 @@ function buildTermsFromColumnsOrThrow(
         throw new Error('[report-terms] columns are empty.')
     }
 
-    return columns.map(column => {
+    const resolvedTerms: ReportTableTermItem[] = []
+
+    columns.forEach(column => {
         const key = ensureNonEmptyValueOrThrow(column, 'column title')
+        if (shouldSkipReportTermItem(reportKind, key)) {
+            return
+        }
 
         const tooltip = resolveReportColumnTooltip(reportKind, sectionTitle, key)
         if (!tooltip || tooltip.trim().length === 0) {
             throw new Error(`[report-terms] tooltip is missing for column=${key}, reportKind=${reportKind}.`)
         }
 
-        return {
+        resolvedTerms.push({
             key,
-            title: key,
+            title: localizeReportColumnTitle(reportKind, key, i18n.resolvedLanguage ?? i18n.language),
             description: tooltip,
             tooltip
-        }
+        })
     })
+
+    return resolvedTerms
 }
 
 function buildProvidedTermsOrThrow(terms: ReportTableTermItem[]): ReportTableTermItem[] {
@@ -147,6 +174,7 @@ export default function ReportTableTermsBlock({
                 {resolvedTerms.map(term => {
                     const itemClassName =
                         displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
+                    const selfAliases = resolveReportTooltipSelfAliases(reportKind, term.key)
 
                     return (
                         <div key={`${sectionTitle}:${term.key}`} className={itemClassName}>
@@ -161,7 +189,10 @@ export default function ReportTableTermsBlock({
                                         )
 
                                         return enhanceDomainTerms ?
-                                                renderTermTooltipRichText(tooltip, buildSelfTooltipExclusions(term.title))
+                                                renderTermTooltipRichText(
+                                                    tooltip,
+                                                    buildSelfTooltipExclusions(term.key, term.title, selfAliases)
+                                                )
                                             :   tooltip
                                     }}
                                     type='span'
@@ -180,7 +211,7 @@ export default function ReportTableTermsBlock({
                                         return enhanceDomainTerms ?
                                                 renderTermTooltipRichText(
                                                     description,
-                                                    buildSelfTooltipExclusions(term.title)
+                                                    buildSelfTooltipExclusions(term.key, term.title, selfAliases)
                                                 )
                                             :   description
                                     })()}

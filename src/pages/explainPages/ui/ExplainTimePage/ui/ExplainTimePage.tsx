@@ -6,6 +6,7 @@ import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { EXPLAIN_TIME_TABS } from '@/shared/utils/explainTabs'
+import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readExplainTableRowsOrThrow,
     readExplainTermItemsOrThrow,
@@ -31,7 +32,7 @@ function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
 }
 
 export default function ExplainTimePage({ className }: ExplainTimePageProps) {
-    const { t } = useTranslation('explain')
+    const { t, i18n } = useTranslation('explain')
 
     const sections = useMemo(
         () =>
@@ -45,13 +46,6 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
         sections,
         syncHash: true
     })
-
-    const overviewTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'timePage.sections.overview.terms'), [t])
-    const baselineTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'timePage.sections.baseline.terms'), [t])
-    const dayKeysTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'timePage.sections.dayKeys.terms'), [t])
-    const weekendTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'timePage.sections.weekend.terms'), [t])
-
-    const overviewRows = useMemo(() => readExplainTableRowsOrThrow(t, 'timePage.sections.overview.table.rows'), [t])
 
     return (
         <div className={classNames(cls.ExplainTimePage, {}, [className ?? ''])} data-tooltip-boundary>
@@ -68,27 +62,37 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
                         {t('timePage.sections.overview.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('timePage.sections.overview.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('timePage.sections.overview.table.headers.season')}</th>
-                                    <th>{t('timePage.sections.overview.table.headers.entryTime')}</th>
-                                    <th>{t('timePage.sections.overview.table.headers.comment')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {overviewRows.map((row, rowIndex) => (
-                                    <tr key={`overview-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={overviewTerms} />
+                    <LocalizedContentBoundary name='ExplainTime:overview:table'>
+                        {() => {
+                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'timePage.sections.overview.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('timePage.sections.overview.table.headers.season')}</th>
+                                                <th>{t('timePage.sections.overview.table.headers.entryTime')}</th>
+                                                <th>{t('timePage.sections.overview.table.headers.comment')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {overviewRows.map((row, rowIndex) => (
+                                                <tr key={`overview-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainTime:overview:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.overview.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-time-baseline' className={cls.sectionCard}>
@@ -96,7 +100,9 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
                         {t('timePage.sections.baseline.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('timePage.sections.baseline.text')}</Text>
-                    <TermGrid items={baselineTerms} />
+                    <LocalizedContentBoundary name='ExplainTime:baseline:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.baseline.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-time-day-keys' className={cls.sectionCard}>
@@ -104,7 +110,9 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
                         {t('timePage.sections.dayKeys.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('timePage.sections.dayKeys.text')}</Text>
-                    <TermGrid items={dayKeysTerms} />
+                    <LocalizedContentBoundary name='ExplainTime:dayKeys:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.dayKeys.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-time-weekend' className={cls.sectionCard}>
@@ -112,7 +120,9 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
                         {t('timePage.sections.weekend.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('timePage.sections.weekend.text')}</Text>
-                    <TermGrid items={weekendTerms} />
+                    <LocalizedContentBoundary name='ExplainTime:weekend:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.weekend.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
             </div>
 
@@ -127,3 +137,6 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
         </div>
     )
 }
+
+
+

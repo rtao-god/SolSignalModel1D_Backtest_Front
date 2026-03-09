@@ -14,6 +14,7 @@ import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
+import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readExplainTableRowsOrThrow,
     readExplainTermItemsOrThrow,
@@ -201,7 +202,7 @@ function TermGrid({ items }: { items: TermItem[] }) {
 }
 
 export default function ExplainFeaturesPage({ className }: ExplainFeaturesPageProps) {
-    const { t } = useTranslation('explain')
+    const { t, i18n } = useTranslation('explain')
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
     const { data: pfiReport } = usePfiPerModelReportNavQuery({ enabled: true })
@@ -224,36 +225,6 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
         sections,
         syncHash: true
     })
-
-    const overviewTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.overview.terms'), [t])
-    const returnFeatureDefs = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.returns.terms'), [t])
-    const indicatorFeatureDefs = useMemo(
-        () => readExplainTermItemsOrThrow(t, 'featuresPage.sections.indicators.terms'),
-        [t]
-    )
-    const momentumFeatureDefs = useMemo(
-        () => readExplainTermItemsOrThrow(t, 'featuresPage.sections.momentum.terms'),
-        [t]
-    )
-    const regimeFeatureDefs = useMemo(() => readExplainTermItemsOrThrow(t, 'featuresPage.sections.regime.terms'), [t])
-
-    const returnFeatures = useMemo(
-        () => buildFeatureTermItems(returnFeatureDefs, pfiStats, hasPfiReport, t),
-        [hasPfiReport, pfiStats, returnFeatureDefs, t]
-    )
-    const indicatorFeatures = useMemo(
-        () => buildFeatureTermItems(indicatorFeatureDefs, pfiStats, hasPfiReport, t),
-        [hasPfiReport, indicatorFeatureDefs, pfiStats, t]
-    )
-    const momentumFeatures = useMemo(
-        () => buildFeatureTermItems(momentumFeatureDefs, pfiStats, hasPfiReport, t),
-        [hasPfiReport, momentumFeatureDefs, pfiStats, t]
-    )
-    const regimeFeatures = useMemo(
-        () => buildFeatureTermItems(regimeFeatureDefs, pfiStats, hasPfiReport, t),
-        [hasPfiReport, pfiStats, regimeFeatureDefs, t]
-    )
-    const overviewRows = useMemo(() => readExplainTableRowsOrThrow(t, 'featuresPage.sections.overview.table.rows'), [t])
 
     return (
         <div className={classNames(cls.ExplainFeaturesPage, {}, [className ?? ''])} data-tooltip-boundary>
@@ -280,27 +251,37 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                         {t('featuresPage.sections.overview.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('featuresPage.sections.overview.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('featuresPage.sections.overview.table.headers.metric')}</th>
-                                    <th>{t('featuresPage.sections.overview.table.headers.meaning')}</th>
-                                    <th>{t('featuresPage.sections.overview.table.headers.reading')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {overviewRows.map((row, rowIndex) => (
-                                    <tr key={`overview-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={overviewTerms} />
+                    <LocalizedContentBoundary name='ExplainFeatures:overview:table'>
+                        {() => {
+                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'featuresPage.sections.overview.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('featuresPage.sections.overview.table.headers.metric')}</th>
+                                                <th>{t('featuresPage.sections.overview.table.headers.meaning')}</th>
+                                                <th>{t('featuresPage.sections.overview.table.headers.reading')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {overviewRows.map((row, rowIndex) => (
+                                                <tr key={`overview-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainFeatures:overview:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.overview.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-features-returns' className={cls.sectionCard}>
@@ -308,7 +289,14 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                         {t('featuresPage.sections.returns.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('featuresPage.sections.returns.text')}</Text>
-                    <TermGrid items={returnFeatures} />
+                    <LocalizedContentBoundary name='ExplainFeatures:returns:terms'>
+                        {() => {
+                            const returnFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.returns.terms')
+                            const returnFeatures = buildFeatureTermItems(returnFeatureDefs, pfiStats, hasPfiReport, t)
+
+                            return <TermGrid items={returnFeatures} />
+                        }}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-features-indicators' className={cls.sectionCard}>
@@ -316,7 +304,14 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                         {t('featuresPage.sections.indicators.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('featuresPage.sections.indicators.text')}</Text>
-                    <TermGrid items={indicatorFeatures} />
+                    <LocalizedContentBoundary name='ExplainFeatures:indicators:terms'>
+                        {() => {
+                            const indicatorFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.indicators.terms')
+                            const indicatorFeatures = buildFeatureTermItems(indicatorFeatureDefs, pfiStats, hasPfiReport, t)
+
+                            return <TermGrid items={indicatorFeatures} />
+                        }}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-features-momentum' className={cls.sectionCard}>
@@ -324,7 +319,14 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                         {t('featuresPage.sections.momentum.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('featuresPage.sections.momentum.text')}</Text>
-                    <TermGrid items={momentumFeatures} />
+                    <LocalizedContentBoundary name='ExplainFeatures:momentum:terms'>
+                        {() => {
+                            const momentumFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.momentum.terms')
+                            const momentumFeatures = buildFeatureTermItems(momentumFeatureDefs, pfiStats, hasPfiReport, t)
+
+                            return <TermGrid items={momentumFeatures} />
+                        }}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-features-regime' className={cls.sectionCard}>
@@ -332,7 +334,14 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
                         {t('featuresPage.sections.regime.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('featuresPage.sections.regime.text')}</Text>
-                    <TermGrid items={regimeFeatures} />
+                    <LocalizedContentBoundary name='ExplainFeatures:regime:terms'>
+                        {() => {
+                            const regimeFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.regime.terms')
+                            const regimeFeatures = buildFeatureTermItems(regimeFeatureDefs, pfiStats, hasPfiReport, t)
+
+                            return <TermGrid items={regimeFeatures} />
+                        }}
+                    </LocalizedContentBoundary>
                 </section>
             </div>
 
@@ -347,3 +356,6 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
         </div>
     )
 }
+
+
+

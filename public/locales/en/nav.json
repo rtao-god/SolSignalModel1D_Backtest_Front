@@ -44,6 +44,7 @@
         "pfi_per_model": "PFI by models",
         "docs_models": "Models",
         "docs_tests": "Tests",
+        "docs_truthfulness": "Data truthfulness",
         "explain_models": "Models",
         "explain_branches": "BASE/ANTI-D branches",
         "explain_splits": "Train/OOS/Recent",
@@ -56,6 +57,7 @@
         "pfi_per_model": "PFI models",
         "docs_models": "Model docs",
         "docs_tests": "Test docs",
+        "docs_truthfulness": "Truthfulness docs",
         "explain_models": "Model explain",
         "explain_branches": "Branch explain",
         "explain_splits": "Split explain",
@@ -74,7 +76,7 @@
     },
     "tab": {
         "docs_models": {
-            "models-overview": "Overview",
+            "models-overview": "What each model means",
             "models-daily": "Daily model",
             "models-micro": "Micro model",
             "models-sl": "SL model",
@@ -85,6 +87,14 @@
             "tests-sanity": "Sanity checks",
             "tests-leakage": "Leakage tests",
             "tests-perf": "Performance tests"
+        },
+        "docs_truthfulness": {
+            "truth-overview": "Truthfulness contour",
+            "truth-causal": "Causal layer",
+            "truth-omniscient": "Post-fact layer",
+            "truth-structure": "Projects and Interop",
+            "truth-delivery": "Reports, API, and UI",
+            "truth-tests": "Tests and barriers"
         },
         "explain_models": {
             "explain-models-overview": "Overview",

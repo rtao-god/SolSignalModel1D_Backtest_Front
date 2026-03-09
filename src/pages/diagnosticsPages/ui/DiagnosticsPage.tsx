@@ -3,10 +3,15 @@ import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
+import {
+    buildBacktestDiagnosticsQueryArgsFromSearchParams,
+    buildBacktestDiagnosticsSearchFromSearchParams
+} from '@/shared/utils/backtestDiagnosticsQuery'
 import cls from './DiagnosticsPage.module.scss'
 import type { DiagnosticsPageProps } from './types'
 
@@ -14,10 +19,22 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
     const { t } = useTranslation('reports')
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
+    const location = useLocation()
+    const currentSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+    const diagnosticsSearch = useMemo(
+        () => buildBacktestDiagnosticsSearchFromSearchParams(currentSearchParams),
+        [currentSearchParams]
+    )
+    const diagnosticsArgs = useMemo(
+        () => buildBacktestDiagnosticsQueryArgsFromSearchParams(currentSearchParams),
+        [currentSearchParams]
+    )
 
     const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch)
-    }, [dispatch, queryClient])
+        warmupRouteNavigation(routeId, queryClient, dispatch, {
+            diagnosticsArgs
+        })
+    }, [diagnosticsArgs, dispatch, queryClient])
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
@@ -34,7 +51,7 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                 </Text>
                 <div className={cls.cards}>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS)}>
@@ -47,7 +64,7 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL)}>
@@ -60,7 +77,7 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS)}>
@@ -73,7 +90,7 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS)}>
@@ -86,7 +103,7 @@ export default function DiagnosticsPage({ className }: DiagnosticsPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_OTHER)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_OTHER)}>

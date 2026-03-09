@@ -12,9 +12,10 @@ interface ErrorBlockProps {
     details?: ReactNode
     onRetry?: () => void
     compact?: boolean
+    actions?: ReactNode
 }
 
-export function ErrorBlock({ className, code, title, description, details, onRetry, compact }: ErrorBlockProps) {
+export function ErrorBlock({ className, code, title, description, details, onRetry, compact, actions }: ErrorBlockProps) {
     const { t } = useTranslation('errors')
     const rootClasses = classNames(
         cls.ErrorBlock,
@@ -48,11 +49,14 @@ export function ErrorBlock({ className, code, title, description, details, onRet
 
                     {details && <div className={cls.details}>{details}</div>}
 
-                    {onRetry && (
+                    {(onRetry || actions) && (
                         <div className={cls.actions}>
-                            <Btn className={cls.retryButton} onClick={onRetry}>
-                                {t('ui.errorBlock.retry', { defaultValue: 'Try again' })}
-                            </Btn>
+                            {onRetry && (
+                                <Btn className={cls.retryButton} onClick={onRetry}>
+                                    {t('ui.errorBlock.retry', { defaultValue: 'Try again' })}
+                                </Btn>
+                            )}
+                            {actions}
                         </div>
                     )}
                 </div>

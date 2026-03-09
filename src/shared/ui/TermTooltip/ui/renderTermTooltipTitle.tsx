@@ -6,7 +6,15 @@ const stopTooltipPropagation = (event: SyntheticEvent) => {
     event.stopPropagation()
 }
 
-export function renderTermTooltipTitle(term: string, description?: ReactNode | (() => ReactNode)): ReactNode {
+interface RenderTermTooltipTitleOptions {
+    selfAliases?: string[]
+}
+
+export function renderTermTooltipTitle(
+    term: string,
+    description?: ReactNode | (() => ReactNode),
+    options?: RenderTermTooltipTitleOptions
+): ReactNode {
     if (!description) {
         return term
     }
@@ -19,7 +27,8 @@ export function renderTermTooltipTitle(term: string, description?: ReactNode | (
                     enrichTermTooltipDescription(
                         typeof description === 'function' ? description() : description,
                         {
-                            term
+                            term,
+                            selfAliases: options?.selfAliases
                         }
                     )
                 }

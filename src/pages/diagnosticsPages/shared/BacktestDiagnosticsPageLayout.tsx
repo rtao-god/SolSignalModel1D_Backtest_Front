@@ -4,7 +4,9 @@ import {
     ReportTableTermsBlock,
     ReportViewControls,
     Text,
+    buildMegaSlModeControlGroup,
     buildMegaTpSlControlGroup,
+    buildPredictionPolicyBucketControlGroup,
     buildMegaZonalControlGroup
 } from '@/shared/ui'
 import type { ReactNode } from 'react'
@@ -15,11 +17,7 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import type { ReportDocumentDto, TableSectionDto } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import { resolveBacktestDiagnosticsDescription } from '@/shared/utils/backtestDiagnosticsDescriptions'
-import {
-    resolvePolicyBranchMegaTpSlModeFromQuery,
-    resolvePolicyBranchMegaZonalModeFromQuery
-} from '@/shared/utils/policyBranchMegaTabs'
-import { DEFAULT_REPORT_TP_SL_MODE, DEFAULT_REPORT_ZONAL_MODE } from '@/shared/utils/reportViewCapabilities'
+import { resolveBacktestDiagnosticsSearchSelectionOrThrow } from '@/shared/utils/backtestDiagnosticsQuery'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
@@ -49,7 +47,17 @@ function sectionDomId(index: number): string {
 }
 
 function isVariantDiagnosticsSection(section: TableSectionDto): boolean {
-    return Boolean(section.metadata?.tpSlMode && section.metadata?.zonalMode)
+    return Boolean(section.metadata?.tpSlMode || section.metadata?.zonalMode || section.metadata?.mode || section.metadata?.bucket)
+}
+
+function hasDiagnosticsAxis(
+    sections: TableSectionDto[],
+    axis: 'tpSlMode' | 'zonalMode' | 'mode' | 'bucket'
+): boolean {
+    return sections.some(section => {
+        const value = section.metadata?.[axis]
+        return typeof value === 'string' && value.trim().length > 0
+    })
 }
 
 export default function BacktestDiagnosticsPageLayout({
@@ -100,31 +108,16 @@ export default function BacktestDiagnosticsPageLayout({
         }
     }, [])
 
-    const tpSlState = useMemo(() => {
+    const diagnosticsSelectionState = useMemo(() => {
         try {
             return {
-                value: resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE),
+                value: resolveBacktestDiagnosticsSearchSelectionOrThrow(searchParams),
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics tpsl query.')
+            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics query.')
             return {
-                value: DEFAULT_REPORT_TP_SL_MODE,
-                error: safeError
-            }
-        }
-    }, [searchParams])
-
-    const zonalState = useMemo(() => {
-        try {
-            return {
-                value: resolvePolicyBranchMegaZonalModeFromQuery(searchParams.get('zonal'), DEFAULT_REPORT_ZONAL_MODE),
-                error: null as Error | null
-            }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics zonal query.')
-            return {
-                value: DEFAULT_REPORT_ZONAL_MODE,
+                value: null,
                 error: safeError
             }
         }
@@ -187,31 +180,71 @@ export default function BacktestDiagnosticsPageLayout({
     })
 
     const controlGroups = useMemo(() => {
-        if (variantSections.length === 0) {
+        if (!diagnosticsSelectionState.value || variantSections.length === 0) {
             return []
         }
 
-        return [
-            buildMegaTpSlControlGroup({
-                value: tpSlState.value,
-                onChange: next => {
-                    if (next === tpSlState.value) return
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('tpsl', next)
-                    setSearchParams(nextParams, { replace: true })
-                }
-            }),
-            buildMegaZonalControlGroup({
-                value: zonalState.value,
-                onChange: next => {
-                    if (next === zonalState.value) return
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('zonal', next)
-                    setSearchParams(nextParams, { replace: true })
-                }
-            })
-        ]
-    }, [searchParams, setSearchParams, tpSlState.value, variantSections.length, zonalState.value])
+        const controlGroups = []
+
+        if (hasDiagnosticsAxis(variantSections, 'tpSlMode')) {
+            controlGroups.push(
+                buildMegaTpSlControlGroup({
+                    value: diagnosticsSelectionState.value.tpSlMode,
+                    onChange: next => {
+                        if (next === diagnosticsSelectionState.value?.tpSlMode) return
+                        const nextParams = new URLSearchParams(searchParams)
+                        nextParams.set('tpsl', next)
+                        setSearchParams(nextParams, { replace: true })
+                    }
+                })
+            )
+        }
+
+        if (hasDiagnosticsAxis(variantSections, 'mode')) {
+            controlGroups.push(
+                buildMegaSlModeControlGroup({
+                    value: diagnosticsSelectionState.value.slMode,
+                    onChange: next => {
+                        if (next === diagnosticsSelectionState.value?.slMode) return
+                        const nextParams = new URLSearchParams(searchParams)
+                        nextParams.set('slmode', next)
+                        setSearchParams(nextParams, { replace: true })
+                    }
+                })
+            )
+        }
+
+        if (hasDiagnosticsAxis(variantSections, 'bucket')) {
+            controlGroups.push(
+                buildPredictionPolicyBucketControlGroup({
+                    value: diagnosticsSelectionState.value.bucket,
+                    onChange: next => {
+                        if (next === diagnosticsSelectionState.value?.bucket) return
+                        const nextParams = new URLSearchParams(searchParams)
+                        nextParams.set('bucket', next)
+                        setSearchParams(nextParams, { replace: true })
+                    },
+                    label: 'Бакет сделок'
+                })
+            )
+        }
+
+        if (hasDiagnosticsAxis(variantSections, 'zonalMode')) {
+            controlGroups.push(
+                buildMegaZonalControlGroup({
+                    value: diagnosticsSelectionState.value.zonalMode,
+                    onChange: next => {
+                        if (next === diagnosticsSelectionState.value?.zonalMode) return
+                        const nextParams = new URLSearchParams(searchParams)
+                        nextParams.set('zonal', next)
+                        setSearchParams(nextParams, { replace: true })
+                    }
+                })
+            )
+        }
+
+        return controlGroups
+    }, [diagnosticsSelectionState.value, searchParams, setSearchParams, variantSections])
 
     if (generatedAtState.error || !generatedAtState.value) {
         return (
@@ -236,22 +269,12 @@ export default function BacktestDiagnosticsPageLayout({
         )
     }
 
-    if (tpSlState.error) {
+    if (diagnosticsSelectionState.error) {
         return (
             <PageError
                 title={t('diagnosticsReport.layout.errors.tpSlQuery.title')}
                 message={t('diagnosticsReport.layout.errors.tpSlQuery.message')}
-                error={tpSlState.error}
-            />
-        )
-    }
-
-    if (zonalState.error) {
-        return (
-            <PageError
-                title={t('diagnosticsReport.layout.errors.zonalQuery.title')}
-                message={t('diagnosticsReport.layout.errors.zonalQuery.message')}
-                error={zonalState.error}
+                error={diagnosticsSelectionState.error}
             />
         )
     }

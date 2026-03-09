@@ -1,4 +1,5 @@
 import { resolveReportColumnTooltip } from './reportTooltips'
+import { localizeReportColumnTitle } from './reportPresentationLocalization'
 
 export interface ReportTermItem {
     key: string
@@ -17,6 +18,7 @@ interface BuildReportTermsParams<TSection extends ReportTermsSectionLike> {
     reportKind: string
     contextTag: string
     resolveSectionTitle?: (section: TSection) => string | undefined
+    locale?: string | null
 }
 
 function ensureNonEmptyStringOrThrow(value: string | undefined, label: string, contextTag: string): string {
@@ -27,11 +29,21 @@ function ensureNonEmptyStringOrThrow(value: string | undefined, label: string, c
     return value.trim()
 }
 
+function shouldSkipReportTermItem(reportKind: string, columnTitle: string): boolean {
+    if (!reportKind.startsWith('current_prediction')) {
+        return false
+    }
+
+    const normalized = columnTitle.trim().toLowerCase()
+    return normalized === 'description' || normalized === 'описание'
+}
+
 export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTermsSectionLike>({
     sections,
     reportKind,
     contextTag,
-    resolveSectionTitle
+    resolveSectionTitle,
+    locale
 }: BuildReportTermsParams<TSection>): ReportTermItem[] {
     const kind = ensureNonEmptyStringOrThrow(reportKind, 'report kind', contextTag)
 
@@ -51,6 +63,10 @@ export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTerms
 
         for (const rawColumn of columns) {
             const column = ensureNonEmptyStringOrThrow(rawColumn, 'table column title', contextTag)
+            if (shouldSkipReportTermItem(kind, column)) {
+                continue
+            }
+
             if (termsByTitle.has(column)) {
                 continue
             }
@@ -62,7 +78,7 @@ export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTerms
 
             termsByTitle.set(column, {
                 key: column,
-                title: column,
+                title: localizeReportColumnTitle(kind, column, locale),
                 description: tooltip,
                 tooltip
             })

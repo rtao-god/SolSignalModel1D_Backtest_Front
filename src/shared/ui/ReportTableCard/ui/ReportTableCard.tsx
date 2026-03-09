@@ -1,7 +1,9 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Text } from '@/shared/ui'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import classNames from '@/shared/lib/helpers/classNames'
+import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
 import cls from './ReportTableCard.module.scss'
 import {
     SortableTable,
@@ -52,16 +54,48 @@ export default function ReportTableCard({
     className,
     renderColumnTitle
 }: ReportTableCardProps) {
+    const { i18n } = useTranslation()
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
+    const localizedRows = useMemo(() => {
+        const stopReasonIdx = columns.indexOf('StopReason')
+        if (stopReasonIdx < 0 || !rows || rows.length === 0) {
+            return rows
+        }
+
+        let hasLocalizedRows = false
+        const nextRows = rows.map(row => {
+            if (!Array.isArray(row) || row.length <= stopReasonIdx) {
+                return row
+            }
+
+            const rawValue = row[stopReasonIdx]
+            if (typeof rawValue !== 'string' || !rawValue.trim()) {
+                return row
+            }
+
+            const localizedValue = localizeReportCellValue('StopReason', rawValue, i18n.language)
+            if (localizedValue === rawValue) {
+                return row
+            }
+
+            hasLocalizedRows = true
+            const nextRow = [...row]
+            nextRow[stopReasonIdx] = localizedValue
+            return nextRow
+        })
+
+        return hasLocalizedRows ? nextRows : rows
+    }, [columns, rows, i18n.language])
+
     useEffect(() => {
-        setSortedRows(rows ?? [])
-    }, [rows])
+        setSortedRows(localizedRows ?? [])
+    }, [localizedRows])
 
     const profitColIdx = useMemo(() => resolveProfitColumnIndex(columns), [columns])
 
     const exportColumns = columns
 
-    const rowsForExport = sortedRows.length > 0 ? sortedRows : rows
+    const rowsForExport = sortedRows.length > 0 ? sortedRows : localizedRows
 
     const exportRows = useMemo(
         () =>
@@ -113,7 +147,7 @@ export default function ReportTableCard({
 
             <SortableTable
                 columns={columns}
-                rows={rows}
+                rows={localizedRows}
                 storageKey={`report.sort.${domId}`}
                 getRowClassName={getRowClassName}
                 getCellClassName={getCellClassName}

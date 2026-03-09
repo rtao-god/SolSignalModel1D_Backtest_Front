@@ -1,918 +1,256 @@
 import { ReactNode } from 'react'
-import {
-    ACTIVE_EQUITY_DESCRIPTION,
-    ACCOUNT_RUIN_DESCRIPTION,
-    ANTI_D_NOT_APPLIED_DESCRIPTION,
-    ANTI_DIRECTION_DESCRIPTION,
-    BACKTEST_DESCRIPTION,
-    BRANCH_DESCRIPTION,
-    DAILY_BUCKET_DESCRIPTION,
-    DELAYED_BUCKET_DESCRIPTION,
-    EXECUTED_AT_UTC_DESCRIPTION,
-    BUCKET_DEAD_AFTER_LIQ_DESCRIPTION,
-    BUCKET_DESCRIPTION,
-    CAP_FRACTION_DESCRIPTION,
-    CAP_ZERO_DESCRIPTION,
-    CONF_BUCKET_DESCRIPTION,
-    CONFIDENCE_OUT_OF_RANGE_DESCRIPTION,
-    COUNTERFACT_DESCRIPTION,
-    CROSS_MARGIN_DESCRIPTION,
-    DELAYED_SIGNAL_DESCRIPTION,
-    DRAWDOWN_DESCRIPTION,
-    EOD_DESCRIPTION,
-    FIRST_EVENT_DESCRIPTION,
-    FUNDING_DESCRIPTION,
-    HIGH_RISK_DAY_DESCRIPTION,
-    INTRADAY_BUCKET_DESCRIPTION,
-    ISOLATED_MARGIN_DESCRIPTION,
-    LEVERAGE_DESCRIPTION,
-    LIQUIDATION_DESCRIPTION,
-    LOW_EDGE_DESCRIPTION,
-    MARGIN_DESCRIPTION,
-    MARKET_DESCRIPTION,
-    MARKET_NOISE_DESCRIPTION,
-    METRIC_VIEW_DESCRIPTION,
-    MIN_MOVE_DESCRIPTION,
-    NO_DIRECTION_DESCRIPTION,
-    NO_SL_MODE_DESCRIPTION,
-    NET_RETURN_PCT_DESCRIPTION,
-    NET_PNL_USD_DESCRIPTION,
-    PNL_DESCRIPTION,
-    DD_DESCRIPTION,
-    TP_SL_MODE_DESCRIPTION,
-    PERCENTAGE_POINTS_DESCRIPTION,
-    POLICY_DESCRIPTION,
-    RATIO_CURVE_DESCRIPTION,
-    REGIME_DOWN_FLAG_DESCRIPTION,
-    REQ_GAIN_DESCRIPTION,
-    RECOVERED_DESCRIPTION,
-    RECOV_DAYS_DESCRIPTION,
-    RISK_LAYERS_DESCRIPTION,
-    RISK_THROTTLE_DESCRIPTION,
-    SIGNAL_DIRECTION_DESCRIPTION,
-    SLIPPAGE_DESCRIPTION,
-    SL_MODEL_DESCRIPTION,
-    SL_MODE_TERM_DESCRIPTION,
-    SL_PROB_DESCRIPTION,
-    START_BALANCE_DESCRIPTION,
-    TOTAL_PNL_DESCRIPTION,
-    TOTAL_AGGREGATE_BUCKET_DESCRIPTION,
-    TP_SL_DESCRIPTION,
-    ULTRA_SAFE_REGIME_DOWN_DESCRIPTION,
-    ULTRA_SAFE_SL_PROB_DESCRIPTION,
-    WEALTH_PCT_DESCRIPTION,
-    WHY_MIN_MOVE_DESCRIPTION,
-    WHY_NO_SL_DESCRIPTION,
-    WHY_FIRST_EVENT_DESCRIPTION,
-    WHY_BUCKET_DESCRIPTION,
-    WHY_WEEKENDS_DESCRIPTION,
-    WITH_SL_MODE_DESCRIPTION,
-    CURRENT_BALANCE_DESCRIPTION,
-    DYNAMIC_TP_SL_DESCRIPTION,
-    PRICE_MOVE_DESCRIPTION,
-    EXPOSURE_DESCRIPTION,
-    MARGIN_USED_DESCRIPTION,
-    P90_QUANTILE_DESCRIPTION,
-    TRADE_COUNT_DESCRIPTION,
-    RECOVERY_DESCRIPTION,
-    REAL_METRIC_DESCRIPTION,
-    NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
-    WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
-    CAP_POLICY_DESCRIPTION,
-    TRACE_DESCRIPTION,
-    START_CAP_DESCRIPTION,
-    STATIC_TP_SL_DESCRIPTION,
-    SHARPE_DESCRIPTION,
-    SORTINO_DESCRIPTION,
-    WITHDRAWN_PROFIT_DESCRIPTION,
-    ZONAL_MODE_DESCRIPTION,
-    WITH_ZONAL_MODE_DESCRIPTION,
-    WITHOUT_ZONAL_MODE_DESCRIPTION
-} from '@/shared/consts/tooltipDomainTerms'
-import {
-    ATR_INDICATOR_DESCRIPTION,
-    EMA_200_BTC_SOL_DESCRIPTION,
-    EMA_50_SOL_DESCRIPTION,
-    EMA_INDICATOR_DESCRIPTION,
-    RSI_INDICATOR_DESCRIPTION,
-    SMA_200_BTC_DESCRIPTION,
-    SMA_50_BTC_DESCRIPTION,
-    SMA_INDICATOR_DESCRIPTION
-} from '@/shared/consts/tooltipTechnicalIndicators'
+import { BACKTEST_DESCRIPTION, POLICY_DESCRIPTION } from '@/shared/consts/tooltipDomainTerms'
+import i18n from '@/shared/configs/i18n/i18n'
+import { COMMON_TERM_TOOLTIP_REGISTRY } from '@/shared/terms/common'
+import type { SharedTermTooltipRuleDraft } from '@/shared/terms/types'
+import { BulletList } from '@/shared/ui/BulletList'
 import TermTooltip from './TermTooltip'
 import cls from './renderTermTooltipRichText.module.scss'
 import {
     matchTermTooltips,
     normalizeComparableTerm,
-    TermTooltipContextRule,
     TermTooltipRegistryEntry
 } from '../lib/termTooltipMatcher'
+import {
+    buildSafeTermTooltipRegistry,
+    formatTermTooltipRegistryIssue
+} from '../lib/termTooltipRegistryIntegrity'
 
-interface InlineGlossaryRuleDraft {
-    id: string
-    pattern: RegExp
-    description: ReactNode
-    title?: string
-    aliases?: string[]
-    priority?: number
-    contexts?: TermTooltipContextRule
-    excludeSelf?: boolean
+type InlineGlossaryRuleDraft = SharedTermTooltipRuleDraft
+
+const TRAIN_SEGMENT_DESCRIPTION_RU: ReactNode =
+    'Train — часть истории, на которой модель обучалась и под которую подгонялись веса.\n\nЧто показывает:\nнасколько хорошо модель описывает уже виденные данные.\n\nКак читать:\nсильный `Train` полезен только рядом с [[oos-segment|OOS]]. Если на обучении всё отлично, а на новых днях метрика резко падает, это признак переобучения или утечки будущих данных, а не силы сигнала.'
+
+const TRAIN_SEGMENT_DESCRIPTION_EN: ReactNode =
+    'Train is the history segment used to fit the model weights.\n\nWhat it shows:\nhow well the model describes data it has already seen.\n\nHow to read it:\na strong `Train` is only useful together with [[oos-segment|OOS]]. If training looks excellent but quality drops on new days, that points to overfit or future-data leakage rather than real signal strength.'
+
+const OOS_SEGMENT_DESCRIPTION_RU: ReactNode =
+    'OOS (out-of-sample) — часть истории после train-границы, которую модель не видела при обучении.\n\nЧто показывает:\nпереносится ли качество на новые дни.\n\nКак читать:\nименно `OOS` считается главным честным срезом. Если [[train-segment|Train]] высокий, а `OOS` слабый, система выглядит лучше на знакомой истории, чем в режиме реальной эксплуатации.'
+
+const OOS_SEGMENT_DESCRIPTION_EN: ReactNode =
+    'OOS (out-of-sample) is the post-split part of history that the model did not see during training.\n\nWhat it shows:\nwhether quality transfers to new days.\n\nHow to read it:\n`OOS` is the main honest evaluation slice. If [[train-segment|Train]] stays high while `OOS` is weak, the system looks better on familiar history than it does in live-like conditions.'
+
+const SPLIT_BOUNDARIES_DESCRIPTION_RU: ReactNode =
+    'Split-границы — каноническое разделение истории на Train и OOS по baseline-exit дню.\n\nЕсли день закрывается не позже границы, он относится к Train. Если закрытие уходит позже границы, день попадает в OOS.\n\nГраница считается по exit-day-key, а не по моменту входа, чтобы день не оставался в Train только потому, что вход был раньше, хотя его результат закрывается уже по другую сторону split.'
+
+const SPLIT_BOUNDARIES_DESCRIPTION_EN: ReactNode =
+    'Split boundaries are the canonical Train/OOS cut by baseline-exit day.\n\nIf a day closes no later than the boundary, it belongs to Train. If the close lands after the boundary, the day belongs to OOS.\n\nThe cut is based on exit day key rather than entry time so that a day does not stay in Train when its realized outcome closes on the OOS side of the split.'
+
+const CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_RU: ReactNode =
+    'Модели текущего прогноза — это не один классификатор, а последовательность слоёв, которые собирают итоговый ответ по шагам.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) — базовый дневной слой. Он сначала оценивает, будет ли значимое движение, а затем задаёт базовый класс UP / FLAT / DOWN.\n\n2) [[landing-micro-model|Micro]] — уточняющий слой внутри FLAT-сценариев. Он пытается понять, есть ли внутри боковика слабый уклон вверх или вниз.\n\n3) [[sl-model|SL-модель]] — отдельный risk-слой, который оценивает шанс, что [[tp-sl|stop-loss]] сработает раньше [[tp-sl|take-profit]], и помечает рискованные дни.\n\n4) Total — не отдельная обученная модель, а итоговая сборка Day + Micro + SL, которую дальше читает слой [[policy|торговых правил]].\n\nКак читать:\nесли фактор ссылается на модель, сначала нужно понять, к какому слою он относится: к базовому направлению дня, к уточнению боковика или к risk-слою.'
+
+const CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_EN: ReactNode =
+    'The current prediction model stack is not a single classifier. It is a layered pipeline that builds the final answer step by step.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) is the base daily layer. It first estimates whether a meaningful move is likely, then sets the base UP / FLAT / DOWN class.\n\n2) [[landing-micro-model|Micro]] is the refinement layer inside FLAT scenarios. It tries to recover a weak directional tilt when the daily layer sees sideways action.\n\n3) [[sl-model|SL model]] is the risk layer that estimates whether [[tp-sl|stop-loss]] may hit before [[tp-sl|take-profit]] and marks elevated-risk days.\n\n4) Total is not a separate trained model. It is the final Day + Micro + SL aggregation that the [[policy|policy]] layer reads next.\n\nHow to read it:\nwhen a factor references a model, the key question is which layer it belongs to: the base day direction, the FLAT refinement layer, or the risk layer.'
+
+const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU: ReactNode =
+    'Daily — базовый дневной слой current prediction.\n\nСначала он оценивает, ожидается ли достаточно заметное движение, а затем выбирает базовый класс дня: UP, FLAT или DOWN.\n\nЭтот слой задаёт стартовый сценарий до любых уточнений от [[landing-micro-model|Micro]] и до риск-коррекции от [[sl-model|SL-модели]].'
+
+const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN: ReactNode =
+    'Daily is the base daily layer in current prediction.\n\nIt first estimates whether a meaningful move is likely, then selects the base day class: UP, FLAT, or DOWN.\n\nThis layer sets the starting scenario before any [[landing-micro-model|Micro]] refinement and before the risk correction from the [[sl-model|SL model]].'
+
+function resolveLocalizedTrainingSegmentDescription(kind: 'train' | 'oos'): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+
+    if (kind === 'train') {
+        return isEnglish ? TRAIN_SEGMENT_DESCRIPTION_EN : TRAIN_SEGMENT_DESCRIPTION_RU
+    }
+
+    return isEnglish ? OOS_SEGMENT_DESCRIPTION_EN : OOS_SEGMENT_DESCRIPTION_RU
 }
 
-const POLICY_SKIP_DESCRIPTION: ReactNode = (
-    <>
-        policy-skip — policy-level запрет на вход, который срабатывает после проверки направления. В текущей реализации
-        он применяется для UltraSafe и имеет две явные причины:{' '}
-        <TermTooltip
-            term='ultra_safe.regime_down'
-            description={ULTRA_SAFE_REGIME_DOWN_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />{' '}
-        и{' '}
-        <TermTooltip
-            term='ultra_safe.sl_prob_gt_threshold'
-            description={ULTRA_SAFE_SL_PROB_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        .
-    </>
-)
+function resolveLocalizedSplitBoundariesDescription(): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? SPLIT_BOUNDARIES_DESCRIPTION_EN : SPLIT_BOUNDARIES_DESCRIPTION_RU
+}
 
-const FILTERS_DESCRIPTION: ReactNode = (
-    <>
-        Фильтры — это проверки перед входом. Если любая проверка не пройдена, день становится no-trade. Основные причины
-        в отчёте:{' '}
-        <TermTooltip
-            term='no_direction'
-            description={NO_DIRECTION_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip
-            term='направление сигнала'
-            description={SIGNAL_DIRECTION_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip term='policy-skip' description={POLICY_SKIP_DESCRIPTION} type='span' className={cls.inlineTerm} />,{' '}
-        <TermTooltip term='cap_zero' description={CAP_ZERO_DESCRIPTION} type='span' className={cls.inlineTerm} />,{' '}
-        <TermTooltip
-            term='повышенный риск дня'
-            description={HIGH_RISK_DAY_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip
-            term='cap fraction'
-            description={CAP_FRACTION_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip
-            term='confidence_out_of_range'
-            description={CONFIDENCE_OUT_OF_RANGE_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        , <TermTooltip term='low_edge' description={LOW_EDGE_DESCRIPTION} type='span' className={cls.inlineTerm} />,{' '}
-        <TermTooltip
-            term='risk_throttle'
-            description={RISK_THROTTLE_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip
-            term='bucket_dead_after_liquidation'
-            description={BUCKET_DEAD_AFTER_LIQ_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        ,{' '}
-        <TermTooltip
-            term='anti_d_not_applied'
-            description={ANTI_D_NOT_APPLIED_DESCRIPTION}
-            type='span'
-            className={cls.inlineTerm}
-        />
-        .
-    </>
-)
+function resolveLocalizedCurrentPredictionModelStackDescription(): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_EN : CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_RU
+}
 
-const POSITION_TOOLTIP_DESCRIPTION: ReactNode = (
-    <>
-        Позиция — открытая сделка.
-        {'\n\n'}
-        LONG — ставка на рост цены.
-        {'\n\n'}
-        SHORT — ставка на падение цены.
-        {'\n\n'}
-        Если <TermTooltip term='фильтры' description={FILTERS_DESCRIPTION} type='span' className={cls.inlineTerm} /> не
-        пропускают день, позиция не открывается (no-trade).
-    </>
-)
+function resolveLocalizedCurrentPredictionDailyLayerDescription(): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN : CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU
+}
+
+function resolveLocalizedReportTooltipDescription(descriptionKey: string, ruleId: string, term: string): ReactNode {
+    const localizedDescription = i18n.t(descriptionKey, { ns: 'reports' })
+
+    if (typeof localizedDescription !== 'string') {
+        throw new Error(`[term-tooltip] Localized tooltip description must be a string for key "${descriptionKey}".`)
+    }
+
+    return renderTermTooltipRichText(localizedDescription, {
+        excludeRuleIds: [ruleId],
+        excludeTerms: [term]
+    })
+}
+
+function createLocalizedReportTooltipRule(id: string, descriptionKey: string, term: string): InlineGlossaryRuleDraft {
+    return {
+        id,
+        pattern: /$^/,
+        description: () => resolveLocalizedReportTooltipDescription(descriptionKey, id, term),
+        autolink: false
+    }
+}
 
 const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
+    createLocalizedReportTooltipRule('landing-solana', 'main.intro.tooltipRules.solana', 'Solana'),
+    createLocalizedReportTooltipRule('landing-sol-usdt', 'main.intro.tooltipRules.solUsdt', 'SOL/USDT'),
+    createLocalizedReportTooltipRule('landing-ml-model', 'main.intro.tooltipRules.mlModel', 'ML model'),
     {
-        id: 'sl-mode-term',
-        pattern: /SL Mode|режим\s+SL/i,
-        title: 'SL Mode',
-        description: SL_MODE_TERM_DESCRIPTION,
-        aliases: ['SL Mode', 'режим SL'],
-        priority: 140
-    },
-    {
-        id: 'tp-sl-mode-term',
-        pattern: /TP\/SL mode|режим\s+TP\/SL|dynamic[-\s]?risk\s+mode|режим\s+dynamic[-\s]?risk/i,
-        title: 'Dynamic-risk mode',
-        description: TP_SL_MODE_DESCRIPTION,
-        aliases: ['TP/SL mode', 'режим TP/SL', 'Dynamic-risk mode', 'режим dynamic-risk'],
-        priority: 140
-    },
-    {
-        id: 'zonal-mode-term',
-        pattern: /\bZONAL\b|with-zonal|without-zonal|зональн(?:ый|ого|ом)?\s+фильтр/i,
-        title: 'ZONAL',
-        description: ZONAL_MODE_DESCRIPTION,
-        aliases: ['ZONAL', 'with-zonal', 'without-zonal', 'зональный фильтр'],
-        priority: 110
-    },
-    {
-        id: 'with-zonal-mode',
-        pattern: /\bWITH(?:[-‑_\s]+)ZONAL\b|с\s+зональност/i,
-        title: 'WITH ZONAL',
-        description: WITH_ZONAL_MODE_DESCRIPTION,
-        aliases: ['WITH ZONAL', 'WITH-ZONAL', 'С зональностью'],
-        priority: 160
-    },
-    {
-        id: 'without-zonal-mode',
-        pattern: /\bWITHOUT(?:[-‑_\s]+)ZONAL\b|без\s+зональност/i,
-        title: 'WITHOUT ZONAL',
-        description: WITHOUT_ZONAL_MODE_DESCRIPTION,
-        aliases: ['WITHOUT ZONAL', 'WITHOUT-ZONAL', 'Без зональности'],
-        priority: 160
-    },
-    {
-        id: 'with-sl-mode',
-        pattern: /\bWITH(?:[-‑_\s]+)SL\b/i,
-        title: 'WITH-SL',
-        description: WITH_SL_MODE_DESCRIPTION,
-        aliases: ['WITH-SL', 'WITH SL'],
-        priority: 160
-    },
-    {
-        id: 'no-sl-mode',
-        pattern: /\bNO(?:[-‑_\s]+)SL\b/i,
-        title: 'NO-SL',
-        description: NO_SL_MODE_DESCRIPTION,
-        aliases: ['NO-SL', 'NO SL'],
-        priority: 160
-    },
-    {
-        id: 'total-pnl',
-        pattern: /TotalPnl%|TotalPnlPct/i,
-        title: 'TotalPnl%',
-        description: TOTAL_PNL_DESCRIPTION
-    },
-    {
-        id: 'wealth-pct',
-        pattern: /Wealth%/i,
-        title: 'Wealth%',
-        description: WEALTH_PCT_DESCRIPTION
-    },
-    {
-        id: 'percentage-points',
-        pattern: /\bп\.п\.?/i,
-        title: 'Процентные пункты',
-        description: PERCENTAGE_POINTS_DESCRIPTION,
-        aliases: ['п.п.', 'п.п', 'процентные пункты'],
-        priority: 200
-    },
-    {
-        id: 'backtest',
-        pattern: /бэктест(?:е|а|у|ом|ы|ов|ам|ами|ах)?|backtest/i,
+        id: 'landing-backtest',
+        pattern: /$^/,
         title: 'Бэктест',
         description: BACKTEST_DESCRIPTION,
-        aliases: ['бэктест', 'backtest'],
-        priority: 175
+        autolink: false
     },
     {
-        id: 'why-weekends',
-        pattern: /Почему\?\s*\(выходные\)/i,
-        title: 'Почему? (выходные)',
-        description: WHY_WEEKENDS_DESCRIPTION
-    },
-    {
-        id: 'why-bucket',
-        pattern: /Почему\?\s*\(bucket\)/i,
-        title: 'Почему? (bucket)',
-        description: WHY_BUCKET_DESCRIPTION
-    },
-    {
-        id: 'why-no-sl',
-        pattern: /Почему\?\s*\(NO(?:[-‑\s]?SL)\)/i,
-        title: 'Почему? (NO-SL)',
-        description: WHY_NO_SL_DESCRIPTION
-    },
-    {
-        id: 'why-no-biggest-liq-loss',
-        pattern: /Почему\?\s*\(NO\s+BIGGEST\s+LIQ\s+LOSS\)/i,
-        title: 'Почему? (NO BIGGEST LIQ LOSS)',
-        description: WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION
-    },
-    {
-        id: 'why-first-event',
-        pattern: /Почему\?\s*\(first[-‑\s]?event\)/i,
-        title: 'Почему? (first-event)',
-        description: WHY_FIRST_EVENT_DESCRIPTION
-    },
-    {
-        id: 'why-min-move',
-        pattern: /Почему\?\s*\(MinMove\)/i,
-        title: 'Почему? (MinMove)',
-        description: WHY_MIN_MOVE_DESCRIPTION
-    },
-    {
-        id: 'sl-model',
-        pattern: /SL(?:[-‑\s]?модел[а-яё]*)|\bsl[-‑\s]?model\b|SlHighDecision\b/i,
-        title: 'SL-модель',
-        description: SL_MODEL_DESCRIPTION,
-        aliases: ['SL-модель', 'SL модель', 'sl model', 'SlHighDecision'],
-        priority: 260
-    },
-    {
-        id: 'anti-direction',
-        pattern: /anti[-‑\s]?direction|анти-?направлен|инверси[яи]\s+направлени/i,
-        title: 'anti-direction',
-        description: ANTI_DIRECTION_DESCRIPTION,
-        aliases: ['anti-direction', 'анти-направление', 'инверсия направления'],
-        priority: 180
-    },
-    {
-        id: 'dynamic-tp-sl',
-        pattern:
-            /\bDynTP\/SL\b|dynamic\s*TP\/SL|dynamic[-\s]?risk|\bDYNAMIC(?:\s+RISK)?\b|динам(?:ический|ические|ических|ическим)\s*TP\/SL|динам(?:ический|ическая)\s+режим/i,
-        title: 'DYNAMIC risk',
-        description: DYNAMIC_TP_SL_DESCRIPTION,
-        aliases: ['DYNAMIC', 'DYNAMIC risk', 'DynTP/SL', 'dynamic TP/SL', 'Dynamic TP/SL', 'dynamic risk'],
-        priority: 240
-    },
-    {
-        id: 'static-tp-sl',
-        pattern:
-            /\bStatTP\/SL\b|static\s*TP\/SL|static[-\s]?base|\bSTATIC(?:\s+BASE)?\b|стат(?:ический|ические|ических|ическим)\s*TP\/SL|стат(?:ический|ическая)\s+режим/i,
-        title: 'STATIC base',
-        description: STATIC_TP_SL_DESCRIPTION,
-        aliases: ['STATIC', 'STATIC base', 'StatTP/SL', 'static TP/SL', 'Static TP/SL', 'static base'],
-        priority: 240
-    },
-    {
-        id: 'tp-sl-combined',
-        pattern:
-            /(?:тейк-?профит[а-яё]*|take-profit|\bTP\b)\s*(?:\([^)]*\))?\s*(?:\/|,|;|:|\s+и\s+)\s*(?:стоп-?лосс[а-яё]*|stop-loss|\bSL\b)\s*(?:\([^)]*\))?|(?:стоп-?лосс[а-яё]*|stop-loss|\bSL\b)\s*(?:\([^)]*\))?\s*(?:\/|,|;|:|\s+и\s+)\s*(?:тейк-?профит[а-яё]*|take-profit|\bTP\b)\s*(?:\([^)]*\))?|\bTP\/SL\b|\bSL\/TP\b/i,
-        title: 'TP/SL',
-        description: TP_SL_DESCRIPTION,
-        aliases: ['TP/SL', 'SL/TP'],
-        priority: 220
-    },
-    {
-        id: 'net-pnl-usd',
-        pattern: /\bNetPnl\$/i,
-        title: 'NetPnl$',
-        description: NET_PNL_USD_DESCRIPTION
-    },
-    {
-        id: 'pnl',
-        pattern: /\bPnL\b/i,
-        title: 'PnL',
-        description: PNL_DESCRIPTION,
-        aliases: ['PnL'],
-        priority: 170
-    },
-    {
-        id: 'dd',
-        pattern: /\bDD\b/i,
-        title: 'DD',
-        description: DD_DESCRIPTION,
-        aliases: ['DD'],
-        priority: 170
-    },
-    {
-        id: 'trade-count',
-        pattern: /\bTr\b|trade[-\s]?count|числ(?:о|а)\s+сделок|количеств(?:о|а)\s+сделок/i,
-        title: 'Tr',
-        description: TRADE_COUNT_DESCRIPTION,
-        aliases: ['Tr', 'trade count', 'число сделок', 'количество сделок'],
-        priority: 175
-    },
-    {
-        id: 'recovery',
-        pattern: /\brecovery\b|восстановлени(?:е|я|ю|ем|и)\b/i,
-        title: 'recovery',
-        description: RECOVERY_DESCRIPTION,
-        aliases: ['recovery', 'восстановление'],
-        priority: 165
-    },
-    {
-        id: 'net-return-pct',
-        pattern: /\bNetReturnPct\b|\bNetReturnPc\b|чист(?:ая|ой)\s+доходност[ьи]\s+сделк[аи]/i,
-        title: 'NetReturnPct',
-        description: NET_RETURN_PCT_DESCRIPTION,
-        aliases: ['NetReturnPct', 'NetReturnPc'],
-        priority: 210
-    },
-    {
-        id: 'tp-sl',
-        pattern: /\bTP\/SL\b|\bSL\/TP\b|тейк-?профит[а-яё]*|take-profit|стоп-?лосс[а-яё]*|stop-loss|\bTP\b|\bSL\b/i,
-        title: 'TP/SL',
-        description: TP_SL_DESCRIPTION,
-        aliases: ['TP/SL', 'SL/TP', 'тейк-профит', 'take-profit', 'стоп-лосс', 'stop-loss'],
-        priority: 30,
-        contexts: {
-            blockedBeforeWords: ['with', 'no', 'режим', 'dynamic', 'static', 'dyn', 'stat'],
-            blockedAfterWords: ['mode', 'режим', 'модель', 'модели', 'моделью', 'моделях', 'моделям', 'моделей']
-        }
-    },
-    {
-        id: 'account-ruin',
-        pattern: /AccRuin|account\s*ruin|руин[аы]?\s+(?:аккаунта|сч[её]та|бакета)/i,
-        title: 'AccRuin',
-        description: ACCOUNT_RUIN_DESCRIPTION
-    },
-    {
-        id: 'recovered',
-        pattern: /\bRecovered\b|Recovered\s*=\s*(?:true|false)|флаг\s+восстановлени(?:я|е)/i,
-        title: 'Recovered',
-        description: RECOVERED_DESCRIPTION
-    },
-    {
-        id: 'recov-days',
-        pattern: /\bRecovDays\b|дней\s+до\s+восстановлен/i,
-        title: 'RecovDays',
-        description: RECOV_DAYS_DESCRIPTION
-    },
-    {
-        id: 'req-gain',
-        pattern: /\bReqGain%\b|\bReqGain\b|требуем(?:ый|ого)\s+рост/i,
-        title: 'ReqGain%',
-        description: REQ_GAIN_DESCRIPTION
-    },
-    {
-        id: 'liquidation',
-        pattern: /ликвидац|liquidation|HadLiq|RealLiq/i,
-        title: 'Ликвидация',
-        description: LIQUIDATION_DESCRIPTION
-    },
-    {
-        id: 'isolated-margin',
-        pattern: /isolated|изолированн(?:ая|ой)\s+марж/i,
-        title: 'Isolated маржа',
-        description: ISOLATED_MARGIN_DESCRIPTION
-    },
-    {
-        id: 'cross-margin',
-        pattern: /\bcross\b|кросс-?марж/i,
-        title: 'Cross маржа',
-        description: CROSS_MARGIN_DESCRIPTION
-    },
-    {
-        id: 'leverage',
-        pattern: /плечо|leverage/i,
-        title: 'Плечо',
-        description: LEVERAGE_DESCRIPTION
-    },
-    {
-        id: 'margin',
-        pattern: /маржа|залог/i,
-        title: 'Маржа',
-        description: MARGIN_DESCRIPTION
-    },
-    {
-        id: 'position',
-        pattern: /(?<![A-Za-zА-Яа-яЁё0-9_])(?:LONG|SHORT|позиц(?:ия|ии|ию|ией|иями|иях|иям))(?![A-Za-zА-Яа-яЁё0-9_])/i,
-        title: 'Позиция',
-        description: POSITION_TOOLTIP_DESCRIPTION
-    },
-    {
-        id: 'exposure',
-        pattern: /экспозици(?:я|и|ю|ей|ями|ях)|Exposure%?|high exposure/i,
-        title: 'Экспозиция',
-        description: EXPOSURE_DESCRIPTION,
-        aliases: ['экспозиция', 'Exposure', 'Exposure%'],
-        priority: 145
-    },
-    {
-        id: 'drawdown',
-        pattern: /просадк|MaxDD|DD70/i,
-        title: 'Просадка',
-        description: DRAWDOWN_DESCRIPTION
-    },
-    {
-        id: 'ratio-curve',
-        pattern: /ratio[-‑\s]?крив|ratio[-‑\s]?curve|ratio[-‑\s]?series/i,
-        title: 'ratio-кривая',
-        description: RATIO_CURVE_DESCRIPTION,
-        aliases: ['ratio-кривая', 'ratio curve'],
-        priority: 176
-    },
-    {
-        id: 'sharpe-ratio',
-        pattern: /\bSharpe\b|коэффиц(?:иент)?\s+шарпа/i,
-        title: 'Sharpe',
-        description: SHARPE_DESCRIPTION,
-        aliases: ['Sharpe', 'коэффициент Шарпа'],
-        priority: 176
-    },
-    {
-        id: 'sortino-ratio',
-        pattern: /\bSortino\b|коэффиц(?:иент)?\s+сортино/i,
-        title: 'Sortino',
-        description: SORTINO_DESCRIPTION,
-        aliases: ['Sortino', 'коэффициент Сортино'],
-        priority: 176
-    },
-    {
-        id: 'policy',
-        pattern: /\bpolicy\b/i,
+        id: 'landing-trading-policy',
+        pattern: /$^/,
         title: 'Policy',
-        description: POLICY_DESCRIPTION
+        description: POLICY_DESCRIPTION,
+        autolink: false
     },
+    createLocalizedReportTooltipRule('landing-btc', 'main.tooltipRules.btc', 'BTC'),
+    createLocalizedReportTooltipRule(
+        'landing-macro-indicators',
+        'main.tooltipRules.macroIndicators',
+        'Macro indicators'
+    ),
+    createLocalizedReportTooltipRule('landing-features', 'main.tooltipRules.features', 'Features'),
+    createLocalizedReportTooltipRule('landing-signal', 'main.tooltipRules.signal', 'Signal'),
+    createLocalizedReportTooltipRule('landing-forecast', 'main.tooltipRules.forecast', 'Forecast'),
+    createLocalizedReportTooltipRule(
+        'landing-current-prediction',
+        'main.tooltipRules.currentPrediction',
+        'Current prediction'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-prediction-history',
+        'main.tooltipRules.predictionHistory',
+        'Prediction history'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-backtest-summary',
+        'main.tooltipRules.backtestSummary',
+        'Backtest summary'
+    ),
+    createLocalizedReportTooltipRule('landing-diagnostics', 'main.tooltipRules.diagnostics', 'Diagnostics'),
+    createLocalizedReportTooltipRule('landing-analysis', 'main.tooltipRules.analysis', 'Analysis'),
+    createLocalizedReportTooltipRule('landing-explain', 'main.tooltipRules.explain', 'Explain'),
+    createLocalizedReportTooltipRule(
+        'landing-truthfulness',
+        'main.tooltipRules.truthfulness',
+        'Truthfulness contour'
+    ),
+    createLocalizedReportTooltipRule('landing-time-horizon', 'main.tooltipRules.timeHorizon', '24h horizon'),
+    createLocalizedReportTooltipRule('landing-early-preview', 'main.tooltipRules.earlyPreview', 'Early preview'),
+    createLocalizedReportTooltipRule(
+        'landing-path-labeling',
+        'main.tooltipRules.pathBasedLabeling',
+        'Path-based labeling'
+    ),
+    createLocalizedReportTooltipRule('landing-micro-model', 'main.tooltipRules.microModel', 'Micro model'),
+    createLocalizedReportTooltipRule('landing-multi-layer', 'main.tooltipRules.multiLayer', 'Multi-layer'),
+    createLocalizedReportTooltipRule('landing-sl-risk', 'main.tooltipRules.slRisk', 'SL risk'),
+    createLocalizedReportTooltipRule('landing-guardrail', 'main.tooltipRules.guardrail', 'Guardrail'),
+    createLocalizedReportTooltipRule('landing-specificity', 'main.tooltipRules.specificity', 'Specificity'),
+    createLocalizedReportTooltipRule('landing-blame-split', 'main.tooltipRules.blameSplit', 'Blame split'),
+    createLocalizedReportTooltipRule('landing-hotspots', 'main.tooltipRules.hotspots', 'Hotspots'),
+    createLocalizedReportTooltipRule('landing-pfi', 'main.tooltipRules.pfi', 'PFI'),
+    createLocalizedReportTooltipRule(
+        'landing-confusion-matrix',
+        'main.tooltipRules.confusionMatrix',
+        'Confusion matrix'
+    ),
+    createLocalizedReportTooltipRule('landing-model-metrics', 'main.tooltipRules.modelMetrics', 'Model metrics'),
+    createLocalizedReportTooltipRule(
+        'landing-policy-branch-mega',
+        'main.tooltipRules.policyBranchMega',
+        'Policy Branch Mega'
+    ),
+    createLocalizedReportTooltipRule('landing-no-trade', 'main.tooltipRules.noTrade', 'NoTrade'),
+    createLocalizedReportTooltipRule('landing-attribution', 'main.tooltipRules.attribution', 'Attribution'),
+    createLocalizedReportTooltipRule(
+        'landing-feature-importance',
+        'main.tooltipRules.featureImportance',
+        'Feature importance'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-aggregation',
+        'main.tooltipRules.predictionAggregation',
+        'Prediction aggregation'
+    ),
+    createLocalizedReportTooltipRule('landing-all-history', 'main.tooltipRules.allHistory', 'ALL HISTORY'),
+    createLocalizedReportTooltipRule(
+        'landing-baseline-backtest',
+        'main.tooltipRules.baselineBacktest',
+        'Baseline backtest'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-experimental-backtest',
+        'main.tooltipRules.experimentalBacktest',
+        'Experimental backtest'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-model-confidence',
+        'main.tooltipRules.modelConfidence',
+        'Model confidence'
+    ),
+    createLocalizedReportTooltipRule(
+        'landing-liquidation-buffer',
+        'main.tooltipRules.liquidationBuffer',
+        'Liquidation buffer'
+    ),
+    ...COMMON_TERM_TOOLTIP_REGISTRY,
     {
-        id: 'branch',
-        pattern: /\bbranch\b|\bANTI-D\b|\bBASE\b/i,
-        title: 'Branch',
-        description: BRANCH_DESCRIPTION
-    },
-    {
-        id: 'risk-layers',
-        pattern:
-            /risk[-\s]?сло(?:й|и|я|ю|ем|е|ев|ёв|ям|ями|ях)|risk[-\s]?layers?|сло(?:й|и|я|ю|ем|е)\s+риска/i,
-        title: 'Risk-слои',
-        description: RISK_LAYERS_DESCRIPTION,
-        aliases: ['risk-слои', 'risk-слой', 'risk layers', 'risk layer', 'слои риска'],
-        priority: 188
-    },
-    {
-        id: 'bucket-daily',
-        pattern: /\bdaily bucket\b|бакет\s+daily/i,
-        title: 'daily bucket',
-        description: DAILY_BUCKET_DESCRIPTION
-    },
-    {
-        id: 'bucket-intraday',
-        pattern: /\bintraday bucket\b|бакет\s+intraday/i,
-        title: 'intraday bucket',
-        description: INTRADAY_BUCKET_DESCRIPTION
-    },
-    {
-        id: 'bucket-delayed',
-        pattern: /\bdelayed bucket\b|бакет\s+delayed/i,
-        title: 'delayed bucket',
-        description: DELAYED_BUCKET_DESCRIPTION
-    },
-    {
-        id: 'executed-at-utc',
-        pattern: /\bExecutedAtUtc\b/i,
-        title: 'ExecutedAtUtc',
-        description: EXECUTED_AT_UTC_DESCRIPTION,
-        aliases: ['ExecutedAtUtc'],
-        priority: 260
-    },
-    {
-        id: 'delayed-signal',
-        pattern: /delayed[-‑\s]?сигнал|delayed signal|DelayedExecution/i,
-        title: 'delayed-сигнал',
-        description: DELAYED_SIGNAL_DESCRIPTION
-    },
-    {
-        id: 'bucket-total-aggregate',
-        pattern: /\btotal aggregate\b|total-aggregate|агрегат\s+всех\s+бакетов/i,
-        title: 'total aggregate',
-        description: TOTAL_AGGREGATE_BUCKET_DESCRIPTION
-    },
-    {
-        id: 'bucket',
-        pattern: /\bbucket\b|бакет/i,
-        title: 'Bucket',
-        description: BUCKET_DESCRIPTION
-    },
-    {
-        id: 'metric-view',
-        pattern: /metric view|режим метрик/i,
-        title: 'Metric View',
-        description: METRIC_VIEW_DESCRIPTION
-    },
-    {
-        id: 'real-metric',
-        pattern: /\bREAL\b/i,
-        title: 'REAL',
-        description: REAL_METRIC_DESCRIPTION,
-        aliases: ['REAL'],
-        priority: 155
-    },
-    {
-        id: 'no-biggest-liq-loss-metric',
-        pattern: /NO\s+BIGGEST\s+LIQ\s+LOSS/i,
-        title: 'NO BIGGEST LIQ LOSS',
-        description: NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
-        aliases: ['NO BIGGEST LIQ LOSS'],
-        priority: 156
-    },
-    {
-        id: 'funding',
-        pattern: /funding|фандинг/i,
-        title: 'Funding',
-        description: FUNDING_DESCRIPTION
-    },
-    {
-        id: 'slippage',
-        pattern: /проскальзывани|slippage|price impact/i,
-        title: 'Проскальзывание',
-        description: SLIPPAGE_DESCRIPTION
-    },
-    {
-        id: 'eod',
-        pattern: /EndOfDay|end[-‑\s]?of[-‑\s]?day|\bEOD\b/i,
-        title: 'EOD (EndOfDay)',
-        description: EOD_DESCRIPTION,
-        aliases: ['EndOfDay', 'EOD', 'end of day'],
-        priority: 130
-    },
-    {
-        id: 'first-event',
-        pattern: /first[-‑\s]?event|first event|цепочк[аи]\s+событий/i,
-        title: 'first-event',
-        description: FIRST_EVENT_DESCRIPTION,
-        aliases: ['first-event', 'first event', 'first-event цепочка'],
-        priority: 170
-    },
-    {
-        id: 'counterfact',
-        pattern: /контрфакт|counterfactual/i,
-        title: 'Контрфакт',
-        description: COUNTERFACT_DESCRIPTION
-    },
-    {
-        id: 'market',
-        pattern: /рынок|рынка|рынке/i,
-        title: 'Рынок',
-        description: MARKET_DESCRIPTION
-    },
-    {
-        id: 'active-equity',
-        pattern: /active equity|active[-\s]?equity|активн(?:ая|ой)\s+equity/i,
-        title: 'Active equity',
-        description: ACTIVE_EQUITY_DESCRIPTION,
-        aliases: ['active equity', 'active-equity'],
-        priority: 150
-    },
-    {
-        id: 'start-balance',
-        pattern: /стартов(?:ый|ого)\s+баланс|start(?:ing)?\s+balance|StartCapital/i,
-        title: 'Стартовый баланс',
-        description: START_BALANCE_DESCRIPTION,
-        aliases: ['стартовый баланс', 'StartCapital'],
-        priority: 155
-    },
-    {
-        id: 'start-cap',
-        pattern: /\bStartCap\$?\b|StartCapital|стартов(?:ый|ого)\s+капитал/i,
-        title: 'StartCap',
-        description: START_CAP_DESCRIPTION,
-        aliases: ['StartCap', 'StartCap$', 'стартовый капитал'],
-        priority: 165
-    },
-    {
-        id: 'withdrawn-profit',
-        pattern: /выведенн(?:ая|ой)\s+прибыл(?:ь|и)|withdrawn/i,
-        title: 'Выведенная прибыль',
-        description: WITHDRAWN_PROFIT_DESCRIPTION,
-        aliases: ['выведенная прибыль', 'withdrawn'],
-        priority: 172
-    },
-    {
-        id: 'margin-used',
-        pattern: /\bMarginUsed\b|margin used|использованн(?:ая|ого)\s+марж(?:а|и)|использованн(?:ый|ого)\s+залог/i,
-        title: 'MarginUsed',
-        description: MARGIN_USED_DESCRIPTION,
-        aliases: ['MarginUsed', 'margin used', 'использованная маржа'],
-        priority: 165
-    },
-    {
-        id: 'p90-quantile',
-        pattern: /\bp90\b/i,
-        title: 'p90',
-        description: P90_QUANTILE_DESCRIPTION,
-        aliases: ['p90'],
+        id: 'train-segment',
+        pattern: /$^/,
+        title: 'Train',
+        description: () => resolveLocalizedTrainingSegmentDescription('train'),
+        aliases: ['Train'],
         priority: 180
     },
     {
-        id: 'cap-policy',
-        pattern: /cap[-\s]?политик(?:а|и|е)?|cap policy/i,
-        title: 'cap-политика',
-        description: CAP_POLICY_DESCRIPTION,
-        aliases: ['cap-политика', 'cap-политики', 'cap policy'],
-        priority: 170
+        id: 'oos-segment',
+        pattern: /$^/,
+        title: 'OOS',
+        description: () => resolveLocalizedTrainingSegmentDescription('oos'),
+        aliases: ['OOS', 'Out-of-sample', 'out-of-sample', 'out of sample'],
+        priority: 180
     },
     {
-        id: 'trace',
-        pattern: /\btrace\b|трейс/i,
-        title: 'trace',
-        description: TRACE_DESCRIPTION,
-        aliases: ['trace', 'трейс'],
-        priority: 170
+        id: 'split-boundaries',
+        pattern: /$^/,
+        title: 'split-границы',
+        description: () => resolveLocalizedSplitBoundariesDescription(),
+        aliases: ['split-границы', 'split границы', 'split boundary', 'split boundaries', 'TrainUntilExitDayKeyUtc'],
+        autolink: false
     },
     {
-        id: 'current-balance',
-        pattern: /текущ(?:ий|его)\s+баланс|current\s+balance|EquityNow/i,
-        title: 'Текущий баланс',
-        description: CURRENT_BALANCE_DESCRIPTION,
-        aliases: ['текущий баланс', 'EquityNow'],
-        priority: 155
+        id: 'current-prediction-model-stack',
+        pattern: /$^/,
+        title: 'Модели текущего прогноза',
+        description: () => resolveLocalizedCurrentPredictionModelStackDescription(),
+        autolink: false
     },
     {
-        id: 'price-move',
-        pattern: /ход\s+цены|движени[ея]\s+цены|price\s+move/i,
-        title: 'Ход цены',
-        description: PRICE_MOVE_DESCRIPTION,
-        aliases: ['ход цены', 'price move'],
-        priority: 150
+        id: 'current-prediction-daily-layer',
+        pattern: /$^/,
+        title: 'Daily',
+        description: () => resolveLocalizedCurrentPredictionDailyLayerDescription(),
+        aliases: ['Daily', 'Daily layer', 'дневной слой'],
+        autolink: false
     },
-    {
-        id: 'market-noise',
-        pattern: /рыночн(?:ый|ого)\s+шум|market\s+noise/i,
-        title: 'Рыночный шум',
-        description: MARKET_NOISE_DESCRIPTION,
-        aliases: ['рыночный шум', 'market noise'],
-        priority: 150
-    },
-    {
-        id: 'atr-indicator',
-        pattern: /ATR(?:\s+индикатор)?|Average True Range/i,
-        title: 'ATR индикатор',
-        description: ATR_INDICATOR_DESCRIPTION
-    },
-    {
-        id: 'rsi-indicator',
-        pattern: /RSI(?:\s+индикатор)?|Relative Strength Index/i,
-        title: 'RSI индикатор',
-        description: RSI_INDICATOR_DESCRIPTION
-    },
-    {
-        id: 'sma-50-btc',
-        pattern: /SMA\s*50(?:\s+по\s+Bitcoin|\s+BTC)?|SMA50(?:\s*BTC)?/i,
-        title: 'SMA 50 по Bitcoin',
-        description: SMA_50_BTC_DESCRIPTION
-    },
-    {
-        id: 'sma-200-btc',
-        pattern: /SMA\s*200(?:\s+по\s+Bitcoin|\s+BTC)?|SMA200(?:\s*BTC)?/i,
-        title: 'SMA 200 по Bitcoin',
-        description: SMA_200_BTC_DESCRIPTION
-    },
-    {
-        id: 'ema-50-sol',
-        pattern: /EMA\s*50(?:\s+по\s+Solana|\s+SOL)?|EMA50(?:\s*SOL)?/i,
-        title: 'EMA 50 по Solana',
-        description: EMA_50_SOL_DESCRIPTION
-    },
-    {
-        id: 'ema-200-btc-sol',
-        pattern:
-            /EMA\s*200(?:\s+по\s+(?:Bitcoin\/Solana|BTC\/SOL|Bitcoin|Solana|BTC|SOL))?|EMA200(?:\s*(?:BTC\/SOL|BTC|SOL))?/i,
-        title: 'EMA 200 по Bitcoin/Solana',
-        description: EMA_200_BTC_SOL_DESCRIPTION
-    },
-    {
-        id: 'sma-indicator',
-        pattern: /SMA(?:\s+индикатор)?|Simple Moving Average/i,
-        title: 'SMA индикатор',
-        description: SMA_INDICATOR_DESCRIPTION
-    },
-    {
-        id: 'ema-indicator',
-        pattern: /EMA(?:\s+индикатор)?|Exponential Moving Average/i,
-        title: 'EMA индикатор',
-        description: EMA_INDICATOR_DESCRIPTION
-    },
-    {
-        id: 'min-move',
-        pattern: /\bMinMove\b|min[-\s]?move|минимальн(?:ый|ого)\s+ход\s+цены/i,
-        title: 'MinMove',
-        description: MIN_MOVE_DESCRIPTION
-    },
-    {
-        id: 'sl-prob',
-        pattern: /\bSlProb\b|sl[_\s-]?prob|вероятност[ьи]\s+срабатывания\s+SL/i,
-        title: 'SlProb',
-        description: SL_PROB_DESCRIPTION
-    },
-    {
-        id: 'regime-down-flag',
-        pattern: /\bRegimeDownFlag\b|regime[_\s-]?down|нисходящ(?:ий|его)\s+режим/i,
-        title: 'RegimeDownFlag',
-        description: REGIME_DOWN_FLAG_DESCRIPTION
-    },
-    {
-        id: 'filters',
-        pattern: /фильтр|фильтры/i,
-        title: 'Фильтры',
-        description: FILTERS_DESCRIPTION
-    },
-    {
-        id: 'no-direction',
-        pattern: /\bno_direction\b|без направления|нет направления/i,
-        title: 'no_direction',
-        description: NO_DIRECTION_DESCRIPTION
-    },
-    {
-        id: 'signal-direction',
-        pattern: /направлени[ея]\s+сигнала|без направления/i,
-        title: 'Направление сигнала',
-        description: SIGNAL_DIRECTION_DESCRIPTION
-    },
-    {
-        id: 'policy-skip',
-        pattern: /\bpolicy[-_ ]skip\b/i,
-        title: 'policy-skip',
-        description: POLICY_SKIP_DESCRIPTION
-    },
-    {
-        id: 'ultra-safe-regime-down',
-        pattern: /\bultra_safe\.regime_down\b/i,
-        title: 'ultra_safe.regime_down',
-        description: ULTRA_SAFE_REGIME_DOWN_DESCRIPTION
-    },
-    {
-        id: 'ultra-safe-sl-prob',
-        pattern: /\bultra_safe\.sl_prob_gt_threshold\b|slprob/i,
-        title: 'ultra_safe.sl_prob_gt_threshold',
-        description: ULTRA_SAFE_SL_PROB_DESCRIPTION
-    },
-    {
-        id: 'high-risk-day',
-        pattern: /повышенн(?:ый|ого)\s+риск(?:а|ом)?(?:\s+дня)?|риск-?дн(?:я|и|ей)/i,
-        title: 'Риск-день',
-        description: HIGH_RISK_DAY_DESCRIPTION
-    },
-    {
-        id: 'cap-fraction',
-        pattern: /\bcap fraction\b|доля капитала на сделку/i,
-        title: 'Cap fraction',
-        description: CAP_FRACTION_DESCRIPTION
-    },
-    {
-        id: 'cap-zero',
-        pattern: /\bcap_zero\b|cap\s*=\s*0/i,
-        title: 'cap_zero',
-        description: CAP_ZERO_DESCRIPTION
-    },
-    {
-        id: 'confidence-out-of-range',
-        pattern: /\bconfidence_out_of_range\b|out_of_range/i,
-        title: 'confidence_out_of_range',
-        description: CONFIDENCE_OUT_OF_RANGE_DESCRIPTION
-    },
-    {
-        id: 'low-edge',
-        pattern: /\blow_edge\b/i,
-        title: 'low_edge',
-        description: LOW_EDGE_DESCRIPTION
-    },
-    {
-        id: 'risk-throttle',
-        pattern: /\brisk_throttle\b/i,
-        title: 'risk_throttle',
-        description: RISK_THROTTLE_DESCRIPTION
-    },
-    {
-        id: 'bucket-dead-after-liq',
-        pattern: /\bbucket_dead_after_liquidation\b/i,
-        title: 'bucket_dead_after_liquidation',
-        description: BUCKET_DEAD_AFTER_LIQ_DESCRIPTION
-    },
-    {
-        id: 'anti-d-not-applied',
-        pattern: /\banti_d_not_applied\b/i,
-        title: 'anti_d_not_applied',
-        description: ANTI_D_NOT_APPLIED_DESCRIPTION
-    },
-    {
-        id: 'conf-bucket',
-        pattern: /confBucket|confidence[-\s]?bucket|bucket samples|bucket win-?rate/i,
-        title: 'confidence-bucket',
-        description: CONF_BUCKET_DESCRIPTION
-    }
 ]
 
 function buildDefaultAliases(rule: InlineGlossaryRuleDraft): string[] {
+    if (rule.autolink === false) {
+        return []
+    }
+
     const aliases = new Set<string>()
 
     if (rule.title) {
@@ -941,7 +279,22 @@ const TERM_TOOLTIP_REGISTRY: TermTooltipRegistryEntry[] = TERM_TOOLTIP_REGISTRY_
     pattern: rule.pattern
 }))
 
-const TERM_TOOLTIP_REGISTRY_BY_ID = new Map(TERM_TOOLTIP_REGISTRY.map(rule => [rule.id, rule]))
+const SAFE_TERM_TOOLTIP_REGISTRY_RESULT = buildSafeTermTooltipRegistry(TERM_TOOLTIP_REGISTRY)
+const TERM_TOOLTIP_REGISTRY_SAFE = SAFE_TERM_TOOLTIP_REGISTRY_RESULT.registry
+const TERM_TOOLTIP_REGISTRY_ISSUES = SAFE_TERM_TOOLTIP_REGISTRY_RESULT.issues
+const TERM_TOOLTIP_REGISTRY_BY_ID = new Map(TERM_TOOLTIP_REGISTRY_SAFE.map(rule => [rule.id, rule]))
+let didReportTermTooltipRegistryIssues = false
+
+function reportTermTooltipRegistryIssues(): void {
+    if (didReportTermTooltipRegistryIssues || TERM_TOOLTIP_REGISTRY_ISSUES.length === 0) {
+        return
+    }
+
+    didReportTermTooltipRegistryIssues = true
+    TERM_TOOLTIP_REGISTRY_ISSUES.forEach(issue => {
+        console.error(new Error(formatTermTooltipRegistryIssue(issue)))
+    })
+}
 
 interface RenderTermTooltipRichTextOptions {
     excludeTerms?: string[]
@@ -949,7 +302,20 @@ interface RenderTermTooltipRichTextOptions {
     excludeRuleTitles?: string[]
     recursionDepth?: number
     maxRecursionDepth?: number
+    resolveExplicitTermLink?: (termId: string) => { to: string; onWarmup?: () => void } | null
 }
+
+interface StructuredParagraphTextBlock {
+    type: 'text'
+    lines: string[]
+}
+
+interface StructuredParagraphBulletListBlock {
+    type: 'bullet-list'
+    items: string[]
+}
+
+type StructuredParagraphBlock = StructuredParagraphTextBlock | StructuredParagraphBulletListBlock
 
 function normalizeOrderedListParagraphs(text: string): string {
     let next = text
@@ -969,6 +335,30 @@ function normalizeOrderedListParagraphs(text: string): string {
     next = next.replace(/([^\n])\s+(true:|false:)/g, '$1\n\n$2')
 
     return next
+}
+
+function normalizeBrokenExplicitTermMarkup(text: string): string {
+    let next = text
+
+    // Битая разметка вида [[term|Label] не должна вытекать в UI как сырой служебный синтаксис.
+    next = next.replace(/\[\[([a-z0-9_-]+)\|([^\]\n]+)\](?!\])/gi, '$2')
+    next = next.replace(/\[\[([a-z0-9_-]+)\|([^\]\n]+)$/gim, '$2')
+
+    return next
+}
+
+function isBulletListLine(line: string): boolean {
+    return /^(?:[-*•])\s+/.test(line)
+}
+
+function stripBulletListMarker(line: string): string {
+    return line.replace(/^(?:[-*•])\s+/, '').trim()
+}
+
+function stripExplicitTermMarkup(text: string): string {
+    return parseExplicitTermMarkupSegments(normalizeBrokenExplicitTermMarkup(text))
+        .map(segment => (segment.type === 'term' ? segment.label : segment.value))
+        .join('')
 }
 
 interface ExplicitTermMarkupSegmentText {
@@ -1031,6 +421,96 @@ function parseExplicitTermMarkupSegments(text: string): ExplicitTermMarkupSegmen
     return segments.length > 0 ? segments : [{ type: 'text', value: text }]
 }
 
+function resolveStructuredParagraphBlocks(paragraph: string): StructuredParagraphBlock[] {
+    const lines = paragraph
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+
+    if (lines.length === 0) {
+        return []
+    }
+
+    const blocks: StructuredParagraphBlock[] = []
+    let textLines: string[] = []
+    let bulletItems: string[] = []
+
+    const flushTextLines = () => {
+        if (textLines.length === 0) {
+            return
+        }
+
+        blocks.push({
+            type: 'text',
+            lines: textLines
+        })
+        textLines = []
+    }
+
+    const flushBulletItems = () => {
+        if (bulletItems.length === 0) {
+            return
+        }
+
+        blocks.push({
+            type: 'bullet-list',
+            items: bulletItems
+        })
+        bulletItems = []
+    }
+
+    lines.forEach(line => {
+        if (isBulletListLine(line)) {
+            flushTextLines()
+            bulletItems.push(stripBulletListMarker(line))
+            return
+        }
+
+        flushBulletItems()
+        textLines.push(line)
+    })
+
+    flushTextLines()
+    flushBulletItems()
+
+    return blocks
+}
+
+function renderStructuredParagraph(
+    paragraph: string,
+    keyPrefix: string,
+    renderLine: (line: string, lineKey: string) => ReactNode
+): ReactNode | null {
+    const blocks = resolveStructuredParagraphBlocks(paragraph)
+
+    if (blocks.length === 0) {
+        return null
+    }
+
+    return (
+        <span key={keyPrefix} className={cls.paragraph}>
+            {blocks.map((block, blockIndex) => (
+                <span key={`${keyPrefix}-block-${blockIndex}`} className={cls.paragraphBlock}>
+                    {block.type === 'text' ?
+                        block.lines.map((line, lineIndex) => (
+                            <span key={`${keyPrefix}-line-${blockIndex}-${lineIndex}`} className={cls.line}>
+                                {renderLine(line, `${keyPrefix}-line-${blockIndex}-${lineIndex}`)}
+                            </span>
+                        ))
+                    :   <BulletList
+                            items={block.items.map((item, itemIndex) => ({
+                                key: `${keyPrefix}-bullet-${blockIndex}-${itemIndex}`,
+                                content:
+                                    renderLine(item, `${keyPrefix}-bullet-${blockIndex}-${itemIndex}`)
+                            }))}
+                        />
+                    }
+                </span>
+            ))}
+        </span>
+    )
+}
+
 function resolveRegistryForRender(
     excludedRuleIds: Set<string>,
     excludedRuleTitles: Set<string>
@@ -1038,7 +518,7 @@ function resolveRegistryForRender(
     const excludedIds = new Set(excludedRuleIds)
 
     if (excludedRuleTitles.size > 0) {
-        TERM_TOOLTIP_REGISTRY.forEach(rule => {
+        TERM_TOOLTIP_REGISTRY_SAFE.forEach(rule => {
             if (!rule.title) {
                 return
             }
@@ -1050,7 +530,7 @@ function resolveRegistryForRender(
         })
     }
 
-    return TERM_TOOLTIP_REGISTRY.filter(rule => !excludedIds.has(rule.id))
+    return TERM_TOOLTIP_REGISTRY_SAFE.filter(rule => !excludedIds.has(rule.id))
 }
 
 function buildNestedDescription(
@@ -1060,8 +540,16 @@ function buildNestedDescription(
     recursionDepth: number,
     maxRecursionDepth: number
 ): ReactNode {
-    if (typeof rule.description !== 'string' || recursionDepth >= maxRecursionDepth) {
+    if (typeof rule.description === 'function') {
+        return rule.description()
+    }
+
+    if (typeof rule.description !== 'string') {
         return rule.description
+    }
+
+    if (recursionDepth >= maxRecursionDepth) {
+        return renderPlainTextBlocks(stripExplicitTermMarkup(rule.description))
     }
 
     const selfExclusions = [matchedValue]
@@ -1123,6 +611,80 @@ function renderAutolinkedTextSegment(
     return nodes
 }
 
+function renderInlineRichText(
+    text: string,
+    registry: TermTooltipRegistryEntry[],
+    excludedTerms: Set<string>,
+    excludedRuleIds: Set<string>,
+    excludedRuleTitles: Set<string>,
+    recursionDepth: number,
+    maxRecursionDepth: number,
+    keyPrefix: string,
+    resolveExplicitTermLink?: (termId: string) => { to: string; onWarmup?: () => void } | null
+): ReactNode[] {
+    const segments = parseExplicitTermMarkupSegments(text)
+    const nodes: ReactNode[] = []
+    let segmentKey = 0
+
+    segments.forEach(segment => {
+        if (segment.type === 'term') {
+            const rule = TERM_TOOLTIP_REGISTRY_BY_ID.get(segment.termId)
+            if (!rule || excludedRuleIds.has(rule.id)) {
+                nodes.push(segment.label)
+                return
+            }
+
+            const normalizedLabel = normalizeComparableTerm(segment.label)
+            const normalizedRuleTitle = normalizeComparableTerm(rule.title ?? '')
+            if (
+                (normalizedLabel && (excludedTerms.has(normalizedLabel) || excludedRuleTitles.has(normalizedLabel))) ||
+                (normalizedRuleTitle && excludedRuleTitles.has(normalizedRuleTitle))
+            ) {
+                nodes.push(segment.label)
+                return
+            }
+
+            const explicitTermLink = resolveExplicitTermLink?.(segment.termId) ?? null
+
+            nodes.push(
+                <TermTooltip
+                    key={`explicit-${rule.id}-${keyPrefix}-${segmentKey}`}
+                    term={segment.label}
+                    tooltipTitle={rule.title}
+                    description={() =>
+                        buildNestedDescription(rule, segment.label, excludedRuleIds, recursionDepth, maxRecursionDepth)
+                    }
+                    type='span'
+                    className={cls.inlineTerm}
+                    to={explicitTermLink?.to}
+                    onWarmup={explicitTermLink?.onWarmup}
+                />
+            )
+            segmentKey += 1
+            return
+        }
+
+        if (!segment.value) {
+            return
+        }
+
+        nodes.push(
+            ...renderAutolinkedTextSegment(
+                segment.value,
+                registry,
+                excludedTerms,
+                excludedRuleIds,
+                recursionDepth,
+                maxRecursionDepth,
+                `${keyPrefix}-${segmentKey}`
+            )
+        )
+        segmentKey += 1
+    })
+
+    return nodes
+}
+
 interface MatcherFixture {
     id: string
     text: string
@@ -1139,6 +701,21 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
         id: 'percentage-points',
         text: 'цена улучшения — 4 п.п. доходности',
         expectedRuleIds: ['percentage-points']
+    },
+    {
+        id: 'backticked-min-move',
+        text: 'если `MinMove` растёт, фильтр становится строже',
+        expectedRuleIds: ['min-move']
+    },
+    {
+        id: 'quoted-pnl',
+        text: 'метрика "PnL" уже пересчитана',
+        expectedRuleIds: ['pnl']
+    },
+    {
+        id: 'backticked-train-oos',
+        text: 'сравнение `Train` и `OOS` показывает переносимость',
+        expectedRuleIds: ['train-segment', 'oos-segment']
     },
     {
         id: 'first-event',
@@ -1198,26 +775,106 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
 ]
 
 let didValidateMatcherFixtures = false
+let matcherFixtureValidationError: Error | null = null
+let didReportMatcherFixtureValidationError = false
 
-function validateMatcherFixturesOrThrow(): void {
+function collectMatcherFixtureValidationError(): Error | null {
     if (didValidateMatcherFixtures) {
+        return null
+    }
+
+    if (matcherFixtureValidationError) {
+        return matcherFixtureValidationError
+    }
+
+    try {
+        TERM_TOOLTIP_MATCHER_FIXTURES.forEach(fixture => {
+            const found = matchTermTooltips(
+                fixture.text,
+                TERM_TOOLTIP_REGISTRY_SAFE,
+                new Set<string>(),
+                new Set<string>()
+            ).map(
+                match => match.rule.id
+            )
+
+            const missing = fixture.expectedRuleIds.filter(expected => !found.includes(expected))
+            if (missing.length > 0) {
+                throw new Error(
+                    `[term-tooltip] matcher fixture failed: ${fixture.id}. Missing rules: ${missing.join(', ')}. Found: ${found.join(', ')}.`
+                )
+            }
+        })
+    } catch (error) {
+        matcherFixtureValidationError = error instanceof Error ? error : new Error(String(error))
+        return matcherFixtureValidationError
+    }
+
+    didValidateMatcherFixtures = true
+    return null
+}
+
+function reportMatcherFixtureValidationError(): void {
+    if (!import.meta.env.DEV || didReportMatcherFixtureValidationError) {
         return
     }
 
-    TERM_TOOLTIP_MATCHER_FIXTURES.forEach(fixture => {
-        const found = matchTermTooltips(fixture.text, TERM_TOOLTIP_REGISTRY, new Set<string>(), new Set<string>()).map(
-            match => match.rule.id
-        )
+    reportTermTooltipRegistryIssues()
 
-        const missing = fixture.expectedRuleIds.filter(expected => !found.includes(expected))
-        if (missing.length > 0) {
-            throw new Error(
-                `[term-tooltip] matcher fixture failed: ${fixture.id}. Missing rules: ${missing.join(', ')}. Found: ${found.join(', ')}.`
+    const error = collectMatcherFixtureValidationError()
+    if (!error) {
+        return
+    }
+
+    didReportMatcherFixtureValidationError = true
+    console.error(error)
+}
+
+function renderPlainTextBlocks(text: string): ReactNode {
+    const normalizedText = normalizeOrderedListParagraphs(normalizeBrokenExplicitTermMarkup(text))
+    const paragraphs = normalizedText
+        .split(/\n{2,}/)
+        .map(paragraph => paragraph.trim())
+        .filter(paragraph => paragraph.length > 0)
+
+    if (paragraphs.length === 0) {
+        return text
+    }
+
+    const shouldRenderStructuredBlocks =
+        paragraphs.length > 1 || paragraphs.some(paragraph => paragraph.includes('\n'))
+
+    if (!shouldRenderStructuredBlocks) {
+        return paragraphs[0]
+    }
+
+    return (
+        <>
+            {paragraphs.map((paragraph, paragraphIndex) => {
+                return renderStructuredParagraph(
+                    paragraph,
+                    `plain-paragraph-${paragraphIndex}`,
+                    line => line
+                )
+            })}
+        </>
+    )
+}
+
+export function resolveMatchingTermTooltipRuleIds(text: string): string[] {
+    if (!text || text.trim().length === 0) {
+        return []
+    }
+
+    reportTermTooltipRegistryIssues()
+
+    return Array.from(
+        new Set(
+            matchTermTooltips(text, TERM_TOOLTIP_REGISTRY_SAFE, new Set<string>(), new Set<string>()).map(
+                match => match.rule.id
             )
-        }
-    })
-
-    didValidateMatcherFixtures = true
+        )
+    )
 }
 
 export function renderTermTooltipRichText(text: string, options?: RenderTermTooltipRichTextOptions): ReactNode {
@@ -1225,70 +882,83 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
         return text
     }
 
-    if (import.meta.env.DEV) {
-        validateMatcherFixturesOrThrow()
-    }
+    try {
+        reportTermTooltipRegistryIssues()
 
-    const normalizedText = normalizeOrderedListParagraphs(text)
+        const normalizedText = normalizeOrderedListParagraphs(normalizeBrokenExplicitTermMarkup(text))
 
-    const excludedTerms = new Set(
-        (options?.excludeTerms ?? []).map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
-    )
-    const excludedRuleIds = new Set(
-        (options?.excludeRuleIds ?? []).map(item => item.trim()).filter(item => item.length > 0)
-    )
-    const excludedRuleTitles = new Set(
-        (options?.excludeRuleTitles ?? []).map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
-    )
-    const recursionDepth = options?.recursionDepth ?? 0
-    const maxRecursionDepth = options?.maxRecursionDepth ?? 2
-
-    const registry = resolveRegistryForRender(excludedRuleIds, excludedRuleTitles)
-    const segments = parseExplicitTermMarkupSegments(normalizedText)
-    const nodes: ReactNode[] = []
-    let segmentKey = 0
-
-    segments.forEach(segment => {
-        if (segment.type === 'term') {
-            const rule = TERM_TOOLTIP_REGISTRY_BY_ID.get(segment.termId)
-            if (!rule || excludedRuleIds.has(rule.id)) {
-                nodes.push(segment.label)
-                return
-            }
-
-            nodes.push(
-                <TermTooltip
-                    key={`explicit-${rule.id}-${segmentKey}`}
-                    term={segment.label}
-                    tooltipTitle={rule.title}
-                    description={() =>
-                        buildNestedDescription(rule, segment.label, excludedRuleIds, recursionDepth, maxRecursionDepth)
-                    }
-                    type='span'
-                    className={cls.inlineTerm}
-                />
-            )
-            segmentKey += 1
-            return
-        }
-
-        if (!segment.value) {
-            return
-        }
-
-        nodes.push(
-            ...renderAutolinkedTextSegment(
-                segment.value,
-                registry,
-                excludedTerms,
-                excludedRuleIds,
-                recursionDepth,
-                maxRecursionDepth,
-                `segment-${segmentKey}`
-            )
+        const excludedTerms = new Set(
+            (options?.excludeTerms ?? []).map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
         )
-        segmentKey += 1
-    })
+        const excludedRuleIds = new Set(
+            (options?.excludeRuleIds ?? []).map(item => item.trim()).filter(item => item.length > 0)
+        )
+        const excludedRuleTitles = new Set(
+            (options?.excludeRuleTitles ?? []).map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
+        )
+        const recursionDepth = options?.recursionDepth ?? 0
+        const maxRecursionDepth = options?.maxRecursionDepth ?? 2
 
-    return <>{nodes}</>
+        const registry = resolveRegistryForRender(excludedRuleIds, excludedRuleTitles)
+        const paragraphs = normalizedText
+            .split(/\n{2,}/)
+            .map(paragraph => paragraph.trim())
+            .filter(paragraph => paragraph.length > 0)
+
+        if (paragraphs.length === 0) {
+            return text
+        }
+
+        const shouldRenderStructuredBlocks =
+            paragraphs.length > 1 || paragraphs.some(paragraph => paragraph.includes('\n'))
+
+        if (!shouldRenderStructuredBlocks) {
+            return (
+                <>
+                    {renderInlineRichText(
+                        paragraphs[0],
+                        registry,
+                        excludedTerms,
+                        excludedRuleIds,
+                        excludedRuleTitles,
+                        recursionDepth,
+                        maxRecursionDepth,
+                        'paragraph-0',
+                        options?.resolveExplicitTermLink
+                    )}
+                </>
+            )
+        }
+
+        return (
+            <>
+                {paragraphs.map((paragraph, paragraphIndex) => {
+                    return renderStructuredParagraph(
+                        paragraph,
+                        `paragraph-${paragraphIndex}`,
+                        (line, lineKey) =>
+                            renderInlineRichText(
+                                line,
+                                registry,
+                                excludedTerms,
+                                excludedRuleIds,
+                                excludedRuleTitles,
+                                recursionDepth,
+                                maxRecursionDepth,
+                                lineKey,
+                                options?.resolveExplicitTermLink
+                            )
+                    )
+                })}
+            </>
+        )
+    } catch (error) {
+        if (import.meta.env.DEV) {
+            console.error(error)
+        }
+
+        return renderPlainTextBlocks(text)
+    }
 }
+
+reportMatcherFixtureValidationError()

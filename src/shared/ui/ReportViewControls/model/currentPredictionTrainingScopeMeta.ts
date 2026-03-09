@@ -45,7 +45,7 @@ const CURRENT_PREDICTION_TRAINING_SCOPE_OPTION_DEFS: readonly CurrentPredictionT
         labelKey: 'currentPrediction.scope.options.recent.label',
         hintKey: 'currentPrediction.scope.options.recent.hint',
         defaultLabel: 'Recent tail',
-        defaultHint: 'Latest rolling day window (configured on backend)'
+        defaultHint: 'Latest 240-day rolling window'
     }
 ]
 

@@ -20,7 +20,7 @@ import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
-import { DOCS_MODELS_TABS, DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
+import { DOCS_MODELS_TABS, DOCS_TESTS_TABS, DOCS_TRUTHFULNESS_TABS } from '@/shared/utils/docsTabs'
 import {
     EXPLAIN_BRANCHES_TABS,
     EXPLAIN_FEATURES_TABS,
@@ -41,6 +41,10 @@ import {
 } from '@/shared/utils/backtestDiagnosticsSections'
 import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { usePolicyBranchMegaReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
+import {
+    buildBacktestDiagnosticsQueryArgsFromSearchParams,
+    buildBacktestDiagnosticsSearchFromSearchParams
+} from '@/shared/utils/backtestDiagnosticsQuery'
 
 /*
 	Sidebar — единый слой навигации по разделам приложения: собирает пункты из route-конфига, фильтрует их по контексту текущей страницы и строит поднавигацию по hash-якорям из отчётных секций.
@@ -129,13 +133,15 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
         enabled: isOnPfiPage
     })
+    const currentSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
 
     const diagnosticsNavArgs = useMemo(
-        () => ({
-            tpSlMode: new URLSearchParams(location.search).get('tpsl'),
-            zonalMode: new URLSearchParams(location.search).get('zonal')
-        }),
-        [location.search]
+        () => buildBacktestDiagnosticsQueryArgsFromSearchParams(currentSearchParams),
+        [currentSearchParams]
+    )
+    const diagnosticsSearch = useMemo(
+        () => buildBacktestDiagnosticsSearchFromSearchParams(currentSearchParams),
+        [currentSearchParams]
     )
 
     // Подгружаем данные для поднавигации только на тех страницах, где она реально используется.
@@ -146,13 +152,14 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
     const policyBranchMegaArgs = useMemo(
         () => ({
-            bucket: new URLSearchParams(location.search).get('bucket'),
-            metric: new URLSearchParams(location.search).get('metric'),
-            tpSlMode: new URLSearchParams(location.search).get('tpsl'),
-            slMode: new URLSearchParams(location.search).get('slmode'),
-            zonalMode: new URLSearchParams(location.search).get('zonal')
+            bucket: currentSearchParams.get('bucket'),
+            bucketView: currentSearchParams.get('bucketview'),
+            metric: currentSearchParams.get('metric'),
+            tpSlMode: currentSearchParams.get('tpsl'),
+            slMode: currentSearchParams.get('slmode'),
+            zonalMode: currentSearchParams.get('zonal')
         }),
-        [location.search]
+        [currentSearchParams]
     )
 
     const shouldLoadPolicyBranchMegaNav = isOnPolicyBranchMegaPage
@@ -162,8 +169,11 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
 
     const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch)
-    }, [dispatch, queryClient])
+        warmupRouteNavigation(routeId, queryClient, dispatch, {
+            diagnosticsArgs: diagnosticsNavArgs,
+            policyBranchMegaArgs
+        })
+    }, [diagnosticsNavArgs, dispatch, policyBranchMegaArgs, queryClient])
 
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
@@ -327,6 +337,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isPfiPerModel = item.id === AppRoute.PFI_PER_MODEL
                                 const isDocsModels = item.id === AppRoute.DOCS_MODELS
                                 const isDocsTests = item.id === AppRoute.DOCS_TESTS
+                                const isDocsTruthfulness = item.id === AppRoute.DOCS_TRUTHFULNESS
                                 const isExplainModels = item.id === AppRoute.EXPLAIN_MODELS
                                 const isExplainBranches = item.id === AppRoute.EXPLAIN_BRANCHES
                                 const isExplainSplits = item.id === AppRoute.EXPLAIN_SPLITS
@@ -350,6 +361,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isPfiPerModel ||
                                     isDocsModels ||
                                     isDocsTests ||
+                                    isDocsTruthfulness ||
                                     isExplainModels ||
                                     isExplainBranches ||
                                     isExplainSplits ||
@@ -370,6 +382,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isPfiRouteActive = isPfiPerModel && location.pathname.startsWith(item.path)
                                 const isDocsModelsRouteActive = isDocsModels && location.pathname.startsWith(item.path)
                                 const isDocsTestsRouteActive = isDocsTests && location.pathname.startsWith(item.path)
+                                const isDocsTruthfulnessRouteActive =
+                                    isDocsTruthfulness && location.pathname.startsWith(item.path)
                                 const isExplainModelsRouteActive =
                                     isExplainModels && location.pathname.startsWith(item.path)
                                 const isExplainBranchesRouteActive =
@@ -400,8 +414,14 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isBacktestDayStats && location.pathname.startsWith(item.path)
                                 const isPolicyBranchMegaRouteActive =
                                     isPolicyBranchMega && location.pathname.startsWith(item.path)
-                                const policyBranchMegaSearch =
-                                    isPolicyBranchMega && isPolicyBranchMegaRouteActive ? location.search : ''
+                                const isAnalysisFamilyItem = item.section === 'analysis' || item.section === 'diagnostics'
+                                const analysisFamilySearch =
+                                    isAnalysisRoute || isDiagnosticsRoute ? diagnosticsSearch : ''
+                                const routeSearch =
+                                    isPolicyBranchMega ?
+                                        (isPolicyBranchMegaRouteActive ? location.search : analysisFamilySearch)
+                                    : isAnalysisFamilyItem ? analysisFamilySearch
+                                    :   ''
 
                                 const isRouteActiveBase =
                                     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -417,6 +437,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPfiPerModel ? pfiTabs
                                     : isDocsModels ? DOCS_MODELS_TABS
                                     : isDocsTests ? DOCS_TESTS_TABS
+                                    : isDocsTruthfulness ? DOCS_TRUTHFULNESS_TABS
                                     : isExplainModels ? EXPLAIN_MODELS_TABS
                                     : isExplainBranches ? EXPLAIN_BRANCHES_TABS
                                     : isExplainSplits ? EXPLAIN_SPLITS_TABS
@@ -443,6 +464,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isPfiPerModel ? 'PFI models'
                                     : isDocsModels ? 'Model docs'
                                     : isDocsTests ? 'Test docs'
+                                    : isDocsTruthfulness ? 'Truthfulness docs'
                                     : isExplainModels ? 'Model explain'
                                     : isExplainBranches ? 'Branch explain'
                                     : isExplainSplits ? 'Split explain'
@@ -470,7 +492,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 return (
                                     <div key={item.id} className={containerClass}>
                                         <Link
-                                            to={item.path}
+                                            to={`${item.path}${routeSearch}`}
                                             onClick={onItemClick}
                                             onMouseEnter={() => handleRouteWarmup(item.id)}
                                             onFocus={() => handleRouteWarmup(item.id)}
@@ -496,6 +518,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                             (isPfiPerModel && isPfiRouteActive) ||
                                                             (isDocsModels && isDocsModelsRouteActive) ||
                                                             (isDocsTests && isDocsTestsRouteActive) ||
+                                                            (isDocsTruthfulness && isDocsTruthfulnessRouteActive) ||
                                                             (isExplainModels && isExplainModelsRouteActive) ||
                                                             (isExplainBranches && isExplainBranchesRouteActive) ||
                                                             (isExplainSplits && isExplainSplitsRouteActive) ||
@@ -521,10 +544,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                             isRouteActiveWithTabs && currentHash === tab.anchor
 
                                                         // Для Policy Branch Mega сохраняем весь query-контекст фильтров при кликах по якорям.
-                                                        const linkBase =
-                                                            isPolicyBranchMega ?
-                                                                `${item.path}${policyBranchMegaSearch}`
-                                                            :   item.path
+                                                        const linkBase = `${item.path}${routeSearch}`
 
                                                         return (
                                                             <Link

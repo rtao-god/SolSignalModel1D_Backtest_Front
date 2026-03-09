@@ -6,6 +6,7 @@ import {
     getDiagnosticsGroupSections,
     splitBacktestDiagnosticsSections
 } from '@/shared/utils/backtestDiagnosticsSections'
+import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
 import { useTranslation } from 'react-i18next'
@@ -21,10 +22,9 @@ import { useSearchParams } from 'react-router-dom'
 export default function BacktestDiagnosticsOtherPage() {
     const { t } = useTranslation('reports')
     const [searchParams] = useSearchParams()
-    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery({
-        tpSlMode: searchParams.get('tpsl'),
-        zonalMode: searchParams.get('zonal')
-    })
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
+        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams)
+    )
 
     const tableSections = useMemo(
         () =>

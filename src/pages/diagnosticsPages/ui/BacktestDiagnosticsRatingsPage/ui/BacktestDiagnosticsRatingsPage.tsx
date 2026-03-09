@@ -5,6 +5,7 @@ import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
@@ -21,10 +22,9 @@ const renderRatingColumnTitle = (title: string) =>
 export default function BacktestDiagnosticsRatingsPage() {
     const { t } = useTranslation('reports')
     const [searchParams] = useSearchParams()
-    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery({
-        tpSlMode: searchParams.get('tpsl'),
-        zonalMode: searchParams.get('zonal')
-    })
+    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
+        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams)
+    )
 
     const tableSections = useMemo(
         () =>

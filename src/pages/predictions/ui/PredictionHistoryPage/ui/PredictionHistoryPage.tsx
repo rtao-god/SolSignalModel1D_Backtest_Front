@@ -3,6 +3,7 @@ import { skipToken } from '@reduxjs/toolkit/query'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
+    buildCurrentPredictionHistoryTrainingScopeDescription,
     buildPredictionHistoryWindowControlGroup,
     buildPredictionPolicyBucketControlGroup,
     buildTrainingScopeControlGroup,
@@ -19,7 +20,10 @@ import DatePicker from '@/features/datePicker/ui/DatePicker/DatePicker'
 import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
-import { useCurrentPredictionIndexQuery } from '@/shared/api/tanstackQueries/currentPrediction'
+import {
+    useCurrentPredictionBackfilledSplitStats,
+    useCurrentPredictionIndexQuery
+} from '@/shared/api/tanstackQueries/currentPrediction'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
@@ -466,8 +470,7 @@ function collectUniqueDatesDesc(index: PredictionHistoryIndex | null): string[] 
 
     const dateSet = new Set<string>()
     for (const item of index) {
-        const dateKey = item.predictionDateUtc.substring(0, 10)
-        dateSet.add(dateKey)
+        dateSet.add(item.predictionDateUtc)
     }
 
     const dates = Array.from(dateSet)
@@ -566,6 +569,7 @@ function PredictionHistoryPageInner({
     const allDatesDesc = useMemo(() => collectUniqueDatesDesc(index), [index])
     const allBuiltDatesDesc = useMemo(() => collectUniqueDatesDesc(allIndex), [allIndex])
     const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
+    const trainingSplitStatsState = useCurrentPredictionBackfilledSplitStats()
     const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
         throw new Error(`[ui] Unsupported prediction history window option: ${historyWindow}.`)
@@ -577,8 +581,8 @@ function PredictionHistoryPageInner({
                 onChange: onTrainingScopeChange,
                 label: t('predictionHistory.filters.scope.label'),
                 ariaLabel: t('predictionHistory.filters.scope.ariaLabel'),
-                infoTooltip:
-                    'Что это: выбор training scope для current prediction history. Как работает в движке: страница запрашивает с backend другой history index и другой daily report snapshot для Full, Train, OOS или Recent модели, без локального пересчёта прогнозов. Какие числа меняются: доступные даты в index, training model label, карточки отчётов за день и все policy sections внутри них. Зачем сравнивать: видно, как current prediction вёл себя на полном обучении, на train-only, на unseen OOS и на recent-tail режиме.'
+                infoTooltip: buildCurrentPredictionHistoryTrainingScopeDescription(trainingSplitStatsState.data),
+                splitStats: trainingSplitStatsState.data
             }),
             buildPredictionHistoryWindowControlGroup({
                 value: historyWindow,
@@ -594,7 +598,15 @@ function PredictionHistoryPageInner({
                 ariaLabel: t('predictionHistory.filters.window.ariaLabel')
             })
         ],
-        [historyWindow, historyWindowOptions, onHistoryWindowChange, onTrainingScopeChange, t, trainingScope]
+        [
+            historyWindow,
+            historyWindowOptions,
+            onHistoryWindowChange,
+            onTrainingScopeChange,
+            t,
+            trainingScope,
+            trainingSplitStatsState.data
+        ]
     )
 
     const filteredDates = useMemo(() => {
@@ -649,20 +661,6 @@ function PredictionHistoryPageInner({
 
     const rootClassName = classNames(cls.HistoryPage, {}, [className ?? ''])
 
-    if (!allDatesDesc.length) {
-        const details = `set=${HISTORY_SET}, scope=${trainingScope}, window=${selectedHistoryWindowMeta.value}`
-        return (
-            <div className={rootClassName}>
-                <ErrorBlock
-                    code='DATA'
-                    title={t('predictionHistory.page.emptyIndex.title')}
-                    description={t('predictionHistory.page.emptyIndex.description')}
-                    details={details}
-                />
-            </div>
-        )
-    }
-
     const totalBuiltCount = allBuiltDatesDesc.length
     const filteredCount = filteredDates.length
     const historyTag = `current_prediction_${HISTORY_SET}_${trainingScope}`
@@ -686,7 +684,7 @@ function PredictionHistoryPageInner({
     const latestDateUtc = allDatesDesc.length > 0 ? allDatesDesc[0] : null
     const latestReportQuery = useGetCurrentPredictionByDateQuery(
         latestDateUtc ?
-            { set: HISTORY_SET, scope: trainingScope, dateUtc: `${latestDateUtc}T00:00:00Z` }
+            { set: HISTORY_SET, scope: trainingScope, dateUtc: latestDateUtc }
         :   skipToken,
         { refetchOnMountOrArgChange: true }
     )
@@ -716,6 +714,20 @@ function PredictionHistoryPageInner({
 
     const handlePagePrev = () => setPageIndex(prev => Math.max(prev - 1, 0))
     const handlePageNext = () => setPageIndex(prev => Math.min(prev + 1, totalPages - 1))
+
+    if (!allDatesDesc.length) {
+        const details = `set=${HISTORY_SET}, scope=${trainingScope}, window=${selectedHistoryWindowMeta.value}`
+        return (
+            <div className={rootClassName}>
+                <ErrorBlock
+                    code='DATA'
+                    title={t('predictionHistory.page.emptyIndex.title')}
+                    description={t('predictionHistory.page.emptyIndex.description')}
+                    details={details}
+                />
+            </div>
+        )
+    }
 
     return (
         <div className={rootClassName}>
@@ -1078,6 +1090,12 @@ function PredictionPolicyTradesTable({
                     columns={skippedColumns}
                     rows={skippedRowsTable}
                     domId={`pred-skipped-signals-${dateUtc}`}
+                    renderColumnTitle={title =>
+                        renderTermTooltipTitle(
+                            title,
+                            resolveReportColumnTooltip(report.kind, POLICY_TRADES_SECTION_TITLE, title)
+                        )
+                    }
                 />
             )}
         </div>
@@ -1086,11 +1104,10 @@ function PredictionPolicyTradesTable({
 
 function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: PredictionHistoryReportCardProps) {
     const { t } = useTranslation('reports')
-    const requestDateUtc = `${dateUtc}T00:00:00Z`
 
     const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery(
         {
-            dateUtc: requestDateUtc,
+            dateUtc,
             set: HISTORY_SET,
             scope: trainingScope
         },

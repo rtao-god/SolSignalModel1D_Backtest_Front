@@ -40,7 +40,7 @@ function parseNonNegativeIntOrThrow(raw: string | undefined, label: string, cont
 
 function resolveTpSlGroupKey(title: string | undefined): string {
     const normalized = normalizePolicyBranchMegaTitle(title)
-    return normalized.replace(/\[PART\s+\d+\/3\]/i, '').trim()
+    return normalized.replace(/\[PART\s+\d+\/\d+\]/i, '').trim()
 }
 
 function resolvePart1Indexes(columns: string[]): TpSlColumnIndexes | null {
@@ -97,7 +97,7 @@ function ensureRowShapeOrThrow(
  * Применяет TP/SL-срез к таблицам отчёта.
  * Для PART 1 переставляет Days/Tr/TotalPnl% на dynamic/static слой и
  * оставляет только строки с >0 сделок в выбранном слое.
- * Для PART 2/3 дополнительно отфильтровывает строки по Policy+Branch,
+ * Для остальных PART дополнительно отфильтровывает строки по Policy+Branch,
  * чтобы разрез оставался согласован между всеми секциями группы.
  */
 export function applyReportTpSlModeToSectionsOrThrow(

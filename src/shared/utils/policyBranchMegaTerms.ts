@@ -1,4 +1,5 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
+import { POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS } from '@/shared/terms/reports/policyBranchMega'
 import {
     normalizePolicyBranchMegaTitle,
     resolvePolicyBranchMegaBucketFromTitle,
@@ -49,33 +50,11 @@ const MEGA_TITLE_MARKER = 'Policy Branch Mega'
 // Дефолтный режим для Mega: tooltip всегда полный и совпадает с description.
 const POLICY_BRANCH_MEGA_DEFAULT_TOOLTIP_MODE: PolicyBranchMegaTooltipResolutionMode = 'description'
 const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
-    Policy: {
-        key: 'Policy',
-        title: 'Policy',
-        description:
-            'Имя торговой политики. Политика — это набор правил: когда открывать позицию, какое действие выбирать в этот день (LONG, SHORT или без сделки), каким размером входить, какое плечо использовать и где задаются stop-loss/take-profit.\n\nДень пропускается, если не выполнены условия входа (например: нет направления сигнала, сработал policy-skip, включился риск-фильтр или cap fraction = 0).\n\nНазвание Policy обозначает конфигурацию входа, выхода и риска.',
-        tooltip: POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION
-    },
-    Branch: {
-        key: 'Branch',
-        title: 'Branch',
-        description:
-            'Branch — сценарий исполнения одной и той же Policy.\n\nBASE:\nиспользуется исходное направление сигнала дня без инверсии (LONG остаётся LONG, SHORT остаётся SHORT).\n\nANTI-D:\nкаждый день проверяется правило anti-direction. Если правило сработало, направление принудительно меняется на противоположное (LONG -> SHORT, SHORT -> LONG).\n\nОдин из обязательных фильтров anti-direction:\nMinMove в рабочем диапазоне (0.5%-12%).\n\nЗачем это сравнение:\nпо паре BASE vs ANTI-D видно, снижает ли инверсия риск на стрессовых днях без критической потери доходности.',
-        tooltip:
-            'Branch — сценарий исполнения одной и той же Policy.\n\nBASE: исходное направление без инверсии.\n\nANTI-D: при срабатывании anti-direction направление меняется на противоположное.\n\nMinMove-фильтр: рабочий диапазон (0.5%-12%).'
-    },
-    'SL Mode': {
-        key: 'SL Mode',
-        title: 'SL Mode',
-        description:
-            'SL Mode — переключатель механики выхода из сделки.\n\nWITH SL: защитный стоп-лосс включён. Сделка может закрыться раньше конца окна по стоп-лоссу, тейк-профиту или ликвидации; если этого не произошло, в конце дня срабатывает EndOfDay.\n\nNO SL: защитный стоп-лосс отключён. Сделка остаётся открытой до тейк-профита, ликвидации или EndOfDay.\n\nРиск NO SL: для isolated-маржи это повышает шанс потерять весь залог сделки.\n\nДля cross-маржи это повышает шанс потерять весь баланс бакета.\n\nПочему? (NO SL)',
-        tooltip: 'Режим расчёта строки: WITH SL или NO SL.'
-    },
     Days: {
         key: 'Days',
         title: 'Days',
         description:
-            'Количество торговых дней периода по данной политике и ветке. Включает дни со сделкой и дни без сделки. Выходные (суббота и воскресенье) в метрику не входят: модели на них не обучались и сделки по ним не моделируются. Почему? (выходные)',
+            'Количество торговых дней периода по данной политике и ветке. Включает дни со сделкой и дни без сделки. Выходные (суббота и воскресенье) в метрику не входят: модели на них не обучались и сделки по ним не моделируются. [[why-weekends|Почему?]]',
         tooltip: 'Сколько торговых дней было в расчёте (без выходных).'
     },
     StartDay: {
@@ -152,8 +131,8 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'AntiD|Risk%',
         title: 'AntiD|Risk%',
         description:
-            'Доля срабатываний anti‑direction только среди риск‑дней: AntiDAppliedDays / RiskDays * 100. Для ветки BASE выводится "—". Если риск‑дней нет, значение равно 0.0.',
-        tooltip: 'Процент применений anti‑direction внутри RiskDay.'
+            'Доля срабатываний anti‑direction только внутри риск‑дней: AntiDAppliedRiskDays / RiskDays * 100.\n\nДля ветки BASE выводится "—". Для ANTI‑D значение всегда лежит в диапазоне 0..100.\n\nЕсли риск‑дней не было и anti‑direction не применялся внутри риск‑дней, метрика равна 0.0.\n\nВажно: AntiD% показывает все дни применения anti‑direction, включая случаи вне риск‑дней. Поэтому AntiD|Risk% отвечает только на вопрос, насколько часто инверсия реально включалась именно в риск‑днях.',
+        tooltip: 'Процент anti‑direction только внутри RiskDay: AntiDAppliedRiskDays / RiskDays * 100.'
     },
     'Lev avg/min/max': {
         key: 'Lev avg/min/max',
@@ -306,7 +285,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'TotalPnl%',
         title: 'TotalPnl%',
         description:
-            'Итоговая доходность стратегии в процентах. В режиме REAL это фактический результат симуляции. В режиме NO BIGGEST LIQ LOSS это контрфактный тест: из расчёта убирается одна самая убыточная ликвидация (ликвидация = принудительное закрытие позиции биржей при критическом убытке), чтобы увидеть чувствительность к редкому экстремуму.',
+            'Итоговая доходность стратегии в процентах.\n\n- REAL: фактический результат симуляции.\n- NO BIGGEST LIQ LOSS: контрфактный тест, где из расчёта убирается одна самая убыточная [[liquidation|ликвидация]], чтобы увидеть чувствительность результата к редкому экстремуму.',
         tooltip: 'Итоговая доходность, %.'
     },
     TotalPnl$: {
@@ -386,6 +365,104 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
             'Доля прибыльных сделок: сделки, где [[net-return-pct|NetReturnPct]] > 0, от общего числа сделок * 100.\n\nСчитается по отдельным сделкам, а не по дням.',
         tooltip: 'Процент прибыльных сделок.'
     },
+    ProfitFactor: {
+        key: 'ProfitFactor',
+        title: 'ProfitFactor',
+        description:
+            'ProfitFactor = сумма положительного NetPnl$ / abs(сумма отрицательного NetPnl$).\n\nМетрика отвечает на вопрос, перекрывает ли общий денежный выигрыш общий денежный убыток. Значение выше 1 означает, что прибыльных долларов больше, чем убыточных.\n\nЕсли в строке нет убыточных сделок, метрика математически не определена и выводится как "—".',
+        tooltip: 'Отношение суммы положительного NetPnl$ к abs(суммы отрицательного NetPnl$).'
+    },
+    PayoffRatio: {
+        key: 'PayoffRatio',
+        title: 'PayoffRatio',
+        description:
+            'PayoffRatio = abs(AvgHit% / AvgMiss%).\n\nПоказывает, насколько средняя прибыльная сделка по проценту больше средней убыточной сделки по модулю.\n\nЕсли в строке нет хотя бы одной прибыльной и одной убыточной сделки, метрика не определена и выводится как "—".',
+        tooltip: 'Отношение средней прибыльной сделки к средней убыточной по модулю.'
+    },
+    'AvgHit%': {
+        key: 'AvgHit%',
+        title: 'AvgHit%',
+        description:
+            'Средний NetReturnPct только по сделкам, где NetReturnPct > 0.\n\nЭто типичный размер выигрыша одной прибыльной сделки после комиссий и всех текущих правил симуляции.\n\nЕсли прибыльных сделок нет, метрика не определяется и выводится как "—".',
+        tooltip: 'Средний NetReturnPct по прибыльным сделкам, %.'
+    },
+    'AvgMiss%': {
+        key: 'AvgMiss%',
+        title: 'AvgMiss%',
+        description:
+            'Средний NetReturnPct только по сделкам, где NetReturnPct < 0.\n\nМетрика показывает, насколько глубокой обычно была убыточная сделка по проценту к использованной марже.\n\nЕсли убыточных сделок нет, выводится "—".',
+        tooltip: 'Средний NetReturnPct по убыточным сделкам, %.'
+    },
+    'Expectancy%': {
+        key: 'Expectancy%',
+        title: 'Expectancy%',
+        description:
+            'Средний NetReturnPct по всем сделкам строки.\n\nЭто ожидаемый процент результата одной случайной сделки из этой выборки после комиссий и текущих правил симуляции.\n\nПоложительное значение означает положительное математическое ожидание на сделку в процентах, отрицательное — отрицательное.',
+        tooltip: 'Средний NetReturnPct по всем сделкам, %.'
+    },
+    'Expectancy$': {
+        key: 'Expectancy$',
+        title: 'Expectancy$',
+        description:
+            'Средний NetPnl$ по всем сделкам строки.\n\nМетрика показывает средний денежный результат одной сделки, а не всей серии.\n\nЕсли сделок нет, выводится "—".',
+        tooltip: 'Средний NetPnl$ по всем сделкам.'
+    },
+    'LongWinRate%': {
+        key: 'LongWinRate%',
+        title: 'LongWinRate%',
+        description:
+            'Доля прибыльных LONG‑сделок: прибыльные long / все long * 100.\n\nПоказатель помогает понять, действительно ли стратегия умеет зарабатывать именно в направлении роста, а не только за счёт общего микса сделок.\n\nЕсли long‑сделок нет, выводится "—".',
+        tooltip: 'Процент прибыльных LONG‑сделок.'
+    },
+    'ShortWinRate%': {
+        key: 'ShortWinRate%',
+        title: 'ShortWinRate%',
+        description:
+            'Доля прибыльных SHORT‑сделок: прибыльные short / все short * 100.\n\nЧитается отдельно от общего WinRate%, чтобы видеть устойчивость стратегии именно в сделках на падение.\n\nЕсли short‑сделок нет, выводится "—".',
+        tooltip: 'Процент прибыльных SHORT‑сделок.'
+    },
+    'BestDay%': {
+        key: 'BestDay%',
+        title: 'BestDay%',
+        description:
+            'Лучшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nМетрика показывает самый сильный положительный день в выбранном срезе без введения второй альтернативной серии.',
+        tooltip: 'Максимальная дневная доходность той же ratio‑серии, %.'
+    },
+    'WorstDay%': {
+        key: 'WorstDay%',
+        title: 'WorstDay%',
+        description:
+            'Худшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nЭто самый глубокий однодневный провал в выбранном срезе.',
+        tooltip: 'Минимальная дневная доходность той же ratio‑серии, %.'
+    },
+    RetSkew: {
+        key: 'RetSkew',
+        title: 'RetSkew',
+        description:
+            'Skewness дневной серии доходностей.\n\nПоложительный skew означает, что правый хвост распределения длиннее: редкие большие положительные дни выражены сильнее. Отрицательный skew означает более тяжёлый левый хвост и более неприятные редкие падения.',
+        tooltip: 'Skewness дневной серии доходностей.'
+    },
+    RetKurt: {
+        key: 'RetKurt',
+        title: 'RetKurt',
+        description:
+            'Kurtosis дневной серии доходностей в non-excess виде, где нормальное распределение = 3.\n\nЧем выше значение, тем тяжелее хвосты распределения и тем чаще серия даёт экстремальные дни относительно обычной волатильности.',
+        tooltip: 'Kurtosis дневной серии доходностей, normal = 3.'
+    },
+    'PSR>0%': {
+        key: 'PSR>0%',
+        title: 'PSR>0%',
+        description:
+            'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах 0..100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
+        tooltip: 'Вероятность того, что true Sharpe > 0, в процентах.'
+    },
+    'MinTRL95 SR>0': {
+        key: 'MinTRL95 SR>0',
+        title: 'MinTRL95 SR>0',
+        description:
+            'Minimum Track Record Length для доверия 95% к гипотезе true SR > 0.\n\nМетрика показывает, сколько дневных наблюдений требуется при текущем observed Sharpe, RetSkew и RetKurt, чтобы статистически доверять положительному Sharpe на уровне 95%.\n\nЕсли observed Sharpe <= 0 или формула вырождается, выводится "—".',
+        tooltip: 'Минимальная длина дневной серии для 95% доверия к true SR > 0.'
+    },
     'MeanRet%': {
         key: 'MeanRet%',
         title: 'MeanRet%',
@@ -428,39 +505,25 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
             'Текущий капитал на бирже — сумма по всем бакетам. Это то, что осталось «в работе», без учёта выводов.',
         tooltip: 'Текущая equity на бирже, $.'
     },
-    StartCap$: {
-        key: 'StartCap$',
-        title: 'StartCap$',
-        description:
-            'Стартовый капитал в долларах для выбранного среза.\n\nДля daily/intraday/delayed обычно равен 20 000$ на бакет.\n\nДля total aggregate это сумма стартов используемых бакетов (обычно 60 000$).',
-        tooltip: 'Стартовый капитал, $.'
-    },
     HadLiq: {
         key: 'HadLiq',
         title: 'HadLiq',
         description:
-            'Были ли ликвидации. Ликвидация — принудительное закрытие позиции биржей, когда убыток почти «съел» залог позиции. Значение Yes означает аварийный риск в истории; это флаг риска, а не прямой ответ, почему остановился весь прогон.',
+            'Были ли [[liquidation|ликвидации]]. Значение Yes означает аварийный риск в истории: у стратегии хотя бы раз было биржевое принудительное закрытие позиции. Это флаг риска, а не прямой ответ, почему остановился весь прогон.',
         tooltip: 'Была ли ликвидация (по правилу отображения).'
-    },
-    AccRuin: {
-        key: 'AccRuin',
-        title: 'AccRuin',
-        description:
-            'AccRuin — метрика руины рабочего капитала бакета.\n\nБакет считается руинированным, если:\n- бакет помечен как IsDead=true;\n- или EquityNow / StartCapital <= 20% (потеря 80% и более).\n\nКак читать:\nдля строки одного бакета это 0 или 1.\n\nДля total aggregate это число руинированных бакетов среди daily/intraday/delayed (0..3).',
-        tooltip: 'Флаг/счётчик руины бакета: IsDead=true или EquityNow/StartCapital <= 20%.'
     },
     RealLiq: {
         key: 'RealLiq',
         title: 'RealLiq',
         description:
-            'Сколько раз произошла реальная ликвидация сделок, где ликвидация — принудительное закрытие позиции биржей при критическом убытке. Рост метрики означает более частый аварийный режим. В строках, где показатель не применим к выбранному режиму маржи, выводится "—".',
+            'Сколько раз произошла реальная [[liquidation|ликвидация]] сделок. Рост метрики означает более частый аварийный режим. В строках, где показатель не применим к выбранному режиму маржи, выводится "—".',
         tooltip: 'Число реальных ликвидаций (Isolated).'
     },
     EODExit_n: {
         key: 'EODExit_n',
         title: 'EODExit_n',
         description:
-            'Количество сделок, закрытых в конце торгового окна (EndOfDay), когда раньше не сработали ни TP (фиксация прибыли), ни SL (ограничение убытка), ни ликвидация (принудительное закрытие биржей). Рост метрики показывает, что стратегия чаще «дотягивает до конца дня» без раннего выхода.',
+            'Количество сделок, закрытых в конце торгового окна (EndOfDay), когда раньше не сработали ни [[tp-sl|TP]], ни [[tp-sl|SL]], ни [[liquidation|ликвидация]]. Рост метрики показывает, что стратегия чаще дотягивает до конца дня без раннего выхода.',
         tooltip:
             'Количество сделок с ExitReason=EndOfDay. Рост метрики означает, что TP/SL/ликвидация реже срабатывают до конца окна.'
     },
@@ -492,7 +555,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'LiqBeforeSL_n',
         title: 'LiqBeforeSL_n',
         description:
-            'Сколько раз при включённом SL ликвидация (принудительное закрытие позиции биржей) произошла раньше стоп-лосса. Простыми словами: защита была, но не успела сработать, и позицию закрыла биржа в аварийном режиме.',
+            'Сколько раз при включённом SL [[liquidation|ликвидация]] произошла раньше стоп-лосса. Это означает, что защита была включена, но биржа закрыла позицию раньше, чем успел сработать SL.',
         tooltip:
             'Количество случаев ликвидации раньше SL при включённом SL-режиме. Ненулевые значения требуют проверки leverage/cap/SL-порогов.'
     },
@@ -500,7 +563,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'LiqBeforeSL_BadSL_n',
         title: 'LiqBeforeSL_BadSL_n',
         description:
-            'Подмножество LiqBeforeSL_n, где SL стоял "дальше", чем цена ликвидации (принудительного закрытия биржей). Это означает, что защитный стоп-лосс фактически бесполезен при выбранном плече и залоге.',
+            'Подмножество LiqBeforeSL_n, где SL стоял дальше, чем цена [[liquidation|ликвидации]]. Это означает, что защитный стоп-лосс фактически бесполезен при выбранном плече и залоге.',
         tooltip:
             'Количество случаев, где SL расположен «дальше», чем уровень ликвидации. Для корректной риск-настройки метрика должна стремиться к нулю.'
     },
@@ -508,7 +571,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'LiqBeforeSL_Same1m_n',
         title: 'LiqBeforeSL_Same1m_n',
         description:
-            'Подмножество LiqBeforeSL_n, где SL и ликвидация (принудительное закрытие биржей) коснулись цены в одной минутной свече. Это зона повышенной чувствительности к правилу приоритета событий внутри минуты.',
+            'Подмножество LiqBeforeSL_n, где SL и [[liquidation|ликвидация]] коснулись цены в одной минутной свече. Это зона повышенной чувствительности к правилу приоритета событий внутри минуты.',
         tooltip:
             'Количество конфликтных кейсов в одной 1m-свече: одновременно касаются SL и ликвидации. Это редкие случаи, где особенно важно правило приоритета событий внутри минуты.'
     },
@@ -516,7 +579,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'LiqBeforeSL$',
         title: 'LiqBeforeSL$',
         description:
-            'Суммарный денежный результат только по сделкам, где ликвидация (принудительное закрытие позиции биржей) произошла раньше SL. Чем сильнее отрицательное значение, тем дороже для стратегии обходится ситуация "SL не успел защитить".',
+            'Суммарный денежный результат только по сделкам, где [[liquidation|ликвидация]] произошла раньше SL. Чем сильнее отрицательное значение, тем дороже для стратегии обходится ситуация, в которой защита не успела сработать.',
         tooltip:
             'Сумма NetPnL по сделкам LiqBeforeSL_n. Чем сильнее отрицательное значение, тем дороже обходятся ликвидации до срабатывания SL.'
     },
@@ -534,20 +597,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
             'Флаг «балансовой смерти»: true, если активная equity падала ниже 35% от старта (порог BalanceDeathThresholdFrac).',
         tooltip: 'Equity опускалась ниже 35%.'
     },
-    Recovered: {
-        key: 'Recovered',
-        title: 'Recovered',
-        description:
-            'Recovered — флаг восстановления после MaxDD по active equity.\n\nЧто проверяется:\nпосле дна MaxDD текущий баланс должен вернуться к пику, который был до этой просадки.\n\ntrue — возврат к прежнему пику произошёл,\nfalse — к концу периода возврата не было.',
-        tooltip: 'Было ли восстановление после MaxDD.'
-    },
-    RecovDays: {
-        key: 'RecovDays',
-        title: 'RecovDays',
-        description:
-            'RecovDays — сколько календарных дней прошло от дна MaxDD до возврата текущего баланса к пику перед этой просадкой.\n\nЕсли восстановления не было, в расчёте остаётся -1, а в таблице показывается «—».\n\nКак читать:\n20-60 дней — быстро,\n120+ дней — долгое восстановление.',
-        tooltip: 'Дни от дна MaxDD до восстановления.'
-    },
     RecovSignals: {
         key: 'RecovSignals',
         title: 'RecovSignals',
@@ -561,13 +610,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Суммарное время (в днях), которое equity провела ниже 35% от старта. Считается по отрезкам active equity кривой, включая частичные пересечения порога.',
         tooltip: 'Сколько дней equity была ниже 35%.'
-    },
-    'ReqGain%': {
-        key: 'ReqGain%',
-        title: 'ReqGain%',
-        description:
-            'ReqGain% — какой рост нужен от дна MaxDD, чтобы вернуться к пику перед этой просадкой.\n\nФормула:\nReqGain% = (1 / (1 - MaxDD) - 1) * 100.\n\nКак читать:\nчем ниже значение, тем реалистичнее восстановление;\n100%+ уже означает тяжёлый возврат капитала,\n200%+ — очень тяжёлый.',
-        tooltip: 'Сколько % нужно отыграть после MaxDD.'
     },
     'DD70_Min%': {
         key: 'DD70_Min%',
@@ -690,7 +732,11 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
     }
 }
 
-export const POLICY_BRANCH_MEGA_TERM_KEYS = Object.freeze(Object.keys(TERMS)) as readonly string[]
+const POLICY_BRANCH_MEGA_COMMON_TERM_KEYS = Object.keys(POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS)
+export const POLICY_BRANCH_MEGA_TERM_KEYS = Object.freeze([
+    ...POLICY_BRANCH_MEGA_COMMON_TERM_KEYS,
+    ...Object.keys(TERMS)
+]) as readonly string[]
 function extractMegaPartNumber(title: string | undefined): number | null {
     if (!title) return null
 
@@ -1069,6 +1115,28 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
         return 'чем выше, тем лучше соотношение доходности и риска, но сравнение корректно только внутри одного bucket и одного режима метрик.'
     }
+    if (
+        key === 'ProfitFactor' ||
+        key === 'PayoffRatio' ||
+        key === 'AvgHit%' ||
+        key === 'AvgMiss%' ||
+        key === 'Expectancy%' ||
+        key === 'Expectancy$' ||
+        key === 'LongWinRate%' ||
+        key === 'ShortWinRate%'
+    ) {
+        return 'это экономика одной сделки: как часто стратегия выигрывает, сколько зарабатывает на среднем хите и сколько теряет на среднем промахе.'
+    }
+    if (
+        key === 'BestDay%' ||
+        key === 'WorstDay%' ||
+        key === 'RetSkew' ||
+        key === 'RetKurt' ||
+        key === 'PSR>0%' ||
+        key === 'MinTRL95 SR>0'
+    ) {
+        return 'это уже свойства дневной серии доходностей: хвосты, асимметрия и статистическая уверенность в положительном Sharpe.'
+    }
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'совместная интерпретация обязательна: высокая средняя доходность без контроля разброса и просадки часто даёт нестабильный профиль риска.'
     }
@@ -1194,6 +1262,28 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
         return 'Higher is better for risk-adjusted return, but comparison is valid only inside the same bucket and the same metric mode.'
     }
+    if (
+        key === 'ProfitFactor' ||
+        key === 'PayoffRatio' ||
+        key === 'AvgHit%' ||
+        key === 'AvgMiss%' ||
+        key === 'Expectancy%' ||
+        key === 'Expectancy$' ||
+        key === 'LongWinRate%' ||
+        key === 'ShortWinRate%'
+    ) {
+        return 'These are per-trade economics: how often the strategy wins, how large the average win is, and how painful the average loss is.'
+    }
+    if (
+        key === 'BestDay%' ||
+        key === 'WorstDay%' ||
+        key === 'RetSkew' ||
+        key === 'RetKurt' ||
+        key === 'PSR>0%' ||
+        key === 'MinTRL95 SR>0'
+    ) {
+        return 'These belong to the daily return series itself: tail shape, asymmetry, and statistical confidence that Sharpe is truly above zero.'
+    }
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'These must be interpreted together: high average return without control over dispersion and drawdown usually means unstable risk profile.'
     }
@@ -1312,6 +1402,28 @@ function _resolveTermDecisionContextHintOrDefault(key: string): string {
     }
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
         return 'это метрики качества результата с учётом риска: они нужны, чтобы не выбирать стратегию только по максимальной доходности.'
+    }
+    if (
+        key === 'ProfitFactor' ||
+        key === 'PayoffRatio' ||
+        key === 'AvgHit%' ||
+        key === 'AvgMiss%' ||
+        key === 'Expectancy%' ||
+        key === 'Expectancy$' ||
+        key === 'LongWinRate%' ||
+        key === 'ShortWinRate%'
+    ) {
+        return 'это trade-derived метрики: что происходит на уровне одной сделки после комиссий и реального исполнения.'
+    }
+    if (
+        key === 'BestDay%' ||
+        key === 'WorstDay%' ||
+        key === 'RetSkew' ||
+        key === 'RetKurt' ||
+        key === 'PSR>0%' ||
+        key === 'MinTRL95 SR>0'
+    ) {
+        return 'это advanced-метрики дневной серии: форма распределения доходностей и статистическая надёжность положительного Sharpe.'
     }
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'это статистика распределения доходности: средний результат, разброс и устойчивость отрицательных дней.'
@@ -1469,6 +1581,33 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'WinRate%') {
         return 'WinRate%=58 означает, что прибыльными были 58 из 100 сделок.'
     }
+    if (key === 'ProfitFactor') {
+        return 'ProfitFactor=1.6 означает, что на каждый 1 доллар суммарного убытка стратегия дала 1.6 доллара суммарной прибыли.'
+    }
+    if (key === 'PayoffRatio') {
+        return 'PayoffRatio=1.4 означает, что средняя прибыльная сделка по проценту примерно в 1.4 раза больше средней убыточной.'
+    }
+    if (key === 'AvgHit%' || key === 'AvgMiss%') {
+        return 'AvgHit%=2.3 и AvgMiss%=-1.7 означает, что средний выигрыш выше среднего проигрыша по модулю.'
+    }
+    if (key === 'Expectancy%' || key === 'Expectancy$') {
+        return 'Expectancy%=0.18 и Expectancy$=34 означает, что одна случайная сделка из этой серии в среднем добавляла около 0.18% и 34 доллара.'
+    }
+    if (key === 'LongWinRate%' || key === 'ShortWinRate%') {
+        return 'LongWinRate%=62 и ShortWinRate%=47 означает, что стратегия заметно лучше работает в LONG, чем в SHORT.'
+    }
+    if (key === 'BestDay%' || key === 'WorstDay%') {
+        return 'BestDay%=5.4 и WorstDay%=-4.1 означает, что лучший день дал +5.4%, а худший день забрал -4.1% той же дневной серии.'
+    }
+    if (key === 'RetSkew' || key === 'RetKurt') {
+        return 'RetSkew=-0.8 и RetKurt=4.7 означает более тяжёлый левый хвост и больше экстремальных дней, чем у нормального распределения.'
+    }
+    if (key === 'PSR>0%') {
+        return 'PSR>0%=93 означает высокую статистическую уверенность, что истинный Sharpe этой серии действительно выше нуля.'
+    }
+    if (key === 'MinTRL95 SR>0') {
+        return 'MinTRL95 SR>0=146 означает, что для 95% доверия к положительному Sharpe нужно не меньше 146 дневных наблюдений.'
+    }
     if (key === 'MeanRet%') {
         return 'MeanRet%=0.35 означает, что средняя дневная доходность серии составила +0.35%.'
     }
@@ -1606,6 +1745,33 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'WinRate%') {
         return 'WinRate%=58 means 58 out of 100 trades were profitable.'
     }
+    if (key === 'ProfitFactor') {
+        return 'ProfitFactor=1.6 means the strategy generated 1.6 dollars of total profit for each 1 dollar of total loss.'
+    }
+    if (key === 'PayoffRatio') {
+        return 'PayoffRatio=1.4 means the average winning trade was about 1.4x larger than the average losing trade in percentage terms.'
+    }
+    if (key === 'AvgHit%' || key === 'AvgMiss%') {
+        return 'AvgHit%=2.3 and AvgMiss%=-1.7 mean the average win is larger than the average loss in absolute size.'
+    }
+    if (key === 'Expectancy%' || key === 'Expectancy$') {
+        return 'Expectancy%=0.18 and Expectancy$=34 mean a random trade from this row added about 0.18% and 34 USD on average.'
+    }
+    if (key === 'LongWinRate%' || key === 'ShortWinRate%') {
+        return 'LongWinRate%=62 and ShortWinRate%=47 mean the strategy is materially stronger in LONG than in SHORT.'
+    }
+    if (key === 'BestDay%' || key === 'WorstDay%') {
+        return 'BestDay%=5.4 and WorstDay%=-4.1 mean the best day added 5.4% while the worst day lost 4.1% on the same daily series.'
+    }
+    if (key === 'RetSkew' || key === 'RetKurt') {
+        return 'RetSkew=-0.8 and RetKurt=4.7 mean a heavier left tail and more extreme days than a normal distribution.'
+    }
+    if (key === 'PSR>0%') {
+        return 'PSR>0%=93 means there is high statistical confidence that the true Sharpe of the series is above zero.'
+    }
+    if (key === 'MinTRL95 SR>0') {
+        return 'MinTRL95 SR>0=146 means at least 146 daily observations are needed for 95% confidence that true Sharpe is above zero.'
+    }
     if (key === 'MeanRet%') {
         return 'MeanRet%=0.35 means the average daily return of the series was +0.35%.'
     }
@@ -1692,7 +1858,7 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     'SL Mode': {
         description:
-            'SL Mode is the switch for trade-exit mechanics.\n\nWITH SL keeps protective stop-loss enabled. The trade can close by stop-loss, take-profit, liquidation, or EndOfDay.\n\nNO SL disables the protective stop-loss, so the trade can close only by take-profit, liquidation, or EndOfDay.\n\nRisk in NO SL:\nfor isolated margin this raises the chance of losing the full trade margin.\n\nFor cross margin this raises the chance of losing the whole bucket balance.',
+            'SL Mode is the switch for trade-exit mechanics.\n\n- WITH SL keeps the protective [[tp-sl|stop-loss]] enabled. The trade can close by [[tp-sl|stop-loss]], [[tp-sl|take-profit]], [[liquidation|liquidation]], or [[eod|EndOfDay]].\n- NO SL disables the protective [[tp-sl|stop-loss]], so the trade can close only by [[tp-sl|take-profit]], [[liquidation|liquidation]], or [[eod|EndOfDay]].\n\nRisk in NO SL:\n- for [[isolated-margin|isolated]] margin this raises the chance of losing the full trade margin.\n- for [[cross-margin|cross]] margin this raises the chance of losing the whole bucket balance.',
         tooltip:
             'Exit-mechanics mode for the row: WITH SL keeps protective stop-loss, NO SL removes it and leaves only take-profit, liquidation, or EndOfDay exits.'
     },
@@ -1834,7 +2000,7 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     'TotalPnl%': {
         description:
-            'Total profit or loss relative to the start capital of the selected slice, in %. This metric answers how much the slice earned or lost from its initial capital base.\n\nIts value also depends on the selected metric mode: in REAL it is the factual result, while in NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation for tail-risk analysis.',
+            'Total profit or loss relative to the start capital of the selected slice, in %.\n\n- REAL: the factual result of the simulation.\n- NO BIGGEST LIQ LOSS: a counterfactual recalculation that removes one worst [[liquidation|liquidation]] to show how sensitive the slice is to a rare tail event.',
         tooltip: 'Total profit or loss relative to slice start capital, in %.'
     },
     TotalPnl$: {
@@ -1883,6 +2049,62 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     'WinRate%': {
         description: 'Share of profitable trades, in %.',
         tooltip: 'Win rate, %.'
+    },
+    ProfitFactor: {
+        description: 'Profit factor = sum of positive NetPnl$ / abs(sum of negative NetPnl$).',
+        tooltip: 'Profit factor.'
+    },
+    PayoffRatio: {
+        description: 'Payoff ratio = abs(AvgHit% / AvgMiss%).',
+        tooltip: 'Payoff ratio.'
+    },
+    'AvgHit%': {
+        description: 'Average NetReturnPct of profitable trades only.',
+        tooltip: 'Average winning trade return, %.'
+    },
+    'AvgMiss%': {
+        description: 'Average NetReturnPct of losing trades only.',
+        tooltip: 'Average losing trade return, %.'
+    },
+    'Expectancy%': {
+        description: 'Average NetReturnPct across all trades.',
+        tooltip: 'Average trade return, %.'
+    },
+    'Expectancy$': {
+        description: 'Average NetPnl$ across all trades.',
+        tooltip: 'Average trade PnL, $.'
+    },
+    'LongWinRate%': {
+        description: 'Share of profitable LONG trades, in %.',
+        tooltip: 'LONG win rate, %.'
+    },
+    'ShortWinRate%': {
+        description: 'Share of profitable SHORT trades, in %.',
+        tooltip: 'SHORT win rate, %.'
+    },
+    'BestDay%': {
+        description: 'Best daily return of the same series used for Sharpe/Sortino/Calmar/CAGR.',
+        tooltip: 'Best day return, %.'
+    },
+    'WorstDay%': {
+        description: 'Worst daily return of the same series used for Sharpe/Sortino/Calmar/CAGR.',
+        tooltip: 'Worst day return, %.'
+    },
+    RetSkew: {
+        description: 'Skewness of the daily return series.',
+        tooltip: 'Return skewness.'
+    },
+    RetKurt: {
+        description: 'Non-excess kurtosis of the daily return series (normal = 3).',
+        tooltip: 'Return kurtosis.'
+    },
+    'PSR>0%': {
+        description: 'Probabilistic Sharpe Ratio against the threshold true SR > 0, in %.',
+        tooltip: 'Probability that true Sharpe > 0, %.'
+    },
+    'MinTRL95 SR>0': {
+        description: 'Minimum Track Record Length needed for 95% confidence that true SR > 0.',
+        tooltip: 'Minimum track record length for SR > 0.'
     },
     'MeanRet%': {
         description: 'Average trade/day return in % (per row semantics).',
@@ -2152,6 +2374,14 @@ function resolvePolicyBranchMegaTermTooltipOrThrow(
 }
 
 function resolvePolicyBranchMegaTermDraftOrThrow(key: string): PolicyBranchMegaTermDraft {
+    const commonTerm = POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS[key]
+    if (commonTerm) {
+        return {
+            ...commonTerm,
+            tooltip: POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION
+        }
+    }
+
     const term = TERMS[key]
     if (!term) {
         throw new Error(`[policy-branch-mega] unknown column term: ${key}`)
@@ -2320,28 +2550,36 @@ export function resolvePolicyBranchMegaSectionDescription(
     const metricPrefix = metric === 'no-biggest-liq-loss' ? 'NO BIGGEST LIQ LOSS: ' : 'REAL: '
     const prefix = `${modePrefix}${metricPrefix}`
 
-    if (upper.includes('PART 1/3')) {
+    if (upper.includes('PART 1/4')) {
         if (locale === 'en') {
-            return `${prefix}Part 1/3: baseline summary for activity, risk days, leverage/cap usage and core PnL metrics (up to MaxDD_Ratio%).`
+            return `${prefix}Part 1/4: baseline summary for activity, risk days, leverage/cap usage and core PnL metrics (up to MaxDD_Ratio%).`
         }
 
-        return `${prefix}Часть 1/3: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).`
+        return `${prefix}Часть 1/4: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).`
     }
 
-    if (upper.includes('PART 2/3')) {
+    if (upper.includes('PART 2/4')) {
         if (locale === 'en') {
-            return `${prefix}Part 2/3: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).`
+            return `${prefix}Part 2/4: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).`
         }
 
-        return `${prefix}Часть 2/3: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).`
+        return `${prefix}Часть 2/4: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).`
     }
 
-    if (upper.includes('PART 3/3')) {
+    if (upper.includes('PART 3/4')) {
         if (locale === 'en') {
-            return `${prefix}Part 3/3: horizon and average growth rates, long/short split and diagnostic counters.`
+            return `${prefix}Part 3/4: horizon and average growth rates, long/short split and diagnostic counters.`
         }
 
-        return `${prefix}Часть 3/3: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.`
+        return `${prefix}Часть 3/4: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.`
+    }
+
+    if (upper.includes('PART 4/4')) {
+        if (locale === 'en') {
+            return `${prefix}Part 4/4: trade-derived and advanced daily-series metrics (ProfitFactor, Expectancy, Best/Worst day, PSR, MinTRL).`
+        }
+
+        return `${prefix}Часть 4/4: trade-derived и advanced daily-series метрики (ProfitFactor, Expectancy, Best/Worst day, PSR, MinTRL).`
     }
 
     return null

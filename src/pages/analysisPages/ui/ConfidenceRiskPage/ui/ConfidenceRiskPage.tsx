@@ -18,7 +18,10 @@ import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
-import { useBacktestConfidenceRiskReportQuery } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
+import {
+    resolveBacktestConfidenceRiskScope,
+    useBacktestConfidenceRiskReportQuery
+} from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
 import cls from './ConfidenceRiskPage.module.scss'
@@ -437,20 +440,6 @@ function resolveConfidenceRiskUiLocale(language: string): ConfidenceRiskUiLocale
     return language.toLowerCase().startsWith('ru') ? 'ru' : 'en'
 }
 
-function resolveConfidenceScopeFromQueryOrThrow(raw: string | null): CurrentPredictionTrainingScope {
-    if (!raw) {
-        return DEFAULT_CONFIDENCE_SCOPE
-    }
-
-    const normalized = raw.trim().toLowerCase()
-    if (normalized === 'full') return 'full'
-    if (normalized === 'train') return 'train'
-    if (normalized === 'oos') return 'oos'
-    if (normalized === 'recent') return 'recent'
-
-    throw new Error(`[confidence-risk] invalid scope query value: ${raw}.`)
-}
-
 function findColumnIndexByTitleOrThrow(columns: string[], title: string): number {
     const index = columns.findIndex(column => column.trim().toLowerCase() === title.trim().toLowerCase())
     if (index < 0) {
@@ -584,19 +573,46 @@ function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
 export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
-    const { data, isLoading, isError, error, refetch } = useBacktestConfidenceRiskReportQuery({
-        scope: searchParams.get('scope'),
-        confidenceBucket: searchParams.get('confBucket')
-    })
+    const rawScopeQuery = searchParams.get('scope')
+    const rawConfidenceBucketQuery = searchParams.get('confBucket')
+    const scopeState = useMemo(() => {
+        try {
+            return {
+                value: resolveBacktestConfidenceRiskScope(rawScopeQuery),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk scope query.')
+            return {
+                value: DEFAULT_CONFIDENCE_SCOPE,
+                error: safeError
+            }
+        }
+    }, [rawScopeQuery])
+    const canLoadConfidenceRiskReport = !scopeState.error
+    const { data, isLoading, isError, error, refetch } = useBacktestConfidenceRiskReportQuery(
+        {
+            scope: canLoadConfidenceRiskReport ? scopeState.value : null,
+            confidenceBucket: rawConfidenceBucketQuery
+        },
+        {
+            enabled: canLoadConfidenceRiskReport
+        }
+    )
     const {
         data: optionsData,
         isLoading: isOptionsLoading,
         isError: isOptionsError,
         error: optionsError
-    } = useBacktestConfidenceRiskReportQuery({
-        scope: searchParams.get('scope'),
-        confidenceBucket: null
-    })
+    } = useBacktestConfidenceRiskReportQuery(
+        {
+            scope: canLoadConfidenceRiskReport ? scopeState.value : null,
+            confidenceBucket: null
+        },
+        {
+            enabled: canLoadConfidenceRiskReport
+        }
+    )
     const termsLocale = useMemo(
         () => resolveConfidenceRiskUiLocale(i18n.resolvedLanguage ?? i18n.language),
         [i18n.language, i18n.resolvedLanguage]
@@ -629,20 +645,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
     const optionsTableSections = useMemo(() => buildTableSections(optionsData?.sections ?? []), [optionsData])
     const keyValueSections = useMemo(() => buildKeyValueSections(data?.sections ?? []), [data])
-    const scopeState = useMemo(() => {
-        try {
-            return {
-                value: resolveConfidenceScopeFromQueryOrThrow(searchParams.get('scope')),
-                error: null as Error | null
-            }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk scope query.')
-            return {
-                value: DEFAULT_CONFIDENCE_SCOPE,
-                error: safeError
-            }
-        }
-    }, [searchParams])
     const scopeMetaState = useMemo(() => {
         try {
             return {
@@ -712,7 +714,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         try {
             return {
                 value: resolveConfidenceBucketFromQueryOrThrow(
-                    searchParams.get('confBucket'),
+                    rawConfidenceBucketQuery,
                     confidenceBucketOptionsState.options
                 ),
                 error: null as Error | null
@@ -724,7 +726,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: safeError
             }
         }
-    }, [confidenceBucketOptionsState.error, confidenceBucketOptionsState.options, searchParams])
+    }, [confidenceBucketOptionsState.error, confidenceBucketOptionsState.options, rawConfidenceBucketQuery])
 
     const configState = useMemo(() => {
         if (!data) {
@@ -771,6 +773,16 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     }, [data])
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
+
+    if (scopeState.error) {
+        return (
+            <PageError
+                title={t('confidenceRisk.page.errors.scopeQuery.title')}
+                message={t('confidenceRisk.page.errors.scopeQuery.message')}
+                error={scopeState.error}
+            />
+        )
+    }
 
     const renderColumnTitle = (title: string) => {
         const term = getTableTermOrThrow(title, tableTermMap)
@@ -842,15 +854,6 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     title={t('confidenceRisk.page.errors.invalidSource.title')}
                     message={t('confidenceRisk.page.errors.invalidSource.message')}
                     error={err}
-                    onRetry={refetch}
-                />
-            )
-        } else if (scopeState.error) {
-            content = (
-                <PageError
-                    title={t('confidenceRisk.page.errors.scopeQuery.title')}
-                    message={t('confidenceRisk.page.errors.scopeQuery.message')}
-                    error={scopeState.error}
                     onRetry={refetch}
                 />
             )

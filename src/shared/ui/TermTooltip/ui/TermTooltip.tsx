@@ -10,6 +10,7 @@ import {
     useRef,
     useState
 } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Portal, Text } from '@/shared/ui'
 import useClickOutside from '@/shared/lib/hooks/useClickOutside'
@@ -23,6 +24,8 @@ interface TermTooltipProps {
     type?: TextTag
     className?: string
     align?: 'left' | 'right'
+    to?: string
+    onWarmup?: () => void
 }
 
 function resolveTooltipDescription(description: ReactNode | (() => ReactNode)): ReactNode {
@@ -31,6 +34,7 @@ function resolveTooltipDescription(description: ReactNode | (() => ReactNode)): 
 
 const HOVER_OPEN_DELAY_MS = 170
 const HOVER_HIDE_DELAY_MS = 120
+const HOVER_OPEN_RETRY_DELAY_MS = 90
 
 const OPEN_TOOLTIP_COUNT_BY_TREE = new Map<string, number>()
 let ACTIVE_TOOLTIP_TREE_ID: string | null = null
@@ -113,7 +117,9 @@ export default function TermTooltip({
     tooltipTitle,
     type = 'h3',
     className,
-    align = 'left'
+    align = 'left',
+    to,
+    onWarmup
 }: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
@@ -124,6 +130,7 @@ export default function TermTooltip({
     const tooltipRef = useRef<HTMLDivElement | null>(null)
     const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const hoverIntentRef = useRef(false)
     const treeIdRef = useRef<string>(instanceId)
     const isNestedTooltipRef = useRef(false)
     const isRegisteredOpenRef = useRef(false)
@@ -175,13 +182,25 @@ export default function TermTooltip({
 
     const scheduleShow = useCallback(() => {
         cancelShow()
-        showTimeoutRef.current = setTimeout(() => {
-            if (!tryActivateTooltipTree()) {
-                return
-            }
 
-            setHovered(true)
-        }, HOVER_OPEN_DELAY_MS)
+        const scheduleAttempt = (delayMs: number) => {
+            showTimeoutRef.current = setTimeout(() => {
+                if (!hoverIntentRef.current) {
+                    return
+                }
+
+                if (!tryActivateTooltipTree()) {
+                    // Если пользователь уже целенаправленно держит курсор на новом термине,
+                    // не теряем это намерение из-за ещё не закрывшейся предыдущей подсказки.
+                    scheduleAttempt(HOVER_OPEN_RETRY_DELAY_MS)
+                    return
+                }
+
+                setHovered(true)
+            }, delayMs)
+        }
+
+        scheduleAttempt(HOVER_OPEN_DELAY_MS)
     }, [cancelShow, tryActivateTooltipTree])
 
     const scheduleHide = useCallback(() => {
@@ -193,14 +212,32 @@ export default function TermTooltip({
     }, [cancelHide, cancelShow])
 
     const handleTermEnter = useCallback(() => {
+        hoverIntentRef.current = true
+        onWarmup?.()
         cancelHide()
+        scheduleShow()
+    }, [cancelHide, onWarmup, scheduleShow])
+
+    const handleTermLeave = useCallback(() => {
+        hoverIntentRef.current = false
+        scheduleHide()
+    }, [scheduleHide])
+
+    const handleTermFocus = useCallback(() => {
+        onWarmup?.()
+        hoverIntentRef.current = true
+        cancelShow()
+        cancelHide()
+
         if (!tryActivateTooltipTree()) {
             return
         }
-        scheduleShow()
-    }, [cancelHide, tryActivateTooltipTree, scheduleShow])
 
-    const handleTermLeave = useCallback(() => {
+        setHovered(true)
+    }, [cancelHide, cancelShow, onWarmup, tryActivateTooltipTree])
+
+    const handleTermBlur = useCallback(() => {
+        hoverIntentRef.current = false
         scheduleHide()
     }, [scheduleHide])
 
@@ -236,6 +273,7 @@ export default function TermTooltip({
     }, [cancelHide, cancelShow, tryActivateTooltipTree])
 
     const closeTooltipImmediately = useCallback(() => {
+        hoverIntentRef.current = false
         cancelShow()
         cancelHide()
         setHovered(false)
@@ -294,6 +332,7 @@ export default function TermTooltip({
     useClickOutside(
         rootRef,
         () => {
+            hoverIntentRef.current = false
             cancelShow()
             cancelHide()
             setHovered(false)
@@ -538,19 +577,35 @@ export default function TermTooltip({
         <>
             <span ref={rootRef} className={classNames(cls.TermTooltip, {}, [className ?? ''])}>
                 <Text type={type} className={cls.termText}>
-                    <span
-                        data-term-tooltip-instance-id={instanceId}
-                        className={cls.termInner}
-                        onMouseEnter={handleTermEnter}
-                        onMouseLeave={handleTermLeave}
-                        onClick={handleTermClick}
-                        onKeyDown={handleKeyDown}
-                        role='button'
-                        tabIndex={0}
-                        aria-label={`Что такое ${term}?`}
-                        aria-expanded={open}>
-                        {term}
-                    </span>
+                    {to ?
+                        <RouterLink
+                            to={to}
+                            data-term-tooltip-instance-id={instanceId}
+                            className={cls.termInner}
+                            onMouseEnter={handleTermEnter}
+                            onMouseLeave={handleTermLeave}
+                            onFocus={handleTermFocus}
+                            onBlur={handleTermBlur}
+                            aria-label={term}
+                            aria-expanded={open}>
+                            {term}
+                        </RouterLink>
+                    :   <span
+                            data-term-tooltip-instance-id={instanceId}
+                            className={cls.termInner}
+                            onMouseEnter={handleTermEnter}
+                            onMouseLeave={handleTermLeave}
+                            onFocus={handleTermFocus}
+                            onBlur={handleTermBlur}
+                            onClick={handleTermClick}
+                            onKeyDown={handleKeyDown}
+                            role='button'
+                            tabIndex={0}
+                            aria-label={`Что такое ${term}?`}
+                            aria-expanded={open}>
+                            {term}
+                        </span>
+                    }
                 </Text>
             </span>
 

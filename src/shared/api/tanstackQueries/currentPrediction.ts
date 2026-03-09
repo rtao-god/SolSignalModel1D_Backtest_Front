@@ -5,6 +5,7 @@ import type {
     CurrentPredictionSet,
     CurrentPredictionTrainingScope
 } from '../endpoints/reportEndpoints'
+import { normalizeCurrentPredictionDateUtcOrThrow } from '@/shared/utils/currentPredictionDate'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
@@ -14,6 +15,22 @@ const CURRENT_PREDICTION_INDEX_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_CURRENT_PREDICTION_SCOPE: CurrentPredictionTrainingScope = 'full'
 const DEFAULT_CURRENT_PREDICTION_SET: CurrentPredictionSet = 'live'
 const DEFAULT_HISTORY_PREDICTION_SET: CurrentPredictionSet = 'backfilled'
+
+export interface CurrentPredictionBackfilledSplitStats {
+    trainDays: number
+    oosDays: number
+    totalDays: number
+    trainShare: number
+    oosShare: number
+    lastTrainDateUtc: string
+    firstOosDateUtc: string
+}
+
+interface CurrentPredictionBackfilledSplitStatsState {
+    data: CurrentPredictionBackfilledSplitStats | null
+    isLoading: boolean
+    error: Error | null
+}
 
 interface CurrentPredictionLatestResponse {
     live?: unknown
@@ -76,7 +93,81 @@ async function fetchCurrentPredictionIndex(
         throw new Error(`Failed to load current prediction index: ${resp.status} ${text}`)
     }
 
-    return (await resp.json()) as CurrentPredictionIndexItemDto[]
+    const payload = (await resp.json()) as Array<{ id?: unknown; predictionDateUtc?: unknown }>
+    if (!Array.isArray(payload)) {
+        throw new Error('[current-prediction] index payload must be an array.')
+    }
+
+    return payload.map((item, index) => {
+        if (typeof item?.id !== 'string' || !item.id.trim()) {
+            throw new Error(`[current-prediction] index item id is invalid at index=${index}.`)
+        }
+        if (typeof item?.predictionDateUtc !== 'string') {
+            throw new Error(`[current-prediction] index item predictionDateUtc is invalid at index=${index}.`)
+        }
+
+        return {
+            id: item.id,
+            predictionDateUtc: normalizeCurrentPredictionDateUtcOrThrow(item.predictionDateUtc)
+        }
+    })
+}
+
+function collectUniquePredictionDates(index: CurrentPredictionIndexItemDto[] | undefined): string[] {
+    if (!index || index.length === 0) {
+        return []
+    }
+
+    return Array.from(new Set(index.map(item => item.predictionDateUtc))).sort((left, right) =>
+        left < right ? -1
+        : left > right ? 1
+        : 0
+    )
+}
+
+function buildBackfilledSplitStats(
+    trainIndex: CurrentPredictionIndexItemDto[],
+    oosIndex: CurrentPredictionIndexItemDto[]
+): CurrentPredictionBackfilledSplitStats {
+    const trainDates = collectUniquePredictionDates(trainIndex)
+    const oosDates = collectUniquePredictionDates(oosIndex)
+
+    if (trainDates.length === 0) {
+        throw new Error('[current-prediction] backfilled train split index is empty.')
+    }
+    if (oosDates.length === 0) {
+        throw new Error('[current-prediction] backfilled oos split index is empty.')
+    }
+
+    const overlap = trainDates.filter(date => oosDates.includes(date))
+    if (overlap.length > 0) {
+        throw new Error(
+            `[current-prediction] backfilled train/oos split index overlaps by prediction date. overlap=${overlap.slice(0, 5).join(', ')}.`
+        )
+    }
+
+    const lastTrainDateUtc = trainDates[trainDates.length - 1]
+    const firstOosDateUtc = oosDates[0]
+
+    if (lastTrainDateUtc >= firstOosDateUtc) {
+        throw new Error(
+            `[current-prediction] backfilled split boundary is invalid. lastTrainDateUtc=${lastTrainDateUtc}, firstOosDateUtc=${firstOosDateUtc}.`
+        )
+    }
+
+    const trainDays = trainDates.length
+    const oosDays = oosDates.length
+    const totalDays = trainDays + oosDays
+
+    return {
+        trainDays,
+        oosDays,
+        totalDays,
+        trainShare: trainDays / totalDays,
+        oosShare: oosDays / totalDays,
+        lastTrainDateUtc,
+        firstOosDateUtc
+    }
 }
 export function useCurrentPredictionReportQuery(
     set: CurrentPredictionSet = 'live',
@@ -93,6 +184,49 @@ export function useCurrentPredictionIndexQuery(
 ): UseQueryResult<CurrentPredictionIndexItemDto[], Error> {
     const queryOptions = buildCurrentPredictionIndexQueryOptions(set, days, scope)
     return useQuery(queryOptions)
+}
+
+export function useCurrentPredictionBackfilledSplitStats(): CurrentPredictionBackfilledSplitStatsState {
+    const trainIndexQuery = useCurrentPredictionIndexQuery(DEFAULT_HISTORY_PREDICTION_SET, undefined, 'train')
+    const oosIndexQuery = useCurrentPredictionIndexQuery(DEFAULT_HISTORY_PREDICTION_SET, undefined, 'oos')
+
+    if (trainIndexQuery.error) {
+        return {
+            data: null,
+            isLoading: false,
+            error: trainIndexQuery.error
+        }
+    }
+
+    if (oosIndexQuery.error) {
+        return {
+            data: null,
+            isLoading: false,
+            error: oosIndexQuery.error
+        }
+    }
+
+    if (!trainIndexQuery.data || !oosIndexQuery.data) {
+        return {
+            data: null,
+            isLoading: trainIndexQuery.isLoading || oosIndexQuery.isLoading,
+            error: null
+        }
+    }
+
+    try {
+        return {
+            data: buildBackfilledSplitStats(trainIndexQuery.data, oosIndexQuery.data),
+            isLoading: false,
+            error: null
+        }
+    } catch (error) {
+        return {
+            data: null,
+            isLoading: false,
+            error: error instanceof Error ? error : new Error(String(error))
+        }
+    }
 }
 
 function buildCurrentPredictionReportQueryOptions(

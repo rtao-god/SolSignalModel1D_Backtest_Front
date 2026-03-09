@@ -11,6 +11,7 @@ import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
+import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readExplainStringListOrThrow,
     readExplainTableRowsOrThrow,
@@ -37,7 +38,7 @@ function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
 }
 
 export default function ExplainModelsPage({ className }: ExplainModelsPageProps) {
-    const { t } = useTranslation('explain')
+    const { t, i18n } = useTranslation('explain')
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
     const handleModelsStatsWarmup = useCallback(() => {
@@ -56,21 +57,6 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
         sections,
         syncHash: true
     })
-
-    const overviewTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'modelsPage.sections.overview.terms'), [t])
-    const dailyTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'modelsPage.sections.daily.terms'), [t])
-    const microTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'modelsPage.sections.micro.terms'), [t])
-    const slTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'modelsPage.sections.sl.terms'), [t])
-    const aggregationTerms = useMemo(() => readExplainTermItemsOrThrow(t, 'modelsPage.sections.aggregation.terms'), [t])
-
-    const overviewRows = useMemo(() => readExplainTableRowsOrThrow(t, 'modelsPage.sections.overview.table.rows'), [t])
-    const dailyRows = useMemo(() => readExplainTableRowsOrThrow(t, 'modelsPage.sections.daily.table.rows'), [t])
-    const slRows = useMemo(() => readExplainTableRowsOrThrow(t, 'modelsPage.sections.sl.table.rows'), [t])
-    const microNotes = useMemo(() => readExplainStringListOrThrow(t, 'modelsPage.sections.micro.notes'), [t])
-    const aggregationSteps = useMemo(
-        () => readExplainStringListOrThrow(t, 'modelsPage.sections.aggregation.steps'),
-        [t]
-    )
 
     return (
         <div className={classNames(cls.ExplainModelsPage, {}, [className ?? ''])} data-tooltip-boundary>
@@ -97,27 +83,37 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                         {t('modelsPage.sections.overview.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('modelsPage.sections.overview.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('modelsPage.sections.overview.table.headers.layer')}</th>
-                                    <th>{t('modelsPage.sections.overview.table.headers.role')}</th>
-                                    <th>{t('modelsPage.sections.overview.table.headers.output')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {overviewRows.map((row, rowIndex) => (
-                                    <tr key={`overview-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={overviewTerms} />
+                    <LocalizedContentBoundary name='ExplainModels:overview:table'>
+                        {() => {
+                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'modelsPage.sections.overview.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('modelsPage.sections.overview.table.headers.layer')}</th>
+                                                <th>{t('modelsPage.sections.overview.table.headers.role')}</th>
+                                                <th>{t('modelsPage.sections.overview.table.headers.output')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {overviewRows.map((row, rowIndex) => (
+                                                <tr key={`overview-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainModels:overview:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'modelsPage.sections.overview.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-models-daily' className={cls.sectionCard}>
@@ -125,26 +121,36 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                         {t('modelsPage.sections.daily.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('modelsPage.sections.daily.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('modelsPage.sections.daily.table.headers.class')}</th>
-                                    <th>{t('modelsPage.sections.daily.table.headers.condition')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dailyRows.map((row, rowIndex) => (
-                                    <tr key={`daily-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`daily-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={dailyTerms} />
+                    <LocalizedContentBoundary name='ExplainModels:daily:table'>
+                        {() => {
+                            const dailyRows = readExplainTableRowsOrThrow(i18n, 'modelsPage.sections.daily.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('modelsPage.sections.daily.table.headers.class')}</th>
+                                                <th>{t('modelsPage.sections.daily.table.headers.condition')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {dailyRows.map((row, rowIndex) => (
+                                                <tr key={`daily-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`daily-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainModels:daily:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'modelsPage.sections.daily.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-models-micro' className={cls.sectionCard}>
@@ -152,12 +158,22 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                         {t('modelsPage.sections.micro.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('modelsPage.sections.micro.text')}</Text>
-                    <ul className={cls.noteList}>
-                        {microNotes.map((note, index) => (
-                            <li key={`micro-note-${index}`}>{note}</li>
-                        ))}
-                    </ul>
-                    <TermGrid items={microTerms} />
+                    <LocalizedContentBoundary name='ExplainModels:micro:notes'>
+                        {() => {
+                            const microNotes = readExplainStringListOrThrow(i18n, 'modelsPage.sections.micro.notes')
+
+                            return (
+                                <ul className={cls.noteList}>
+                                    {microNotes.map((note, index) => (
+                                        <li key={`micro-note-${index}`}>{note}</li>
+                                    ))}
+                                </ul>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainModels:micro:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'modelsPage.sections.micro.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-models-sl' className={cls.sectionCard}>
@@ -165,26 +181,36 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                         {t('modelsPage.sections.sl.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('modelsPage.sections.sl.text')}</Text>
-                    <div className={cls.tableWrap}>
-                        <table className={cls.infoTable}>
-                            <thead>
-                                <tr>
-                                    <th>{t('modelsPage.sections.sl.table.headers.parameter')}</th>
-                                    <th>{t('modelsPage.sections.sl.table.headers.rule')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {slRows.map((row, rowIndex) => (
-                                    <tr key={`sl-row-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <td key={`sl-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <TermGrid items={slTerms} />
+                    <LocalizedContentBoundary name='ExplainModels:sl:table'>
+                        {() => {
+                            const slRows = readExplainTableRowsOrThrow(i18n, 'modelsPage.sections.sl.table.rows')
+
+                            return (
+                                <div className={cls.tableWrap}>
+                                    <table className={cls.infoTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>{t('modelsPage.sections.sl.table.headers.parameter')}</th>
+                                                <th>{t('modelsPage.sections.sl.table.headers.rule')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {slRows.map((row, rowIndex) => (
+                                                <tr key={`sl-row-${rowIndex}`}>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={`sl-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainModels:sl:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'modelsPage.sections.sl.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
 
                 <section id='explain-models-aggregation' className={cls.sectionCard}>
@@ -192,12 +218,22 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
                         {t('modelsPage.sections.aggregation.title')}
                     </Text>
                     <Text className={cls.sectionText}>{t('modelsPage.sections.aggregation.text')}</Text>
-                    <ol className={cls.noteList}>
-                        {aggregationSteps.map((step, index) => (
-                            <li key={`aggregation-step-${index}`}>{step}</li>
-                        ))}
-                    </ol>
-                    <TermGrid items={aggregationTerms} />
+                    <LocalizedContentBoundary name='ExplainModels:aggregation:steps'>
+                        {() => {
+                            const aggregationSteps = readExplainStringListOrThrow(i18n, 'modelsPage.sections.aggregation.steps')
+
+                            return (
+                                <ol className={cls.noteList}>
+                                    {aggregationSteps.map((step, index) => (
+                                        <li key={`aggregation-step-${index}`}>{step}</li>
+                                    ))}
+                                </ol>
+                            )
+                        }}
+                    </LocalizedContentBoundary>
+                    <LocalizedContentBoundary name='ExplainModels:aggregation:terms'>
+                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'modelsPage.sections.aggregation.terms')} />}
+                    </LocalizedContentBoundary>
                 </section>
             </div>
 
@@ -212,3 +248,6 @@ export default function ExplainModelsPage({ className }: ExplainModelsPageProps)
         </div>
     )
 }
+
+
+

@@ -6,75 +6,120 @@
     padding: 24px 32px;
 }
 
-.hero {
-    max-width: 880px;
+.intro {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
+    padding: 22px 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background:
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 42%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.9));
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.55);
 }
 
-.heroTitle {
-    font-size: 32px;
+.introHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 880px;
+}
+
+.introEyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7dd3fc;
+}
+
+.introTitle {
+    font-size: 28px;
     font-weight: 700;
     line-height: 1.15;
-    color: #f9fafb;
+    color: #f8fafc;
+    max-width: 820px;
 }
 
-.heroSubtitle {
+.introSubtitle {
     font-size: 14px;
-    line-height: 1.6;
-    color: #9ca3af;
-    max-width: 760px;
+    line-height: 1.65;
+    color: #cbd5e1;
+    max-width: 840px;
 }
 
-.heroMeta {
+.introGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+
+    @media (max-width: 860px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.introCard {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.72);
 }
 
-.metaPill {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    color: #e5e7eb;
-    background: rgba(15, 23, 42, 0.8);
+.introCardTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.introCardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.introCardText {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #dbe4f0;
+}
+
+.introLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.introLinkCard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    border: 1px solid rgba(125, 211, 252, 0.18);
+    background: rgba(15, 23, 42, 0.78);
+}
+
+.introLinkLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.introLinkDescription {
+    font-size: 12px;
+    line-height: 1.55;
+    color: #cbd5e1;
 }
 
 .sectionTitle {
     font-size: 18px;
     font-weight: 600;
     color: #e5e7eb;
-}
-
-.overview {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.overviewGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-
-    @media (max-width: 900px) {
-        grid-template-columns: 1fr;
-    }
-}
-
-.overviewCard {
-    padding: 16px 18px;
-    border-radius: 14px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.92));
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.55);
-
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .cardTitle {
@@ -87,45 +132,6 @@
     font-size: 13px;
     line-height: 1.5;
     color: #d1d5db;
-}
-
-.flow {
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: linear-gradient(150deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.85));
-    padding: 18px 20px;
-    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.5);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.flowSubtitle {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #94a3b8;
-}
-
-.flowRow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-}
-
-.flowStep {
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    background: rgba(15, 23, 42, 0.75);
-    font-size: 12px;
-    font-weight: 600;
-    color: #e2e8f0;
-}
-
-.flowArrow {
-    color: #93c5fd;
-    font-weight: 700;
 }
 
 .bestPolicy {
@@ -315,6 +321,28 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    padding: 22px 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 42%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.84), rgba(17, 24, 39, 0.78));
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.42);
+}
+
+.sectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 860px;
+}
+
+.sectionEyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #93c5fd;
 }
 
 .navCards {
@@ -368,9 +396,27 @@
     background: rgba(15, 23, 42, 0.6);
 }
 
+.sectionSubtitle {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #cbd5e1;
+}
+
 @media (max-width: 720px) {
     .MainPage {
         padding: 20px 18px;
+    }
+
+    .intro {
+        padding: 18px;
+    }
+
+    .sections {
+        padding: 18px;
+    }
+
+    .introTitle {
+        font-size: 24px;
     }
 
     .bestPolicyMeta {

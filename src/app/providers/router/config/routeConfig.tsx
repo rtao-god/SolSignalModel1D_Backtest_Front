@@ -69,6 +69,8 @@ const importDocsModelsPage = () => import('@/pages/docsPages/ui/DocsModelsPage')
 const DocsModelsPage = lazyPage(importDocsModelsPage)
 const importDocsTestsPage = () => import('@/pages/docsPages/ui/DocsTestsPage')
 const DocsTestsPage = lazyPage(importDocsTestsPage)
+const importDocsTruthfulnessPage = () => import('@/pages/docsPages/ui/DocsTruthfulnessPage')
+const DocsTruthfulnessPage = lazyPage(importDocsTruthfulnessPage)
 const importExplainPage = () => import('@/pages/explainPages/ui/ExplainPage')
 const ExplainPage = lazyPage(importExplainPage)
 const importExplainModelsPage = () => import('@/pages/explainPages/ui/ExplainModelsPage')
@@ -400,6 +402,19 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
     {
+        id: AppRoute.DOCS_TRUTHFULNESS,
+        path: ROUTE_PATH[AppRoute.DOCS_TRUTHFULNESS],
+        element: <DocsTruthfulnessPage />,
+        layout: 'app',
+        loadingTitle: 'Loading truthfulness documentation',
+        nav: {
+            sidebar: true,
+            label: 'Truthfulness',
+            section: 'docs',
+            order: 3
+        }
+    },
+    {
         id: AppRoute.EXPLAIN,
         path: ROUTE_PATH[AppRoute.EXPLAIN],
         element: <ExplainPage />,
@@ -606,6 +621,7 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.DOCS]: importDocsPage,
     [AppRoute.DOCS_MODELS]: importDocsModelsPage,
     [AppRoute.DOCS_TESTS]: importDocsTestsPage,
+    [AppRoute.DOCS_TRUTHFULNESS]: importDocsTruthfulnessPage,
     [AppRoute.EXPLAIN]: importExplainPage,
     [AppRoute.EXPLAIN_MODELS]: importExplainModelsPage,
     [AppRoute.EXPLAIN_BRANCHES]: importExplainBranchesPage,

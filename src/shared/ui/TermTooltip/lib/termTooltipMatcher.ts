@@ -8,7 +8,7 @@ export interface TermTooltipContextRule {
 export interface TermTooltipRegistryEntry {
     id: string
     title?: string
-    description: ReactNode
+    description: ReactNode | (() => ReactNode)
     aliases: string[]
     priority: number
     contexts?: TermTooltipContextRule

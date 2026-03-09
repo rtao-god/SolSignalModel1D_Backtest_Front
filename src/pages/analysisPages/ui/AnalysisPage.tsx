@@ -3,10 +3,15 @@ import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
+import {
+    buildBacktestDiagnosticsQueryArgsFromSearchParams,
+    buildBacktestDiagnosticsSearchFromSearchParams
+} from '@/shared/utils/backtestDiagnosticsQuery'
 import cls from './AnalysisPage.module.scss'
 import type { AnalysisPageProps } from './types'
 
@@ -14,10 +19,34 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
     const { t } = useTranslation('reports')
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
+    const location = useLocation()
+    const currentSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+    const diagnosticsSearch = useMemo(
+        () => buildBacktestDiagnosticsSearchFromSearchParams(currentSearchParams),
+        [currentSearchParams]
+    )
+    const diagnosticsArgs = useMemo(
+        () => buildBacktestDiagnosticsQueryArgsFromSearchParams(currentSearchParams),
+        [currentSearchParams]
+    )
+    const policyBranchMegaArgs = useMemo(
+        () => ({
+            bucket: currentSearchParams.get('bucket'),
+            bucketView: currentSearchParams.get('bucketview'),
+            metric: currentSearchParams.get('metric'),
+            tpSlMode: currentSearchParams.get('tpsl'),
+            slMode: currentSearchParams.get('slmode'),
+            zonalMode: currentSearchParams.get('zonal')
+        }),
+        [currentSearchParams]
+    )
 
     const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch)
-    }, [dispatch, queryClient])
+        warmupRouteNavigation(routeId, queryClient, dispatch, {
+            diagnosticsArgs,
+            policyBranchMegaArgs
+        })
+    }, [diagnosticsArgs, dispatch, policyBranchMegaArgs, queryClient])
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
@@ -34,7 +63,7 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                 </Text>
                 <div className={cls.cards}>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_RATINGS)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_RATINGS)}>
@@ -47,7 +76,7 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}>
@@ -60,7 +89,7 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                         </article>
                     </Link>
                     <Link
-                        to={ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]}
+                        to={`${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]}${diagnosticsSearch}`}
                         className={cls.cardLink}
                         onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS)}
                         onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS)}>
