@@ -7,6 +7,8 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc -b && vite build",
+        "test": "vitest run src/app/providers/router/config/utils/lazyPage.test.tsx src/shared/ui/TermTooltip/lib/termTooltipRegistryIntegrity.test.ts src/shared/terms/registry.test.ts",
+        "test:all": "vitest run",
         "lint": "npm run lint:eslint && npm run lint:prettier",
         "lint:eslint": "eslint \"src/**/*.{ts,tsx}\" --fix",
         "lint:prettier": "prettier --write \"src/**/*.{ts,tsx,scss}\"",
@@ -64,6 +66,7 @@
     "devDependencies": {
         "@tanstack/react-query-devtools": "^5.91.1",
         "@testing-library/dom": "^10.4.1",
+        "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.3.0",
         "@types/node": "^22.0.0",
         "@types/react": "^18.3.3",
@@ -81,6 +84,7 @@
         "eslint-plugin-react-refresh": "^0.4.7",
         "framer-motion": "^11.3.19",
         "globals": "^13.24.0",
+        "jsdom": "^26.1.0",
         "miragejs": "^0.2.0-alpha.3",
         "prettier": "^3.3.3",
         "react-query": "^3.39.3",
@@ -88,7 +92,8 @@
         "typescript": "^5.2.2",
         "typescript-eslint": "^7.18.0",
         "vite": "^6.4.1",
-        "vite-plugin-svgr": "^4.5.0"
+        "vite-plugin-svgr": "^4.5.0",
+        "vitest": "^3.2.4"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "^4.19.1"

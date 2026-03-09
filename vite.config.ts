@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv } from 'vite'
 import { plugins, css, alias } from './config'
 
@@ -66,6 +67,11 @@ export default defineConfig(({ mode }) => {
                     changeOrigin: true
                 }
             }
+        },
+        test: {
+            globals: true,
+            environment: 'jsdom',
+            css: true
         }
     }
 })
