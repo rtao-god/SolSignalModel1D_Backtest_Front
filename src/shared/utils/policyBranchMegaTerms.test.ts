@@ -2,6 +2,7 @@ import {
     getPolicyBranchMegaTermOrThrow,
     POLICY_BRANCH_MEGA_TERM_KEYS
 } from './policyBranchMegaTerms'
+import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/ui/ReportTableTermsBlock'
 
 const SENTINEL_KEYS = [
     'Policy',
@@ -51,5 +52,12 @@ describe('policyBranchMegaTerms parity', () => {
             expect(en.description.includes('How to read:')).toBe(true)
             expect(en.description.includes('Example:')).toBe(true)
         })
+    })
+
+    test('common mega terms resolve self exclusions through shared registry', () => {
+        const exclusions = buildSelfTooltipExclusions('Policy', 'Policy')
+
+        expect(exclusions.excludeRuleIds).toContain('policy')
+        expect(exclusions.excludeTerms).toContain('Policy')
     })
 })
