@@ -82,14 +82,14 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'Miss',
         title: 'Miss',
         description:
-            'Пропуски внутри [StartDay..EndDay] в формате "будни | выходные". Слева — невыходные пропуски (проблема покрытия данных: отсутствуют нужные дневные записи/trace для расчёта), справа — пропуски выходных (weekend-skip); выходные здесь пропускаются по дизайну и считаются нормальным поведением, а не ошибкой.',
+            'Пропуски внутри рабочего периода в формате "будни | выходные". Слева — пропуски будних дней: для расчёта не хватило обязательных дневных записей или дневного журнала решений. Справа — пропуски выходных: суббота и воскресенье здесь штатно исключаются из расчёта и не считаются ошибкой.',
         tooltip: 'Пропуски: "будни | выходные" (например, "0 | 21").'
     },
     'Trade%': {
         key: 'Trade%',
         title: 'Trade%',
         description:
-            'Доля дней с реальной сделкой: TradeDays / Days * 100. День считается торговым только после всех фильтров: есть валидное направление, не сработал policy-skip, cap fraction больше 0 и вход не заблокирован риск-фильтром.',
+            'Доля дней с реальной сделкой: TradeDays / Days * 100. День считается торговым только после всех фильтров: есть валидное направление, не сработал внутренний запрет политики, доля капитала на сделку больше 0 и вход не заблокирован риск-фильтром.',
         tooltip: 'Процент торговых дней.'
     },
     'Long%': {
@@ -110,7 +110,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'NoTrade%',
         title: 'NoTrade%',
         description:
-            'Доля дней без сделки: NoTradeDays / Days * 100. Сюда попадают дни без направления, policy‑skip, риск‑фильтры и дни, где cap fraction оказался 0.',
+            'Доля дней без сделки: NoTradeDays / Days * 100. Сюда попадают дни без направления, внутренний запрет политики, риск‑фильтры и дни, где доля капитала на сделку оказалась равной 0.',
         tooltip: 'Процент дней без сделки.'
     },
     'RiskDay%': {
@@ -152,29 +152,29 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'Cap avg/min/max',
         title: 'Cap avg/min/max',
         description:
-            'Средняя/минимальная/максимальная [[cap-fraction|доля капитала]] на сделку, использованная в сделках.\n\nЗначение берётся из [[cap-policy|cap-политики]] и [[trace|trace]] и выводится в процентах от капитала.',
+            'Средняя/минимальная/максимальная [[cap-fraction|доля капитала]] на сделку, использованная в сделках.\n\nЗначение берётся из [[cap-policy|cap-политики]] и [[trace|дневного журнала решений]] и выводится в процентах от капитала.',
         tooltip: 'Среднее/мин/макс использование капитала.'
     },
     'Cap p50/p90': {
         key: 'Cap p50/p90',
         title: 'Cap p50/p90',
         description:
-            'Квантили cap fraction по торговым дням: медиана и верхний хвост распределения. Полезно, чтобы видеть насколько часто кап ближе к максимуму.',
+            'Квантили доли капитала на сделку по торговым дням: медиана и верхний хвост распределения. Полезно, чтобы видеть, насколько часто размер позиции близок к максимуму.',
         tooltip: 'Медиана и p90 по cap‑доле.'
     },
     CapAp: {
         key: 'CapAp',
         title: 'CapAp',
         description:
-            'Сколько дней cap‑фильтр был применён (cap fraction > 0) и сделка действительно произошла. Если значение сильно ниже TradeDays, часть входов была отфильтрована другими условиями.',
+            'Сколько дней cap‑фильтр был применён (доля капитала на сделку > 0) и сделка действительно произошла. Если значение сильно ниже TradeDays, часть входов была отфильтрована другими условиями.',
         tooltip: 'Дни, где cap применился.'
     },
     CapSk: {
         key: 'CapSk',
         title: 'CapSk',
         description:
-            'Сколько дней были пропущены, потому что cap fraction обнулил размер входа. Это прямой запрет на сделку в этот день.',
-        tooltip: 'Дни, где cap fraction обнулил размер входа и запретил сделку.'
+            'Сколько дней были пропущены, потому что доля капитала на сделку обнулила размер входа. Это прямой запрет на сделку в этот день.',
+        tooltip: 'Дни, где доля капитала на сделку обнулила размер входа и запретила сделку.'
     },
     'AvgStake%': {
         key: 'AvgStake%',
@@ -222,14 +222,14 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'DynTP/SL Days',
         title: 'DynTP/SL Days',
         description:
-            'Количество уникальных дней, где реально включился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этих днях движок не только менял уровни [[tp-sl|stop-loss]] / [[tp-sl|take-profit]], но и масштабировал [[cap-fraction|cap fraction]] по уверенности модели.\n\nДень попадает сюда только после прохождения [[confidence-bucket|confidence-bucket]] по минимуму наблюдений и качеству (win-rate).',
+            'Количество уникальных дней, где реально включился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этих днях движок не только менял уровни [[tp-sl|stop-loss]] / [[tp-sl|take-profit]], но и масштабировал [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nДень попадает сюда только после прохождения [[confidence-bucket|confidence-bucket]] по минимуму наблюдений и качеству (win-rate).',
         tooltip: 'Уникальные дни с dynamic TP/SL (Daily/Intraday).'
     },
     'DynTP/SL Tr': {
         key: 'DynTP/SL Tr',
         title: 'DynTP/SL Tr',
         description:
-            'Количество сделок, где реально применился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этом режиме движок масштабирует уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]], а также [[cap-fraction|cap fraction]] по уверенности модели.\n\nОбычно таких сделок меньше общего числа: без подтверждения по [[confidence-bucket|confidence-bucket]] день не попадает в dynamic-срез.',
+            'Количество сделок, где реально применился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этом режиме движок масштабирует уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]], а также [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nОбычно таких сделок меньше общего числа: без подтверждения по [[confidence-bucket|confidence-bucket]] день не попадает в dynamic-срез.',
         tooltip: 'Число сделок с dynamic TP/SL.'
     },
     'DynTP/SL PnL%': {
@@ -243,7 +243,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'StatTP/SL Days',
         title: 'StatTP/SL Days',
         description:
-            'Количество дней, где сделка прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея, то есть в режиме [[static-tp-sl|STATIC base]].\n\nВ этом режиме используются базовые правила сделки без dynamic-множителей по уровням выхода и [[cap-fraction|cap fraction]].',
+            'Количество дней, где сделка прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея, то есть в режиме [[static-tp-sl|STATIC base]].\n\nВ этом режиме используются базовые правила сделки без dynamic-множителей по уровням выхода и [[cap-fraction|доле капитала на сделку]].',
         tooltip: 'Уникальные дни со static TP/SL (Daily/Intraday).'
     },
     'StatTP/SL Tr': {
@@ -362,7 +362,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'WinRate%',
         title: 'WinRate%',
         description:
-            'Доля прибыльных сделок: сделки, где [[net-return-pct|NetReturnPct]] > 0, от общего числа сделок * 100.\n\nСчитается по отдельным сделкам, а не по дням.',
+            'Доля прибыльных сделок: сделки, где [[net-return-pct|NetReturnPct]] > 0, от общего числа сделок * 100.',
         tooltip: 'Процент прибыльных сделок.'
     },
     ProfitFactor: {
@@ -467,7 +467,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'MeanRet%',
         title: 'MeanRet%',
         description:
-            'Средняя дневная доходность (mean) после агрегации сделок в дневную серию. Каждая сделка даёт вклад = NetReturn% * (использованная маржа / общий капитал). Выводится в процентах.',
+            'Средняя дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR. Сначала все сделки одного дня сворачиваются в один дневной итог, после чего берётся среднее по дням. Выводится в процентах.',
         tooltip: 'Средняя дневная доходность, %.'
     },
     'StdRet%': {
@@ -919,20 +919,44 @@ function removeRedundantGlossaryFromDescription(text: string): string {
     return next.trim()
 }
 
-function humanizeInternalTerms(text: string): string {
+function rewriteRichTextVisibleContent(
+    text: string,
+    rewriteVisibleSegment: (segment: string) => string
+): string {
+    const explicitTermRegex = /\[\[([^|\]]+)\|([^\]]+)\]\]/g
+    let cursor = 0
+    let next = ''
+
+    for (const match of text.matchAll(explicitTermRegex)) {
+        const matchIndex = match.index
+        if (typeof matchIndex !== 'number') {
+            continue
+        }
+
+        next += rewriteVisibleSegment(text.slice(cursor, matchIndex))
+        next += `[[${match[1]}|${rewriteVisibleSegment(match[2])}]]`
+        cursor = matchIndex + match[0].length
+    }
+
+    next += rewriteVisibleSegment(text.slice(cursor))
+    return next
+}
+
+function applyRuInternalTextReplacements(text: string): string {
     let next = text
 
-    next = next.replace(/\bpolicy-?skip\b/gi, 'политика пропускает день по своему правилу')
+    next = next.replace(/\bpolicy-?skip\b/gi, 'внутренний запрет политики')
     next = next.replace(/\bcap fraction\b/gi, 'доля капитала на сделку')
-    next = next.replace(/\bconfidence\b/gi, 'уверенность модели')
     next = next.replace(/\btrace-?сигнал(ы|ов)?\b/gi, 'дневные сигналы модели')
-    next = next.replace(/\bbucket\b/gi, 'выбранный срез сделок')
-    next = next.replace(/\bdynamic\b/gi, 'dynamic (адаптивный)')
-    next = next.replace(/\bstatic\b/gi, 'static (фиксированный)')
+    next = next.replace(/\bweekend-?skip\b/gi, 'штатное исключение выходных')
 
     next = next.replace(/[ \t]{2,}/g, ' ')
     next = next.replace(/[ \t]+([,.;:!?])/g, '$1')
     return next.trim()
+}
+
+function humanizeInternalTerms(text: string): string {
+    return rewriteRichTextVisibleContent(text, applyRuInternalTextReplacements)
 }
 
 function ensureSemanticParagraphBreaks(text: string): string {
@@ -1395,7 +1419,7 @@ function _resolveTermDecisionContextHintOrDefault(key: string): string {
         key === 'StatTP/SL Tr' ||
         key === 'StatTP/SL PnL%'
     ) {
-        return 'это разбор вклада двух режимов: [[dynamic-tp-sl|DYNAMIC risk]] меняет уровни выхода и [[cap-fraction|cap fraction]] по уверенности, а [[static-tp-sl|STATIC base]] оставляет базовые правила сделки.'
+        return 'это разбор вклада двух режимов: [[dynamic-tp-sl|DYNAMIC risk]] меняет уровни выхода и [[cap-fraction|долю капитала на сделку]] по уверенности, а [[static-tp-sl|STATIC base]] оставляет базовые правила сделки.'
     }
     if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
         return 'это итог результата: проценты удобны для сравнения стратегий, деньги показывают реальный финансовый эффект.'
@@ -1663,7 +1687,7 @@ function resolveTermExampleHintOrNull(key: string): string | null {
         return 'Long$=14 000 и Short$=-2 000 означает, что прибыль в основном была получена на сделках в сторону роста.'
     }
     if (key === 'Miss') {
-        return 'Формат "0 | 18" означает: будних пропусков нет (норма), 18 выходных пропущены по штатному weekend-skip.'
+        return 'Формат "0 | 18" означает: будних пропусков нет, а 18 выходных дней были штатно исключены из расчёта.'
     }
     if (key === 'inv_liq_mismatch' || key === 'minutes_anomaly') {
         return 'Нормальный сценарий: 0. Любое заметное отклонение — повод перепроверить данные и логику расчёта.'
@@ -1827,7 +1851,7 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
         return 'Long$=14,000 and Short$=-2,000 mean profit came mainly from upward trades.'
     }
     if (key === 'Miss') {
-        return 'The format "0 | 18" means: no weekday misses (normal), 18 weekends skipped by the expected weekend-skip rule.'
+        return 'The format "0 | 18" means: no weekday misses, while 18 weekend days were excluded by the normal weekend rule.'
     }
     if (key === 'inv_liq_mismatch' || key === 'minutes_anomaly') {
         return 'Normal case: 0. Any visible deviation is a reason to recheck both data and calculation logic.'
@@ -1846,7 +1870,7 @@ interface PolicyBranchMegaManualTranslation {
 const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTranslation> = {
     Policy: {
         description:
-            'Name of the trading policy. A policy is the full rule set for this row: when a position may open, which action is chosen on that day (LONG, SHORT, or no trade), what size is used, what leverage is applied, and where stop-loss / take-profit are defined.\n\nThe day is skipped when entry conditions are not satisfied (for example: no valid signal direction, policy-skip fired, risk filter blocked entry, or cap fraction = 0).\n\nPolicy name therefore stands for the full entry, exit, and risk configuration.',
+            'Name of the trading policy. A policy is the full rule set for this row: when a position may open, which action is chosen on that day (LONG, SHORT, or no trade), what size is used, what leverage is applied, and where stop-loss / take-profit are defined.\n\nThe day is skipped when entry conditions are not satisfied (for example: no valid signal direction, the policy-level skip rule fired, a risk filter blocked entry, or capital share per trade = 0).\n\nPolicy name therefore stands for the full entry, exit, and risk configuration.',
         tooltip:
             'Trading policy name and its full entry, exit, and risk configuration.'
     },
@@ -1881,12 +1905,12 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     Miss: {
         description:
-            'Missing days inside [StartDay..EndDay] in "weekday | weekend" format. Weekend misses are expected under weekend-skip.',
+            'Missing days inside the working period in "weekday | weekend" format. The left side shows weekday gaps when required daily records or the day-level decision log are missing for calculation. The right side shows weekend gaps, which are intentionally excluded from this model and are not treated as errors.',
         tooltip: 'Missing days: weekday | weekend.'
     },
     'Trade%': {
         description:
-            'Share of days with a real trade: TradeDays / Days * 100. A day counts as a trading day only after all filters are passed: a valid direction exists, policy-skip did not fire, cap fraction is above 0, and entry is not blocked by the risk filter.',
+            'Share of days with a real trade: TradeDays / Days * 100. A day counts as a trading day only after all filters are passed: a valid direction exists, the policy-level skip rule did not fire, capital share per trade is above 0, and entry is not blocked by the risk filter.',
         tooltip: 'Percent of days that actually turned into trades.'
     },
     'Long%': {
@@ -1899,7 +1923,7 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     'NoTrade%': {
         description:
-            'Share of days without trades. A no-trade day appears when the model has no valid direction, policy-skip blocks the day, a risk filter blocks entry, or cap fraction is reduced to 0.\n\nA high value does not automatically mean the policy is bad, but it does mean the strategy acts less often and the sample of actual trades becomes thinner.',
+            'Share of days without trades. A no-trade day appears when the model has no valid direction, the policy-level skip rule blocks the day, a risk filter blocks entry, or capital share per trade is reduced to 0.\n\nA high value does not automatically mean the policy is bad, but it does mean the strategy acts less often and the sample of actual trades becomes thinner.',
         tooltip: 'Percent of days where the strategy did not open a trade.'
     },
     'RiskDay%': {
@@ -1923,7 +1947,7 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Leverage p50/p90.'
     },
     'Cap avg/min/max': {
-        description: 'Average, minimum, and maximum cap fraction used per trade.',
+        description: 'Average, minimum, and maximum capital share used per trade.',
         tooltip: 'Cap fraction avg/min/max.'
     },
     'Cap p50/p90': {
@@ -1935,8 +1959,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Days with cap applied.'
     },
     CapSk: {
-        description: 'Count of days skipped because cap fraction disabled entry.',
-        tooltip: 'Days skipped by cap fraction.'
+        description: 'Count of days skipped because capital share per trade disabled entry.',
+        tooltip: 'Days skipped because capital share per trade became zero.'
     },
     'AvgStake%': {
         description: 'Average margin per trade in percent of total start capital.',
@@ -2107,7 +2131,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         tooltip: 'Minimum track record length for SR > 0.'
     },
     'MeanRet%': {
-        description: 'Average trade/day return in % (per row semantics).',
+        description:
+            'Average daily return of the same day-level series used for Sharpe, Sortino, Calmar, and CAGR. All trades from the same day are first combined into one daily result, then the mean is taken across days. Reported in %.',
         tooltip: 'Mean return, %.'
     },
     'StdRet%': {

@@ -12,9 +12,10 @@ import { API_ROUTES } from '../routes'
 
 const { latestReport, datesIndex } = API_ROUTES.currentPrediction
 const CURRENT_PREDICTION_INDEX_CACHE_TTL_MS = 24 * 60 * 60 * 1000
-const DEFAULT_CURRENT_PREDICTION_SCOPE: CurrentPredictionTrainingScope = 'full'
+const DEFAULT_CURRENT_PREDICTION_LIVE_SCOPE: CurrentPredictionTrainingScope = 'full'
 const DEFAULT_CURRENT_PREDICTION_SET: CurrentPredictionSet = 'live'
 const DEFAULT_HISTORY_PREDICTION_SET: CurrentPredictionSet = 'backfilled'
+export const DEFAULT_BACKFILLED_HISTORY_SCOPE: CurrentPredictionTrainingScope = 'full'
 
 export interface CurrentPredictionBackfilledSplitStats {
     trainDays: number
@@ -35,6 +36,17 @@ interface CurrentPredictionBackfilledSplitStatsState {
 interface CurrentPredictionLatestResponse {
     live?: unknown
     backfilled?: unknown
+}
+
+function resolveCurrentPredictionIndexScopeOrThrow(
+    set: CurrentPredictionSet,
+    scope?: CurrentPredictionTrainingScope
+): CurrentPredictionTrainingScope {
+    if (!scope) {
+        throw new Error(`[current-prediction] History index scope is required. set=${set}.`)
+    }
+
+    return scope
 }
 
 async function fetchCurrentPrediction(
@@ -72,15 +84,14 @@ async function fetchCurrentPredictionIndex(
     days?: number,
     scope?: CurrentPredictionTrainingScope
 ): Promise<CurrentPredictionIndexItemDto[]> {
+    const resolvedScope = resolveCurrentPredictionIndexScopeOrThrow(set, scope)
     const search = new URLSearchParams()
 
     search.set('set', set)
+    search.set('scope', resolvedScope)
 
     if (typeof days === 'number' && Number.isFinite(days) && days > 0) {
         search.set('days', String(days))
-    }
-    if (scope) {
-        search.set('scope', scope)
     }
 
     const querySuffix = search.toString()
@@ -245,9 +256,11 @@ function buildCurrentPredictionIndexQueryOptions(
     days?: number,
     scope?: CurrentPredictionTrainingScope
 ) {
+    const resolvedScope = resolveCurrentPredictionIndexScopeOrThrow(set, scope)
+
     return {
-        queryKey: ['current-prediction', 'dates', set, scope ?? 'train', days ?? 'all'] as const,
-        queryFn: () => fetchCurrentPredictionIndex(set, days, scope),
+        queryKey: ['current-prediction', 'dates', set, resolvedScope, days ?? 'all'] as const,
+        queryFn: () => fetchCurrentPredictionIndex(set, days, resolvedScope),
         retry: false,
         // Индекс истории по текущему прогнозу фактически статичен в рамках пользовательской сессии:
         // при переключении окна 365/730/all повторно используем ранее загруженные данные из кэша.
@@ -262,7 +275,7 @@ function buildCurrentPredictionIndexQueryOptions(
 export async function prefetchCurrentPredictionLatestReport(queryClient: QueryClient): Promise<void> {
     const queryOptions = buildCurrentPredictionReportQueryOptions(
         DEFAULT_CURRENT_PREDICTION_SET,
-        DEFAULT_CURRENT_PREDICTION_SCOPE
+        DEFAULT_CURRENT_PREDICTION_LIVE_SCOPE
     )
     await queryClient.prefetchQuery(queryOptions)
 }
@@ -271,7 +284,7 @@ export async function prefetchCurrentPredictionHistoryIndex(queryClient: QueryCl
     const queryOptions = buildCurrentPredictionIndexQueryOptions(
         DEFAULT_HISTORY_PREDICTION_SET,
         undefined,
-        DEFAULT_CURRENT_PREDICTION_SCOPE
+        DEFAULT_BACKFILLED_HISTORY_SCOPE
     )
     await queryClient.prefetchQuery(queryOptions)
 }

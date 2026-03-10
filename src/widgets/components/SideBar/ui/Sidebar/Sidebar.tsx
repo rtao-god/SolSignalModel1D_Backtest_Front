@@ -7,8 +7,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
+import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
+import {
+    isRouteBranchMatch,
+    isRouteExactMatch
+} from '@/app/providers/router/config/utils/matchRoutePath'
 import {
     buildRouteNavLabelI18nKey,
     buildRouteSubTabLabelI18nKey,
@@ -22,10 +27,23 @@ import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import { DOCS_MODELS_TABS, DOCS_TESTS_TABS, DOCS_TRUTHFULNESS_TABS } from '@/shared/utils/docsTabs'
 import {
+    DEVELOPER_BACKEND_STRUCTURE_TABS,
+    DEVELOPER_REPORTS_API_TABS,
+    DEVELOPER_RUNTIME_FLOW_TABS,
+    DEVELOPER_TESTS_GUARDS_TABS
+} from '@/shared/utils/developerTabs'
+import {
+    GUIDE_BRANCHES_TABS,
+    GUIDE_FEATURES_TABS,
+    GUIDE_MODELS_TABS,
+    GUIDE_SPLITS_TABS,
+    GUIDE_TESTS_TABS,
+    GUIDE_TIME_TABS,
+    GUIDE_TRUTHFULNESS_TABS
+} from '@/shared/utils/guideTabs'
+import {
     EXPLAIN_BRANCHES_TABS,
     EXPLAIN_FEATURES_TABS,
-    EXPLAIN_MODELS_TABS,
-    EXPLAIN_PROJECT_TABS,
     EXPLAIN_SPLITS_TABS,
     EXPLAIN_TIME_TABS
 } from '@/shared/utils/explainTabs'
@@ -40,7 +58,11 @@ import {
     type DiagnosticsTabConfig
 } from '@/shared/utils/backtestDiagnosticsSections'
 import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import { usePolicyBranchMegaReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
+import {
+    DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS,
+    resolvePolicyBranchMegaReportQueryArgsOrThrow,
+    usePolicyBranchMegaReportWithFreshnessQuery
+} from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     buildBacktestDiagnosticsQueryArgsFromSearchParams,
     buildBacktestDiagnosticsSearchFromSearchParams
@@ -76,6 +98,8 @@ const SECTION_ORDER: RouteSection[] = [
     'analysis',
     'diagnostics',
     'features',
+    'guide',
+    'developer',
     'docs',
     'explain'
 ]
@@ -86,6 +110,8 @@ const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     analysis: 'Analysis',
     diagnostics: 'Diagnostics',
     features: 'Features',
+    guide: 'Knowledge Base',
+    developer: 'Developer',
     docs: 'Documentation',
     explain: 'Explain'
 }
@@ -93,15 +119,18 @@ const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t } = useTranslation()
     const location = useLocation()
+    const pathname = location.pathname
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
 
     // Режим страницы определяет, какие секции вообще должны быть видимы в сайдбаре.
     const isModal = mode === 'modal'
-    const isDocsRoute = location.pathname.startsWith('/docs')
-    const isExplainRoute = location.pathname.startsWith('/explain')
-    const isDiagnosticsRoute = location.pathname.startsWith('/diagnostics')
-    const isAnalysisRoute = location.pathname.startsWith('/analysis')
+    const isGuideRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.GUIDE])
+    const isDeveloperRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DEVELOPER])
+    const isDocsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DOCS])
+    const isExplainRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.EXPLAIN])
+    const isDiagnosticsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME])
+    const isAnalysisRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.ANALYSIS_HOME])
     // Если hash в URL пропал (например, после перехода между пунктами), уводим страницу к началу.
     const prevHashRef = useRef<string | null>(null)
 
@@ -126,9 +155,9 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         []
     )
 
-    const isOnPfiPage = pfiRoutePath ? location.pathname.startsWith(pfiRoutePath) : false
+    const isOnPfiPage = pfiRoutePath ? isRouteBranchMatch(pathname, pfiRoutePath) : false
     const isOnPolicyBranchMegaPage =
-        policyBranchMegaRoutePath ? location.pathname.startsWith(policyBranchMegaRoutePath) : false
+        policyBranchMegaRoutePath ? isRouteBranchMatch(pathname, policyBranchMegaRoutePath) : false
     // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
         enabled: isOnPfiPage
@@ -146,34 +175,51 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
     // Подгружаем данные для поднавигации только на тех страницах, где она реально используется.
     const shouldLoadDiagnosticsNav = isDiagnosticsRoute || isAnalysisRoute
-    const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery({
-        enabled: shouldLoadDiagnosticsNav
-    }, diagnosticsNavArgs)
-
-    const policyBranchMegaArgs = useMemo(
-        () => ({
-            bucket: currentSearchParams.get('bucket'),
-            bucketView: currentSearchParams.get('bucketview'),
-            metric: currentSearchParams.get('metric'),
-            tpSlMode: currentSearchParams.get('tpsl'),
-            slMode: currentSearchParams.get('slmode'),
-            zonalMode: currentSearchParams.get('zonal')
-        }),
-        [currentSearchParams]
+    const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery(
+        {
+            enabled: shouldLoadDiagnosticsNav
+        },
+        diagnosticsNavArgs
     )
 
-    const shouldLoadPolicyBranchMegaNav = isOnPolicyBranchMegaPage
-    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgs, {
+    const policyBranchMegaArgsState = useMemo(() => {
+        try {
+            return {
+                value: resolvePolicyBranchMegaReportQueryArgsOrThrow({
+                    bucket: currentSearchParams.get('bucket'),
+                    bucketView: currentSearchParams.get('bucketview'),
+                    metric: currentSearchParams.get('metric'),
+                    tpSlMode: currentSearchParams.get('tpsl'),
+                    slMode: currentSearchParams.get('slmode'),
+                    zonalMode: currentSearchParams.get('zonal')
+                }),
+                error: null as Error | null
+            }
+        } catch (err) {
+            return {
+                value: DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS,
+                error: err instanceof Error ? err : new Error('Failed to resolve policy branch mega query args.')
+            }
+        }
+    }, [currentSearchParams])
+
+    const shouldLoadPolicyBranchMegaNav =
+        isOnPolicyBranchMegaPage && policyBranchMegaArgsState.error === null
+    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgsState.value, {
         enabled: shouldLoadPolicyBranchMegaNav
     })
     const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
 
-    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch, {
-            diagnosticsArgs: diagnosticsNavArgs,
-            policyBranchMegaArgs
-        })
-    }, [diagnosticsNavArgs, dispatch, policyBranchMegaArgs, queryClient])
+    const handleRouteWarmup = useCallback(
+        (routeId: AppRoute) => {
+            warmupRouteNavigation(routeId, queryClient, dispatch, {
+                diagnosticsArgs: diagnosticsNavArgs,
+                policyBranchMegaArgs:
+                    policyBranchMegaArgsState.error ? undefined : policyBranchMegaArgsState.value
+            })
+        },
+        [diagnosticsNavArgs, dispatch, policyBranchMegaArgsState.error, policyBranchMegaArgsState.value, queryClient]
+    )
 
     const pfiTabs: PfiTabConfig[] = useMemo(() => {
         if (!pfiReport) return []
@@ -247,10 +293,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
             const isDocsItem = section === 'docs'
             const isExplainItem = section === 'explain'
+            const isGuideItem = section === 'guide'
+            const isDeveloperItem = section === 'developer'
             const isDiagnosticsItem = section === 'diagnostics'
             const isAnalysisItem = section === 'analysis'
 
             // В специализированных разделах оставляем только их собственные секции меню.
+            if (isGuideRoute && !isGuideItem) {
+                return
+            }
+            if (isDeveloperRoute && !isDeveloperItem) {
+                return
+            }
             if (isDocsRoute && !isDocsItem) {
                 return
             }
@@ -264,6 +318,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                 return
             }
             if (!isDocsRoute && isDocsItem) {
+                return
+            }
+            if (!isGuideRoute && isGuideItem) {
+                return
+            }
+            if (!isDeveloperRoute && isDeveloperItem) {
                 return
             }
             if (!isExplainRoute && isExplainItem) {
@@ -293,7 +353,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         }
 
         return bySection
-    }, [isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute])
+    }, [isGuideRoute, isDeveloperRoute, isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())
@@ -338,10 +398,19 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const isDocsModels = item.id === AppRoute.DOCS_MODELS
                                 const isDocsTests = item.id === AppRoute.DOCS_TESTS
                                 const isDocsTruthfulness = item.id === AppRoute.DOCS_TRUTHFULNESS
-                                const isExplainModels = item.id === AppRoute.EXPLAIN_MODELS
+                                const isGuideModels = item.id === AppRoute.GUIDE_MODELS
+                                const isGuideBranches = item.id === AppRoute.GUIDE_BRANCHES
+                                const isGuideSplits = item.id === AppRoute.GUIDE_SPLITS
+                                const isGuideTime = item.id === AppRoute.GUIDE_TIME
+                                const isGuideFeatures = item.id === AppRoute.GUIDE_FEATURES
+                                const isGuideTruthfulness = item.id === AppRoute.GUIDE_TRUTHFULNESS
+                                const isGuideTests = item.id === AppRoute.GUIDE_TESTS
+                                const isDeveloperBackendStructure = item.id === AppRoute.DEVELOPER_BACKEND_STRUCTURE
+                                const isDeveloperRuntimeFlow = item.id === AppRoute.DEVELOPER_RUNTIME_FLOW
+                                const isDeveloperReportsApi = item.id === AppRoute.DEVELOPER_REPORTS_API
+                                const isDeveloperTestsGuards = item.id === AppRoute.DEVELOPER_TESTS_GUARDS
                                 const isExplainBranches = item.id === AppRoute.EXPLAIN_BRANCHES
                                 const isExplainSplits = item.id === AppRoute.EXPLAIN_SPLITS
-                                const isExplainProject = item.id === AppRoute.EXPLAIN_PROJECT
                                 const isExplainTime = item.id === AppRoute.EXPLAIN_TIME
                                 const isExplainFeatures = item.id === AppRoute.EXPLAIN_FEATURES
                                 const isAggregationStats = item.id === AppRoute.AGGREGATION_STATS
@@ -359,13 +428,22 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const hasSubNav =
                                     isBacktestFull ||
                                     isPfiPerModel ||
+                                    isGuideModels ||
+                                    isGuideBranches ||
+                                    isGuideSplits ||
+                                    isGuideTime ||
+                                    isGuideFeatures ||
+                                    isGuideTruthfulness ||
+                                    isGuideTests ||
+                                    isDeveloperBackendStructure ||
+                                    isDeveloperRuntimeFlow ||
+                                    isDeveloperReportsApi ||
+                                    isDeveloperTestsGuards ||
                                     isDocsModels ||
                                     isDocsTests ||
                                     isDocsTruthfulness ||
-                                    isExplainModels ||
                                     isExplainBranches ||
                                     isExplainSplits ||
-                                    isExplainProject ||
                                     isExplainTime ||
                                     isExplainFeatures ||
                                     isAggregationStats ||
@@ -378,53 +456,18 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isBacktestDiagnosticsOther ||
                                     isPolicyBranchMega
 
-                                const isBacktestRouteActive = isBacktestFull && location.pathname.startsWith(item.path)
-                                const isPfiRouteActive = isPfiPerModel && location.pathname.startsWith(item.path)
-                                const isDocsModelsRouteActive = isDocsModels && location.pathname.startsWith(item.path)
-                                const isDocsTestsRouteActive = isDocsTests && location.pathname.startsWith(item.path)
-                                const isDocsTruthfulnessRouteActive =
-                                    isDocsTruthfulness && location.pathname.startsWith(item.path)
-                                const isExplainModelsRouteActive =
-                                    isExplainModels && location.pathname.startsWith(item.path)
-                                const isExplainBranchesRouteActive =
-                                    isExplainBranches && location.pathname.startsWith(item.path)
-                                const isExplainSplitsRouteActive =
-                                    isExplainSplits && location.pathname.startsWith(item.path)
-                                const isExplainProjectRouteActive =
-                                    isExplainProject && location.pathname.startsWith(item.path)
-                                const isExplainTimeRouteActive =
-                                    isExplainTime && location.pathname.startsWith(item.path)
-                                const isExplainFeaturesRouteActive =
-                                    isExplainFeatures && location.pathname.startsWith(item.path)
-                                const isAggregationStatsRouteActive =
-                                    isAggregationStats && location.pathname.startsWith(item.path)
-                                const isBacktestDiagnosticsRouteActive =
-                                    isBacktestDiagnostics && location.pathname.startsWith(item.path)
-                                const isBacktestDiagnosticsGuardrailRouteActive =
-                                    isBacktestDiagnosticsGuardrail && location.pathname.startsWith(item.path)
-                                const isBacktestDiagnosticsDecisionsRouteActive =
-                                    isBacktestDiagnosticsDecisions && location.pathname.startsWith(item.path)
-                                const isBacktestDiagnosticsHotspotsRouteActive =
-                                    isBacktestDiagnosticsHotspots && location.pathname.startsWith(item.path)
-                                const isBacktestDiagnosticsOtherRouteActive =
-                                    isBacktestDiagnosticsOther && location.pathname.startsWith(item.path)
-                                const isBacktestRatingsRouteActive =
-                                    isBacktestRatings && location.pathname.startsWith(item.path)
-                                const isBacktestDayStatsRouteActive =
-                                    isBacktestDayStats && location.pathname.startsWith(item.path)
-                                const isPolicyBranchMegaRouteActive =
-                                    isPolicyBranchMega && location.pathname.startsWith(item.path)
-                                const isAnalysisFamilyItem = item.section === 'analysis' || item.section === 'diagnostics'
+                                const isRouteActiveBase = isRouteExactMatch(pathname, item.path)
+                                const isPolicyBranchMegaRouteActive = isPolicyBranchMega && isRouteActiveBase
+                                const isAnalysisFamilyItem =
+                                    item.section === 'analysis' || item.section === 'diagnostics'
                                 const analysisFamilySearch =
                                     isAnalysisRoute || isDiagnosticsRoute ? diagnosticsSearch : ''
                                 const routeSearch =
                                     isPolicyBranchMega ?
-                                        (isPolicyBranchMegaRouteActive ? location.search : analysisFamilySearch)
+                                        isPolicyBranchMegaRouteActive ? location.search
+                                        :   analysisFamilySearch
                                     : isAnalysisFamilyItem ? analysisFamilySearch
-                                    :   ''
-
-                                const isRouteActiveBase =
-                                    location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+                                    : ''
 
                                 const containerClass = classNames(cls.itemBlock, {
                                     [cls.itemBlockGroup]: hasSubNav,
@@ -435,13 +478,22 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const tabs =
                                     isBacktestFull ? BACKTEST_FULL_TABS
                                     : isPfiPerModel ? pfiTabs
+                                    : isGuideModels ? GUIDE_MODELS_TABS
+                                    : isGuideBranches ? GUIDE_BRANCHES_TABS
+                                    : isGuideSplits ? GUIDE_SPLITS_TABS
+                                    : isGuideTime ? GUIDE_TIME_TABS
+                                    : isGuideFeatures ? GUIDE_FEATURES_TABS
+                                    : isGuideTruthfulness ? GUIDE_TRUTHFULNESS_TABS
+                                    : isGuideTests ? GUIDE_TESTS_TABS
+                                    : isDeveloperBackendStructure ? DEVELOPER_BACKEND_STRUCTURE_TABS
+                                    : isDeveloperRuntimeFlow ? DEVELOPER_RUNTIME_FLOW_TABS
+                                    : isDeveloperReportsApi ? DEVELOPER_REPORTS_API_TABS
+                                    : isDeveloperTestsGuards ? DEVELOPER_TESTS_GUARDS_TABS
                                     : isDocsModels ? DOCS_MODELS_TABS
                                     : isDocsTests ? DOCS_TESTS_TABS
                                     : isDocsTruthfulness ? DOCS_TRUTHFULNESS_TABS
-                                    : isExplainModels ? EXPLAIN_MODELS_TABS
                                     : isExplainBranches ? EXPLAIN_BRANCHES_TABS
                                     : isExplainSplits ? EXPLAIN_SPLITS_TABS
-                                    : isExplainProject ? EXPLAIN_PROJECT_TABS
                                     : isExplainTime ? EXPLAIN_TIME_TABS
                                     : isExplainFeatures ? EXPLAIN_FEATURES_TABS
                                     : isAggregationStats ? AGGREGATION_TABS
@@ -462,13 +514,22 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 const subNavAriaDefaultLabel =
                                     isBacktestFull ? 'Backtest sections'
                                     : isPfiPerModel ? 'PFI models'
+                                    : isGuideModels ? 'Guide model sections'
+                                    : isGuideBranches ? 'Guide branch sections'
+                                    : isGuideSplits ? 'Guide split sections'
+                                    : isGuideTime ? 'Guide time sections'
+                                    : isGuideFeatures ? 'Guide feature sections'
+                                    : isGuideTruthfulness ? 'Guide truthfulness sections'
+                                    : isGuideTests ? 'Guide test sections'
+                                    : isDeveloperBackendStructure ? 'Developer backend structure sections'
+                                    : isDeveloperRuntimeFlow ? 'Developer runtime flow sections'
+                                    : isDeveloperReportsApi ? 'Developer delivery sections'
+                                    : isDeveloperTestsGuards ? 'Developer guard sections'
                                     : isDocsModels ? 'Model docs'
                                     : isDocsTests ? 'Test docs'
                                     : isDocsTruthfulness ? 'Truthfulness docs'
-                                    : isExplainModels ? 'Model explain'
                                     : isExplainBranches ? 'Branch explain'
                                     : isExplainSplits ? 'Split explain'
-                                    : isExplainProject ? 'Project explain'
                                     : isExplainTime ? 'Time explain'
                                     : isExplainFeatures ? 'Feature explain'
                                     : isAggregationStats ? 'Aggregation sections'
@@ -513,35 +574,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                 <div className={cls.subNavLine} />
                                                 <div className={cls.subNavList}>
                                                     {tabs.map(tab => {
-                                                        const isRouteActiveWithTabs =
-                                                            (isBacktestFull && isBacktestRouteActive) ||
-                                                            (isPfiPerModel && isPfiRouteActive) ||
-                                                            (isDocsModels && isDocsModelsRouteActive) ||
-                                                            (isDocsTests && isDocsTestsRouteActive) ||
-                                                            (isDocsTruthfulness && isDocsTruthfulnessRouteActive) ||
-                                                            (isExplainModels && isExplainModelsRouteActive) ||
-                                                            (isExplainBranches && isExplainBranchesRouteActive) ||
-                                                            (isExplainSplits && isExplainSplitsRouteActive) ||
-                                                            (isExplainProject && isExplainProjectRouteActive) ||
-                                                            (isExplainTime && isExplainTimeRouteActive) ||
-                                                            (isExplainFeatures && isExplainFeaturesRouteActive) ||
-                                                            (isAggregationStats && isAggregationStatsRouteActive) ||
-                                                            (isBacktestDiagnostics &&
-                                                                isBacktestDiagnosticsRouteActive) ||
-                                                            (isBacktestDiagnosticsGuardrail &&
-                                                                isBacktestDiagnosticsGuardrailRouteActive) ||
-                                                            (isBacktestDiagnosticsDecisions &&
-                                                                isBacktestDiagnosticsDecisionsRouteActive) ||
-                                                            (isBacktestDiagnosticsHotspots &&
-                                                                isBacktestDiagnosticsHotspotsRouteActive) ||
-                                                            (isBacktestDiagnosticsOther &&
-                                                                isBacktestDiagnosticsOtherRouteActive) ||
-                                                            (isBacktestRatings && isBacktestRatingsRouteActive) ||
-                                                            (isBacktestDayStats && isBacktestDayStatsRouteActive) ||
-                                                            (isPolicyBranchMega && isPolicyBranchMegaRouteActive)
-
-                                                        const isActiveTab =
-                                                            isRouteActiveWithTabs && currentHash === tab.anchor
+                                                        const isActiveTab = isRouteActiveBase && currentHash === tab.anchor
 
                                                         // Для Policy Branch Mega сохраняем весь query-контекст фильтров при кликах по якорям.
                                                         const linkBase = `${item.path}${routeSearch}`

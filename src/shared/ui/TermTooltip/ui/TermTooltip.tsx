@@ -38,12 +38,11 @@ const HOVER_OPEN_RETRY_DELAY_MS = 90
 
 const OPEN_TOOLTIP_COUNT_BY_TREE = new Map<string, number>()
 let ACTIVE_TOOLTIP_TREE_ID: string | null = null
-const ACTIVE_NESTED_TOOLTIP_BY_TREE = new Map<string, { instanceId: string; close: () => void }>()
-const PINNED_DESCENDANT_COUNT_BY_INSTANCE = new Map<string, number>()
+const OPEN_DESCENDANT_COUNT_BY_INSTANCE = new Map<string, number>()
 const TOOLTIP_INSTANCE_CONTROLLERS = new Map<
     string,
     {
-        setPinnedDescendantCount: (count: number) => void
+        setOpenDescendantCount: (count: number) => void
         getParentInstanceId: () => string | null
     }
 >()
@@ -81,32 +80,32 @@ function registerTooltipClose(treeId: string): void {
 function registerTooltipInstanceController(
     instanceId: string,
     controller: {
-        setPinnedDescendantCount: (count: number) => void
+        setOpenDescendantCount: (count: number) => void
         getParentInstanceId: () => string | null
     }
 ): void {
     TOOLTIP_INSTANCE_CONTROLLERS.set(instanceId, controller)
-    controller.setPinnedDescendantCount(PINNED_DESCENDANT_COUNT_BY_INSTANCE.get(instanceId) ?? 0)
+    controller.setOpenDescendantCount(OPEN_DESCENDANT_COUNT_BY_INSTANCE.get(instanceId) ?? 0)
 }
 
 function unregisterTooltipInstanceController(instanceId: string): void {
     TOOLTIP_INSTANCE_CONTROLLERS.delete(instanceId)
 }
 
-function propagatePinnedStateToAncestors(instanceId: string | null, delta: 1 | -1): void {
+function propagateOpenStateToAncestors(instanceId: string | null, delta: 1 | -1): void {
     let currentInstanceId = instanceId
 
     while (currentInstanceId) {
-        const currentCount = PINNED_DESCENDANT_COUNT_BY_INSTANCE.get(currentInstanceId) ?? 0
+        const currentCount = OPEN_DESCENDANT_COUNT_BY_INSTANCE.get(currentInstanceId) ?? 0
         const nextCount = Math.max(0, currentCount + delta)
 
         if (nextCount === 0) {
-            PINNED_DESCENDANT_COUNT_BY_INSTANCE.delete(currentInstanceId)
+            OPEN_DESCENDANT_COUNT_BY_INSTANCE.delete(currentInstanceId)
         } else {
-            PINNED_DESCENDANT_COUNT_BY_INSTANCE.set(currentInstanceId, nextCount)
+            OPEN_DESCENDANT_COUNT_BY_INSTANCE.set(currentInstanceId, nextCount)
         }
 
-        TOOLTIP_INSTANCE_CONTROLLERS.get(currentInstanceId)?.setPinnedDescendantCount(nextCount)
+        TOOLTIP_INSTANCE_CONTROLLERS.get(currentInstanceId)?.setOpenDescendantCount(nextCount)
         currentInstanceId = TOOLTIP_INSTANCE_CONTROLLERS.get(currentInstanceId)?.getParentInstanceId() ?? null
     }
 }
@@ -123,7 +122,7 @@ export default function TermTooltip({
 }: TermTooltipProps) {
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
-    const [pinnedDescendantCount, setPinnedDescendantCount] = useState(0)
+    const [openDescendantCount, setOpenDescendantCount] = useState(0)
 
     const instanceId = useId()
     const rootRef = useRef<HTMLSpanElement | null>(null)
@@ -135,9 +134,10 @@ export default function TermTooltip({
     const isNestedTooltipRef = useRef(false)
     const isRegisteredOpenRef = useRef(false)
     const parentTooltipInstanceIdRef = useRef<string | null>(null)
-    const isPinnedPropagatedRef = useRef(false)
+    const isSelfOpenPropagatedRef = useRef(false)
 
-    const open = hovered || pinned || pinnedDescendantCount > 0
+    const selfOpen = hovered || pinned
+    const open = selfOpen || openDescendantCount > 0
     const resolvedDescription = useMemo(() => {
         if (!open) {
             return null
@@ -272,14 +272,6 @@ export default function TermTooltip({
         })
     }, [cancelHide, cancelShow, tryActivateTooltipTree])
 
-    const closeTooltipImmediately = useCallback(() => {
-        hoverIntentRef.current = false
-        cancelShow()
-        cancelHide()
-        setHovered(false)
-        setPinned(false)
-    }, [cancelHide, cancelShow])
-
     const pinTooltipIfNested = useCallback(() => {
         if (!isNestedTooltipRef.current) {
             return
@@ -352,7 +344,7 @@ export default function TermTooltip({
 
     useEffect(() => {
         registerTooltipInstanceController(instanceId, {
-            setPinnedDescendantCount: setPinnedDescendantCount,
+            setOpenDescendantCount: setOpenDescendantCount,
             getParentInstanceId: () => parentTooltipInstanceIdRef.current
         })
 
@@ -362,31 +354,19 @@ export default function TermTooltip({
     }, [instanceId])
 
     useEffect(() => {
-        if (pinned && !isPinnedPropagatedRef.current) {
-            // Закреплённая вложенная подсказка должна удерживать открытыми все свои
-            // родительские overlay в текущем tooltip-tree, иначе дочерний tooltip исчезнет
-            // при обычном mouseleave родителя.
-            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, 1)
-            isPinnedPropagatedRef.current = true
+        if (selfOpen && !isSelfOpenPropagatedRef.current) {
+            // Открытый дочерний tooltip должен удерживать всех предков в дереве,
+            // иначе переход курсора на следующий уровень вложенности схлопнет цепочку.
+            propagateOpenStateToAncestors(parentTooltipInstanceIdRef.current, 1)
+            isSelfOpenPropagatedRef.current = true
             return
         }
 
-        if (!pinned && isPinnedPropagatedRef.current) {
-            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, -1)
-            isPinnedPropagatedRef.current = false
+        if (!selfOpen && isSelfOpenPropagatedRef.current) {
+            propagateOpenStateToAncestors(parentTooltipInstanceIdRef.current, -1)
+            isSelfOpenPropagatedRef.current = false
         }
-    }, [pinned])
-
-    useEffect(() => {
-        if (open && isNestedTooltipRef.current) {
-            activateNestedTooltip(treeIdRef.current, instanceId, closeTooltipImmediately)
-            return
-        }
-
-        if (!open && isNestedTooltipRef.current) {
-            releaseNestedTooltip(treeIdRef.current, instanceId)
-        }
-    }, [closeTooltipImmediately, instanceId, open])
+    }, [selfOpen])
 
     useEffect(() => {
         if (open && !isRegisteredOpenRef.current) {
@@ -421,20 +401,14 @@ export default function TermTooltip({
 
     useEffect(() => {
         return () => {
-            if (!isPinnedPropagatedRef.current) {
+            if (!isSelfOpenPropagatedRef.current) {
                 return
             }
 
-            propagatePinnedStateToAncestors(parentTooltipInstanceIdRef.current, -1)
-            isPinnedPropagatedRef.current = false
+            propagateOpenStateToAncestors(parentTooltipInstanceIdRef.current, -1)
+            isSelfOpenPropagatedRef.current = false
         }
     }, [])
-
-    useEffect(() => {
-        return () => {
-            releaseNestedTooltip(treeIdRef.current, instanceId)
-        }
-    }, [instanceId])
 
     useLayoutEffect(() => {
         if (!open) return
@@ -632,22 +606,4 @@ export default function TermTooltip({
             )}
         </>
     )
-}
-
-function activateNestedTooltip(treeId: string, instanceId: string, close: () => void): void {
-    const currentNestedTooltip = ACTIVE_NESTED_TOOLTIP_BY_TREE.get(treeId)
-    if (currentNestedTooltip && currentNestedTooltip.instanceId !== instanceId) {
-        currentNestedTooltip.close()
-    }
-
-    ACTIVE_NESTED_TOOLTIP_BY_TREE.set(treeId, { instanceId, close })
-}
-
-function releaseNestedTooltip(treeId: string, instanceId: string): void {
-    const currentNestedTooltip = ACTIVE_NESTED_TOOLTIP_BY_TREE.get(treeId)
-    if (!currentNestedTooltip || currentNestedTooltip.instanceId !== instanceId) {
-        return
-    }
-
-    ACTIVE_NESTED_TOOLTIP_BY_TREE.delete(treeId)
 }

@@ -4,6 +4,38 @@ export interface HumanDateFormatOptions {
     timeZone?: 'UTC' | 'local'
 }
 
+function isRussianLocale(locale: string): boolean {
+    return locale.trim().toLowerCase().startsWith('ru')
+}
+
+export function stripRussianYearMarker(formattedDate: string, locale: string): string {
+    if (typeof formattedDate !== 'string') {
+        throw new Error('[ui] Formatted date value must be a string.')
+    }
+
+    if (!isRussianLocale(locale)) {
+        return formattedDate
+    }
+
+    return formattedDate
+        .replace(/[\s\u00A0]г\.(?=,|$)/u, '')
+        .replace(/[\s\u00A0]г(?=,|$)/u, '')
+}
+
+export function formatDateWithLocaleOrThrow(
+    input: Date | string | number,
+    locale: string,
+    options?: Intl.DateTimeFormatOptions
+): string {
+    const date = input instanceof Date ? input : new Date(input)
+    if (Number.isNaN(date.getTime())) {
+        throw new Error(`[ui] Invalid date input for formatting: ${String(input)}.`)
+    }
+
+    const formattedDate = new Intl.DateTimeFormat(locale, options).format(date)
+    return stripRussianYearMarker(formattedDate, locale)
+}
+
 export function formatIsoDateHuman(iso: string, options?: HumanDateFormatOptions): string {
     if (!iso || iso === '—') {
         throw new Error('[ui] Missing ISO date value.')
@@ -23,12 +55,10 @@ export function formatIsoDateHuman(iso: string, options?: HumanDateFormatOptions
     const dateYear = timeZone === 'UTC' ? date.getUTCFullYear() : date.getFullYear()
     const isCurrentYear = dateYear === currentYear
 
-    const formatter = new Intl.DateTimeFormat(locale, {
+    return formatDateWithLocaleOrThrow(date, locale, {
         day: 'numeric',
         month: 'long',
         ...(omitYearForCurrent && isCurrentYear ? {} : { year: 'numeric' }),
         ...(timeZone === 'UTC' ? { timeZone: 'UTC' } : {})
     })
-
-    return formatter.format(date)
 }

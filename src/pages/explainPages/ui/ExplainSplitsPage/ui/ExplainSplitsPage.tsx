@@ -1,47 +1,71 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import { TermTooltip, Text } from '@/shared/ui'
-import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import { Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
-import { EXPLAIN_SPLITS_TABS } from '@/shared/utils/explainTabs'
+import { GUIDE_SPLITS_TABS } from '@/shared/utils/guideTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
-    readExplainTableRowsOrThrow,
-    readExplainTermItemsOrThrow,
-    type ExplainLocalizedTermItem
-} from '@/pages/explainPages/ui/shared/explainI18n'
+    readAvailableGuideTermGroups,
+    readGuideStringListOrThrow,
+    readGuideTableRowsOrThrow
+} from '@/pages/guidePages/ui/shared/guideI18n'
+import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainSplitsPage.module.scss'
 import type { ExplainSplitsPageProps } from './types'
 
-function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
-    return (
-        <div className={cls.termGrid}>
-            {items.map(item => (
-                <TermTooltip
-                    key={item.term}
-                    term={item.term}
-                    description={enrichTermTooltipDescription(item.description, { term: item.term })}
-                    type='span'
-                    className={cls.termItem}
-                />
-            ))}
-        </div>
-    )
+interface GuideSplitsSectionConfig {
+    id: 'overview' | 'train' | 'oos' | 'recent' | 'full'
+    anchor: string
+    headerKeys?: readonly string[]
 }
 
-export default function ExplainSplitsPage({ className }: ExplainSplitsPageProps) {
-    const { t, i18n } = useTranslation('explain')
+const GUIDE_SPLITS_SECTIONS: readonly GuideSplitsSectionConfig[] = [
+    {
+        id: 'overview',
+        anchor: 'explain-splits-overview',
+        headerKeys: ['slice', 'includes', 'question'] as const
+    },
+    {
+        id: 'train',
+        anchor: 'explain-splits-train'
+    },
+    {
+        id: 'oos',
+        anchor: 'explain-splits-oos'
+    },
+    {
+        id: 'recent',
+        anchor: 'explain-splits-recent'
+    },
+    {
+        id: 'full',
+        anchor: 'explain-splits-full'
+    }
+]
+
+export default function ExplainSplitsPage({
+    className,
+    translationNamespace = 'guide'
+}: ExplainSplitsPageProps) {
+    const { t, i18n } = useTranslation(translationNamespace)
 
     const sections = useMemo(
         () =>
-            EXPLAIN_SPLITS_TABS.map(tab => ({
+            GUIDE_SPLITS_TABS.map(tab => ({
                 ...tab,
                 label: t(`tabs.${tab.id}`, { defaultValue: tab.label })
             })),
         [t]
     )
+    const buildPageGlossary = () =>
+        buildGuideGlossaryOrThrow(
+            readAvailableGuideTermGroups(
+                i18n,
+                GUIDE_SPLITS_SECTIONS.map(section => `splitsPage.sections.${section.id}.terms`)
+            )
+        )
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -57,83 +81,107 @@ export default function ExplainSplitsPage({ className }: ExplainSplitsPageProps)
             </header>
 
             <div className={cls.sectionsGrid}>
-                <section id='explain-splits-overview' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('splitsPage.sections.overview.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('splitsPage.sections.overview.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainSplits:overview:table'>
-                        {() => {
-                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'splitsPage.sections.overview.table.rows')
+                {GUIDE_SPLITS_SECTIONS.map(section => (
+                    <section key={section.id} id={section.anchor} className={cls.sectionCard}>
+                        <Text type='h3' className={cls.sectionTitle}>
+                            {t(`splitsPage.sections.${section.id}.title`)}
+                        </Text>
 
-                            return (
-                                <div className={cls.tableWrap}>
-                                    <table className={cls.infoTable}>
-                                        <thead>
-                                            <tr>
-                                                <th>{t('splitsPage.sections.overview.table.headers.slice')}</th>
-                                                <th>{t('splitsPage.sections.overview.table.headers.includes')}</th>
-                                                <th>{t('splitsPage.sections.overview.table.headers.question')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {overviewRows.map((row, rowIndex) => (
-                                                <tr key={`overview-row-${rowIndex}`}>
-                                                    {row.map((cell, cellIndex) => (
-                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                        <LocalizedContentBoundary name={`GuideSplits:${section.id}:paragraphs`}>
+                            {() => {
+                                const glossary = buildPageGlossary()
+                                const paragraphs = readGuideStringListOrThrow(i18n, `splitsPage.sections.${section.id}.paragraphs`)
+
+                                return (
+                                    <div className={cls.copyBlock}>
+                                        {paragraphs.map((paragraph, paragraphIndex) => (
+                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                                {renderGuideRichText(paragraph, { glossary })}
+                                            </Text>
+                                        ))}
+                                    </div>
+                                )
+                            }}
+                        </LocalizedContentBoundary>
+
+                        {section.headerKeys && (
+                            <LocalizedContentBoundary name={`GuideSplits:${section.id}:table`}>
+                                {() => {
+                                    const headerKeys = section.headerKeys
+                                    if (!headerKeys) {
+                                        return null
+                                    }
+
+                                    const glossary = buildPageGlossary()
+                                    const rows = readGuideTableRowsOrThrow(i18n, `splitsPage.sections.${section.id}.table.rows`)
+
+                                    return (
+                                        <div className={cls.tableWrap}>
+                                            <table className={cls.infoTable}>
+                                                <thead>
+                                                    <tr>
+                                                        {headerKeys.map(headerKey => (
+                                                            <th key={`${section.id}-header-${headerKey}`}>
+                                                                {t(`splitsPage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map((row, rowIndex) => (
+                                                        <tr key={`${section.id}-row-${rowIndex}`}>
+                                                            {row.map((cell, cellIndex) => (
+                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                    {renderGuideRichText(cell, { glossary })}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
                                                     ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )
-                        }}
-                    </LocalizedContentBoundary>
-                    <LocalizedContentBoundary name='ExplainSplits:overview:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'splitsPage.sections.overview.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )
+                                }}
+                            </LocalizedContentBoundary>
+                        )}
 
-                <section id='explain-splits-train' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('splitsPage.sections.train.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('splitsPage.sections.train.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainSplits:train:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'splitsPage.sections.train.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                        <div className={cls.calloutGrid}>
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.why')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideSplits:${section.id}:why`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
 
-                <section id='explain-splits-oos' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('splitsPage.sections.oos.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('splitsPage.sections.oos.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainSplits:oos:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'splitsPage.sections.oos.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.why`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
 
-                <section id='explain-splits-recent' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('splitsPage.sections.recent.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('splitsPage.sections.recent.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainSplits:recent:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'splitsPage.sections.recent.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.example')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideSplits:${section.id}:example`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
 
-                <section id='explain-splits-full' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('splitsPage.sections.full.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('splitsPage.sections.full.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainSplits:full:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'splitsPage.sections.full.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.example`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
+                        </div>
+                    </section>
+                ))}
             </div>
 
             <SectionPager

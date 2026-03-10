@@ -56,6 +56,10 @@ function localizeStopReasonForRu(rawValue: string): string {
         return 'Н/Д (агрегат независимых бакетов)'
     }
 
+    if (normalized === 'Through end of period (no liquidations)') {
+        return 'До конца периода'
+    }
+
     const stopReasonMatch = normalized.match(/^(.*?) \((.*)\)$/)
     if (!stopReasonMatch) {
         return rawValue

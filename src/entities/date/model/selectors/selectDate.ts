@@ -1,8 +1,7 @@
+import { createSelector } from '@reduxjs/toolkit'
 import { StateSchema } from '@/app/providers/StoreProvider'
 import { formatDateKey, parseDateKey, toStartOfDay } from '@/shared/consts/date'
-import type DateSchema from '../types/DateSchema'
-
-type UiDate = DateSchema['departureDate']
+import type { UiDate } from '../types/DateSchema'
 
 function createUiDate(value: string | null, dateObj: Date | null): UiDate {
     if (!value && !dateObj) {
@@ -48,8 +47,10 @@ function normalizeDate(raw: unknown): UiDate {
     return null
 }
 
-export const selectDepartureDate = (state: StateSchema): UiDate => normalizeDate(state.date?.departureDate as unknown)
+const selectRawDepartureDate = (state: StateSchema): unknown => state.date?.departureDate as unknown
 
-export const selectArrivalDate = (state: StateSchema): UiDate => normalizeDate(state.date?.arrivalDate as unknown)
+const selectRawArrivalDate = (state: StateSchema): unknown => state.date?.arrivalDate as unknown
 
-export const selectIsSelectingDepartureDate = (state: StateSchema) => state.date?.isSelectingDepartureDate
+export const selectDepartureDate = createSelector([selectRawDepartureDate], normalizeDate)
+
+export const selectArrivalDate = createSelector([selectRawArrivalDate], normalizeDate)

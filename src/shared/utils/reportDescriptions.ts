@@ -55,7 +55,7 @@ const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
 const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
     {
         match: /^(Общие параметры прогноза|Prediction summary|Prediction summary parameters)/i,
-        ru: 'Контекст формирования прогноза: live это или исторический пересчёт, как система обращается с пропусками, где начинаются и заканчиваются 24 часа прогноза и до какой границы данных модель могла видеть рынок. Этот блок нужен, чтобы понимать, на каком временном срезе построена карточка.',
+        ru: 'Контекст формирования прогноза: карточка относится к текущему дню или к прошлой дате с уже известным исходом, как система обращается с пропусками, где начинаются и заканчиваются 24 часа прогноза и до какой границы данных модель могла видеть рынок. Этот блок нужен, чтобы понимать, на каком временном срезе построена карточка.',
         en: 'Prediction context: mode (Live or Backfilled), strictness level for missing-data handling, key entry/exit timestamps, and data snapshot markers. This is the prediction passport that explains what data and timing the output is based on.'
     },
     {

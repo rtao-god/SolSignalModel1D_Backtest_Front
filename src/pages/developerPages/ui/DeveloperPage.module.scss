@@ -1,0 +1,104 @@
+.DeveloperPageRoot {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 24px;
+    width: 100%;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 1320px;
+}
+
+.heroTitle {
+    letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+    opacity: 0.86;
+    line-height: 1.72;
+}
+
+.heroMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.metaPill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(120, 196, 255, 0.22);
+    background: rgba(54, 112, 162, 0.2);
+    color: rgba(219, 239, 255, 0.96);
+    font-size: 13px;
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.sectionsTitle {
+    max-width: 1320px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    max-width: 1440px;
+}
+
+.cardLink {
+    text-decoration: none;
+    color: inherit;
+}
+
+.card {
+    min-height: 100%;
+    border-radius: 16px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+    transition:
+        transform 0.15s ease-out,
+        background 0.15s ease-out,
+        border-color 0.15s ease-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(120, 196, 255, 0.18);
+}
+
+.cardTitle {
+    margin-bottom: 10px;
+}
+
+.cardText {
+    opacity: 0.9;
+    line-height: 1.68;
+}
+
+.cardHint {
+    display: inline-block;
+    margin-top: 14px;
+    opacity: 0.76;
+    font-size: 13px;
+}
+
+@media (max-width: 720px) {
+    .DeveloperPageRoot {
+        padding: 18px;
+    }
+}

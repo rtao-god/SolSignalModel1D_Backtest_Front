@@ -2,7 +2,6 @@ export const date: Date = new Date()
 export const CURRENT_DATE: number = date.getDate()
 export const THIS_YEAR: number = date.getFullYear()
 export const THIS_MONTH: number = date.getMonth() + 1
-export const MIN_DATE_PICKER_YEAR = 2021
 
 export const WEEK_DAYS = {
     Monday: 'Mon',
@@ -119,4 +118,14 @@ export function getMonthGrid(year: number, month: number): (number | null)[] {
     }
 
     return grid
+}
+
+export function getMonthGridDates(year: number, month: number): (Date | null)[] {
+    return getMonthGrid(year, month).map(day => {
+        if (day === null) {
+            return null
+        }
+
+        return toStartOfDay(new Date(year, month - 1, day))
+    })
 }

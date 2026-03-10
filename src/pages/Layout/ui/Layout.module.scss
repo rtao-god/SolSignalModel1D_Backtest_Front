@@ -23,3 +23,20 @@
         padding: 12px 15px;
     }
 }
+
+.guideMain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 6px 6px;
+
+    > * {
+        width: 100%;
+        max-width: 1120px;
+        min-width: 0;
+    }
+
+    @media (max-width: 576px) {
+        padding: 2px 4px 4px;
+    }
+}

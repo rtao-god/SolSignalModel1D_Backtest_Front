@@ -350,7 +350,7 @@ export default function BacktestDiagnosticsPageLayout({
                                 Общие таблицы
                             </Text>
                             <Text className={cls.sharedSubtitle}>
-                                Эти секции не зависят от выбранного режима tp/sl и zonal risk.
+                                Эти секции не зависят от выбранных server-side фильтров diagnostics.
                             </Text>
 
                             <div className={cls.tableGrid}>

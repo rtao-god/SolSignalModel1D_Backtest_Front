@@ -11,12 +11,15 @@ import { prefetchBacktestConfidenceRiskReport } from '@/shared/api/tanstackQueri
 import { prefetchBacktestDiagnosticsReport } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { prefetchBacktestExecutionPipelineReport } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
 import {
+    DEFAULT_BACKFILLED_HISTORY_SCOPE,
     prefetchCurrentPredictionHistoryIndex,
     prefetchCurrentPredictionLatestReport
 } from '@/shared/api/tanstackQueries/currentPrediction'
+import { prefetchRealForecastJournalDayList } from '@/shared/api/tanstackQueries/realForecastJournal'
 import { prefetchModelStatsReport } from '@/shared/api/tanstackQueries/modelStats'
 import { prefetchPfiPerModelReport } from '@/shared/api/tanstackQueries/pfi'
 import { prefetchPolicyBranchMegaReportWithFreshness } from '@/shared/api/tanstackQueries/policyBranchMega'
+import { DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS } from '@/shared/api/tanstackQueries/policyBranchMega'
 import type { BacktestDiagnosticsReportQueryArgs } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import type { PolicyBranchMegaReportQueryArgs } from '@/shared/api/tanstackQueries/policyBranchMega'
 import { prefetchRouteChunk } from '../routeConfig'
@@ -31,11 +34,11 @@ interface RouteWarmupContext {
 
 type RouteDataPrefetcher = (context: RouteWarmupContext) => Promise<void>
 
-const CURRENT_PREDICTION_HISTORY_FULL_INDEX_QUERY_KEY = [
+const CURRENT_PREDICTION_HISTORY_DEFAULT_INDEX_QUERY_KEY = [
     'current-prediction',
     'dates',
     'backfilled',
-    'full',
+    DEFAULT_BACKFILLED_HISTORY_SCOPE,
     'all'
 ] as const
 
@@ -56,8 +59,6 @@ function dispatchWarmupThunk(dispatch: AppDispatch, thunk: unknown): void {
 }
 
 const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
-    [AppRoute.MAIN]: ({ queryClient, policyBranchMegaArgs }) =>
-        prefetchPolicyBranchMegaReportWithFreshness(queryClient, policyBranchMegaArgs),
     [AppRoute.CURRENT_PREDICTION]: ({ queryClient }) => prefetchCurrentPredictionLatestReport(queryClient),
     [AppRoute.CURRENT_PREDICTION_HISTORY]: async ({ queryClient, dispatch }) => {
         await prefetchCurrentPredictionHistoryIndex(queryClient)
@@ -66,10 +67,10 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
             return
         }
 
-        const fullIndex = queryClient.getQueryData<CurrentPredictionIndexItemDto[]>(
-            CURRENT_PREDICTION_HISTORY_FULL_INDEX_QUERY_KEY
+        const defaultIndex = queryClient.getQueryData<CurrentPredictionIndexItemDto[]>(
+            CURRENT_PREDICTION_HISTORY_DEFAULT_INDEX_QUERY_KEY
         )
-        const latestDateUtc = fullIndex?.[0]?.predictionDateUtc
+        const latestDateUtc = defaultIndex?.[0]?.predictionDateUtc
         if (!latestDateUtc) {
             return
         }
@@ -79,7 +80,7 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
             api.endpoints.getCurrentPredictionByDate.initiate(
                 {
                     set: 'backfilled',
-                    scope: 'full',
+                    scope: DEFAULT_BACKFILLED_HISTORY_SCOPE,
                     dateUtc: latestDateUtc
                 },
                 { subscribe: false, forceRefetch: false }
@@ -113,8 +114,12 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
         )
     },
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: ({ queryClient, policyBranchMegaArgs }) =>
-        prefetchPolicyBranchMegaReportWithFreshness(queryClient, policyBranchMegaArgs),
+        prefetchPolicyBranchMegaReportWithFreshness(
+            queryClient,
+            policyBranchMegaArgs ?? DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS
+        ),
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: ({ queryClient }) => prefetchBacktestConfidenceRiskReport(queryClient),
+    [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: ({ queryClient }) => prefetchRealForecastJournalDayList(queryClient),
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: ({ queryClient }) => prefetchBacktestExecutionPipelineReport(queryClient),
     [AppRoute.PFI_PER_MODEL]: ({ queryClient }) => prefetchPfiPerModelReport(queryClient),
     [AppRoute.EXPLAIN_FEATURES]: ({ queryClient }) => prefetchPfiPerModelReport(queryClient)

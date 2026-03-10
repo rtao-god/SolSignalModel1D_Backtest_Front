@@ -1,0 +1,205 @@
+.root {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 0 48px;
+}
+
+.hero {
+    padding: 28px;
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 24px;
+    background: radial-gradient(circle at top right, rgba(180, 83, 9, 0.14), transparent 34%),
+        linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.82));
+}
+
+.heroMain {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.heroTitle {
+    margin: 0;
+}
+
+.heroSubtitle {
+    margin: 0;
+    max-width: 940px;
+    line-height: 1.6;
+}
+
+.heroNotes,
+.insightGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.noteCard,
+.summaryCard,
+.metaPanelItem,
+.sectionError {
+    padding: 18px;
+    border: 1px solid rgba(30, 41, 59, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.84);
+}
+
+.noteTitle,
+.summaryValue {
+    margin: 0;
+}
+
+.noteBody,
+.summaryHint,
+.summaryLabel,
+.metaLabel,
+.sectionSubtitle,
+.loadingText,
+.emptyState,
+.searchLabel {
+    margin: 0;
+    line-height: 1.5;
+    color: #475569;
+}
+
+.summaryLabel,
+.metaLabel {
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.sectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sectionTitle {
+    margin: 0;
+}
+
+.dayStripSection,
+.summarySection,
+.policySection,
+.detailSection,
+.comparisonSection {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.dayStrip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.dayButton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 148px;
+    padding: 14px 16px;
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    text-align: left;
+}
+
+.dayButtonActive {
+    border-color: rgba(12, 74, 110, 0.45);
+    background: linear-gradient(180deg, rgba(224, 242, 254, 0.95), rgba(255, 255, 255, 0.96));
+}
+
+.dayDate,
+.dayStatus,
+.dayDirection {
+    font-size: 0.92rem;
+}
+
+.dayStatus {
+    color: #0f766e;
+    font-weight: 700;
+}
+
+.metaPanel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.metaValue {
+    margin: 6px 0 0;
+    line-height: 1.6;
+}
+
+.filtersRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.controls {
+    flex: 1 1 780px;
+}
+
+.searchBox {
+    flex: 0 1 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.searchInput {
+    width: 100%;
+}
+
+.detailToggle {
+    align-self: flex-start;
+}
+
+.indicatorBlock,
+.comparisonContent {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionError {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (max-width: 900px) {
+    .root {
+        padding-top: 18px;
+    }
+
+    .hero {
+        padding: 20px;
+    }
+
+    .filtersRow {
+        flex-direction: column;
+    }
+
+    .controls,
+    .searchBox {
+        flex-basis: auto;
+        width: 100%;
+    }
+}

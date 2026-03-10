@@ -24,9 +24,18 @@
         "pfi_per_model": "Loading PFI report",
         "models_stats": "Loading model statistics",
         "aggregation_stats": "Loading prediction aggregation",
+        "guide": "Loading knowledge base",
+        "guide_models": "Loading models knowledge topic",
+        "guide_branches": "Loading branches knowledge topic",
+        "guide_splits": "Loading splits knowledge topic",
+        "guide_time": "Loading time knowledge topic",
+        "guide_features": "Loading features knowledge topic",
+        "guide_truthfulness": "Loading truthfulness knowledge topic",
+        "guide_tests": "Loading tests knowledge topic",
         "docs": "Loading documentation",
         "docs_models": "Loading model documentation",
         "docs_tests": "Loading test documentation",
+        "docs_truthfulness": "Loading truthfulness documentation",
         "explain": "Loading project explain section",
         "explain_models": "Loading model explanation",
         "explain_branches": "Loading branch explanation",
@@ -39,7 +48,12 @@
         "registration": "Loading registration page",
         "login": "Loading login page",
         "profile": "Loading profile",
-        "not_found": "Loading page"
+        "not_found": "Loading page",
+        "developer": "Loading developer section",
+        "developer_backend_structure": "Loading backend structure",
+        "developer_runtime_flow": "Loading runtime flow",
+        "developer_reports_api": "Loading reports and API",
+        "developer_tests_guards": "Loading tests and guards"
     },
     "navbar": {
         "sidebarToggleAria": "Open sidebar navigation"
@@ -76,7 +90,15 @@
     },
     "profile": {
         "avatarAlt": "User avatar",
-        "avatarAltWithName": "User avatar {{name}}"
+        "avatarAltWithName": "User avatar {{name}}",
+        "page": {
+            "eyebrow": "Section in progress",
+            "title": "The profile of a registered user will appear later",
+            "lead": "This section is reserved for the future user profile.",
+            "description": "The profile will be used to save personal settings from the <backtestLink>{{backtestLinkLabel}}</backtestLink> section.",
+            "backtestLinkLabel": "experimental backtest",
+            "descriptionTail": "These settings include leverage, risk level, stop-loss, take-profit, and other calculation parameters. This part of the product is not implemented yet."
+        }
     },
     "viewMode": {
         "business": "Business",
@@ -104,5 +126,17 @@
         "sort": "Sort",
         "sortAsc": "Sort: ascending",
         "sortDesc": "Sort: descending"
+    },
+    "dateRangePicker": {
+        "groupAria": "Date range filter",
+        "fromPlaceholder": "Date from",
+        "toPlaceholder": "Date to",
+        "fromAria": "Select start date",
+        "toAria": "Select end date",
+        "prevMonthAria": "Previous month",
+        "nextMonthAria": "Next month",
+        "yearLabel": "Year",
+        "clear": "Clear",
+        "clearAria": "Clear selected date range"
     }
 }

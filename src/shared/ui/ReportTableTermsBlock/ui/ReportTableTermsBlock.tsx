@@ -174,11 +174,12 @@ export default function ReportTableTermsBlock({
                 {resolvedTerms.map(term => {
                     const itemClassName =
                         displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
+                    const shouldRenderTitleTooltip = displayMode === 'tooltipOnly' && showTermTitleTooltip
                     const selfAliases = resolveReportTooltipSelfAliases(reportKind, term.key)
 
                     return (
                         <div key={`${sectionTitle}:${term.key}`} className={itemClassName}>
-                            {showTermTitleTooltip ?
+                            {shouldRenderTitleTooltip ?
                                 <TermTooltip
                                     term={term.title}
                                     description={() => {

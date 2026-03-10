@@ -11,8 +11,11 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import cls from './DocsTestsPage.module.scss'
 import type { DocsTestsPageProps } from './types'
 
-export default function DocsTestsPage({ className }: DocsTestsPageProps) {
-    const { t, i18n } = useTranslation('docs')
+export default function DocsTestsPage({
+    className,
+    translationNamespace = 'docs'
+}: DocsTestsPageProps) {
+    const { t, i18n } = useTranslation(translationNamespace)
     const sections = useMemo(
         () =>
             DOCS_TESTS_TABS.map(section => ({
@@ -22,7 +25,7 @@ export default function DocsTestsPage({ className }: DocsTestsPageProps) {
         [t]
     )
     const termKeys = DOCS_TESTS_TABS.map(section => `testsPage.sections.${section.id}.terms`)
-    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys))
+    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -44,7 +47,11 @@ export default function DocsTestsPage({ className }: DocsTestsPageProps) {
 
                         <LocalizedContentBoundary name={`DocsTests:${section.id}:paragraphs`}>
                             {() => {
-                                const paragraphs = readDocsStringListOrThrow(i18n, `testsPage.sections.${section.id}.paragraphs`)
+                                const paragraphs = readDocsStringListOrThrow(
+                                    i18n,
+                                    `testsPage.sections.${section.id}.paragraphs`,
+                                    translationNamespace
+                                )
                                 const glossary = buildPageGlossary()
 
                                 return (

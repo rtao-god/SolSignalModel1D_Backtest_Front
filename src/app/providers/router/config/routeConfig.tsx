@@ -2,6 +2,7 @@ import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection, NavbarNavItem }
 import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
+import { Navigate } from 'react-router-dom'
 const importMainPage = () => import('@/pages/Main')
 const MainPage = lazyPage(importMainPage)
 const importModelStatsPage = () => import('@/pages/ModelStatsPage')
@@ -55,6 +56,8 @@ const importPolicyBranchMegaPage = () => import('@/pages/analysisPages/ui/Policy
 const PolicyBranchMegaPage = lazyPage(importPolicyBranchMegaPage)
 const importConfidenceRiskPage = () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
 const ConfidenceRiskPage = lazyPage(importConfidenceRiskPage)
+const importRealForecastJournalPage = () => import('@/pages/analysisPages/ui/RealForecastJournalPage')
+const RealForecastJournalPage = lazyPage(importRealForecastJournalPage)
 const importExecutionPipelinePage = () => import('@/pages/analysisPages/ui/ExecutionPipelinePage')
 const ExecutionPipelinePage = lazyPage(importExecutionPipelinePage)
 const importCurrentMLModelPredictionPage = () => import('@/pages/predictions/ui/CurrentMLModelPredictionPage')
@@ -63,28 +66,32 @@ const importPredictionHistoryPage = () => import('@/pages/predictions/ui/Predict
 const PredictionHistoryPage = lazyPage(importPredictionHistoryPage)
 const importPfiPage = () => import('@/pages/PfiPage')
 const PfiPage = lazyPage(importPfiPage)
-const importDocsPage = () => import('@/pages/docsPages/ui/DocsPage')
-const DocsPage = lazyPage(importDocsPage)
-const importDocsModelsPage = () => import('@/pages/docsPages/ui/DocsModelsPage')
-const DocsModelsPage = lazyPage(importDocsModelsPage)
 const importDocsTestsPage = () => import('@/pages/docsPages/ui/DocsTestsPage')
 const DocsTestsPage = lazyPage(importDocsTestsPage)
 const importDocsTruthfulnessPage = () => import('@/pages/docsPages/ui/DocsTruthfulnessPage')
 const DocsTruthfulnessPage = lazyPage(importDocsTruthfulnessPage)
-const importExplainPage = () => import('@/pages/explainPages/ui/ExplainPage')
-const ExplainPage = lazyPage(importExplainPage)
-const importExplainModelsPage = () => import('@/pages/explainPages/ui/ExplainModelsPage')
-const ExplainModelsPage = lazyPage(importExplainModelsPage)
 const importExplainBranchesPage = () => import('@/pages/explainPages/ui/ExplainBranchesPage')
 const ExplainBranchesPage = lazyPage(importExplainBranchesPage)
 const importExplainSplitsPage = () => import('@/pages/explainPages/ui/ExplainSplitsPage')
 const ExplainSplitsPage = lazyPage(importExplainSplitsPage)
-const importExplainProjectPage = () => import('@/pages/explainPages/ui/ExplainProjectPage')
-const ExplainProjectPage = lazyPage(importExplainProjectPage)
 const importExplainTimePage = () => import('@/pages/explainPages/ui/ExplainTimePage')
 const ExplainTimePage = lazyPage(importExplainTimePage)
 const importExplainFeaturesPage = () => import('@/pages/explainPages/ui/ExplainFeaturesPage')
 const ExplainFeaturesPage = lazyPage(importExplainFeaturesPage)
+const importGuidePage = () => import('@/pages/guidePages/ui')
+const GuidePage = lazyPage(importGuidePage)
+const importGuideModelsPage = () => import('@/pages/guidePages/ui/GuideModelsPage')
+const GuideModelsPage = lazyPage(importGuideModelsPage)
+const importDeveloperPage = () => import('@/pages/developerPages/ui')
+const DeveloperPage = lazyPage(importDeveloperPage)
+const importDeveloperBackendStructurePage = () => import('@/pages/developerPages/ui/DeveloperBackendStructurePage')
+const DeveloperBackendStructurePage = lazyPage(importDeveloperBackendStructurePage)
+const importDeveloperRuntimeFlowPage = () => import('@/pages/developerPages/ui/DeveloperRuntimeFlowPage')
+const DeveloperRuntimeFlowPage = lazyPage(importDeveloperRuntimeFlowPage)
+const importDeveloperReportsApiPage = () => import('@/pages/developerPages/ui/DeveloperReportsApiPage')
+const DeveloperReportsApiPage = lazyPage(importDeveloperReportsApiPage)
+const importDeveloperTestsGuardsPage = () => import('@/pages/developerPages/ui/DeveloperTestsGuardsPage')
+const DeveloperTestsGuardsPage = lazyPage(importDeveloperTestsGuardsPage)
 export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MAIN,
@@ -319,7 +326,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             sidebar: true,
             label: 'Policy Branch Mega',
             section: 'analysis',
-            order: 4
+            order: 5
         }
     },
     {
@@ -336,6 +343,19 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
     {
+        id: AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL,
+        path: ROUTE_PATH[AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL],
+        element: <RealForecastJournalPage />,
+        layout: 'app',
+        loadingTitle: 'Loading real forecast journal',
+        nav: {
+            sidebar: true,
+            label: 'Real forecast journal',
+            section: 'analysis',
+            order: 4
+        }
+    },
+    {
         id: AppRoute.BACKTEST_EXECUTION_PIPELINE,
         path: ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE],
         element: <ExecutionPipelinePage />,
@@ -345,7 +365,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             sidebar: true,
             label: 'Execution pipeline',
             section: 'analysis',
-            order: 5
+            order: 6
         }
     },
     {
@@ -362,149 +382,252 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
     {
-        id: AppRoute.DOCS,
-        path: ROUTE_PATH[AppRoute.DOCS],
-        element: <DocsPage />,
+        id: AppRoute.GUIDE,
+        path: ROUTE_PATH[AppRoute.GUIDE],
+        element: <GuidePage />,
         layout: 'app',
-        loadingTitle: 'Loading documentation',
+        loadingTitle: 'Loading knowledge base',
         nav: {
-            sidebar: false, // НЕ показываем /docs в сайдбаре, только в navbar
+            sidebar: false,
             navbar: true,
-            label: 'Docs',
-            section: 'docs',
+            label: 'Knowledge base',
+            section: 'guide',
             navbarOrder: 3
         }
     },
     {
-        id: AppRoute.DOCS_MODELS,
-        path: ROUTE_PATH[AppRoute.DOCS_MODELS],
-        element: <DocsModelsPage />,
+        id: AppRoute.GUIDE_MODELS,
+        path: ROUTE_PATH[AppRoute.GUIDE_MODELS],
+        element: <GuideModelsPage />,
         layout: 'app',
-        loadingTitle: 'Loading model documentation',
+        loadingTitle: 'Loading guide models',
         nav: {
             sidebar: true,
             label: 'Models',
-            section: 'docs',
+            section: 'guide',
             order: 1
         }
     },
     {
-        id: AppRoute.DOCS_TESTS,
-        path: ROUTE_PATH[AppRoute.DOCS_TESTS],
-        element: <DocsTestsPage />,
+        id: AppRoute.GUIDE_BRANCHES,
+        path: ROUTE_PATH[AppRoute.GUIDE_BRANCHES],
+        element: <ExplainBranchesPage translationNamespace='guide' />,
         layout: 'app',
-        loadingTitle: 'Loading test documentation',
-        nav: {
-            sidebar: true,
-            label: 'Tests',
-            section: 'docs',
-            order: 2
-        }
-    },
-    {
-        id: AppRoute.DOCS_TRUTHFULNESS,
-        path: ROUTE_PATH[AppRoute.DOCS_TRUTHFULNESS],
-        element: <DocsTruthfulnessPage />,
-        layout: 'app',
-        loadingTitle: 'Loading truthfulness documentation',
-        nav: {
-            sidebar: true,
-            label: 'Truthfulness',
-            section: 'docs',
-            order: 3
-        }
-    },
-    {
-        id: AppRoute.EXPLAIN,
-        path: ROUTE_PATH[AppRoute.EXPLAIN],
-        element: <ExplainPage />,
-        layout: 'app',
-        loadingTitle: 'Loading project explain section',
-        nav: {
-            sidebar: false,
-            navbar: true,
-            label: 'Explain',
-            section: 'explain',
-            navbarOrder: 4
-        }
-    },
-    {
-        id: AppRoute.EXPLAIN_MODELS,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_MODELS],
-        element: <ExplainModelsPage />,
-        layout: 'app',
-        loadingTitle: 'Loading model explanation',
-        nav: {
-            sidebar: true,
-            label: 'Models',
-            section: 'explain',
-            order: 1
-        }
-    },
-    {
-        id: AppRoute.EXPLAIN_BRANCHES,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_BRANCHES],
-        element: <ExplainBranchesPage />,
-        layout: 'app',
-        loadingTitle: 'Loading branch explanation',
+        loadingTitle: 'Loading guide branches',
         nav: {
             sidebar: true,
             label: 'BASE/ANTI-D branches',
-            section: 'explain',
+            section: 'guide',
             order: 2
         }
     },
     {
-        id: AppRoute.EXPLAIN_SPLITS,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_SPLITS],
-        element: <ExplainSplitsPage />,
+        id: AppRoute.GUIDE_SPLITS,
+        path: ROUTE_PATH[AppRoute.GUIDE_SPLITS],
+        element: <ExplainSplitsPage translationNamespace='guide' />,
         layout: 'app',
-        loadingTitle: 'Loading split explanation',
+        loadingTitle: 'Loading guide splits',
         nav: {
             sidebar: true,
             label: 'Train/OOS/Recent',
-            section: 'explain',
+            section: 'guide',
             order: 3
         }
     },
     {
-        id: AppRoute.EXPLAIN_PROJECT,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_PROJECT],
-        element: <ExplainProjectPage />,
+        id: AppRoute.GUIDE_TIME,
+        path: ROUTE_PATH[AppRoute.GUIDE_TIME],
+        element: <ExplainTimePage translationNamespace='guide' />,
         layout: 'app',
-        loadingTitle: 'Loading project overview',
+        loadingTitle: 'Loading guide time',
         nav: {
             sidebar: true,
-            label: 'Project overview',
-            section: 'explain',
+            label: 'Time and days',
+            section: 'guide',
             order: 4
         }
     },
     {
-        id: AppRoute.EXPLAIN_TIME,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_TIME],
-        element: <ExplainTimePage />,
+        id: AppRoute.GUIDE_FEATURES,
+        path: ROUTE_PATH[AppRoute.GUIDE_FEATURES],
+        element: <ExplainFeaturesPage translationNamespace='guide' />,
         layout: 'app',
-        loadingTitle: 'Loading time explanation',
+        loadingTitle: 'Loading guide features',
         nav: {
             sidebar: true,
-            label: 'Time and days',
-            section: 'explain',
+            label: 'Features and indicators',
+            section: 'guide',
             order: 5
         }
     },
     {
-        id: AppRoute.EXPLAIN_FEATURES,
-        path: ROUTE_PATH[AppRoute.EXPLAIN_FEATURES],
-        element: <ExplainFeaturesPage />,
+        id: AppRoute.GUIDE_TRUTHFULNESS,
+        path: ROUTE_PATH[AppRoute.GUIDE_TRUTHFULNESS],
+        element: <DocsTruthfulnessPage translationNamespace='guide' />,
         layout: 'app',
-        loadingTitle: 'Loading feature explanation',
+        loadingTitle: 'Loading guide truthfulness',
         nav: {
             sidebar: true,
-            label: 'Features and indicators',
-            section: 'explain',
+            label: 'Data truthfulness',
+            section: 'guide',
             order: 6
         }
+    },
+    {
+        id: AppRoute.GUIDE_TESTS,
+        path: ROUTE_PATH[AppRoute.GUIDE_TESTS],
+        element: <DocsTestsPage translationNamespace='guide' />,
+        layout: 'app',
+        loadingTitle: 'Loading guide tests',
+        nav: {
+            sidebar: true,
+            label: 'Tests and barriers',
+            section: 'guide',
+            order: 7
+        }
+    },
+    {
+        id: AppRoute.DEVELOPER,
+        path: ROUTE_PATH[AppRoute.DEVELOPER],
+        element: <DeveloperPage />,
+        layout: 'app',
+        loadingTitle: 'Loading developer hub',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Developer',
+            section: 'developer',
+            navbarOrder: 4
+        }
+    },
+    {
+        id: AppRoute.DEVELOPER_BACKEND_STRUCTURE,
+        path: ROUTE_PATH[AppRoute.DEVELOPER_BACKEND_STRUCTURE],
+        element: <DeveloperBackendStructurePage />,
+        layout: 'app',
+        loadingTitle: 'Loading backend structure',
+        nav: {
+            sidebar: true,
+            label: 'Backend structure',
+            section: 'developer',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.DEVELOPER_RUNTIME_FLOW,
+        path: ROUTE_PATH[AppRoute.DEVELOPER_RUNTIME_FLOW],
+        element: <DeveloperRuntimeFlowPage />,
+        layout: 'app',
+        loadingTitle: 'Loading runtime flow',
+        nav: {
+            sidebar: true,
+            label: 'Runtime flow',
+            section: 'developer',
+            order: 2
+        }
+    },
+    {
+        id: AppRoute.DEVELOPER_REPORTS_API,
+        path: ROUTE_PATH[AppRoute.DEVELOPER_REPORTS_API],
+        element: <DeveloperReportsApiPage />,
+        layout: 'app',
+        loadingTitle: 'Loading reports and api',
+        nav: {
+            sidebar: true,
+            label: 'Reports and API',
+            section: 'developer',
+            order: 3
+        }
+    },
+    {
+        id: AppRoute.DEVELOPER_TESTS_GUARDS,
+        path: ROUTE_PATH[AppRoute.DEVELOPER_TESTS_GUARDS],
+        element: <DeveloperTestsGuardsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading tests and guards',
+        nav: {
+            sidebar: true,
+            label: 'Tests and guards',
+            section: 'developer',
+            order: 4
+        }
+    },
+    {
+        id: AppRoute.DOCS,
+        path: ROUTE_PATH[AppRoute.DOCS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE]} />,
+        layout: 'app',
+        loadingTitle: 'Loading documentation'
+    },
+    {
+        id: AppRoute.DOCS_MODELS,
+        path: ROUTE_PATH[AppRoute.DOCS_MODELS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_MODELS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading model documentation'
+    },
+    {
+        id: AppRoute.DOCS_TESTS,
+        path: ROUTE_PATH[AppRoute.DOCS_TESTS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_TESTS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading test documentation'
+    },
+    {
+        id: AppRoute.DOCS_TRUTHFULNESS,
+        path: ROUTE_PATH[AppRoute.DOCS_TRUTHFULNESS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_TRUTHFULNESS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading truthfulness documentation'
+    },
+    {
+        id: AppRoute.EXPLAIN,
+        path: ROUTE_PATH[AppRoute.EXPLAIN],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE]} />,
+        layout: 'app',
+        loadingTitle: 'Loading project explain section'
+    },
+    {
+        id: AppRoute.EXPLAIN_MODELS,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_MODELS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_MODELS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading model explanation'
+    },
+    {
+        id: AppRoute.EXPLAIN_BRANCHES,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_BRANCHES],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_BRANCHES]} />,
+        layout: 'app',
+        loadingTitle: 'Loading branch explanation'
+    },
+    {
+        id: AppRoute.EXPLAIN_SPLITS,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_SPLITS],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_SPLITS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading split explanation'
+    },
+    {
+        id: AppRoute.EXPLAIN_PROJECT,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_PROJECT],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_TRUTHFULNESS]} />,
+        layout: 'app',
+        loadingTitle: 'Loading project overview'
+    },
+    {
+        id: AppRoute.EXPLAIN_TIME,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_TIME],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_TIME]} />,
+        layout: 'app',
+        loadingTitle: 'Loading time explanation'
+    },
+    {
+        id: AppRoute.EXPLAIN_FEATURES,
+        path: ROUTE_PATH[AppRoute.EXPLAIN_FEATURES],
+        element: <Navigate replace to={ROUTE_PATH[AppRoute.GUIDE_FEATURES]} />,
+        layout: 'app',
+        loadingTitle: 'Loading feature explanation'
     },
     {
         id: AppRoute.ABOUT,
@@ -614,19 +737,26 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: importBacktestDiagnosticsDayStatsPage,
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: importPolicyBranchMegaPage,
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: importConfidenceRiskPage,
+    [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: importRealForecastJournalPage,
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: importExecutionPipelinePage,
     [AppRoute.PFI_PER_MODEL]: importPfiPage,
     [AppRoute.MODELS_STATS]: importModelStatsPage,
     [AppRoute.AGGREGATION_STATS]: importAggregationStatsPage,
-    [AppRoute.DOCS]: importDocsPage,
-    [AppRoute.DOCS_MODELS]: importDocsModelsPage,
-    [AppRoute.DOCS_TESTS]: importDocsTestsPage,
-    [AppRoute.DOCS_TRUTHFULNESS]: importDocsTruthfulnessPage,
-    [AppRoute.EXPLAIN]: importExplainPage,
-    [AppRoute.EXPLAIN_MODELS]: importExplainModelsPage,
+    [AppRoute.GUIDE]: importGuidePage,
+    [AppRoute.GUIDE_MODELS]: importGuideModelsPage,
+    [AppRoute.GUIDE_BRANCHES]: importExplainBranchesPage,
+    [AppRoute.GUIDE_SPLITS]: importExplainSplitsPage,
+    [AppRoute.GUIDE_TIME]: importExplainTimePage,
+    [AppRoute.GUIDE_FEATURES]: importExplainFeaturesPage,
+    [AppRoute.GUIDE_TRUTHFULNESS]: importDocsTruthfulnessPage,
+    [AppRoute.GUIDE_TESTS]: importDocsTestsPage,
+    [AppRoute.DEVELOPER]: importDeveloperPage,
+    [AppRoute.DEVELOPER_BACKEND_STRUCTURE]: importDeveloperBackendStructurePage,
+    [AppRoute.DEVELOPER_RUNTIME_FLOW]: importDeveloperRuntimeFlowPage,
+    [AppRoute.DEVELOPER_REPORTS_API]: importDeveloperReportsApiPage,
+    [AppRoute.DEVELOPER_TESTS_GUARDS]: importDeveloperTestsGuardsPage,
     [AppRoute.EXPLAIN_BRANCHES]: importExplainBranchesPage,
     [AppRoute.EXPLAIN_SPLITS]: importExplainSplitsPage,
-    [AppRoute.EXPLAIN_PROJECT]: importExplainProjectPage,
     [AppRoute.EXPLAIN_TIME]: importExplainTimePage,
     [AppRoute.EXPLAIN_FEATURES]: importExplainFeaturesPage,
     [AppRoute.ABOUT]: importAboutPage,

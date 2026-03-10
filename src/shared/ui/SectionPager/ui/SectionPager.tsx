@@ -179,35 +179,37 @@ export default function SectionPager({
                     </Btn>
                 </div>
 
-                <div className={classNames(cls.dpadLeftWrap, {}, [])}>
-                    <span className={cls.groupStatus} aria-hidden='true'>
-                        {statusText}
-                    </span>
-                    <Btn
-                        className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupPrev }, [])}
-                        onClick={handleLeft}
-                        aria-label={t('sectionPager.dpad.prevPageAria', {
-                            defaultValue: 'Previous report page'
-                        })}
-                        disabled={!hasGroupPrev}>
-                        <span className={cls.arrow}>←</span>
-                    </Btn>
-                </div>
+                {hasGroupPrev && (
+                    <div className={classNames(cls.dpadLeftWrap, {}, [])}>
+                        <span className={cls.groupStatus} aria-hidden='true'>
+                            {statusText}
+                        </span>
+                        <Btn
+                            className={cls.btn}
+                            onClick={handleLeft}
+                            aria-label={t('sectionPager.dpad.prevPageAria', {
+                                defaultValue: 'Previous report page'
+                            })}>
+                            <span className={cls.arrow}>←</span>
+                        </Btn>
+                    </div>
+                )}
 
-                <div className={classNames(cls.dpadRightWrap, {}, [])}>
-                    <span className={cls.groupStatus} aria-hidden='true'>
-                        {statusText}
-                    </span>
-                    <Btn
-                        className={classNames(cls.btn, { [cls.btnDisabled]: !hasGroupNext }, [])}
-                        onClick={handleRight}
-                        aria-label={t('sectionPager.dpad.nextPageAria', {
-                            defaultValue: 'Next report page'
-                        })}
-                        disabled={!hasGroupNext}>
-                        <span className={cls.arrow}>→</span>
-                    </Btn>
-                </div>
+                {hasGroupNext && (
+                    <div className={classNames(cls.dpadRightWrap, {}, [])}>
+                        <span className={cls.groupStatus} aria-hidden='true'>
+                            {statusText}
+                        </span>
+                        <Btn
+                            className={cls.btn}
+                            onClick={handleRight}
+                            aria-label={t('sectionPager.dpad.nextPageAria', {
+                                defaultValue: 'Next report page'
+                            })}>
+                            <span className={cls.arrow}>→</span>
+                        </Btn>
+                    </div>
+                )}
             </div>
         </div>
     )

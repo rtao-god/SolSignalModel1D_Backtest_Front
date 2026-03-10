@@ -17,8 +17,11 @@ const SECTION_TABLE_KEYS: Partial<Record<string, string>> = {
     'truth-tests': 'truthfulnessPage.sections.truth-tests.table.rows'
 }
 
-export default function DocsTruthfulnessPage({ className }: DocsTruthfulnessPageProps) {
-    const { t, i18n } = useTranslation('docs')
+export default function DocsTruthfulnessPage({
+    className,
+    translationNamespace = 'docs'
+}: DocsTruthfulnessPageProps) {
+    const { t, i18n } = useTranslation(translationNamespace)
     const sections = useMemo(
         () =>
             DOCS_TRUTHFULNESS_TABS.map(section => ({
@@ -28,7 +31,7 @@ export default function DocsTruthfulnessPage({ className }: DocsTruthfulnessPage
         [t]
     )
     const termKeys = DOCS_TRUTHFULNESS_TABS.map(section => `truthfulnessPage.sections.${section.id}.terms`)
-    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys))
+    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -52,7 +55,8 @@ export default function DocsTruthfulnessPage({ className }: DocsTruthfulnessPage
                             {() => {
                                 const paragraphs = readDocsStringListOrThrow(
                                     i18n,
-                                    `truthfulnessPage.sections.${section.id}.paragraphs`
+                                    `truthfulnessPage.sections.${section.id}.paragraphs`,
+                                    translationNamespace
                                 )
                                 const glossary = buildPageGlossary()
 
@@ -71,7 +75,11 @@ export default function DocsTruthfulnessPage({ className }: DocsTruthfulnessPage
                         {SECTION_TABLE_KEYS[section.id] && (
                             <LocalizedContentBoundary name={`DocsTruthfulness:${section.id}:table`}>
                                 {() => {
-                                    const tableRows = readDocsTableRowsOrThrow(i18n, SECTION_TABLE_KEYS[section.id]!)
+                                    const tableRows = readDocsTableRowsOrThrow(
+                                        i18n,
+                                        SECTION_TABLE_KEYS[section.id]!,
+                                        translationNamespace
+                                    )
                                     const glossary = buildPageGlossary()
 
                                     return (

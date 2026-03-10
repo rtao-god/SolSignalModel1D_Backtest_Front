@@ -83,6 +83,7 @@ import {
     STATIC_TP_SL_DESCRIPTION,
     TP_SL_MODE_DESCRIPTION,
     TRACE_DESCRIPTION,
+    WHY_DYNAMIC_RISK_DESCRIPTION,
     WHY_NO_SL_DESCRIPTION,
     WITHOUT_ZONAL_MODE_DESCRIPTION,
     WITH_ZONAL_MODE_DESCRIPTION,
@@ -221,6 +222,14 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         pattern: /Почему\?\s*\(NO(?:[-‑\s]?SL)\)/i,
         title: 'Почему?',
         description: WHY_NO_SL_DESCRIPTION,
+        autolink: false,
+        scope: 'common'
+    },
+    {
+        id: 'why-dynamic-risk',
+        pattern: /Почему\?\s*\(DYNAMIC(?:[-‑\s]+RISK)?\)/i,
+        title: 'Почему?',
+        description: WHY_DYNAMIC_RISK_DESCRIPTION,
         autolink: false,
         scope: 'common'
     },
@@ -890,10 +899,11 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         scope: 'common'
     },
     {
-        id: 'conf-bucket',
+        id: 'confidence-bucket',
         pattern: /confBucket|confidence[-\s]?bucket|bucket samples|bucket win-?rate/i,
         title: 'confidence-bucket',
         description: CONF_BUCKET_DESCRIPTION,
+        aliases: ['confidence-bucket', 'confBucket'],
         scope: 'common'
     }
 ]

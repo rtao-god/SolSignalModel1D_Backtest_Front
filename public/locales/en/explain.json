@@ -423,17 +423,17 @@
     },
     "sections": {
       "overview": {
-        "title": "NY trading day",
-        "text": "Fixed daily entry point in New York local time.",
+        "title": "NYSE trading day",
+        "text": "The regular session of the New York Stock Exchange defines entry, exit, and split boundaries.",
         "table": {
           "headers": { "season": "NY season", "entryTime": "Entry time", "comment": "Comment" },
           "rows": [
-            ["Summer (DST)", "08:00 NY", "Based on DST flag"],
-            ["Winter (no DST)", "07:00 NY", "NyWindowing contract"]
+            ["Summer (EDT / DST)", "09:30 NY / 13:30 UTC", "Regular-session open"],
+            ["Winter (EST)", "09:30 NY / 14:30 UTC", "Regular-session open"]
           ]
         },
         "terms": [
-          { "term": "NY-morning", "description": "Canonical daily entry point." },
+          { "term": "NYSE regular session", "description": "The main New York Stock Exchange session: open at 09:30 and close at 16:00 America/New_York." },
           { "term": "DST (Daylight Saving Time)", "description": "Seasonal New York time shift." },
           { "term": "EntryUtc", "description": "UTC timestamp of trading-day entry." },
           { "term": "NyTradingDay", "description": "NY local day as business key." }
@@ -441,11 +441,11 @@
       },
       "baseline": {
         "title": "Baseline exit",
-        "text": "Defines end of baseline window for labels and split.",
+        "text": "Defines the end of the same NYSE session window for labels and split.",
         "terms": [
-          { "term": "Baseline-exit", "description": "Next NY morning minus two minutes." },
-          { "term": "Friday -> Monday", "description": "Friday exits roll to Monday." },
-          { "term": "Why minus two minutes", "description": "Small technical gap before next entry." }
+          { "term": "Baseline-exit", "description": "The actual close of the current NYSE session minus two minutes." },
+          { "term": "Early close", "description": "If NYSE closes early, baseline-exit also shifts to actual close minus two minutes." },
+          { "term": "Why minus two minutes", "description": "A small technical gap before the official close of the same session." }
         ]
       },
       "dayKeys": {

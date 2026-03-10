@@ -25,6 +25,17 @@ export const API_ROUTES = {
         }
     },
 
+    realForecastJournal: {
+        dayList: {
+            path: '/real-forecast-journal',
+            method: 'GET' as const
+        },
+        byDate: {
+            path: '/real-forecast-journal/by-date',
+            method: 'GET' as const
+        }
+    },
+
     backtest: {
         configGet: {
             path: '/backtest/config',
@@ -103,6 +114,10 @@ export const API_ROUTES = {
     ml: {
         pfiPerModel: {
             path: '/ml/pfi/per-model',
+            method: 'GET' as const
+        },
+        pfiPerModelStatus: {
+            path: '/ml/pfi/per-model/status',
             method: 'GET' as const
         },
         modelStatsPerModel: {

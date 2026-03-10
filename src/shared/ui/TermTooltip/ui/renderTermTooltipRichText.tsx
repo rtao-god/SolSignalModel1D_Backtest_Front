@@ -6,15 +6,8 @@ import type { SharedTermTooltipRuleDraft } from '@/shared/terms/types'
 import { BulletList } from '@/shared/ui/BulletList'
 import TermTooltip from './TermTooltip'
 import cls from './renderTermTooltipRichText.module.scss'
-import {
-    matchTermTooltips,
-    normalizeComparableTerm,
-    TermTooltipRegistryEntry
-} from '../lib/termTooltipMatcher'
-import {
-    buildSafeTermTooltipRegistry,
-    formatTermTooltipRegistryIssue
-} from '../lib/termTooltipRegistryIntegrity'
+import { matchTermTooltips, normalizeComparableTerm, TermTooltipRegistryEntry } from '../lib/termTooltipMatcher'
+import { buildSafeTermTooltipRegistry, formatTermTooltipRegistryIssue } from '../lib/termTooltipRegistryIntegrity'
 
 type InlineGlossaryRuleDraft = SharedTermTooltipRuleDraft
 
@@ -96,9 +89,10 @@ function createLocalizedReportTooltipRule(id: string, descriptionKey: string, te
 }
 
 const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
-    createLocalizedReportTooltipRule('landing-solana', 'main.intro.tooltipRules.solana', 'Solana'),
-    createLocalizedReportTooltipRule('landing-sol-usdt', 'main.intro.tooltipRules.solUsdt', 'SOL/USDT'),
-    createLocalizedReportTooltipRule('landing-ml-model', 'main.intro.tooltipRules.mlModel', 'ML model'),
+    createLocalizedReportTooltipRule('landing-solana', 'main.tooltipRules.solana', 'Solana'),
+    createLocalizedReportTooltipRule('landing-sol-usdt', 'main.tooltipRules.solUsdt', 'SOL/USDT'),
+    createLocalizedReportTooltipRule('landing-ml-project', 'main.tooltipRules.mlProject', 'ML-проект'),
+    createLocalizedReportTooltipRule('landing-ml-model', 'main.tooltipRules.mlModel', 'ML model'),
     {
         id: 'landing-backtest',
         pattern: /$^/,
@@ -140,12 +134,12 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     createLocalizedReportTooltipRule('landing-diagnostics', 'main.tooltipRules.diagnostics', 'Diagnostics'),
     createLocalizedReportTooltipRule('landing-analysis', 'main.tooltipRules.analysis', 'Analysis'),
     createLocalizedReportTooltipRule('landing-explain', 'main.tooltipRules.explain', 'Explain'),
-    createLocalizedReportTooltipRule(
-        'landing-truthfulness',
-        'main.tooltipRules.truthfulness',
-        'Truthfulness contour'
-    ),
+    createLocalizedReportTooltipRule('landing-truthfulness', 'main.tooltipRules.truthfulness', 'Truthfulness contour'),
     createLocalizedReportTooltipRule('landing-time-horizon', 'main.tooltipRules.timeHorizon', '24h horizon'),
+    createLocalizedReportTooltipRule('landing-time-horizon-why', 'main.tooltipRules.timeHorizonWhy', 'Почему?'),
+    createLocalizedReportTooltipRule('landing-day-up', 'main.tooltipRules.dayUp', 'Рост'),
+    createLocalizedReportTooltipRule('landing-day-down', 'main.tooltipRules.dayDown', 'Падение'),
+    createLocalizedReportTooltipRule('landing-day-flat', 'main.tooltipRules.dayFlat', 'Боковик'),
     createLocalizedReportTooltipRule('landing-early-preview', 'main.tooltipRules.earlyPreview', 'Early preview'),
     createLocalizedReportTooltipRule(
         'landing-path-labeling',
@@ -243,7 +237,7 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         description: () => resolveLocalizedCurrentPredictionDailyLayerDescription(),
         aliases: ['Daily', 'Daily layer', 'дневной слой'],
         autolink: false
-    },
+    }
 ]
 
 function buildDefaultAliases(rule: InlineGlossaryRuleDraft): string[] {
@@ -347,6 +341,10 @@ function normalizeBrokenExplicitTermMarkup(text: string): string {
     return next
 }
 
+function splitNonEmptyParagraphs(text: string): string[] {
+    return text.split(/\n{2,}/).filter(paragraph => paragraph.trim().length > 0)
+}
+
 function isBulletListLine(line: string): boolean {
     return /^(?:[-*•])\s+/.test(line)
 }
@@ -422,10 +420,7 @@ function parseExplicitTermMarkupSegments(text: string): ExplicitTermMarkupSegmen
 }
 
 function resolveStructuredParagraphBlocks(paragraph: string): StructuredParagraphBlock[] {
-    const lines = paragraph
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
+    const lines = paragraph.split('\n').filter(line => line.trim().length > 0)
 
     if (lines.length === 0) {
         return []
@@ -460,9 +455,11 @@ function resolveStructuredParagraphBlocks(paragraph: string): StructuredParagrap
     }
 
     lines.forEach(line => {
-        if (isBulletListLine(line)) {
+        const normalizedLine = line.trim()
+
+        if (isBulletListLine(normalizedLine)) {
             flushTextLines()
-            bulletItems.push(stripBulletListMarker(line))
+            bulletItems.push(stripBulletListMarker(normalizedLine))
             return
         }
 
@@ -500,8 +497,7 @@ function renderStructuredParagraph(
                     :   <BulletList
                             items={block.items.map((item, itemIndex) => ({
                                 key: `${keyPrefix}-bullet-${blockIndex}-${itemIndex}`,
-                                content:
-                                    renderLine(item, `${keyPrefix}-bullet-${blockIndex}-${itemIndex}`)
+                                content: renderLine(item, `${keyPrefix}-bullet-${blockIndex}-${itemIndex}`)
                             }))}
                         />
                     }
@@ -794,9 +790,7 @@ function collectMatcherFixtureValidationError(): Error | null {
                 TERM_TOOLTIP_REGISTRY_SAFE,
                 new Set<string>(),
                 new Set<string>()
-            ).map(
-                match => match.rule.id
-            )
+            ).map(match => match.rule.id)
 
             const missing = fixture.expectedRuleIds.filter(expected => !found.includes(expected))
             if (missing.length > 0) {
@@ -832,30 +826,22 @@ function reportMatcherFixtureValidationError(): void {
 
 function renderPlainTextBlocks(text: string): ReactNode {
     const normalizedText = normalizeOrderedListParagraphs(normalizeBrokenExplicitTermMarkup(text))
-    const paragraphs = normalizedText
-        .split(/\n{2,}/)
-        .map(paragraph => paragraph.trim())
-        .filter(paragraph => paragraph.length > 0)
+    const paragraphs = splitNonEmptyParagraphs(normalizedText)
 
     if (paragraphs.length === 0) {
         return text
     }
 
-    const shouldRenderStructuredBlocks =
-        paragraphs.length > 1 || paragraphs.some(paragraph => paragraph.includes('\n'))
+    const shouldRenderStructuredBlocks = paragraphs.length > 1 || paragraphs.some(paragraph => paragraph.includes('\n'))
 
     if (!shouldRenderStructuredBlocks) {
-        return paragraphs[0]
+        return paragraphs[0].trim()
     }
 
     return (
         <>
             {paragraphs.map((paragraph, paragraphIndex) => {
-                return renderStructuredParagraph(
-                    paragraph,
-                    `plain-paragraph-${paragraphIndex}`,
-                    line => line
-                )
+                return renderStructuredParagraph(paragraph, `plain-paragraph-${paragraphIndex}`, line => line)
             })}
         </>
     )
@@ -894,16 +880,15 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
             (options?.excludeRuleIds ?? []).map(item => item.trim()).filter(item => item.length > 0)
         )
         const excludedRuleTitles = new Set(
-            (options?.excludeRuleTitles ?? []).map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
+            (options?.excludeRuleTitles ?? [])
+                .map(item => normalizeComparableTerm(item))
+                .filter(item => item.length > 0)
         )
         const recursionDepth = options?.recursionDepth ?? 0
         const maxRecursionDepth = options?.maxRecursionDepth ?? 2
 
         const registry = resolveRegistryForRender(excludedRuleIds, excludedRuleTitles)
-        const paragraphs = normalizedText
-            .split(/\n{2,}/)
-            .map(paragraph => paragraph.trim())
-            .filter(paragraph => paragraph.length > 0)
+        const paragraphs = splitNonEmptyParagraphs(normalizedText)
 
         if (paragraphs.length === 0) {
             return text
@@ -916,7 +901,7 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
             return (
                 <>
                     {renderInlineRichText(
-                        paragraphs[0],
+                        paragraphs[0].trim(),
                         registry,
                         excludedTerms,
                         excludedRuleIds,
@@ -933,21 +918,18 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
         return (
             <>
                 {paragraphs.map((paragraph, paragraphIndex) => {
-                    return renderStructuredParagraph(
-                        paragraph,
-                        `paragraph-${paragraphIndex}`,
-                        (line, lineKey) =>
-                            renderInlineRichText(
-                                line,
-                                registry,
-                                excludedTerms,
-                                excludedRuleIds,
-                                excludedRuleTitles,
-                                recursionDepth,
-                                maxRecursionDepth,
-                                lineKey,
-                                options?.resolveExplicitTermLink
-                            )
+                    return renderStructuredParagraph(paragraph, `paragraph-${paragraphIndex}`, (line, lineKey) =>
+                        renderInlineRichText(
+                            line,
+                            registry,
+                            excludedTerms,
+                            excludedRuleIds,
+                            excludedRuleTitles,
+                            recursionDepth,
+                            maxRecursionDepth,
+                            lineKey,
+                            options?.resolveExplicitTermLink
+                        )
                     )
                 })}
             </>

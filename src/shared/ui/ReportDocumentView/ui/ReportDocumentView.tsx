@@ -140,7 +140,9 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
         <div className={rootClassName}>
             <header className={cls.header}>
                 <div className={cls.headerMain}>
-                    <Text type='h1'>{localizedReportTitle}</Text>
+                    <Text type='h1' className={cls.reportTitle}>
+                        {localizedReportTitle}
+                    </Text>
                     <span className={cls.kindTag}>{report.kind}</span>
                 </div>
 

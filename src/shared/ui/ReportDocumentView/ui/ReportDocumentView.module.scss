@@ -17,11 +17,19 @@
 .headerMain {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
 }
 
+.reportTitle {
+    flex: 1 1 420px;
+    min-width: 0;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
 .kindTag {
+    flex: 0 0 auto;
     padding: 4px 10px;
     border-radius: 999px;
     font-size: 12px;

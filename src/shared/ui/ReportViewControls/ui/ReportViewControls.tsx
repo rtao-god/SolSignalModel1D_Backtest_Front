@@ -72,17 +72,7 @@ export default function ReportViewControls({ groups = [], className }: ReportVie
                                         }
                                     }}
                                     aria-pressed={isActive}>
-                                    {option.tooltip ?
-                                        <TermTooltip
-                                            term={option.label}
-                                            description={enrichTermTooltipDescription(option.tooltip, {
-                                                term: option.label,
-                                                excludeTerms: option.tooltipExcludeTerms,
-                                                excludeRuleIds: option.tooltipExcludeRuleIds
-                                            })}
-                                            type='span'
-                                        />
-                                    :   option.label}
+                                    {option.label}
                                 </Btn>
                             )
                         })}

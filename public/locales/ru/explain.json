@@ -423,17 +423,17 @@
     },
     "sections": {
       "overview": {
-        "title": "NY-торговый день",
-        "text": "Фиксированная точка входа по локальному времени Нью-Йорка.",
+        "title": "NYSE trading day",
+        "text": "Regular session New York Stock Exchange задаёт окно входа, выхода и split-границ.",
         "table": {
           "headers": { "season": "Сезон NY", "entryTime": "Время входа", "comment": "Комментарий" },
           "rows": [
-            ["Лето (DST)", "08:00 NY", "С учётом DST-флага"],
-            ["Зима (без DST)", "07:00 NY", "Контракт NyWindowing"]
+            ["Лето (EDT / DST)", "09:30 NY / 13:30 UTC", "Открытие regular session"],
+            ["Зима (EST)", "09:30 NY / 14:30 UTC", "Открытие regular session"]
           ]
         },
         "terms": [
-          { "term": "NY-morning", "description": "Каноническая точка входа торгового дня." },
+          { "term": "NYSE regular session", "description": "Основная торговая сессия New York Stock Exchange: открытие 09:30, закрытие 16:00 America/New_York." },
           { "term": "DST (Daylight Saving Time)", "description": "Сезонный сдвиг времени Нью-Йорка." },
           { "term": "EntryUtc", "description": "UTC-момент входа в торговый день." },
           { "term": "NyTradingDay", "description": "Локальный NY-день как бизнес-ключ." }
@@ -441,11 +441,11 @@
       },
       "baseline": {
         "title": "Baseline-exit",
-        "text": "Определяет конец базового окна дня для разметки и split.",
+        "text": "Определяет конец базового окна той же NYSE-сессии для разметки и split.",
         "terms": [
-          { "term": "Baseline-exit", "description": "Следующее NY-утро минус 2 минуты." },
-          { "term": "Friday -> Monday", "description": "Пятничный exit переносится на понедельник." },
-          { "term": "Почему именно -2 минуты", "description": "Технический зазор перед следующим входом." }
+          { "term": "Baseline-exit", "description": "Фактическое закрытие текущей NYSE-сессии минус 2 минуты." },
+          { "term": "Early close", "description": "Если NYSE закрывается раньше обычного, baseline-exit тоже сдвигается на фактический close minus two minutes." },
+          { "term": "Почему именно -2 минуты", "description": "Технический зазор перед официальным close той же сессии." }
         ]
       },
       "dayKeys": {

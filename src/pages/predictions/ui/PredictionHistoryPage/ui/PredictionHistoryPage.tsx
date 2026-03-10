@@ -21,6 +21,7 @@ import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import {
+    DEFAULT_BACKFILLED_HISTORY_SCOPE,
     useCurrentPredictionBackfilledSplitStats,
     useCurrentPredictionIndexQuery
 } from '@/shared/api/tanstackQueries/currentPrediction'
@@ -33,6 +34,7 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { parseDateKey } from '@/shared/consts/date'
 import {
     type PolicyBranchMegaBucketMode
 } from '@/shared/utils/policyBranchMegaTabs'
@@ -568,6 +570,19 @@ function PredictionHistoryPageInner({
 
     const allDatesDesc = useMemo(() => collectUniqueDatesDesc(index), [index])
     const allBuiltDatesDesc = useMemo(() => collectUniqueDatesDesc(allIndex), [allIndex])
+    const historyMinSelectableDate = useMemo(() => {
+        const earliestBuiltDateKey = allBuiltDatesDesc[allBuiltDatesDesc.length - 1]
+        if (!earliestBuiltDateKey) {
+            return null
+        }
+
+        const parsedEarliestBuiltDate = parseDateKey(earliestBuiltDateKey)
+        if (!parsedEarliestBuiltDate) {
+            throw new Error(`[ui] Failed to parse earliest prediction history date: ${earliestBuiltDateKey}.`)
+        }
+
+        return parsedEarliestBuiltDate
+    }, [allBuiltDatesDesc])
     const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
     const trainingSplitStatsState = useCurrentPredictionBackfilledSplitStats()
     const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
@@ -762,7 +777,7 @@ function PredictionHistoryPageInner({
                 </div>
 
                 <div className={cls.filtersRow}>
-                    <DatePicker className={cls.datePicker} />
+                    <DatePicker className={cls.datePicker} minSelectableDate={historyMinSelectableDate ?? undefined} />
                     <div className={cls.filtersInfo}>
                         <Text type='p'>{t('predictionHistory.filters.dateRange.description')}</Text>
                         {fromDate && toDate && (
@@ -780,14 +795,15 @@ function PredictionHistoryPageInner({
                 {filteredCount > 0 && (
                     <>
                         <div className={cls.pagination}>
-                            <button
-                                type='button'
-                                className={cls.paginationButton}
-                                onClick={handlePagePrev}
-                                disabled={!canPrev}
-                                aria-label={t('predictionHistory.pagination.prevAria')}>
-                                <Icon name='arrow' flipped />
-                            </button>
+                            {canPrev ?
+                                <button
+                                    type='button'
+                                    className={cls.paginationButton}
+                                    onClick={handlePagePrev}
+                                    aria-label={t('predictionHistory.pagination.prevAria')}>
+                                    <Icon name='arrow' flipped />
+                                </button>
+                            :   <span className={cls.paginationSpacer} aria-hidden='true' />}
 
                             <div className={cls.paginationInfo}>
                                 <Text type='p'>
@@ -805,14 +821,15 @@ function PredictionHistoryPageInner({
                                 </Text>
                             </div>
 
-                            <button
-                                type='button'
-                                className={cls.paginationButton}
-                                onClick={handlePageNext}
-                                disabled={!canNext}
-                                aria-label={t('predictionHistory.pagination.nextAria')}>
-                                <Icon name='arrow' />
-                            </button>
+                            {canNext ?
+                                <button
+                                    type='button'
+                                    className={cls.paginationButton}
+                                    onClick={handlePageNext}
+                                    aria-label={t('predictionHistory.pagination.nextAria')}>
+                                    <Icon name='arrow' />
+                                </button>
+                            :   <span className={cls.paginationSpacer} aria-hidden='true' />}
                         </div>
 
                         <div className={classNames(cls.cards, { [cls.cardsAnimating]: cardsAnimating }, [])}>
@@ -1226,7 +1243,9 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
 
 function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     const { t } = useTranslation('reports')
-    const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
+    const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>(
+        DEFAULT_BACKFILLED_HISTORY_SCOPE
+    )
     const [historyWindow, setHistoryWindow] = useState<PredictionHistoryWindow>('365')
     const historyDays = resolveHistoryWindowDaysOrThrow(historyWindow)
 

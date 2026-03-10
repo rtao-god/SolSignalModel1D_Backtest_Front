@@ -1,47 +1,67 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import { TermTooltip, Text } from '@/shared/ui'
-import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import { Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
-import { EXPLAIN_TIME_TABS } from '@/shared/utils/explainTabs'
+import { GUIDE_TIME_TABS } from '@/shared/utils/guideTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
-    readExplainTableRowsOrThrow,
-    readExplainTermItemsOrThrow,
-    type ExplainLocalizedTermItem
-} from '@/pages/explainPages/ui/shared/explainI18n'
+    readAvailableGuideTermGroups,
+    readGuideStringListOrThrow,
+    readGuideTableRowsOrThrow
+} from '@/pages/guidePages/ui/shared/guideI18n'
+import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainTimePage.module.scss'
 import type { ExplainTimePageProps } from './types'
 
-function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
-    return (
-        <div className={cls.termGrid}>
-            {items.map(item => (
-                <TermTooltip
-                    key={item.term}
-                    term={item.term}
-                    description={enrichTermTooltipDescription(item.description, { term: item.term })}
-                    type='span'
-                    className={cls.termItem}
-                />
-            ))}
-        </div>
-    )
+interface GuideTimeSectionConfig {
+    id: 'overview' | 'baseline' | 'dayKeys' | 'weekend'
+    anchor: string
+    headerKeys?: readonly string[]
 }
 
-export default function ExplainTimePage({ className }: ExplainTimePageProps) {
-    const { t, i18n } = useTranslation('explain')
+const GUIDE_TIME_SECTIONS: readonly GuideTimeSectionConfig[] = [
+    {
+        id: 'overview',
+        anchor: 'explain-time-overview',
+        headerKeys: ['season', 'entryTime', 'comment'] as const
+    },
+    {
+        id: 'baseline',
+        anchor: 'explain-time-baseline'
+    },
+    {
+        id: 'dayKeys',
+        anchor: 'explain-time-day-keys'
+    },
+    {
+        id: 'weekend',
+        anchor: 'explain-time-weekend'
+    }
+]
+
+export default function ExplainTimePage({
+    className,
+    translationNamespace = 'guide'
+}: ExplainTimePageProps) {
+    const { t, i18n } = useTranslation(translationNamespace)
 
     const sections = useMemo(
         () =>
-            EXPLAIN_TIME_TABS.map(tab => ({
+            GUIDE_TIME_TABS.map(tab => ({
                 ...tab,
                 label: t(`tabs.${tab.id}`, { defaultValue: tab.label })
             })),
         [t]
     )
+    const buildPageGlossary = () =>
+        buildGuideGlossaryOrThrow(
+            readAvailableGuideTermGroups(
+                i18n,
+                GUIDE_TIME_SECTIONS.map(section => `timePage.sections.${section.id}.terms`)
+            )
+        )
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -57,73 +77,107 @@ export default function ExplainTimePage({ className }: ExplainTimePageProps) {
             </header>
 
             <div className={cls.sectionsGrid}>
-                <section id='explain-time-overview' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('timePage.sections.overview.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('timePage.sections.overview.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainTime:overview:table'>
-                        {() => {
-                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'timePage.sections.overview.table.rows')
+                {GUIDE_TIME_SECTIONS.map(section => (
+                    <section key={section.id} id={section.anchor} className={cls.sectionCard}>
+                        <Text type='h3' className={cls.sectionTitle}>
+                            {t(`timePage.sections.${section.id}.title`)}
+                        </Text>
 
-                            return (
-                                <div className={cls.tableWrap}>
-                                    <table className={cls.infoTable}>
-                                        <thead>
-                                            <tr>
-                                                <th>{t('timePage.sections.overview.table.headers.season')}</th>
-                                                <th>{t('timePage.sections.overview.table.headers.entryTime')}</th>
-                                                <th>{t('timePage.sections.overview.table.headers.comment')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {overviewRows.map((row, rowIndex) => (
-                                                <tr key={`overview-row-${rowIndex}`}>
-                                                    {row.map((cell, cellIndex) => (
-                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                        <LocalizedContentBoundary name={`GuideTime:${section.id}:paragraphs`}>
+                            {() => {
+                                const glossary = buildPageGlossary()
+                                const paragraphs = readGuideStringListOrThrow(i18n, `timePage.sections.${section.id}.paragraphs`)
+
+                                return (
+                                    <div className={cls.copyBlock}>
+                                        {paragraphs.map((paragraph, paragraphIndex) => (
+                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                                {renderGuideRichText(paragraph, { glossary })}
+                                            </Text>
+                                        ))}
+                                    </div>
+                                )
+                            }}
+                        </LocalizedContentBoundary>
+
+                        {section.headerKeys && (
+                            <LocalizedContentBoundary name={`GuideTime:${section.id}:table`}>
+                                {() => {
+                                    const headerKeys = section.headerKeys
+                                    if (!headerKeys) {
+                                        return null
+                                    }
+
+                                    const glossary = buildPageGlossary()
+                                    const rows = readGuideTableRowsOrThrow(i18n, `timePage.sections.${section.id}.table.rows`)
+
+                                    return (
+                                        <div className={cls.tableWrap}>
+                                            <table className={cls.infoTable}>
+                                                <thead>
+                                                    <tr>
+                                                        {headerKeys.map(headerKey => (
+                                                            <th key={`${section.id}-header-${headerKey}`}>
+                                                                {t(`timePage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map((row, rowIndex) => (
+                                                        <tr key={`${section.id}-row-${rowIndex}`}>
+                                                            {row.map((cell, cellIndex) => (
+                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                    {renderGuideRichText(cell, { glossary })}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
                                                     ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )
-                        }}
-                    </LocalizedContentBoundary>
-                    <LocalizedContentBoundary name='ExplainTime:overview:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.overview.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )
+                                }}
+                            </LocalizedContentBoundary>
+                        )}
 
-                <section id='explain-time-baseline' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('timePage.sections.baseline.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('timePage.sections.baseline.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainTime:baseline:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.baseline.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                        <div className={cls.calloutGrid}>
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.why')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideTime:${section.id}:why`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
 
-                <section id='explain-time-day-keys' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('timePage.sections.dayKeys.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('timePage.sections.dayKeys.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainTime:dayKeys:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.dayKeys.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`timePage.sections.${section.id}.why`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
 
-                <section id='explain-time-weekend' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('timePage.sections.weekend.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('timePage.sections.weekend.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainTime:weekend:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'timePage.sections.weekend.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.example')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideTime:${section.id}:example`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
+
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`timePage.sections.${section.id}.example`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
+                        </div>
+                    </section>
+                ))}
             </div>
 
             <SectionPager

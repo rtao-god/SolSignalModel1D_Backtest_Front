@@ -55,12 +55,9 @@ function localizeCurrentPredictionReportTitleForRu(rawTitle: string): string {
     }
 
     const [, symbol, mode] = match
-    const modeLabel =
-        mode.toLowerCase() === 'live' ?
-            'текущая версия (Live)'
-        :   'исторический пересчёт (Backfilled)'
-
-    return `Текущий прогноз (${symbol}) — ${modeLabel}`
+    return mode.toLowerCase() === 'live' ?
+            `Текущий прогноз (${symbol}) — текущий день (Live)`
+        :   `Исторический прогноз (${symbol}) — прошлая дата с известным исходом (Backfilled)`
 }
 
 const CURRENT_PREDICTION_SECTION_TITLE_RU: Record<string, string> = {
@@ -183,21 +180,21 @@ function localizeMissingReason(reason: string): string {
         'indicators unavailable': 'индикаторы недоступны',
         'history unavailable': 'история недоступна',
         invalid_sl_prob: 'некорректная вероятность стоп-лосса',
-        'not NY morning (entryUtc is missing)': 'не утреннее окно NY (entryUtc отсутствует)'
+        'outside NYSE regular session (entryUtc is missing)': 'вход вне regular session NYSE (entryUtc отсутствует)'
     }
 
     if (exactMap[normalized]) {
         return exactMap[normalized]
     }
 
-    const notNyMorningMatch = normalized.match(/^not NY morning:\s*(.+)$/i)
-    if (notNyMorningMatch) {
-        return `не утреннее окно NY: ${notNyMorningMatch[1]}`
+    const outsideSessionMatch = normalized.match(/^outside NYSE session window:\s*(.+)$/i)
+    if (outsideSessionMatch) {
+        return `вход вне окна NYSE: ${outsideSessionMatch[1]}`
     }
 
-    const nyWeekendMatch = normalized.match(/^NY weekend \((.+)\)$/i)
-    if (nyWeekendMatch) {
-        return `выходной по NY (${nyWeekendMatch[1]})`
+    const nyseClosedMatch = normalized.match(/^NYSE session closed \((.+)\)$/i)
+    if (nyseClosedMatch) {
+        return `сессия NYSE закрыта (${nyseClosedMatch[1]})`
     }
 
     return reason
@@ -217,7 +214,7 @@ function localizeCommonCurrentPredictionValue(rawValue: string): string {
     const normalizedLower = normalized.toLowerCase()
     const exactMap: Record<string, string> = {
         live: 'Текущий день (Live)',
-        backfilled: 'Исторический пересчёт (Backfilled)',
+        backfilled: 'Прошлая дата с известным исходом (Backfilled)',
         strictthrow: 'Строгий режим с ошибкой при пропуске (StrictThrow)',
         softmissing: 'Мягкий режим с допуском пропусков (SoftMissing)',
         'market is in a drawdown phase': 'Рынок находится в фазе просадки',
@@ -280,15 +277,15 @@ function localizeCombinedResponseValue(rawValue: string): string {
         return `${localizeDirectionWord(primaryModelMatch[1])} (основная модель)`
     }
 
-    const flatCombinedMatch = rawValue.match(/^(Flat-Up|Flat-Down|Flat)\s+\(primary=Flat;\s*micro=(micro-up|micro-down|no signal)\)$/i)
+    const flatCombinedMatch = rawValue.match(
+        /^(Flat-Up|Flat-Down|Flat)\s+\(primary=Flat;\s*micro=(micro-up|micro-down|no signal)\)$/i
+    )
     if (flatCombinedMatch) {
         const [, combined, micro] = flatCombinedMatch
         const combinedLabel =
-            combined.toLowerCase() === 'flat-up' ?
-                'Боковик с микро-ростом'
-            : combined.toLowerCase() === 'flat-down' ?
-                'Боковик с микро-падением'
-            :   'Боковик'
+            combined.toLowerCase() === 'flat-up' ? 'Боковик с микро-ростом'
+            : combined.toLowerCase() === 'flat-down' ? 'Боковик с микро-падением'
+            : 'Боковик'
 
         return `${combinedLabel} (основная модель=боковик; микро=${localizeDirectionWord(micro)})`
     }
@@ -343,19 +340,18 @@ function localizeMismatchReasonValue(rawValue: string): string {
     const factorHint = factorMatch ? factorMatch[2].trim() : null
 
     const localizedBase =
-        baseReason === 'Actual outcome matches the forecast.' ?
-            'Фактический исход совпал с прогнозом.'
+        baseReason === 'Actual outcome matches the forecast.' ? 'Фактический исход совпал с прогнозом.'
         : baseReason === 'Day class matches, but the micro direction inside flat differed.' ?
             'Основной класс дня совпал, но микро-направление внутри боковика оказалось другим.'
         : baseReason === 'Actual class does not match the main forecast class.' ?
             'Фактический класс дня не совпал с основным классом прогноза.'
-        : baseReason === "Model was in a low-confidence zone: class probabilities were close." ?
+        : baseReason === 'Model was in a low-confidence zone: class probabilities were close.' ?
             'Модель была в зоне низкой уверенности: вероятности классов оказались слишком близкими.'
         : baseReason === "Actual scenario was among the model's alternative hypotheses, but not the top choice." ?
             'Фактический сценарий входил в альтернативные гипотезы модели, но не был её главным выбором.'
         : baseReason === 'Actual scenario had low weight in the final probabilistic estimate.' ?
             'Фактический сценарий получил низкий вес в итоговой вероятностной оценке.'
-        : rawValue
+        :   rawValue
 
     if (!factorHint || localizedBase === rawValue) {
         return localizedBase

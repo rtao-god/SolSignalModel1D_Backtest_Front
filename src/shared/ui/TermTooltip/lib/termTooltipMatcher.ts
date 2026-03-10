@@ -234,6 +234,33 @@ function expandMatchToWholeWord(text: string, start: number, value: string): { s
     }
 }
 
+function isLowerCaseCyrillicSuffix(value: string): boolean {
+    return /^[а-яё]+$/i.test(value) && value === value.toLocaleLowerCase('ru-RU')
+}
+
+function isLowerCaseAsciiSuffix(value: string): boolean {
+    return /^[a-z]+$/.test(value) && value === value.toLowerCase()
+}
+
+function isSafeExpandedRegexWord(rawValue: string, rawStart: number, expandedStart: number, expandedValue: string): boolean {
+    if (expandedStart !== rawStart) {
+        return false
+    }
+
+    const suffix = expandedValue.slice(rawValue.length)
+    if (!suffix) {
+        return true
+    }
+
+    // Разрешаем только словоформенные окончания. CamelCase, snake_case и длинные ASCII-склейки
+    // считаются отдельными техническими токенами и не должны автолинковаться как вложенный термин.
+    if (isLowerCaseCyrillicSuffix(suffix)) {
+        return true
+    }
+
+    return isLowerCaseAsciiSuffix(suffix) && suffix.length <= 2
+}
+
 function findTokenRangeByCharRange(tokens: WordToken[], start: number, endExclusive: number): [number, number] | null {
     let startIndex = -1
     let endIndex = -1
@@ -294,6 +321,11 @@ function collectRegexMatches(
 
             const expanded = expandMatchToWholeWord(text, start, value)
             if (expanded) {
+                if (!isSafeExpandedRegexWord(value, start, expanded.start, expanded.value)) {
+                    next = matcher.exec(text)
+                    continue
+                }
+
                 start = expanded.start
                 value = expanded.value
             }

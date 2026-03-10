@@ -1,12 +1,11 @@
-import { type ReactNode, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Link, TermTooltip, Text } from '@/shared/ui'
-import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import { Link, Text } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
-import { EXPLAIN_FEATURES_TABS } from '@/shared/utils/explainTabs'
+import { GUIDE_FEATURES_TABS } from '@/shared/utils/guideTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 import type { ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
@@ -16,17 +15,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
-    readExplainTableRowsOrThrow,
-    readExplainTermItemsOrThrow,
-    type ExplainLocalizedTermItem
-} from '@/pages/explainPages/ui/shared/explainI18n'
+    readGuideStringListOrThrow,
+    readGuideTableRowsOrThrow,
+    readGuideTermItemsOrThrow,
+    type GuideLocalizedTermItem
+} from '@/pages/guidePages/ui/shared/guideI18n'
+import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainFeaturesPage.module.scss'
 import type { ExplainFeaturesPageProps } from './types'
-
-interface TermItem {
-    term: string
-    description: ReactNode
-}
 
 interface PfiStat {
     count: number
@@ -133,7 +129,7 @@ function buildPfiNote(
     featureName: string,
     stats: Map<string, PfiStat>,
     hasReport: boolean,
-    t: TFunction<'explain'>
+    t: TFunction<'guide'>
 ): string {
     if (!hasReport) {
         return t('featuresPage.pfiNotes.reportNotLoaded')
@@ -156,53 +152,53 @@ function buildPfiNote(
     })
 }
 
-function buildFeatureDescription(
-    baseText: string,
-    featureName: string,
+function buildFeatureGlossaryItems(
+    items: GuideLocalizedTermItem[],
     stats: Map<string, PfiStat>,
     hasReport: boolean,
-    t: TFunction<'explain'>
-) {
-    const pfiLine = buildPfiNote(featureName, stats, hasReport, t)
-
-    return (
-        <div className={cls.tooltipBody}>
-            <Text className={cls.tooltipParagraph}>{baseText}</Text>
-            <Text className={cls.tooltipMeta}>{pfiLine}</Text>
-        </div>
-    )
-}
-
-function buildFeatureTermItems(
-    baseItems: ExplainLocalizedTermItem[],
-    stats: Map<string, PfiStat>,
-    hasReport: boolean,
-    t: TFunction<'explain'>
-): TermItem[] {
-    return baseItems.map(item => ({
-        term: item.term,
-        description: buildFeatureDescription(item.description, item.term, stats, hasReport, t)
+    t: TFunction<'guide'>
+): GuideLocalizedTermItem[] {
+    return items.map(item => ({
+        ...item,
+        description: `${item.description}\n\n${buildPfiNote(item.term, stats, hasReport, t)}`
     }))
 }
 
-function TermGrid({ items }: { items: TermItem[] }) {
-    return (
-        <div className={cls.termGrid}>
-            {items.map(item => (
-                <TermTooltip
-                    key={item.term}
-                    term={item.term}
-                    description={enrichTermTooltipDescription(item.description, { term: item.term })}
-                    type='span'
-                    className={cls.termItem}
-                />
-            ))}
-        </div>
-    )
+interface GuideFeaturesSectionConfig {
+    id: 'overview' | 'returns' | 'indicators' | 'momentum' | 'regime'
+    anchor: string
+    headerKeys?: readonly string[]
 }
 
-export default function ExplainFeaturesPage({ className }: ExplainFeaturesPageProps) {
-    const { t, i18n } = useTranslation('explain')
+const GUIDE_FEATURE_SECTIONS: readonly GuideFeaturesSectionConfig[] = [
+    {
+        id: 'overview',
+        anchor: 'explain-features-overview',
+        headerKeys: ['metric', 'meaning', 'reading'] as const
+    },
+    {
+        id: 'returns',
+        anchor: 'explain-features-returns'
+    },
+    {
+        id: 'indicators',
+        anchor: 'explain-features-indicators'
+    },
+    {
+        id: 'momentum',
+        anchor: 'explain-features-momentum'
+    },
+    {
+        id: 'regime',
+        anchor: 'explain-features-regime'
+    }
+]
+
+export default function ExplainFeaturesPage({
+    className,
+    translationNamespace = 'guide'
+}: ExplainFeaturesPageProps) {
+    const { t, i18n } = useTranslation(translationNamespace)
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
     const { data: pfiReport } = usePfiPerModelReportNavQuery({ enabled: true })
@@ -215,12 +211,40 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
 
     const sections = useMemo(
         () =>
-            EXPLAIN_FEATURES_TABS.map(tab => ({
+            GUIDE_FEATURES_TABS.map(tab => ({
                 ...tab,
                 label: t(`tabs.${tab.id}`, { defaultValue: tab.label })
             })),
         [t]
     )
+    const buildPageGlossary = () =>
+        buildGuideGlossaryOrThrow([
+            readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.overview.terms'),
+            buildFeatureGlossaryItems(
+                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.returns.terms'),
+                pfiStats,
+                hasPfiReport,
+                t
+            ),
+            buildFeatureGlossaryItems(
+                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.indicators.terms'),
+                pfiStats,
+                hasPfiReport,
+                t
+            ),
+            buildFeatureGlossaryItems(
+                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.momentum.terms'),
+                pfiStats,
+                hasPfiReport,
+                t
+            ),
+            buildFeatureGlossaryItems(
+                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.regime.terms'),
+                pfiStats,
+                hasPfiReport,
+                t
+            )
+        ])
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -246,103 +270,110 @@ export default function ExplainFeaturesPage({ className }: ExplainFeaturesPagePr
             </header>
 
             <div className={cls.sectionsGrid}>
-                <section id='explain-features-overview' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('featuresPage.sections.overview.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('featuresPage.sections.overview.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainFeatures:overview:table'>
-                        {() => {
-                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'featuresPage.sections.overview.table.rows')
+                {GUIDE_FEATURE_SECTIONS.map(section => (
+                    <section key={section.id} id={section.anchor} className={cls.sectionCard}>
+                        <Text type='h3' className={cls.sectionTitle}>
+                            {t(`featuresPage.sections.${section.id}.title`)}
+                        </Text>
 
-                            return (
-                                <div className={cls.tableWrap}>
-                                    <table className={cls.infoTable}>
-                                        <thead>
-                                            <tr>
-                                                <th>{t('featuresPage.sections.overview.table.headers.metric')}</th>
-                                                <th>{t('featuresPage.sections.overview.table.headers.meaning')}</th>
-                                                <th>{t('featuresPage.sections.overview.table.headers.reading')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {overviewRows.map((row, rowIndex) => (
-                                                <tr key={`overview-row-${rowIndex}`}>
-                                                    {row.map((cell, cellIndex) => (
-                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                        <LocalizedContentBoundary name={`GuideFeatures:${section.id}:paragraphs`}>
+                            {() => {
+                                const glossary = buildPageGlossary()
+                                const paragraphs = readGuideStringListOrThrow(
+                                    i18n,
+                                    `featuresPage.sections.${section.id}.paragraphs`
+                                )
+
+                                return (
+                                    <div className={cls.copyBlock}>
+                                        {paragraphs.map((paragraph, paragraphIndex) => (
+                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                                {renderGuideRichText(paragraph, { glossary })}
+                                            </Text>
+                                        ))}
+                                    </div>
+                                )
+                            }}
+                        </LocalizedContentBoundary>
+
+                        {section.headerKeys && (
+                            <LocalizedContentBoundary name={`GuideFeatures:${section.id}:table`}>
+                                {() => {
+                                    const headerKeys = section.headerKeys
+                                    if (!headerKeys) {
+                                        return null
+                                    }
+
+                                    const glossary = buildPageGlossary()
+                                    const rows = readGuideTableRowsOrThrow(i18n, `featuresPage.sections.${section.id}.table.rows`)
+
+                                    return (
+                                        <div className={cls.tableWrap}>
+                                            <table className={cls.infoTable}>
+                                                <thead>
+                                                    <tr>
+                                                        {headerKeys.map(headerKey => (
+                                                            <th key={`${section.id}-header-${headerKey}`}>
+                                                                {t(`featuresPage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map((row, rowIndex) => (
+                                                        <tr key={`${section.id}-row-${rowIndex}`}>
+                                                            {row.map((cell, cellIndex) => (
+                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                    {renderGuideRichText(cell, { glossary })}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
                                                     ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )
-                        }}
-                    </LocalizedContentBoundary>
-                    <LocalizedContentBoundary name='ExplainFeatures:overview:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.overview.terms')} />}
-                    </LocalizedContentBoundary>
-                </section>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )
+                                }}
+                            </LocalizedContentBoundary>
+                        )}
 
-                <section id='explain-features-returns' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('featuresPage.sections.returns.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('featuresPage.sections.returns.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainFeatures:returns:terms'>
-                        {() => {
-                            const returnFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.returns.terms')
-                            const returnFeatures = buildFeatureTermItems(returnFeatureDefs, pfiStats, hasPfiReport, t)
+                        <div className={cls.calloutGrid}>
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.why')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideFeatures:${section.id}:why`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
 
-                            return <TermGrid items={returnFeatures} />
-                        }}
-                    </LocalizedContentBoundary>
-                </section>
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.why`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
 
-                <section id='explain-features-indicators' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('featuresPage.sections.indicators.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('featuresPage.sections.indicators.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainFeatures:indicators:terms'>
-                        {() => {
-                            const indicatorFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.indicators.terms')
-                            const indicatorFeatures = buildFeatureTermItems(indicatorFeatureDefs, pfiStats, hasPfiReport, t)
+                            <article className={cls.callout}>
+                                <Text type='h4' className={cls.calloutTitle}>
+                                    {t('labels.example')}
+                                </Text>
+                                <LocalizedContentBoundary name={`GuideFeatures:${section.id}:example`}>
+                                    {() => {
+                                        const glossary = buildPageGlossary()
 
-                            return <TermGrid items={indicatorFeatures} />
-                        }}
-                    </LocalizedContentBoundary>
-                </section>
-
-                <section id='explain-features-momentum' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('featuresPage.sections.momentum.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('featuresPage.sections.momentum.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainFeatures:momentum:terms'>
-                        {() => {
-                            const momentumFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.momentum.terms')
-                            const momentumFeatures = buildFeatureTermItems(momentumFeatureDefs, pfiStats, hasPfiReport, t)
-
-                            return <TermGrid items={momentumFeatures} />
-                        }}
-                    </LocalizedContentBoundary>
-                </section>
-
-                <section id='explain-features-regime' className={cls.sectionCard}>
-                    <Text type='h3' className={cls.sectionTitle}>
-                        {t('featuresPage.sections.regime.title')}
-                    </Text>
-                    <Text className={cls.sectionText}>{t('featuresPage.sections.regime.text')}</Text>
-                    <LocalizedContentBoundary name='ExplainFeatures:regime:terms'>
-                        {() => {
-                            const regimeFeatureDefs = readExplainTermItemsOrThrow(i18n, 'featuresPage.sections.regime.terms')
-                            const regimeFeatures = buildFeatureTermItems(regimeFeatureDefs, pfiStats, hasPfiReport, t)
-
-                            return <TermGrid items={regimeFeatures} />
-                        }}
-                    </LocalizedContentBoundary>
-                </section>
+                                        return (
+                                            <Text className={cls.calloutText}>
+                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.example`), { glossary })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                            </article>
+                        </div>
+                    </section>
+                ))}
             </div>
 
             <SectionPager

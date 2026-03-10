@@ -9,6 +9,8 @@ import reportsRu from '../../../../public/locales/ru/reports.json'
 import tooltipsRu from '../../../../public/locales/ru/tooltips.json'
 import docsRu from '../../../../public/locales/ru/docs.json'
 import explainRu from '../../../../public/locales/ru/explain.json'
+import guideRu from '../../../../public/locales/ru/guide.json'
+import developerRu from '../../../../public/locales/ru/developer.json'
 import commonEn from '../../../../public/locales/en/common.json'
 import navEn from '../../../../public/locales/en/nav.json'
 import errorsEn from '../../../../public/locales/en/errors.json'
@@ -17,6 +19,8 @@ import reportsEn from '../../../../public/locales/en/reports.json'
 import tooltipsEn from '../../../../public/locales/en/tooltips.json'
 import docsEn from '../../../../public/locales/en/docs.json'
 import explainEn from '../../../../public/locales/en/explain.json'
+import guideEn from '../../../../public/locales/en/guide.json'
+import developerEn from '../../../../public/locales/en/developer.json'
 
 const resources = {
     ru: {
@@ -27,7 +31,9 @@ const resources = {
         reports: reportsRu,
         tooltips: tooltipsRu,
         docs: docsRu,
-        explain: explainRu
+        explain: explainRu,
+        guide: guideRu,
+        developer: developerRu
     },
     en: {
         common: commonEn,
@@ -37,7 +43,9 @@ const resources = {
         reports: reportsEn,
         tooltips: tooltipsEn,
         docs: docsEn,
-        explain: explainEn
+        explain: explainEn,
+        guide: guideEn,
+        developer: developerEn
     }
 }
 

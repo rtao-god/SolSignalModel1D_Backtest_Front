@@ -12,6 +12,7 @@ import {
     buildBacktestDiagnosticsQueryArgsFromSearchParams,
     buildBacktestDiagnosticsSearchFromSearchParams
 } from '@/shared/utils/backtestDiagnosticsQuery'
+import { DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS } from '@/shared/api/tanstackQueries/policyBranchMega'
 import cls from './AnalysisPage.module.scss'
 import type { AnalysisPageProps } from './types'
 
@@ -29,24 +30,17 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
         () => buildBacktestDiagnosticsQueryArgsFromSearchParams(currentSearchParams),
         [currentSearchParams]
     )
-    const policyBranchMegaArgs = useMemo(
-        () => ({
-            bucket: currentSearchParams.get('bucket'),
-            bucketView: currentSearchParams.get('bucketview'),
-            metric: currentSearchParams.get('metric'),
-            tpSlMode: currentSearchParams.get('tpsl'),
-            slMode: currentSearchParams.get('slmode'),
-            zonalMode: currentSearchParams.get('zonal')
-        }),
-        [currentSearchParams]
-    )
+    const policyBranchMegaArgs = DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS
 
-    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch, {
-            diagnosticsArgs,
-            policyBranchMegaArgs
-        })
-    }, [diagnosticsArgs, dispatch, policyBranchMegaArgs, queryClient])
+    const handleRouteWarmup = useCallback(
+        (routeId: AppRoute) => {
+            warmupRouteNavigation(routeId, queryClient, dispatch, {
+                diagnosticsArgs,
+                policyBranchMegaArgs
+            })
+        },
+        [diagnosticsArgs, dispatch, policyBranchMegaArgs, queryClient]
+    )
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])}>
@@ -112,6 +106,31 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                             </Text>
                             <Text className={cls.cardText}>{t('analysisHome.cards.confidenceRisk.description')}</Text>
                             <span className={cls.cardHint}>{t('analysisHome.cards.confidenceRisk.hint')}</span>
+                        </article>
+                    </Link>
+                    <Link
+                        to={ROUTE_PATH[AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL)}
+                        onFocus={() => handleRouteWarmup(AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL)}>
+                        <article className={cls.card}>
+                            <Text type='h3' className={cls.cardTitle}>
+                                {t('analysisHome.cards.realForecastJournal.title', {
+                                    defaultValue: 'Real Forecast Journal'
+                                })}
+                            </Text>
+                            <Text className={cls.cardText}>
+                                {t('analysisHome.cards.realForecastJournal.description', {
+                                    defaultValue:
+                                        'Immutable morning forecasts for real trading days, later compared with the realized outcome after the New York close.'
+                                })}
+                            </Text>
+                            <span className={cls.cardHint}>
+                                {t('analysisHome.cards.realForecastJournal.hint', {
+                                    defaultValue:
+                                        'NYSE session capture, post-close finalize, live-vs-history comparison.'
+                                })}
+                            </span>
                         </article>
                     </Link>
                     <Link

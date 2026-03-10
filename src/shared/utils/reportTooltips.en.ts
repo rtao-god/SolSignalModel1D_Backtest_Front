@@ -52,10 +52,10 @@ const CURRENT_PREDICTION_POSITION_QTY_DESCRIPTION_EN =
     'Position size, qty is how many units of the instrument actually entered the trade.\n\nFor a trading pair this is the physical amount of the base asset inside the position. The value is derived from position notional and entry price.\n\nHow to read it:\nif qty rises at a similar entry price, the strategy controls a larger market amount and becomes more sensitive to each price move.'
 
 const CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION_EN =
-    'Market regime is the current day phase from the risk-model point of view: normal regime or drawdown / stress regime.\n\nIt is not a separate trading signal. It is context for [[risk-layers|risk layers]] and for part of [[policy|Policy]] rules.\n\nHow to read it:\nnormal regime keeps standard risk, while stress regime usually leads to tighter entry limits, lower [[leverage|leverage]], or lower [[cap-fraction|cap fraction]].'
+    'Market regime is the current day phase from the risk-model point of view: normal regime or drawdown / stress regime.\n\nIt is not a separate trading signal. It is context for [[risk-layers|risk layers]] and for part of [[policy|Policy]] rules.\n\nHow to read it:\nnormal regime keeps standard risk, while stress regime usually leads to tighter entry limits, lower [[leverage|leverage]], or lower [[cap-fraction|capital share per trade]].'
 
 const CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION_EN =
-    'Stop-loss trigger probability is the [[sl-model|SL model]] estimate of how likely the trade is to reach [[tp-sl|stop-loss]] quickly after entry.\n\nIt is a dedicated risk estimate, not a probability of price going up or down.\n\nHow to read it:\nhigher values mean [[risk-layers|risk layers]] should behave more defensively and are more likely to cut [[cap-fraction|cap fraction]], [[leverage|leverage]], or the entry itself.'
+    'Stop-loss trigger probability is the [[sl-model|SL model]] estimate of how likely the trade is to reach [[tp-sl|stop-loss]] quickly after entry.\n\nIt is a dedicated risk estimate, not a probability of price going up or down.\n\nHow to read it:\nhigher values mean [[risk-layers|risk layers]] should behave more defensively and are more likely to cut [[cap-fraction|capital share per trade]], [[leverage|leverage]], or the entry itself.'
 
 const CURRENT_PREDICTION_CURRENT_PRICE_DESCRIPTION_EN =
     'Current SOL/USDT price is the exchange price of the trading pair, meaning how many USDT the market currently pays for 1 SOL.\n\nIt is not a separate "Solana mode" and not the main value of the product by itself. It is the common working instrument used to compare [[landing-current-prediction|current prediction]], decision history, and [[backtest|backtest]].\n\nHow to read it:\nthis price is the base reference for [[min-move|MinMove]], direction expectation, and entry/exit levels in the policy table.'
@@ -76,11 +76,11 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     Bucket: CURRENT_PREDICTION_BUCKET_DESCRIPTION_EN,
     Сторона: POSITION_DESCRIPTION,
     'Рискованный день':
-        'Risk day marks that this day was classified as an [[high-risk-day|elevated-risk day]] by the [[sl-model|SL model]].\n\nThis does not mean entry is automatically forbidden. The day then passes through stricter [[filters|filters]] and [[risk-layers|risk layers]]: [[leverage|leverage]] and [[cap-fraction|cap fraction]] may be reduced, and some policies may refuse entry completely.\n\nHow to read it:\nif the flag is on, this row must be judged more strictly by risk, [[drawdown|drawdown]], and [[liquidation|liquidation]], not only by forecast direction.',
+        'Risk day marks that this day was classified as an [[high-risk-day|elevated-risk day]] by the [[sl-model|SL model]].\n\nThis does not mean entry is automatically forbidden. The day then passes through stricter [[filters|filters]] and [[risk-layers|risk layers]]: [[leverage|leverage]] and [[cap-fraction|capital share per trade]] may be reduced, and some policies may refuse entry completely.\n\nHow to read it:\nif the flag is on, this row must be judged more strictly by risk, [[drawdown|drawdown]], and [[liquidation|liquidation]], not only by forecast direction.',
     'Есть направление':
         'Has direction shows whether the model was able to produce a valid [[signal-direction|signal direction]] for that day.\n\nA yes/true value means the pipeline produced a LONG or SHORT candidate and the row can move to the next risk checks.\n\nA no/false value means the day ended in [[no-direction|no_direction]]: there was no clear edge toward growth or decline, so trade construction stops at this point.\n\nHow to read it:\nif direction is missing, this row should not be interpreted as a ready trade even if service fields below are still populated.',
     Пропущено:
-        'Skipped is the final flag that this policy did not open a [[position|position]] on that day.\n\nThe reason may differ: the day could fail [[filters|filters]], lose [[signal-direction|signal direction]], fall into an [[high-risk-day|elevated-risk day]] with blocked entry, or receive zero [[cap-fraction|cap fraction]].\n\nHow to read it:\nif the flag is on, the row describes a rejected entry rather than an executed trade. In that case the key question is why entry was blocked for this [[policy|Policy]], [[branch|Branch]], and [[bucket|Bucket]].',
+        'Skipped is the final flag that this policy did not open a [[position|position]] on that day.\n\nThe reason may differ: the day could fail [[filters|filters]], lose [[signal-direction|signal direction]], fall into an [[high-risk-day|elevated-risk day]] with blocked entry, or receive zero [[cap-fraction|capital share per trade]].\n\nHow to read it:\nif the flag is on, the row describes a rejected entry rather than an executed trade. In that case the key question is why entry was blocked for this [[policy|Policy]], [[branch|Branch]], and [[bucket|Bucket]].',
     Направление: 'Final trade direction: LONG, SHORT, or no-trade when filters block entry.',
     Плечо: 'Effective leverage applied by policy for entry.',
     'Цена входа': 'Position entry price from report.',
@@ -299,8 +299,8 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
     'NoTrade%': 'Share of no-trade days.',
     'RiskDay%': 'Share of days marked as risky by SL logic.',
     'AntiD%': 'Share of days where anti-direction was applied.',
-    'Cap avg/min/max': 'Average/min/max cap fraction used in trades, in % of bucket capital.',
-    'Cap p50/p90': 'Cap-fraction quantiles p50/p90 (median and upper tail).',
+    'Cap avg/min/max': 'Average/min/max capital share per trade used in trades, in % of bucket capital.',
+    'Cap p50/p90': 'Capital-share-per-trade quantiles p50/p90 (median and upper tail).',
     CapApplied: 'How many days cap filter was applied (position size was limited).',
     CapSkipped: 'How many days cap filter was skipped (no size limitation).',
     Trades: 'Trade count in this group.',
@@ -415,7 +415,7 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
     'ShareSkipped%': 'Share among skipped days, in %.',
     'NoDir%': 'Share of days with no model direction signal.',
     'PolicySkip%': 'Share of skips caused by policy rules.',
-    'CapZero%': 'Share of skips caused by zero cap fraction.',
+    'CapZero%': 'Share of skips caused by zero capital share per trade.',
     'LowEdge%': 'Share of skips caused by low edge.',
     'RiskThrottle%': 'Share of skips caused by risk throttling.',
     'Unknown%': 'Share of skips with unknown reason.',

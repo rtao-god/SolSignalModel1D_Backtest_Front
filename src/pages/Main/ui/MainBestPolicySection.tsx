@@ -1,46 +1,50 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ReportTableCard, ReportTableTermsBlock, TermTooltip, Text } from '@/shared/ui'
+import { TermTooltip, Text } from '@/shared/ui'
 import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 import type { TableSectionDto } from '@/shared/types/report.types'
-import { renderTermTooltipRichText, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
-import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
-import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import {
-    buildPolicyBranchMegaTermReferencesForColumns,
     getPolicyBranchMegaTermOrThrow,
     orderPolicyBranchMegaSectionsOrThrow,
-    resolvePolicyBranchMegaSectionDescription,
     resolvePolicyBranchMegaTermLocale,
-    type PolicyBranchMegaTermLocale,
-    type PolicyBranchMegaTermReference
+    type PolicyBranchMegaTermLocale
 } from '@/shared/utils/policyBranchMegaTerms'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
-import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
 import cls from './Main.module.scss'
+import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
 interface BestPolicyRowBundle {
     policy: string
     branch: string
     totalPnlPct: number
-    part1: TableSectionDto
-    part2: TableSectionDto
-    part3: TableSectionDto
-    part4: TableSectionDto
-    part1Row: string[]
-    part2Row: string[]
-    part3Row: string[]
-    part4Row: string[]
+    sectionRows: Array<{
+        section: TableSectionDto
+        row: string[]
+    }>
 }
 
-interface BestPolicyPartViewModel {
-    id: string
-    section: TableSectionDto
-    row: string[]
-    label: string
-    terms: PolicyBranchMegaTermReference[]
+interface DemoMetricDefinition {
+    labelKey: string
+    termKey: string
+    termTitle: string
 }
+
+const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
+    { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
+    { labelKey: 'bucketNow', termKey: 'BucketNow$', termTitle: 'BucketNow$' },
+    { labelKey: 'maxDd', termKey: 'MaxDD%', termTitle: 'MaxDD%' },
+    { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' },
+    { labelKey: 'accountRuin', termKey: 'AccRuin', termTitle: 'AccRuin' },
+    { labelKey: 'recovery', termKey: 'RecovDays', termTitle: 'RecovDays' },
+    { labelKey: 'winRate', termKey: 'WinRate%', termTitle: 'WinRate%' },
+    { labelKey: 'meanRet', termKey: 'MeanRet%', termTitle: 'MeanRet%' },
+    { labelKey: 'sharpe', termKey: 'Sharpe', termTitle: 'Sharpe' },
+    { labelKey: 'trades', termKey: 'Tr', termTitle: 'Tr' },
+    { labelKey: 'tradeShare', termKey: 'Trade%', termTitle: 'Trade%' },
+    { labelKey: 'noTrade', termKey: 'NoTrade%', termTitle: 'NoTrade%' }
+]
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
@@ -51,12 +55,12 @@ function buildTableSections(sections: unknown[]): TableSectionDto[] {
 
 function columnIndexOrThrow(columns: string[] | undefined, title: string, tag: string): number {
     if (!columns || columns.length === 0) {
-        throw new Error(`[main] ${tag} columns are empty.`)
+        throw new Error(`[main.demo] ${tag} columns are empty.`)
     }
 
     const idx = columns.indexOf(title)
     if (idx < 0) {
-        throw new Error(`[main] ${tag} column not found: ${title}.`)
+        throw new Error(`[main.demo] ${tag} column not found: ${title}.`)
     }
 
     return idx
@@ -69,25 +73,24 @@ function buildPolicyBranchKey(policy: string, branch: string): string {
 function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: string): string[] {
     const columns = section.columns ?? []
     const rows = section.rows ?? []
-
     const policyIdx = columnIndexOrThrow(columns, 'Policy', tag)
     const branchIdx = columnIndexOrThrow(columns, 'Branch', tag)
     const rowsByKey = new Map<string, string[]>()
 
     for (const row of rows) {
         if (!row || row.length <= Math.max(policyIdx, branchIdx)) {
-            throw new Error(`[main] ${tag} row is malformed.`)
+            throw new Error(`[main.demo] ${tag} row is malformed.`)
         }
 
         const policy = row[policyIdx] ?? ''
         const branch = row[branchIdx] ?? ''
         if (!policy || !branch) {
-            throw new Error(`[main] ${tag} row missing Policy or Branch.`)
+            throw new Error(`[main.demo] ${tag} row missing Policy or Branch.`)
         }
 
         const rowKey = buildPolicyBranchKey(policy, branch)
         if (rowsByKey.has(rowKey)) {
-            throw new Error(`[main] ${tag} has duplicate policy row for ${rowKey}.`)
+            throw new Error(`[main.demo] ${tag} has duplicate policy row for ${rowKey}.`)
         }
 
         rowsByKey.set(rowKey, row)
@@ -95,41 +98,44 @@ function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: s
 
     const resolved = rowsByKey.get(key)
     if (!resolved) {
-        throw new Error(`[main] ${tag} row not found for ${key}.`)
+        throw new Error(`[main.demo] ${tag} row not found for ${key}.`)
     }
 
     return resolved
 }
 
 function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRowBundle {
-    if (!sections || sections.length < 4) {
-        throw new Error('[main] policy branch mega sections count is less than 4.')
+    if (!sections || sections.length === 0) {
+        throw new Error('[main.demo] policy branch mega sections are empty.')
     }
 
-    const [part1, part2, part3, part4] = sections
-    const part1Columns = part1.columns ?? []
-    const part1Rows = part1.rows ?? []
-
-    if (part1Rows.length === 0) {
-        throw new Error('[main] Policy Branch Mega Part 1 has no rows.')
+    const anchorSection = sections.find(section => (section.columns ?? []).includes('TotalPnl%'))
+    if (!anchorSection) {
+        throw new Error('[main.demo] Policy Branch Mega anchor section with TotalPnl% is missing.')
     }
 
-    const policyIdx = columnIndexOrThrow(part1Columns, 'Policy', 'part1')
-    const branchIdx = columnIndexOrThrow(part1Columns, 'Branch', 'part1')
-    const totalPnlIdx = columnIndexOrThrow(part1Columns, 'TotalPnl%', 'part1')
+    const anchorColumns = anchorSection.columns ?? []
+    const anchorRows = anchorSection.rows ?? []
+    if (anchorRows.length === 0) {
+        throw new Error('[main.demo] Policy Branch Mega anchor section has no rows.')
+    }
+
+    const policyIdx = columnIndexOrThrow(anchorColumns, 'Policy', 'anchor')
+    const branchIdx = columnIndexOrThrow(anchorColumns, 'Branch', 'anchor')
+    const totalPnlIdx = columnIndexOrThrow(anchorColumns, 'TotalPnl%', 'anchor')
 
     let bestRow: string[] | null = null
     let bestTotal = -Infinity
 
-    for (const row of part1Rows) {
+    for (const row of anchorRows) {
         if (!row || row.length <= totalPnlIdx) {
-            throw new Error('[main] Policy Branch Mega Part 1 row is malformed.')
+            throw new Error('[main.demo] Policy Branch Mega anchor row is malformed.')
         }
 
         const totalRaw = row[totalPnlIdx]
         const totalParsed = typeof totalRaw === 'string' ? tryParseNumberFromString(totalRaw) : null
         if (totalParsed === null) {
-            throw new Error(`[main] TotalPnl% is not a number: ${totalRaw}`)
+            throw new Error(`[main.demo] TotalPnl% is not a number: ${totalRaw}.`)
         }
 
         if (bestRow === null || totalParsed > bestTotal) {
@@ -139,14 +145,13 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
     }
 
     if (!bestRow) {
-        throw new Error('[main] Failed to resolve best policy row.')
+        throw new Error('[main.demo] Failed to resolve best policy row.')
     }
 
     const policyName = bestRow[policyIdx] ?? ''
     const branchName = bestRow[branchIdx] ?? ''
-
     if (!policyName || !branchName) {
-        throw new Error('[main] Best policy row missing Policy or Branch.')
+        throw new Error('[main.demo] Best policy row missing Policy or Branch.')
     }
 
     const key = buildPolicyBranchKey(policyName, branchName)
@@ -155,24 +160,21 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
         policy: policyName,
         branch: branchName,
         totalPnlPct: bestTotal,
-        part1,
-        part2,
-        part3,
-        part4,
-        part1Row: bestRow,
-        part2Row: resolveRowByPolicyOrThrow(part2, key, 'part2'),
-        part3Row: resolveRowByPolicyOrThrow(part3, key, 'part3'),
-        part4Row: resolveRowByPolicyOrThrow(part4, key, 'part4')
+        sectionRows: sections.map((section, index) => ({
+            section,
+            row:
+                section === anchorSection ?
+                    bestRow
+                :   resolveRowByPolicyOrThrow(section, key, `section-${index + 1}`)
+        }))
     }
 }
 
 function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string {
-    const candidates: Array<{ columns: string[]; row: string[] }> = [
-        { columns: bundle.part1.columns ?? [], row: bundle.part1Row },
-        { columns: bundle.part2.columns ?? [], row: bundle.part2Row },
-        { columns: bundle.part3.columns ?? [], row: bundle.part3Row },
-        { columns: bundle.part4.columns ?? [], row: bundle.part4Row }
-    ]
+    const candidates = bundle.sectionRows.map(item => ({
+        columns: item.section.columns ?? [],
+        row: item.row
+    }))
 
     for (const candidate of candidates) {
         const idx = candidate.columns.indexOf(title)
@@ -181,37 +183,18 @@ function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string 
         }
 
         if (candidate.row.length <= idx) {
-            throw new Error(`[main] metric value is missing for ${title}.`)
+            throw new Error(`[main.demo] metric value is missing for ${title}.`)
         }
 
         const value = candidate.row[idx]
         if (value === undefined || value === null || value === '') {
-            throw new Error(`[main] metric value is empty for ${title}.`)
+            throw new Error(`[main.demo] metric value is empty for ${title}.`)
         }
 
         return value
     }
 
-    throw new Error(`[main] metric not found in policy branch mega parts: ${title}.`)
-}
-
-function renderPolicyDescription(
-    policyName: string,
-    branchName: string,
-    translate: (key: string, options?: Record<string, unknown>) => string
-): string[] {
-    const description: string[] = []
-
-    if (policyName.toLowerCase().includes('spot_conf_cap')) {
-        description.push(translate('main.bestPolicy.description.spotConfCap.capFraction'))
-        description.push(translate('main.bestPolicy.description.spotConfCap.leverage'))
-    } else {
-        description.push(translate('main.bestPolicy.description.nonSpot'))
-    }
-
-    description.push(translate('main.bestPolicy.description.branchRule', { branchName }))
-
-    return description
+    throw new Error(`[main.demo] metric not found in policy branch mega parts: ${title}.`)
 }
 
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
@@ -226,329 +209,212 @@ function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, l
     })
 }
 
+function DemoErrorCard({ title, description, details }: { title: string; description: string; details?: string }) {
+    return (
+        <div className={cls.cardError}>
+            <Text type='p' className={cls.cardErrorTitle}>
+                {title}
+            </Text>
+            <Text className={cls.cardErrorText}>{description}</Text>
+            {details && <Text className={cls.cardErrorDetails}>{details}</Text>}
+        </div>
+    )
+}
+
 /**
- * Deferred-блок для главной: монтируется только после первого paint/idle warmup,
- * чтобы heavy report parsing, таблицы и термы не попадали в critical path главной.
+ * Компактная карточка по лучшей строке Policy Branch Mega для главной страницы.
+ * Источник данных остаётся тем же, но витрина не тянет таблицы и терм-блоки в первый экран.
  */
 export default function MainBestPolicySection() {
     const { t, i18n } = useTranslation('reports')
     const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
-    const translate = useCallback((key: string, options?: Record<string, unknown>) => t(key, options), [t])
-    const { data, isError, error, refetch, isLoading } = usePolicyBranchMegaReportNavQuery({ enabled: true })
-
-    const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
-
-    const megaSectionsState = useMemo(() => {
-        if (!data) {
-            return { sections: [] as TableSectionDto[], error: null as Error | null }
-        }
-
-        try {
-            return {
-                sections: orderPolicyBranchMegaSectionsOrThrow(tableSections),
-                error: null as Error | null
-            }
-        } catch (err) {
-            return {
-                sections: [] as TableSectionDto[],
-                error: err instanceof Error ? err : new Error('Failed to parse policy branch mega sections.')
-            }
-        }
-    }, [data, tableSections])
+    const { data, isError, error, isLoading } = usePolicyBranchMegaReportNavQuery(
+        { enabled: true },
+        MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY
+    )
 
     const bestPolicyState = useMemo(() => {
         if (!data) {
             return { best: null as BestPolicyRowBundle | null, error: null as Error | null }
         }
 
-        if (megaSectionsState.error) {
-            return { best: null as BestPolicyRowBundle | null, error: megaSectionsState.error }
-        }
-
         try {
+            const sections = orderPolicyBranchMegaSectionsOrThrow(buildTableSections(data.sections ?? []))
+
             return {
-                best: resolveBestPolicyRowsOrThrow(megaSectionsState.sections),
+                best: resolveBestPolicyRowsOrThrow(sections),
                 error: null as Error | null
             }
         } catch (err) {
             return {
                 best: null as BestPolicyRowBundle | null,
-                error: err instanceof Error ? err : new Error('Failed to resolve best policy row.')
+                error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
             }
         }
-    }, [data, megaSectionsState])
+    }, [data])
 
-    const bestPolicyHighlightsState = useMemo(() => {
+    const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
-            return {
-                items: [] as Array<{ title: string; value: string }>,
-                error: null as Error | null
-            }
+            return { items: [] as Array<{ label: string; value: string }>, error: null as Error | null }
         }
 
         try {
             return {
                 items: [
-                    'TotalPnl%',
-                    'TotalPnl$',
-                    'MaxDD%',
-                    'Sharpe',
-                    'Sortino',
-                    'Calmar',
-                    'CAGR%',
-                    'WinRate%',
-                    'HadLiq'
-                ].map(title => ({
-                    title,
-                    value: resolveMetricValue(bestPolicyState.best!, title)
-                })),
-                error: null as Error | null
-            }
-        } catch (err) {
-            return {
-                items: [] as Array<{ title: string; value: string }>,
-                error: err instanceof Error ? err : new Error('Failed to build best policy highlights.')
-            }
-        }
-    }, [bestPolicyState.best])
-
-    const bestPolicyMetaState = useMemo(() => {
-        if (!bestPolicyState.best) {
-            return {
-                items: [] as Array<{ title: string; value: string }>,
-                error: null as Error | null
-            }
-        }
-
-        try {
-            return {
-                items: ['StartDay', 'EndDay', 'Days', 'StopReason'].map(title => ({
-                    title,
-                    value: localizeReportCellValue(title, resolveMetricValue(bestPolicyState.best!, title), i18n.language)
-                })),
-                error: null as Error | null
-            }
-        } catch (err) {
-            return {
-                items: [] as Array<{ title: string; value: string }>,
-                error: err instanceof Error ? err : new Error('Failed to build best policy meta info.')
-            }
-        }
-    }, [bestPolicyState.best, i18n.language])
-
-    const bestPolicyPartsState = useMemo(() => {
-        if (!bestPolicyState.best) {
-            return {
-                parts: [] as BestPolicyPartViewModel[],
-                error: null as Error | null
-            }
-        }
-
-        try {
-            return {
-                parts: [
                     {
-                        id: 'policy-branch-part-1',
-                        section: bestPolicyState.best.part1,
-                        row: bestPolicyState.best.part1Row,
-                        label: t('main.bestPolicy.parts.part1'),
-                        terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part1.columns ?? [])
+                        label: t('main.demo.meta.periodStart'),
+                        value: localizeReportCellValue(
+                            'StartDay',
+                            resolveMetricValue(bestPolicyState.best, 'StartDay'),
+                            i18n.language
+                        )
                     },
                     {
-                        id: 'policy-branch-part-2',
-                        section: bestPolicyState.best.part2,
-                        row: bestPolicyState.best.part2Row,
-                        label: t('main.bestPolicy.parts.part2'),
-                        terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part2.columns ?? [])
+                        label: t('main.demo.meta.periodEnd'),
+                        value: localizeReportCellValue(
+                            'EndDay',
+                            resolveMetricValue(bestPolicyState.best, 'EndDay'),
+                            i18n.language
+                        )
                     },
                     {
-                        id: 'policy-branch-part-3',
-                        section: bestPolicyState.best.part3,
-                        row: bestPolicyState.best.part3Row,
-                        label: t('main.bestPolicy.parts.part3'),
-                        terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part3.columns ?? [])
-                    },
-                    {
-                        id: 'policy-branch-part-4',
-                        section: bestPolicyState.best.part4,
-                        row: bestPolicyState.best.part4Row,
-                        label: t('main.bestPolicy.parts.part4'),
-                        terms: buildPolicyBranchMegaTermReferencesForColumns(bestPolicyState.best.part4.columns ?? [])
+                        label: t('main.demo.meta.days'),
+                        value: localizeReportCellValue(
+                            'Days',
+                            resolveMetricValue(bestPolicyState.best, 'Days'),
+                            i18n.language
+                        )
                     }
                 ],
                 error: null as Error | null
             }
         } catch (err) {
             return {
-                parts: [] as BestPolicyPartViewModel[],
-                error: err instanceof Error ? err : new Error('Failed to build best policy parts.')
+                items: [] as Array<{ label: string; value: string }>,
+                error: err instanceof Error ? err : new Error('Failed to build demo meta items.')
             }
         }
-    }, [bestPolicyState.best, t])
+    }, [bestPolicyState.best, i18n.language, t])
 
-    const renderColumnTitle = useCallback(
-        (title: string) => renderTermTooltipTitle(title, () => renderPolicyBranchMegaTermTooltip(title, title, termsLocale)),
-        [termsLocale]
-    )
+    const demoMetricsState = useMemo(() => {
+        if (!bestPolicyState.best) {
+            return {
+                items: [] as Array<{ label: string; termKey: string; termTitle: string; value: string }>,
+                error: null as Error | null
+            }
+        }
+
+        try {
+            const bestPolicy = bestPolicyState.best
+            if (!bestPolicy) {
+                throw new Error('[main.demo] Best policy is missing while building demo metrics.')
+            }
+
+            return {
+                items: DEMO_METRIC_DEFINITIONS.map(definition => ({
+                    label: t(`main.demo.metrics.${definition.labelKey}`),
+                    termKey: definition.termKey,
+                    termTitle: definition.termTitle,
+                    value: localizeReportCellValue(
+                        definition.termKey,
+                        resolveMetricValue(bestPolicy, definition.termKey),
+                        i18n.language
+                    )
+                })),
+                error: null as Error | null
+            }
+        } catch (err) {
+            return {
+                items: [] as Array<{ label: string; termKey: string; termTitle: string; value: string }>,
+                error: err instanceof Error ? err : new Error('Failed to build demo metrics.')
+            }
+        }
+    }, [bestPolicyState.best, i18n.language, t])
 
     if (isLoading) {
-        return <Text>{renderTermTooltipRichText(t('main.bestPolicy.loading'))}</Text>
+        return <Text className={cls.cardStatus}>{t('main.demo.loading')}</Text>
     }
 
     if (isError) {
         return (
-            <ErrorBlock
-                code='NETWORK'
-                title={t('main.bestPolicy.errors.loadTitle')}
-                description={t('main.bestPolicy.errors.loadDescription')}
+            <DemoErrorCard
+                title={t('main.demo.errors.loadTitle')}
+                description={t('main.demo.errors.loadDescription')}
                 details={error instanceof Error ? error.message : String(error ?? '')}
-                onRetry={refetch}
-            />
-        )
-    }
-
-    if (megaSectionsState.error) {
-        return (
-            <ErrorBlock
-                code='DATA'
-                title={t('main.bestPolicy.errors.structureTitle')}
-                description={t('main.bestPolicy.errors.structureDescription')}
-                details={megaSectionsState.error.message}
             />
         )
     }
 
     if (bestPolicyState.error) {
         return (
-            <ErrorBlock
-                code='DATA'
-                title={t('main.bestPolicy.errors.bestResolveTitle')}
-                description={t('main.bestPolicy.errors.bestResolveDescription')}
+            <DemoErrorCard
+                title={t('main.demo.errors.structureTitle')}
+                description={t('main.demo.errors.structureDescription')}
                 details={bestPolicyState.error.message}
             />
         )
     }
 
     if (!bestPolicyState.best) {
-        return <Text>{t('main.bestPolicy.empty')}</Text>
+        return <Text className={cls.cardStatus}>{t('main.demo.empty')}</Text>
     }
 
     return (
-        <>
-            <div className={cls.bestPolicyHero}>
+        <div className={cls.demoCard}>
+            <div className={cls.demoCardHeader}>
                 <div>
-                    <Text type='h3' className={cls.bestPolicyName}>
+                    <Text type='h3' className={cls.demoName}>
                         {renderTermTooltipRichText(`${bestPolicyState.best.policy} / ${bestPolicyState.best.branch}`)}
                     </Text>
-                    <Text className={cls.bestPolicyNote}>
+                    <Text className={cls.demoResult}>
                         {renderTermTooltipRichText(
-                            t('main.bestPolicy.bestResult', {
+                            t('main.demo.bestResult', {
                                 value: bestPolicyState.best.totalPnlPct.toFixed(2)
                             })
                         )}
                     </Text>
                 </div>
 
-                {bestPolicyMetaState.error ?
-                    <ErrorBlock
-                        code='DATA'
-                        title={t('main.bestPolicy.errors.metaTitle')}
-                        description={t('main.bestPolicy.errors.metaDescription')}
-                        details={bestPolicyMetaState.error.message}
+                {demoMetaState.error ?
+                    <DemoErrorCard
+                        title={t('main.demo.errors.metaTitle')}
+                        description={t('main.demo.errors.metaDescription')}
+                        details={demoMetaState.error.message}
                     />
-                :   <div className={cls.bestPolicyMeta}>
-                        {bestPolicyMetaState.items.map(item => (
-                            <div key={item.title} className={cls.bestPolicyMetaItem}>
-                                <TermTooltip
-                                    term={item.title}
-                                    description={() => renderPolicyBranchMegaTermTooltip(item.title, item.title, termsLocale)}
-                                    type='span'
-                                />
-                                <span className={cls.bestPolicyMetaValue}>{item.value}</span>
+                :   <div className={cls.demoMeta}>
+                        {demoMetaState.items.map(item => (
+                            <div key={item.label} className={cls.demoMetaItem}>
+                                <span className={cls.demoMetaLabel}>{item.label}</span>
+                                <span className={cls.demoMetaValue}>{item.value}</span>
                             </div>
                         ))}
                     </div>
                 }
             </div>
 
-            {bestPolicyHighlightsState.error ?
-                <ErrorBlock
-                    code='DATA'
-                    title={t('main.bestPolicy.errors.highlightsTitle')}
-                    description={t('main.bestPolicy.errors.highlightsDescription')}
-                    details={bestPolicyHighlightsState.error.message}
+            {demoMetricsState.error ?
+                <DemoErrorCard
+                    title={t('main.demo.errors.metricsTitle')}
+                    description={t('main.demo.errors.metricsDescription')}
+                    details={demoMetricsState.error.message}
                 />
-            :   <div className={cls.bestPolicyMetrics}>
-                    {bestPolicyHighlightsState.items.map(item => (
-                        <div key={item.title} className={cls.metricCard}>
+            :   <div className={cls.demoMetricGrid}>
+                    {demoMetricsState.items.map(item => (
+                        <div key={item.termKey} className={cls.demoMetricCard}>
                             <TermTooltip
-                                term={item.title}
-                                description={() => renderPolicyBranchMegaTermTooltip(item.title, item.title, termsLocale)}
+                                term={item.label}
+                                description={() =>
+                                    renderPolicyBranchMegaTermTooltip(item.termKey, item.termTitle, termsLocale)
+                                }
                                 type='span'
                             />
-                            <span className={cls.metricValue}>{item.value}</span>
+                            <span className={cls.demoMetricValue}>{item.value}</span>
                         </div>
                     ))}
                 </div>
             }
 
-            <div className={cls.bestPolicyDescription}>
-                {renderPolicyDescription(bestPolicyState.best.policy, bestPolicyState.best.branch, translate).map(line => (
-                    <Text key={line} className={cls.bestPolicyText}>
-                        {renderTermTooltipRichText(line)}
-                    </Text>
-                ))}
-            </div>
-
-            {bestPolicyPartsState.error ?
-                <ErrorBlock
-                    code='DATA'
-                    title={t('main.bestPolicy.errors.structureTitle')}
-                    description={t('main.bestPolicy.errors.structureDescription')}
-                    details={bestPolicyPartsState.error.message}
-                />
-            :   <div className={cls.bestPolicyTables}>
-                    {bestPolicyPartsState.parts.map(part => {
-                        const description = resolvePolicyBranchMegaSectionDescription(part.section.title, termsLocale)
-                        const normalizedTitle = normalizePolicyBranchMegaTitle(part.section.title) || part.label
-
-                        return (
-                            <SectionErrorBoundary key={part.id} name={`BestPolicy:${part.id}`}>
-                                <div className={cls.partBlock}>
-                                    <ReportTableTermsBlock
-                                        terms={part.terms.map(term => ({
-                                            key: term.key,
-                                            title: term.title,
-                                            resolveTooltip: () => {
-                                                const resolved = getPolicyBranchMegaTermOrThrow(term.key, {
-                                                    tooltipMode: 'description',
-                                                    locale: termsLocale
-                                                })
-
-                                                return resolved.tooltip
-                                            }
-                                        }))}
-                                        enhanceDomainTerms
-                                        displayMode='tooltipOnly'
-                                        title={t('main.bestPolicy.terms.title', { part: part.label })}
-                                        subtitle={description ?? t('main.bestPolicy.terms.subtitleFallback')}
-                                        className={cls.termsBlock}
-                                    />
-
-                                    <ReportTableCard
-                                        title={normalizedTitle}
-                                        description={description ?? undefined}
-                                        columns={part.section.columns ?? []}
-                                        rows={[part.row]}
-                                        domId={part.id}
-                                        renderColumnTitle={renderColumnTitle}
-                                    />
-                                </div>
-                            </SectionErrorBoundary>
-                        )
-                    })}
-                </div>
-            }
-        </>
+            <Text className={cls.demoNote}>{renderTermTooltipRichText(t('main.demo.note'))}</Text>
+        </div>
     )
 }

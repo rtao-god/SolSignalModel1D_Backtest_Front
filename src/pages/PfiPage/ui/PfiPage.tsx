@@ -7,7 +7,7 @@ import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
 import cls from './PfiPage.module.scss'
-import { usePfiPerModelReportQuery } from '@/shared/api/tanstackQueries/pfi'
+import { usePfiPerModelReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/pfi'
 import {
     ReportActualStatusCard,
     ReportTableTermsBlock,
@@ -127,16 +127,19 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
 
 export default function PfiPage({ className }: PfiPageProps) {
     const { t } = useTranslation('reports')
-    const { data, isError, error, refetch } = usePfiPerModelReportQuery()
+    const { data, isError, error, refetch } = usePfiPerModelReportWithFreshnessQuery()
+    const report = data?.report ?? null
+    const freshness = data?.freshness ?? null
+    const reportTitle = report?.title || t('pfi.page.header.titleFallback')
 
     const tableSections = useMemo(
         () =>
-            (data?.sections ?? []).filter(
+            (report?.sections ?? []).filter(
                 (section): section is TableSectionDto =>
                     Array.isArray((section as TableSectionDto).columns) &&
                     (section as TableSectionDto).columns!.length > 0
             ),
-        [data]
+        [report]
     )
 
     const sourceEndpointState = useMemo(() => {
@@ -186,10 +189,10 @@ export default function PfiPage({ className }: PfiPageProps) {
         <PageDataBoundary
             isError={isError}
             error={error}
-            hasData={Boolean(data)}
+            hasData={Boolean(report)}
             onRetry={refetch}
             errorTitle={t('pfi.page.errorTitle')}>
-            {data && (
+            {report && (
                 <div className={rootClassName}>
                     {sourceEndpointState.error || !sourceEndpointState.value ?
                         <PageError
@@ -211,18 +214,42 @@ export default function PfiPage({ className }: PfiPageProps) {
                     :   <>
                             <header className={cls.headerRow}>
                                 <div>
-                                    <Text type='h2'>{data.title || t('pfi.page.header.titleFallback')}</Text>
+                                    <Text type='h2'>{reportTitle}</Text>
                                     <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
                                 </div>
                                 <ReportActualStatusCard
-                                    statusMode='debug'
-                                    statusTitle={t('pfi.page.status.title')}
-                                    statusMessage={t('pfi.page.status.message')}
+                                    statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
+                                    statusTitle={
+                                        freshness?.sourceMode === 'actual' ?
+                                            t('pfi.page.status.actualTitle')
+                                        :   t('pfi.page.status.debugTitle')
+                                    }
+                                    statusMessage={freshness?.message ?? t('pfi.page.status.unavailableMessage')}
                                     dataSource={sourceEndpointState.value}
-                                    reportTitle={data.title}
-                                    reportId={data.id}
-                                    reportKind={data.kind}
-                                    generatedAtUtc={data.generatedAtUtc}
+                                    reportTitle={reportTitle}
+                                    reportId={report.id}
+                                    reportKind={report.kind}
+                                    generatedAtUtc={report.generatedAtUtc}
+                                    statusLines={[
+                                        ...(freshness?.canonicalSnapshotCount !== null &&
+                                        freshness?.canonicalSnapshotCount !== undefined ?
+                                            [
+                                                {
+                                                    label: t('pfi.page.statusLines.canonicalSnapshotCount'),
+                                                    value: String(freshness.canonicalSnapshotCount)
+                                                }
+                                            ]
+                                        :   []),
+                                        ...(freshness?.tableSectionCount !== null &&
+                                        freshness?.tableSectionCount !== undefined ?
+                                            [
+                                                {
+                                                    label: t('pfi.page.statusLines.tableSectionCount'),
+                                                    value: String(freshness.tableSectionCount)
+                                                }
+                                            ]
+                                        :   [])
+                                    ]}
                                 />
                             </header>
 

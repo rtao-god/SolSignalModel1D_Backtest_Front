@@ -5,10 +5,10 @@ export const NO_DIRECTION_DESCRIPTION =
     'no_direction — итог этапа направления: модель не выбрала ни LONG, ни SHORT, поэтому день помечается как no-trade.'
 
 export const POLICY_SKIP_DESCRIPTION =
-    'policy-skip — policy-level запрет на вход, который срабатывает после проверки направления.\n\nВ текущей реализации он применяется для UltraSafe и имеет две явные причины:\n[[ultra-safe-regime-down|ultra_safe.regime_down]] и [[ultra-safe-sl-prob|ultra_safe.sl_prob_gt_threshold]].'
+    'policy-skip — внутренний запрет политики на вход, который срабатывает уже после проверки направления.\n\nВ текущей реализации для UltraSafe у него есть две явные причины:\n[[ultra-safe-regime-down|нисходящий рынок в режиме UltraSafe]] и [[ultra-safe-sl-prob|слишком высокая вероятность SL для UltraSafe]].'
 
 export const FILTERS_DESCRIPTION =
-    'Фильтры — это проверки перед входом. Если любая проверка не пройдена, день становится no-trade.\n\nОсновные причины в отчёте:\n[[no-direction|no_direction]], [[signal-direction|направление сигнала]], [[policy-skip|policy-skip]], [[cap-zero|cap_zero]], [[high-risk-day|повышенный риск дня]], [[cap-fraction|cap fraction]], [[confidence-out-of-range|confidence_out_of_range]], [[low-edge|low_edge]], [[risk-throttle|risk_throttle]], [[bucket-dead-after-liq|bucket_dead_after_liquidation]], [[anti-d-not-applied|anti_d_not_applied]].'
+    'Фильтры — это проверки перед входом. Если любая проверка не пройдена, день становится no-trade.\n\nОсновные причины в отчёте:\n[[no-direction|нет направления]], [[signal-direction|направление сигнала]], [[policy-skip|внутренний запрет политики]], [[cap-zero|нулевой размер позиции]], [[high-risk-day|повышенный риск дня]], [[cap-fraction|доля капитала на сделку]], [[confidence-out-of-range|уверенность вне рабочего диапазона]], [[low-edge|слишком слабое ожидаемое преимущество]], [[risk-throttle|ограничение риска]], [[bucket-dead-after-liq|бакет уже выведен из работы после ликвидации]], [[anti-d-not-applied|anti-direction не разрешён условиями]].'
 
 export const POLICY_DESCRIPTION =
     'Policy — имя набора торговых правил.\n\nНазвание Policy обозначает конфигурацию входа, выхода и риска.\n\nРезультат Policy в таблице оценивается по [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]] и [[req-gain|ReqGain%]].'

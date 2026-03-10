@@ -117,6 +117,118 @@ const BUCKET_SPECIFIC_COLUMN_VISIBILITY = new Map<string, Set<PolicyBranchMegaBu
     ['DelayedTP%', new Set<PolicyBranchMegaBucketMode>(['delayed', 'total'])],
     ['DelayedSL%', new Set<PolicyBranchMegaBucketMode>(['delayed', 'total'])]
 ])
+// Сохранённые mega-отчёты могут прийти в старом порядке, поэтому part 1/2/3
+// приводятся к каноническому user-facing порядку до chart/terms/table/export.
+const MEGA_CANONICAL_COLUMNS_BY_PART = new Map<number, readonly string[]>([
+    [
+        1,
+        [
+            'Policy',
+            'Branch',
+            'TotalPnl%',
+            'TotalPnl$',
+            'BucketNow$',
+            'Wealth%',
+            'Tr',
+            'WinRate%',
+            'MeanRet%',
+            'MaxDD%',
+            'MaxDD_NoLiq%',
+            'MaxDD_Active%',
+            'Sharpe',
+            'Sortino',
+            'Calmar',
+            'CAGR%',
+            'StdRet%',
+            'DownStd%',
+            'MaxDD_Ratio%',
+            'Trade%',
+            'NoTrade%',
+            'RiskDay%',
+            'AntiD%',
+            'AntiD|Risk%',
+            'Days',
+            'StartDay',
+            'EndDay',
+            'StopReason',
+            'Miss',
+            'DynTP/SL Days',
+            'DynTP/SL Tr',
+            'DynTP/SL PnL%',
+            'StatTP/SL Days',
+            'StatTP/SL Tr',
+            'StatTP/SL PnL%',
+            'DailyTP%',
+            'DailySL%',
+            'DelayedTP%',
+            'DelayedSL%',
+            'AvgStake%',
+            'AvgStake$',
+            'Lev avg/min/max',
+            'Lev p50/p90',
+            'Cap avg/min/max',
+            'Cap p50/p90',
+            'CapAp',
+            'CapSk',
+            'Exposure% (avg/p50/p90/p99/max)',
+            'HighExposureTr% (>=20/50)',
+            'Long%',
+            'Short%'
+        ]
+    ],
+    [
+        2,
+        [
+            'Policy',
+            'Branch',
+            'HadLiq',
+            'RealLiq',
+            'AccRuin',
+            'BalDead',
+            'BalMin%',
+            'Recovered',
+            'RecovDays',
+            'RecovSignals',
+            'ReqGain%',
+            'Time<35%',
+            'OnExch$',
+            'Withdrawn$',
+            'StartCap$',
+            'EODExit_n',
+            'EODExit%',
+            'EODExit$',
+            'EODExit_AvgRet%',
+            'LiqBeforeSL_n',
+            'LiqBeforeSL_BadSL_n',
+            'LiqBeforeSL_Same1m_n',
+            'LiqBeforeSL$',
+            'DD70_Min%',
+            'DD70_Recov',
+            'DD70_RecovDays',
+            'DD70_n'
+        ]
+    ],
+    [
+        3,
+        [
+            'Policy',
+            'Branch',
+            'HorizonDays',
+            'AvgDay%',
+            'AvgWeek%',
+            'AvgMonth%',
+            'AvgYear%',
+            'Long n',
+            'Short n',
+            'Long $',
+            'Short $',
+            'AvgLong%',
+            'AvgShort%',
+            'inv_liq_mismatch',
+            'minutes_anomaly'
+        ]
+    ]
+])
 
 function isMegaColumnVisibleForBucket(column: string, bucket: PolicyBranchMegaBucketMode): boolean {
     const allowedBuckets = BUCKET_SPECIFIC_COLUMN_VISIBILITY.get(column)
@@ -233,6 +345,94 @@ function resolveMegaPartNumberFromTitleOrThrow(title: string | undefined): numbe
     }
 
     return part
+}
+
+function resolveMegaPartNumberFromSectionOrThrow(section: TableSectionDto): number {
+    const metadataPart =
+        section.metadata?.kind === 'policy-branch-mega' && Number.isInteger(section.metadata.part) ?
+            section.metadata.part
+        :   null
+    if (typeof metadataPart === 'number' && metadataPart > 0) {
+        return metadataPart
+    }
+
+    return resolveMegaPartNumberFromTitleOrThrow(section.title)
+}
+
+function reorderMegaSectionColumnsOrThrow(section: TableSectionDto): TableSectionDto {
+    const columns = section.columns ?? []
+    if (columns.length === 0) {
+        throw new Error('[policy-branch-mega] cannot reorder mega section columns: columns are empty.')
+    }
+
+    const part = resolveMegaPartNumberFromSectionOrThrow(section)
+    if (part === 4) {
+        return section
+    }
+
+    const canonicalColumns = MEGA_CANONICAL_COLUMNS_BY_PART.get(part)
+    if (!canonicalColumns) {
+        throw new Error(
+            `[policy-branch-mega] unsupported section part while reordering columns. part=${part}, title=${section.title ?? 'n/a'}.`
+        )
+    }
+
+    const seenColumns = new Set<string>()
+    columns.forEach(column => {
+        if (seenColumns.has(column)) {
+            throw new Error(
+                `[policy-branch-mega] duplicate column detected while reordering section. part=${part}, title=${section.title ?? 'n/a'}, column=${column}.`
+            )
+        }
+
+        seenColumns.add(column)
+    })
+
+    const orderedColumns = [
+        'Policy',
+        'Branch',
+        ...(columns.includes(MEGA_SL_MODE_COLUMN_NAME) ? [MEGA_SL_MODE_COLUMN_NAME] : []),
+        ...canonicalColumns.filter(column => column !== 'Policy' && column !== 'Branch' && columns.includes(column))
+    ]
+
+    const unexpectedColumns = columns.filter(column => !orderedColumns.includes(column))
+    if (unexpectedColumns.length > 0) {
+        throw new Error(
+            `[policy-branch-mega] unexpected columns found while reordering section. part=${part}, title=${section.title ?? 'n/a'}, columns=${unexpectedColumns.join(', ')}.`
+        )
+    }
+
+    const columnIndexByName = new Map(columns.map((column, index) => [column, index]))
+    const rows = section.rows ?? []
+    const nextRows = rows.map((row, rowIndex) => {
+        if (!Array.isArray(row) || row.length < columns.length) {
+            throw new Error(
+                `[policy-branch-mega] malformed row while reordering section columns. part=${part}, title=${section.title ?? 'n/a'}, row=${rowIndex}.`
+            )
+        }
+
+        return orderedColumns.map(column => String(row[columnIndexByName.get(column)!] ?? ''))
+    })
+
+    const nextSection: TableSectionDto = {
+        ...section,
+        columns: orderedColumns,
+        rows: nextRows
+    }
+
+    if (Array.isArray(section.columnKeys) && section.columnKeys.length >= columns.length) {
+        nextSection.columnKeys = orderedColumns.map(column => String(section.columnKeys![columnIndexByName.get(column)!] ?? column))
+    }
+
+    return nextSection
+}
+
+function reorderMegaSectionsColumnsOrThrow(sections: TableSectionDto[]): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] cannot reorder mega section columns: source list is empty.')
+    }
+
+    return sections.map(section => reorderMegaSectionColumnsOrThrow(section))
 }
 
 function resolveMergedMegaTitleForPartOrThrow(partSections: TableSectionDto[], slMode: PolicyBranchMegaSlMode): string {
@@ -689,42 +889,6 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
     const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
-    const policyBranchMegaArgs = useMemo(
-        () => ({
-            bucket: searchParams.get('bucket'),
-            bucketView: searchParams.get('bucketview'),
-            metric: searchParams.get('metric'),
-            tpSlMode: searchParams.get('tpsl'),
-            slMode: searchParams.get('slmode'),
-            zonalMode: searchParams.get('zonal')
-        }),
-        [searchParams]
-    )
-    const { data, isError, error, refetch } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgs)
-    const report = data?.report ?? null
-    const freshness = data?.freshness ?? null
-    const reportCapabilities = data?.capabilities ?? null
-    const resolvedQuery = data?.resolvedQuery ?? null
-    const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
-
-    const tableSections = useMemo(() => buildTableSections(report?.sections ?? []), [report])
-
-    const resolvedSections = useMemo(() => {
-        if (!report) return { sections: [] as TableSectionDto[], error: null as Error | null }
-
-        try {
-            return {
-                sections: orderPolicyBranchMegaSectionsOrThrow(tableSections),
-                error: null
-            }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega sections.')
-            return {
-                sections: [] as TableSectionDto[],
-                error: safeError
-            }
-        }
-    }, [report, tableSections])
 
     const bucketState = useMemo(() => {
         try {
@@ -795,6 +959,50 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             return { value: DEFAULT_REPORT_ZONAL_MODE, error: safeError }
         }
     }, [searchParams])
+
+    const policyBranchMegaArgs = useMemo(
+        () => ({
+            bucket: bucketState.value,
+            bucketView: bucketViewState.value,
+            metric: metricState.value,
+            tpSlMode: tpSlState.value,
+            slMode: slModeState.value,
+            zonalMode: zonalState.value
+        }),
+        [
+            bucketState.value,
+            bucketViewState.value,
+            metricState.value,
+            slModeState.value,
+            tpSlState.value,
+            zonalState.value
+        ]
+    )
+    const { data, isError, error, refetch } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgs)
+    const report = data?.report ?? null
+    const freshness = data?.freshness ?? null
+    const reportCapabilities = data?.capabilities ?? null
+    const resolvedQuery = data?.resolvedQuery ?? null
+    const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
+
+    const tableSections = useMemo(() => buildTableSections(report?.sections ?? []), [report])
+
+    const resolvedSections = useMemo(() => {
+        if (!report) return { sections: [] as TableSectionDto[], error: null as Error | null }
+
+        try {
+            return {
+                sections: orderPolicyBranchMegaSectionsOrThrow(tableSections),
+                error: null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega sections.')
+            return {
+                sections: [] as TableSectionDto[],
+                error: safeError
+            }
+        }
+    }, [report, tableSections])
 
     const effectiveSelection = useMemo(
         () => ({
@@ -925,9 +1133,10 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                         effectiveSelection.slMode
                     )
                 :   mergePolicyBranchMegaSectionsByPartOrThrow(noDataAwareSections, effectiveSelection.slMode)
+            const reorderedSections = reorderMegaSectionsColumnsOrThrow(mergedSections)
 
             return {
-                sections: mergedSections,
+                sections: reorderedSections,
                 error: null
             }
         } catch (err) {

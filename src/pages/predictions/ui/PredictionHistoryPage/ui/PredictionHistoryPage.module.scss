@@ -100,12 +100,15 @@
 }
 
 .datePicker {
+    flex: 0 1 360px;
+    width: 100%;
     min-width: 320px;
+    max-width: 360px;
 }
 
 .filtersInfo {
-    flex: 1;
-    min-width: 220px;
+    flex: 1 1 260px;
+    min-width: 260px;
     font-size: 13px;
     opacity: 0.9;
 }
@@ -145,6 +148,7 @@
 .paginationButton {
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.8);
     background: rgba(15, 23, 42, 0.9);
@@ -169,6 +173,12 @@
     opacity: 0.4;
     cursor: default;
     box-shadow: none;
+}
+
+.paginationSpacer {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
 }
 
 .paginationInfo {
@@ -436,6 +446,15 @@
 
     .filtersRow {
         flex-direction: column;
+    }
+
+    .datePicker {
+        flex-basis: 100%;
+        max-width: none;
+    }
+
+    .filtersInfo {
+        min-width: 0;
     }
 
     .reportCard {

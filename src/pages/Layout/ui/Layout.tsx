@@ -15,6 +15,7 @@ export default function Layout({ children, className }: LayoutProps) {
 
     const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
     const location = useLocation()
+    const isGuideRoute = location.pathname.startsWith('/guide')
 
     const handleOpenSidebarModal = useCallback(() => {
         setIsSidebarModalOpen(true)
@@ -31,7 +32,7 @@ export default function Layout({ children, className }: LayoutProps) {
             <div className={cls.content}>
                 {isDesktop && <Sidebar />}
 
-                <main className={cls.main} data-tooltip-boundary>
+                <main className={classNames(cls.main, { [cls.guideMain]: isGuideRoute })} data-tooltip-boundary>
                     <ErrorBoundary
                         resetKeys={[location.pathname]}
                         onError={(error, errorInfo) =>
