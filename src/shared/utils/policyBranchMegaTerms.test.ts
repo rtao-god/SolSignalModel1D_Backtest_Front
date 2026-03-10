@@ -60,4 +60,23 @@ describe('policyBranchMegaTerms parity', () => {
         expect(exclusions.excludeRuleIds).toContain('policy')
         expect(exclusions.excludeTerms).toContain('Policy')
     })
+
+    test('mega sentinel texts do not leak raw technical phrasing', () => {
+        const missRu = getPolicyBranchMegaTermOrThrow('Miss', { locale: 'ru', tooltipMode: 'draft' })
+        const missEn = getPolicyBranchMegaTermOrThrow('Miss', { locale: 'en', tooltipMode: 'draft' })
+        const winRateRu = getPolicyBranchMegaTermOrThrow('WinRate%', { locale: 'ru', tooltipMode: 'draft' })
+        const meanRetRu = getPolicyBranchMegaTermOrThrow('MeanRet%', { locale: 'ru', tooltipMode: 'draft' })
+        const meanRetEn = getPolicyBranchMegaTermOrThrow('MeanRet%', { locale: 'en', tooltipMode: 'draft' })
+
+        expect(missRu.description.includes('[StartDay..EndDay]')).toBe(false)
+        expect(missEn.description.includes('[StartDay..EndDay]')).toBe(false)
+        expect(missRu.description.includes('weekend-skip')).toBe(false)
+        expect(missEn.description.includes('weekend-skip')).toBe(false)
+        expect(missRu.description.includes('/trace')).toBe(false)
+        expect(winRateRu.description.includes('Считается по отдельным сделкам, а не по дням.')).toBe(false)
+        expect(meanRetRu.description.includes('агрегац')).toBe(false)
+        expect(meanRetEn.description.includes('aggregation')).toBe(false)
+        expect(meanRetRu.description.includes('сворачиваются в один дневной итог')).toBe(true)
+        expect(meanRetEn.description.includes('combined into one daily result')).toBe(true)
+    })
 })
