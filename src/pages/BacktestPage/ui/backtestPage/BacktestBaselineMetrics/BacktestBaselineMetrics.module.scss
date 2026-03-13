@@ -1,19 +1,19 @@
 .metricsRow {
-    border-radius: 16px;
-    padding: 14px 18px;
-
-    background: linear-gradient(120deg, rgba(80, 227, 194, 0.14), rgba(78, 123, 255, 0.12), rgba(0, 0, 0, 0.7));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
-
-    display: flex;
-    flex-direction: column;
+    @include surface-card(
+        $padding: 14px 18px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(120deg, rgba(80, 227, 194, 0.14), rgba(78, 123, 255, 0.12), rgba(0, 0, 0, 0.7)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
     gap: 10px;
+    container-type: inline-size;
+    container-name: backtest-baseline-metrics;
 
     backdrop-filter: blur(20px);
 
     h2 {
-        font-size: 1rem;
+        font-size: 16px;
         font-weight: 600;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -39,7 +39,7 @@
     align-items: baseline;
     gap: 4px;
 
-    font-size: 0.9rem;
+    font-size: 14px;
 }
 
 .metricLabel {
@@ -59,7 +59,7 @@
 }
 
 /* узкий экран */
-@media (max-width: 768px) {
+@container backtest-baseline-metrics (max-width: 760px) {
     .metricsRow {
         padding: 12px 14px;
     }

@@ -1,4 +1,5 @@
 import type { SharedTermTooltipRuleDraft } from '@/shared/terms/types'
+import i18n from '@/shared/configs/i18n/i18n'
 import {
     BACKTEST_DESCRIPTION,
     BRANCH_DESCRIPTION,
@@ -11,7 +12,11 @@ import {
     EOD_DESCRIPTION,
     EXECUTED_AT_UTC_DESCRIPTION,
     FILTERS_DESCRIPTION,
+    ENTRY_FEE_DESCRIPTION_EN,
+    ENTRY_FEE_DESCRIPTION_RU,
     FIRST_EVENT_DESCRIPTION,
+    EXCHANGE_FEES_DESCRIPTION_EN,
+    EXCHANGE_FEES_DESCRIPTION_RU,
     FUNDING_DESCRIPTION,
     INTRADAY_BUCKET_DESCRIPTION,
     MARKET_NOISE_DESCRIPTION,
@@ -24,9 +29,13 @@ import {
     PNL_DESCRIPTION,
     POLICY_DESCRIPTION,
     POLICY_SKIP_DESCRIPTION,
+    PRICE_IMPACT_DESCRIPTION_EN,
+    PRICE_IMPACT_DESCRIPTION_RU,
     POSITION_TOOLTIP_DESCRIPTION,
     PRICE_MOVE_DESCRIPTION,
     REAL_METRIC_DESCRIPTION,
+    ROUND_TRIP_DESCRIPTION_EN,
+    ROUND_TRIP_DESCRIPTION_RU,
     SIGNAL_DIRECTION_DESCRIPTION,
     SLIPPAGE_DESCRIPTION,
     TOTAL_AGGREGATE_BUCKET_DESCRIPTION,
@@ -39,7 +48,9 @@ import {
     WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
     WHY_WEEKENDS_DESCRIPTION,
     WITH_SL_MODE_DESCRIPTION,
-    WITHDRAWN_PROFIT_DESCRIPTION
+    WITHDRAWN_PROFIT_DESCRIPTION,
+    EXIT_FEE_DESCRIPTION_EN,
+    EXIT_FEE_DESCRIPTION_RU
 } from './trading'
 import {
     ACCOUNT_RUIN_DESCRIPTION,
@@ -95,6 +106,8 @@ import {
     EMA_200_BTC_SOL_DESCRIPTION,
     EMA_50_SOL_DESCRIPTION,
     EMA_INDICATOR_DESCRIPTION,
+    FACTOR_DESCRIPTION_EN,
+    FACTOR_DESCRIPTION_RU,
     MIN_MOVE_DESCRIPTION,
     RSI_INDICATOR_DESCRIPTION,
     SMA_200_BTC_DESCRIPTION,
@@ -104,6 +117,58 @@ import {
     ULTRA_SAFE_SL_PROB_DESCRIPTION,
     WHY_MIN_MOVE_DESCRIPTION
 } from './modeling'
+
+const LEAKAGE_DESCRIPTION_RU =
+    'Утечка (leakage) — это ситуация, когда в прогноз, метрику или отчёт попадает информация из будущего, которая в реальном времени ещё не могла быть известна.\n\nЧто из-за этого меняется:\nисторическая статистика начинает выглядеть сильнее, чем система способна показать на реально зафиксированных днях.\n\nКак читать:\nесли качество на истории заметно лучше, чем на живой выборке, один из первых рисков для проверки — именно утечка будущих данных.'
+
+const LEAKAGE_DESCRIPTION_EN =
+    'Leakage is a situation where a forecast, metric, or report uses information from the future that could not have been known in real time yet.\n\nWhat changes because of that:\nhistorical statistics start to look stronger than the system can deliver on truly fixed live days.\n\nHow to read it:\nif historical quality looks materially stronger than the live sample, one of the first risks to check is future-data leakage.'
+
+const CAUSAL_DESCRIPTION_RU =
+    'Казуал — контур решения, который использует только те данные, которые уже существовали в момент прогноза.\n\nЧто показывает:\nв казуальный слой не должны попадать итог дня, реализованный исход сделки и любые другие поля, которые становятся известны только после закрытия торгового окна.\n\nКак читать:\nесли метрика или прогноз называются казуальными, это означает одно: они были собраны без знания будущего и их можно сравнивать с live-результатом без подглядывания вперёд.'
+
+const CAUSAL_DESCRIPTION_EN =
+    'Causal is the decision path that uses only the data already available at forecast time.\n\nWhat it shows:\nthis path must not include the realized day outcome, the final trade result, or any other field that appears only after the trading window closes.\n\nHow to read it:\nif a metric or forecast is marked causal, it means it was produced without future knowledge and can be compared with live behavior honestly.'
+
+function resolveLocalizedLeakageDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? LEAKAGE_DESCRIPTION_EN : LEAKAGE_DESCRIPTION_RU
+}
+
+function resolveLocalizedCausalDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? CAUSAL_DESCRIPTION_EN : CAUSAL_DESCRIPTION_RU
+}
+
+function resolveLocalizedFactorDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? FACTOR_DESCRIPTION_EN : FACTOR_DESCRIPTION_RU
+}
+
+function resolveLocalizedRoundTripDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? ROUND_TRIP_DESCRIPTION_EN : ROUND_TRIP_DESCRIPTION_RU
+}
+
+function resolveLocalizedExchangeFeesDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? EXCHANGE_FEES_DESCRIPTION_EN : EXCHANGE_FEES_DESCRIPTION_RU
+}
+
+function resolveLocalizedEntryFeeDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? ENTRY_FEE_DESCRIPTION_EN : ENTRY_FEE_DESCRIPTION_RU
+}
+
+function resolveLocalizedExitFeeDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? EXIT_FEE_DESCRIPTION_EN : EXIT_FEE_DESCRIPTION_RU
+}
+
+function resolveLocalizedPriceImpactDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? PRICE_IMPACT_DESCRIPTION_EN : PRICE_IMPACT_DESCRIPTION_RU
+}
 
 export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
@@ -199,6 +264,40 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         description: BACKTEST_DESCRIPTION,
         aliases: ['бэктест', 'backtest'],
         priority: 175,
+        scope: 'common'
+    },
+    {
+        id: 'leakage',
+        pattern: /утечк(?:а|и|у|е|ой|ами|ах)?|leakage/i,
+        title: 'Leakage',
+        description: () => resolveLocalizedLeakageDescription(),
+        aliases: ['утечка', 'утечки', 'утечек', 'leakage'],
+        priority: 205,
+        scope: 'common'
+    },
+    {
+        id: 'causal-term',
+        pattern:
+            /causal|казуал(?:ьн(?:ый|ая|ое|ые|ого|ому|ым|ом|ых|ыми)|ьно|ьная|ьного|ьном|ьным)?|казуал(?:а|у|ом|е)?/i,
+        title: 'Казуал',
+        description: () => resolveLocalizedCausalDescription(),
+        aliases: [
+            'Causal',
+            'causal',
+            'казуал',
+            'казуала',
+            'казуалу',
+            'казуалом',
+            'казуале',
+            'казуальный',
+            'казуального',
+            'казуальном',
+            'казуальным',
+            'казуальная',
+            'казуальной',
+            'казуально'
+        ],
+        priority: 205,
         scope: 'common'
     },
     {
@@ -360,7 +459,8 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'tp-sl',
-        pattern: /\bTP\/SL\b|\bSL\/TP\b|тейк-?профит[а-яё]*|take-profit|стоп-?лосс[а-яё]*|stop-loss|\bTP\b|\bSL\b/i,
+        pattern:
+            /\bTP\/SL\b|\bSL\/TP\b|тейк-?профит[а-яё]*|take-profit|стоп-?лосс[а-яё]*|stop-loss|\bTP\b|\bSL\b(?![-‑\s]?(?:model|models|модел))/i,
         title: 'TP/SL',
         description: TP_SL_DESCRIPTION,
         aliases: ['TP/SL', 'SL/TP', 'тейк-профит', 'take-profit', 'стоп-лосс', 'stop-loss'],
@@ -500,8 +600,7 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'risk-layers',
-        pattern:
-            /risk[-\s]?сло(?:й|и|я|ю|ем|е|ев|ёв|ям|ями|ях)|risk[-\s]?layers?|сло(?:й|и|я|ю|ем|е)\s+риска/i,
+        pattern: /risk[-\s]?сло(?:й|и|я|ю|ем|е|ев|ёв|ям|ями|ях)|risk[-\s]?layers?|сло(?:й|и|я|ю|ем|е)\s+риска/i,
         title: 'Risk-слои',
         description: RISK_LAYERS_DESCRIPTION,
         aliases: ['risk-слои', 'risk-слой', 'risk layers', 'risk layer', 'слои риска'],
@@ -589,6 +688,60 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         pattern: /funding|фандинг/i,
         title: 'Funding',
         description: FUNDING_DESCRIPTION,
+        scope: 'common'
+    },
+    {
+        id: 'factor',
+        pattern: /\bfactors?\b|фактор(?:а|у|ом|е|ы|ов|ам|ами|ах)?/i,
+        title: 'Фактор',
+        description: () => resolveLocalizedFactorDescription(),
+        aliases: ['factor', 'factors', 'фактор', 'фактора', 'факторов'],
+        priority: 210,
+        scope: 'common'
+    },
+    {
+        id: 'exchange-fees',
+        pattern: /комисси(?:я|и)\s+бирж|exchange fees?/i,
+        title: 'Exchange fees',
+        description: () => resolveLocalizedExchangeFeesDescription(),
+        aliases: ['Комиссии биржи', 'Exchange fees', 'Exchange fee'],
+        priority: 210,
+        scope: 'common'
+    },
+    {
+        id: 'round-trip',
+        pattern: /round[-\s]?trip/i,
+        title: 'round-trip',
+        description: () => resolveLocalizedRoundTripDescription(),
+        aliases: ['round-trip', 'round trip'],
+        priority: 210,
+        scope: 'common'
+    },
+    {
+        id: 'entry-fee',
+        pattern: /комисси(?:я|и)\s+на\s+вход|entry fee/i,
+        title: 'Entry fee',
+        description: () => resolveLocalizedEntryFeeDescription(),
+        aliases: ['комиссия на вход', 'entry fee'],
+        priority: 210,
+        scope: 'common'
+    },
+    {
+        id: 'exit-fee',
+        pattern: /комисси(?:я|и)\s+на\s+выход|exit fee/i,
+        title: 'Exit fee',
+        description: () => resolveLocalizedExitFeeDescription(),
+        aliases: ['комиссия на выход', 'exit fee'],
+        priority: 210,
+        scope: 'common'
+    },
+    {
+        id: 'price-impact',
+        pattern: /price impact/i,
+        title: 'Price impact',
+        description: () => resolveLocalizedPriceImpactDescription(),
+        aliases: ['price impact'],
+        priority: 210,
         scope: 'common'
     },
     {

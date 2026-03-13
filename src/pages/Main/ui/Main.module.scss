@@ -1,15 +1,14 @@
 .MainPage {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-    padding: 24px 32px 36px;
+    @include product-page-shell(1520px, true, 28px, 36px);
+    container-type: inline-size;
+    container-name: main-page;
 }
 
 .hero,
 .sectionSurface {
-    border-radius: 24px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 24px 56px rgba(15, 23, 42, 0.45);
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--surface-border-strong);
+    box-shadow: var(--surface-shadow-xl);
 }
 
 .hero {
@@ -114,10 +113,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 20px;
-    border-radius: 20px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(15, 23, 42, 0.7);
+    @include subtle-surface(20px);
     backdrop-filter: blur(10px);
 }
 
@@ -176,7 +172,6 @@
     color: #cbd5e1;
 }
 
-.audienceGrid,
 .workflowGrid,
 .proofGrid {
     display: grid;
@@ -188,9 +183,9 @@
 .proofCard,
 .tourGroup,
 .demoCard {
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.66);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--surface-border-subtle);
+    background: var(--surface-bg-muted);
 }
 
 .contentCard {
@@ -198,6 +193,10 @@
     flex-direction: column;
     gap: 14px;
     padding: 18px;
+}
+
+.businessCard {
+    max-width: 940px;
 }
 
 .contentCardBadge {
@@ -249,6 +248,22 @@
 .cardText,
 .tourTileText,
 .demoNote {
+    color: #dbe4f0;
+}
+
+.businessBulletList {
+    display: block;
+    margin: 0;
+    color: #93c5fd;
+}
+
+.businessBulletItem {
+    color: #93c5fd;
+}
+
+.businessBulletText {
+    font-size: 14px;
+    line-height: 1.68;
     color: #dbe4f0;
 }
 
@@ -345,6 +360,12 @@
         background-color 0.18s ease;
 }
 
+.cardLinkRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
 .tourGroups {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -374,10 +395,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.56);
+    @include subtle-surface(16px);
 }
 
 .tourTileTitle {
@@ -433,10 +451,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.52);
+    @include subtle-surface(12px 14px);
 }
 
 .demoMetaLabel {
@@ -454,6 +469,18 @@
     color: #f8fafc;
 }
 
+.demoSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.demoSummaryText {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #dbe4f0;
+}
+
 .demoMetricGrid {
     display: flex;
     flex-wrap: wrap;
@@ -466,10 +493,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.58);
+    @include subtle-surface(14px);
 }
 
 .demoMetricValue {
@@ -483,14 +507,13 @@
     color: #cbd5e1;
 }
 
-@media (max-width: 1180px) {
+@container main-page (max-width: 1180px) {
     .hero {
         grid-template-columns: 1fr;
     }
 
     .tourGroups,
     .proofGrid,
-    .audienceGrid,
     .workflowGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -500,10 +523,9 @@
     }
 }
 
-@media (max-width: 760px) {
+@container main-page (max-width: 760px) {
     .MainPage {
         gap: 22px;
-        padding: 18px 16px 28px;
     }
 
     .hero,
@@ -518,7 +540,6 @@
 
     .tourGroups,
     .proofGrid,
-    .audienceGrid,
     .workflowGrid,
     .demoMeta {
         grid-template-columns: 1fr;

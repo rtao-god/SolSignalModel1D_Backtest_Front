@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
-import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import {
+    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
+    useBacktestDiagnosticsReportQuery
+} from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
 import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
@@ -20,7 +21,10 @@ export default function BacktestDiagnosticsDayStatsPage() {
     const { t } = useTranslation('reports')
     const [searchParams] = useSearchParams()
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
-        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams)
+        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams),
+        {
+            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.dayStatsPage
+        }
     )
 
     const tableSections = useMemo(
@@ -31,27 +35,18 @@ export default function BacktestDiagnosticsDayStatsPage() {
         [data]
     )
     const split = useMemo(() => splitBacktestDiagnosticsSections(tableSections), [tableSections])
-    const renderColumnTitle = (title: string) =>
-        renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
-
     return (
-        <PageDataBoundary
+        <BacktestDiagnosticsPageLayout
+            report={data ?? null}
+            sections={split.dayStats}
+            availableAxes={BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES}
+            pageTitle={t('diagnosticsReport.pages.dayStats.title')}
+            pageSubtitle={t('diagnosticsReport.pages.dayStats.subtitle')}
+            emptyMessage={t('diagnosticsReport.pages.dayStats.empty')}
+            errorTitle={t('diagnosticsReport.pages.dayStats.errorTitle')}
             isLoading={isPending}
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
+            error={isError ? error : undefined}
             onRetry={refetch}
-            errorTitle={t('diagnosticsReport.pages.dayStats.errorTitle')}>
-            {data && (
-                <BacktestDiagnosticsPageLayout
-                    report={data}
-                    sections={split.dayStats}
-                    pageTitle={t('diagnosticsReport.pages.dayStats.title')}
-                    pageSubtitle={t('diagnosticsReport.pages.dayStats.subtitle')}
-                    emptyMessage={t('diagnosticsReport.pages.dayStats.empty')}
-                    renderColumnTitle={renderColumnTitle}
-                />
-            )}
-        </PageDataBoundary>
+        />
     )
 }

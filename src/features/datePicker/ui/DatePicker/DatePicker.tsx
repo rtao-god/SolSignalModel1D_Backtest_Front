@@ -13,12 +13,23 @@ import resolveDateRangeSelection from '../../model/lib/resolveDateRangeSelection
 
 const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2022, 3, 13))
 
+/*
+	DatePicker — owner-компонент диапазона дат на фронте.
+
+	Зачем:
+		- Управляет открытием popup, активным полем `from/to`, положением popover и записью диапазона в Redux store.
+
+	Контракты:
+		- В store сохраняются строковые даты, а UI работает через `UiDate`, восстановленный селекторами.
+		- Локальный курсор месяца сбрасывается при каждом новом сценарии открытия, чтобы календарь не застревал на старом view.
+*/
 export default function DatePicker({ className, minSelectableDate }: DatePickerProps) {
     const { t } = useTranslation('common')
     const [isOpen, setIsOpen] = useState(false)
     const [activeField, setActiveField] = useState<DateRangeField | null>(null)
     const [openAbove, setOpenAbove] = useState(false)
     const [alignRight, setAlignRight] = useState(false)
+    // key принудительно пересоздаёт Calendar, когда новый сценарий выбора должен стартовать от другой видимой даты.
     const [viewResetKey, setViewResetKey] = useState(0)
 
     const dispatch = useDispatch()
@@ -48,6 +59,7 @@ export default function DatePicker({ className, minSelectableDate }: DatePickerP
 
         const inputGroupRect = inputGroupRef.current.getBoundingClientRect()
         const popoverRect = popoverRef.current.getBoundingClientRect()
+        // Popup переносим вверх и/или вправо только когда иначе он выходит за viewport.
         const nextOpenAbove =
             inputGroupRect.bottom + popoverRect.height + 12 > window.innerHeight &&
             inputGroupRect.top - popoverRect.height - 12 >= 0
@@ -103,6 +115,7 @@ export default function DatePicker({ className, minSelectableDate }: DatePickerP
 
     const commitRange = useCallback(
         (nextDepartureDate: UiDate, nextArrivalDate: UiDate) => {
+            // date slice хранит строковый persisted-контракт, а селекторы уже поднимают его обратно в `UiDate`.
             dispatch(dateActions.setDepartureDate(nextDepartureDate?.value ?? null))
             dispatch(dateActions.setArrivalDate(nextArrivalDate?.value ?? null))
         },
@@ -136,6 +149,7 @@ export default function DatePicker({ className, minSelectableDate }: DatePickerP
     const handleClearRange = useCallback(() => {
         dispatch(dateActions.clearDateRange())
         if (activeField === 'to') {
+            // После полной очистки следующий клик снова должен начинать диапазон с первой границы.
             setActiveField('from')
         }
         setViewResetKey(previous => previous + 1)

@@ -2,7 +2,7 @@
   "home": {
     "hero": {
       "title": "Knowledge Base",
-      "subtitle": "What the metrics and modes on the project screens mean, how they are calculated, and where the data boundaries sit.",
+      "subtitle": "The section explains the meaning of the project screens: what a metric means, where the data boundary sits, and why the same number can be read differently in different modes.",
       "meta": {
         "meaning": "What it means",
         "interface": "How to read UI",
@@ -11,43 +11,156 @@
         "checks": "Checks and barriers"
       }
     },
+    "terms": [
+      {
+        "id": "guide-home-policy",
+        "term": "Policy",
+        "sharedTermId": "policy"
+      },
+      {
+        "id": "guide-home-oos",
+        "term": "OOS",
+        "sharedTermId": "landing-oos"
+      },
+      {
+        "id": "guide-home-pfi",
+        "term": "PFI",
+        "sharedTermId": "landing-pfi"
+      },
+      {
+        "id": "guide-home-no-trade",
+        "term": "NoTrade",
+        "sharedTermId": "landing-no-trade"
+      },
+      {
+        "id": "guide-home-leakage",
+        "term": "future-data leakage",
+        "sharedTermId": "leakage"
+      }
+    ],
+    "overview": {
+      "title": "Quick entry into the knowledge base",
+      "subtitle": "The top block serves two tasks: quickly identify which topic explains a specific term or number, and avoid mixing the knowledge base with result analysis, failure diagnostics, and the backend map.",
+      "metrics": {
+        "topics": {
+          "label": "Topics",
+          "value": "7 topics"
+        },
+        "readingRoutes": {
+          "label": "Starting routes",
+          "value": "3 routes"
+        },
+        "relatedContours": {
+          "label": "Neighbor domains",
+          "value": "2 domains"
+        }
+      },
+      "links": {
+        "models": "Topic: Models",
+        "branches": "Topic: Branches",
+        "splits": "Topic: Train / OOS / Recent / Full",
+        "time": "Topic: Time",
+        "features": "Topic: Features and indicators",
+        "truthfulness": "Topic: Data truthfulness",
+        "tests": "Topic: Tests and barriers",
+        "analysisHome": "Section: Analysis",
+        "diagnosticsHome": "Section: Diagnostics",
+        "developerHome": "Section: For the backend developer"
+      },
+      "factTable": {
+        "title": "Which question leads to which topic",
+        "columns": {
+          "question": "When to open it",
+          "answer": "What it gives",
+          "details": "Where to go"
+        },
+        "rows": {
+          "meaning": {
+            "question": "A number, status, or mode on the screen is still unclear",
+            "answer": "The starting pair is Models plus Time. Those topics explain how the daily scenario is assembled, where the trading day ends, and why the same term later appears across multiple reports."
+          },
+          "branchesAndSplits": {
+            "question": "The same [[guide-home-policy|Policy]] shows different numbers on history",
+            "answer": "The pair Branches plus Train / OOS / Recent / Full explains which mode the trade belongs to, how history is split into training and evaluation parts, and why comparison must stay inside one slice."
+          },
+          "features": {
+            "question": "The source of the entry signal needs to be understood",
+            "answer": "Features and indicators shows the feature groups behind the model decision, while [[guide-home-pfi|PFI]] helps identify which features move the answer the most."
+          },
+          "trust": {
+            "question": "The reason a report can be trusted needs to be understood",
+            "answer": "Data truthfulness plus Tests and barriers explain how the project separates the forecast from the future result, how it catches [[guide-home-leakage|future-data leakage]], and which checks stop false statistics before they reach UI."
+          },
+          "nextAfterGuide": {
+            "question": "The term is already clear, but now the result or the root cause matters",
+            "answer": "After the knowledge base the route splits: Analysis is for comparing final numbers and strategy behavior, while Diagnostics is for finding the cause of a weak result."
+          }
+        }
+      },
+      "blocks": {
+        "readingOrder": {
+          "title": "Three normal reading routes",
+          "steps": {
+            "termsFirst": "If the whole screen is unclear, the normal starting pair is Models plus Time: those topics explain the base day scenario, the trading window, and the day-close moment.",
+            "behaviorThen": "If the question is already about comparing modes, the next layer is Branches plus Train / OOS / Recent / Full: it explains why one [[guide-home-policy|Policy]] produces different numbers across historical slices.",
+            "trustFinally": "If the question is about trust in the result, the final layer is Data truthfulness plus Tests and barriers: that is where data boundaries, [[guide-home-no-trade|NoTrade]], [[guide-home-leakage|future-data leakage]], and system guards are explained."
+          }
+        },
+        "pageBoundaries": {
+          "title": "What guide explains and what it does not",
+          "bullets": {
+            "knowledgeBaseScope": "Guide explains the meaning of terms, rules, and numbers. It exists so that the screen can be read without guesswork and without mixing the model layer, trading rules, and historical slices.",
+            "notRuntimeMap": "Guide is not a runtime or backend-project map. If the question is already about projects, entrypoints, or storage, the owner page lives in the developer domain.",
+            "notFailureAttribution": "Guide does not search for the reason of a concrete strategy failure. Once the term is clear but the problem remains, the route continues in Analysis or Diagnostics."
+          }
+        },
+        "relatedContours": {
+          "title": "How guide connects to neighboring sections",
+          "bullets": {
+            "analysisRole": "Analysis shows the strategy outcome and regime behavior in numbers: where the strategy earns, where drawdown grows, and in which days [[guide-home-no-trade|NoTrade]] appears more often.",
+            "diagnosticsRole": "Diagnostics shows the cause of a weak result: which filter cut the day, where the decision broke, and which regimes repeat the same problem.",
+            "developerRole": "Developer explains backend owner layers: projects, reports, contracts, and guard rails. That route matters after the product-side meaning of the term is already clear."
+          }
+        }
+      }
+    },
     "sections": {
       "title": "Knowledge topics",
       "cards": {
         "models": {
           "title": "Models",
           "description": "Role of Daily, Micro, and SL, the path to the final signal, and how to read each layer.",
-          "hint": "Open topic ->"
+          "hint": "Signal layers and roles"
         },
         "branches": {
           "title": "BASE / ANTI-D branches",
           "description": "When the system stays with the original direction, when it turns on anti-direction, and how to compare both modes.",
-          "hint": "Open topic ->"
+          "hint": "Decision-branch comparison"
         },
         "splits": {
           "title": "Train / OOS / Recent / Full",
           "description": "What Train, OOS, Recent, and Full each mean and what conclusion each slice supports.",
-          "hint": "Open topic ->"
+          "hint": "Historical slices"
         },
         "time": {
           "title": "Time and trading days",
           "description": "How the project defines a trading day, the exit moment, and the historical time boundary.",
-          "hint": "Open topic ->"
+          "hint": "Trading-day boundary"
         },
         "features": {
           "title": "Features and indicators",
-          "description": "Which feature groups stand behind the signal and what PFI metrics actually show.",
-          "hint": "Open topic ->"
+          "description": "Which feature groups stand behind the signal and what [[guide-home-pfi|PFI]] metrics actually show.",
+          "hint": "Features and contribution"
         },
         "truthfulness": {
           "title": "Data truthfulness",
           "description": "How the project separates what was known before the decision from what became known later.",
-          "hint": "Open topic ->"
+          "hint": "Known-data boundary"
         },
         "tests": {
           "title": "Tests and barriers",
           "description": "Which checks stop false statistics from reaching reports and UI.",
-          "hint": "Open topic ->"
+          "hint": "Project test contour"
         }
       }
     }
@@ -101,32 +214,32 @@
           {
             "id": "models-daily-core",
             "term": "Daily model",
-            "description": "The base layer that first classifies the day as growth, sideways, or decline."
+            "description": "Daily model — The base layer that first classifies the day as growth, sideways, or decline.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-micro-core",
             "term": "Micro model",
-            "description": "A layer used only for sideways days. It shows micro-growth, micro-decline, or no local tilt."
+            "sharedTermId": "landing-micro-model"
           },
           {
             "id": "models-sl-core",
             "term": "SL model",
-            "description": "The execution-risk layer. It compares early stop-loss risk with the chance of reaching take-profit."
+            "sharedTermId": "sl-model"
           },
           {
             "id": "models-final-signal",
             "term": "Total",
-            "description": "The result of the Daily -> Micro -> SL chain. This answer feeds final metrics and trading logic."
+            "description": "Total — The result of the Daily -> Micro -> SL chain. This answer feeds final metrics and trading logic.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-day-micro",
             "term": "Daily + Micro",
-            "description": "The intermediate result after the Daily answer has been adjusted by the micro model for a sideways day."
+            "description": "Daily + Micro — The intermediate result after the Daily answer has been adjusted by the micro model for a sideways day.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-daily-flat",
             "term": "Sideways scenario",
-            "description": "A day state where Daily does not see a clear edge toward growth or decline. The Micro model can activate only in this zone."
+            "description": "Sideways scenario — A day state where Daily does not see a clear edge toward growth or decline. The Micro model can activate only in this zone.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -165,27 +278,27 @@
           {
             "id": "models-daily-up",
             "term": "Growth",
-            "description": "A scenario where Daily sees growth as the more likely meaningful day outcome."
+            "description": "Growth — A scenario where Daily sees growth as the more likely meaningful day outcome.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-daily-down",
             "term": "Decline",
-            "description": "A scenario where Daily sees decline as the more likely meaningful day outcome."
+            "description": "Decline — A scenario where Daily sees decline as the more likely meaningful day outcome.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-daily-minmove",
             "term": "MinMove",
-            "description": "The minimum meaningful move threshold. It separates tradeable day movement from noise and affects whether a day remains sideways."
+            "sharedTermId": "min-move"
           },
           {
             "id": "models-daily-train",
             "term": "Train for Daily",
-            "description": "Daily-model quality on the training segment. It is useful for learning diagnostics, but it does not prove transfer to new days by itself."
+            "description": "Train for Daily — Daily-model quality on the training segment. It is useful for learning diagnostics, but it does not prove transfer to new days by itself.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-daily-oos",
             "term": "OOS for Daily",
-            "description": "Daily-model quality on unseen days after the train boundary. This is the main honest slice for transfer quality."
+            "description": "OOS for Daily — Daily-model quality on unseen days after the train boundary. This is the main honest slice for transfer quality.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -200,17 +313,17 @@
           {
             "id": "models-micro-up",
             "term": "Micro-growth",
-            "description": "Local growth inside a day that Daily left as sideways. It is not a new day scenario."
+            "description": "Micro-growth — Local growth inside a day that Daily left as sideways. It is not a new day scenario.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-micro-down",
             "term": "Micro-decline",
-            "description": "Local decline inside a day that Daily left as sideways. It appears only as a refinement inside the sideways regime."
+            "description": "Micro-decline — Local decline inside a day that Daily left as sideways. It appears only as a refinement inside the sideways regime.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-micro-coverage",
             "term": "Sideways-day coverage",
-            "description": "The number and share of days where the micro model was allowed to operate. Without enough coverage, its quality cannot be honestly generalized to the full pipeline."
+            "description": "Sideways-day coverage — The number and share of days where the micro model was allowed to operate. Without enough coverage, its quality cannot be honestly generalized to the full pipeline.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -241,22 +354,22 @@
           {
             "id": "models-sl-prob",
             "term": "Early stop-loss probability",
-            "description": "An estimate of how likely the trade is to hit stop-loss before it reaches take-profit."
+            "description": "Early stop-loss probability — An estimate of how likely the trade is to hit stop-loss before it reaches take-profit.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-sl-stop-loss",
             "term": "Stop-loss",
-            "description": "The protective exit level that closes the position when price moves against it."
+            "sharedTermId": "tp-sl"
           },
           {
             "id": "models-sl-take-profit",
             "term": "Take-profit",
-            "description": "The planned profit-taking level at which the trade closes in its intended direction."
+            "sharedTermId": "tp-sl"
           },
           {
             "id": "models-risk-day",
             "term": "Risk day",
-            "description": "A day the SL model considers dangerous by execution profile. Execution rules usually become stricter on such days."
+            "description": "Risk day — A day the SL model considers dangerous by execution profile. Execution rules usually become stricter on such days.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -272,12 +385,12 @@
           {
             "id": "models-asof",
             "term": "As-of slice",
-            "description": "A fixed time boundary up to which data is allowed to be known at forecast time. It separates permitted past from forbidden future."
+            "description": "As-of slice — A fixed time boundary up to which data is allowed to be known at forecast time. It separates permitted past from forbidden future.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "models-causal-input",
             "term": "Causal input",
-            "description": "The feature set the model was actually allowed to use at decision time. If post-fact information enters this set, the forecast stops being honest."
+            "description": "Causal input — The feature set the model was actually allowed to use at decision time. If post-fact information enters this set, the forecast stops being honest.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -391,7 +504,7 @@
     "explain-splits-oos": "OOS",
     "explain-splits-recent": "Recent (240d)",
     "explain-splits-full": "Full history",
-    "explain-time-overview": "NY trading day",
+    "explain-time-overview": "Trading day",
     "explain-time-baseline": "Baseline exit",
     "explain-time-day-keys": "Day keys and time types",
     "explain-time-weekend": "Weekends and exclusions",
@@ -441,22 +554,22 @@
           {
             "id": "branches-policy",
             "term": "Policy",
-            "description": "The set of trading rules: size, leverage, exit levels, skip conditions, and other execution constraints."
+            "sharedTermId": "policy"
           },
           {
             "id": "branches-branch",
             "term": "Branch",
-            "description": "Execution mode for the shared model signal on top of the same trading rules."
+            "sharedTermId": "branch"
           },
           {
             "id": "branches-base",
             "term": "BASE",
-            "description": "The base mode without side reversal. It is the comparison point for protective branches."
+            "description": "BASE — The base mode without side reversal. It is the comparison point for protective branches.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "branches-anti",
             "term": "ANTI-D",
-            "description": "The anti-direction branch. It may reverse the trade side if the risk day and guard filters agree that doing so is safer."
+            "description": "ANTI-D — The anti-direction branch. It may reverse the trade side if the risk day and guard filters agree that doing so is safer.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Without two branches, one final number does not show whether the protection truly helped or only changed execution by chance.",
@@ -472,7 +585,7 @@
           {
             "id": "branches-direction-choice",
             "term": "Original direction",
-            "description": "The trade side produced before branch logic: long for a positive scenario and short for a negative one."
+            "description": "Original direction — The trade side produced before branch logic: long for a positive scenario and short for a negative one.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Every protective branch must be compared against BASE, otherwise it is impossible to separate true protection value from noise.",
@@ -488,17 +601,17 @@
           {
             "id": "branches-anti-direction",
             "term": "Anti-direction",
-            "description": "A side reversal: long becomes short and short becomes long."
+            "sharedTermId": "anti-direction"
           },
           {
             "id": "branches-risk-day",
             "term": "Risk day",
-            "description": "A day the system considers dangerous by execution profile. Only such days may qualify for ANTI-D."
+            "description": "Risk day — A day the system considers dangerous by execution profile. Only such days may qualify for ANTI-D.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "branches-anti-scope",
             "term": "ANTI-D scope",
-            "description": "ANTI-D is applied before trade simulation and changes the entry side itself."
+            "description": "ANTI-D scope — ANTI-D is applied before trade simulation and changes the entry side itself.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "ANTI-D is only useful while it stays a targeted protection on risk days. If it starts flipping everything, the link between model signal and execution is lost.",
@@ -538,17 +651,17 @@
           {
             "id": "branches-minmove-band",
             "term": "MinMove band",
-            "description": "A guard that checks whether the expected move is neither too small nor too extreme for anti-direction execution."
+            "description": "MinMove band — A guard that checks whether the expected move is neither too small nor too extreme for anti-direction execution.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "branches-liq-buffer",
             "term": "Liquidation buffer",
-            "description": "The remaining adverse room before liquidation after the flip. If the buffer is too small, ANTI-D is not allowed."
+            "sharedTermId": "landing-liquidation-buffer"
           },
           {
             "id": "branches-valid-leverage",
             "term": "Valid leverage",
-            "description": "ANTI-D is only allowed with a valid final leverage. A protective branch must not create a broken risk profile."
+            "description": "Valid leverage — ANTI-D is only allowed with a valid final leverage. A protective branch must not create a broken risk profile.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "These hard conditions fix the cause, not the symptom: they stop the branch from activating on noise and later pretending that randomness was useful protection.",
@@ -564,22 +677,22 @@
           {
             "id": "branches-pnl",
             "term": "PnL",
-            "description": "The total return of the branch on the chosen slice."
+            "sharedTermId": "pnl"
           },
           {
             "id": "branches-maxdd",
             "term": "MaxDD",
-            "description": "Maximum equity drawdown. It shows the worst historical drop the branch went through."
+            "description": "MaxDD — Maximum equity drawdown. It shows the worst historical drop the branch went through.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "branches-trade-share",
             "term": "Trade% / NoTrade%",
-            "description": "The share of traded days and skipped days. It shows whether a pretty result came from shutting the strategy down too often."
+            "description": "Trade% / NoTrade% — The share of traded days and skipped days. It shows whether a pretty result came from shutting the strategy down too often.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "branches-policy-branch-mega",
             "term": "Policy Branch Mega",
-            "description": "The main comparison table across policies and branches where the metric package for branch reading is assembled."
+            "sharedTermId": "landing-policy-branch-mega"
           }
         ],
         "why": "One number hides cause too easily. A metric package shows whether the branch improved the risk profile or merely changed the return path at random.",
@@ -632,32 +745,32 @@
           {
             "id": "splits-train",
             "term": "Train",
-            "description": "The part of history the model trained on and tuned itself to."
+            "sharedTermId": "train-segment"
           },
           {
             "id": "splits-oos",
             "term": "OOS",
-            "description": "The out-of-sample segment after the train boundary. It is used for honest evaluation on unseen days."
+            "sharedTermId": "oos-segment"
           },
           {
             "id": "splits-recent",
             "term": "Recent",
-            "description": "The last sliding window of history used to read current model form."
+            "description": "Recent — The last sliding window of history used to read current model form.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "splits-full",
             "term": "Full",
-            "description": "The complete available history with both train and oos together."
+            "description": "Full — The complete available history with both train and oos together.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "splits-boundary",
             "term": "Train boundary",
-            "description": "The canonical split boundary that separates training history from unseen evaluation days."
+            "description": "Train boundary — The canonical split boundary that separates training history from unseen evaluation days.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "splits-day-keys",
             "term": "Day-key boundaries",
-            "description": "The day-key contract used to enforce the split boundary without mixing training and evaluation days."
+            "description": "Day-key boundaries — The day-key contract used to enforce the split boundary without mixing training and evaluation days.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Split separation stops familiar history from being mistaken for an honest check on new days.",
@@ -673,7 +786,7 @@
           {
             "id": "splits-train-only",
             "term": "Train-only",
-            "description": "A mode where only train days before the split boundary are used."
+            "description": "Train-only — A mode where only train days before the split boundary are used.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Train is useful for reading the learning result, but it does not show how the model behaves outside familiar history.",
@@ -689,7 +802,7 @@
           {
             "id": "splits-strict",
             "term": "Strict split",
-            "description": "A hard split contract with no quiet exceptions between train and oos."
+            "description": "Strict split — A hard split contract with no quiet exceptions between train and oos.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "OOS removes the easiest shortcut: here the model can no longer rely on days it already saw during tuning.",
@@ -705,7 +818,7 @@
           {
             "id": "splits-recent-window",
             "term": "Recent window",
-            "description": "The last 240 trading days counted backward from the latest available date."
+            "description": "Recent window — The last 240 trading days counted backward from the latest available date.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Recent surfaces current degradation before it disappears inside a long average.",
@@ -721,7 +834,7 @@
           {
             "id": "splits-full-history",
             "term": "Long horizon",
-            "description": "The complete available history used to read stability across rare and distant market regimes."
+            "description": "Long horizon — The complete available history used to read stability across rare and distant market regimes.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Full history is needed so a short local success is not mistaken for proven long-term stability.",
@@ -736,9 +849,9 @@
     },
     "sections": {
       "overview": {
-        "title": "NYSE trading day",
+        "title": "Trading day",
         "paragraphs": [
-          "The project's trading day follows the [[time-nyse-session|NYSE regular session]], not UTC midnight. That session defines entry, exit, and split boundaries for the day model.",
+          "The project's trading day follows the [[time-nyse-session|U.S. regular session]], not UTC midnight. That session defines entry, exit, and split boundaries for the day model.",
           "The same UTC date can belong to different trading days in the project. For the model and reports, the NY business day matters more than the calendar date itself."
         ],
         "table": {
@@ -751,35 +864,35 @@
             [
               "Summer ([[time-dst|EDT / DST]])",
               "[[time-entry-utc|09:30 NY / 13:30 UTC]]",
-              "Regular-session open"
+              "U.S. session open"
             ],
             [
               "Winter (EST)",
               "[[time-entry-utc|09:30 NY / 14:30 UTC]]",
-              "Regular-session open"
+              "U.S. session open"
             ]
           ]
         },
         "terms": [
           {
             "id": "time-nyse-session",
-            "term": "NYSE regular session",
-            "description": "The main New York Stock Exchange session: open at 09:30 and close at 16:00 in America/New_York."
+            "term": "U.S. regular session",
+            "sharedTermId": "landing-nyse-session"
           },
           {
             "id": "time-dst",
             "term": "DST",
-            "description": "The daylight-saving-time shift in New York that changes the UTC timestamps of entry and exit."
+            "description": "DST — The daylight-saving-time shift in New York that changes the UTC timestamps of entry and exit.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-entry-utc",
             "term": "EntryUtc",
-            "description": "The UTC entry timestamp of the trading day. The rest of the window is measured from this point."
+            "description": "EntryUtc — The UTC entry timestamp of the trading day. The rest of the window is measured from this point.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-ny-trading-day",
             "term": "NyTradingDay",
-            "description": "The New York business day key the project uses as the semantic trading date."
+            "description": "NyTradingDay — The New York business day key the project uses as the semantic trading date.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "If time is read only through UTC calendar dates, it becomes easy to break the real cause of an honest split and assign a signal to the wrong trading day.",
@@ -795,17 +908,17 @@
           {
             "id": "time-baseline-exit",
             "term": "Baseline-exit",
-            "description": "The actual close of the current NYSE session minus a small technical buffer. This is the canonical end of the baseline window."
+            "description": "Baseline-exit — The actual close of the current NYSE session minus a small technical buffer. This is the canonical end of the baseline window.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-early-close",
             "term": "Early close",
-            "description": "A shortened NYSE trading day. On such dates, baseline-exit shifts with the real exchange close."
+            "description": "Early close — A shortened NYSE trading day. On such dates, baseline-exit shifts with the real exchange close.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-close-buffer",
             "term": "Technical buffer",
-            "description": "A small gap before the official close used to keep the time contract stable and repeatable."
+            "description": "Technical buffer — A small gap before the official close used to keep the time contract stable and repeatable.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Baseline-exit fixes the cause of honest day labeling. If that moment floats, the model starts learning and being evaluated on different windows.",
@@ -821,22 +934,22 @@
           {
             "id": "time-entry-day-key",
             "term": "EntryDayKeyUtc",
-            "description": "The UTC day key of entry time. It tells the system which day the forecast belongs to at creation time."
+            "description": "EntryDayKeyUtc — The UTC day key of entry time. It tells the system which day the forecast belongs to at creation time.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-exit-day-key",
             "term": "ExitDayKeyUtc",
-            "description": "The UTC day key of baseline exit. It marks the day where the baseline window really ends."
+            "description": "ExitDayKeyUtc — The UTC day key of baseline exit. It marks the day where the baseline window really ends.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-train-until-exit",
             "term": "TrainUntilExitDayKeyUtc",
-            "description": "The canonical split boundary based on exit day key. It separates train from oos in the honest time contract."
+            "description": "TrainUntilExitDayKeyUtc — The canonical split boundary based on exit day key. It separates train from oos in the honest time contract.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-baseline-exit-utc",
             "term": "BaselineExitUtc",
-            "description": "The UTC timestamp of the baseline-window end used in both split logic and truthful daily labeling."
+            "description": "BaselineExitUtc — The UTC timestamp of the baseline-window end used in both split logic and truthful daily labeling.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Separating the day keys fixes the cause of time-boundary errors. It stops the code from using a convenient date instead of the date that actually belongs to the exit contract.",
@@ -852,12 +965,12 @@
           {
             "id": "time-weekend-filter",
             "term": "Weekend filter",
-            "description": "The rule that prevents the creation of a trading day for NY Saturday and NY Sunday."
+            "description": "Weekend filter — The rule that prevents the creation of a trading day for NY Saturday and NY Sunday.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "time-weekend-noise",
             "term": "Weekend noise",
-            "description": "The distortion introduced when dates without valid NY business context are allowed into the history."
+            "description": "Weekend noise — The distortion introduced when dates without valid NY business context are allowed into the history.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Weekend exclusion removes the cause of weak time signal: the model does not train on days where the system's own trading-time logic is undefined.",
@@ -911,27 +1024,27 @@
           {
             "id": "features-feature",
             "term": "Feature",
-            "description": "A numeric signal the model receives at forecast time as part of the causal market context."
+            "description": "Feature — A numeric signal the model receives at forecast time as part of the causal market context.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-pfi",
             "term": "PFI",
-            "description": "Permutation Feature Importance — a way to measure how much model quality depends on a particular feature."
+            "sharedTermId": "landing-pfi"
           },
           {
             "id": "features-delta-auc",
             "term": "ΔAUC",
-            "description": "The AUC change after feature permutation. The stronger the quality drop, the more important the feature is for the model."
+            "description": "ΔAUC — The AUC change after feature permutation. The stronger the quality drop, the more important the feature is for the model.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-corr",
             "term": "Corr(score)",
-            "description": "The correlation between a feature value and the model score. It shows both direction and stability of the feature influence."
+            "description": "Corr(score) — The correlation between a feature value and the model score. It shows both direction and stability of the feature influence.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-delta-mean",
             "term": "ΔMean",
-            "description": "The difference between class means for the same feature."
+            "description": "ΔMean — The difference between class means for the same feature.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Without the meaning of the feature, even a high PFI stays just a number. Feature reading starts with what the model actually saw in the market.",
@@ -947,47 +1060,47 @@
           {
             "id": "features-returns-sol-ret-30",
             "term": "SolRet30",
-            "description": "SOL return over the last 30 6h bars."
+            "description": "SolRet30 — SOL return over the last 30 6h bars.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-btc-ret-30",
             "term": "BtcRet30",
-            "description": "BTC return over the same horizon."
+            "description": "BtcRet30 — BTC return over the same horizon.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-sol-btc-ret-30",
             "term": "SolBtcRet30",
-            "description": "The difference between medium-horizon SOL return and BTC return. It shows SOL relative strength against the broader market."
+            "description": "SolBtcRet30 — The difference between medium-horizon SOL return and BTC return. It shows SOL relative strength against the broader market.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-sol-ret-1",
             "term": "SolRet1",
-            "description": "SOL return over the last 1 bar."
+            "description": "SolRet1 — SOL return over the last 1 bar.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-sol-ret-3",
             "term": "SolRet3",
-            "description": "SOL return over the last 3 bars."
+            "description": "SolRet3 — SOL return over the last 3 bars.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-btc-ret-1",
             "term": "BtcRet1",
-            "description": "BTC return over the last 1 bar."
+            "description": "BtcRet1 — BTC return over the last 1 bar.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-btc-ret-3",
             "term": "BtcRet3",
-            "description": "BTC return over the last 3 bars."
+            "description": "BtcRet3 — BTC return over the last 3 bars.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-gap-btc-sol-1",
             "term": "GapBtcSol1",
-            "description": "The one-bar short-horizon gap between BTC and SOL momentum."
+            "description": "GapBtcSol1 — The one-bar short-horizon gap between BTC and SOL momentum.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-returns-gap-btc-sol-3",
             "term": "GapBtcSol3",
-            "description": "The three-bar short-horizon gap between BTC and SOL momentum."
+            "description": "GapBtcSol3 — The three-bar short-horizon gap between BTC and SOL momentum.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "This group shows whether the move comes from the whole market or whether SOL already has its own relative strength.",
@@ -1003,22 +1116,22 @@
           {
             "id": "features-indicators-fng",
             "term": "FngNorm",
-            "description": "The normalized Fear & Greed index. It captures broad crypto-market sentiment."
+            "description": "FngNorm — The normalized Fear & Greed index. It captures broad crypto-market sentiment.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-indicators-dxy",
             "term": "DxyChg30",
-            "description": "The medium-horizon change in the DXY dollar index."
+            "description": "DxyChg30 — The medium-horizon change in the DXY dollar index.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-indicators-gold",
             "term": "GoldChg30",
-            "description": "The medium-horizon move in gold through PAXG. It shows the defensive macro backdrop."
+            "description": "GoldChg30 — The medium-horizon move in gold through PAXG. It shows the defensive macro backdrop.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-indicators-btc-vs-200",
             "term": "BtcVs200",
-            "description": "BTC position relative to SMA200. It acts as a long-trend market regime anchor."
+            "description": "BtcVs200 — BTC position relative to SMA200. It acts as a long-trend market regime anchor.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "The backdrop explains why the same local SOL move can mean different things in different market environments.",
@@ -1034,22 +1147,22 @@
           {
             "id": "features-momentum-rsi",
             "term": "SolRsiCenteredScaled",
-            "description": "The centered and scaled RSI(14) feature for SOL."
+            "description": "SolRsiCenteredScaled — The centered and scaled RSI(14) feature for SOL.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-momentum-rsi-slope",
             "term": "RsiSlope3Scaled",
-            "description": "The short-horizon slope of RSI. It shows whether momentum is accelerating or fading."
+            "description": "RsiSlope3Scaled — The short-horizon slope of RSI. It shows whether momentum is accelerating or fading.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-momentum-atr",
             "term": "AtrPct",
-            "description": "ATR(14) normalized by entry price. It shows typical movement amplitude relative to the current price."
+            "description": "AtrPct — ATR(14) normalized by entry price. It shows typical movement amplitude relative to the current price.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-momentum-dyn-vol",
             "term": "DynVol",
-            "description": "Average absolute move over 10 bars. It is a practical measure of current market stress."
+            "description": "DynVol — Average absolute move over 10 bars. It is a practical measure of current market stress.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "The same direction can look very different if the market is calm in one case and already overheated in the other.",
@@ -1065,27 +1178,27 @@
           {
             "id": "features-regime-down",
             "term": "RegimeDownFlag",
-            "description": "A bearish market-regime flag."
+            "sharedTermId": "regime-down-flag"
           },
           {
             "id": "features-regime-hard",
             "term": "HardRegimeIs2Flag",
-            "description": "A flag for a harsher market regime where risk and instability are usually higher."
+            "description": "HardRegimeIs2Flag — A flag for a harsher market regime where risk and instability are usually higher.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-regime-sol-above-ema50",
             "term": "SolAboveEma50",
-            "description": "SOL position relative to EMA50. It tells whether price sits above or below a near-trend anchor."
+            "description": "SolAboveEma50 — SOL position relative to EMA50. It tells whether price sits above or below a near-trend anchor.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-regime-sol-ema-spread",
             "term": "SolEma50vs200",
-            "description": "The EMA50/EMA200 spread for SOL. It shows trend strength and direction."
+            "description": "SolEma50vs200 — The EMA50/EMA200 spread for SOL. It shows trend strength and direction.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "features-regime-btc-ema-spread",
             "term": "BtcEma50vs200",
-            "description": "The EMA50/EMA200 spread for BTC. It describes the broad market trend backdrop."
+            "description": "BtcEma50vs200 — The EMA50/EMA200 spread for BTC. It describes the broad market trend backdrop.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Regime features show why the same local signal is read differently in calm and harsh markets.",
@@ -1114,12 +1227,12 @@
           {
             "id": "tests-overview-leakage",
             "term": "Leakage",
-            "description": "Future-data leakage into features, labels, or evaluation. It is dangerous because it improves statistics instead of causing an obvious crash."
+            "sharedTermId": "leakage"
           },
           {
             "id": "tests-overview-sanity",
             "term": "Sanity check",
-            "description": "Validation of basic data and report invariants: ranges, [[tests-sanity-nan|NaN]], [[tests-sanity-infinity|Infinity]], empty sections, and broken boundaries."
+            "description": "Sanity check — Validation of basic data and report invariants: ranges, [[tests-sanity-nan|NaN]], [[tests-sanity-infinity|Infinity]], empty sections, and broken boundaries.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1134,22 +1247,22 @@
           {
             "id": "tests-sanity-core",
             "term": "Sanity checks",
-            "description": "A package of validations for basic data and report correctness. It stops broken state before it reaches the UI."
+            "description": "Sanity checks — A package of validations for basic data and report correctness. It stops broken state before it reaches the UI.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-sanity-fail-fast",
             "term": "Fail-fast",
-            "description": "A principle where the system throws immediately on contract violation instead of hiding the issue behind a safe-looking default."
+            "description": "Fail-fast — A principle where the system throws immediately on contract violation instead of hiding the issue behind a safe-looking default.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-sanity-nan",
             "term": "NaN",
-            "description": "The numeric value “not a number”. For probabilities, PnL, and metrics it always means the computation is broken."
+            "description": "NaN — The numeric value “not a number”. For probabilities, PnL, and metrics it always means the computation is broken.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-sanity-infinity",
             "term": "Infinity",
-            "description": "An infinite numeric value. In reports and probabilities it usually means a broken formula or division by zero and should trigger fail-fast."
+            "description": "Infinity — An infinite numeric value. In reports and probabilities it usually means a broken formula or division by zero and should trigger fail-fast.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1164,42 +1277,42 @@
           {
             "id": "tests-leakage-core",
             "term": "Leakage",
-            "description": "Future information leaking into features, labels, or evaluation. It makes offline statistics better while failing to reproduce in live use."
+            "sharedTermId": "leakage"
           },
           {
             "id": "tests-leakage-future-blind",
             "term": "Future-blind check",
-            "description": "A test that confirms future data changes do not alter a decision that was already made."
+            "description": "Future-blind check — A test that confirms future data changes do not alter a decision that was already made.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-leakage-shuffle",
             "term": "shuffle tests",
-            "description": "Checks on shuffled labels or data. If quality barely drops, the model may be leaning on leakage rather than on a real signal."
+            "description": "shuffle tests — Checks on shuffled labels or data. If quality barely drops, the model may be leaning on leakage rather than on a real signal.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-leakage-causal-contract",
             "term": "causal contract",
-            "description": "Rule that the decision uses only data available before forecast time. Once that contract breaks, historical evaluation stops being honest."
+            "description": "causal contract — Rule that the decision uses only data available before forecast time. Once that contract breaks, historical evaluation stops being honest.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-leakage-split",
             "term": "Split/time contract",
-            "description": "Rules for [[tests-leakage-train|Train]], [[tests-leakage-oos|OOS]], entry time, and [[tests-leakage-day-key|day keys]]. They preserve historical evaluation honesty."
+            "description": "Split/time contract — Rules for [[tests-leakage-train|Train]], [[tests-leakage-oos|OOS]], entry time, and [[tests-leakage-day-key|day keys]]. They preserve historical evaluation honesty.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-leakage-train",
             "term": "Train",
-            "description": "The training segment of history where the model fits its parameters. By itself it does not prove honest transfer to new days."
+            "sharedTermId": "train-segment"
           },
           {
             "id": "tests-leakage-oos",
             "term": "OOS",
-            "description": "The out-of-sample segment of new days after the training boundary. This is the honest slice for transfer validation."
+            "sharedTermId": "oos-segment"
           },
           {
             "id": "tests-leakage-day-key",
             "term": "Day key",
-            "description": "The contractual trading-day identifier that keeps history assigned to the correct time slice instead of mixing neighboring windows."
+            "description": "Day key — The contractual trading-day identifier that keeps history assigned to the correct time slice instead of mixing neighboring windows.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1214,12 +1327,12 @@
           {
             "id": "tests-perf-budget",
             "term": "Runtime budget",
-            "description": "Allowed time and resource cost for the full run. Systematic budget violations create pressure for risky temporary workarounds."
+            "description": "Runtime budget — Allowed time and resource cost for the full run. Systematic budget violations create pressure for risky temporary workarounds.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "tests-perf-repeatability",
             "term": "Run repeatability",
-            "description": "Ability to reproduce the same result on the same data and parameters. Without it, version-to-version comparison stops being trustworthy."
+            "description": "Run repeatability — Ability to reproduce the same result on the same data and parameters. Without it, version-to-version comparison stops being trustworthy.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       }
@@ -1276,22 +1389,22 @@
           {
             "id": "truth-overview-causal",
             "term": "Causal snapshot",
-            "description": "A snapshot of data available at decision time. It freezes what the model truly knew before entry."
+            "description": "Causal snapshot — A snapshot of data available at decision time. It freezes what the model truly knew before entry.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-overview-fact",
             "term": "Post-fact outcome",
-            "description": "The final day outcome after the [[truth-omniscient-window|window]] closes. It is needed for quality and PnL evaluation, but must not alter the [[truth-causal-core|causal decision]]."
+            "description": "Post-fact outcome — The final day outcome after the [[truth-omniscient-window|window]] closes. It is needed for quality and PnL evaluation, but must not alter the [[truth-causal-core|causal decision]].\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-overview-report",
             "term": "ReportDocument",
-            "description": "Unified report contract with sections, tables, and metadata. The UI reads it as a ready-made source of meaning."
+            "sharedTermId": "landing-report-document"
           },
           {
             "id": "truth-overview-trace",
             "term": "Traceability",
-            "description": "Transparent linkage between report source, generation time, selected slice, and the screen."
+            "description": "Traceability — Transparent linkage between report source, generation time, selected slice, and the screen.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1306,42 +1419,42 @@
           {
             "id": "truth-causal-core",
             "term": "Causal layer",
-            "description": "Decision path that uses only the data truly available before entry. It defines the causally valid forecast."
+            "description": "Causal layer — Decision path that uses only the data truly available before entry. It defines the causal forecast.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-entry",
             "term": "EntryUtc",
-            "description": "UTC entry moment from which the allowed information set for the decision layer is derived."
+            "description": "EntryUtc — UTC entry moment from which the allowed information set for the decision layer is derived.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-asof",
             "term": "AsOfUtc",
-            "description": "Upper historical boundary the model is allowed to treat as known at decision time."
+            "description": "AsOfUtc — Upper historical boundary the model is allowed to treat as known at decision time.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-cutoff",
             "term": "DataCutoffUtc",
-            "description": "Data cut-off moment before forecast computation. After it, new candles and derived fields must not enter the [[truth-overview-causal|causal snapshot]]."
+            "description": "DataCutoffUtc — Data cut-off moment before forecast computation. After it, new candles and derived fields must not enter the [[truth-overview-causal|causal snapshot]].\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-input",
             "term": "causal input",
-            "description": "The set of features and fields the model was actually allowed to use before the forecast. Later data inside the causal input breaks decision honesty."
+            "description": "causal input — The set of features and fields the model was actually allowed to use before the forecast. Later data inside the causal input breaks decision honesty.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-contract",
             "term": "causal contract",
-            "description": "Rule that the [[truth-causal-core|decision layer]] receives only [[truth-causal-input|causal input]] and never sees post-fact knowledge."
+            "description": "causal contract — Rule that the [[truth-causal-core|decision layer]] receives only [[truth-causal-input|causal input]] and never sees post-fact knowledge.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-causal-minmove",
             "term": "MinMove",
-            "description": "The minimum meaningful daily price move. If realized MinMove reaches the [[truth-causal-input|causal input]] before the forecast, the project is already peeking into the future."
+            "sharedTermId": "min-move"
           },
           {
             "id": "truth-causal-oos",
             "term": "OOS",
-            "description": "The out-of-sample segment after the training boundary. A pretty OOS is no longer honest once the [[truth-causal-input|causal input]] is polluted by [[truth-overview-fact|post-fact knowledge]]."
+            "sharedTermId": "oos-segment"
           }
         ]
       },
@@ -1356,17 +1469,17 @@
           {
             "id": "truth-omniscient-core",
             "term": "Omniscient layer",
-            "description": "Post-fact evaluation path that sees the final outcome after the window closes and is used for outcome, PnL, and diagnostics."
+            "description": "Omniscient layer — Post-fact evaluation path that sees the final outcome after the window closes and is used for outcome, PnL, and diagnostics.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-omniscient-window",
             "term": "Forward window",
-            "description": "Period after entry during which the market realizes the actual day outcome. Before it closes, the post-fact truth does not yet exist honestly."
+            "description": "Forward window — Period after entry during which the market realizes the actual day outcome. Before it closes, the post-fact truth does not yet exist honestly.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-omniscient-record",
             "term": "BacktestRecord",
-            "description": "Record of the [[truth-overview-fact|factual outcome]] and execution context inside the post-fact path."
+            "description": "BacktestRecord — Record of the [[truth-overview-fact|factual outcome]] and execution context inside the post-fact path.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1384,7 +1497,7 @@
           "rows": [
             [
               "[[truth-structure-causal|Core.Causal]]",
-              "Owns the decision and causally valid features.",
+              "Owns the decision and the features valid for the causal forecast.",
               "So post-fact knowledge cannot leak into live logic."
             ],
             [
@@ -1410,32 +1523,32 @@
           {
             "id": "truth-structure-causal",
             "term": "Core.Causal",
-            "description": "Solution project for causally valid decision logic. It must not know post-fact outcomes."
+            "description": "Core.Causal — Solution project for decision logic that stays valid for the causal forecast. It must not know post-fact outcomes.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-structure-omniscient",
             "term": "Core.Omniscient",
-            "description": "Solution project for post-fact evaluation and factual result computation."
+            "description": "Core.Omniscient — Solution project for post-fact evaluation and factual result computation.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-structure-interop",
             "term": "Interop",
-            "description": "DTO and contract layer between projects. It preserves field meaning across [[truth-structure-causal|causal]], [[truth-structure-reports|reports]], and [[truth-structure-api|API]]."
+            "sharedTermId": "landing-interop"
           },
           {
             "id": "truth-structure-orchestration",
             "term": "AppOrchestration",
-            "description": "Scenario orchestration layer that coordinates flows between [[truth-structure-causal|causal]], [[truth-structure-omniscient|omniscient]], and [[truth-structure-reports|reports]]."
+            "description": "AppOrchestration — Scenario orchestration layer that coordinates flows between [[truth-structure-causal|causal]], [[truth-structure-omniscient|omniscient]], and [[truth-structure-reports|reports]].\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-structure-reports",
             "term": "Reports",
-            "description": "Project that assembles report documents into a stable contract for API and UI."
+            "description": "Reports — Project that assembles report documents into a stable contract for API and UI.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-structure-api",
             "term": "Api",
-            "description": "HTTP delivery layer for reports and current prediction. It should return a valid contract or an explicit error."
+            "description": "Api — HTTP delivery layer for reports and current prediction. It should return a valid contract or an explicit error.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1451,17 +1564,17 @@
           {
             "id": "truth-delivery-storage",
             "term": "ReportStorage",
-            "description": "Storage of reports by `kind/id`, used by the API to fetch ready-made documents and preserve source traceability."
+            "description": "ReportStorage — Storage of reports by `kind/id`, used by the API to fetch ready-made documents and preserve source traceability.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-delivery-generated-at",
             "term": "generatedAtUtc",
-            "description": "Report generation timestamp used for [[truth-overview-trace|traceability]] and freshness checks."
+            "description": "generatedAtUtc — Report generation timestamp used for [[truth-overview-trace|traceability]] and freshness checks.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-delivery-endpoint",
             "term": "API endpoint",
-            "description": "Contract route for forecast or report reading. It should return structured data or an explicit error."
+            "description": "API endpoint — Contract route for forecast or report reading. It should return structured data or an explicit error.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       },
@@ -1506,47 +1619,47 @@
           {
             "id": "truth-tests-arch",
             "term": "ArchTests",
-            "description": "Architecture dependency tests across project layers. They ensure [[truth-structure-causal|causal]], [[truth-structure-omniscient|omniscient]], [[truth-structure-reports|reports]], and [[truth-structure-orchestration|orchestration]] do not mix responsibility."
+            "description": "ArchTests — Architecture dependency tests across project layers. They ensure [[truth-structure-causal|causal]], [[truth-structure-omniscient|omniscient]], [[truth-structure-reports|reports]], and [[truth-structure-orchestration|orchestration]] do not mix responsibility.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-tests-shuffle",
             "term": "Shuffle tests",
-            "description": "Checks for expected degradation on randomized data. If quality does not drop, the project suspects [[truth-tests-leakage|leakage]] or a broken [[truth-causal-contract|causal contract]]."
+            "description": "Shuffle tests — Checks for expected degradation on randomized data. If quality does not drop, the project suspects [[truth-tests-leakage|leakage]] or a broken [[truth-causal-contract|causal contract]].\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-tests-split",
             "term": "Split/time contract",
-            "description": "Rules that fix [[truth-tests-train|Train]], [[truth-tests-oos|OOS]], [[truth-causal-entry|EntryUtc]], and [[truth-tests-baseline-exit|baseline-exit]] boundaries for honest historical evaluation."
+            "description": "Split/time contract — Rules that fix [[truth-tests-train|Train]], [[truth-tests-oos|OOS]], [[truth-causal-entry|EntryUtc]], and [[truth-tests-baseline-exit|baseline-exit]] boundaries for honest historical evaluation.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-tests-selfcheck",
             "term": "SelfCheckRunner",
-            "description": "Post-run validation package that checks the report result after computation completes and blocks broken documents from [[truth-delivery-storage|ReportStorage]] and [[truth-structure-api|API]]."
+            "description": "SelfCheckRunner — Post-run validation package that checks the report result after computation completes and blocks broken documents from [[truth-delivery-storage|ReportStorage]] and [[truth-structure-api|API]].\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-tests-leakage",
             "term": "leakage",
-            "description": "Future information leaking into features or evaluation. That defect makes past statistics look better than they would in real use."
+            "sharedTermId": "leakage"
           },
           {
             "id": "truth-tests-nan",
             "term": "NaN",
-            "description": "The numeric value “not a number”. If it reaches a report or UI, the computation has already broken a basic data invariant."
+            "description": "NaN — The numeric value “not a number”. If it reaches a report or UI, the computation has already broken a basic data invariant.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           },
           {
             "id": "truth-tests-train",
             "term": "Train",
-            "description": "The training slice of history. It is needed for fitting, but it is not proof of honest quality by itself."
+            "sharedTermId": "train-segment"
           },
           {
             "id": "truth-tests-oos",
             "term": "OOS",
-            "description": "The out-of-sample slice of new days after the train boundary. It is needed for honest transfer validation."
+            "sharedTermId": "oos-segment"
           },
           {
             "id": "truth-tests-baseline-exit",
             "term": "baseline-exit",
-            "description": "The contractual moment when the daily window is considered closed. It anchors fact labeling, split boundaries, and historical evaluation honesty."
+            "description": "baseline-exit — The contractual moment when the daily window is considered closed. It anchors fact labeling, split boundaries, and historical evaluation honesty.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ]
       }

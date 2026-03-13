@@ -1,13 +1,16 @@
 import { ReactNode } from 'react'
 import { BACKTEST_DESCRIPTION, POLICY_DESCRIPTION } from '@/shared/consts/tooltipDomainTerms'
 import i18n from '@/shared/configs/i18n/i18n'
-import { COMMON_TERM_TOOLTIP_REGISTRY } from '@/shared/terms/common'
+import { COMMON_TERM_TOOLTIP_REGISTRY, SL_MODEL_DESCRIPTION } from '@/shared/terms/common'
 import type { SharedTermTooltipRuleDraft } from '@/shared/terms/types'
+import { readActiveLocaleResource } from '@/shared/lib/i18n/readActiveLocaleResource'
 import { BulletList } from '@/shared/ui/BulletList'
 import TermTooltip from './TermTooltip'
 import cls from './renderTermTooltipRichText.module.scss'
 import { matchTermTooltips, normalizeComparableTerm, TermTooltipRegistryEntry } from '../lib/termTooltipMatcher'
 import { buildSafeTermTooltipRegistry, formatTermTooltipRegistryIssue } from '../lib/termTooltipRegistryIntegrity'
+import { resolveTermTooltipDescriptionContent } from '../lib/resolveTermTooltipDescriptionContent'
+import { logError } from '@/shared/lib/logging/logError'
 
 type InlineGlossaryRuleDraft = SharedTermTooltipRuleDraft
 
@@ -30,13 +33,13 @@ const SPLIT_BOUNDARIES_DESCRIPTION_EN: ReactNode =
     'Split boundaries are the canonical Train/OOS cut by baseline-exit day.\n\nIf a day closes no later than the boundary, it belongs to Train. If the close lands after the boundary, the day belongs to OOS.\n\nThe cut is based on exit day key rather than entry time so that a day does not stay in Train when its realized outcome closes on the OOS side of the split.'
 
 const CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_RU: ReactNode =
-    'Модели текущего прогноза — это не один классификатор, а последовательность слоёв, которые собирают итоговый ответ по шагам.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) — базовый дневной слой. Он сначала оценивает, будет ли значимое движение, а затем задаёт базовый класс UP / FLAT / DOWN.\n\n2) [[landing-micro-model|Micro]] — уточняющий слой внутри FLAT-сценариев. Он пытается понять, есть ли внутри боковика слабый уклон вверх или вниз.\n\n3) [[sl-model|SL-модель]] — отдельный risk-слой, который оценивает шанс, что [[tp-sl|stop-loss]] сработает раньше [[tp-sl|take-profit]], и помечает рискованные дни.\n\n4) Total — не отдельная обученная модель, а итоговая сборка Day + Micro + SL, которую дальше читает слой [[policy|торговых правил]].\n\nКак читать:\nесли фактор ссылается на модель, сначала нужно понять, к какому слою он относится: к базовому направлению дня, к уточнению боковика или к risk-слою.'
+    'Модели текущего прогноза — это не один классификатор, а последовательность слоёв, которые собирают итоговый ответ по шагам.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) — базовый дневной слой. Он сначала оценивает, будет ли значимое движение, а затем задаёт базовый класс [[landing-day-up|рост]] / [[landing-day-flat|боковик]] / [[landing-day-down|падение]].\n\n2) [[landing-micro-model|Micro]] — уточняющий слой внутри [[landing-day-flat|боковика]]. Он пытается понять, есть ли внутри нейтрального дня слабый уклон вверх или вниз.\n\n3) [[sl-model|SL-модель]] — отдельный risk-слой, который оценивает шанс, что [[tp-sl|stop-loss]] сработает раньше [[tp-sl|take-profit]], и помечает рискованные дни.\n\n4) Total — не отдельная обученная модель, а итоговая сборка Day + Micro + SL, которую дальше читает слой [[policy|торговых правил]].\n\nКак читать:\nесли [[factor|фактор]] ссылается на модель, сначала нужно понять, к какому слою он относится: к базовому направлению дня, к уточнению боковика или к risk-слою.'
 
 const CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_EN: ReactNode =
-    'The current prediction model stack is not a single classifier. It is a layered pipeline that builds the final answer step by step.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) is the base daily layer. It first estimates whether a meaningful move is likely, then sets the base UP / FLAT / DOWN class.\n\n2) [[landing-micro-model|Micro]] is the refinement layer inside FLAT scenarios. It tries to recover a weak directional tilt when the daily layer sees sideways action.\n\n3) [[sl-model|SL model]] is the risk layer that estimates whether [[tp-sl|stop-loss]] may hit before [[tp-sl|take-profit]] and marks elevated-risk days.\n\n4) Total is not a separate trained model. It is the final Day + Micro + SL aggregation that the [[policy|policy]] layer reads next.\n\nHow to read it:\nwhen a factor references a model, the key question is which layer it belongs to: the base day direction, the FLAT refinement layer, or the risk layer.'
+    'The current prediction model stack is not a single classifier. It is a layered pipeline that builds the final answer step by step.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) is the base daily layer. It first estimates whether a meaningful move is likely, then sets the base UP / FLAT / DOWN class.\n\n2) [[landing-micro-model|Micro]] is the refinement layer inside FLAT scenarios. It tries to recover a weak directional tilt when the daily layer sees sideways action.\n\n3) [[sl-model|SL model]] is the risk layer that estimates whether [[tp-sl|stop-loss]] may hit before [[tp-sl|take-profit]] and marks elevated-risk days.\n\n4) Total is not a separate trained model. It is the final Day + Micro + SL aggregation that the [[policy|policy]] layer reads next.\n\nHow to read it:\nwhen a [[factor|factor]] references a model, the key question is which layer it belongs to: the base day direction, the FLAT refinement layer, or the risk layer.'
 
 const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU: ReactNode =
-    'Daily — базовый дневной слой current prediction.\n\nСначала он оценивает, ожидается ли достаточно заметное движение, а затем выбирает базовый класс дня: UP, FLAT или DOWN.\n\nЭтот слой задаёт стартовый сценарий до любых уточнений от [[landing-micro-model|Micro]] и до риск-коррекции от [[sl-model|SL-модели]].'
+    'Daily — базовый дневной слой current prediction.\n\nСначала он оценивает, ожидается ли достаточно заметное движение, а затем выбирает базовый класс дня: [[landing-day-up|рост]], [[landing-day-flat|боковик]] или [[landing-day-down|падение]].\n\nЭтот слой задаёт стартовый сценарий до любых уточнений от [[landing-micro-model|Micro]] и до риск-коррекции от [[sl-model|SL-модели]].'
 
 const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN: ReactNode =
     'Daily is the base daily layer in current prediction.\n\nIt first estimates whether a meaningful move is likely, then selects the base day class: UP, FLAT, or DOWN.\n\nThis layer sets the starting scenario before any [[landing-micro-model|Micro]] refinement and before the risk correction from the [[sl-model|SL model]].'
@@ -79,6 +82,57 @@ function resolveLocalizedReportTooltipDescription(descriptionKey: string, ruleId
     })
 }
 
+interface LocalizedGlossaryTermResource {
+    id: string
+    term: string
+    description: string
+}
+
+function resolveLocalizedGlossaryTerm(namespace: 'docs' | 'guide', termId: string): LocalizedGlossaryTermResource {
+    const errorSource = '[term-tooltip] localized glossary'
+    const glossaryTerms = readActiveLocaleResource(i18n, namespace, 'page.glossary.terms', errorSource)
+
+    if (!Array.isArray(glossaryTerms)) {
+        throw new Error(`[term-tooltip] glossary terms must be an array. namespace=${namespace}.`)
+    }
+
+    const glossaryItem = glossaryTerms.find(item => {
+        return item && typeof item === 'object' && (item as Record<string, unknown>).id === termId
+    })
+
+    if (!glossaryItem || typeof glossaryItem !== 'object') {
+        throw new Error(`[term-tooltip] glossary term is missing. namespace=${namespace}, termId=${termId}.`)
+    }
+
+    const term = (glossaryItem as Record<string, unknown>).term
+    const description = (glossaryItem as Record<string, unknown>).description
+
+    if (typeof term !== 'string' || term.trim().length === 0) {
+        throw new Error(`[term-tooltip] glossary term label is invalid. namespace=${namespace}, termId=${termId}.`)
+    }
+
+    if (typeof description !== 'string' || description.trim().length === 0) {
+        throw new Error(
+            `[term-tooltip] glossary term description is invalid. namespace=${namespace}, termId=${termId}.`
+        )
+    }
+
+    return {
+        id: termId,
+        term,
+        description
+    }
+}
+
+function resolveLocalizedGlossaryTooltipDescription(namespace: 'docs' | 'guide', termId: string): ReactNode {
+    const glossaryItem = resolveLocalizedGlossaryTerm(namespace, termId)
+
+    return renderTermTooltipRichText(glossaryItem.description, {
+        excludeRuleIds: [termId],
+        excludeTerms: [glossaryItem.term]
+    })
+}
+
 function createLocalizedReportTooltipRule(id: string, descriptionKey: string, term: string): InlineGlossaryRuleDraft {
     return {
         id,
@@ -88,11 +142,49 @@ function createLocalizedReportTooltipRule(id: string, descriptionKey: string, te
     }
 }
 
+function createLocalizedGlossaryOwnerTooltipRule(
+    id: string,
+    namespace: 'docs' | 'guide',
+    aliases: string[],
+    title?: string,
+    priority = 320
+): InlineGlossaryRuleDraft {
+    return {
+        id,
+        title,
+        description: () => resolveLocalizedGlossaryTooltipDescription(namespace, id),
+        aliases,
+        priority
+    }
+}
+
+function createLocalizedReportOwnerTooltipRule(
+    id: string,
+    descriptionKey: string,
+    title: string,
+    aliases: string[],
+    priority = 320
+): InlineGlossaryRuleDraft {
+    return {
+        id,
+        title,
+        description: () => resolveLocalizedReportTooltipDescription(descriptionKey, id, title),
+        aliases,
+        priority
+    }
+}
+
 const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     createLocalizedReportTooltipRule('landing-solana', 'main.tooltipRules.solana', 'Solana'),
-    createLocalizedReportTooltipRule('landing-sol-usdt', 'main.tooltipRules.solUsdt', 'SOL/USDT'),
-    createLocalizedReportTooltipRule('landing-ml-project', 'main.tooltipRules.mlProject', 'ML-проект'),
-    createLocalizedReportTooltipRule('landing-ml-model', 'main.tooltipRules.mlModel', 'ML model'),
+    createLocalizedReportOwnerTooltipRule('landing-sol-usdt', 'main.tooltipRules.solUsdt', 'SOL/USDT', ['SOL/USDT']),
+    createLocalizedReportOwnerTooltipRule('landing-ml-project', 'main.tooltipRules.mlProject', 'ML-проект', [
+        'ML-проект',
+        'ML project'
+    ]),
+    createLocalizedReportOwnerTooltipRule('landing-ml-model', 'main.tooltipRules.mlModel', 'ML model', [
+        'ML model',
+        'ML-модель'
+    ]),
     {
         id: 'landing-backtest',
         pattern: /$^/,
@@ -107,96 +199,193 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         description: POLICY_DESCRIPTION,
         autolink: false
     },
+    createLocalizedGlossaryOwnerTooltipRule('landing-omniscient', 'docs', ['Omniscient', 'omniscient'], 'Omniscient'),
+    createLocalizedGlossaryOwnerTooltipRule('landing-interop', 'docs', ['Interop'], 'Interop'),
+    {
+        id: 'landing-oos',
+        pattern: /$^/,
+        description: () => resolveLocalizedTrainingSegmentDescription('oos'),
+        autolink: false
+    },
+    createLocalizedGlossaryOwnerTooltipRule(
+        'landing-report-document',
+        'docs',
+        ['ReportDocument', 'report document'],
+        'ReportDocument'
+    ),
+    {
+        id: 'landing-sl-model',
+        pattern: /$^/,
+        description: SL_MODEL_DESCRIPTION,
+        autolink: false
+    },
+    createLocalizedGlossaryOwnerTooltipRule(
+        'landing-leakage-guards',
+        'docs',
+        ['Leakage guards', 'leakage guards'],
+        'Leakage guards'
+    ),
     createLocalizedReportTooltipRule('landing-btc', 'main.tooltipRules.btc', 'BTC'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-macro-indicators',
         'main.tooltipRules.macroIndicators',
-        'Macro indicators'
+        'Macro indicators',
+        ['Macro indicators']
     ),
     createLocalizedReportTooltipRule('landing-features', 'main.tooltipRules.features', 'Features'),
     createLocalizedReportTooltipRule('landing-signal', 'main.tooltipRules.signal', 'Signal'),
     createLocalizedReportTooltipRule('landing-forecast', 'main.tooltipRules.forecast', 'Forecast'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-current-prediction',
         'main.tooltipRules.currentPrediction',
-        'Current prediction'
+        'Current prediction',
+        ['Current prediction']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-prediction-history',
         'main.tooltipRules.predictionHistory',
-        'Prediction history'
+        'Prediction history',
+        ['Prediction history']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-backtest-summary',
         'main.tooltipRules.backtestSummary',
-        'Backtest summary'
+        'Backtest summary',
+        ['Backtest summary']
     ),
     createLocalizedReportTooltipRule('landing-diagnostics', 'main.tooltipRules.diagnostics', 'Diagnostics'),
     createLocalizedReportTooltipRule('landing-analysis', 'main.tooltipRules.analysis', 'Analysis'),
     createLocalizedReportTooltipRule('landing-explain', 'main.tooltipRules.explain', 'Explain'),
-    createLocalizedReportTooltipRule('landing-truthfulness', 'main.tooltipRules.truthfulness', 'Truthfulness contour'),
-    createLocalizedReportTooltipRule('landing-time-horizon', 'main.tooltipRules.timeHorizon', '24h horizon'),
-    createLocalizedReportTooltipRule('landing-time-horizon-why', 'main.tooltipRules.timeHorizonWhy', 'Почему?'),
+    createLocalizedReportOwnerTooltipRule(
+        'landing-truthfulness',
+        'main.tooltipRules.truthfulness',
+        'Truthfulness contour',
+        ['Truthfulness contour', 'Data truthfulness', 'Правдивость данных']
+    ),
+    {
+        id: 'landing-time-horizon',
+        description: () =>
+            resolveLocalizedReportTooltipDescription(
+                'main.tooltipRules.timeHorizon',
+                'landing-time-horizon',
+                'Торговый день'
+            ),
+        aliases: ['торговый день', 'trading day', 'Торговый день по New York', 'New York trading day'],
+        priority: 320
+    },
+    {
+        id: 'landing-nyse-session',
+        description: () =>
+            resolveLocalizedReportTooltipDescription(
+                'main.tooltipRules.nyseSession',
+                'landing-nyse-session',
+                'Американская сессия'
+            ),
+        aliases: [
+            'американская сессия',
+            'американской сессии',
+            'U.S. regular session',
+            'NYSE regular session',
+            'regular session NYSE'
+        ],
+        priority: 320
+    },
+    createLocalizedReportTooltipRule(
+        'landing-time-horizon-why',
+        'main.tooltipRules.timeHorizonWhy',
+        'Расчёт по Нью-Йорку'
+    ),
     createLocalizedReportTooltipRule('landing-day-up', 'main.tooltipRules.dayUp', 'Рост'),
     createLocalizedReportTooltipRule('landing-day-down', 'main.tooltipRules.dayDown', 'Падение'),
     createLocalizedReportTooltipRule('landing-day-flat', 'main.tooltipRules.dayFlat', 'Боковик'),
-    createLocalizedReportTooltipRule('landing-early-preview', 'main.tooltipRules.earlyPreview', 'Early preview'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportTooltipRule('landing-reinvestment', 'main.tooltipRules.reinvestment', 'Реинвестирование'),
+    createLocalizedReportOwnerTooltipRule('landing-early-preview', 'main.tooltipRules.earlyPreview', 'Early preview', [
+        'Early preview',
+        'ранний preview'
+    ]),
+    createLocalizedReportOwnerTooltipRule(
         'landing-path-labeling',
         'main.tooltipRules.pathBasedLabeling',
-        'Path-based labeling'
+        'Path-based labeling',
+        ['Path-based labeling']
     ),
-    createLocalizedReportTooltipRule('landing-micro-model', 'main.tooltipRules.microModel', 'Micro model'),
-    createLocalizedReportTooltipRule('landing-multi-layer', 'main.tooltipRules.multiLayer', 'Multi-layer'),
-    createLocalizedReportTooltipRule('landing-sl-risk', 'main.tooltipRules.slRisk', 'SL risk'),
+    createLocalizedReportOwnerTooltipRule('landing-micro-model', 'main.tooltipRules.microModel', 'Micro model', [
+        'Micro model',
+        'микро-модель'
+    ]),
+    createLocalizedReportOwnerTooltipRule('landing-multi-layer', 'main.tooltipRules.multiLayer', 'Multi-layer', [
+        'Multi-layer'
+    ]),
+    createLocalizedReportOwnerTooltipRule('landing-sl-risk', 'main.tooltipRules.slRisk', 'SL risk', ['SL risk']),
     createLocalizedReportTooltipRule('landing-guardrail', 'main.tooltipRules.guardrail', 'Guardrail'),
     createLocalizedReportTooltipRule('landing-specificity', 'main.tooltipRules.specificity', 'Specificity'),
-    createLocalizedReportTooltipRule('landing-blame-split', 'main.tooltipRules.blameSplit', 'Blame split'),
+    createLocalizedReportOwnerTooltipRule('landing-blame-split', 'main.tooltipRules.blameSplit', 'Blame split', [
+        'Blame split'
+    ]),
     createLocalizedReportTooltipRule('landing-hotspots', 'main.tooltipRules.hotspots', 'Hotspots'),
     createLocalizedReportTooltipRule('landing-pfi', 'main.tooltipRules.pfi', 'PFI'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-confusion-matrix',
         'main.tooltipRules.confusionMatrix',
-        'Confusion matrix'
+        'Confusion matrix',
+        ['Confusion matrix']
     ),
-    createLocalizedReportTooltipRule('landing-model-metrics', 'main.tooltipRules.modelMetrics', 'Model metrics'),
-    createLocalizedReportTooltipRule(
-        'landing-policy-branch-mega',
-        'main.tooltipRules.policyBranchMega',
-        'Policy Branch Mega'
-    ),
+    createLocalizedReportOwnerTooltipRule('landing-model-metrics', 'main.tooltipRules.modelMetrics', 'Model metrics', [
+        'Model metrics'
+    ]),
+    {
+        id: 'landing-policy-branch-mega',
+        title: 'Policy Branch Mega',
+        description: () =>
+            resolveLocalizedReportTooltipDescription(
+                'main.tooltipRules.policyBranchMega',
+                'landing-policy-branch-mega',
+                'Policy Branch Mega'
+            ),
+        aliases: ['Policy Branch Mega', 'PolicyBranchMega', 'policy-branch-mega', 'policy_branch_mega'],
+        priority: 320
+    },
     createLocalizedReportTooltipRule('landing-no-trade', 'main.tooltipRules.noTrade', 'NoTrade'),
     createLocalizedReportTooltipRule('landing-attribution', 'main.tooltipRules.attribution', 'Attribution'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-feature-importance',
         'main.tooltipRules.featureImportance',
-        'Feature importance'
+        'Feature importance',
+        ['Feature importance']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-aggregation',
         'main.tooltipRules.predictionAggregation',
-        'Prediction aggregation'
+        'Prediction aggregation',
+        ['Prediction aggregation']
     ),
-    createLocalizedReportTooltipRule('landing-all-history', 'main.tooltipRules.allHistory', 'ALL HISTORY'),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule('landing-all-history', 'main.tooltipRules.allHistory', 'ALL HISTORY', [
+        'ALL HISTORY',
+        'All history'
+    ]),
+    createLocalizedReportOwnerTooltipRule(
         'landing-baseline-backtest',
         'main.tooltipRules.baselineBacktest',
-        'Baseline backtest'
+        'Baseline backtest',
+        ['Baseline backtest']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-experimental-backtest',
         'main.tooltipRules.experimentalBacktest',
-        'Experimental backtest'
+        'Experimental backtest',
+        ['Experimental backtest']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-model-confidence',
         'main.tooltipRules.modelConfidence',
-        'Model confidence'
+        'Model confidence',
+        ['Model confidence']
     ),
-    createLocalizedReportTooltipRule(
+    createLocalizedReportOwnerTooltipRule(
         'landing-liquidation-buffer',
         'main.tooltipRules.liquidationBuffer',
-        'Liquidation buffer'
+        'Liquidation buffer',
+        ['Liquidation buffer']
     ),
     ...COMMON_TERM_TOOLTIP_REGISTRY,
     {
@@ -279,14 +468,54 @@ const TERM_TOOLTIP_REGISTRY_ISSUES = SAFE_TERM_TOOLTIP_REGISTRY_RESULT.issues
 const TERM_TOOLTIP_REGISTRY_BY_ID = new Map(TERM_TOOLTIP_REGISTRY_SAFE.map(rule => [rule.id, rule]))
 let didReportTermTooltipRegistryIssues = false
 
+function formatGroupedTermTooltipRegistryIssues(): string[] {
+    const duplicateIdMessages: string[] = []
+    const aliasCollisionsByRulePair = new Map<
+        string,
+        {
+            existingRuleId: string
+            conflictingRuleId: string
+            labels: Set<string>
+        }
+    >()
+
+    TERM_TOOLTIP_REGISTRY_ISSUES.forEach(issue => {
+        if (issue.type === 'duplicate-id') {
+            duplicateIdMessages.push(formatTermTooltipRegistryIssue(issue))
+            return
+        }
+
+        const pairKey = `${issue.existingRuleId}=>${issue.conflictingRuleId}`
+        const currentCollision = aliasCollisionsByRulePair.get(pairKey) ?? {
+            existingRuleId: issue.existingRuleId,
+            conflictingRuleId: issue.conflictingRuleId,
+            labels: new Set<string>()
+        }
+
+        currentCollision.labels.add(issue.comparableLabel)
+        aliasCollisionsByRulePair.set(pairKey, currentCollision)
+    })
+
+    const aliasCollisionMessages = [...aliasCollisionsByRulePair.values()].map(collision => {
+        const sampleLabels = [...collision.labels].sort((left, right) => left.localeCompare(right))
+        return `[term-tooltip] alias collision detected between ${collision.existingRuleId} and ${collision.conflictingRuleId}. labels=${sampleLabels.join(', ')}.`
+    })
+
+    return [...duplicateIdMessages, ...aliasCollisionMessages]
+}
+
 function reportTermTooltipRegistryIssues(): void {
     if (didReportTermTooltipRegistryIssues || TERM_TOOLTIP_REGISTRY_ISSUES.length === 0) {
         return
     }
 
     didReportTermTooltipRegistryIssues = true
-    TERM_TOOLTIP_REGISTRY_ISSUES.forEach(issue => {
-        console.error(new Error(formatTermTooltipRegistryIssue(issue)))
+    formatGroupedTermTooltipRegistryIssues().forEach(message => {
+        logError(new Error(message), undefined, {
+            source: 'term-tooltip-registry',
+            domain: 'app_runtime',
+            severity: 'warning'
+        })
     })
 }
 
@@ -536,29 +765,25 @@ function buildNestedDescription(
     recursionDepth: number,
     maxRecursionDepth: number
 ): ReactNode {
-    if (typeof rule.description === 'function') {
-        return rule.description()
-    }
+    return resolveTermTooltipDescriptionContent(rule.description, {
+        resolveString: resolvedDescription => {
+            if (recursionDepth >= maxRecursionDepth) {
+                return renderPlainTextBlocks(stripExplicitTermMarkup(resolvedDescription))
+            }
 
-    if (typeof rule.description !== 'string') {
-        return rule.description
-    }
+            const selfExclusions = [matchedValue]
+            if (rule.title) {
+                selfExclusions.push(rule.title)
+            }
 
-    if (recursionDepth >= maxRecursionDepth) {
-        return renderPlainTextBlocks(stripExplicitTermMarkup(rule.description))
-    }
-
-    const selfExclusions = [matchedValue]
-    if (rule.title) {
-        selfExclusions.push(rule.title)
-    }
-
-    return renderTermTooltipRichText(rule.description, {
-        excludeTerms: selfExclusions,
-        excludeRuleIds: [...excludedRuleIds, rule.id],
-        excludeRuleTitles: rule.title ? [rule.title] : [],
-        recursionDepth: recursionDepth + 1,
-        maxRecursionDepth
+            return renderTermTooltipRichText(resolvedDescription, {
+                excludeTerms: selfExclusions,
+                excludeRuleIds: [...excludedRuleIds, rule.id],
+                excludeRuleTitles: rule.title ? [rule.title] : [],
+                recursionDepth: recursionDepth + 1,
+                maxRecursionDepth
+            })
+        }
     })
 }
 
@@ -573,7 +798,8 @@ function renderAutolinkedTextSegment(
 ): ReactNode[] {
     const matches = matchTermTooltips(text, registry, excludedRuleIds, excludedTerms)
     if (matches.length === 0) {
-        return [text]
+        const wholeText = renderTextSegment(text, `${keyPrefix}-text-0`)
+        return wholeText ? [wholeText] : []
     }
 
     const nodes: ReactNode[] = []
@@ -581,7 +807,10 @@ function renderAutolinkedTextSegment(
 
     matches.forEach((match, index) => {
         if (match.start > cursor) {
-            nodes.push(text.slice(cursor, match.start))
+            const leadingText = renderTextSegment(text.slice(cursor, match.start), `${keyPrefix}-text-${cursor}`)
+            if (leadingText) {
+                nodes.push(leadingText)
+            }
         }
 
         nodes.push(
@@ -601,7 +830,10 @@ function renderAutolinkedTextSegment(
     })
 
     if (cursor < text.length) {
-        nodes.push(text.slice(cursor))
+        const trailingText = renderTextSegment(text.slice(cursor), `${keyPrefix}-text-${cursor}`)
+        if (trailingText) {
+            nodes.push(trailingText)
+        }
     }
 
     return nodes
@@ -626,7 +858,10 @@ function renderInlineRichText(
         if (segment.type === 'term') {
             const rule = TERM_TOOLTIP_REGISTRY_BY_ID.get(segment.termId)
             if (!rule || excludedRuleIds.has(rule.id)) {
-                nodes.push(segment.label)
+                const fallbackLabel = renderTextSegment(segment.label, `explicit-fallback-${keyPrefix}-${segmentKey}`)
+                if (fallbackLabel) {
+                    nodes.push(fallbackLabel)
+                }
                 return
             }
 
@@ -636,7 +871,10 @@ function renderInlineRichText(
                 (normalizedLabel && (excludedTerms.has(normalizedLabel) || excludedRuleTitles.has(normalizedLabel))) ||
                 (normalizedRuleTitle && excludedRuleTitles.has(normalizedRuleTitle))
             ) {
-                nodes.push(segment.label)
+                const excludedLabel = renderTextSegment(segment.label, `explicit-excluded-${keyPrefix}-${segmentKey}`)
+                if (excludedLabel) {
+                    nodes.push(excludedLabel)
+                }
                 return
             }
 
@@ -754,6 +992,11 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
         expectedRuleIds: ['policy', 'branch', 'risk-layers']
     },
     {
+        id: 'policy-branch-mega-term',
+        text: 'Policy Branch Mega собирает полную историческую таблицу',
+        expectedRuleIds: ['landing-policy-branch-mega']
+    },
+    {
         id: 'why-first-event',
         text: 'Почему? (first-event)',
         expectedRuleIds: ['why-first-event']
@@ -767,6 +1010,16 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
         id: 'why-bucket',
         text: 'Почему? (bucket)',
         expectedRuleIds: ['why-bucket']
+    },
+    {
+        id: 'landing-time-horizon-term',
+        text: 'Торговый день открывает рабочее окно проекта',
+        expectedRuleIds: ['landing-time-horizon']
+    },
+    {
+        id: 'leakage-term',
+        text: 'утечка будущих данных искажает историю',
+        expectedRuleIds: ['leakage']
     }
 ]
 
@@ -821,11 +1074,17 @@ function reportMatcherFixtureValidationError(): void {
     }
 
     didReportMatcherFixtureValidationError = true
-    console.error(error)
+    logError(error, undefined, {
+        source: 'term-tooltip-matcher-fixtures',
+        domain: 'app_runtime',
+        severity: 'warning'
+    })
 }
 
 function renderPlainTextBlocks(text: string): ReactNode {
-    const normalizedText = normalizeOrderedListParagraphs(normalizeBrokenExplicitTermMarkup(text))
+    // Plain-text fallback обязан убирать и валидный explicit-term markup тоже.
+    // Иначе любая внутренняя ошибка в rich-text renderer возвращает пользователю сырой [[term|label]] синтаксис.
+    const normalizedText = normalizeOrderedListParagraphs(stripExplicitTermMarkup(text))
     const paragraphs = splitNonEmptyParagraphs(normalizedText)
 
     if (paragraphs.length === 0) {
@@ -835,7 +1094,7 @@ function renderPlainTextBlocks(text: string): ReactNode {
     const shouldRenderStructuredBlocks = paragraphs.length > 1 || paragraphs.some(paragraph => paragraph.includes('\n'))
 
     if (!shouldRenderStructuredBlocks) {
-        return paragraphs[0].trim()
+        return renderTextSegment(paragraphs[0], 'plain-text-0') ?? paragraphs[0]
     }
 
     return (
@@ -844,6 +1103,18 @@ function renderPlainTextBlocks(text: string): ReactNode {
                 return renderStructuredParagraph(paragraph, `plain-paragraph-${paragraphIndex}`, line => line)
             })}
         </>
+    )
+}
+
+function renderTextSegment(text: string, key: string): ReactNode | null {
+    if (!text) {
+        return null
+    }
+
+    return (
+        <span key={key} className={cls.textSegment}>
+            {text}
+        </span>
     )
 }
 
@@ -861,6 +1132,61 @@ export function resolveMatchingTermTooltipRuleIds(text: string): string[] {
             )
         )
     )
+}
+
+export function resolveRegisteredTermTooltipRuleIds(): string[] {
+    reportTermTooltipRegistryIssues()
+    return [...TERM_TOOLTIP_REGISTRY_BY_ID.keys()]
+}
+
+/**
+ * Возвращает канонический tooltip-rule по shared term id.
+ * Это owner-точка для страниц, которые хотят переиспользовать общий термин,
+ * а не держать локальный дубликат его описания.
+ */
+export function resolveRegisteredTermTooltipRuleById(termId: string): TermTooltipRegistryEntry {
+    reportTermTooltipRegistryIssues()
+
+    const resolved = TERM_TOOLTIP_REGISTRY_BY_ID.get(termId)
+    if (!resolved) {
+        throw new Error(`[term-tooltip] unknown term id: ${termId}.`)
+    }
+
+    return resolved
+}
+
+export function resolveRegisteredTermTooltipTitle(termId: string): string | null {
+    return resolveRegisteredTermTooltipRuleById(termId).title ?? null
+}
+
+/**
+ * Возвращает shared tooltip-rule ids, чьи канонические title/aliases
+ * точно совпадают с локальным label термина.
+ *
+ * Этот helper нужен page-level i18n readers, чтобы запрещать локальные
+ * дубли canonical owner-терминов и принудительно переводить их на sharedTermId.
+ */
+export function resolveRegisteredTermTooltipRuleIdsByExactLabel(label: string): string[] {
+    reportTermTooltipRegistryIssues()
+
+    const normalizedLabel = normalizeComparableTerm(label)
+    if (!normalizedLabel) {
+        return []
+    }
+
+    return TERM_TOOLTIP_REGISTRY_SAFE.flatMap(rule => {
+        const normalizedCandidates = [rule.title ?? '', ...(rule.aliases ?? [])]
+            .map(candidate => normalizeComparableTerm(candidate))
+            .filter(candidate => candidate.length > 0)
+
+        return normalizedCandidates.includes(normalizedLabel) ? [rule.id] : []
+    })
+}
+
+export function renderRegisteredTermTooltipDescriptionById(termId: string, matchedValue: string): ReactNode {
+    const rule = resolveRegisteredTermTooltipRuleById(termId)
+
+    return buildNestedDescription(rule, matchedValue, new Set<string>([termId]), 0, 2)
 }
 
 export function renderTermTooltipRichText(text: string, options?: RenderTermTooltipRichTextOptions): ReactNode {
@@ -901,7 +1227,10 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
             return (
                 <>
                     {renderInlineRichText(
-                        paragraphs[0].trim(),
+                        // Однострочный chunk может приходить как левая или правая часть
+                        // уже разрезанного rich-text блока. Пробелы по краям здесь значимы:
+                        // их потеря склеивает обычный текст с соседним tooltip-термином.
+                        paragraphs[0],
                         registry,
                         excludedTerms,
                         excludedRuleIds,
@@ -935,9 +1264,16 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
             </>
         )
     } catch (error) {
-        if (import.meta.env.DEV) {
-            console.error(error)
-        }
+        const normalizedError =
+            error instanceof Error ? error : new Error(String(error ?? 'Unknown term tooltip error.'))
+        logError(normalizedError, undefined, {
+            source: 'term-tooltip-render',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: {
+                text
+            }
+        })
 
         return renderPlainTextBlocks(text)
     }

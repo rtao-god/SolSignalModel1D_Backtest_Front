@@ -15,7 +15,6 @@ export default function UserInfo({ className }: UserInfoProps) {
     const { t } = useTranslation('common')
     const { user } = useAuth()
     const sick = user
-    console.log('user', user)
     const fullUsernameWithInitials = getFullUsernameWithInitials(
         (user && user.last_name) ?? '',
         (user && user.first_name) ?? '',
@@ -43,11 +42,7 @@ export default function UserInfo({ className }: UserInfoProps) {
                     accept='.jpg, .png, jpeg'
                     type='file'
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                        const file = e.target.files
-
-                        if (file) {
-                            console.log(file[0])
-                        }
+                        void e.target.files
                     }}
                 />
             </div>

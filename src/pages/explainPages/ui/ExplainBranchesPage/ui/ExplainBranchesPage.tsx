@@ -8,10 +8,10 @@ import { GUIDE_BRANCHES_TABS } from '@/shared/utils/guideTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readAvailableGuideTermGroups,
-    readGuideStringListOrThrow,
-    readGuideTableRowsOrThrow
+    readGuideStringList,
+    readGuideTableRows
 } from '@/pages/guidePages/ui/shared/guideI18n'
-import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
+import { buildGuideGlossary, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainBranchesPage.module.scss'
 import type { ExplainBranchesPageProps } from './types'
 
@@ -46,10 +46,7 @@ const GUIDE_BRANCHES_SECTIONS: readonly GuideBranchesSectionConfig[] = [
     }
 ]
 
-export default function ExplainBranchesPage({
-    className,
-    translationNamespace = 'guide'
-}: ExplainBranchesPageProps) {
+export default function ExplainBranchesPage({ className, translationNamespace = 'guide' }: ExplainBranchesPageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
 
     const sections = useMemo(
@@ -61,7 +58,7 @@ export default function ExplainBranchesPage({
         [t]
     )
     const buildPageGlossary = () =>
-        buildGuideGlossaryOrThrow(
+        buildGuideGlossary(
             readAvailableGuideTermGroups(
                 i18n,
                 GUIDE_BRANCHES_SECTIONS.map(section => `branchesPage.sections.${section.id}.terms`)
@@ -91,7 +88,7 @@ export default function ExplainBranchesPage({
                         <LocalizedContentBoundary name={`GuideBranches:${section.id}:paragraphs`}>
                             {() => {
                                 const glossary = buildPageGlossary()
-                                const paragraphs = readGuideStringListOrThrow(
+                                const paragraphs = readGuideStringList(
                                     i18n,
                                     `branchesPage.sections.${section.id}.paragraphs`
                                 )
@@ -99,7 +96,9 @@ export default function ExplainBranchesPage({
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderGuideRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -117,7 +116,7 @@ export default function ExplainBranchesPage({
                                     }
 
                                     const glossary = buildPageGlossary()
-                                    const rows = readGuideTableRowsOrThrow(
+                                    const rows = readGuideTableRows(
                                         i18n,
                                         `branchesPage.sections.${section.id}.table.rows`
                                     )
@@ -129,7 +128,9 @@ export default function ExplainBranchesPage({
                                                     <tr>
                                                         {headerKeys.map(headerKey => (
                                                             <th key={`${section.id}-header-${headerKey}`}>
-                                                                {t(`branchesPage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                                {t(
+                                                                    `branchesPage.sections.${section.id}.table.headers.${headerKey}`
+                                                                )}
                                                             </th>
                                                         ))}
                                                     </tr>
@@ -138,7 +139,8 @@ export default function ExplainBranchesPage({
                                                     {rows.map((row, rowIndex) => (
                                                         <tr key={`${section.id}-row-${rowIndex}`}>
                                                             {row.map((cell, cellIndex) => (
-                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                <td
+                                                                    key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                     {renderGuideRichText(cell, { glossary })}
                                                                 </td>
                                                             ))}
@@ -163,7 +165,9 @@ export default function ExplainBranchesPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`branchesPage.sections.${section.id}.why`), { glossary })}
+                                                {renderGuideRichText(t(`branchesPage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -180,7 +184,9 @@ export default function ExplainBranchesPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`branchesPage.sections.${section.id}.example`), { glossary })}
+                                                {renderGuideRichText(t(`branchesPage.sections.${section.id}.example`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -202,6 +208,3 @@ export default function ExplainBranchesPage({
         </div>
     )
 }
-
-
-

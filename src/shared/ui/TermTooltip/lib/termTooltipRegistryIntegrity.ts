@@ -35,9 +35,7 @@ export function formatTermTooltipRegistryIssue(issue: TermTooltipRegistryIssue):
     return `[term-tooltip] alias collision detected for "${issue.comparableLabel}": ${issue.existingRuleId} vs ${issue.conflictingRuleId}.`
 }
 
-export function buildSafeTermTooltipRegistry(
-    registry: TermTooltipRegistryEntry[]
-): SafeTermTooltipRegistryResult {
+export function buildSafeTermTooltipRegistry(registry: TermTooltipRegistryEntry[]): SafeTermTooltipRegistryResult {
     const issues: TermTooltipRegistryIssue[] = []
     const ids = new Set<string>()
     const comparableLabelsToIds = new Map<string, string>()

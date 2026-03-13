@@ -81,7 +81,7 @@ const RULES: DescriptionRule[] = [
     },
     {
         match: /^Specificity Rolling Guardrail \(BY YEAR\)/i,
-        ru: 'Rolling‑пороги по годам без строгой каузальности. Полезно для анализа дрейфа и сравнений, но не для боевого решения.',
+        ru: 'Rolling‑пороги по годам без строгого казуального режима. Полезно для анализа дрейфа и сравнений, но не для боевого решения.',
         en: 'Yearly rolling thresholds without strict causality. Useful for drift analysis and comparison, but not for production decision calibration.'
     },
     {

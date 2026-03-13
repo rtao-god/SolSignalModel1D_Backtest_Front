@@ -15,7 +15,16 @@ interface ErrorBlockProps {
     actions?: ReactNode
 }
 
-export function ErrorBlock({ className, code, title, description, details, onRetry, compact, actions }: ErrorBlockProps) {
+export function ErrorBlock({
+    className,
+    code,
+    title,
+    description,
+    details,
+    onRetry,
+    compact,
+    actions
+}: ErrorBlockProps) {
     const { t } = useTranslation('errors')
     const rootClasses = classNames(
         cls.ErrorBlock,

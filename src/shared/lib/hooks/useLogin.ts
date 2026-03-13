@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { useLoginUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
+import { logError } from '@/shared/lib/logging/logError'
 
 export const useLogin = () => {
     const [loginUser, { isLoading }] = useLoginUserMutation()
@@ -15,7 +16,14 @@ export const useLogin = () => {
             dispatch(userActions.login(user))
             navigate('/')
         } catch (error) {
-            console.error('Ошибка авторизации:', error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error ?? 'Unknown login hook error.'))
+
+            logError(normalizedError, undefined, {
+                source: 'login-hook',
+                domain: 'api_transport',
+                severity: 'warning'
+            })
             dispatch(setError('Неверный логин или пароль.'))
         }
     }

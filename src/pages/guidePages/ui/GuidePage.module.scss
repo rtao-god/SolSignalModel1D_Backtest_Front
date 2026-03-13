@@ -1,5 +1,8 @@
 .GuidePageRoot {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
 }
 
 .hero {
@@ -37,7 +40,7 @@
 }
 
 .sections {
-    padding: 6px 0 12px;
+    padding: 0 0 12px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -82,7 +85,7 @@
     }
 
     .sections {
-        padding: 4px 0 10px;
+        padding: 0 0 10px;
     }
 }
 

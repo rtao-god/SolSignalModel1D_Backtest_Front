@@ -1,15 +1,21 @@
 .tableScroll {
-    width: 100%;
-    overflow-x: auto;
+    @include table-scroll-shell($density: medium);
+}
 
-    /* Сглаживаем скролл */
-    scrollbar-width: thin;
+.densitySimple {
+    @include table-density(simple);
+}
+
+.densityMedium {
+    @include table-density(medium);
+}
+
+.densityDense {
+    @include table-density(dense);
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
+    @include data-table-base;
 }
 
 .table thead {
@@ -18,9 +24,7 @@
 
 .table th,
 .table td {
-    padding: 6px 8px;
     text-align: right;
-    white-space: nowrap;
 }
 
 .table th:first-child,
@@ -32,22 +36,17 @@
     background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* ===== sortable headers ===== */
-
 .thButton {
     width: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-
     padding: 0;
     border: 0;
     background: transparent;
-
     color: inherit;
     font: inherit;
-
     cursor: pointer;
 }
 
@@ -70,7 +69,6 @@
     display: inline-flex;
     flex-direction: column;
     gap: 1px;
-
     opacity: 0.25;
     transition: opacity 140ms ease;
 }
@@ -92,7 +90,6 @@
 .sortIcon {
     width: 10px;
     height: 10px;
-
     opacity: 0.35;
     transform: translateY(0);
 

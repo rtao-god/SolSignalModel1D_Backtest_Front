@@ -1,5 +1,6 @@
-import { resolveReportColumnTooltip } from './reportTooltips'
+import { resolveDiagnosticsReportCanonicalTermKey } from '@/shared/terms/reports/diagnostics'
 import { localizeReportColumnTitle } from './reportPresentationLocalization'
+import { resolveReportColumnTooltip } from './reportTooltips'
 
 export interface ReportTermItem {
     key: string
@@ -21,7 +22,14 @@ interface BuildReportTermsParams<TSection extends ReportTermsSectionLike> {
     locale?: string | null
 }
 
-function ensureNonEmptyStringOrThrow(value: string | undefined, label: string, contextTag: string): string {
+interface ReportTermAccumulator {
+    key: string
+    titles: Set<string>
+    description: string
+    tooltip: string
+}
+
+function ensureNonEmptyString(value: string | undefined, label: string, contextTag: string): string {
     if (!value || value.trim().length === 0) {
         throw new Error(`[${contextTag}] ${label} is empty.`)
     }
@@ -38,14 +46,40 @@ function shouldSkipReportTermItem(reportKind: string, columnTitle: string): bool
     return normalized === 'description' || normalized === 'описание'
 }
 
-export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTermsSectionLike>({
+function resolveReportTermCanonicalKey(reportKind: string, columnTitle: string): string {
+    if (reportKind !== 'backtest_diagnostics') {
+        return columnTitle
+    }
+
+    // Diagnostics-таблицы используют и короткие, и полные имена одних и тех же метрик.
+    // Глоссарий должен объединять такие alias-колонки в одну карточку, а не плодить дубли.
+    return resolveDiagnosticsReportCanonicalTermKey(columnTitle) ?? columnTitle
+}
+
+function buildMergedTermTitle(titles: Set<string>, preferredTitle: string): string {
+    const uniqueTitles = Array.from(titles)
+
+    if (uniqueTitles.length === 0) {
+        throw new Error('[report-terms] merged title list is empty.')
+    }
+
+    const preferredTitleIndex = uniqueTitles.indexOf(preferredTitle)
+    if (preferredTitleIndex > 0) {
+        uniqueTitles.splice(preferredTitleIndex, 1)
+        uniqueTitles.unshift(preferredTitle)
+    }
+
+    return uniqueTitles.join(' / ')
+}
+
+export function buildReportTermsFromSections<TSection extends ReportTermsSectionLike>({
     sections,
     reportKind,
     contextTag,
     resolveSectionTitle,
     locale
 }: BuildReportTermsParams<TSection>): ReportTermItem[] {
-    const kind = ensureNonEmptyStringOrThrow(reportKind, 'report kind', contextTag)
+    const kind = ensureNonEmptyString(reportKind, 'report kind', contextTag)
 
     if (!sections || !Array.isArray(sections)) {
         throw new Error(`[${contextTag}] sections must be an array.`)
@@ -55,19 +89,24 @@ export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTerms
         return []
     }
 
-    const termsByTitle = new Map<string, ReportTermItem>()
+    const termsByTitle = new Map<string, ReportTermAccumulator>()
 
     for (const section of sections) {
         const sectionTitle = resolveSectionTitle ? resolveSectionTitle(section) : section.title
         const columns = section.columns ?? []
 
         for (const rawColumn of columns) {
-            const column = ensureNonEmptyStringOrThrow(rawColumn, 'table column title', contextTag)
+            const column = ensureNonEmptyString(rawColumn, 'table column title', contextTag)
             if (shouldSkipReportTermItem(kind, column)) {
                 continue
             }
 
-            if (termsByTitle.has(column)) {
+            const canonicalKey = resolveReportTermCanonicalKey(kind, column)
+            const localizedTitle = localizeReportColumnTitle(kind, column, locale)
+            const existingTerm = termsByTitle.get(canonicalKey)
+
+            if (existingTerm) {
+                existingTerm.titles.add(localizedTitle)
                 continue
             }
 
@@ -76,14 +115,19 @@ export function buildReportTermsFromSectionsOrThrow<TSection extends ReportTerms
                 throw new Error(`[${contextTag}] tooltip is missing for column=${column}.`)
             }
 
-            termsByTitle.set(column, {
-                key: column,
-                title: localizeReportColumnTitle(kind, column, locale),
+            termsByTitle.set(canonicalKey, {
+                key: canonicalKey,
+                titles: new Set([localizedTitle]),
                 description: tooltip,
                 tooltip
             })
         }
     }
 
-    return Array.from(termsByTitle.values())
+    return Array.from(termsByTitle.values()).map(term => ({
+        key: term.key,
+        title: buildMergedTermTitle(term.titles, term.key),
+        description: term.description,
+        tooltip: term.tooltip
+    }))
 }

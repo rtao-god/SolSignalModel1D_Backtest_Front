@@ -1,14 +1,35 @@
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import { useAggregationMetricsQuery, useAggregationProbsQuery } from '@/shared/api/tanstackQueries/aggregation'
 import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 import type { AggregationStatsPageProps } from './types'
 import { AggregationStatsPageInner } from './AggregationStatsPageInner'
 import { useTranslation } from 'react-i18next'
+import classNames from '@/shared/lib/helpers/classNames'
+import cls from './AggregationStatsPage.module.scss'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { Text } from '@/shared/ui'
+
+function formatUtcDayKeyLabel(value: unknown): string {
+    if (!value || typeof value !== 'object') {
+        return '—'
+    }
+
+    const candidate = value as Record<string, unknown>
+    const rawValue =
+        candidate.Value ??
+        candidate.value ??
+        candidate.IsoDate ??
+        candidate.isoDate ??
+        candidate.DayNumber ??
+        candidate.dayNumber
+
+    return rawValue === undefined || rawValue === null ? '—' : String(rawValue)
+}
 
 export default function AggregationStatsPage({ className }: AggregationStatsPageProps) {
     const { t } = useTranslation('reports')
     const probsQuery = useAggregationProbsQuery()
     const metricsQuery = useAggregationMetricsQuery()
+    const rootClassName = classNames(cls.AggregationStatsPage, {}, [className ?? ''])
 
     const probsResult = normalizeProbsSnapshot(probsQuery.data)
     const metricsResult = normalizeMetricsSnapshot(metricsQuery.data)
@@ -31,16 +52,59 @@ export default function AggregationStatsPage({ className }: AggregationStatsPage
     }
 
     return (
-        <PageDataBoundary
-            isError={isError}
-            error={error}
-            hasData={hasData}
-            onRetry={handleRetry}
-            errorTitle={t('aggregation.page.errorTitle')}>
-            {hasData && normalizedProbs && normalizedMetrics && (
-                <AggregationStatsPageInner className={className} probs={normalizedProbs} metrics={normalizedMetrics} />
-            )}
-        </PageDataBoundary>
+        <div className={rootClassName}>
+            <header className={cls.headerRow}>
+                <div className={cls.headerMain}>
+                    <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
+                    <Text className={cls.subtitle}>{t('aggregation.inner.header.subtitle')}</Text>
+                </div>
+
+                {hasData && normalizedProbs && (
+                    <div className={cls.metaGrid}>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
+                            <div className={cls.metaValue}>
+                                {formatUtcDayKeyLabel(normalizedProbs.MinDateUtc)} -{' '}
+                                {formatUtcDayKeyLabel(normalizedProbs.MaxDateUtc)}
+                            </div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
+                            <div className={cls.metaValue}>{normalizedProbs.TotalInputRecords}</div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
+                            <div className={cls.metaValue}>{normalizedProbs.ExcludedCount}</div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
+                            <div className={cls.metaValue}>
+                                {normalizedProbs.Segments.length} / {normalizedProbs.DebugLastDays.length}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </header>
+
+            <SectionDataState
+                isLoading={Boolean(probsQuery.isLoading || metricsQuery.isLoading)}
+                isError={isError}
+                error={error}
+                hasData={hasData}
+                onRetry={handleRetry}
+                title={t('aggregation.page.errorTitle')}
+                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                logContext={{ source: 'aggregation-stats-page' }}>
+                {hasData && normalizedProbs && normalizedMetrics && (
+                    <AggregationStatsPageInner
+                        probs={normalizedProbs}
+                        metrics={normalizedMetrics}
+                        showHeader={false}
+                        embedded
+                    />
+                )}
+            </SectionDataState>
+        </div>
     )
 }
 

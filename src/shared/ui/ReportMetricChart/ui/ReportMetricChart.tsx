@@ -124,13 +124,7 @@ function renderEmptyState(title: string, description: string) {
     )
 }
 
-function ChartTooltip({
-    title,
-    rows
-}: {
-    title: string
-    rows: readonly ReportMetricChartTooltipRow[]
-}) {
+function ChartTooltip({ title, rows }: { title: string; rows: readonly ReportMetricChartTooltipRow[] }) {
     return (
         <div className={cls.tooltip}>
             <Text className={cls.tooltipTitle}>{title}</Text>
@@ -212,15 +206,11 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
                                 return null
                             }
 
-                            const tooltipRows =
-                                getTooltipRows?.(datum) ?? [{ label: valueLabel, value: formatValue(datum.value) }]
+                            const tooltipRows = getTooltipRows?.(datum) ?? [
+                                { label: valueLabel, value: formatValue(datum.value) }
+                            ]
 
-                            return (
-                                <ChartTooltip
-                                    title={getTooltipTitle?.(datum) ?? datum.label}
-                                    rows={tooltipRows}
-                                />
-                            )
+                            return <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
                         }}
                     />
 
@@ -331,19 +321,12 @@ export function ReportMetricScatterChart<TDatum extends ReportMetricScatterDatum
                                 return null
                             }
 
-                            const tooltipRows =
-                                getTooltipRows?.(datum) ??
-                                [
-                                    { label: xLabel, value: formatX(datum.x) },
-                                    { label: yLabel, value: formatY(datum.y) }
-                                ]
+                            const tooltipRows = getTooltipRows?.(datum) ?? [
+                                { label: xLabel, value: formatX(datum.x) },
+                                { label: yLabel, value: formatY(datum.y) }
+                            ]
 
-                            return (
-                                <ChartTooltip
-                                    title={getTooltipTitle?.(datum) ?? datum.label}
-                                    rows={tooltipRows}
-                                />
-                            )
+                            return <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
                         }}
                     />
 

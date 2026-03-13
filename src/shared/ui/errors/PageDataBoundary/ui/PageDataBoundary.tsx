@@ -28,11 +28,7 @@ export default function PageDataBoundary({
     const shouldShowLoading = isLoading ?? (!isError && !hasData)
 
     if (shouldShowLoading) {
-        return (
-            <PageLoader
-                title={loadingTitle ?? t('ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
-            />
-        )
+        return <PageLoader title={loadingTitle ?? t('ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })} />
     }
 
     if (isError || !hasData) {

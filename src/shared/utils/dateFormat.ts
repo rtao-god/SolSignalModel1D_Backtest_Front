@@ -17,12 +17,10 @@ export function stripRussianYearMarker(formattedDate: string, locale: string): s
         return formattedDate
     }
 
-    return formattedDate
-        .replace(/[\s\u00A0]г\.(?=,|$)/u, '')
-        .replace(/[\s\u00A0]г(?=,|$)/u, '')
+    return formattedDate.replace(/[\s\u00A0]г\.(?=,|$)/u, '').replace(/[\s\u00A0]г(?=,|$)/u, '')
 }
 
-export function formatDateWithLocaleOrThrow(
+export function formatDateWithLocale(
     input: Date | string | number,
     locale: string,
     options?: Intl.DateTimeFormatOptions
@@ -55,7 +53,7 @@ export function formatIsoDateHuman(iso: string, options?: HumanDateFormatOptions
     const dateYear = timeZone === 'UTC' ? date.getUTCFullYear() : date.getFullYear()
     const isCurrentYear = dateYear === currentYear
 
-    return formatDateWithLocaleOrThrow(date, locale, {
+    return formatDateWithLocale(date, locale, {
         day: 'numeric',
         month: 'long',
         ...(omitYearForCurrent && isCurrentYear ? {} : { year: 'numeric' }),

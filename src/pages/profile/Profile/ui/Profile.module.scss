@@ -1,5 +1,5 @@
 .Profile {
-    min-height: 100%;
+    @include safe-viewport-min-height;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9,7 +9,7 @@
 }
 
 .content {
-    width: min(760px, 100%);
+    @include page-content-container(760px);
     color: inherit;
 }
 
@@ -60,7 +60,7 @@
     }
 }
 
-@media (max-width: 768px) {
+@include viewport-phone {
     .Profile {
         padding: 16px;
     }

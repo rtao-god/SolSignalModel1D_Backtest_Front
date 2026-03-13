@@ -5,6 +5,19 @@
     --inverted-bg-color-input: var(--color-dark-black);
     --inverted-border-color-input: var(--color-green-black);
     --primary-color: white;
+    --bg-color-elevated: rgba(15, 23, 42, 0.88);
+    --bg-color-muted: rgba(15, 23, 42, 0.7);
+    --surface-bg-default: rgba(15, 23, 42, 0.78);
+    --surface-bg-elevated: linear-gradient(160deg, rgba(15, 23, 42, 0.92), rgba(17, 24, 39, 0.88));
+    --surface-bg-muted: rgba(15, 23, 42, 0.58);
+    --surface-border-subtle: rgba(148, 163, 184, 0.14);
+    --surface-border-default: rgba(148, 163, 184, 0.2);
+    --surface-border-strong: rgba(148, 163, 184, 0.3);
+    --surface-shadow-sm: 0 12px 28px rgba(2, 6, 23, 0.24);
+    --surface-shadow-md: 0 18px 42px rgba(2, 6, 23, 0.36);
+    --surface-shadow-lg: 0 26px 62px rgba(2, 6, 23, 0.48);
+    --text-muted: rgba(226, 232, 240, 0.74);
+    --text-subtle: rgba(148, 163, 184, 0.94);
 
     text-shadow: 1px 1px 2px #ffffff80;
 }

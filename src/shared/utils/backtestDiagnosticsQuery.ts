@@ -10,7 +10,9 @@ import {
     type PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
 
-export const DEFAULT_DIAGNOSTICS_BUCKET_MODE: PolicyBranchMegaBucketMode = 'total'
+// Analysis и diagnostics используют один search-контракт для bucket-фильтра,
+// поэтому owner-default задаётся здесь и автоматически переиспользуется в роутинге и warmup-query.
+export const DEFAULT_DIAGNOSTICS_BUCKET_MODE: PolicyBranchMegaBucketMode = 'daily'
 export const DEFAULT_DIAGNOSTICS_TP_SL_MODE: PolicyBranchMegaTpSlMode = 'all'
 export const DEFAULT_DIAGNOSTICS_SL_MODE: PolicyBranchMegaSlMode = 'all'
 export const DEFAULT_DIAGNOSTICS_ZONAL_MODE: PolicyBranchMegaZonalMode = 'with-zonal'
@@ -22,7 +24,7 @@ export interface BacktestDiagnosticsSearchSelection {
     zonalMode: PolicyBranchMegaZonalMode
 }
 
-export function resolveBacktestDiagnosticsSearchSelectionOrThrow(
+export function resolveBacktestDiagnosticsSearchSelection(
     searchParams: URLSearchParams
 ): BacktestDiagnosticsSearchSelection {
     if (!(searchParams instanceof URLSearchParams)) {
@@ -40,7 +42,7 @@ export function resolveBacktestDiagnosticsSearchSelectionOrThrow(
 export function buildBacktestDiagnosticsQueryArgsFromSearchParams(
     searchParams: URLSearchParams
 ): BacktestDiagnosticsReportQueryArgs {
-    const selection = resolveBacktestDiagnosticsSearchSelectionOrThrow(searchParams)
+    const selection = resolveBacktestDiagnosticsSearchSelection(searchParams)
 
     return {
         bucket: selection.bucket,

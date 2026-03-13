@@ -10,9 +10,7 @@ export interface SuspenseReportQueryConfig<T> {
 const REPORT_QUERY_STALE_TIME_MS = 2 * 60 * 1000
 const REPORT_QUERY_GC_TIME_MS = 15 * 60 * 1000
 
-function buildSuspenseReportQueryOptions<T>(
-    config: SuspenseReportQueryConfig<T>
-): {
+function buildSuspenseReportQueryOptions<T>(config: SuspenseReportQueryConfig<T>): {
     queryKey: readonly unknown[]
     queryFn: () => Promise<T>
     retry: false

@@ -1,5 +1,10 @@
-import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
-import type { useModelStatsReportQuery } from '@/shared/api/tanstackQueries/modelStats'
+import type {
+    KeyValueSectionDto,
+    ReportDocumentDto,
+    ReportSectionDto,
+    TableSectionDto
+} from '@/shared/types/report.types'
+import type { ModelStatsFreshnessInfoDto } from '@/shared/api/tanstackQueries/modelStats'
 export interface ModelStatsPageProps {
     className?: string
 }
@@ -44,11 +49,13 @@ export interface SegmentToggleProps {
     onChange: (segment: SegmentKey) => void
 }
 
-export type ModelStatsReport = NonNullable<ReturnType<typeof useModelStatsReportQuery>['data']>
-
 export interface ModelStatsPageInnerProps {
     className?: string
-    data: ModelStatsReport
+    data: ReportDocumentDto | null
+    freshness: ModelStatsFreshnessInfoDto | null
+    isLoading: boolean
+    error: unknown
+    onRetry: () => void
 }
 
 export type ReportSection = ReportSectionDto

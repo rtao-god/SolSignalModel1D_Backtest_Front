@@ -4,6 +4,18 @@ import cls from './Day.module.scss'
 import { formatDateKey } from '@/shared/consts/date'
 import type DayProps from './types'
 
+/*
+	Day — одна ячейка сетки месяца.
+
+	Зачем:
+		- Рендерит либо интерактивный день, либо технический заполнитель сетки.
+		- Собирает все визуальные состояния диапазона в единый button-контракт для accessibility и CSS-модификаторов.
+
+	Контракты:
+		- `date === null` означает пустую ячейку вне текущего месяца и не даёт интерактивности.
+		- `aria-pressed` отражает любое участие дня в текущем выборе диапазона, а не только одиночное выделение.
+*/
+
 function Day({
     className,
     date,
@@ -16,13 +28,14 @@ function Day({
     isInRange,
     isRangeMonthStart,
     isRangeMonthEnd,
-    showLeftBridge,
-    showRightBridge,
     onSelectDate
 }: DayProps) {
     if (date === null) {
+        // Пустые ячейки сохраняют ровную календарную сетку, но не участвуют в навигации и выборе диапазона.
         return <div className={classNames(cls.emptyCell, {}, [className ?? ''])} aria-hidden='true'></div>
     }
+
+    // Для screen reader диапазон должен звучать как выбранный на всех ключевых участках ленты, а не только на крайних датах.
     const isPressed =
         isStandaloneSelection ||
         isSingleSelected ||
@@ -46,9 +59,7 @@ function Day({
                     [cls.inRange]: isInRange,
                     [cls.rangeMonthStart]: isRangeMonthStart,
                     [cls.rangeMonthEnd]: isRangeMonthEnd,
-                    [cls.bridgeLeft]: showLeftBridge,
-                    [cls.bridgeRight]: showRightBridge,
-                    [cls.today]: isToday && !isPressed,
+                    [cls.today]: isToday && !isPressed
                 },
                 [className ?? '']
             )}
@@ -57,7 +68,9 @@ function Day({
             aria-pressed={isPressed}
             aria-current={isToday ? 'date' : undefined}
             aria-label={formatDateKey(date)}>
-            <span className={cls.dayValue}>{date.getDate()}</span>
+            <span className={cls.daySurface}>
+                <span className={cls.dayValue}>{date.getDate()}</span>
+            </span>
         </button>
     )
 }

@@ -19,13 +19,12 @@ import {
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
-import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
-import PageError from '@/shared/ui/errors/PageError/ui/PageError'
-import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
+import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import type { PfiPageProps, PfiTableCardProps } from './types'
 import { useTranslation } from 'react-i18next'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
 function PfiTableCard({ section, domId }: PfiTableCardProps) {
@@ -127,7 +126,7 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
 
 export default function PfiPage({ className }: PfiPageProps) {
     const { t } = useTranslation('reports')
-    const { data, isError, error, refetch } = usePfiPerModelReportWithFreshnessQuery()
+    const { data, isLoading, isError, error, refetch } = usePfiPerModelReportWithFreshnessQuery()
     const report = data?.report ?? null
     const freshness = data?.freshness ?? null
     const reportTitle = report?.title || t('pfi.page.header.titleFallback')
@@ -145,7 +144,7 @@ export default function PfiPage({ className }: PfiPageProps) {
     const sourceEndpointState = useMemo(() => {
         try {
             return {
-                value: resolveReportSourceEndpointOrThrow(),
+                value: resolveReportSourceEndpoint(),
                 error: null as Error | null
             }
         } catch (err) {
@@ -160,7 +159,7 @@ export default function PfiPage({ className }: PfiPageProps) {
     const termsState = useMemo(() => {
         try {
             return {
-                terms: buildReportTermsFromSectionsOrThrow({
+                terms: buildReportTermsFromSections({
                     sections: tableSections,
                     reportKind: 'pfi_per_model',
                     contextTag: 'pfi'
@@ -186,117 +185,109 @@ export default function PfiPage({ className }: PfiPageProps) {
     const rootClassName = classNames(cls.PfiPage, {}, [className ?? ''])
 
     return (
-        <PageDataBoundary
-            isError={isError}
-            error={error}
-            hasData={Boolean(report)}
-            onRetry={refetch}
-            errorTitle={t('pfi.page.errorTitle')}>
-            {report && (
-                <div className={rootClassName}>
-                    {sourceEndpointState.error || !sourceEndpointState.value ?
-                        <PageError
-                            title={t('pfi.page.errors.sourceEndpoint.title')}
-                            message={t('pfi.page.errors.sourceEndpoint.message')}
-                            error={
-                                sourceEndpointState.error ??
-                                new Error('[pfi] report source endpoint is missing after validation.')
-                            }
-                            onRetry={refetch}
-                        />
-                    : termsState.error ?
-                        <PageError
-                            title={t('pfi.page.errors.terms.title')}
-                            message={t('pfi.page.errors.terms.message')}
-                            error={termsState.error}
-                            onRetry={refetch}
-                        />
-                    :   <>
-                            <header className={cls.headerRow}>
-                                <div>
-                                    <Text type='h2'>{reportTitle}</Text>
-                                    <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
-                                </div>
-                                <ReportActualStatusCard
-                                    statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
-                                    statusTitle={
-                                        freshness?.sourceMode === 'actual' ?
-                                            t('pfi.page.status.actualTitle')
-                                        :   t('pfi.page.status.debugTitle')
+        <div className={rootClassName}>
+            <header className={cls.headerRow}>
+                <div>
+                    <Text type='h2'>{reportTitle}</Text>
+                    <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
+                </div>
+                {report && sourceEndpointState.value && (
+                    <ReportActualStatusCard
+                        statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
+                        statusTitle={
+                            freshness?.sourceMode === 'actual' ?
+                                t('pfi.page.status.actualTitle')
+                            :   t('pfi.page.status.debugTitle')
+                        }
+                        statusMessage={freshness?.message ?? t('pfi.page.status.unavailableMessage')}
+                        dataSource={sourceEndpointState.value}
+                        reportTitle={reportTitle}
+                        reportId={report.id}
+                        reportKind={report.kind}
+                        generatedAtUtc={report.generatedAtUtc}
+                        statusLines={[
+                            ...((
+                                freshness?.canonicalSnapshotCount !== null &&
+                                freshness?.canonicalSnapshotCount !== undefined
+                            ) ?
+                                [
+                                    {
+                                        label: t('pfi.page.statusLines.canonicalSnapshotCount'),
+                                        value: String(freshness.canonicalSnapshotCount)
                                     }
-                                    statusMessage={freshness?.message ?? t('pfi.page.status.unavailableMessage')}
-                                    dataSource={sourceEndpointState.value}
-                                    reportTitle={reportTitle}
-                                    reportId={report.id}
-                                    reportKind={report.kind}
-                                    generatedAtUtc={report.generatedAtUtc}
-                                    statusLines={[
-                                        ...(freshness?.canonicalSnapshotCount !== null &&
-                                        freshness?.canonicalSnapshotCount !== undefined ?
-                                            [
-                                                {
-                                                    label: t('pfi.page.statusLines.canonicalSnapshotCount'),
-                                                    value: String(freshness.canonicalSnapshotCount)
-                                                }
-                                            ]
-                                        :   []),
-                                        ...(freshness?.tableSectionCount !== null &&
-                                        freshness?.tableSectionCount !== undefined ?
-                                            [
-                                                {
-                                                    label: t('pfi.page.statusLines.tableSectionCount'),
-                                                    value: String(freshness.tableSectionCount)
-                                                }
-                                            ]
-                                        :   [])
-                                    ]}
+                                ]
+                            :   []),
+                            ...(freshness?.tableSectionCount !== null && freshness?.tableSectionCount !== undefined ?
+                                [
+                                    {
+                                        label: t('pfi.page.statusLines.tableSectionCount'),
+                                        value: String(freshness.tableSectionCount)
+                                    }
+                                ]
+                            :   [])
+                        ]}
+                    />
+                )}
+            </header>
+
+            <SectionDataState
+                isLoading={isLoading}
+                isError={Boolean(error || sourceEndpointState.error)}
+                error={
+                    error ??
+                    sourceEndpointState.error ??
+                    new Error('[pfi] report source endpoint is missing after validation.')
+                }
+                hasData={Boolean(report && sourceEndpointState.value)}
+                onRetry={refetch}
+                title={sourceEndpointState.error ? t('pfi.page.errors.sourceEndpoint.title') : t('pfi.page.errorTitle')}
+                description={sourceEndpointState.error ? t('pfi.page.errors.sourceEndpoint.message') : undefined}
+                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                logContext={{ source: 'pfi-page-report' }}>
+                <SectionDataState
+                    isError={Boolean(termsState.error)}
+                    error={termsState.error}
+                    hasData={!termsState.error}
+                    title={t('pfi.page.errors.terms.title')}
+                    description={t('pfi.page.errors.terms.message')}
+                    onRetry={refetch}
+                    logContext={{ source: 'pfi-page-terms' }}>
+                    {tableSections.length === 0 ?
+                        <div>
+                            <Text type='h2'>{t('pfi.page.empty.title')}</Text>
+                            <Text>{t('pfi.page.empty.description')}</Text>
+                        </div>
+                    :   <>
+                            <ReportTableTermsBlock
+                                terms={termsState.terms}
+                                title={t('pfi.page.terms.title')}
+                                subtitle={t('pfi.page.terms.subtitle')}
+                                className={cls.pageTermsBlock}
+                            />
+
+                            <div className={cls.tablesGrid}>
+                                {tableSections.map((section, index) => {
+                                    const tab = tabs[index]
+                                    const domId = tab?.anchor ?? `pfi-model-${index + 1}`
+
+                                    return <PfiTableCard key={section.title ?? domId} section={section} domId={domId} />
+                                })}
+                            </div>
+
+                            {tabs.length > 1 && (
+                                <SectionPager
+                                    sections={tabs}
+                                    currentIndex={currentIndex}
+                                    canPrev={canPrev}
+                                    canNext={canNext}
+                                    onPrev={handlePrev}
+                                    onNext={handleNext}
                                 />
-                            </header>
-
-                            {tableSections.length === 0 ?
-                                <div>
-                                    <Text type='h2'>{t('pfi.page.empty.title')}</Text>
-                                    <Text>{t('pfi.page.empty.description')}</Text>
-                                </div>
-                            :   <>
-                                    <ReportTableTermsBlock
-                                        terms={termsState.terms}
-                                        title={t('pfi.page.terms.title')}
-                                        subtitle={t('pfi.page.terms.subtitle')}
-                                        className={cls.pageTermsBlock}
-                                    />
-
-                                    <div className={cls.tablesGrid}>
-                                        {tableSections.map((section, index) => {
-                                            const tab = tabs[index]
-                                            const domId = tab?.anchor ?? `pfi-model-${index + 1}`
-
-                                            return (
-                                                <PfiTableCard
-                                                    key={section.title ?? domId}
-                                                    section={section}
-                                                    domId={domId}
-                                                />
-                                            )
-                                        })}
-                                    </div>
-
-                                    {tabs.length > 1 && (
-                                        <SectionPager
-                                            sections={tabs}
-                                            currentIndex={currentIndex}
-                                            canPrev={canPrev}
-                                            canNext={canNext}
-                                            onPrev={handlePrev}
-                                            onNext={handleNext}
-                                        />
-                                    )}
-                                </>
-                            }
+                            )}
                         </>
                     }
-                </div>
-            )}
-        </PageDataBoundary>
+                </SectionDataState>
+            </SectionDataState>
+        </div>
     )
 }

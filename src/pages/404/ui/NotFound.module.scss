@@ -1,5 +1,5 @@
 .NotFoundPage {
-    min-height: calc(100vh - 80px); // небольшой запас под header/footer layout
+    @include safe-viewport-min-height(80px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -41,12 +41,25 @@
         max-width: 420px;
     }
 
+    .title {
+        font-size: clamp(22px, 4vw, 26px);
+    }
+
+    .description {
+        font-size: clamp(14px, 2.2vw, 16px);
+        line-height: 1.7;
+    }
+
     .actions {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 12px;
         text-align: center;
+    }
+
+    .orChoose {
+        font-size: clamp(13px, 2vw, 14px);
     }
 
     .primaryActions {
@@ -80,6 +93,15 @@
         flex-direction: column;
         gap: 4px;
 
+        .cardTitle {
+            font-size: clamp(14px, 2vw, 16px);
+        }
+
+        .cardDescription {
+            font-size: clamp(12px, 1.8vw, 13px);
+            line-height: 1.6;
+        }
+
         &:hover {
             background: rgba(20, 21, 28, 1);
             border-color: rgba(0, 100, 250, 0.55);
@@ -93,7 +115,7 @@
         }
     }
 
-    @media (max-width: 768px) {
+    @include viewport-phone {
         .mainBlock {
             flex-direction: column;
             text-align: center;

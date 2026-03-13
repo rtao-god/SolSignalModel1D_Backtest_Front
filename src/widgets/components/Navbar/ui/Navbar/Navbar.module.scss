@@ -6,11 +6,12 @@
     z-index: 100;
 
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
-    height: var(--navbar-height);
-    padding: 4px 22px;
+    min-height: var(--navbar-height);
+    padding: 6px 20px;
+    gap: 16px;
 
     background: radial-gradient(circle at 0% 0%, rgba(148, 163, 255, 0.2), transparent 55%),
         radial-gradient(circle at 100% 0%, rgba(248, 113, 113, 0.18), transparent 55%),
@@ -21,7 +22,7 @@
     transition:
         background 0.3s ease,
         box-shadow 0.3s ease,
-        height 0.3s ease;
+        min-height 0.3s ease;
 }
 
 .Navbar_open {
@@ -29,7 +30,7 @@
 }
 
 .Navbar_overflow {
-    height: auto;
+    min-height: auto;
 }
 
 .controls {
@@ -43,32 +44,43 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
-    flex: 0 0 auto;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .linksRow {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
     flex-wrap: nowrap;
+    min-width: 0;
 }
 
 .linksRow a,
 .secondaryLinks a {
+    display: inline-flex;
+    align-items: center;
     padding: 8px 16px;
     border-radius: 5px;
+    border: none;
+    background: transparent;
     box-shadow: 0 1px 3px rgb(0, 0, 0);
-
     text-decoration: none;
     color: #ffffff;
+    white-space: nowrap;
 
     transition: all 0.3s ease;
-    white-space: nowrap;
 
     &:hover {
         box-shadow: 0 1px 3px rgb(255, 255, 255);
         color: #000000;
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(191, 219, 254, 0.9);
+        outline-offset: 2px;
     }
 }
 
@@ -77,20 +89,19 @@
     flex-wrap: wrap;
     gap: 8px;
     justify-content: flex-start;
-
     max-height: 0;
     overflow: hidden;
     opacity: 0;
     pointer-events: none;
 
     transition:
-        max-height 0.22s ease,
-        opacity 0.18s ease,
-        margin-top 0.18s ease;
+        max-height 220ms ease,
+        opacity 180ms ease,
+        margin-top 180ms ease;
 }
 
 .secondaryLinks_open {
-    max-height: 260px;
+    max-height: 320px;
     opacity: 1;
     pointer-events: auto;
     margin-top: 6px;
@@ -98,16 +109,14 @@
 
 .expandToggle {
     position: relative;
-    display: none;
-
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-
+    flex-shrink: 0;
     width: 32px;
     height: 32px;
-    border-radius: 9999px;
     padding: 0;
-
+    border-radius: 9999px;
     border: 1px solid rgba(148, 163, 255, 0.7);
     background: radial-gradient(circle at 20% 0%, rgba(248, 250, 252, 0.55), transparent 55%),
         linear-gradient(135deg, rgba(30, 64, 175, 0.98), rgba(147, 51, 234, 0.94));
@@ -116,7 +125,6 @@
         0 10px 20px rgba(15, 23, 42, 0.9);
 
     cursor: pointer;
-
     transition:
         transform 0.22s ease,
         box-shadow 0.22s ease,
@@ -156,18 +164,13 @@
     position: absolute;
     inset: 0;
     margin: auto;
-
     width: 7px;
     height: 7px;
-
     border-right: 2px solid rgba(248, 250, 252, 0.97);
     border-bottom: 2px solid rgba(248, 250, 252, 0.97);
-
     border-radius: 2px;
-
     transform: translateX(0) rotate(-45deg);
     transform-origin: center;
-
     transition: transform 0.22s ease;
 }
 
@@ -200,16 +203,7 @@
     white-space: nowrap;
 }
 
-@media (min-width: 1024px) {
-    .Navbar {
-        flex-direction: row;
-        align-items: center;
-    }
-
-    .linksWrapper {
-        align-items: flex-end;
-    }
-
+@include viewport-from-sidebar-full-shell {
     .secondaryLinks {
         display: none;
     }
@@ -219,15 +213,14 @@
     }
 }
 
-@media (max-width: 1023px) {
+@include viewport-sidebar-compact-shell {
     .Navbar {
-        height: auto;
+        min-height: auto;
         padding: 8px 16px;
     }
 
-    .Navbar_overflow .linksWrapper {
+    .linksWrapper {
         align-items: flex-start;
-        flex: 1 1 auto;
     }
 
     .linksRow {
@@ -240,17 +233,12 @@
         padding: 6px 12px;
         font-size: 13px;
     }
-
-    .expandToggle {
-        display: inline-flex;
-        flex-shrink: 0;
-    }
 }
 
-@media (max-width: 480px) {
+@include viewport-phone {
     .Navbar {
         padding-inline: 12px;
-        gap: 20px;
+        gap: 14px;
     }
 
     .linksRow a,
@@ -267,48 +255,5 @@
     .expandToggleIcon {
         width: 11px;
         height: 11px;
-    }
-}
-
-.switch {
-    position: relative;
-    width: 54px;
-    height: 30px;
-
-    input {
-        display: none;
-    }
-
-    .slider {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        border-radius: var(--default-border, 50px);
-        background-color: var(--color-white);
-        transition: 0.4s;
-        cursor: pointer;
-
-        &:before {
-            position: absolute;
-            bottom: 2px;
-            left: 5px;
-            width: 22px;
-            height: 22px;
-            border-radius: var(--default-border, 50px);
-            background-color: #0d1117;
-            transition: 0.5s;
-            content: '';
-        }
-    }
-
-    input:checked + .slider {
-        background-color: var(--blue, #0d1117);
-    }
-
-    input:checked + .slider:before {
-        transform: translateX(16px);
-        background-color: #ffe1ff;
     }
 }

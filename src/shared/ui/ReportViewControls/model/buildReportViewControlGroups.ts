@@ -118,8 +118,7 @@ const PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION =
 const PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION =
     'На этой странице:\nпереключатель не пересчитывает прогноз и не меняет секции current prediction выше.\n\nОн только меняет, из какого bucket показываются строки в таблицах исполненных и пропущенных сигналов.'
 
-const PREDICTION_HISTORY_BUCKET_FILTER_DESCRIPTION =
-    `${BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION}\n\n${DAILY_BUCKET_DESCRIPTION}\n\n${INTRADAY_BUCKET_DESCRIPTION}\n\n${DELAYED_BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION}\n\nКак читать:\nесли строка есть только в одном bucket, значит именно этот механизм исполнения реально довёл сигнал до сделки.`
+const PREDICTION_HISTORY_BUCKET_FILTER_DESCRIPTION = `${BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION}\n\n${DAILY_BUCKET_DESCRIPTION}\n\n${INTRADAY_BUCKET_DESCRIPTION}\n\n${DELAYED_BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION}\n\nКак читать:\nесли строка есть только в одном bucket, значит именно этот механизм исполнения реально довёл сигнал до сделки.`
 
 const TRAINING_SCOPE_FULL_DESCRIPTION =
     'Полная история — самый широкий срез данных для этой версии модели.\n\nВ него попадают и обучающая часть истории, и более новые дни после train-границы.\n\nЭтот режим нужен, когда важно увидеть общую историческую устойчивость модели на длинной дистанции, а не только качество на одном участке.\n\nКак читать:\nхороший результат здесь полезен как общий фон, но его нельзя оценивать отдельно от OOS и от свежего хвоста, потому что старые режимы могут сглаживать текущие проблемы.'
@@ -178,8 +177,7 @@ export function buildCurrentPredictionHistoryTrainingScopeDescription(
     return `${buildTrainingScopeOverviewDescription(splitStats)}\n\nНа этой странице:\nпри переключении меняются доступные даты, подпись обучающего окна, карточки прогнозов за день и торговые блоки внутри них.`
 }
 
-export const CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION =
-    buildCurrentPredictionLiveTrainingScopeDescription()
+export const CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION = buildCurrentPredictionLiveTrainingScopeDescription()
 
 export const CURRENT_PREDICTION_HISTORY_TRAINING_SCOPE_DESCRIPTION =
     buildCurrentPredictionHistoryTrainingScopeDescription()

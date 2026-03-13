@@ -8,4 +8,6 @@ export interface AggregationStatsPageInnerProps {
     className?: string
     probs: AggregationProbsSnapshotDto
     metrics: AggregationMetricsSnapshotDto
+    showHeader?: boolean
+    embedded?: boolean
 }

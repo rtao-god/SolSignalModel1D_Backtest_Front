@@ -3,6 +3,7 @@ export const I18N_NAMESPACES = [
     'nav',
     'errors',
     'auth',
+    'about',
     'reports',
     'tooltips',
     'docs',

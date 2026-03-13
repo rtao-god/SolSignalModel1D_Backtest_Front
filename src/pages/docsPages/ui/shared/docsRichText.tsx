@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import { TermTooltip } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { renderRegisteredTermTooltipDescriptionById, resolveRegisteredTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import {
     matchTermTooltips,
     normalizeComparableTerm,
@@ -41,7 +42,7 @@ type DocsGlossaryTooltipMatch = TermTooltipMatch & {
 /**
  * Собирает единый glossary-map для страницы и запрещает дубли term-id.
  */
-export function buildDocsGlossaryOrThrow(groups: DocsLocalizedTermItem[][]): DocsGlossary {
+export function buildDocsGlossary(groups: DocsLocalizedTermItem[][]): DocsGlossary {
     const glossary = new Map<string, DocsLocalizedTermItem>()
 
     groups.flat().forEach(item => {
@@ -103,20 +104,50 @@ function parseExplicitDocsSegments(text: string): ExplicitDocsSegment[] {
 }
 
 function resolveExcludedTerms(glossary: DocsGlossary, visitedTermIds: string[]): string[] {
-    return visitedTermIds
-        .map(termId => glossary.get(termId)?.term?.trim() ?? '')
-        .filter(term => term.length > 0)
+    return visitedTermIds.map(termId => glossary.get(termId)?.term?.trim() ?? '').filter(term => term.length > 0)
 }
 
 function buildDocsGlossaryTooltipRegistry(glossary: DocsGlossary): DocsGlossaryTooltipRule[] {
     return Array.from(glossary.values()).map(item => ({
         id: item.id,
         title: item.term,
-        description: item.description,
+        description:
+            item.sharedTermId ?
+                renderRegisteredTermTooltipDescriptionById(item.sharedTermId, item.term)
+            :   (item.description ?? ''),
         aliases: [item.term],
         priority: item.term.length,
         glossaryItem: item
     }))
+}
+
+function resolveDocsGlossaryTooltipTitle(glossaryItem: DocsLocalizedTermItem): string {
+    if (!glossaryItem.sharedTermId) {
+        return glossaryItem.term
+    }
+
+    return resolveRegisteredTermTooltipTitle(glossaryItem.sharedTermId) ?? glossaryItem.term
+}
+
+function renderDocsGlossaryTooltipDescription(
+    glossaryItem: DocsLocalizedTermItem,
+    label: string,
+    options: RenderDocsRichTextOptions
+): ReactNode {
+    if (glossaryItem.sharedTermId) {
+        return renderRegisteredTermTooltipDescriptionById(glossaryItem.sharedTermId, label)
+    }
+
+    if (!glossaryItem.description) {
+        throw new Error(`[docs.richText] glossary description is missing. termId=${glossaryItem.id}.`)
+    }
+
+    const visitedTermIds = options.visitedTermIds ?? []
+
+    return renderDocsRichText(glossaryItem.description, {
+        glossary: options.glossary,
+        visitedTermIds: [...visitedTermIds, glossaryItem.id]
+    })
 }
 
 function renderDocsGlossaryTooltip(
@@ -125,19 +156,12 @@ function renderDocsGlossaryTooltip(
     options: RenderDocsRichTextOptions,
     key: string
 ): ReactNode {
-    const visitedTermIds = options.visitedTermIds ?? []
-
     return (
         <TermTooltip
             key={key}
             term={label}
-            tooltipTitle={glossaryItem.term}
-            description={() =>
-                renderDocsRichText(glossaryItem.description, {
-                    glossary: options.glossary,
-                    visitedTermIds: [...visitedTermIds, glossaryItem.id]
-                })
-            }
+            tooltipTitle={resolveDocsGlossaryTooltipTitle(glossaryItem)}
+            description={() => renderDocsGlossaryTooltipDescription(glossaryItem, label, options)}
             type='span'
             className={cls.inlineTerm}
         />
@@ -151,10 +175,17 @@ function renderDocsGlossaryAwareCoreText(
     glossaryRegistry: DocsGlossaryTooltipRule[]
 ): ReactNode {
     const visitedTermIds = new Set(options.visitedTermIds ?? [])
-    const excludedTerms = new Set(excludeTerms.map(item => normalizeComparableTerm(item)).filter(item => item.length > 0))
+    const excludedTerms = new Set(
+        excludeTerms.map(item => normalizeComparableTerm(item)).filter(item => item.length > 0)
+    )
     // Page-level glossary должен матчиться раньше глобального registry,
     // иначе локальные термины страницы теряются или дробятся на более общие global-term совпадения.
-    const matches = matchTermTooltips(text, glossaryRegistry, visitedTermIds, excludedTerms) as DocsGlossaryTooltipMatch[]
+    const matches = matchTermTooltips(
+        text,
+        glossaryRegistry,
+        visitedTermIds,
+        excludedTerms
+    ) as DocsGlossaryTooltipMatch[]
 
     if (matches.length === 0) {
         return renderTermTooltipRichText(text, { excludeTerms })
@@ -167,18 +198,33 @@ function renderDocsGlossaryAwareCoreText(
         if (match.start > lastIndex) {
             const textChunk = text.slice(lastIndex, match.start)
             if (textChunk) {
-                nodes.push(<Fragment key={`docs-glossary-text-${index}-${lastIndex}`}>{renderTermTooltipRichText(textChunk, { excludeTerms })}</Fragment>)
+                nodes.push(
+                    <Fragment key={`docs-glossary-text-${index}-${lastIndex}`}>
+                        {renderTermTooltipRichText(textChunk, { excludeTerms })}
+                    </Fragment>
+                )
             }
         }
 
-        nodes.push(renderDocsGlossaryTooltip(match.rule.glossaryItem, match.value, options, `docs-glossary-term-${match.rule.id}-${match.start}-${index}`))
+        nodes.push(
+            renderDocsGlossaryTooltip(
+                match.rule.glossaryItem,
+                match.value,
+                options,
+                `docs-glossary-term-${match.rule.id}-${match.start}-${index}`
+            )
+        )
         lastIndex = match.end
     })
 
     if (lastIndex < text.length) {
         const tail = text.slice(lastIndex)
         if (tail) {
-            nodes.push(<Fragment key={`docs-glossary-tail-${lastIndex}`}>{renderTermTooltipRichText(tail, { excludeTerms })}</Fragment>)
+            nodes.push(
+                <Fragment key={`docs-glossary-tail-${lastIndex}`}>
+                    {renderTermTooltipRichText(tail, { excludeTerms })}
+                </Fragment>
+            )
         }
     }
 
@@ -272,7 +318,9 @@ export function renderDocsRichText(text: string, options: RenderDocsRichTextOpti
             return
         }
 
-        nodes.push(renderDocsGlossaryTooltip(glossaryItem, segment.label, options, `docs-term-${segment.termId}-${index}`))
+        nodes.push(
+            renderDocsGlossaryTooltip(glossaryItem, segment.label, options, `docs-term-${segment.termId}-${index}`)
+        )
     })
 
     return <>{nodes}</>

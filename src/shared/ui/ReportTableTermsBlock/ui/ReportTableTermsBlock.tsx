@@ -45,7 +45,7 @@ export function buildSelfTooltipExclusions(termKey: string, termTitle: string, s
     }
 }
 
-function ensureNonEmptyValueOrThrow(value: string | undefined, label: string): string {
+function ensureNonEmptyValue(value: string | undefined, label: string): string {
     if (!value || value.trim().length === 0) {
         throw new Error(`[report-terms] ${label} is empty.`)
     }
@@ -53,7 +53,7 @@ function ensureNonEmptyValueOrThrow(value: string | undefined, label: string): s
     return value.trim()
 }
 
-function resolveLazyTextOrThrow(
+function resolveLazyText(
     value: string | undefined,
     resolver: ReportTableTermTextResolver | undefined,
     label: string
@@ -83,11 +83,7 @@ function shouldSkipReportTermItem(reportKind: string, columnTitle: string): bool
     return normalized === 'description' || normalized === 'описание'
 }
 
-function buildTermsFromColumnsOrThrow(
-    reportKind: string,
-    sectionTitle: string,
-    columns: string[]
-): ReportTableTermItem[] {
+function buildTermsFromColumns(reportKind: string, sectionTitle: string, columns: string[]): ReportTableTermItem[] {
     if (!reportKind || reportKind.trim().length === 0) {
         throw new Error('[report-terms] reportKind is empty.')
     }
@@ -103,7 +99,7 @@ function buildTermsFromColumnsOrThrow(
     const resolvedTerms: ReportTableTermItem[] = []
 
     columns.forEach(column => {
-        const key = ensureNonEmptyValueOrThrow(column, 'column title')
+        const key = ensureNonEmptyValue(column, 'column title')
         if (shouldSkipReportTermItem(reportKind, key)) {
             return
         }
@@ -124,16 +120,18 @@ function buildTermsFromColumnsOrThrow(
     return resolvedTerms
 }
 
-function buildProvidedTermsOrThrow(terms: ReportTableTermItem[]): ReportTableTermItem[] {
+function buildProvidedTerms(terms: ReportTableTermItem[]): ReportTableTermItem[] {
     if (!terms || terms.length === 0) {
         throw new Error('[report-terms] provided terms are empty.')
     }
 
     return terms.map((term, index) => ({
-        key: ensureNonEmptyValueOrThrow(term.key, `terms[${index}].key`),
-        title: ensureNonEmptyValueOrThrow(term.title, `terms[${index}].title`),
+        key: ensureNonEmptyValue(term.key, `terms[${index}].key`),
+        title: ensureNonEmptyValue(term.title, `terms[${index}].title`),
         description:
-            typeof term.description === 'string' && term.description.trim().length > 0 ? term.description.trim() : undefined,
+            typeof term.description === 'string' && term.description.trim().length > 0 ?
+                term.description.trim()
+            :   undefined,
         tooltip: typeof term.tooltip === 'string' && term.tooltip.trim().length > 0 ? term.tooltip.trim() : undefined,
         resolveDescription: term.resolveDescription,
         resolveTooltip: term.resolveTooltip
@@ -154,10 +152,10 @@ export default function ReportTableTermsBlock({
 }: ReportTableTermsBlockProps) {
     const resolvedTerms =
         terms ?
-            buildProvidedTermsOrThrow(terms)
-        :   buildTermsFromColumnsOrThrow(
-                ensureNonEmptyValueOrThrow(reportKind, 'reportKind'),
-                ensureNonEmptyValueOrThrow(sectionTitle, 'sectionTitle'),
+            buildProvidedTerms(terms)
+        :   buildTermsFromColumns(
+                ensureNonEmptyValue(reportKind, 'reportKind'),
+                ensureNonEmptyValue(sectionTitle, 'sectionTitle'),
                 columns ?? []
             )
 
@@ -172,8 +170,7 @@ export default function ReportTableTermsBlock({
 
             <div className={cls.grid}>
                 {resolvedTerms.map(term => {
-                    const itemClassName =
-                        displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
+                    const itemClassName = displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
                     const shouldRenderTitleTooltip = displayMode === 'tooltipOnly' && showTermTitleTooltip
                     const selfAliases = resolveReportTooltipSelfAliases(reportKind, term.key)
 
@@ -183,7 +180,7 @@ export default function ReportTableTermsBlock({
                                 <TermTooltip
                                     term={term.title}
                                     description={() => {
-                                        const tooltip = resolveLazyTextOrThrow(
+                                        const tooltip = resolveLazyText(
                                             term.tooltip,
                                             term.resolveTooltip,
                                             `terms.${term.key}.tooltip`
@@ -203,7 +200,7 @@ export default function ReportTableTermsBlock({
                             {displayMode === 'inline' && (
                                 <Text className={cls.description}>
                                     {(() => {
-                                        const description = resolveLazyTextOrThrow(
+                                        const description = resolveLazyText(
                                             term.description,
                                             term.resolveDescription,
                                             `terms.${term.key}.description`

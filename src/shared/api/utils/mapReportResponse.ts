@@ -16,7 +16,7 @@ export interface MapReportResponseOptions {
     policyBranchMegaMetadataMode?: PolicyBranchMegaMetadataMode
 }
 
-function toStringOrThrow(value: unknown, label: string): string {
+function toString(value: unknown, label: string): string {
     if (value === null || typeof value === 'undefined') {
         throw new Error(`[ui] Missing report field (${label}).`)
     }
@@ -32,7 +32,7 @@ function toOptionalStringOrUndefined(value: unknown): string | undefined {
     return normalized.length > 0 ? normalized : undefined
 }
 
-function toObjectOrThrow(value: unknown, label: string): Record<string, unknown> {
+function toObject(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new Error(`[ui] ${label} must be an object.`)
     }
@@ -40,7 +40,7 @@ function toObjectOrThrow(value: unknown, label: string): Record<string, unknown>
     return value as Record<string, unknown>
 }
 
-function parseTableKindOrThrow(raw: unknown, label: string): CapturedTableKindDto {
+function parseTableKind(raw: unknown, label: string): CapturedTableKindDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'unknown'
         if (raw === 1) return 'policy-branch-mega'
@@ -58,7 +58,7 @@ function parseTableKindOrThrow(raw: unknown, label: string): CapturedTableKindDt
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parseMegaModeOrThrow(raw: unknown, label: string): CapturedMegaModeDto {
+function parseMegaMode(raw: unknown, label: string): CapturedMegaModeDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'with-sl'
         if (raw === 1) return 'no-sl'
@@ -75,7 +75,7 @@ function parseMegaModeOrThrow(raw: unknown, label: string): CapturedMegaModeDto 
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parseMegaTpSlModeOrThrow(raw: unknown, label: string): CapturedMegaTpSlModeDto {
+function parseMegaTpSlMode(raw: unknown, label: string): CapturedMegaTpSlModeDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'all'
         if (raw === 1) return 'dynamic'
@@ -92,7 +92,7 @@ function parseMegaTpSlModeOrThrow(raw: unknown, label: string): CapturedMegaTpSl
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parseMegaZonalModeOrThrow(raw: unknown, label: string): CapturedMegaZonalModeDto {
+function parseMegaZonalMode(raw: unknown, label: string): CapturedMegaZonalModeDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'with-zonal'
         if (raw === 1) return 'without-zonal'
@@ -111,7 +111,7 @@ function parseMegaZonalModeOrThrow(raw: unknown, label: string): CapturedMegaZon
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parseMegaMetricVariantOrThrow(raw: unknown, label: string): CapturedMegaMetricVariantDto {
+function parseMegaMetricVariant(raw: unknown, label: string): CapturedMegaMetricVariantDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'real'
         if (raw === 1) return 'no-biggest-liq-loss'
@@ -132,7 +132,7 @@ function parseMegaMetricVariantOrThrow(raw: unknown, label: string): CapturedMeg
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parseMegaBucketOrThrow(raw: unknown, label: string): CapturedMegaBucketDto {
+function parseMegaBucket(raw: unknown, label: string): CapturedMegaBucketDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'daily'
         if (raw === 1) return 'intraday'
@@ -158,7 +158,7 @@ function parseMegaBucketOrThrow(raw: unknown, label: string): CapturedMegaBucket
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
-function parsePositiveIntOrThrow(raw: unknown, label: string): number {
+function parsePositiveInt(raw: unknown, label: string): number {
     if (typeof raw === 'number' && Number.isFinite(raw) && Number.isInteger(raw) && raw > 0) {
         return raw
     }
@@ -180,7 +180,7 @@ function resolvePolicyBranchMegaMetadataMode(options?: MapReportResponseOptions)
     return options?.policyBranchMegaMetadataMode ?? 'report-agnostic'
 }
 
-function mapTableMetadataOrThrow(
+function mapTableMetadata(
     raw: unknown,
     tableTitle: string,
     options?: MapReportResponseOptions
@@ -190,8 +190,8 @@ function mapTableMetadataOrThrow(
     }
 
     const policyMegaMetadataMode = resolvePolicyBranchMegaMetadataMode(options)
-    const payload = toObjectOrThrow(raw, `TableSection.metadata (${tableTitle})`)
-    const kind = parseTableKindOrThrow(payload.kind, `TableSection.metadata.kind (${tableTitle})`)
+    const payload = toObject(raw, `TableSection.metadata (${tableTitle})`)
+    const kind = parseTableKind(payload.kind, `TableSection.metadata.kind (${tableTitle})`)
 
     const metadata: CapturedTableMetadataDto = {
         kind
@@ -206,37 +206,37 @@ function mapTableMetadataOrThrow(
     const partLabel = `TableSection.metadata.part (${tableTitle})`
 
     if (payload.mode !== null && typeof payload.mode !== 'undefined') {
-        metadata.mode = parseMegaModeOrThrow(payload.mode, modeLabel)
+        metadata.mode = parseMegaMode(payload.mode, modeLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${modeLabel} is missing.`)
     }
 
     if (payload.tpSlMode !== null && typeof payload.tpSlMode !== 'undefined') {
-        metadata.tpSlMode = parseMegaTpSlModeOrThrow(payload.tpSlMode, tpSlModeLabel)
+        metadata.tpSlMode = parseMegaTpSlMode(payload.tpSlMode, tpSlModeLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${tpSlModeLabel} is missing.`)
     }
 
     if (payload.zonalMode !== null && typeof payload.zonalMode !== 'undefined') {
-        metadata.zonalMode = parseMegaZonalModeOrThrow(payload.zonalMode, zonalModeLabel)
+        metadata.zonalMode = parseMegaZonalMode(payload.zonalMode, zonalModeLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${zonalModeLabel} is missing.`)
     }
 
     if (payload.metricVariant !== null && typeof payload.metricVariant !== 'undefined') {
-        metadata.metricVariant = parseMegaMetricVariantOrThrow(payload.metricVariant, metricVariantLabel)
+        metadata.metricVariant = parseMegaMetricVariant(payload.metricVariant, metricVariantLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${metricVariantLabel} is missing.`)
     }
 
     if (payload.bucket !== null && typeof payload.bucket !== 'undefined') {
-        metadata.bucket = parseMegaBucketOrThrow(payload.bucket, bucketLabel)
+        metadata.bucket = parseMegaBucket(payload.bucket, bucketLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${bucketLabel} is missing.`)
     }
 
     if (payload.part !== null && typeof payload.part !== 'undefined') {
-        metadata.part = parsePositiveIntOrThrow(payload.part, partLabel)
+        metadata.part = parsePositiveInt(payload.part, partLabel)
     } else if (isStrict && kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${partLabel} is missing.`)
     }
@@ -252,13 +252,13 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
         for (const kv of raw.keyValueSections) {
             sections.push({
                 sectionKey: toOptionalStringOrUndefined(kv?.sectionKey),
-                title: toStringOrThrow(kv?.title, 'KeyValueSection.title'),
+                title: toString(kv?.title, 'KeyValueSection.title'),
                 items:
                     Array.isArray(kv?.items) ?
                         kv.items.map((it: any) => ({
                             itemKey: toOptionalStringOrUndefined(it?.itemKey),
-                            key: toStringOrThrow(it?.key, 'KeyValueSection.item.key'),
-                            value: toStringOrThrow(it?.value, 'KeyValueSection.item.value')
+                            key: toString(it?.key, 'KeyValueSection.item.key'),
+                            value: toString(it?.value, 'KeyValueSection.item.value')
                         }))
                     :   []
             })
@@ -267,43 +267,39 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
 
     if (Array.isArray(raw?.tableSections)) {
         for (const tbl of raw.tableSections) {
-            const title = toStringOrThrow(tbl?.title, 'TableSection.title')
+            const title = toString(tbl?.title, 'TableSection.title')
 
             sections.push({
                 sectionKey: toOptionalStringOrUndefined(tbl?.sectionKey),
                 title,
                 columns:
                     Array.isArray(tbl?.columns) ?
-                        tbl.columns.map((c: any, idx: number) => toStringOrThrow(c, `TableSection.columns[${idx}]`))
+                        tbl.columns.map((c: any, idx: number) => toString(c, `TableSection.columns[${idx}]`))
                     :   [],
                 columnKeys:
                     Array.isArray(tbl?.columnKeys) ?
-                        tbl.columnKeys.map((key: any, idx: number) =>
-                            toStringOrThrow(key, `TableSection.columnKeys[${idx}]`)
-                        )
+                        tbl.columnKeys.map((key: any, idx: number) => toString(key, `TableSection.columnKeys[${idx}]`))
                     :   undefined,
                 rows:
                     Array.isArray(tbl?.rows) ?
                         tbl.rows.map((row: any) =>
                             Array.isArray(row) ?
-                                row.map((cell: any, idx: number) =>
-                                    toStringOrThrow(cell, `TableSection.row.cell[${idx}]`)
-                                )
+                                row.map((cell: any, idx: number) => toString(cell, `TableSection.row.cell[${idx}]`))
                             :   []
                         )
                     :   [],
-                metadata: mapTableMetadataOrThrow(tbl?.metadata, title, options)
+                metadata: mapTableMetadata(tbl?.metadata, title, options)
             })
         }
     }
 
     return {
-        schemaVersion: parsePositiveIntOrThrow(raw?.schemaVersion, 'Report.schemaVersion'),
-        id: toStringOrThrow(raw?.id, 'Report.id'),
-        kind: toStringOrThrow(raw?.kind, 'Report.kind'),
-        title: toStringOrThrow(raw?.title, 'Report.title'),
+        schemaVersion: parsePositiveInt(raw?.schemaVersion, 'Report.schemaVersion'),
+        id: toString(raw?.id, 'Report.id'),
+        kind: toString(raw?.kind, 'Report.kind'),
+        title: toString(raw?.title, 'Report.title'),
         titleKey: toOptionalStringOrUndefined(raw?.titleKey),
-        generatedAtUtc: toStringOrThrow(raw?.generatedAtUtc, 'Report.generatedAtUtc'),
+        generatedAtUtc: toString(raw?.generatedAtUtc, 'Report.generatedAtUtc'),
         sections
     }
 }

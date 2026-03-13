@@ -3,8 +3,8 @@ import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { Link, Text } from '@/shared/ui'
 import { useTranslation } from 'react-i18next'
-import { buildDocsGlossaryOrThrow, renderDocsRichText } from './shared/docsRichText'
-import { readDocsStringListOrThrow, readDocsTermItemsOrThrow } from './shared/docsI18n'
+import { buildDocsGlossary, renderDocsRichText } from './shared/docsRichText'
+import { readDocsStringList, readDocsTermItems } from './shared/docsI18n'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import cls from './DocsPage.module.scss'
 import type { DocsPageProps } from './types'
@@ -35,10 +35,14 @@ export default function DocsPage({ className }: DocsPageProps) {
                 </Text>
                 <LocalizedContentBoundary name='DocsHome:heroSubtitle'>
                     {() => {
-                        const glossaryTerms = readDocsTermItemsOrThrow(i18n, 'page.glossary.terms')
-                        const glossary = buildDocsGlossaryOrThrow([glossaryTerms])
+                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                        const glossary = buildDocsGlossary([glossaryTerms])
 
-                        return <Text className={cls.heroSubtitle}>{renderDocsRichText(t('page.subtitle'), { glossary })}</Text>
+                        return (
+                            <Text className={cls.heroSubtitle}>
+                                {renderDocsRichText(t('page.subtitle'), { glossary })}
+                            </Text>
+                        )
                     }}
                 </LocalizedContentBoundary>
             </header>
@@ -50,9 +54,9 @@ export default function DocsPage({ className }: DocsPageProps) {
 
                 <LocalizedContentBoundary name='DocsHome:introParagraphs'>
                     {() => {
-                        const glossaryTerms = readDocsTermItemsOrThrow(i18n, 'page.glossary.terms')
-                        const glossary = buildDocsGlossaryOrThrow([glossaryTerms])
-                        const introParagraphs = readDocsStringListOrThrow(i18n, 'page.intro')
+                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                        const glossary = buildDocsGlossary([glossaryTerms])
+                        const introParagraphs = readDocsStringList(i18n, 'page.intro')
 
                         return (
                             <div className={cls.copyBlock}>
@@ -80,12 +84,14 @@ export default function DocsPage({ className }: DocsPageProps) {
                                 </div>
                                 <LocalizedContentBoundary name={`DocsHome:card:${card.id}`}>
                                     {() => {
-                                        const glossaryTerms = readDocsTermItemsOrThrow(i18n, 'page.glossary.terms')
-                                        const glossary = buildDocsGlossaryOrThrow([glossaryTerms])
+                                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                                        const glossary = buildDocsGlossary([glossaryTerms])
 
                                         return (
                                             <Text className={cls.cardText}>
-                                                {renderDocsRichText(t(`page.cards.${card.id}.description`), { glossary })}
+                                                {renderDocsRichText(t(`page.cards.${card.id}.description`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -99,5 +105,3 @@ export default function DocsPage({ className }: DocsPageProps) {
         </div>
     )
 }
-
-

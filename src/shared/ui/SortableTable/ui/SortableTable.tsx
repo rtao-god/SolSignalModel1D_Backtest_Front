@@ -12,6 +12,9 @@ import {
     toExportCell
 } from '../model/utils'
 import { useTranslation } from 'react-i18next'
+import { logError } from '@/shared/lib/logging/logError'
+
+export type TableDensity = 'simple' | 'medium' | 'dense'
 
 interface SortableTableProps {
     columns: string[]
@@ -20,6 +23,7 @@ interface SortableTableProps {
     storageKey?: string
     className?: string
     tableClassName?: string
+    density?: TableDensity
     getRowClassName?: (row: TableRow, rowIndex: number) => string | undefined
     getCellClassName?: (value: unknown, rowIndex: number, colIdx: number) => string | undefined
     onSortedRowsChange?: (rows: TableRow[]) => void
@@ -85,7 +89,14 @@ function safeLoadSortState(key: string, columnsLen: number): SortState | null {
 
         return { colIdx, kind: kind as SortKind }
     } catch (e) {
-        console.warn('[SortableTable] Failed to load sort state', { key, e })
+        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state load error.'))
+
+        logError(normalizedError, undefined, {
+            source: 'sortable-table-sort-load',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { key }
+        })
         return null
     }
 }
@@ -97,7 +108,14 @@ function safeSaveSortState(key: string, state: SortState) {
     try {
         window.localStorage.setItem(key, JSON.stringify(state))
     } catch (e) {
-        console.warn('[SortableTable] Failed to save sort state', { key, e })
+        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state save error.'))
+
+        logError(normalizedError, undefined, {
+            source: 'sortable-table-sort-save',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { key }
+        })
     }
 }
 
@@ -108,6 +126,7 @@ export default function SortableTable({
     storageKey,
     className,
     tableClassName,
+    density = 'medium',
     getRowClassName,
     getCellClassName,
     onSortedRowsChange,
@@ -295,7 +314,15 @@ export default function SortableTable({
         })
     }
 
-    const tableRootClass = classNames(cls.tableScroll, {}, [className ?? ''])
+    const tableRootClass = classNames(
+        cls.tableScroll,
+        {
+            [cls.densitySimple]: density === 'simple',
+            [cls.densityMedium]: density === 'medium',
+            [cls.densityDense]: density === 'dense'
+        },
+        [className ?? '']
+    )
     const tableClass = classNames(cls.table, {}, [tableClassName ?? ''])
 
     return (
@@ -318,13 +345,10 @@ export default function SortableTable({
                             const ariaSort = effectiveAriaSort(isActive, kind, defaultDir)
 
                             const titleHint =
-                                !isActive ?
-                                    t('sortableTable.sort', { defaultValue: 'Sort' })
-                                : isAsc ?
-                                    t('sortableTable.sortAsc', { defaultValue: 'Sort: ascending' })
-                                : isDesc ?
-                                    t('sortableTable.sortDesc', { defaultValue: 'Sort: descending' })
-                                :   t('sortableTable.sort', { defaultValue: 'Sort' })
+                                !isActive ? t('sortableTable.sort', { defaultValue: 'Sort' })
+                                : isAsc ? t('sortableTable.sortAsc', { defaultValue: 'Sort: ascending' })
+                                : isDesc ? t('sortableTable.sortDesc', { defaultValue: 'Sort: descending' })
+                                : t('sortableTable.sort', { defaultValue: 'Sort' })
 
                             const renderedTitle = renderColumnTitle ? renderColumnTitle(title, colIdx) : title
 

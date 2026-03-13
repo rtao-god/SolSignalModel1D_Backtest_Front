@@ -10,6 +10,7 @@ import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { useLocale } from '@/shared/lib/i18n'
+import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
 interface BacktestPolicyRatiosSectionProps {
     profileId?: string
@@ -30,11 +31,21 @@ type PolicyRatioChartDatum = ReportMetricBarDatum & {
 }
 
 const metricOptions: { key: MetricKey; labelKey: string; defaultLabel: string; isPercent?: boolean }[] = [
-    { key: 'totalPnlPct', labelKey: 'backtestFull.policyRatios.metrics.totalPnlPct', defaultLabel: 'PnL %', isPercent: true },
+    {
+        key: 'totalPnlPct',
+        labelKey: 'backtestFull.policyRatios.metrics.totalPnlPct',
+        defaultLabel: 'PnL %',
+        isPercent: true
+    },
     { key: 'sharpe', labelKey: 'backtestFull.policyRatios.metrics.sharpe', defaultLabel: 'Sharpe' },
     { key: 'sortino', labelKey: 'backtestFull.policyRatios.metrics.sortino', defaultLabel: 'Sortino' },
     { key: 'calmar', labelKey: 'backtestFull.policyRatios.metrics.calmar', defaultLabel: 'Calmar' },
-    { key: 'winRatePct', labelKey: 'backtestFull.policyRatios.metrics.winRatePct', defaultLabel: 'WinRate %', isPercent: true }
+    {
+        key: 'winRatePct',
+        labelKey: 'backtestFull.policyRatios.metrics.winRatePct',
+        defaultLabel: 'WinRate %',
+        isPercent: true
+    }
 ]
 
 interface RatioColumnDefinition {
@@ -85,7 +96,7 @@ function selectMetric(row: PolicyRatiosPerPolicyDto, key: MetricKey): number {
     }
 }
 
-function resolveBucketsOrThrow(report: PolicyRatiosReportDto): string[] {
+function resolveBuckets(report: PolicyRatiosReportDto): string[] {
     const bucketSet = new Set<string>()
 
     for (const row of report.policies) {
@@ -111,8 +122,17 @@ export function BacktestPolicyRatiosSection({
     title,
     subtitle
 }: BacktestPolicyRatiosSectionProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const { formatDate } = useLocale()
+    const tooltipLocale = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru') ? 'ru' : 'en'
+    const resolveSharedReportTooltip = (title: string): string => {
+        const description = resolveCommonReportColumnTooltipOrNull(title, tooltipLocale)
+        if (!description) {
+            throw new Error(`Missing shared report tooltip for '${title}' in BacktestPolicyRatiosSection.`)
+        }
+
+        return description
+    }
 
     const resolvedTitle =
         title ??
@@ -144,7 +164,7 @@ export function BacktestPolicyRatiosSection({
 
     const bucketOptions = useMemo(() => {
         if (!activeReport) return []
-        return resolveBucketsOrThrow(activeReport)
+        return resolveBuckets(activeReport)
     }, [activeReport])
 
     useEffect(() => {
@@ -194,9 +214,7 @@ export function BacktestPolicyRatiosSection({
         return (
             <section className={cls.PolicyRatiosSection}>
                 <Text type='h3'>{resolvedTitle}</Text>
-                <Text>
-                    {t('backtestFull.policyRatios.loading', { defaultValue: 'Loading policy metrics...' })}
-                </Text>
+                <Text>{t('backtestFull.policyRatios.loading', { defaultValue: 'Loading policy metrics...' })}</Text>
             </section>
         )
     }
@@ -336,9 +354,7 @@ export function BacktestPolicyRatiosSection({
                             emptyDescription={t('backtestFull.policyRatios.chart.emptyDescription', {
                                 defaultValue: 'Для выбранного бакета не удалось построить chart dataset.'
                             })}
-                            valueFormatter={value =>
-                                isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3)
-                            }
+                            valueFormatter={value => (isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3))}
                             getTooltipTitle={datum =>
                                 t('backtestFull.policyRatios.chart.policyLabel', {
                                     label: datum.label,
@@ -346,21 +362,30 @@ export function BacktestPolicyRatiosSection({
                                 })
                             }
                             getTooltipRows={datum => [
-                                { label: currentMetricLabel, value: isPercentMetric ? `${datum.value.toFixed(2)} %` : datum.value.toFixed(3) },
+                                {
+                                    label: currentMetricLabel,
+                                    value: isPercentMetric ? `${datum.value.toFixed(2)} %` : datum.value.toFixed(3)
+                                },
                                 {
                                     label: t('backtestFull.policyRatios.controls.bucket', { defaultValue: 'Bucket' }),
                                     value: datum.bucket
                                 },
                                 {
-                                    label: t('backtestFull.policyRatios.columns.trades.label', { defaultValue: 'Trades' }),
+                                    label: t('backtestFull.policyRatios.columns.trades.label', {
+                                        defaultValue: 'Trades'
+                                    }),
                                     value: String(datum.tradesCount)
                                 },
                                 {
-                                    label: t('backtestFull.policyRatios.columns.maxDd.label', { defaultValue: 'MaxDD %' }),
+                                    label: t('backtestFull.policyRatios.columns.maxDd.label', {
+                                        defaultValue: 'MaxDD %'
+                                    }),
                                     value: `${datum.maxDdPct.toFixed(2)}`
                                 },
                                 {
-                                    label: t('backtestFull.policyRatios.columns.winRate.label', { defaultValue: 'WinRate %' }),
+                                    label: t('backtestFull.policyRatios.columns.winRate.label', {
+                                        defaultValue: 'WinRate %'
+                                    }),
                                     value: `${datum.winRatePct.toFixed(1)}`
                                 },
                                 {
@@ -378,20 +403,18 @@ export function BacktestPolicyRatiosSection({
                             <thead>
                                 <tr>
                                     {RATIO_COLUMN_DEFINITIONS.map(column => {
-                                        const label = t(
-                                            `backtestFull.policyRatios.columns.${column.id}.label`,
-                                            {
-                                                defaultValue: column.defaultLabel
-                                            }
-                                        )
-                                        const tooltip = t(
-                                            `backtestFull.policyRatios.columns.${column.id}.tooltip`,
-                                            {
-                                                defaultValue: column.defaultTooltip
-                                            }
-                                        )
+                                        const label = t(`backtestFull.policyRatios.columns.${column.id}.label`, {
+                                            defaultValue: column.defaultLabel
+                                        })
+                                        const tooltip = t(`backtestFull.policyRatios.columns.${column.id}.tooltip`, {
+                                            defaultValue: column.defaultTooltip
+                                        })
+                                        const resolvedTooltip =
+                                            column.id === 'policy' ? resolveSharedReportTooltip('Policy')
+                                            : column.id === 'bucket' ? resolveSharedReportTooltip('Bucket')
+                                            : tooltip
 
-                                        return <th key={column.id}>{renderTermTooltipTitle(label, tooltip)}</th>
+                                        return <th key={column.id}>{renderTermTooltipTitle(label, resolvedTooltip)}</th>
                                     })}
                                 </tr>
                             </thead>

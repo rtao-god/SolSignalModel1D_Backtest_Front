@@ -5,6 +5,7 @@ import cls from './TableExportButton.module.scss'
 import TableExportButtonProps from './types'
 import { Btn } from '../../Btn'
 import { useTranslation } from 'react-i18next'
+import { logError } from '@/shared/lib/logging/logError'
 
 export default function TableExportButton({
     className,
@@ -47,7 +48,15 @@ export default function TableExportButton({
                 format
             })
         } catch (error) {
-            console.error('[table-export] Export failed.', error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error ?? 'Unknown table export error.'))
+
+            logError(normalizedError, undefined, {
+                source: 'table-export',
+                domain: 'ui_section',
+                severity: 'warning',
+                extra: { fileBaseName, format }
+            })
         } finally {
             setIsExporting(false)
             setOpen(false)

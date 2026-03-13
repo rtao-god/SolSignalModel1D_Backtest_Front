@@ -1,14 +1,7 @@
 .PfiPage {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-
-    padding: 24px;
-
-    // Ограничиваем ширину на широких мониторах,
-    // чтобы таблицы не растягивались.
-    max-width: 1400px;
-    margin: 0 auto;
+    @include product-page-shell(1400px, true, 24px);
+    container-type: inline-size;
+    container-name: pfi-page;
 }
 
 .headerRow {
@@ -22,7 +15,7 @@
 
 .subtitle {
     margin-top: 4px;
-    opacity: 0.8;
+    color: var(--text-muted);
 }
 
 .meta {
@@ -32,7 +25,7 @@
     gap: 4px;
 
     font-size: 12px;
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .tablesGrid {
@@ -47,11 +40,13 @@
 
 /* Карточка для одной таблицы (одна модель) */
 .tableCard {
-    border-radius: 12px;
-    padding: 16px 20px;
-
-    background-color: var(--bg-color-elevated, #171a20);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    @include surface-card(
+        $padding: 16px 20px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
 }
 
 .cardHeader {
@@ -69,7 +64,7 @@
 
 .cardSubtitle {
     margin-bottom: 10px;
-    opacity: 0.8;
+    color: var(--text-muted);
     max-width: 820px;
 }
 
@@ -80,21 +75,15 @@
 
 /* Таблица с горизонтальным скроллом, чтобы не ломать layout на узких экранах */
 .tableScroll {
-    width: 100%;
-    overflow-x: auto;
-
-    /* Сглаживаем скролл */
-    scrollbar-width: thin;
+    @include table-scroll-shell($density: dense, $min-width: 780px);
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
+    @include data-table-base($min-width: 780px, $font-size: 12px);
 }
 
 .table thead {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--bg-color-muted);
 }
 
 .table th,
@@ -110,7 +99,7 @@
 }
 
 .table tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.025);
 }
 
 /* ===== sortable headers ===== */
@@ -195,5 +184,17 @@
     .sortIcons,
     .sortIcon {
         transition: none;
+    }
+}
+
+@container pfi-page (max-width: 760px) {
+    .headerRow,
+    .cardHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .meta {
+        align-items: flex-start;
     }
 }

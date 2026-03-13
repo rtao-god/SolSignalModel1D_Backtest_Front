@@ -1,11 +1,16 @@
 .list {
+    --bullet-list-marker-color: currentColor;
     display: block;
+}
+
+.listPrimary {
+    --bullet-list-marker-color: var(--color-list-bullet-primary);
 }
 
 .item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 0.65rem;
+    column-gap: 10px;
     align-items: start;
 }
 
@@ -14,15 +19,17 @@
 }
 
 .marker {
-    width: 0.42rem;
-    height: 0.42rem;
-    margin-top: 0.5em;
+    width: 4px;
+    height: 4px;
+    margin-top: 0.56em;
     border-radius: 999px;
-    background: currentColor;
+    background: var(--bullet-list-marker-color);
     opacity: 0.72;
 }
 
 .content {
     display: block;
     min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }

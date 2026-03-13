@@ -13,10 +13,10 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readAvailableGuideTermGroups,
-    readGuideStringListOrThrow,
-    readGuideTableRowsOrThrow
+    readGuideStringList,
+    readGuideTableRows
 } from '@/pages/guidePages/ui/shared/guideI18n'
-import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
+import { buildGuideGlossary, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './GuideModelsPage.module.scss'
 import type { GuideModelsPageProps } from './types'
 
@@ -81,7 +81,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
         [t]
     )
     const buildPageGlossary = () =>
-        buildGuideGlossaryOrThrow(
+        buildGuideGlossary(
             readAvailableGuideTermGroups(i18n, [
                 'modelsPage.sections.meaning.terms',
                 'modelsPage.sections.daily.terms',
@@ -123,12 +123,14 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                     <LocalizedContentBoundary name='GuideModels:meaning:paragraphs'>
                         {() => {
                             const glossary = buildPageGlossary()
-                            const paragraphs = readGuideStringListOrThrow(i18n, 'modelsPage.sections.meaning.paragraphs')
+                            const paragraphs = readGuideStringList(i18n, 'modelsPage.sections.meaning.paragraphs')
 
                             return (
                                 <div className={cls.copyBlock}>
                                     {paragraphs.map((paragraph, paragraphIndex) => (
-                                        <Text key={`guide-models-meaning-${paragraphIndex}`} className={cls.sectionText}>
+                                        <Text
+                                            key={`guide-models-meaning-${paragraphIndex}`}
+                                            className={cls.sectionText}>
                                             {renderGuideRichText(paragraph, { glossary })}
                                         </Text>
                                     ))}
@@ -139,7 +141,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                     <LocalizedContentBoundary name='GuideModels:meaning:table'>
                         {() => {
                             const glossary = buildPageGlossary()
-                            const overviewRows = readGuideTableRowsOrThrow(i18n, 'modelsPage.sections.meaning.table.rows')
+                            const overviewRows = readGuideTableRows(i18n, 'modelsPage.sections.meaning.table.rows')
 
                             return (
                                 <div className={cls.tableWrap}>
@@ -147,13 +149,19 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                         <thead>
                                             <tr>
                                                 <th>
-                                                    {t('modelsPage.sections.meaning.table.headers.model', { ns: 'guide' })}
+                                                    {t('modelsPage.sections.meaning.table.headers.model', {
+                                                        ns: 'guide'
+                                                    })}
                                                 </th>
                                                 <th>
-                                                    {t('modelsPage.sections.meaning.table.headers.role', { ns: 'guide' })}
+                                                    {t('modelsPage.sections.meaning.table.headers.role', {
+                                                        ns: 'guide'
+                                                    })}
                                                 </th>
                                                 <th>
-                                                    {t('modelsPage.sections.meaning.table.headers.output', { ns: 'guide' })}
+                                                    {t('modelsPage.sections.meaning.table.headers.output', {
+                                                        ns: 'guide'
+                                                    })}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -190,7 +198,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                 <LocalizedContentBoundary name={`GuideModels:reading:${card.id}:paragraphs`}>
                                     {() => {
                                         const glossary = buildPageGlossary()
-                                        const paragraphs = readGuideStringListOrThrow(
+                                        const paragraphs = readGuideStringList(
                                             i18n,
                                             `modelsPage.sections.${card.id}.paragraphs`
                                         )
@@ -198,7 +206,9 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                         return (
                                             <div className={cls.copyBlock}>
                                                 {paragraphs.map((paragraph, paragraphIndex) => (
-                                                    <Text key={`${card.id}-paragraph-${paragraphIndex}`} className={cls.subCardText}>
+                                                    <Text
+                                                        key={`${card.id}-paragraph-${paragraphIndex}`}
+                                                        className={cls.subCardText}>
                                                         {renderGuideRichText(paragraph, { glossary })}
                                                     </Text>
                                                 ))}
@@ -216,7 +226,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                             }
 
                                             const glossary = buildPageGlossary()
-                                            const rows = readGuideTableRowsOrThrow(
+                                            const rows = readGuideTableRows(
                                                 i18n,
                                                 `modelsPage.sections.${card.id}.table.rows`
                                             )
@@ -228,9 +238,12 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                                             <tr>
                                                                 {headerKeys.map(headerKey => (
                                                                     <th key={`${card.id}-header-${headerKey}`}>
-                                                                        {t(`modelsPage.sections.${card.id}.table.headers.${headerKey}`, {
-                                                                            ns: 'guide'
-                                                                        })}
+                                                                        {t(
+                                                                            `modelsPage.sections.${card.id}.table.headers.${headerKey}`,
+                                                                            {
+                                                                                ns: 'guide'
+                                                                            }
+                                                                        )}
                                                                     </th>
                                                                 ))}
                                                             </tr>
@@ -239,7 +252,8 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                                             {rows.map((row, rowIndex) => (
                                                                 <tr key={`${card.id}-row-${rowIndex}`}>
                                                                     {row.map((cell, cellIndex) => (
-                                                                        <td key={`${card.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                        <td
+                                                                            key={`${card.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                             {renderGuideRichText(cell, { glossary })}
                                                                         </td>
                                                                     ))}
@@ -265,7 +279,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                     <LocalizedContentBoundary name='GuideModels:logic:paragraphs'>
                         {() => {
                             const glossary = buildPageGlossary()
-                            const paragraphs = readGuideStringListOrThrow(i18n, 'modelsPage.sections.logic.paragraphs')
+                            const paragraphs = readGuideStringList(i18n, 'modelsPage.sections.logic.paragraphs')
 
                             return (
                                 <div className={cls.copyBlock}>
@@ -290,7 +304,7 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                             <LocalizedContentBoundary key={cardId} name={`GuideModels:contract:${cardId}`}>
                                 {() => {
                                     const glossary = buildPageGlossary()
-                                    const paragraphs = readGuideStringListOrThrow(
+                                    const paragraphs = readGuideStringList(
                                         i18n,
                                         `modelsPage.sections.contract.cards.${cardId}.paragraphs`
                                     )
@@ -298,11 +312,15 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                     return (
                                         <article className={cls.contractCard}>
                                             <Text type='h4' className={cls.contractTitle}>
-                                                {t(`modelsPage.sections.contract.cards.${cardId}.title`, { ns: 'guide' })}
+                                                {t(`modelsPage.sections.contract.cards.${cardId}.title`, {
+                                                    ns: 'guide'
+                                                })}
                                             </Text>
                                             <div className={cls.copyBlock}>
                                                 {paragraphs.map((paragraph, paragraphIndex) => (
-                                                    <Text key={`${cardId}-technical-${paragraphIndex}`} className={cls.contractText}>
+                                                    <Text
+                                                        key={`${cardId}-technical-${paragraphIndex}`}
+                                                        className={cls.contractText}>
                                                         {renderGuideRichText(paragraph, { glossary })}
                                                     </Text>
                                                 ))}
@@ -326,7 +344,9 @@ export default function GuideModelsPage({ className }: GuideModelsPageProps) {
                                 {() => {
                                     const glossary = buildPageGlossary()
                                     const whyText = t(`modelsPage.sections.checks.cards.${cardId}.why`, { ns: 'guide' })
-                                    const exampleText = t(`modelsPage.sections.checks.cards.${cardId}.example`, { ns: 'guide' })
+                                    const exampleText = t(`modelsPage.sections.checks.cards.${cardId}.example`, {
+                                        ns: 'guide'
+                                    })
 
                                     return (
                                         <article className={cls.checkCard}>

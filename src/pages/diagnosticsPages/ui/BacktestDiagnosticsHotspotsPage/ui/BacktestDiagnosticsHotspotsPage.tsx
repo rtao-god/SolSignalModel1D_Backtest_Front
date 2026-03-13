@@ -1,14 +1,15 @@
 import { useMemo } from 'react'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
-import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import {
+    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
+    useBacktestDiagnosticsReportQuery
+} from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import {
     getDiagnosticsGroupSections,
     splitBacktestDiagnosticsSections
 } from '@/shared/utils/backtestDiagnosticsSections'
 import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
+import { BACKTEST_DIAGNOSTICS_NO_BUCKET_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
@@ -23,7 +24,10 @@ export default function BacktestDiagnosticsHotspotsPage() {
     const { t } = useTranslation('reports')
     const [searchParams] = useSearchParams()
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
-        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams)
+        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams),
+        {
+            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.hotspotsPage
+        }
     )
 
     const tableSections = useMemo(
@@ -39,27 +43,18 @@ export default function BacktestDiagnosticsHotspotsPage() {
         () => getDiagnosticsGroupSections(diagnosticsSections, 'hotspots'),
         [diagnosticsSections]
     )
-    const renderColumnTitle = (title: string) =>
-        renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
-
     return (
-        <PageDataBoundary
+        <BacktestDiagnosticsPageLayout
+            report={data ?? null}
+            sections={hotspotSections}
+            availableAxes={BACKTEST_DIAGNOSTICS_NO_BUCKET_CONTROL_AXES}
+            pageTitle={t('diagnosticsReport.pages.hotspots.title')}
+            pageSubtitle={t('diagnosticsReport.pages.hotspots.subtitle')}
+            emptyMessage={t('diagnosticsReport.pages.hotspots.empty')}
+            errorTitle={t('diagnosticsReport.pages.hotspots.errorTitle')}
             isLoading={isPending}
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
+            error={isError ? error : undefined}
             onRetry={refetch}
-            errorTitle={t('diagnosticsReport.pages.hotspots.errorTitle')}>
-            {data && (
-                <BacktestDiagnosticsPageLayout
-                    report={data}
-                    sections={hotspotSections}
-                    pageTitle={t('diagnosticsReport.pages.hotspots.title')}
-                    pageSubtitle={t('diagnosticsReport.pages.hotspots.subtitle')}
-                    emptyMessage={t('diagnosticsReport.pages.hotspots.empty')}
-                    renderColumnTitle={renderColumnTitle}
-                />
-            )}
-        </PageDataBoundary>
+        />
     )
 }

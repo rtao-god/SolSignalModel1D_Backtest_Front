@@ -8,7 +8,10 @@ import {
     prefetchBacktestBaselineSummaryReport
 } from '@/shared/api/tanstackQueries/backtest'
 import { prefetchBacktestConfidenceRiskReport } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
-import { prefetchBacktestDiagnosticsReport } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import {
+    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
+    prefetchBacktestDiagnosticsReport
+} from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { prefetchBacktestExecutionPipelineReport } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
 import {
     DEFAULT_BACKFILLED_HISTORY_SCOPE,
@@ -22,6 +25,7 @@ import { prefetchPolicyBranchMegaReportWithFreshness } from '@/shared/api/tansta
 import { DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS } from '@/shared/api/tanstackQueries/policyBranchMega'
 import type { BacktestDiagnosticsReportQueryArgs } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import type { PolicyBranchMegaReportQueryArgs } from '@/shared/api/tanstackQueries/policyBranchMega'
+import { logError } from '@/shared/lib/logging/logError'
 import { prefetchRouteChunk } from '../routeConfig'
 import { AppRoute } from '../types'
 
@@ -51,6 +55,27 @@ const DIAGNOSTICS_REPORT_PREFETCH_ROUTES: AppRoute[] = [
     AppRoute.BACKTEST_DIAGNOSTICS_RATINGS,
     AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS
 ]
+
+function resolveDiagnosticsPrefetchScope(routeId: AppRoute) {
+    switch (routeId) {
+        case AppRoute.BACKTEST_DIAGNOSTICS:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.backtestPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.guardrailPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.decisionsPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.hotspotsPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_OTHER:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.otherPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_RATINGS:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.ratingsPage
+        case AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS:
+            return BACKTEST_DIAGNOSTICS_QUERY_SCOPES.dayStatsPage
+        default:
+            return undefined
+    }
+}
 
 function dispatchWarmupThunk(dispatch: AppDispatch, thunk: unknown): void {
     // Dispatch в warmup получает RTK thunk actions от api.endpoints.*.initiate.
@@ -114,10 +139,10 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
         )
     },
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: ({ queryClient, policyBranchMegaArgs }) =>
-        prefetchPolicyBranchMegaReportWithFreshness(
-            queryClient,
-            policyBranchMegaArgs ?? DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS
-        ),
+        prefetchPolicyBranchMegaReportWithFreshness(queryClient, {
+            ...(policyBranchMegaArgs ?? DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS),
+            part: 1
+        }),
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: ({ queryClient }) => prefetchBacktestConfidenceRiskReport(queryClient),
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: ({ queryClient }) => prefetchRealForecastJournalDayList(queryClient),
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: ({ queryClient }) => prefetchBacktestExecutionPipelineReport(queryClient),
@@ -127,7 +152,9 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
 
 for (const routeId of DIAGNOSTICS_REPORT_PREFETCH_ROUTES) {
     ROUTE_DATA_PREFETCHERS[routeId] = ({ queryClient, diagnosticsArgs }) =>
-        prefetchBacktestDiagnosticsReport(queryClient, diagnosticsArgs)
+        prefetchBacktestDiagnosticsReport(queryClient, diagnosticsArgs, {
+            scope: resolveDiagnosticsPrefetchScope(routeId)
+        })
 }
 
 interface WarmupRouteNavigationOptions {
@@ -154,5 +181,14 @@ export function warmupRouteNavigation(
         dispatch,
         diagnosticsArgs: options?.diagnosticsArgs,
         policyBranchMegaArgs: options?.policyBranchMegaArgs
-    }).catch(() => {})
+    }).catch(error => {
+        const normalizedError =
+            error instanceof Error ? error : new Error(String(error ?? 'Unknown route data prefetch error.'))
+        logError(normalizedError, undefined, {
+            source: 'route-data-prefetch',
+            domain: 'api_transport',
+            severity: 'warning',
+            extra: { routeId }
+        })
+    })
 }

@@ -5,7 +5,7 @@ import type {
     CurrentPredictionSet,
     CurrentPredictionTrainingScope
 } from '../endpoints/reportEndpoints'
-import { normalizeCurrentPredictionDateUtcOrThrow } from '@/shared/utils/currentPredictionDate'
+import { normalizeCurrentPredictionDateUtc } from '@/shared/utils/currentPredictionDate'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
@@ -38,7 +38,7 @@ interface CurrentPredictionLatestResponse {
     backfilled?: unknown
 }
 
-function resolveCurrentPredictionIndexScopeOrThrow(
+function resolveCurrentPredictionIndexScope(
     set: CurrentPredictionSet,
     scope?: CurrentPredictionTrainingScope
 ): CurrentPredictionTrainingScope {
@@ -84,7 +84,7 @@ async function fetchCurrentPredictionIndex(
     days?: number,
     scope?: CurrentPredictionTrainingScope
 ): Promise<CurrentPredictionIndexItemDto[]> {
-    const resolvedScope = resolveCurrentPredictionIndexScopeOrThrow(set, scope)
+    const resolvedScope = resolveCurrentPredictionIndexScope(set, scope)
     const search = new URLSearchParams()
 
     search.set('set', set)
@@ -119,7 +119,7 @@ async function fetchCurrentPredictionIndex(
 
         return {
             id: item.id,
-            predictionDateUtc: normalizeCurrentPredictionDateUtcOrThrow(item.predictionDateUtc)
+            predictionDateUtc: normalizeCurrentPredictionDateUtc(item.predictionDateUtc)
         }
     })
 }
@@ -240,10 +240,7 @@ export function useCurrentPredictionBackfilledSplitStats(): CurrentPredictionBac
     }
 }
 
-function buildCurrentPredictionReportQueryOptions(
-    set: CurrentPredictionSet,
-    scope?: CurrentPredictionTrainingScope
-) {
+function buildCurrentPredictionReportQueryOptions(set: CurrentPredictionSet, scope?: CurrentPredictionTrainingScope) {
     return {
         queryKey: ['current-prediction', 'latest', set, scope ?? 'default'] as const,
         queryFn: () => fetchCurrentPrediction(set, scope),
@@ -256,7 +253,7 @@ function buildCurrentPredictionIndexQueryOptions(
     days?: number,
     scope?: CurrentPredictionTrainingScope
 ) {
-    const resolvedScope = resolveCurrentPredictionIndexScopeOrThrow(set, scope)
+    const resolvedScope = resolveCurrentPredictionIndexScope(set, scope)
 
     return {
         queryKey: ['current-prediction', 'dates', set, resolvedScope, days ?? 'all'] as const,

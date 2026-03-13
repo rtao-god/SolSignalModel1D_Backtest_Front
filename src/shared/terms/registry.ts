@@ -1,5 +1,6 @@
 import { normalizeComparableTerm } from '@/shared/ui/TermTooltip/lib/termTooltipMatcher'
 import { COMMON_TERM_TOOLTIP_REGISTRY } from './common'
+import { logError } from '@/shared/lib/logging/logError'
 
 function collectComparableLabels(
     termTitle: string | undefined,
@@ -31,7 +32,11 @@ function collectSharedTermRegistryIssues(): Error[] {
         collectComparableLabels(term.title, term.aliases, term.autolink).forEach(label => {
             const existingId = labelsToIds.get(label)
             if (existingId && existingId !== term.id) {
-                issues.push(new Error(`[shared-terms] alias collision: "${label}" is used by both ${existingId} and ${term.id}.`))
+                issues.push(
+                    new Error(
+                        `[shared-terms] alias collision: "${label}" is used by both ${existingId} and ${term.id}.`
+                    )
+                )
                 return
             }
 
@@ -52,11 +57,15 @@ function reportSharedTermRegistryIssues(): void {
 
     didReportSharedTermRegistryIssues = true
     SHARED_TERM_REGISTRY_ISSUES.forEach(issue => {
-        console.error(issue)
+        logError(issue, undefined, {
+            source: 'shared-terms-registry',
+            domain: 'app_runtime',
+            severity: 'warning'
+        })
     })
 }
 
-export function resolveSharedTermSelfAliasesOrThrow(termId: string): string[] {
+export function resolveSharedTermSelfAliases(termId: string): string[] {
     reportSharedTermRegistryIssues()
 
     const resolved = COMMON_TERM_TOOLTIP_REGISTRY.find(term => term.id === termId)

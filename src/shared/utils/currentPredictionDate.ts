@@ -6,7 +6,7 @@ const ISO_UTC_MIDNIGHT_REGEX = /^(\d{4}-\d{2}-\d{2})T00:00:00(?:\.0{1,7})?Z$/
  * Индекс истории может отдавать либо day-key, либо midnight ISO instant, но
  * UI и query-string должны работать только с одним форматом без ручной склейки.
  */
-export function normalizeCurrentPredictionDateUtcOrThrow(raw: string): string {
+export function normalizeCurrentPredictionDateUtc(raw: string): string {
     const normalized = raw.trim()
     if (!normalized) {
         throw new Error('[current-prediction] dateUtc is required.')

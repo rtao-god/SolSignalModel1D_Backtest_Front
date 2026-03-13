@@ -1,4 +1,3 @@
-export * from './mediaQueries'
 export * from './dateFormat'
 export * from './numberFormat'
 type Libraries = ('drawing' | 'geometry' | 'localContext' | 'places' | 'visualization')[]

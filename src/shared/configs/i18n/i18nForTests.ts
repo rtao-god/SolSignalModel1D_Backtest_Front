@@ -5,6 +5,7 @@ import commonRu from '../../../../public/locales/ru/common.json'
 import navRu from '../../../../public/locales/ru/nav.json'
 import errorsRu from '../../../../public/locales/ru/errors.json'
 import authRu from '../../../../public/locales/ru/auth.json'
+import aboutRu from '../../../../public/locales/ru/about.json'
 import reportsRu from '../../../../public/locales/ru/reports.json'
 import tooltipsRu from '../../../../public/locales/ru/tooltips.json'
 import docsRu from '../../../../public/locales/ru/docs.json'
@@ -15,6 +16,7 @@ import commonEn from '../../../../public/locales/en/common.json'
 import navEn from '../../../../public/locales/en/nav.json'
 import errorsEn from '../../../../public/locales/en/errors.json'
 import authEn from '../../../../public/locales/en/auth.json'
+import aboutEn from '../../../../public/locales/en/about.json'
 import reportsEn from '../../../../public/locales/en/reports.json'
 import tooltipsEn from '../../../../public/locales/en/tooltips.json'
 import docsEn from '../../../../public/locales/en/docs.json'
@@ -28,6 +30,7 @@ const resources = {
         nav: navRu,
         errors: errorsRu,
         auth: authRu,
+        about: aboutRu,
         reports: reportsRu,
         tooltips: tooltipsRu,
         docs: docsRu,
@@ -40,6 +43,7 @@ const resources = {
         nav: navEn,
         errors: errorsEn,
         auth: authEn,
+        about: aboutEn,
         reports: reportsEn,
         tooltips: tooltipsEn,
         docs: docsEn,

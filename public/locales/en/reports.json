@@ -5,58 +5,42 @@
     "main": {
         "hero": {
             "eyebrow": "SolSignal 1D",
-            "title": "Forecast for [[landing-sol-usdt|SOL/USDT]] and validation on history",
+            "title": "Forecast for [[landing-sol-usdt|SOL/USDT]] and historical simulation",
             "subtitleParagraphs": [
-                "SolSignal 1D is a system that evaluates, on each [[landing-time-horizon|trading day]], where [[landing-sol-usdt|SOL/USDT]] is more likely to move during that day ([[landing-day-up|Up]] / [[landing-day-down|Down]] / [[landing-day-flat|Sideways]]) and converts that forecast into a clear trading scenario: entry, position size, and risk limits.",
-                "The website shows not only the current forecast but also how that same strategy behaved on history starting from April 13, 2022: where it earned, where it was wrong, what [[drawdown|drawdown]] it went through, and how quickly it recovered after weak periods."
+                "SolSignal 1D is a system that evaluates, on each [[landing-time-horizon|trading day]], where [[landing-sol-usdt|SOL/USDT]] is more likely to move during that day ([[landing-day-up|Up]] / [[landing-day-down|Down]] / [[landing-day-flat|Sideways]]) and converts that forecast into a clear trading scenario: when to enter a trade, what the adaptive position size should be, and what the adaptive [[tp-sl|stop-loss]] and [[tp-sl|take-profit]] levels should be.",
+                "Alongside the current forecast, the website preserves the history of the same type of decisions, recalculated by past dates on the same strategy from 2022 onward: where the strategy earned, where it was wrong, what [[drawdown|drawdown]] it went through, and how quickly it recovered after weak periods."
             ],
             "panelTitle": "What the result contains",
             "bullets": [
                 "Decision for the nearest trading day: position direction, [[landing-model-confidence|confidence]], and risk limits.",
-                "An archive of past forecasts where each date can be compared with the realized outcome of the same window.",
-                "Historical validation with return, [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]]."
+                "[[landing-prediction-history|An archive of past forecasts]] where each date can be compared with the realized outcome of the same window.",
+                "Historical simulation with return, [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]]."
             ],
             "ctaForecast": "Forecast for today",
-            "ctaProof": "Validation on history"
+            "ctaProof": "Historical simulation"
         },
         "audience": {
-            "eyebrow": "Audience",
-            "title": "Who this format is built for",
-            "subtitle": "The product can be read on three levels: business outcome, analytical validation, and technical detail for risk and models.",
-            "cards": {
-                "business": {
-                    "title": "Business",
-                    "body": [
-                        "The business layer answers whether the system produces a repeatable result and what level of risk stands behind that return.",
-                        "The key reading layer includes not only headline percentages, but also [[drawdown|drawdown]], [[liquidation|liquidations]], and stability across long history."
-                    ]
-                },
-                "analyst": {
-                    "title": "Analyst",
-                    "body": [
-                        "The analytical layer preserves forecasts by date, a historical summary, and reason slices so the result can be validated rather than taken on trust.",
-                        "That makes it possible to see where the effect is produced: in the forecast, in the risk filter, in the [[landing-trading-policy|trading policy]], or in a specific market regime."
-                    ]
-                },
-                "quantRisk": {
-                    "title": "Quant and risk",
-                    "body": [
-                        "The technical layer provides source tables and explain material so headline numbers can be decomposed into concrete metrics.",
-                        "For deeper validation the website exposes [[landing-policy-branch-mega|Policy Branch Mega]], [[landing-guardrail|guardrail]], [[landing-hotspots|hotspots]], and related diagnostic pages."
-                    ]
-                }
-            }
+            "eyebrow": "Why it matters for business",
+            "title": "Which questions the service answers",
+            "subtitle": "This layer is used to evaluate the strategy as an operating instrument rather than as one lucky result.",
+            "businessTitle": "What business gets",
+            "businessLead": "SolSignal 1D is used to check whether the same trading strategies produce a repeatable result across long history, what level of risk comes with that result, and whether there is reason to expect similar behavior in future market conditions.",
+            "businessQuestions": [
+                "Is there a real model effect.",
+                "What level of risk stands behind the return.",
+                "Can the result be checked against facts rather than promises."
+            ]
         },
         "workflow": {
             "eyebrow": "How it works",
             "title": "How one forecast moves through the full cycle",
-            "subtitle": "The project follows the same cycle for every trading day. Model details, thresholds, and risk rules are explained through tooltips and explain pages.",
+            "subtitle": "The project follows the same cycle for every trading day. Model details, thresholds, and risk rules are explained through tooltips and explanatory pages.",
             "steps": {
                 "forecast": {
                     "title": "Forecast for the trading day",
                     "body": [
                         "At the start of the trading window the system calculates a [[landing-forecast|forecast]] for [[landing-sol-usdt|SOL/USDT]].",
-                        "The output contains position direction, [[landing-model-confidence|confidence]], and risk constraints for that day."
+                        "The output contains position direction, [[landing-model-confidence|confidence]], and the final trade scenario after risk adjustment for that day."
                     ]
                 },
                 "archive": {
@@ -67,9 +51,9 @@
                     ]
                 },
                 "validate": {
-                    "title": "Validated on long history",
+                    "title": "Simulation across long history",
                     "body": [
-                        "The same strategy also goes through [[landing-backtest-summary|historical validation]] across a long series of trading days.",
+                        "The same strategy also goes through [[landing-backtest-summary|historical simulation]] across a long series of trading days.",
                         "This layer shows not only return, but also the cost of that result through risk and weak periods."
                     ]
                 }
@@ -78,14 +62,14 @@
         "proof": {
             "eyebrow": "Proof",
             "title": "Which evidence supports the result",
-            "subtitle": "Trust here rests on three sources: a preserved archive, long-history validation, and explicit [[landing-truthfulness|data truthfulness]] rules.",
+            "subtitle": "Trust here rests on three sources: a preserved archive, historical simulation, and explicit [[landing-truthfulness|data truthfulness]] rules.",
             "cards": {
                 "archive": {
                     "title": "Forecast archive",
                     "description": "The archive confirms that past forecasts are preserved by date and can be compared with the realized outcome of the same window.",
                     "loading": "Loading forecast archive...",
                     "errorTitle": "Forecast archive is unavailable",
-                    "errorDescription": "The archive index could not be loaded for the proof card.",
+                    "errorDescription": "The archive index could not be loaded for the history card.",
                     "facts": {
                         "start": "Archive start",
                         "latest": "Latest date",
@@ -94,11 +78,11 @@
                     "linkLabel": "Prediction history"
                 },
                 "backtest": {
-                    "title": "Validation on history",
-                    "description": "The summary shows how this strategy behaves on long history: across return, risk, and emergency events.",
+                    "title": "Historical simulation",
+                    "description": "The summary shows how this strategy would behave on long history: across return, risk, and emergency events.",
                     "loading": "Loading backtest summary...",
                     "errorTitle": "Backtest summary is unavailable",
-                    "errorDescription": "Headline metrics could not be extracted from the summary report.",
+                    "errorDescription": "The key metrics could not be extracted from the summary report.",
                     "facts": {
                         "range": "Period",
                         "signalDays": "Signal days",
@@ -106,7 +90,7 @@
                         "worstMaxDd": "Worst MaxDD%",
                         "policiesWithLiquidation": "Configurations with liquidation"
                     },
-                    "linkLabel": "Backtest summary"
+                    "linkLabel": "Historical simulation"
                 },
                 "truth": {
                     "title": "Data truthfulness",
@@ -115,55 +99,107 @@
                 }
             }
         },
+        "realJournal": {
+            "eyebrow": "Live days",
+            "title": "Real forecast journal",
+            "subtitle": "This section accumulates new trading days after conditional live trading started on March 12, 2026. Unlike the archive of past forecasts, it grows only as new dates appear.",
+            "cardTitle": "Why",
+            "description": "This journal is needed to compare historical simulation and model metrics with how the strategy behaves after the project has moved into a conditional live mode.",
+            "bullets": [
+                "Unlike the [[landing-prediction-history|archive of past forecasts]], which is recalculated from historical dates, this journal grows only through new days starting from March 12, 2026.",
+                "For each of these days the forecast is fixed in advance, while the outcome is still unknown, and the comparison with reality appears only after that same day window closes.",
+                "Even a long [[landing-backtest-summary|historical simulation]] does not prove by itself that there is no [[landing-leakage-guards|leakage]] in the data or the calculation path.",
+                "The journal makes it possible to see whether the realized result on these new days stays aligned with what [[landing-model-metrics|model metrics]] and [[landing-backtest-summary|historical simulation]] had suggested earlier."
+            ],
+            "loading": "Loading real forecast journal...",
+            "errorTitle": "Real forecast journal is unavailable",
+            "errorDescription": "The summary of real trading days could not be loaded for the dedicated block on the main page.",
+            "facts": {
+                "trackedDays": "Days in journal",
+                "finalizedDays": "Finalized days",
+                "realizedAccuracy": "Forecast-to-outcome match",
+                "pendingAccuracy": "Will appear after the first finalized day"
+            },
+            "journalLinkLabel": "Real forecast journal",
+            "modelStatsLinkLabel": "Model metrics"
+        },
+        "megaTable": {
+            "eyebrow": "Core project table",
+            "title": "[[landing-policy-branch-mega|Policy Branch Mega]]",
+            "subtitle": "This section is used for detailed strategy comparison. The final reading of a [[policy|Policy]] usually comes down to this table.",
+            "cardTitle": "What the table shows",
+            "description": "[[landing-policy-branch-mega|Policy Branch Mega]] gathers every [[policy|Policy]] configuration on one long history: [[branch|BASE / ANTI-D branches]], SL modes, filters, and the final risk/return metrics. That makes it possible to read not only final return, but also the price of that result through drawdown, liquidations, recovery, and trade structure.",
+            "bullets": [
+                "The table shows [[total-pnl|return]], [[drawdown|drawdown]], [[liquidation|liquidations]], [[recovery|recovery]], trade share, and days without entry into a trade side by side.",
+                "The comparison is valid because all configurations are calculated on the same history and on the same trading days.",
+                "The mini demo on the main page shows only one top [[policy|Policy]]. A full reading requires the full [[landing-policy-branch-mega|Policy Branch Mega]] table."
+            ],
+            "linkLabel": "Policy Branch Mega"
+        },
+        "sandbox": {
+            "eyebrow": "Project as a sandbox",
+            "title": "Why the project matters beyond current return",
+            "subtitle": "Even if the current return of the top strategy is not yet the main reason to buy the project on its own, the product can already be used as a sandbox for testing new trading hypotheses and practical theories.",
+            "cardTitle": "What is already inside",
+            "description": "The project can already be used as an operating environment for testing ideas. It already contains the forecast layer, historical simulation, [[policy|Policy]] comparison, the real forecast journal, and diagnostic screens.",
+            "bullets": [
+                "The current forecast shows how a new idea looks on the nearest trading day and what trade scenario it becomes.",
+                "[[landing-backtest-summary|Historical simulation]] and the [[landing-policy-branch-mega|main strategy table]] make it possible to compare hypotheses across return, [[drawdown|drawdown]], [[liquidation|liquidations]], trade share, and days without entering a trade.",
+                "The real forecast journal adds a separate validation layer on new dates after the conditional live mode started.",
+                "[[landing-diagnostics|Diagnostics]], the [[landing-explain|explain layer]], and [[landing-model-metrics|model metrics]] show why a result appeared, where strategy quality weakens, and which filters materially change the outcome."
+            ]
+        },
         "tooltipRules": {
-            "solana": "Solana is the network and SOL is its native asset. In this product the important object is not the network itself but the [[landing-sol-usdt|SOL/USDT]] pair used for forecast and historical validation.",
-            "solUsdt": "[[landing-sol-usdt|SOL/USDT]] is a trading pair on Binance. It shows the price of the SOL coin in USDT, meaning how many units of USDT the Binance market gives for 1 SOL.\n\nUSDT is a crypto token whose price usually stays close to 1 US dollar.\n\nThe public website currently concentrates on this single pair so [[landing-current-prediction|current prediction]], [[landing-prediction-history|prediction history]], and [[backtest|backtest]] stay comparable on one instrument without mixing multiple coins.",
-            "mlProject": "An ML project is a product where the key decision is built by a machine-learning model rather than by a manual analyst rule.\n\nIn this project the model takes historical market data, turns it into [[landing-features|features]], and produces a [[landing-forecast|forecast]] for one trading day.\n\nAlongside the current result, the website also shows the historical validation of that strategy.",
-            "mlModel": "An algorithm trained on historical data that estimates the scenario for one trading day on [[landing-sol-usdt|SOL/USDT]]. Training and [[backtest|backtest]] use the same time window that later appears on the website as the forecast day.",
-            "btc": "Bitcoin. In this product it works as an external reference for the [[landing-ml-model|ML model]] alongside [[landing-solana|Solana]], making it easier to see whether [[landing-sol-usdt|SOL/USDT]] moves with the broader crypto market.",
-            "macroIndicators": "External market and economic signals that help the [[landing-ml-model|model]] distinguish local [[landing-solana|Solana]] movement from a broader market regime.",
-            "features": "Features are numeric inputs for the [[landing-ml-model|ML model]]. They are built from price, volatility, [[landing-btc|BTC]] behavior, and other observable factors, then transformed into a [[landing-forecast|forecast]].",
-            "signal": "The output of the [[landing-ml-model|model]] for one [[landing-time-horizon|NY session]]: position direction, [[landing-model-confidence|confidence]], and risk constraints. This output is then passed through the [[landing-trading-policy|trading policy]].",
-            "forecast": "The expected scenario for [[landing-sol-usdt|SOL/USDT]] over one working trading window. On the website this format is used both for the nearest live calculation and for past dates inside [[landing-prediction-history|prediction history]].",
-            "currentPrediction": "A page with the nearest forecast for [[landing-sol-usdt|SOL/USDT]] for one New York trading day. It shows the main calculation for the current trading window and, when published in advance, the [[landing-early-preview|early preview]] for the same day.",
-            "predictionHistory": "An archive of past forecasts rebuilt from the [[backtest|backtest]] by date. Each date contains both the forecast itself and the realized result of the corresponding trading window. The history available on the website starts on April 13, 2022.",
-            "backtestSummary": "A historical validation page for this strategy. It is read not only through return, but also through [[drawdown|drawdown]], [[liquidation|liquidations]], emergency risk, and [[recovery|recovery speed after major drawdowns]].",
-            "diagnostics": "A set of pages showing where the result is lost: at entry, in the risk filter, in [[landing-no-trade|no-trade]] days, or in specific market regimes.",
-            "analysis": "A comparison section for strategies, day slices, and confidence slices. It is used when one headline number is no longer enough.",
-            "explain": "A plain-language section for project terms and mechanics: models, forecast windows, tables, and report-reading logic.",
-            "truthfulness": "Documentation about data truthfulness: which data was available at forecast time, how the day outcome is calculated separately, and why future information must not flow back into the decision.",
-            "timeHorizon": "The working window is one trading day of the US session: from the beginning of the working day in New York to the end of that same day.\n\nThe current forecast, historical labels, and [[backtest|backtest]] all use this same window, so every section compares the same type of day rather than different parts of the 24-hour cycle.\n\n[[landing-time-horizon-why|Why?]]\n\nThe [[landing-early-preview|early preview]] refers to the same day, but is calculated earlier, before the main session starts.",
-            "timeHorizonWhy": "Because the start of the US session usually brings more liquidity and stronger intraday movement than the quieter hours before it.\n\nThat makes volatility closer to the conditions where the strategy actually has to make a decision, and metrics such as the [[atr-indicator|ATR indicator]] describe the active market better than a calm slice of the day.\n\nFor that reason the models are trained and validated on the part of the day where market movement is more likely to move from noise into a tradable scenario.",
-            "dayUp": "Up is the day scenario where the model expects price to move mainly upward inside the working trading window.",
-            "dayDown": "Down is the day scenario where the model expects price to move mainly downward inside the working trading window.",
-            "dayFlat": "Sideways is the day scenario without a strong directional move, where price is more likely to stay inside a range instead of breaking strongly up or down.",
-            "pathBasedLabeling": "A way to label historical days not only by close price but also by the path price traveled inside the window. This helps the [[landing-ml-model|model]] separate a tradable move from a formally similar but unstable scenario.",
-            "earlyPreview": "The early preview is a forecast for the same trading window, but published in advance before the main NY window opens. It is marked separately because it is needed earlier than the main calculation.",
-            "microModel": "The micro model is applied only to the subset of days where the base daily model returned FLAT.\n\nIts job is to refine a weak directional bias inside a sideways scenario, not to reclassify every day from scratch.\n\nOn the page this is visible in the Day -> Day+Micro transition.",
-            "multiLayer": "A day / micro / SL pipeline. The daily model sets the class relative to [[min-move|MinMove]], the [[landing-micro-model|micro model]] refines only the FLAT subset, and the SL layer adds a risk overlay to the final interpretation.",
-            "slRisk": "Metrics that describe fast stop-loss risk and days where entries are especially vulnerable. They help show when the strategy is more likely to fall into protective constraints.",
-            "guardrail": "A protective filter that tries to keep the strategy out of bad days. It is read through [[landing-specificity|specificity]], block rate, and overall economic impact.",
-            "specificity": "A filter-purity metric for bad days: it shows how cleanly [[landing-guardrail|guardrail]] separates truly problematic regimes from normal ones.",
-            "blameSplit": "A split of failure source by decision layer: signal error, filter error, or trading-rule error. It helps separate a weak [[landing-ml-model|model]] from an overly strict [[landing-trading-policy|trading policy]].",
-            "hotspots": "Slices where the strategy repeatedly underperforms: too few trades, too much [[landing-no-trade|NoTrade]], or frequent decisions against the market. Useful for finding recurring weak regimes.",
-            "pfi": "Permutation Feature Importance — a report showing how much model quality degrades when one feature is shuffled. The larger the drop, the more important the feature is for the [[landing-forecast|forecast]].",
-            "confusionMatrix": "A table of correct and incorrect classifications. In this product it helps show where the [[landing-ml-model|model]] and [[landing-guardrail|guardrail]] correctly identify good and bad days.",
-            "modelMetrics": "Model-quality metrics: scenario accuracy, stability across day types, and behavior under risk. They are usually read together with [[landing-confusion-matrix|confusion matrix]] and [[landing-pfi|PFI]].",
-            "policyBranchMega": "The full historical table for [[policy|Policy]] / [[branch|Branch]] combinations. It brings together return, drawdown, liquidations, LONG/SHORT structure, and other metrics for each configuration.",
-            "noTrade": "A day with no trade. It happens when the strategy has no direction, a risk filter blocks the entry, or the final [[cap-fraction|capital share]] becomes zero.",
-            "attribution": "A breakdown of which causes shaped the final decision. It helps show whether [[landing-signal|signal]], risk filtering, or the [[landing-trading-policy|trading policy]] had the strongest effect.",
-            "featureImportance": "An estimate of how strongly each feature affects the [[landing-ml-model|model]] decision. On the website this view is represented through [[landing-pfi|PFI]] and explain reports.",
-            "predictionAggregation": "The layer that combines several model signals into one final day-level decision. It is used to compare individual models with the final [[landing-forecast|forecast]].",
-            "allHistory": "A view over the full available history without selecting separate periods. It is used to compare [[landing-trading-policy|trading policies]] on the same time scale.",
-            "baselineBacktest": "A control [[landing-backtest|backtest]] with the base rule configuration. It serves as the reference point for comparing other modes.",
-            "experimentalBacktest": "An exploratory [[landing-backtest|backtest]] for new or unstable configurations. It should be read as a research scenario, not as the primary business benchmark.",
-            "modelConfidence": "A numeric estimate of how confident the model is in the selected day scenario. In this product it affects risk sizing and, in some modes, [[cap-fraction|capital share]] and dynamic exit control.",
-            "liquidationBuffer": "The distance between the current price and the level where the position would be forcibly closed. In [[anti-direction|anti-direction]], this buffer acts as a safety filter: if it is too small relative to [[min-move|MinMove]], inversion becomes risky."
+            "solana": "Solana is the base asset of the [[landing-sol-usdt|SOL/USDT]] pair. In this product the focus is not the network itself but the tradable instrument used for forecast, history, and historical simulation.\n\nWhat it shows:\nwhen the interface mentions Solana, it refers to the SOL price inside the working trading pair and to how the strategy behaves on that asset.\n\nHow to read it:\nthe term is here to separate the traded asset from the model or strategy. The website evaluates trading logic on SOL price behavior, not the broader “Solana project” narrative.",
+            "solUsdt": "[[landing-sol-usdt|SOL/USDT]] is a Binance trading pair: how many units of USDT the market currently pays for 1 SOL. This is the exact instrument used for forecast, forecast history, and historical simulation on the public website.\n\nWhat it shows:\nit is the main trading object of the product. Current forecast, historical archive, and backtest are intentionally kept on the same pair so the user compares one instrument instead of a mixed basket of coins.\n\nHow to read it:\nif a result looks strong, that means it is strong on SOL/USDT specifically. Porting the conclusion to another asset requires separate validation because volatility, liquidity, and execution statistics will differ.",
+            "mlProject": "An ML project is a product where the trading decision is built by a machine-learning model rather than by a manually written analyst rule. Here the model turns historical data into features and produces a forecast for one trading day.\n\nWhat it shows:\nthe term refers to the whole operating loop, not just to one model file: live forecast, archive of past decisions, long-history simulation, and risk diagnostics all belong to the same decision system.\n\nHow to read it:\nthe project should be judged through repeatability, not through one nice live card. The real question is whether the same logic survives history, keeps risk under control, and transfers to new days.",
+            "mlModel": "An ML model is the algorithm that estimates the scenario of one trading day for [[landing-sol-usdt|SOL/USDT]] from historical market data. Its probabilities are later passed through policy rules and risk layers.\n\nWhat it shows:\nthe model owns the forecasting part of the pipeline: it transforms features into a directional expectation before trading policy decides whether that expectation is tradable.\n\nHow to read it:\nthe model cannot be judged by one probability snapshot alone. Its value is determined by whether the same logic transfers to unseen days and behaves coherently in long-history simulation.",
+            "btc": "BTC is used as an external market reference alongside [[landing-solana|Solana]]. It helps the model see whether [[landing-sol-usdt|SOL/USDT]] is moving because of the broader crypto regime or because of a more local asset-specific story.\n\nWhat it shows:\nthis does not mean the product trades Bitcoin directly. BTC acts as a context signal that helps separate market-wide movement from local behavior in the target pair.\n\nHow to read it:\nif BTC becomes influential in the forecast, it means the model is leaning more on broad crypto conditions rather than on SOL-only behavior. That changes how the forecast should be interpreted.",
+            "macroIndicators": "Macro indicators are external market signals that describe the broader regime around the core trading instrument. They help the model separate local [[landing-sol-usdt|SOL/USDT]] movement from larger market conditions.\n\nWhat it shows:\nthese indicators do not open a trade by themselves. They provide context such as calm market, stress regime, elevated volatility, or synchronized sector movement.\n\nHow to read it:\nif macro signals become more influential, the forecast should be read as more dependent on the overall market regime rather than on the isolated behavior of SOL/USDT.",
+            "features": "Features are the numeric inputs of the model. They are built from price, volatility, [[landing-btc|BTC]] behavior, and other observable [[factor|factors]] before being transformed into a day-level forecast.\n\nWhat it shows:\na feature is not a ready trading decision. It is raw input that becomes useful only after the model compares it with history and with the rest of the feature set.\n\nHow to read it:\nwhen explain or PFI highlights an important feature, the right reading is not “this single number prints money”. It means the model loses meaningful context when that signal becomes unavailable.",
+            "signal": "A signal is the model output for one [[landing-time-horizon|trading day]]: position direction, [[landing-model-confidence|confidence]], and risk constraints. That output then goes through the [[landing-trading-policy|trading policy]].\n\nWhat it shows:\na signal is not automatically the same thing as an executed trade. Policy rules, risk sizing, filters, and admission checks still decide whether the market entry is actually allowed.\n\nHow to read it:\nif a signal looks strong but no trade appears, the problem is no longer the model direction itself. The next place to inspect is policy or risk logic, not the forecast class alone.",
+            "forecast": "A forecast is the expected scenario for [[landing-sol-usdt|SOL/USDT]] over one working trading window. The same forecast format is used both for the nearest day and for historical dates in the archive.\n\nWhat it shows:\nthis is the core object the website revolves around: the system forms an expectation in advance and then lets the user compare that expectation with the realized outcome of the same window.\n\nHow to read it:\na forecast becomes useful only when paired with historical validation. One attractive answer for today means little if the same decision logic does not hold on archived days and historical simulation.",
+            "currentPrediction": "Current prediction is the page for the nearest decision on [[landing-sol-usdt|SOL/USDT]] for one [[landing-time-horizon|trading day]]. It shows the main calculation for the current window and, when available ahead of time, the early preview for that same day.\n\nWhat it shows:\nthe page answers the practical question “what does the system expect now” and with which risk limits that expectation is presented before or near the start of the working session.\n\nHow to read it:\nit should be read together with prediction history and historical simulation. By itself, the current card is only one day; strategy quality is judged by how the same type of decision behaves across many dates.",
+            "predictionHistory": "Prediction history is the archive of past forecasts by date. Each date stores both the original forecast and the realized outcome of the same trading window after it closed.\n\nWhat it shows:\nthis is the closest view to a live stream of decisions: what the system expected in advance and what actually happened later in that exact day window.\n\nHow to read it:\nhistory matters because it lets the user test honesty and repeatability. It shows where forecasts hold, where they fail, and which market regimes produce the most errors.",
+            "backtestSummary": "Backtest summary is the long-history simulation page for the strategy. It shows not only return but also the price of that result through [[drawdown|drawdown]], [[liquidation|liquidations]], and recovery behavior.\n\nWhat it shows:\nthis layer exists to compare strategies on the same historical days and see what paid for the profit: rare trading, deep drawdowns, emergency events, or a calmer risk profile.\n\nHow to read it:\nif a strategy looks good only by total return, the summary exposes that quickly. This is where the user sees whether the result is robust or whether it collapses in bad periods.",
+            "diagnostics": "Diagnostics is the set of pages that shows where the strategy loses quality: at entry, in the risk filter, in no-trade days, in specific market regimes, or later during execution.\n\nWhat it shows:\nthis is not another showcase of nice numbers. It is the cause-finding layer that shows why trades are skipped, where emergency risk accumulates, and which part of the pipeline really damages the result.\n\nHow to read it:\ndiagnostics matters when one summary table is no longer enough. If a strategy underperforms, diagnostics separates model weakness from policy weakness and from execution weakness.",
+            "analysis": "Analysis is the comparison layer for strategies, confidence slices, and execution modes on the same underlying data. It is used when one headline number is no longer enough and several alternatives must be read side by side.\n\nWhat it shows:\nthe point is not to pick a winner blindly but to expose the structure of differences: which mode earns more, where risk increases, how no-trade behavior changes, and what happens across buckets or confidence groups.\n\nHow to read it:\nthis section turns comparison into an observable process. It becomes especially useful when several configurations produce similar return but pay for it through very different risk profiles.",
+            "explain": "Explain is the plain-language layer for the project terms, pages, and mechanics. It exists so the user can understand what the metrics mean and how models, risk layers, and historical reports connect to one another.\n\nWhat it shows:\nit does not recompute the market and it does not invent another analytical layer. Its role is to translate internal mechanics into definitions and reading rules that remain stable across the interface.\n\nHow to read it:\nwhen a number looks unclear, explain should remove ambiguity: what the metric is, where it is calculated, why it matters, and how it should be compared with neighboring values.",
+            "truthfulness": "Data truthfulness is the section about what the system was allowed to know at forecast time, how the realized day outcome is computed separately, and why future information must not flow back into the decision.\n\nWhat it shows:\nthis is where the project draws the boundary between causal decision-making and post-fact evaluation. Without that boundary, good-looking historical numbers stop being evidence of real model quality.\n\nHow to read it:\nthe section should be read as the trust contract of the product. If this contract is broken, attractive metrics in history no longer prove that the strategy would behave the same way in live conditions.",
+            "timeHorizon": "A trading day is the working window of the project for one trading day, not a full calendar day.\n\nWhat that means:\nentry, realized labels, and the [[backtest|backtest]] are tied to one consistent working window that is counted against the [[landing-nyse-session|U.S. regular session]] of that same day, rather than against arbitrary UTC calendar days.\n\nThe [[landing-early-preview|early preview]] belongs to that same trading day, but is published earlier, before the main session opens.\n\nWeekends are excluded from this window. [[why-weekends|Why?]]",
+            "timeHorizonWhy": "Why the calculation is anchored to New York:\nthe start of the main US trading session usually brings more liquidity and stronger intraday movement than the quieter hours before it.\n\nWhat this choice gives the project:\nvolatility becomes closer to the conditions where the strategy actually has to decide, and metrics such as the [[atr-indicator|ATR indicator]] describe the active market better than a calm slice of the day. Weekends are excluded for the same reason: activity there is usually even lower, so features and volatility drift further away from the working market regime.\n\nHow to read it:\nthe model is trained and validated on the part of the trading day where movement is more likely to move from noise into a tradable scenario.",
+            "nyseSession": "The U.S. regular session is the regular NYSE session of that same [[landing-time-horizon|trading day]].\n\nWhat it shows:\nthe day-window entry is counted from the session open at 09:30 New York time. That is 13:30 UTC during DST and 14:30 UTC in winter.\n\nHow to read it:\nthe base end-of-day boundary is counted from the actual close of that same session. On a normal day the exchange closes at 16:00 New York time, and baseline-exit is set to 15:58 New York time. That is 19:58 UTC during DST and 20:58 UTC in winter.\n\nExample:\nif the exchange closes earlier than usual, the end of the window also shifts earlier, because baseline-exit is always calculated from the factual close of that same session.\n\n[[landing-time-horizon-why|Why is the calculation anchored to this session?]]",
+            "dayUp": "Up is the day scenario where the model expects price to move mainly upward inside the working trading window.\n\nWhat it shows:\nthe class does not merely mean a green candle. It means the system sees enough probability skew toward upward movement to treat the day as directionally tradable.\n\nHow to read it:\nthe label should still be read together with policy and risk controls. An Up day can still end as no-trade or as a cautious trade if later layers decide the entry is too risky.",
+            "dayDown": "Down is the day scenario where the model expects price to move mainly downward inside the working trading window.\n\nWhat it shows:\nthe class represents a directional downside bias inside the selected window rather than a random negative tick.\n\nHow to read it:\njust like Up, this is a forecast direction rather than a guaranteed executed trade. Policy rules and risk filters still decide whether that view is tradable.",
+            "dayFlat": "Sideways is the day scenario without a strong directional move, where price is more likely to stay inside a range than to break clearly up or down.\n\nWhat it shows:\nthe class exists to separate weak, noisy days from days where the market shows a usable directional edge.\n\nHow to read it:\na Sideways label does not mean the market was frozen. It means the movement did not look stable or strong enough for a confident base directional call.",
+            "reinvestment": "Reinvestment means putting already earned profit back into the active trading balance so it can participate in future trades.\n\nWhat changes in the numbers:\nif profit is reinvested, it stays inside the working balance and affects the size of future trades. If profit is not reinvested, it is withdrawn separately and no longer participates in new entries.\n\nHow to read it:\nin the top-strategy block this term separates total earnings, the part already withdrawn, and the money that still remains in the active trading balance.",
+            "pathBasedLabeling": "Path-based labeling is a way to label historical days not only by close price but also by the path price traveled inside the window. It helps separate a tradable move from a formally similar but unstable scenario.\n\nWhat it shows:\nthe method looks beyond one final tick and considers how the day behaved inside the window: whether the move was smooth, choppy, quickly reversed, or structurally weak for trading.\n\nHow to read it:\nit should be read as an attempt to make historical truth closer to real trading. The model sees not only how the day ended, but also whether the way it got there looked tradable.",
+            "earlyPreview": "Early preview is the advance publication of the same [[landing-time-horizon|trading day]] forecast before the main session begins.\n\nWhat it shows:\nit does not describe another day and it does not replace the main forecast. It gives the same day-level decision earlier, when the market context is already fixed but the regular working session has not opened yet.\n\nHow to read it:\nearly preview is useful when the user wants to see whether the system already had a stable directional view before the main window started. The key comparison is not “preview versus live day”, but preview versus the later main forecast of that same trading day.",
+            "microModel": "Micro model is the refinement layer that works only on ambiguous [[landing-day-flat|sideways]] days.\n\nWhat it shows:\nits role is not to rebuild the whole forecast from scratch. It looks for a weak directional tilt exactly where the base daily layer is still too flat to issue a confident growth or decline call.\n\nHow to read it:\nthis model matters only on the subset of uncertain days. If it improves the final decision, that means the system found useful extra structure inside otherwise flat-looking market conditions rather than replacing the base daily model.",
+            "multiLayer": "Multi-layer architecture means the project does not rely on one anonymous score. It combines the daily layer, micro refinement, and SL-aware risk interpretation into one stacked decision pipeline.\n\nWhat it shows:\neach layer owns a different responsibility: base day direction, refinement of weak flat days, and risk-aware correction of execution quality.\n\nHow to read it:\nif the final result changes, the question is not only whether the model was right or wrong. The useful reading is which layer changed the answer and whether that change improved risk, transfer, or execution quality.",
+            "slRisk": "SL risk is the execution-risk layer that estimates whether the trade is likely to hit [[landing-sl-model|stop-loss]] before it reaches the intended profit path.\n\nWhat it shows:\nit does not choose market direction on its own. It evaluates whether a direction that already looks tradable is still acceptable once exit-risk quality is taken into account.\n\nHow to read it:\nif the final forecast becomes more cautious than the base directional view, the first place to inspect is the SL-aware layer. That usually means the market still has direction, but the entry became less safe to execute.",
+            "guardrail": "Guardrail is a hard safety rule that blocks or limits actions before a risky state turns into a misleading result.\n\nWhat it shows:\nguardrails are not cosmetic warnings. They are explicit barriers against invalid slices, unstable inputs, broken report states, or risk conditions that should not be silently passed through to the user.\n\nHow to read it:\nif a guardrail fires, the correct interpretation is not “the system is being picky”. It means the product is refusing to pretend that an unsafe or invalid state is still a trustworthy forecast or backtest output.",
+            "specificity": "Specificity is the share of good base-trade days among all days that the model classified as safe enough to avoid the bad-trade class.\n\nWhat it shows:\nit answers how often the system correctly rejects clearly bad trading days without confusing too many good ones. In diagnostics this matters because the model is judged not only by finding opportunities, but also by avoiding harmful entries.\n\nHow to read it:\nhigh specificity means the model is better at protecting the strategy from obviously bad trade days. Low specificity means the “safe” side still contains too many days that later behave like the bad class.",
+            "blameSplit": "Blame split is the attribution layer that assigns a weak result to the dominant failure bucket instead of leaving all bad days in one undifferentiated pile.\n\nWhat it shows:\nit separates whether the problem came from the model itself, from policy restrictions, from execution quality, or from other downstream conditions.\n\nHow to read it:\nthis layer matters because the same weak PnL can come from very different causes. Blame split makes the cause observable, so the next fix targets the real bottleneck instead of the most visible symptom.",
+            "hotspots": "Hotspots are the parts of the pipeline where the strategy most often loses quality, accumulates risk, or produces unstable behavior.\n\nWhat it shows:\nthis is not one metric by itself. It is the reading layer that highlights where weak outcomes cluster: model-side, policy-side, execution-side, or data-quality-side.\n\nHow to read it:\nif the same hotspot keeps dominating different tables, the problem is structural rather than accidental. That is usually the place where the next fix gives the highest impact on truthfulness or strategy quality.",
+            "pfi": "PFI (permutation feature importance) measures how much the model loses quality when one feature is intentionally broken or shuffled while the rest stay intact.\n\nWhat it shows:\nPFI does not say that one feature alone “causes” the forecast. It shows how dependent the model is on that feature for keeping its current quality level.\n\nHow to read it:\na high PFI means the model materially degrades without that feature. A near-zero PFI means the feature adds little unique value, even if it still looks intuitive to a human reader.",
+            "confusionMatrix": "Confusion matrix is the table that compares predicted classes with realized classes for the same evaluation window.\n\nWhat it shows:\nit makes class errors visible by direction: which outcomes are recognized correctly, which ones are confused with each other, and where the model most often overstates or understates a scenario.\n\nHow to read it:\nthis table matters because one headline score can hide asymmetric mistakes. A model may look acceptable overall while still repeatedly confusing one specific class that is critical for trading decisions.",
+            "modelMetrics": "Model metrics are the quality measures used to judge whether a forecasting layer is stable, transferable, and worth trusting on new data.\n\nWhat it shows:\nthese metrics are not only about accuracy. They describe calibration, class balance, error structure, and the gap between seen history and unseen evaluation slices.\n\nHow to read it:\nstrong model metrics matter only when they remain coherent across Train, OOS, diagnostics, and backtest behavior. A good score in isolation is weaker evidence than a consistent profile across these layers.",
+            "policyBranchMega": "Policy Branch Mega is the full historical table for every [[policy|Policy]] configuration on one long history. It keeps [[branch|BASE / ANTI-D branches]], SL modes, filters, return, drawdown, liquidations, long/short structure, and recovery in one place.\n\nWhat it shows:\nthis page is built for comparing not one isolated strategy idea, but the whole layer of Policy configurations on identical trading days.\n\nHow to read it:\nthis mega table should not be read by TotalPnl% alone. Its purpose is to show which configuration stays robust and which one buys the result with deeper drawdowns, liquidations, stricter filters, or weaker recovery.",
+            "noTrade": "No-trade is the state where the system intentionally does not open a position for that day.\n\nWhat it shows:\nit does not mean the pipeline failed. It means some stage decided that the expected edge was too weak or the risk conditions were too poor to justify an entry.\n\nHow to read it:\na high no-trade share is not automatically bad. It means the strategy is selective, and that selectivity must be judged together with later risk and quality outcomes rather than treated as missing output.",
+            "attribution": "Attribution is the reading layer that explains which component or reason contributed most to the final result, weak period, or blocked trade.\n\nWhat it shows:\nit turns a blended outcome into an interpretable structure: what came from the model, from policy logic, from execution path, or from a later safety restriction.\n\nHow to read it:\nattribution matters when one aggregate number is no longer enough. It tells whether the next action should target model quality, risk rules, or trade execution rather than changing everything at once.",
+            "featureImportance": "Feature importance is the layer that ranks which inputs matter most for the model and which ones change the result only marginally.\n\nWhat it shows:\nit does not promise causal truth by itself. It shows where the forecasting pipeline depends most on information content and where removing a feature would change the model least.\n\nHow to read it:\nfeature importance is strongest when it is read together with explain and PFI. If the same feature stays important across those layers, its role in the decision is much more credible than in a single ranking alone.",
+            "predictionAggregation": "Prediction aggregation is the step where outputs of several model layers are combined into one final probability view.\n\nWhat it shows:\nthis step collects the daily layer, micro refinement, and risk-aware interpretation into the final scenario ranking that the strategy later consumes.\n\nHow to read it:\naggregation should be read as a structured merge, not as a blind average. If the final answer changes, the useful question is which layer shifted the balance and whether that shift improved robustness or only changed the final label.",
+            "allHistory": "All history means the widest historical slice available for that report or page, without cutting it down to a narrower training or recent-only subset.\n\nWhat it shows:\nthis mode gives the broadest context for stability, but it also mixes older and newer market regimes inside one reading window.\n\nHow to read it:\nall history is useful for the long baseline, but it should still be compared with narrower slices such as OOS or recent periods. If a result looks strong only on the full archive, the effect may be concentrated in one older regime.",
+            "baselineBacktest": "Baseline backtest is the reference historical simulation under the main production-like setup used by the project.\n\nWhat it shows:\nit is the default comparison point for new variants, filters, and strategy changes. The point of the baseline is not to be “best”, but to provide a stable anchor for judging whether later modifications really improve the profile.\n\nHow to read it:\nwhen an experimental variant looks better, the right question is not only whether return increased. The comparison must also show what happened to drawdown, liquidation exposure, and recovery difficulty relative to the baseline.",
+            "experimentalBacktest": "Experimental backtest is a non-baseline historical simulation used to test a modified rule set, filter, layer, or execution mode against the reference setup.\n\nWhat it shows:\nit exists to answer whether the new idea changes the result for the better or only moves risk into another place.\n\nHow to read it:\nan experimental result should never be judged by one attractive metric in isolation. It must beat or clarify the baseline across both return and risk, otherwise it is just a different profile, not a better one.",
+            "modelConfidence": "Model confidence is the strength of the model's belief in the selected scenario for the trading day.\n\nWhat it shows:\nconfidence is not the same thing as guaranteed correctness. It is the internal strength of the probability edge that later controls whether the strategy trades, how strict filters become, and which risk layers are allowed to engage.\n\nHow to read it:\nhigh confidence matters only when history supports it. A strong-looking confidence value without stable behavior in OOS, diagnostics, and backtests is still weak evidence.",
+            "liquidationBuffer": "Liquidation buffer is the safety distance between the current trade state and the forced-close threshold.\n\nWhat it shows:\nit measures how much room the position still has before liquidation risk turns from theoretical into immediate. The smaller the buffer, the less tolerance remains for adverse price movement.\n\nHow to read it:\na shrinking buffer is a warning about execution fragility, not just about return. Even a profitable strategy becomes structurally unsafe if many trades keep operating too close to forced-close territory."
         },
         "tour": {
             "eyebrow": "Website sections",
             "title": "How the website is grouped by task",
-            "subtitle": "Navigation is organized around three scenarios: the nearest day, historical validation, and reason analysis.",
+            "subtitle": "Navigation is organized around three scenarios: the nearest day, history and simulation, and reason analysis.",
             "groups": {
                 "today": {
                     "title": "Today",
@@ -177,8 +213,8 @@
                     }
                 },
                 "validation": {
-                    "title": "Validation",
-                    "description": "The archive of past forecasts and the long-history validation layer.",
+                    "title": "History and simulation",
+                    "description": "The archive of past forecasts and the strategy simulation across long history.",
                     "tiles": {
                         "history": {
                             "title": "Forecast archive",
@@ -186,20 +222,20 @@
                             "linkLabel": "Prediction history"
                         },
                         "summary": {
-                            "title": "Backtest summary",
-                            "description": "Long-history validation through return, risk, and stability.",
-                            "linkLabel": "Backtest summary"
+                            "title": "Historical simulation",
+                            "description": "Long-history simulation through return, risk, and stability.",
+                            "linkLabel": "Historical simulation"
                         },
                         "mega": {
-                            "title": "Policy Branch Mega",
-                            "description": "The full configuration table where return is read together with emergency risk.",
-                            "linkLabel": "Policy Branch Mega"
+                            "title": "Configuration table",
+                            "description": "The detailed configuration table where return is read together with emergency risk.",
+                            "linkLabel": "Configuration table"
                         }
                     }
                 },
                 "causes": {
                     "title": "Reasons",
-                    "description": "Reasons for strong and weak results, no-trade periods, and risk filters.",
+                    "description": "Reasons for strong and weak results, days without a trade, and risk filters.",
                     "tiles": {
                         "diagnostics": {
                             "title": "Diagnostics",
@@ -207,53 +243,66 @@
                             "linkLabel": "Diagnostics"
                         },
                         "guardrail": {
-                            "title": "Guardrail and risk",
+                            "title": "Risk filter",
                             "description": "The protective filter and the metric cost of its blocks.",
-                            "linkLabel": "Guardrail"
+                            "linkLabel": "Risk filter"
                         },
                         "hotspots": {
-                            "title": "No-trade and hotspots",
-                            "description": "Recurring weak regimes, no-trade days, and low-quality market zones.",
-                            "linkLabel": "Hotspots"
+                            "title": "Missed trades and weak zones",
+                            "description": "Recurring weak regimes, days without a trade, and low-quality market zones.",
+                            "linkLabel": "Weak zones"
                         }
                     }
                 }
             }
         },
         "demo": {
-            "eyebrow": "Mini demo",
-            "title": "One configuration through the risk lens",
-            "subtitle": "One row from [[landing-policy-branch-mega|Policy Branch Mega]] shows how the project stores outcome and risk for a single configuration across the full history.",
-            "openMega": "Policy Branch Mega",
+            "eyebrow": "Top strategy on history",
+            "title": "Top strategy by return",
+            "subtitle": "This block shows the [[policy|Policy]] with the highest [[total-pnl|TotalPnl%]] from the [[landing-policy-branch-mega|main strategy table]]. It shows how much it earned over the full period, how much profit was already withdrawn from trading, and how much money still remains in the active trading balance.",
+            "openMega": "Main strategy table",
             "loading": "Loading mini demo...",
-            "bestResult": "Top row by [[total-pnl|TotalPnl%]]: {{value}}%.",
-            "note": "The [[total-pnl|TotalPnl%]] figure is not self-sufficient here: it has to be read together with [[drawdown|drawdown]], [[liquidation|liquidations]], recovery speed, and trade activity.",
+            "bestResult": "Maximum return on this history: {{value}}%.",
+            "summary": {
+                "performance": "The top strategy in this table is [[policy|Policy]] {{policy}} / {{branch}}. From {{periodStart}} to {{periodEnd}} it earned {{totalPnlPct}}, which is {{totalPnlUsd}} on top of the starting capital of {{startCapitalUsd}}. Of that result, {{withdrawnUsd}} has already been [[withdrawn-profit|withdrawn]], which means it [[landing-reinvestment|is not reinvested]] into new trades. {{bucketNowUsd}} remains in the active trading balance.",
+                "activity": "Across {{days}} trading days the strategy executed {{trades}} trades, or {{tradesPerDay}} trades per day on average. About {{noTradePct}} of days were skipped without entering a trade.",
+                "winRate": "Among executed trades, {{winRatePct}} closed in profit. This figure describes trades only, not all days in the period.",
+                "riskNoLiquidations": "The maximum [[drawdown|drawdown]] over that period was {{maxDdPct}}. There were no [[liquidation|liquidations]].",
+                "riskWithLiquidations": "The maximum [[drawdown|drawdown]] over that period was {{maxDdPct}}. There were [[liquidation|liquidations]], so the result has to be read together with emergency risk."
+            },
+            "note": "The figures below separate total earnings, already withdrawn profit, active trading balance, risk, and trading activity.",
             "meta": {
                 "periodStart": "Period start",
                 "periodEnd": "Period end",
-                "days": "Days"
+                "days": "Trading days",
+                "startCapital": "Starting capital",
+                "finalBalance": "Active balance left",
+                "withdrawnProfit": "Already withdrawn",
+                "trades": "Trades"
             },
             "metrics": {
                 "totalPnl": "Return",
-                "bucketNow": "Current balance",
+                "bucketNow": "Still in trade",
                 "maxDd": "Max drawdown",
                 "liquidations": "Liquidations",
                 "accountRuin": "Ruin risk",
-                "recovery": "RecovDays",
-                "winRate": "WinRate%",
-                "meanRet": "MeanRet%",
+                "recovery": "Recovery",
+                "winRate": "Profitable trades",
+                "meanRet": "Average trade",
                 "sharpe": "Sharpe",
                 "trades": "Trades",
-                "tradeShare": "Trade%",
-                "noTrade": "NoTrade%"
+                "tradeShare": "Days with trades",
+                "noTrade": "Days without trades"
             },
             "errors": {
                 "loadTitle": "Mini demo is unavailable",
-                "loadDescription": "Policy Branch Mega data could not be loaded for the configuration card.",
+                "loadDescription": "The main strategy table could not be loaded for the top-strategy card.",
                 "structureTitle": "Mini demo structure could not be resolved",
                 "structureDescription": "The received report could not be transformed into the compact configuration card.",
-                "metaTitle": "Configuration period is unavailable",
-                "metaDescription": "The required period fields could not be extracted from the selected row.",
+                "metaTitle": "Top-strategy facts are unavailable",
+                "metaDescription": "The period, capital, and trade counts could not be extracted from the selected Policy.",
+                "summaryTitle": "Top-strategy summary is unavailable",
+                "summaryDescription": "The narrative summary for return, trading activity, and risk could not be assembled from the selected Policy.",
                 "metricsTitle": "Configuration headline metrics are unavailable",
                 "metricsDescription": "The metric set required for the compact card could not be extracted."
             },
@@ -265,6 +314,96 @@
             "title": "Analysis",
             "subtitle": "Analytical reports on PnL, top trades/days, and strategy behavior. This is the quickest way to see where the strategy earns, where it loses, and under which market regimes."
         },
+        "overview": {
+            "title": "How to read the analysis layer",
+            "subtitle": "The top block exists to route the first question to the right analytical screen: where to find extremes, where to compare Policy variants, where to inspect market regimes, and where to trace one number through the calculation path.",
+            "metrics": {
+                "reports": {
+                    "label": "Analysis pages",
+                    "value": "6 pages"
+                },
+                "readingContours": {
+                    "label": "Reading angles",
+                    "value": "3 angles"
+                },
+                "relatedContours": {
+                    "label": "Neighbor domains",
+                    "value": "2 domains"
+                }
+            },
+            "links": {
+                "ratings": "Section: Policy ratings",
+                "policyBranchMega": "Section: Policy Branch Mega",
+                "dayStats": "Section: Day statistics",
+                "confidenceRisk": "Section: Confidence and TP/SL",
+                "realForecastJournal": "Section: Real Forecast Journal",
+                "executionPipeline": "Section: Execution pipeline",
+                "diagnosticsHome": "Section: Diagnostics",
+                "guideHome": "Section: Knowledge Base",
+                "developerHome": "Section: For the backend developer"
+            },
+            "factTable": {
+                "title": "Which question opens which screen",
+                "columns": {
+                    "question": "When to open it",
+                    "answer": "What it gives",
+                    "details": "Where to go"
+                },
+                "rows": {
+                    "extremes": {
+                        "question": "The quickest view of the best and worst days or trades is needed",
+                        "answer": "The starting point is Policy ratings. It shows extreme trades, extreme days, and the base capital profile of the top configurations."
+                    },
+                    "policyComparison": {
+                        "question": "All [[policy|Policy]] configurations must be compared on one long history: branches, filters, and risk profile",
+                        "answer": "The owner page for that question is [[landing-policy-branch-mega|Policy Branch Mega]]. One mega table keeps every Policy configuration together: [[branch|BASE / ANTI-D branches]], SL modes, filters, return, [[drawdown|MaxDD%]], liquidations, recovery, and trade structure."
+                    },
+                    "regimes": {
+                        "question": "The market regimes where the strategy is strong or weak must be understood",
+                        "answer": "The pair Day statistics plus Confidence and TP/SL shows behavior by day type, weekday, buckets of [[landing-model-confidence|model confidence]], and excursion room before trade exit."
+                    },
+                    "actualVsForecast": {
+                        "question": "The forecast must be checked against the realized outcome on new days",
+                        "answer": "Real Forecast Journal compares forecast and actual outcome on real days that appeared after the semi-live contour started."
+                    },
+                    "formulaTrace": {
+                        "question": "A concrete metric must be traced back to its formula path",
+                        "answer": "Execution pipeline breaks one report row into layers: model, trading decision, execution, money, and final [[landing-aggregation|aggregation]]."
+                    },
+                    "rootCause": {
+                        "question": "The numbers are already clear, but the reason for the failure is needed",
+                        "answer": "That is where analysis stops. The reason behind drawdown, extra [[landing-no-trade|NoTrade]], or an overly strict filter lives in Diagnostics."
+                    }
+                }
+            },
+            "blocks": {
+                "readingOrder": {
+                    "title": "Normal order of reading analysis",
+                    "steps": {
+                        "ratingsFirst": "Start with Policy ratings. That page is the fastest way to see where the result is extremely good or extremely bad.",
+                        "compareThen": "Then move to [[landing-policy-branch-mega|Policy Branch Mega]]: here the comparison is no longer about one episode, but about the full layer of Policy configurations on a long history.",
+                        "regimesThen": "After that the regime layer is chosen: Day statistics answers for day types and weekdays, while Confidence and TP/SL answers for the relation between signal, risk, and price room.",
+                        "traceFinally": "When a single number must be verified all the way down to the formula, the last stop is Execution pipeline."
+                    }
+                },
+                "analysisScope": {
+                    "title": "Which three layers are collected here",
+                    "bullets": {
+                        "outcomeLayer": "Outcome layer: ratings and [[landing-policy-branch-mega|Policy Branch Mega]] answer for the overall historical result of the strategy.",
+                        "regimeLayer": "Regime layer: day stats, confidence-risk, and real forecast journal show where the strategy holds up and where it loses stability.",
+                        "pipelineLayer": "Formula layer: execution pipeline decomposes the ready result into model, decision, execution, and money."
+                    }
+                },
+                "boundaries": {
+                    "title": "Boundary between analysis and neighboring sections",
+                    "bullets": {
+                        "analysisVsDiagnostics": "Analysis answers the question \"what happened in the numbers\". It shows return, [[drawdown|drawdown]], trade structure, and market regimes.",
+                        "analysisVsGuide": "Diagnostics answers the question \"why it happened\". That route starts once the result is already visible but the defect source must be localized.",
+                        "analysisVsDeveloper": "Guide and Developer solve two other problems: Guide explains the meaning of the term or rule, Developer explains backend owner layers and report contracts."
+                    }
+                }
+            }
+        },
         "sections": {
             "title": "Analysis sections"
         },
@@ -275,22 +414,29 @@
                 "hint": "Open ratings →"
             },
             "policyBranchMega": {
-                "description": "The most complete metric summary for each policy and branch (BASE/ANTI-D): return, risk, stability, recovery, long/short split, and average growth pace. This is the main table for policy comparison.",
-                "hint": "Open mega tables →"
+                "title": "Policy Branch Mega",
+                "description": "The most complete summary for all Policy configurations on a long history: BASE / ANTI-D branches, SL modes, filters, return, risk, stability, recovery, long/short split, and average growth pace. This is the main table for comparing strategy configurations on one trading-day set.",
+                "hint": "All Policy configurations"
             },
             "dayStats": {
                 "title": "Day statistics",
                 "description": "Breakdowns by day types (UP/DOWN/FLAT) and weekdays: WinRate, NoTrade share, and missed opportunity. Helps identify the regime where the strategy has the strongest edge.",
-                "hint": "Open statistics →"
+                "hint": "Day and weekday regimes"
             },
             "confidenceRisk": {
                 "title": "Confidence and TP/SL",
                 "description": "Bucket statistics by model confidence: TP/SL hit frequency and MFE/MAE dynamics across signal levels. Helps decide where to increase take-profit and where to reduce risk.",
-                "hint": "Open confidence statistics →"
+                "hint": "Confidence and excursion room"
+            },
+            "realForecastJournal": {
+                "title": "Real Forecast Journal",
+                "description": "The section compares forecast and realized outcome on real days that appeared after the semi-live contour started.\n\nThe second layer shows where the forecast matched the day result, how quality behaves on new dates, and how close that picture stays to historical expectations.",
+                "hint": "New days after launch"
             },
             "executionPipeline": {
+                "title": "Execution pipeline",
                 "description": "End-to-end report by computation layers: model, decision, execution, accounting, and final aggregation. Useful for step-by-step formula validation and mismatch analysis.",
-                "hint": "Open pipeline report →"
+                "hint": "Model -> trade -> result"
             }
         }
     },
@@ -335,6 +481,97 @@
             "title": "Diagnostics",
             "subtitle": "Map of diagnostic reports: risk, guardrail, decisions, and hotspots. Each block is a dedicated page with detailed tables showing drawdown causes and model errors."
         },
+        "overview": {
+            "title": "How to read the diagnostics layer",
+            "subtitle": "The top block exists so that failure analysis does not start blindly: first the symptom type is chosen, then the right diagnostic screen is opened, and only after that the detailed tables are read.",
+            "metrics": {
+                "reports": {
+                    "label": "Diagnostic pages",
+                    "value": "5 pages"
+                },
+                "failureLenses": {
+                    "label": "Failure lenses",
+                    "value": "4 layers"
+                },
+                "relatedContours": {
+                    "label": "Neighbor domains",
+                    "value": "2 domains"
+                }
+            },
+            "links": {
+                "risk": "Section: Risk and liquidations",
+                "guardrail": "Section: Guardrail and specificity",
+                "decisions": "Section: Decisions and causes",
+                "hotspots": "Section: Hotspots and missed days",
+                "other": "Section: Other",
+                "analysisHome": "Section: Analysis",
+                "guideHome": "Section: Knowledge Base",
+                "developerHome": "Section: For the backend developer"
+            },
+            "factTable": {
+                "title": "Which symptom opens which diagnostic screen",
+                "columns": {
+                    "question": "When to open it",
+                    "answer": "What it gives",
+                    "details": "Where to go"
+                },
+                "rows": {
+                    "drawdown": {
+                        "question": "The reason capital sank or trades approached forced closure must be understood",
+                        "answer": "The starting point is Risk and liquidations. It shows [[active-equity|Equity]], [[drawdown|MaxDD%]], [[liquidation|liquidations]], and the remaining distance to forced closure."
+                    },
+                    "filter": {
+                        "question": "The question is whether the protective filter saves the result or cuts too many valid entries",
+                        "answer": "The guardrail page shows [[landing-guardrail|guardrail]], [[landing-specificity|specificity]], and the error structure for blocked versus allowed days."
+                    },
+                    "actor": {
+                        "question": "The actor that pushed the day into error must be identified",
+                        "answer": "The decisions page decomposes the route through [[landing-attribution|Attribution]] and [[landing-blame-split|blame-split]]: the source can be the signal, the filter, the [[policy|Policy]], or a combination of them."
+                    },
+                    "repetition": {
+                        "question": "The place where the problem repeats as a pattern must be understood",
+                        "answer": "Hotspots gathers recurring regimes with extra [[landing-no-trade|NoTrade]], weak coverage, and conflicting decisions."
+                    },
+                    "leftovers": {
+                        "question": "A rare or new table is needed and it still has no dedicated group",
+                        "answer": "Other is not the default entry point. It is opened when the symptom no longer fits risk, guardrail, decisions, or hotspots."
+                    },
+                    "finishedResult": {
+                        "question": "The cause is already localized, but the full strategy picture must be revisited",
+                        "answer": "The route returns to Analysis for the overall picture of return, regimes, and stability."
+                    }
+                }
+            },
+            "blocks": {
+                "readingOrder": {
+                    "title": "Five normal steps of diagnostics",
+                    "steps": {
+                        "riskFirst": "The first stop is the risk layer: drawdown, liquidations, and proximity to forced closure show the price of the weak result fastest.",
+                        "filterSecond": "The second step is guardrail: this is where it becomes visible whether the protective filter really removed bad days rather than useful entries together with them.",
+                        "actorThird": "The third step is decisions: that screen answers who actually pushed the day into error and at which stage the route turned wrong.",
+                        "clusterFourth": "The fourth step is hotspots: it is used when the target is not one episode but a repeating weak regime.",
+                        "leftoversFifth": "Other is opened last, when the symptom no longer belongs to any of the main diagnostic groups."
+                    }
+                },
+                "diagnosticsScope": {
+                    "title": "Which kinds of causes live here",
+                    "bullets": {
+                        "riskSurface": "Risk layer shows where the result breaks through drawdown, liquidations, and proximity to forced closure.",
+                        "filterSurface": "Filter layer shows how [[landing-guardrail|guardrail]] changes day admission and whether useful entries are cut together with bad ones.",
+                        "actorSurface": "Actor layer shows which node really pushed the day into error: the base signal, the filter, the [[policy|Policy]], or a combination of them.",
+                        "clusterSurface": "Cluster layer shows where the problem is not random but repeats across the same regime or day type."
+                    }
+                },
+                "boundaries": {
+                    "title": "Boundary between diagnostics and neighboring sections",
+                    "bullets": {
+                        "diagnosticsVsAnalysis": "Diagnostics answers the question \"why the result degraded\". It decomposes the cause instead of only showing the final metric.",
+                        "diagnosticsVsGuide": "Analysis answers the question \"what happened on the full history\". The route returns there after the cause is localized and its weight inside the total picture must be assessed.",
+                        "diagnosticsVsDeveloper": "Guide and Developer solve two other routes: Guide explains terms and rules, Developer explains internal backend owner layers."
+                    }
+                }
+            }
+        },
         "sections": {
             "title": "Diagnostics sections"
         },
@@ -342,25 +579,27 @@
             "risk": {
                 "title": "Risk and liquidations",
                 "description": "Equity/DD, liquidations, distance-to-liquidation, and risk metrics. Core base for finding loss causes and assessing stability.",
-                "hint": "Open risk report →"
+                "hint": "Drawdown, liquidations, buffer"
             },
             "guardrail": {
+                "title": "Risk filter and precision",
                 "description": "Filter confusion matrix, rolling thresholds, and economic effect of blocking bad days. Shows whether guardrail protects profit or hurts it.",
-                "hint": "Open guardrail →"
+                "hint": "Filter, specificity, errors"
             },
             "decisions": {
                 "title": "Decisions / Attribution",
                 "description": "Who made the final decision and why: decomposition by actors, reasons, and blame split. Helps determine whether signal quality or policy filters are at fault.",
-                "hint": "Open decisions →"
+                "hint": "Attribution and blame split"
             },
             "hotspots": {
+                "title": "Weak zones and missed trades",
                 "description": "Hotspots with low coverage, frequent NoTrade, and opposite decisions. Shows where the strategy breaks down and loses days.",
-                "hint": "Open hotspots →"
+                "hint": "Repeating weak regimes"
             },
             "other": {
                 "title": "Other",
                 "description": "Rare or new diagnostic tables that are not yet assigned to the main groups.",
-                "hint": "Open other diagnostics →"
+                "hint": "Rare tables outside the main groups"
             }
         }
     },
@@ -387,9 +626,22 @@
             }
         },
         "page": {
+            "intro": {
+                "title": "What the current forecast shows",
+                "lead": "Current prediction is the nearest system decision for [[landing-sol-usdt|SOL/USDT]] for one [[landing-time-horizon|trading day]].",
+                "bullets": [
+                    "This page publishes the calculation for the current day before or near the start of the working window.",
+                    "The report shows position direction, [[landing-model-confidence|model confidence]], risk limits, and publication status.",
+                    "Prediction history is used to compare the same type of decisions across past dates, while [[landing-backtest-summary|historical simulation]] is used to judge the strategy across a long distance."
+                ]
+            },
             "errorTitle": "Failed to load current prediction",
             "scopeLabel": "Training scope:",
             "statusLabel": "Prediction status:",
+            "reportStatus": {
+                "title": "ACTUAL: published current prediction",
+                "message": "Showing the saved current prediction for mode {{mode}}."
+            },
             "meta": {
                 "currentReport": "Current report: {{reportSet}}",
                 "selectedMode": "Selected mode: {{mode}}",
@@ -479,6 +731,15 @@
     "backtestSummary": {
         "page": {
             "errorTitle": "Failed to load backtest summary",
+            "status": {
+                "actualTitle": "ACTUAL: current backtest summary",
+                "debugTitle": "DEBUG: summary freshness is not verified",
+                "unavailableMessage": "Unable to confirm the state of the published backtest summary."
+            },
+            "statusLines": {
+                "keyValueSections": "Key-value sections",
+                "tableSections": "Table sections"
+            },
             "reportId": "Report ID: {{id}}",
             "reportKind": "Type: {{kind}}",
             "generatedUtc": "Generated (UTC): {{generatedUtc}}",
@@ -555,15 +816,19 @@
                 }
             },
             "status": {
-                "title": "DEBUG: freshness not verified",
-                "message": "Status endpoint for backtest_model_stats is not configured: report metadata is shown without freshness verification.",
+                "actualTitle": "ACTUAL: current model statistics",
+                "debugTitle": "DEBUG: model-stats freshness is not verified",
+                "unavailableMessage": "Unable to confirm the state of the published model statistics report.",
                 "oosPresent": "present, records {{value}}",
                 "oosMissing": "absent (train-only mode)"
             },
             "statusLines": {
                 "runKind": "Run kind",
                 "oos": "OOS",
-                "trainRecent": "Train / Recent"
+                "trainRecent": "Train / Recent",
+                "canonicalSegments": "Canonical segments",
+                "keyValueSections": "Key-value sections",
+                "tableSections": "Table sections"
             },
             "control": {
                 "title": "How to read this report",
@@ -1133,19 +1398,19 @@
                 "titleFallback": "PFI by models",
                 "subtitle": "Feature-importance report (Permutation Feature Importance) for all binary models (move / dir / micro / SL, etc.). Higher dAUC means stronger impact on quality, while dMean/correlation signs show direction of influence."
             },
-              "status": {
-                  "actualTitle": "ACTUAL: latest verified",
-                  "debugTitle": "DEBUG: freshness not verified",
-                  "unavailableMessage": "PFI report freshness could not be verified because the status endpoint is unavailable."
-              },
-              "statusLines": {
-                  "canonicalSnapshotCount": "Canonical PFI snapshots",
-                  "tableSectionCount": "Model sections in report"
-              },
-              "empty": {
-                  "title": "PFI report is empty",
-                  "description": "Backend returned a report without table sections. Check PFI generation config or source data."
-              },
+            "status": {
+                "actualTitle": "ACTUAL: latest verified",
+                "debugTitle": "DEBUG: freshness not verified",
+                "unavailableMessage": "PFI report freshness could not be verified because the status endpoint is unavailable."
+            },
+            "statusLines": {
+                "canonicalSnapshotCount": "Canonical PFI snapshots",
+                "tableSectionCount": "Model sections in report"
+            },
+            "empty": {
+                "title": "PFI report is empty",
+                "description": "Backend returned a report without table sections. Check PFI generation config or source data."
+            },
             "terms": {
                 "title": "PFI report terms",
                 "subtitle": "Detailed definitions of feature-importance metrics and related statistics for all tables on this page."
@@ -1161,6 +1426,15 @@
             "loadingTitle": "Loading prediction history",
             "indexErrorTitle": "Failed to load prediction history index (set={{reportSet}})",
             "title": "Prediction history",
+            "intro": {
+                "title": "What prediction history shows",
+                "lead": "Prediction history is the archive of past forecast reports by date.",
+                "bullets": [
+                    "Each date keeps the original forecast and the realized outcome of the same [[landing-time-horizon|trading day]] after it closes.",
+                    "This screen is used to check repeatability: where the strategy held, where it failed, and how the result changed from date to date.",
+                    "[[landing-backtest-summary|Historical simulation]] shows the long distance as a whole, while prediction history shows separate days and the reports behind them."
+                ]
+            },
             "emptyIndex": {
                 "title": "Prediction history is unavailable",
                 "description": "Backend returned no report dates for selected mode."
@@ -1210,6 +1484,10 @@
             "loading": "Loading report for {{dateUtc}}...",
             "loadErrorTitle": "Failed to load report",
             "loadErrorDescription": "Failed to fetch report for {{dateUtc}} (set={{reportSet}}, scope={{trainingScope}}).",
+            "status": {
+                "title": "ACTUAL: historical prediction for selected date",
+                "message": "Showing the saved current_prediction report for {{dateUtc}} in mode {{mode}}."
+            },
             "renderErrorTitle": "Report render error for {{dateUtc}}",
             "renderErrorDescription": "Client-side error while rendering report.",
             "tradesBuildErrorTitle": "Trade parameters block error ({{dateUtc}})",
@@ -1269,6 +1547,331 @@
             "skipped": {
                 "title": "Signals without opened trade",
                 "description": "Directional signals that did not turn into executed trades."
+            }
+        }
+    },
+    "realForecastJournal": {
+        "common": {
+            "all": "All",
+            "yes": "Yes",
+            "no": "No",
+            "notAvailable": "n/a"
+        },
+        "directions": {
+            "up": "Up",
+            "flat": "Flat",
+            "down": "Down",
+            "long": "Long",
+            "short": "Short"
+        },
+        "status": {
+            "captured": "The morning forecast is already fixed. Realized fields remain empty until the New York day closes and the factual data is written.",
+            "finalized": "The day is already finalized after the New York session (working day) closes. The morning forecast is immutable and the realized outcome is now read-only."
+        },
+        "timing": {
+            "title": "Upcoming journal updates",
+            "subtitle": "This block shows when the next trading day will be captured and, if the current day is still open, how long remains until the factual outcome is written after the New York session (working day) closes.",
+            "loading": "Loading journal timing...",
+            "errorTitle": "Timing block is unavailable",
+            "countdown": {
+                "remaining": "{{duration}} remaining",
+                "overdue": "{{duration}} overdue"
+            },
+            "nextCapture": {
+                "title": "Next day capture",
+                "rows": {
+                    "day": "Trading day",
+                    "exactTime": "Scheduled capture"
+                }
+            },
+            "activeClose": {
+                "title": "Open trading day close",
+                "rows": {
+                    "day": "Trading day",
+                    "marketClose": "Day window close"
+                }
+            },
+            "activeFinalize": {
+                "title": "Post-close factual write",
+                "none": "No open forecast day",
+                "noneDescription": "After the next morning capture, this block will start counting down to the factual and indicator write at the end of the day.",
+                "rows": {
+                    "day": "Trading day",
+                    "finalizeTarget": "Target factual-write time",
+                    "marketCloseReference": "Market-close reference"
+                }
+            },
+            "activeWindow": {
+                "title": "Open trading day timing"
+            },
+            "health": {
+                "captureOverdue": "The journal missed the morning capture for trading day {{day}} after the capture window had already closed.",
+                "readyToFinalize": "There are {{count}} day(s) already waiting for finalization.",
+                "starting": "The background journal cycle has not completed the first polling loop yet.",
+                "heartbeatStale": "The background journal heartbeat is stale.",
+                "failures": "The background journal cycle has {{count}} consecutive failed loop(s).",
+                "healthy": "The background journal cycle is healthy and no overdue journal actions are detected."
+            }
+        },
+        "page": {
+            "title": "Real forecast journal and realized day outcome",
+            "subtitle": "This page shows the fixed morning forecast for each real trading day, the current state of the open day, the realized outcome after the New York session (working day) closes, and the comparison of this live sample with historical statistics.",
+            "loadingTitle": "Loading real forecast journal",
+            "errorTitle": "Failed to load the real forecast journal",
+            "emptyTitle": "No captured trading days yet",
+            "empty": "The journal will start filling once the first immutable morning forecast is captured.",
+            "notes": {
+                "causalityTitle": "Why this page exists",
+                "causalityLead": "The page keeps the morning forecast and later adds the realized outcome for that same day.",
+                "causalityPointImmutable": "The morning forecast does not change after publication.",
+                "causalityPointFact": "The realized outcome is written later, after the New York session (working day) finishes.",
+                "causalityPointFuture": "At publication time, that future did not physically exist in the real world yet, so the model could not know it.",
+                "scheduleTitle": "Timing contract",
+                "scheduleLead": "This page uses only the UTC schedule for capture and factual updates.",
+                "schedulePointWinter": "Winter capture time for a new trading day: 14:30 UTC.",
+                "schedulePointSummer": "Summer capture time for a new trading day: 13:30 UTC.",
+                "schedulePointDstPrefix": "The shift between those hours is handled with ",
+                "scheduleDstTerm": "DST",
+                "scheduleDstTooltip": "DST (Daylight Saving Time) is the seasonal clock shift between winter and summer time in New York.\n\nBecause of that shift, the same trading-session opening point appears in different UTC hours during winter and summer.",
+                "schedulePointDstSuffix": ".",
+                "schedulePointFinalize": "Realized fields stay empty until the New York session (working day) closes and candle and indicator sync finishes.",
+                "usefulnessTitle": "Why this page matters",
+                "usefulnessLead": "This block shows how closely real outcomes match the model's historical expectations.",
+                "usefulnessPointSequence": "Only days where the forecast was published first and the market outcome appeared later are collected here.",
+                "usefulnessPointStats": "Those days build a live statistics sample without knowledge of the future.",
+                "usefulnessPointTrust": "If this live sample stays close to the model's historical expectations over time, that becomes a strong sign of the absence of [[leakage|leakage]] and increases trust in the project's probabilities, metrics, and calculations."
+            }
+        },
+        "days": {
+            "title": "Captured trading days",
+            "subtitle": "The newest day is selected by default. Until the day is finalized after the New York close, factual fields remain empty.",
+            "badges": {
+                "captured": "Captured",
+                "finalized": "Finalized"
+            }
+        },
+        "summary": {
+            "title": "Fixed-day summary",
+            "cards": {
+                "forecast": "Morning forecast",
+                "actual": "Realized direction",
+                "match": "Forecast vs reality",
+                "capture": "Capture timestamp (UTC)",
+                "entry": "Reference entry price",
+                "actualClose": "Actual close price"
+            },
+            "match": {
+                "yes": "Matched",
+                "no": "Did not match"
+            },
+            "reasonLabel": "Model comment at session open",
+            "previewLabel": "Preview note"
+        },
+        "live": {
+            "title": "Intraday monitor",
+            "subtitle": "While this page stays open, the backend requests the current SOL price and re-checks confirmed 1m candles every 30 minutes. Event order matches the current PnL engine: liquidation, then stop-loss, then take-profit.",
+            "loading": "Loading the current price and the latest confirmed 1m candle window...",
+            "errorTitle": "Intraday monitor is temporarily unavailable",
+            "status": {
+                "finalized": "Day already finalized",
+                "loading": "Loading live data",
+                "notTracked": "This Policy is not tracked in live mode",
+                "open": "Open",
+                "tp": "Take-profit hit",
+                "sl": "Stop-loss hit",
+                "liquidation": "Liquidation hit",
+                "eod": "Day window reached the end"
+            },
+            "placeholders": {
+                "notReady": "Waiting for the first closed 1m candle",
+                "noLevel": "Level is not set"
+            },
+            "cards": {
+                "currentPrice": "Current SOL price",
+                "observedWindow": "Confirmed 1m window",
+                "triggeredRows": "Policies with a resolved event",
+                "openRows": "Open Policies"
+            }
+        },
+        "policy": {
+            "title": "Policy plan and realized execution",
+            "subtitle": "Morning values come from the fixed forecast. Realized fields appear only after the day is finalized. Null values stay explicit instead of being turned into zero.",
+            "empty": "No Policies match the current bucket / SL / branch / margin filters.",
+            "buckets": {
+                "daily": "Daily",
+                "intraday": "Intraday",
+                "delayed": "Delayed",
+                "total": "All buckets"
+            },
+            "exitReasons": {
+                "takeProfit": "Take profit",
+                "stopLoss": "Stop loss",
+                "endOfDay": "Forced close at end of window (EOD)",
+                "liquidation": "Liquidation",
+                "liquidationSlDisabled": "Liquidation (SL disabled)",
+                "liquidationSlBeyond": "Liquidation (SL beyond liquidation price)",
+                "liquidationSameMinute": "Liquidation (SL and liquidation in the same minute)",
+                "liquidationBeforeSl": "Liquidation (before stop loss)"
+            },
+            "controls": {
+                "bucket": "Published bucket",
+                "bucketAria": "Bucket filter for the published Policies",
+                "branch": "Branch",
+                "margin": "Margin mode",
+                "marginCross": "Cross",
+                "marginIsolated": "Isolated",
+                "withSl": "With SL",
+                "noSl": "No SL",
+                "zonal": "Zonal slice",
+                "zonalTooltip": "The current real-forecast journal stores only the published zonal slice. Alternative zonal modes are not yet part of the immutable journal payload, so the control stays explicit and does not imitate unavailable modes.",
+                "zonalWith": "With zonal",
+                "search": "Policy / branch search",
+                "searchPlaceholder": "For example: const_2x_cross or BASE"
+            },
+            "table": {
+                "title": "Published Policies",
+                "description": "The default view opens the daily / with-SL / zonal slice. Switching to “All” shows every published bucket and Policy together.",
+                "sessionOpenPublished": "Published",
+                "columns": {
+                    "policy": "Policy",
+                    "branch": "Branch",
+                    "bucket": "Bucket",
+                    "sessionOpen": "Morning forecast",
+                    "marginMode": "Margin mode",
+                    "direction": "Direction",
+                    "riskDay": "Risk day",
+                    "skipped": "Skipped",
+                    "leverage": "Leverage",
+                    "bucketBalance": "Bucket balance, $",
+                    "marginUsd": "Margin, $",
+                    "marginPct": "Margin, %",
+                    "derivedNotional": "Derived notional, $",
+                    "publishedNotional": "Published notional, $",
+                    "entryPrice": "Entry price",
+                    "stopLoss": "Stop-loss price",
+                    "takeProfit": "Take-profit price",
+                    "liquidation": "Liquidation price",
+                    "liquidationDistance": "Distance to liquidation, %",
+                    "liveStatus": "Live status",
+                    "liveEventTime": "Event minute (UTC)",
+                    "liveCurrentPrice": "Current SOL price",
+                    "liveVsTp": "Current vs TP",
+                    "liveVsSl": "Current vs SL",
+                    "liveVsLiq": "Current vs liquidation",
+                    "actualExit": "Actual exit price",
+                    "actualExitReason": "Actual exit reason",
+                    "actualExitPnl": "Actual exit PnL, %",
+                    "actualTrades": "Trades",
+                    "actualTotalPnl": "Total PnL, %",
+                    "actualMaxDd": "MaxDD, %",
+                    "actualLiquidation": "Had liquidation",
+                    "actualWithdrawn": "Withdrawn, $"
+                }
+            }
+        },
+        "indicators": {
+            "title": "Indicators in the morning and by day close",
+            "subtitle": "The detailed block shows the exact indicator values that were visible in the morning when the forecast was captured and their state by the end of the day.",
+            "show": "Show detailed indicator block",
+            "hide": "Hide detailed indicator block",
+            "controls": {
+                "group": "Indicator group"
+            },
+            "table": {
+                "title": "Indicator value diff",
+                "description": "The morning value is the fixed value at publication time. The close value and delta appear only after finalization.",
+                "columns": {
+                    "group": "Group",
+                    "indicator": "Indicator",
+                    "sessionOpen": "Morning",
+                    "close": "Day close",
+                    "delta": "Delta"
+                }
+            }
+        },
+        "placeholders": {
+            "notPublished": "Not published",
+            "notPublishedSessionOpen": "Not published in the fixed morning forecast",
+            "noStopLoss": "No stop-loss",
+            "noTakeProfit": "No take-profit",
+            "notApplicable": "Not applicable",
+            "pendingFinalize": "Waiting for the New York close and indicator sync",
+            "noDirection": "No direction",
+            "noDelta": "Delta becomes available after the close",
+            "deltaUnavailable": "No numeric delta",
+            "skipped": "skipped"
+        },
+        "comparison": {
+            "title": "Live sample vs historical benchmark",
+            "subtitle": "Only journal days captured before the outcome was known are used here. This block compares their realized result with the selected historical benchmark.",
+            "sampleTiny": "The live sample is still too small. Early deviations are already useful, but they are not yet stable.",
+            "almostAligned": "Current realized accuracy is very close to the selected historical benchmark.",
+            "above": "Current realized accuracy is above the selected historical benchmark by {{delta}}.",
+            "below": "Current realized accuracy is below the selected historical benchmark by {{delta}}.",
+            "calibrationClose": "Average assigned probability is still close to the realized win rate.",
+            "calibrationOver": "The current live sample is more confident than the realized outcomes by {{gap}}.",
+            "calibrationUnder": "The current live sample is less confident than the realized outcomes by {{gap}}.",
+            "significanceTiny": "The sample is still too small even for a rough significance read.",
+            "significanceWithin": "The deviation is still inside a rough 95% binomial band around the selected benchmark.",
+            "significanceOutside": "The deviation is already outside a rough 95% binomial band around the selected benchmark.",
+            "loading": "Loading comparison block...",
+            "errorTitle": "Comparison block is unavailable",
+            "outOfRangeSome": "{{count}} live day(s) fell outside the selected historical confidence buckets.",
+            "outOfRangeNone": "Every finalized live day mapped into the selected historical confidence buckets.",
+            "controls": {
+                "sourceLabel": "Historical benchmark",
+                "sourceTooltip": "Aggregation compares real journal days with historical quality metrics of the full forecast layer. Confidence risk compares real journal days with the historical hit-rate inside confidence buckets.",
+                "aggregation": "Aggregation",
+                "confidenceRisk": "Confidence and TP/SL",
+                "scopeLabel": "Historical scope"
+            },
+            "insights": {
+                "accuracyTitle": "Accuracy delta",
+                "calibrationTitle": "Calibration read",
+                "significanceTitle": "Rough significance",
+                "rangeTitle": "Bucket coverage"
+            },
+            "table": {
+                "accuracy": "Forecast-to-outcome match rate",
+                "logLoss": "Log-loss",
+                "avgAssignedProbability": "Average assigned probability",
+                "calibrationGap": "Calibration gap",
+                "sample": "Sample size",
+                "liveAccuracy": "Realized match rate",
+                "outOfRange": "Live days out of range"
+            },
+            "columns": {
+                "metric": "Metric",
+                "live": "Live sample",
+                "history": "Historical benchmark",
+                "delta": "Delta"
+            },
+            "aggregation": {
+                "tableTitle": "Comparison with aggregation"
+            },
+            "confidenceRisk": {
+                "summaryTitle": "Confidence-risk summary",
+                "summaryDescription": "The weighted benchmark uses the same confidence buckets that the real journal days fell into.",
+                "bucketTitle": "Confidence-bucket comparison",
+                "bucketDescription": "Only finalized live days are counted here. Each row compares realized accuracy with the historical accuracy of the same confidence bucket.",
+                "columns": {
+                    "bucket": "Bucket",
+                    "range": "Range",
+                    "liveDays": "Live days",
+                    "liveWinRate": "Realized accuracy",
+                    "liveConfidence": "Live avg confidence",
+                    "historyWinRate": "Historical accuracy",
+                    "delta": "Delta"
+                }
+            }
+        },
+        "errors": {
+            "selectedDay": {
+                "title": "Selected journal day is unavailable",
+                "message": "The selected date is missing from the journal index or the day payload failed to load."
+            },
+            "scope": {
+                "title": "Comparison query is invalid"
             }
         }
     },
@@ -1356,7 +1959,7 @@
         "page": {
             "errorTitle": "Failed to load Policy Branch Mega",
             "title": "Policy Branch Mega",
-            "subtitle": "Comparative report by Policy/Branch on the same historical period. The table shows not only return but also risk: drawdown, liquidations, recovery, and LONG/SHORT contribution.",
+            "subtitle": "Comparative report for all [[policy|Policy]] configurations on one long history: [[branch|BASE / ANTI-D branches]], SL modes, filters, and final risk/return metrics. The page is built to select not just the highest return, but the most robust setup.\n\nThe second layer shows return, drawdown, liquidations, recovery, and the [[position|LONG]] / [[position|SHORT]] contribution.",
             "noDataPlaceholder": "no data",
             "metricDiff": {
                 "noRows": "REAL/NO BIGGEST LIQ LOSS: no comparable Policy configurations for the selected bucket.",
@@ -1565,12 +2168,23 @@
                 "simulation": {
                     "title": "What simulation includes",
                     "items": {
-                        "item1": "Exchange fees: included (round-trip, entry and exit fees).",
+                        "item1": "[[exchange-fees|Exchange fees]]: included ([[round-trip|round-trip]], [[entry-fee|entry fee]] and [[exit-fee|exit fee]]).",
                         "item2": "Funding: not included, so real exchange result may differ for long-held positions.",
-                        "item3": "Slippage / price impact: not included.",
+                        "item3": "[[slippage|Slippage]] / [[price-impact|price impact]]: not included.",
                         "item4Prefix": "Event order inside first-event rule: liquidation → stop-loss → take-profit →"
                     },
                     "endOfDayTooltip": "EndOfDay (EOD) means time-based close at end of trading window if TP, SL, or liquidation did not trigger earlier."
+                }
+            },
+            "part2Diagnostics": {
+                "title": "Detailed risk diagnostics",
+                "description": "Part 2/4 aggregates balance and recovery metrics by Policy/Branch. The risk page expands the same emergency scenarios into dedicated diagnostics tables and shows where losses are formed.",
+                "link": "Risk and liquidations page",
+                "items": {
+                    "item1": "[[liquidation|Liquidations]] and [[account-ruin|AccRuin]]: shows which policies reach forced close or lose the working capital base.",
+                    "item2": "[[drawdown|Drawdown]], [[recovery|recovery]] and the capital curve: shows how deep capital fell and whether it returned to the previous peak.",
+                    "item3": "Distance to [[liquidation|liquidation]] by trades and days: shows where the safety buffer before forced exit becomes too small.",
+                    "item4": "Sanity checks for [[leverage|leverage]], [[cap-fraction|position size]], and trading costs: shows whether the result depends on overly aggressive risk."
                 }
             },
             "terms": {

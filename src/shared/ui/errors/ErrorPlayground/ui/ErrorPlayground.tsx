@@ -49,10 +49,7 @@ export default function ErrorPlayground() {
                     title='Тестовая ошибка секции'
                     description='Этот блок показывает, как выглядит ErrorBlock при падении конкретной секции или виджета.'
                     details='Тестовые детали: условный stack trace / сырой текст ошибки.'
-                    onRetry={() => {
-                        // eslint-disable-next-line no-console
-                        console.log('[ErrorPlayground] Retry clicked')
-                    }}
+                    onRetry={() => undefined}
                     compact={false}
                 />
             </section>

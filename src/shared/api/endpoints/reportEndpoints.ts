@@ -1,6 +1,6 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSummaryDto, BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
-import { normalizeCurrentPredictionDateUtcOrThrow } from '@/shared/utils/currentPredictionDate'
+import { normalizeCurrentPredictionDateUtc } from '@/shared/utils/currentPredictionDate'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
@@ -90,7 +90,7 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
 
                     return {
                         id: item.id,
-                        predictionDateUtc: normalizeCurrentPredictionDateUtcOrThrow(item.predictionDateUtc)
+                        predictionDateUtc: normalizeCurrentPredictionDateUtc(item.predictionDateUtc)
                     }
                 })
             }
@@ -104,7 +104,7 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
             }
         >({
             query: ({ set, dateUtc, scope }) => {
-                const normalizedDateUtc = normalizeCurrentPredictionDateUtcOrThrow(dateUtc)
+                const normalizedDateUtc = normalizeCurrentPredictionDateUtc(dateUtc)
                 const params: {
                     set: CurrentPredictionSet
                     dateUtc: string

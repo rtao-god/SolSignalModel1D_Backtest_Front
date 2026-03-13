@@ -47,8 +47,36 @@ export interface DeveloperHomeCardConfig {
     route: AppRoute
 }
 
+export interface DeveloperHomeLinkConfig {
+    id: string
+    route: AppRoute
+}
+
+export interface DeveloperHomeMetricConfig {
+    id: string
+}
+
+export interface DeveloperHomeFactRowConfig {
+    id: string
+    links: readonly DeveloperHomeLinkConfig[]
+}
+
+export interface DeveloperHomeOverviewBlockConfig {
+    id: string
+    bulletIds?: readonly string[]
+    stepIds?: readonly string[]
+    links: readonly DeveloperHomeLinkConfig[]
+    tableId?: string
+    layout?: 'default' | 'fullWidth'
+}
+
+export interface DeveloperHomeTableRowConfig {
+    id: string
+}
+
 export interface DeveloperLocalizedTermItem {
     id: string
     term: string
-    description: string
+    description?: string
+    sharedTermId?: string
 }

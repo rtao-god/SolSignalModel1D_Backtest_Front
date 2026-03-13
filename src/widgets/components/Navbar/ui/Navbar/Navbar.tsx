@@ -13,6 +13,8 @@ import SideBarBlock from '../SideBarBlock/SideBarBlock'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 
+const NAVBAR_FULL_MODE_MIN_WIDTH = 1200
+
 function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarProps) {
     const { i18n, t } = useTranslation()
     const queryClient = useQueryClient()
@@ -69,7 +71,8 @@ function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarPr
             const navbarWidth = navbarEl.clientWidth
             const controlsWidth = controlsEl.getBoundingClientRect().width
 
-            if (navbarWidth >= 1024) {
+            // Полный режим navbar включается только вместе с полноценным desktop shell.
+            if (navbarWidth >= NAVBAR_FULL_MODE_MIN_WIDTH) {
                 setPrimaryCount(total)
                 setHasOverflow(false)
                 setIsMenuOpen(false)

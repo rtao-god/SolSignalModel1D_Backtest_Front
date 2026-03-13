@@ -8,10 +8,10 @@ import { GUIDE_TIME_TABS } from '@/shared/utils/guideTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readAvailableGuideTermGroups,
-    readGuideStringListOrThrow,
-    readGuideTableRowsOrThrow
+    readGuideStringList,
+    readGuideTableRows
 } from '@/pages/guidePages/ui/shared/guideI18n'
-import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
+import { buildGuideGlossary, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainTimePage.module.scss'
 import type { ExplainTimePageProps } from './types'
 
@@ -41,10 +41,7 @@ const GUIDE_TIME_SECTIONS: readonly GuideTimeSectionConfig[] = [
     }
 ]
 
-export default function ExplainTimePage({
-    className,
-    translationNamespace = 'guide'
-}: ExplainTimePageProps) {
+export default function ExplainTimePage({ className, translationNamespace = 'guide' }: ExplainTimePageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
 
     const sections = useMemo(
@@ -56,7 +53,7 @@ export default function ExplainTimePage({
         [t]
     )
     const buildPageGlossary = () =>
-        buildGuideGlossaryOrThrow(
+        buildGuideGlossary(
             readAvailableGuideTermGroups(
                 i18n,
                 GUIDE_TIME_SECTIONS.map(section => `timePage.sections.${section.id}.terms`)
@@ -86,12 +83,17 @@ export default function ExplainTimePage({
                         <LocalizedContentBoundary name={`GuideTime:${section.id}:paragraphs`}>
                             {() => {
                                 const glossary = buildPageGlossary()
-                                const paragraphs = readGuideStringListOrThrow(i18n, `timePage.sections.${section.id}.paragraphs`)
+                                const paragraphs = readGuideStringList(
+                                    i18n,
+                                    `timePage.sections.${section.id}.paragraphs`
+                                )
 
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderGuideRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -109,7 +111,7 @@ export default function ExplainTimePage({
                                     }
 
                                     const glossary = buildPageGlossary()
-                                    const rows = readGuideTableRowsOrThrow(i18n, `timePage.sections.${section.id}.table.rows`)
+                                    const rows = readGuideTableRows(i18n, `timePage.sections.${section.id}.table.rows`)
 
                                     return (
                                         <div className={cls.tableWrap}>
@@ -118,7 +120,9 @@ export default function ExplainTimePage({
                                                     <tr>
                                                         {headerKeys.map(headerKey => (
                                                             <th key={`${section.id}-header-${headerKey}`}>
-                                                                {t(`timePage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                                {t(
+                                                                    `timePage.sections.${section.id}.table.headers.${headerKey}`
+                                                                )}
                                                             </th>
                                                         ))}
                                                     </tr>
@@ -127,7 +131,8 @@ export default function ExplainTimePage({
                                                     {rows.map((row, rowIndex) => (
                                                         <tr key={`${section.id}-row-${rowIndex}`}>
                                                             {row.map((cell, cellIndex) => (
-                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                <td
+                                                                    key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                     {renderGuideRichText(cell, { glossary })}
                                                                 </td>
                                                             ))}
@@ -152,7 +157,9 @@ export default function ExplainTimePage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`timePage.sections.${section.id}.why`), { glossary })}
+                                                {renderGuideRichText(t(`timePage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -169,7 +176,9 @@ export default function ExplainTimePage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`timePage.sections.${section.id}.example`), { glossary })}
+                                                {renderGuideRichText(t(`timePage.sections.${section.id}.example`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -191,6 +200,3 @@ export default function ExplainTimePage({
         </div>
     )
 }
-
-
-

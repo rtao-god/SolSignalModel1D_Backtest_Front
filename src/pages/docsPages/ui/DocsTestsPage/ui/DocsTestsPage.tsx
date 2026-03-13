@@ -3,18 +3,15 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import { DOCS_TESTS_TABS } from '@/shared/utils/docsTabs'
 import { useTranslation } from 'react-i18next'
-import { buildDocsGlossaryOrThrow, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
-import { readAvailableDocsTermGroups, readDocsStringListOrThrow } from '@/pages/docsPages/ui/shared/docsI18n'
+import { buildDocsGlossary, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
+import { readAvailableDocsTermGroups, readDocsStringList } from '@/pages/docsPages/ui/shared/docsI18n'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import cls from './DocsTestsPage.module.scss'
 import type { DocsTestsPageProps } from './types'
 
-export default function DocsTestsPage({
-    className,
-    translationNamespace = 'docs'
-}: DocsTestsPageProps) {
+export default function DocsTestsPage({ className, translationNamespace = 'docs' }: DocsTestsPageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
     const sections = useMemo(
         () =>
@@ -25,7 +22,7 @@ export default function DocsTestsPage({
         [t]
     )
     const termKeys = DOCS_TESTS_TABS.map(section => `testsPage.sections.${section.id}.terms`)
-    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
+    const buildPageGlossary = () => buildDocsGlossary(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -47,7 +44,7 @@ export default function DocsTestsPage({
 
                         <LocalizedContentBoundary name={`DocsTests:${section.id}:paragraphs`}>
                             {() => {
-                                const paragraphs = readDocsStringListOrThrow(
+                                const paragraphs = readDocsStringList(
                                     i18n,
                                     `testsPage.sections.${section.id}.paragraphs`,
                                     translationNamespace
@@ -57,7 +54,9 @@ export default function DocsTestsPage({
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderDocsRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -77,7 +76,9 @@ export default function DocsTestsPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderDocsRichText(t(`testsPage.sections.${section.id}.why`), { glossary })}
+                                                {renderDocsRichText(t(`testsPage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -94,7 +95,9 @@ export default function DocsTestsPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderDocsRichText(t(`testsPage.sections.${section.id}.example`), { glossary })}
+                                                {renderDocsRichText(t(`testsPage.sections.${section.id}.example`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -116,5 +119,3 @@ export default function DocsTestsPage({
         </div>
     )
 }
-
-

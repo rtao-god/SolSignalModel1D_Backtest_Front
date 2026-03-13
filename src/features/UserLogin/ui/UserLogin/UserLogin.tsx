@@ -3,14 +3,13 @@ import { ChangeEvent, FormEvent, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import cls from './UserLogin.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
-import { getLoginIsLoading, getLoginError, getLoginConfirmPassword, getLoginIdentifier } from '../../model/selectors'
+import { getLoginIsLoading, getLoginError, getLoginIdentifier } from '../../model/selectors'
 import { Input, Btn, Text, Rows, Link } from '@/shared/ui'
 import PasswordInputField from '../PasswordInputField/PasswordInputField'
 import LoginFormProps from './types'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 import { useLogin } from '@/shared/lib/hooks'
 import { IDENTIFIER_INVALID, IDENTIFIER_REQUIRED } from '@/shared/consts/authLogin'
-import { getIsAuthenticated } from '@/shared/ui/auth/AuthSection/model/getIsAuthenticated'
 
 export default function UserLogin({ className }: LoginFormProps) {
     const { t } = useTranslation('auth')
@@ -41,18 +40,6 @@ export default function UserLogin({ className }: LoginFormProps) {
         if (identifier === identifierValue) return dispatch(setError(IDENTIFIER_INVALID))
         login(identifier, password)
     }
-
-    console.log()
-    console.log(
-        'ERROR: ',
-        error,
-        localStorage.user,
-        '\n user: ',
-        identifier,
-        password,
-        '\n isAuthenticated: ',
-        getIsAuthenticated
-    )
 
     return (
         <div className={classNames(cls.User_login, {}, [className ?? ''])}>

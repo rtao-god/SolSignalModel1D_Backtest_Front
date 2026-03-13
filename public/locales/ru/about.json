@@ -1,9 +1,828 @@
 {
-  "AboutPage": "О странице",
-  "test": "тест",
-  "test1": "тест1",
-  "test2": "тест2",
-  "test3": "тест3",
-  "test4": "тесе",
-  "test5": ""
+    "hero": {
+        "eyebrow": "Карта сайта",
+        "title": "Вся видимая навигация в одной странице",
+        "subtitle": "Раздел собирает верхнее меню, левую навигацию и внутренние смысловые зоны каждой страницы. Это быстрый атлас по всему пользовательскому интерфейсу.",
+        "meta": {
+            "navbar": "Navbar-маршруты",
+            "sidebar": "Sidebar-маршруты",
+            "details": "Раскрытие по блокам"
+        }
+    },
+    "groups": {
+        "main": {
+            "eyebrow": "Точка входа",
+            "title": "Главная",
+            "subtitle": "Стартовый экран продукта с общей картиной, proof-блоком и быстрыми переходами."
+        },
+        "predictions": {
+            "eyebrow": "Операционный слой",
+            "title": "Прогнозы",
+            "subtitle": "Текущий сигнал, архив прошлых дней и разбор policy-сделок."
+        },
+        "models": {
+            "eyebrow": "Модельный слой",
+            "title": "Модели",
+            "subtitle": "Статистика моделей и агрегированное поведение сигнала по сегментам."
+        },
+        "backtest": {
+            "eyebrow": "Сценарии стратегии",
+            "title": "Бэктест",
+            "subtitle": "Baseline, полная сводка и экспериментальный сценарий с конфигурациями."
+        },
+        "analysis": {
+            "eyebrow": "Причины и сравнения",
+            "title": "Анализ",
+            "subtitle": "Рейтинги правил, confidence-срезы, дневной журнал и execution pipeline."
+        },
+        "diagnostics": {
+            "eyebrow": "Диагностика стратегии",
+            "title": "Диагностика",
+            "subtitle": "Риск, guardrail, решения, hotspots и дополнительные аномалии."
+        },
+        "features": {
+            "eyebrow": "Факторы сигнала",
+            "title": "Фичи",
+            "subtitle": "Важность признаков по моделям и чтение влияния [[factor|факторов]]."
+        },
+        "guide": {
+            "eyebrow": "Смысл метрик",
+            "title": "База знаний",
+            "subtitle": "Объясняющий слой для моделей, времени, truthfulness и тестов."
+        },
+        "developer": {
+            "eyebrow": "Системная документация",
+            "title": "Для разработчика",
+            "subtitle": "Структура backend-а, runtime-flow, delivery-контракт и guards."
+        },
+        "system": {
+            "eyebrow": "Системные страницы",
+            "title": "Системные страницы",
+            "subtitle": "Профиль, карта навигации и контакты проекта."
+        }
+    },
+    "table": {
+        "columns": {
+            "page": "Вкладка",
+            "description": "Описание",
+            "meta": "Структура",
+            "details": "Подробнее"
+        }
+    },
+    "meta": {
+        "navType": {
+            "navbar": "navbar",
+            "sidebar": "sidebar"
+        },
+        "blocksCount": "Блоков: {{count}}"
+    },
+    "detail": {
+        "toggleLabel": {
+            "expand": "Подробнее",
+            "collapse": "Скрыть"
+        },
+        "toggleAria": {
+            "expand": "Показать детали страницы {{title}}",
+            "collapse": "Скрыть детали страницы {{title}}"
+        },
+        "regionAria": "Детали страницы {{title}}",
+        "sectionPages": {
+            "title": "Страницы раздела",
+            "subtitle": "Дочерние маршруты текущего домена.",
+            "count": "Страниц: {{count}}"
+        },
+        "pageBlocks": {
+            "title": "Блоки страницы",
+            "subtitle": "Основные смысловые зоны текущего экрана.",
+            "count": "Блоков: {{count}}"
+        }
+    },
+    "routes": {
+        "main": {
+            "description": "Главная страница объясняет продукт, показывает proof-слой и ведёт в ключевые разделы.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero-блок",
+                    "description": "Верхний экран с общим смыслом продукта и входом в текущий прогноз."
+                },
+                "audience": {
+                    "title": "Бизнес-вопросы",
+                    "description": "Блок связывает интерфейс с задачами чтения сигнала, проверки и интерпретации."
+                },
+                "workflow": {
+                    "title": "Рабочий сценарий",
+                    "description": "Маршрут чтения от текущего прогноза к архиву, анализу и диагностике."
+                },
+                "proof": {
+                    "title": "Proof и верификация",
+                    "description": "Секция с фактами по архиву и базовому бэктесту. Имеет стабильный anchor."
+                },
+                "tour": {
+                    "title": "Навигационный тур",
+                    "description": "Подборка быстрых ссылок на прогнозы, анализ и диагностику."
+                },
+                "demoConfiguration": {
+                    "title": "Демо-конфигурация",
+                    "description": "Отложенный пример конфигурации из Policy Branch Mega."
+                }
+            }
+        },
+        "current_prediction": {
+            "description": "Текущий прогноз показывает ближайший сценарий рынка и полный отчёт по актуальному сигналу.",
+            "blocks": {
+                "scopeControls": {
+                    "title": "Управление scope",
+                    "description": "Переключение training scope для live-сигнала."
+                },
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Показывает preview-статус и уровень готовности сигнала."
+                },
+                "metaSummary": {
+                    "title": "Meta-сводка",
+                    "description": "Краткие строки о режиме, наборе отчёта и модели."
+                },
+                "reportDocument": {
+                    "title": "Документ прогноза",
+                    "description": "Основной отчёт с таблицами и key-value секциями."
+                }
+            }
+        },
+        "current_prediction_history": {
+            "description": "История прогнозов хранит прошлые дни, архивные карточки и разбор policy-сделок.",
+            "blocks": {
+                "filters": {
+                    "title": "Фильтры и окно истории",
+                    "description": "Панель задаёт scope, период архива и рабочую дату."
+                },
+                "archivePager": {
+                    "title": "Пейджер архива",
+                    "description": "Листает группы дат внутри выбранного окна истории."
+                },
+                "reportCard": {
+                    "title": "Карточка дня",
+                    "description": "Отчёт конкретного прогноза за выбранную дату."
+                },
+                "policyTrades": {
+                    "title": "Policy trades",
+                    "description": "Исполненные и пропущенные directional-сигналы по Policy."
+                }
+            }
+        },
+        "models_stats": {
+            "description": "Статистика моделей показывает качество отдельных слоёв модели и режимов отображения.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус и свежесть",
+                    "description": "Информация об актуальности загруженного model-stats отчёта."
+                },
+                "sectionPager": {
+                    "title": "Пейджер секций",
+                    "description": "Быстрый переход между внутренними разделами большого отчёта."
+                },
+                "modelTables": {
+                    "title": "Таблицы моделей",
+                    "description": "Основные таблицы по сегментам, режимам и метрикам качества."
+                }
+            }
+        },
+        "aggregation_stats": {
+            "description": "Агрегация прогнозов собирает вероятности, метрики и debug-хвост последних дней.",
+            "blocks": {
+                "probs": {
+                    "description": "Секция вероятностей по сегментам и слоям агрегации."
+                },
+                "metrics": {
+                    "description": "Сводные метрики качества для агрегированного сигнала."
+                },
+                "debug": {
+                    "description": "Debug-блок последних дней для сверки свежих строк."
+                }
+            }
+        },
+        "backtest_baseline": {
+            "description": "Baseline бэктест хранит базовый снапшот стратегии, глобальные параметры и короткую таблицу policy-результатов.",
+            "blocks": {
+                "snapshotHeader": {
+                    "title": "Заголовок снапшота",
+                    "description": "Идентификатор снапшота, конфигурация и время генерации."
+                },
+                "globalParams": {
+                    "title": "Глобальные параметры",
+                    "description": "Базовые stop-loss / take-profit настройки baseline-сценария."
+                },
+                "policyTable": {
+                    "title": "Таблица policy",
+                    "description": "Короткая сводка policy-конфигураций с PnL, DD и ликвидациями."
+                }
+            }
+        },
+        "backtest_summary": {
+            "description": "Сводка бэктеста рендерит полный отчёт по базовому сценарию и показывает его свежесть.",
+            "blocks": {
+                "reportHeader": {
+                    "title": "Заголовок отчёта",
+                    "description": "ID отчёта, тип и время генерации в UTC и локальном виде."
+                },
+                "reportStatus": {
+                    "title": "Карточка свежести",
+                    "description": "Actual/debug статус и количество секций внутри документа."
+                },
+                "reportTables": {
+                    "title": "Секции отчёта",
+                    "description": "Основной документ с таблицами и параметрами стратегии."
+                }
+            }
+        },
+        "backtest_full": {
+            "description": "Экспериментальный бэктест меняет конфигурации и сравнивает разные профили стратегии.",
+            "blocks": {
+                "baseline": {
+                    "description": "Базовый профиль, от которого удобно отталкиваться в сравнении."
+                },
+                "whatif": {
+                    "description": "Сценарий с изменением конфигурации и альтернативными параметрами."
+                },
+                "compare": {
+                    "description": "Сопоставление baseline и экспериментальных профилей в одном месте."
+                }
+            }
+        },
+        "analysis_home": {
+            "description": "Главная страница анализа собирает рейтинги правил, confidence-срезы, дневной журнал и pipeline.",
+            "blocks": {
+                "overview": {
+                    "title": "Обзор раздела",
+                    "description": "Hero-блок с назначением analysis-домена."
+                },
+                "sectionCards": {
+                    "title": "Карточки разделов",
+                    "description": "Сетка переходов в дочерние экраны анализа."
+                }
+            }
+        },
+        "backtest_diagnostics_ratings": {
+            "description": "Рейтинги правил показывают лучшие и слабые конфигурации внутри выбранного диагностического среза.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Источник и актуальность диагностического документа."
+                },
+                "filters": {
+                    "title": "Фильтры диагностики",
+                    "description": "Bucket, TP/SL и risk-режимы, из которых строятся рейтинги."
+                },
+                "terms": {
+                    "title": "Термины и пояснения",
+                    "description": "Блок с расшифровкой колонок рейтинга."
+                },
+                "tables": {
+                    "title": "Таблицы рейтингов",
+                    "description": "Сводные таблицы policy-конфигураций по качеству и риску."
+                }
+            }
+        },
+        "backtest_diagnostics_daystats": {
+            "description": "Статистика по дням раскладывает диагностический отчёт на суточные срезы.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Актуальность диагностического документа для day-stats."
+                },
+                "filters": {
+                    "title": "Фильтры дня",
+                    "description": "Query-параметры bucket и risk-режимов."
+                },
+                "terms": {
+                    "title": "Термины",
+                    "description": "Пояснения для дневных колонок и сводных чисел."
+                },
+                "tables": {
+                    "title": "Дневные таблицы",
+                    "description": "Секции с метриками по дням и периодам отклонения."
+                }
+            }
+        },
+        "backtest_policy_branch_mega": {
+            "description": "Policy Branch Mega сравнивает конфигурации правил по bucket-режимам и сценариям риска.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус и актуальность",
+                    "description": "Freshness-блок для mega-отчёта и его источника."
+                },
+                "overview": {
+                    "title": "Обзор и правила чтения",
+                    "description": "Overview-секция с логикой чтения mega-таблицы. Имеет стабильный anchor."
+                },
+                "chartExplorer": {
+                    "title": "Chart explorer",
+                    "description": "Графический слой сравнения policy-комбинаций."
+                },
+                "terms": {
+                    "title": "Термины таблиц",
+                    "description": "Пояснения для колонок и режимов mega-таблицы."
+                },
+                "partTables": {
+                    "title": "Части mega-таблицы",
+                    "description": "Основные части отчёта с результатом, риском и восстановлением."
+                },
+                "diagnosticsBridge": {
+                    "title": "Связь с диагностикой",
+                    "description": "Переход в diagnostic-слой по тем же режимам и bucket-параметрам."
+                }
+            }
+        },
+        "backtest_confidence_risk": {
+            "description": "Статистика уверенности связывает confidence с точностью, TP/SL и характером движения цены.",
+            "blocks": {
+                "filters": {
+                    "title": "Фильтры confidence",
+                    "description": "Training scope и bucket confidence для построения отчёта."
+                },
+                "terms": {
+                    "title": "Термины показателей",
+                    "description": "Карточки MFE, MAE, TP Reach и связанных метрик."
+                },
+                "configBlock": {
+                    "title": "Конфигурационный блок",
+                    "description": "Активный источник, диапазоны бакетов и выбранные условия."
+                },
+                "statisticsTables": {
+                    "title": "Таблицы статистики",
+                    "description": "Распределение точности и риска по confidence-бакетам."
+                }
+            }
+        },
+        "analysis_real_forecast_journal": {
+            "description": "Журнал реального прогноза собирает causal-срез дня, live-статус и сравнение с reference-источниками.",
+            "blocks": {
+                "daySelector": {
+                    "title": "Выбор дня",
+                    "description": "Панель выбора даты и comparison scope."
+                },
+                "causalSummary": {
+                    "title": "Causal summary",
+                    "description": "Сводка по временам, сигналу и опорным числам выбранного дня."
+                },
+                "liveTracking": {
+                    "title": "Live tracking",
+                    "description": "Статус живого исполнения после публикации сигнала."
+                },
+                "policyTables": {
+                    "title": "Policy tables",
+                    "description": "Таблицы executed и skipped сигналов по Policy."
+                },
+                "comparison": {
+                    "title": "Сравнение с источниками",
+                    "description": "Сопоставление дня с aggregation или confidence-risk reference."
+                }
+            }
+        },
+        "backtest_execution_pipeline": {
+            "description": "Execution pipeline показывает путь сигнала от model-level к execution и accounting-слоям.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Актуальность pipeline-документа и его источник."
+                },
+                "configSections": {
+                    "title": "Конфигурационные секции",
+                    "description": "Key-value блоки с активными параметрами пайплайна."
+                },
+                "stageTables": {
+                    "title": "Таблицы этапов",
+                    "description": "Таблицы model / decision / execution / accounting / aggregation."
+                }
+            }
+        },
+        "diagnostics_home": {
+            "description": "Главная страница диагностики собирает риск, guardrail, решения, hotspots и дополнительные аномалии.",
+            "blocks": {
+                "overview": {
+                    "title": "Обзор диагностики",
+                    "description": "Hero-блок с назначением diagnostic-домена."
+                },
+                "sectionCards": {
+                    "title": "Карточки диагностик",
+                    "description": "Сетка переходов в дочерние diagnostic-экраны."
+                }
+            }
+        },
+        "backtest_diagnostics": {
+            "description": "Риск и ликвидации показывают, где стратегия теряет устойчивость из-за плеча и просадок.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Источник диагностического документа и его актуальность."
+                },
+                "filters": {
+                    "title": "Фильтры режима",
+                    "description": "Bucket, TP/SL, stop-loss и zonal-параметры текущего разреза."
+                },
+                "terms": {
+                    "title": "Термины риска",
+                    "description": "Пояснения для risk-метрик, drawdown и recovery."
+                },
+                "tables": {
+                    "title": "Диагностические таблицы",
+                    "description": "Сценарии ликвидаций, провалы восстановления и риск по policy-комбинациям."
+                }
+            }
+        },
+        "backtest_diagnostics_guardrail": {
+            "description": "Guardrail / Specificity показывает, где ограничения стратегии становятся слишком жёсткими.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Актуальность документа для guardrail-разреза."
+                },
+                "filters": {
+                    "title": "Фильтры режима",
+                    "description": "Bucket и risk-сценарий для guardrail-метрик."
+                },
+                "terms": {
+                    "title": "Термины guardrail",
+                    "description": "Пояснения для specificity и связанных ограничений."
+                },
+                "tables": {
+                    "title": "Таблицы ограничений",
+                    "description": "Где правила режут поток входов и как это влияет на результат."
+                }
+            }
+        },
+        "backtest_diagnostics_decisions": {
+            "description": "Decisions / Attribution показывает, какие условия формируют торговое решение.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Источник документа для decision-разреза."
+                },
+                "filters": {
+                    "title": "Фильтры решения",
+                    "description": "Bucket, TP/SL и risk-режимы для attribution-анализа."
+                },
+                "terms": {
+                    "title": "Термины attribution",
+                    "description": "Пояснения для [[factor|факторов]] вклада и decision-метрик."
+                },
+                "tables": {
+                    "title": "Таблицы решений",
+                    "description": "Какие условия усиливают решение, а какие делают его слабым."
+                }
+            }
+        },
+        "backtest_diagnostics_hotspots": {
+            "description": "Hotspots / NoTrade помогает найти зоны, где стратегия системно пропускает сигналы.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Актуальность документа для hotspot-анализа."
+                },
+                "filters": {
+                    "title": "Фильтры hotspots",
+                    "description": "Risk-параметры и bucket-режимы выбранного среза."
+                },
+                "terms": {
+                    "title": "Термины hotspots",
+                    "description": "Пояснения для no-trade и локальных аномалий."
+                },
+                "tables": {
+                    "title": "Таблицы узких мест",
+                    "description": "Зоны, где стратегия теряет частоту входов или результат."
+                }
+            }
+        },
+        "backtest_diagnostics_other": {
+            "description": "Прочая диагностика хранит дополнительные таблицы вне основных risk / decision / hotspot доменов.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Текущий документ и его diagnostic context."
+                },
+                "filters": {
+                    "title": "Фильтры режима",
+                    "description": "Тот же query-context, что и на соседних diagnostic-страницах."
+                },
+                "terms": {
+                    "title": "Термины дополнительных секций",
+                    "description": "Пояснения для менее очевидных диагностических показателей."
+                },
+                "tables": {
+                    "title": "Дополнительные таблицы",
+                    "description": "Редкие, но важные сигналы для расширенного разбора стратегии."
+                }
+            }
+        },
+        "pfi_per_model": {
+            "description": "PFI по моделям показывает, какие признаки сильнее всего влияют на прогноз каждой модели.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Статус отчёта",
+                    "description": "Источник данных и актуальность PFI-среза."
+                },
+                "terms": {
+                    "title": "Термины PFI",
+                    "description": "Расшифровка важности признаков и view-режимов."
+                },
+                "modelTables": {
+                    "title": "Таблицы по моделям",
+                    "description": "Важность признаков отдельно по моделям и режимам чтения."
+                }
+            }
+        },
+        "guide": {
+            "description": "База знаний объясняет модели, время, признаки, truthfulness и тестовые барьеры человеческим языком.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero-блок",
+                    "description": "Назначение knowledge base и набор основных тем."
+                },
+                "sectionCards": {
+                    "title": "Карточки тем",
+                    "description": "Переходы в дочерние explain-страницы knowledge base."
+                }
+            }
+        },
+        "guide_models": {
+            "description": "Страница про модели объясняет смысл слоёв модели и чтение их различий.",
+            "blocks": {
+                "guide-models-meaning": {
+                    "description": "Что означает каждый слой модели и зачем он нужен."
+                },
+                "guide-models-reading": {
+                    "description": "Как читать результат модели и какие метрики важны вначале."
+                },
+                "guide-models-logic": {
+                    "description": "Как слои модели связаны между собой внутри сигнала."
+                },
+                "guide-models-contract": {
+                    "description": "Контракт и ограничения модельного слоя."
+                },
+                "guide-models-checks": {
+                    "description": "Проверки и warning-сигналы для модели."
+                },
+                "guide-models-related": {
+                    "description": "Связанные темы knowledge base для полного чтения результата."
+                }
+            }
+        },
+        "guide_branches": {
+            "description": "Страница про BASE / ANTI-D ветки объясняет, когда стратегия меняет направление позиции.",
+            "blocks": {
+                "explain-branches-overview": {
+                    "description": "Зачем системе нужны разные ветки торгового решения."
+                },
+                "explain-branches-base": {
+                    "description": "Поведение основного BASE-сценария."
+                },
+                "explain-branches-anti": {
+                    "description": "Когда используется anti-direction логика."
+                },
+                "explain-branches-conditions": {
+                    "description": "Условия активации ANTI-D ветки."
+                },
+                "explain-branches-usage": {
+                    "description": "Как связать теорию веток с чтением отчётов."
+                }
+            }
+        },
+        "guide_splits": {
+            "description": "Страница про Train / OOS / Recent объясняет, как читать исторические сплиты и устойчивость сигнала.",
+            "blocks": {
+                "explain-splits-overview": {
+                    "description": "Зачем нужны разные сплиты и что они проверяют."
+                },
+                "explain-splits-train": {
+                    "description": "Роль обучающего куска истории."
+                },
+                "explain-splits-oos": {
+                    "description": "Поведение на данных вне обучения."
+                },
+                "explain-splits-recent": {
+                    "description": "Свежий хвост истории как отдельная проверка устойчивости."
+                },
+                "explain-splits-full": {
+                    "description": "Полная история как общий контекст без замены split-анализа."
+                }
+            }
+        },
+        "guide_time": {
+            "description": "Страница про время и дни объясняет NY trading day, baseline-exit и временные ключи проекта.",
+            "blocks": {
+                "explain-time-overview": {
+                    "description": "Базовый календарный канон системы."
+                },
+                "explain-time-baseline": {
+                    "description": "Как baseline-exit влияет на интерпретацию результатов."
+                },
+                "explain-time-day-keys": {
+                    "description": "Роли day-key и разных типов времени."
+                },
+                "explain-time-weekend": {
+                    "description": "Выходные, исключения и пограничные временные случаи."
+                }
+            }
+        },
+        "guide_features": {
+            "description": "Страница про фичи и индикаторы объясняет, какие входные данные двигают модель.",
+            "blocks": {
+                "explain-features-overview": {
+                    "description": "Общий слой признаков и его роль в системе."
+                },
+                "explain-features-returns": {
+                    "description": "Доходности, спреды и базовые ценовые признаки."
+                },
+                "explain-features-indicators": {
+                    "description": "Технические индикаторы и macro-слой."
+                },
+                "explain-features-momentum": {
+                    "description": "Признаки momentum и волатильности."
+                },
+                "explain-features-regime": {
+                    "description": "Режимы рынка и признаки EMA."
+                }
+            }
+        },
+        "guide_truthfulness": {
+            "description": "Страница про правдивость данных объясняет causal и post-fact слои и защиту от leakage.",
+            "blocks": {
+                "truth-overview": {
+                    "description": "Главный смысл truthfulness-контура."
+                },
+                "truth-causal": {
+                    "description": "Какие данные доступны в момент торгового решения."
+                },
+                "truth-omniscient": {
+                    "description": "Какие данные появляются только после закрытия дня."
+                },
+                "truth-structure": {
+                    "description": "Где живёт truthfulness-контракт в структуре проектов."
+                },
+                "truth-delivery": {
+                    "description": "Связь truthfulness-правил с отчётами, API и UI."
+                },
+                "truth-tests": {
+                    "description": "Тесты и барьеры против утечки будущего."
+                }
+            }
+        },
+        "guide_tests": {
+            "description": "Страница про тесты и барьеры объясняет, как проект защищается от регрессий и leakage.",
+            "blocks": {
+                "tests-overview": {
+                    "description": "Общая карта классов тестов."
+                },
+                "tests-sanity": {
+                    "description": "Sanity-checks базовых инвариантов."
+                },
+                "tests-leakage": {
+                    "description": "Leakage-тесты causal-контракта."
+                },
+                "tests-perf": {
+                    "description": "Проверки скорости и стоимости вычислений."
+                }
+            }
+        },
+        "developer": {
+            "description": "Главная страница developer-домена собирает инженерные карты структуры, runtime и delivery.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero-блок",
+                    "description": "Scope developer-раздела и основные инженерные оси."
+                },
+                "sectionCards": {
+                    "title": "Карточки инженерных тем",
+                    "description": "Переходы в backend-structure, runtime, reports и guards."
+                }
+            }
+        },
+        "developer_backend_structure": {
+            "description": "Страница структуры backend-а объясняет карту solution и смысл основных проектов.",
+            "blocks": {
+                "developer-structure-reading-map": {
+                    "description": "Как читать карту backend-а и в каком порядке двигаться."
+                },
+                "developer-structure-root-solution": {
+                    "description": "Root-уровень репозитория и solutions."
+                },
+                "developer-structure-core-foundation": {
+                    "description": "Базовые контракты, время и foundation-слой."
+                },
+                "developer-structure-model-pipeline": {
+                    "description": "Проекты causal, infer, train и model pipeline."
+                },
+                "developer-structure-runtime-delivery": {
+                    "description": "Runtime, reports и API-проекты."
+                },
+                "developer-structure-guards-quality": {
+                    "description": "Слой тестов, arch barriers и analyzer-проверок."
+                },
+                "developer-structure-root-source": {
+                    "description": "Root source и важные исключения в дереве."
+                }
+            }
+        },
+        "developer_runtime_flow": {
+            "description": "Runtime flow раскладывает путь сигнала от entry points до prediction и backtest-процессов.",
+            "blocks": {
+                "developer-runtime-entrypoints": {
+                    "description": "Реальные точки входа backend-процессов."
+                },
+                "developer-runtime-bootstrap": {
+                    "description": "Bootstrap-конфигурация и wiring сервисов."
+                },
+                "developer-runtime-prediction": {
+                    "description": "Как runtime собирает и публикует текущий прогноз."
+                },
+                "developer-runtime-backtest": {
+                    "description": "Как строятся backtest и rebuild-сценарии."
+                }
+            }
+        },
+        "developer_reports_api": {
+            "description": "Reports and API описывает, как backend строит отчёты и доставляет их на frontend.",
+            "blocks": {
+                "developer-delivery-reports": {
+                    "description": "Где формируются отчёты и какие слои участвуют."
+                },
+                "developer-delivery-storage": {
+                    "description": "Где хранятся готовые артефакты."
+                },
+                "developer-delivery-api": {
+                    "description": "Пользовательские endpoints и их роль в delivery."
+                },
+                "developer-delivery-frontend": {
+                    "description": "Как frontend читает backend-отчёты и их ограничения."
+                }
+            }
+        },
+        "developer_tests_guards": {
+            "description": "Tests and guards показывает инженерные барьеры проекта: тесты, arch-checks и analyzers.",
+            "blocks": {
+                "developer-guards-tests": {
+                    "description": "Основные классы тестов и их назначение."
+                },
+                "developer-guards-arch": {
+                    "description": "Проверки зависимостей и архитектурных границ."
+                },
+                "developer-guards-analyzers": {
+                    "description": "Статические правила до runtime."
+                },
+                "developer-guards-selfcheck": {
+                    "description": "Короткий self-check после локальных изменений."
+                }
+            }
+        },
+        "profile": {
+            "description": "Профиль пока остаётся placeholder-экраном для будущих пользовательских настроек.",
+            "blocks": {
+                "placeholderState": {
+                    "title": "Placeholder-состояние",
+                    "description": "Главный текст страницы объясняет, что полноценный профиль ещё не реализован."
+                },
+                "backtestLink": {
+                    "title": "Связь с экспериментальным бэктестом",
+                    "description": "Ссылка к разделу, где позже будут сохраняться пользовательские параметры."
+                }
+            }
+        },
+        "about": {
+            "description": "Текущая страница собирает все видимые маршруты и раскрывает структуру экранов.",
+            "blocks": {
+                "hero": {
+                    "title": "Верхний обзор",
+                    "description": "Назначение navigation hub и состав карты сайта."
+                },
+                "navigationMatrix": {
+                    "title": "Матрица маршрутов",
+                    "description": "Основная таблица с доменами, маршрутами и типом навигации."
+                },
+                "routeDetails": {
+                    "title": "Раскрытие структуры",
+                    "description": "Карты блоков и дочерних страниц для каждой строки."
+                }
+            }
+        },
+        "contact": {
+            "description": "Контакты содержат профильную карточку, каналы связи и footer-блок.",
+            "blocks": {
+                "pageHeader": {
+                    "title": "Заголовок страницы",
+                    "description": "Короткий контекст по назначению контактной страницы."
+                },
+                "profileCard": {
+                    "title": "Профильная карточка",
+                    "description": "Имя, роль и краткая заметка контактного лица."
+                },
+                "contactMethods": {
+                    "title": "Каналы связи",
+                    "description": "Telegram, LinkedIn и телефон как основные способы связи."
+                },
+                "footer": {
+                    "title": "Footer-блок",
+                    "description": "Нижняя строка, завершающая контактный сценарий."
+                }
+            }
+        }
+    }
 }

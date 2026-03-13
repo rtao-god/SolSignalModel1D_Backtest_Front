@@ -1,9 +1,11 @@
 .card {
-    border-radius: 12px;
-    padding: 16px 20px;
-
-    background-color: var(--bg-color-elevated, #171a20);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    @include surface-card(
+        $padding: var(--surface-padding-lg),
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg-elevated),
+        $border: var(--surface-border-default),
+        $shadow: var(--surface-shadow-md)
+    );
 }
 
 .cardHeader {
@@ -21,7 +23,8 @@
 
 .cardSubtitle {
     font-size: 12px;
-    opacity: 0.75;
+    line-height: 1.55;
+    color: var(--text-muted);
     max-width: 720px;
 }
 

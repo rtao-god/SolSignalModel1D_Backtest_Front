@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
-import { MOBILE } from '@/shared/utils'
 import { useBackOnPrevPage } from '@/shared/lib/hooks/'
 import { useTranslation } from 'react-i18next'
 import cls from './NotFound.module.scss'
@@ -62,11 +61,11 @@ export default function NotFound({ className }: NotFoundProps) {
                     <div className={cls.codeBadge}>404</div>
 
                     <div className={cls.textBlock}>
-                        <Text type='h2' fz={MOBILE ? '18px' : '26px'} position='left'>
+                        <Text type='h2' position='left' className={cls.title}>
                             {t('notFound.title')}
                         </Text>
 
-                        <Text fz={MOBILE ? '14px' : '16px'} color='#B1B2B4' position='left'>
+                        <Text color='#B1B2B4' position='left' className={cls.description}>
                             {t('notFound.description.line1')}
                             <br />
                             {t('notFound.description.line2')}
@@ -83,7 +82,7 @@ export default function NotFound({ className }: NotFoundProps) {
                         <Btn onClick={backOnPrevPage}>{t('notFound.actions.back')}</Btn>
                     </div>
 
-                    <Text fz={MOBILE ? '13px' : '14px'} color='#8B8C8F' position='center'>
+                    <Text color='#8B8C8F' position='center' className={cls.orChoose}>
                         {t('notFound.actions.orChoose')}
                     </Text>
                 </div>
@@ -91,11 +90,11 @@ export default function NotFound({ className }: NotFoundProps) {
                 <div className={cls.linksGrid}>
                     {suggestions.map(item => (
                         <Btn key={item.id} className={cls.linkCard} onClick={() => handleSuggestionClick(item.path)}>
-                            <Text type='h4' fz={MOBILE ? '14px' : '16px'} position='left'>
+                            <Text type='h4' position='left' className={cls.cardTitle}>
                                 {item.title}
                             </Text>
 
-                            <Text fz={MOBILE ? '12px' : '13px'} color='#A0A1A4' position='left'>
+                            <Text color='#A0A1A4' position='left' className={cls.cardDescription}>
                                 {item.description}
                             </Text>
                         </Btn>

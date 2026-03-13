@@ -1,10 +1,7 @@
-import {
-    buildDocsGlossaryOrThrow,
-    renderDocsRichText
-} from '@/pages/docsPages/ui/shared/docsRichText'
+import { buildDocsGlossary, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
 import type { GuideLocalizedTermItem } from './guideI18n'
 
-type GuideGlossary = ReturnType<typeof buildDocsGlossaryOrThrow>
+type GuideGlossary = ReturnType<typeof buildDocsGlossary>
 
 interface RenderGuideRichTextOptions {
     glossary: GuideGlossary
@@ -15,8 +12,8 @@ interface RenderGuideRichTextOptions {
  * Guide-страницы используют тот же механизм explicit-term rich-text,
  * но владелец контента и словаря остаётся в namespace guide.
  */
-export function buildGuideGlossaryOrThrow(groups: GuideLocalizedTermItem[][]): GuideGlossary {
-    return buildDocsGlossaryOrThrow(groups)
+export function buildGuideGlossary(groups: GuideLocalizedTermItem[][]): GuideGlossary {
+    return buildDocsGlossary(groups)
 }
 
 /**

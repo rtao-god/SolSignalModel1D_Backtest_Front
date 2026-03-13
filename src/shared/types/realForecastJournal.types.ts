@@ -5,6 +5,14 @@ export type RealForecastJournalDayStatus = 'captured' | 'finalized'
 export type RealForecastJournalDirection = 'UP' | 'FLAT' | 'DOWN'
 export type RealForecastJournalPolicyBucket = 'daily' | 'intraday' | 'delayed'
 export type RealForecastJournalMarginMode = 'cross' | 'isolated'
+export type RealForecastJournalOpsHealthStatus = 'starting' | 'healthy' | 'degraded'
+export type RealForecastJournalLiveRowStatus =
+    | 'not-tracked'
+    | 'open'
+    | 'take-profit-hit'
+    | 'stop-loss-hit'
+    | 'liquidation-hit'
+    | 'end-of-day'
 
 export interface RealForecastJournalProbabilityDto {
     up: number
@@ -110,8 +118,31 @@ export interface RealForecastJournalDayRecordDto {
     forecastHash: string
     forecastSnapshot: RealForecastJournalSnapshotDto
     forecastReport: ReportDocumentDto
-    morningIndicators: RealForecastJournalIndicatorSnapshotDto
+    sessionOpenIndicators: RealForecastJournalIndicatorSnapshotDto
     finalize: RealForecastJournalFinalizeRecordDto | null
+}
+
+export interface RealForecastJournalLiveRowObservationDto {
+    rowKey: string
+    policyName: string
+    branch: string
+    bucket: string
+    status: RealForecastJournalLiveRowStatus
+    eventTimeUtc: string | null
+    eventPrice: number | null
+    latestClosedMinuteOpenUtc: string | null
+    observedHighPrice: number | null
+    observedLowPrice: number | null
+}
+
+export interface RealForecastJournalLiveStatusDto {
+    predictionDateUtc: string
+    checkedAtUtc: string
+    currentPrice: number
+    currentPriceObservedAtUtc: string
+    minuteObservationStartUtc: string
+    minuteObservationThroughUtc: string
+    rows: RealForecastJournalLiveRowObservationDto[]
 }
 
 export interface RealForecastJournalDayListItemDto {
@@ -132,4 +163,44 @@ export interface RealForecastJournalDayListItemDto {
     microConfidence: number
     actualDirection: RealForecastJournalDirection | null
     directionMatched: boolean | null
+}
+
+export interface RealForecastJournalOpsCheckpointDto {
+    predictionDateUtc: string
+    occurredAtUtc: string
+}
+
+/**
+ * Runtime health journal worker-а и его ближайшие causal target-ы.
+ * Контракт приходит с backend ops-status и остаётся каноничным источником NY/DST времени для UI-таймеров.
+ */
+export interface RealForecastJournalOpsStatusDto {
+    health: RealForecastJournalOpsHealthStatus
+    statusReason: string
+    checkedAtUtc: string
+    pollIntervalSeconds: number
+    workerStartedAtUtc: string | null
+    lastLoopStartedAtUtc: string | null
+    lastLoopCompletedAtUtc: string | null
+    workerHeartbeatStale: boolean
+    consecutiveFailureCount: number
+    lastFailureAtUtc: string | null
+    lastFailureStage: string | null
+    lastFailureMessage: string | null
+    lastSuccessfulCapture: RealForecastJournalOpsCheckpointDto | null
+    lastSuccessfulFinalize: RealForecastJournalOpsCheckpointDto | null
+    activeRecordCount: number
+    archiveRecordCount: number
+    expectedCaptureDayUtc: string | null
+    expectedCaptureEntryUtc: string | null
+    nextCaptureDayUtc: string | null
+    nextCaptureEntryUtc: string | null
+    captureWindowClosed: boolean
+    hasRecordForExpectedCaptureDay: boolean
+    captureOverdue: boolean
+    activePendingDayUtc: string | null
+    activePendingExitUtc: string | null
+    activePendingFinalizeDueUtc: string | null
+    readyToFinalizeCount: number
+    oldestReadyToFinalizeDayUtc: string | null
 }

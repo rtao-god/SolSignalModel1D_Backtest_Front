@@ -2,6 +2,17 @@ import { formatDateKey, toStartOfDay } from '@/shared/consts/date'
 import type { UiDate } from '@/entities/date'
 import type { DateRangeField } from '../types'
 
+/*
+	resolveDateRangeSelection — owner логики выбора диапазона в date picker.
+
+	Зачем:
+		- Превращает один клик пользователя в согласованную пару `from/to`, следующее активное поле и решение, закрывать ли popup.
+
+	Контракты:
+		- Диапазон не может оставаться перевёрнутым: если новая дата ломает порядок, противоположная граница очищается.
+		- На выходе UI всегда получает нормализованные даты на уровне начала дня.
+*/
+
 interface ResolveDateRangeSelectionParams {
     activeField: DateRangeField
     departureDate: UiDate
@@ -17,6 +28,7 @@ interface ResolveDateRangeSelectionResult {
 }
 
 function createUiDate(dateObj: Date): NonNullable<UiDate> {
+    // UI хранит и строковый ключ, и объект даты, чтобы selector/store и кнопки работали по одному контракту.
     return {
         value: formatDateKey(dateObj),
         dateObj
@@ -24,9 +36,8 @@ function createUiDate(dateObj: Date): NonNullable<UiDate> {
 }
 
 /**
- * Повторяет модель выбора диапазона из vs-chat:
- * клик всегда заполняет активное поле, а противоположная граница очищается,
- * если после клика диапазон становится перевёрнутым.
+ * Заполняет активную границу диапазона и решает,
+ * нужно ли очищать противоположную сторону и закрывать picker.
  */
 export default function resolveDateRangeSelection({
     activeField,
@@ -45,6 +56,7 @@ export default function resolveDateRangeSelection({
     const nextToTime = nextDates.to?.dateObj.getTime() ?? 0
 
     if (nextFromTime > nextToTime) {
+        // Перевёрнутый диапазон в состоянии не сохраняем: пользователь должен заново выбрать вторую границу.
         nextDates[nextInactiveField] = null
     }
 

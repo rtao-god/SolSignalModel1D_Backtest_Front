@@ -12,8 +12,10 @@ import {
 } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Portal, Text } from '@/shared/ui'
+import { Element } from '@/shared/ui/Element'
+import { Portal } from '@/shared/ui/portals'
 import useClickOutside from '@/shared/lib/hooks/useClickOutside'
+import { enrichTermTooltipDescription } from '../lib/enrichTermTooltipDescription'
 import cls from './TermTooltip.module.scss'
 import { TextTag } from '../../Text/ui/Text/types'
 
@@ -28,10 +30,6 @@ interface TermTooltipProps {
     onWarmup?: () => void
 }
 
-function resolveTooltipDescription(description: ReactNode | (() => ReactNode)): ReactNode {
-    return typeof description === 'function' ? description() : description
-}
-
 const HOVER_OPEN_DELAY_MS = 170
 const HOVER_HIDE_DELAY_MS = 120
 const HOVER_OPEN_RETRY_DELAY_MS = 90
@@ -39,6 +37,10 @@ const HOVER_OPEN_RETRY_DELAY_MS = 90
 const OPEN_TOOLTIP_COUNT_BY_TREE = new Map<string, number>()
 let ACTIVE_TOOLTIP_TREE_ID: string | null = null
 const OPEN_DESCENDANT_COUNT_BY_INSTANCE = new Map<string, number>()
+// Hover по любому overlay внутри одного root tree должен удерживать открытым всё вложенное дерево,
+// чтобы переход между уровнями tooltip не зависел от микрозазоров между trigger и overlay.
+const HOVERED_OVERLAY_COUNT_BY_TREE = new Map<string, number>()
+const TREE_OVERLAY_HOVER_SUBSCRIBERS = new Map<string, Map<string, (count: number) => void>>()
 const TOOLTIP_INSTANCE_CONTROLLERS = new Map<
     string,
     {
@@ -75,6 +77,59 @@ function registerTooltipClose(treeId: string): void {
     if (ACTIVE_TOOLTIP_TREE_ID === treeId && !OPEN_TOOLTIP_COUNT_BY_TREE.has(treeId)) {
         ACTIVE_TOOLTIP_TREE_ID = null
     }
+}
+
+function notifyTreeOverlayHoverSubscribers(treeId: string): void {
+    const hoveredOverlayCount = HOVERED_OVERLAY_COUNT_BY_TREE.get(treeId) ?? 0
+    TREE_OVERLAY_HOVER_SUBSCRIBERS.get(treeId)?.forEach(setHoveredOverlayCount => {
+        setHoveredOverlayCount(hoveredOverlayCount)
+    })
+}
+
+function registerTreeOverlayHoverSubscriber(
+    treeId: string,
+    instanceId: string,
+    setHoveredOverlayCount: (count: number) => void
+): void {
+    const subscribers = TREE_OVERLAY_HOVER_SUBSCRIBERS.get(treeId) ?? new Map<string, (count: number) => void>()
+    subscribers.set(instanceId, setHoveredOverlayCount)
+    TREE_OVERLAY_HOVER_SUBSCRIBERS.set(treeId, subscribers)
+    setHoveredOverlayCount(HOVERED_OVERLAY_COUNT_BY_TREE.get(treeId) ?? 0)
+}
+
+function unregisterTreeOverlayHoverSubscriber(treeId: string, instanceId: string): void {
+    const subscribers = TREE_OVERLAY_HOVER_SUBSCRIBERS.get(treeId)
+    if (!subscribers) {
+        return
+    }
+
+    subscribers.delete(instanceId)
+    if (subscribers.size === 0) {
+        TREE_OVERLAY_HOVER_SUBSCRIBERS.delete(treeId)
+        return
+    }
+
+    TREE_OVERLAY_HOVER_SUBSCRIBERS.set(treeId, subscribers)
+}
+
+function registerTreeOverlayHover(treeId: string): void {
+    HOVERED_OVERLAY_COUNT_BY_TREE.set(treeId, (HOVERED_OVERLAY_COUNT_BY_TREE.get(treeId) ?? 0) + 1)
+    notifyTreeOverlayHoverSubscribers(treeId)
+}
+
+function unregisterTreeOverlayHover(treeId: string): void {
+    const currentCount = HOVERED_OVERLAY_COUNT_BY_TREE.get(treeId)
+    if (!currentCount) {
+        return
+    }
+
+    if (currentCount <= 1) {
+        HOVERED_OVERLAY_COUNT_BY_TREE.delete(treeId)
+    } else {
+        HOVERED_OVERLAY_COUNT_BY_TREE.set(treeId, currentCount - 1)
+    }
+
+    notifyTreeOverlayHoverSubscribers(treeId)
 }
 
 function registerTooltipInstanceController(
@@ -123,8 +178,10 @@ export default function TermTooltip({
     const [hovered, setHovered] = useState(false)
     const [pinned, setPinned] = useState(false)
     const [openDescendantCount, setOpenDescendantCount] = useState(0)
+    const [treeOverlayHoverCount, setTreeOverlayHoverCount] = useState(0)
 
     const instanceId = useId()
+    const [treeIdState, setTreeIdState] = useState(instanceId)
     const rootRef = useRef<HTMLSpanElement | null>(null)
     const tooltipRef = useRef<HTMLDivElement | null>(null)
     const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -135,21 +192,24 @@ export default function TermTooltip({
     const isRegisteredOpenRef = useRef(false)
     const parentTooltipInstanceIdRef = useRef<string | null>(null)
     const isSelfOpenPropagatedRef = useRef(false)
+    const isOverlayHoveredRef = useRef(false)
 
     const selfOpen = hovered || pinned
-    const open = selfOpen || openDescendantCount > 0
+    const open = selfOpen || openDescendantCount > 0 || treeOverlayHoverCount > 0
     const resolvedDescription = useMemo(() => {
         if (!open) {
             return null
         }
 
-        return resolveTooltipDescription(description)
+        return enrichTermTooltipDescription(description)
     }, [description, open])
 
     const resolveTooltipTreeId = useCallback((): string => {
         const rootEl = rootRef.current
         if (!rootEl) {
             isNestedTooltipRef.current = false
+            treeIdRef.current = instanceId
+            setTreeIdState(prevTreeId => (prevTreeId === instanceId ? prevTreeId : instanceId))
             return instanceId
         }
 
@@ -157,12 +217,14 @@ export default function TermTooltip({
         isNestedTooltipRef.current = Boolean(parentTooltipOverlay)
         parentTooltipInstanceIdRef.current = parentTooltipOverlay?.dataset.termTooltipInstanceId?.trim() ?? null
         const inheritedTreeId = parentTooltipOverlay?.dataset.termTooltipTreeId
-        return inheritedTreeId && inheritedTreeId.trim().length > 0 ? inheritedTreeId : instanceId
+        const nextTreeId = inheritedTreeId && inheritedTreeId.trim().length > 0 ? inheritedTreeId : instanceId
+        treeIdRef.current = nextTreeId
+        setTreeIdState(prevTreeId => (prevTreeId === nextTreeId ? prevTreeId : nextTreeId))
+        return nextTreeId
     }, [instanceId])
 
     const tryActivateTooltipTree = useCallback((): boolean => {
         const treeId = resolveTooltipTreeId()
-        treeIdRef.current = treeId
         return canActivateTooltipTree(treeId)
     }, [resolveTooltipTreeId])
 
@@ -206,9 +268,23 @@ export default function TermTooltip({
     const scheduleHide = useCallback(() => {
         cancelShow()
         cancelHide()
-        hideTimeoutRef.current = setTimeout(() => {
-            setHovered(false)
-        }, HOVER_HIDE_DELAY_MS)
+
+        const scheduleAttempt = () => {
+            hideTimeoutRef.current = setTimeout(() => {
+                const treeHasHoveredOverlay = (HOVERED_OVERLAY_COUNT_BY_TREE.get(treeIdRef.current) ?? 0) > 0
+
+                // Неприкреплённый tooltip должен закрываться только после фактического ухода
+                // из trigger, из собственного overlay и из всего root-tree основной подсказки.
+                if (hoverIntentRef.current || isOverlayHoveredRef.current || treeHasHoveredOverlay) {
+                    scheduleAttempt()
+                    return
+                }
+
+                setHovered(false)
+            }, HOVER_HIDE_DELAY_MS)
+        }
+
+        scheduleAttempt()
     }, [cancelHide, cancelShow])
 
     const handleTermEnter = useCallback(() => {
@@ -241,15 +317,30 @@ export default function TermTooltip({
         scheduleHide()
     }, [scheduleHide])
 
+    const releaseOverlayHover = useCallback(() => {
+        if (!isOverlayHoveredRef.current) {
+            return
+        }
+
+        isOverlayHoveredRef.current = false
+        unregisterTreeOverlayHover(treeIdRef.current)
+    }, [])
+
     const handleTooltipEnter = useCallback(() => {
+        if (!isOverlayHoveredRef.current) {
+            isOverlayHoveredRef.current = true
+            registerTreeOverlayHover(treeIdRef.current)
+        }
+
         cancelShow()
         cancelHide()
         setHovered(true)
     }, [cancelHide, cancelShow])
 
     const handleTooltipLeave = useCallback(() => {
+        releaseOverlayHover()
         scheduleHide()
-    }, [scheduleHide])
+    }, [releaseOverlayHover, scheduleHide])
 
     const togglePinned = useCallback(() => {
         cancelShow()
@@ -327,6 +418,7 @@ export default function TermTooltip({
             hoverIntentRef.current = false
             cancelShow()
             cancelHide()
+            releaseOverlayHover()
             setHovered(false)
             setPinned(false)
         },
@@ -352,6 +444,18 @@ export default function TermTooltip({
             unregisterTooltipInstanceController(instanceId)
         }
     }, [instanceId])
+
+    useEffect(() => {
+        if (!open) {
+            setTreeOverlayHoverCount(0)
+            return
+        }
+
+        registerTreeOverlayHoverSubscriber(treeIdState, instanceId, setTreeOverlayHoverCount)
+        return () => {
+            unregisterTreeOverlayHoverSubscriber(treeIdState, instanceId)
+        }
+    }, [instanceId, open, treeIdState])
 
     useEffect(() => {
         if (selfOpen && !isSelfOpenPropagatedRef.current) {
@@ -385,8 +489,9 @@ export default function TermTooltip({
         return () => {
             cancelShow()
             cancelHide()
+            releaseOverlayHover()
         }
-    }, [cancelHide, cancelShow])
+    }, [cancelHide, cancelShow, releaseOverlayHover])
 
     useEffect(() => {
         return () => {
@@ -550,7 +655,7 @@ export default function TermTooltip({
     return (
         <>
             <span ref={rootRef} className={classNames(cls.TermTooltip, {}, [className ?? ''])}>
-                <Text type={type} className={cls.termText}>
+                <Element type={type} className={cls.termText}>
                     {to ?
                         <RouterLink
                             to={to}
@@ -580,7 +685,7 @@ export default function TermTooltip({
                             {term}
                         </span>
                     }
-                </Text>
+                </Element>
             </span>
 
             {open && (
@@ -596,9 +701,9 @@ export default function TermTooltip({
                         onMouseLeave={handleTooltipLeave}
                         onClick={handleTooltipClick}>
                         <div className={cls.tooltipContent}>
-                            <Text type='p' className={cls.tooltipTitle}>
+                            <Element type='p' className={cls.tooltipTitle}>
                                 {tooltipTitle ?? term}
-                            </Text>
+                            </Element>
                             <div className={cls.tooltipBody}>{resolvedDescription}</div>
                         </div>
                     </div>

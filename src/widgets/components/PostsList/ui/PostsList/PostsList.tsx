@@ -12,8 +12,6 @@ export default function PostsList({ className }: PostsListProps) {
     const [formData, setFormData] = useState({})
     const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
 
-    console.log('formData: ', formData)
-
     useEffect(() => {
         const fetchPosts = async () => {
             try {
@@ -27,13 +25,9 @@ export default function PostsList({ className }: PostsListProps) {
         fetchPosts()
     }, [])
 
-    const handleUpdateCounter = async (id: number) => {
+    const handleUpdateCounter = (id: number) => {
         const newCounter = (counters[id] || 0) + 1
         setCounters({ ...counters, [id]: newCounter })
-        try {
-        } catch (err) {
-            console.error('Failed to update counter:', err)
-        }
     }
 
     const handleFormSubmit = (data: any) => {

@@ -1,4 +1,5 @@
 import { logError } from './logError'
+import { resolveErrorDomain, shouldSurfaceRuntimeError } from './errorDomains'
 import { isLocalizedContentError } from '@/shared/lib/i18n'
 
 let isInitialized = false
@@ -80,29 +81,44 @@ function updateErrorSurfaceDetails(containerId: string, detailsText: string): vo
 
 function scheduleRuntimeErrorSurface(error: Error, source: string, extra?: Record<string, unknown>): void {
     window.setTimeout(() => {
+        const domain = resolveErrorDomain(error, {
+            source,
+            extra
+        })
+
         if (isBoundaryHandledError(error)) {
+            logError(error, undefined, {
+                source: `${source}:boundary-handled`,
+                extra,
+                domain,
+                severity: 'warning'
+            })
             return
         }
 
         if (isLocalizedContentError(error)) {
             logError(error, undefined, {
                 source,
-                extra
+                extra,
+                domain: 'ui_section',
+                severity: 'warning'
             })
             return
         }
 
         logError(error, undefined, {
             source,
-            extra
+            extra,
+            domain,
+            severity: domain === 'dev_infra' ? 'warning' : 'error'
         })
 
-        if (isApplicationBootstrapped) {
-            showRuntimeErrorBanner(error, source)
+        if (!shouldSurfaceRuntimeError(domain)) {
             return
         }
 
-        showFatalErrorOverlay(error, source)
+        const bannerSource = isApplicationBootstrapped ? source : `${source}:prebootstrap`
+        showRuntimeErrorBanner(error, bannerSource)
     }, 0)
 }
 
@@ -123,8 +139,7 @@ export function showFatalErrorOverlay(error: Error, source: string): void {
         overlay.style.alignItems = 'center'
         overlay.style.justifyContent = 'center'
         overlay.style.padding = '24px'
-        overlay.style.background =
-            'linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(30, 41, 59, 0.95))'
+        overlay.style.background = 'linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(30, 41, 59, 0.95))'
 
         const card = document.createElement('div')
         card.style.width = 'min(720px, 100%)'
@@ -134,8 +149,7 @@ export function showFatalErrorOverlay(error: Error, source: string): void {
         card.style.border = '1px solid rgba(248, 113, 113, 0.45)'
         card.style.boxShadow = '0 24px 60px rgba(0, 0, 0, 0.45)'
         card.style.color = '#e2e8f0'
-        card.style.fontFamily =
-            '"Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif'
+        card.style.fontFamily = '"Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif'
 
         const pill = document.createElement('div')
         pill.textContent = 'Критическая ошибка'

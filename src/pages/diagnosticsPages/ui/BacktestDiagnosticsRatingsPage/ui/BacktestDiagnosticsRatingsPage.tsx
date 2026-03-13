@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
-import { useBacktestDiagnosticsReportQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import {
+    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
+    useBacktestDiagnosticsReportQuery
+} from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { resolveDiagnosticsColumnTooltipPublic } from '@/shared/utils/reportTooltips'
 import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
+import { BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
@@ -16,14 +17,14 @@ import { useSearchParams } from 'react-router-dom'
         - Сосредоточиться на лучших/худших сделках и днях.
         - Быстро находить «что работает» и «что ломает PnL».
 */
-const renderRatingColumnTitle = (title: string) =>
-    renderTermTooltipTitle(title, resolveDiagnosticsColumnTooltipPublic(title))
-
 export default function BacktestDiagnosticsRatingsPage() {
     const { t } = useTranslation('reports')
     const [searchParams] = useSearchParams()
     const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
-        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams)
+        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams),
+        {
+            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.ratingsPage
+        }
     )
 
     const tableSections = useMemo(
@@ -36,23 +37,17 @@ export default function BacktestDiagnosticsRatingsPage() {
     const split = useMemo(() => splitBacktestDiagnosticsSections(tableSections), [tableSections])
 
     return (
-        <PageDataBoundary
+        <BacktestDiagnosticsPageLayout
+            report={data ?? null}
+            sections={split.ratings}
+            availableAxes={BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES}
+            pageTitle={t('diagnosticsReport.pages.ratings.title')}
+            pageSubtitle={t('diagnosticsReport.pages.ratings.subtitle')}
+            emptyMessage={t('diagnosticsReport.pages.ratings.empty')}
+            errorTitle={t('diagnosticsReport.pages.ratings.errorTitle')}
             isLoading={isPending}
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
+            error={isError ? error : undefined}
             onRetry={refetch}
-            errorTitle={t('diagnosticsReport.pages.ratings.errorTitle')}>
-            {data && (
-                <BacktestDiagnosticsPageLayout
-                    report={data}
-                    sections={split.ratings}
-                    pageTitle={t('diagnosticsReport.pages.ratings.title')}
-                    pageSubtitle={t('diagnosticsReport.pages.ratings.subtitle')}
-                    emptyMessage={t('diagnosticsReport.pages.ratings.empty')}
-                    renderColumnTitle={renderRatingColumnTitle}
-                />
-            )}
-        </PageDataBoundary>
+        />
     )
 }

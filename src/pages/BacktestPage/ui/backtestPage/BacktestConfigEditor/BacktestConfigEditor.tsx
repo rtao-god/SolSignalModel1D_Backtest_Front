@@ -1,6 +1,7 @@
 import { Btn, Input, TermTooltip, Text } from '@/shared/ui'
 import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import type { BacktestPolicyConfigDto } from '@/shared/types/backtest.types'
+import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 import { useTranslation } from 'react-i18next'
 import cls from './BacktestConfigEditor.module.scss'
 import BacktestConfigEditorProps from './types'
@@ -64,9 +65,11 @@ export function BacktestConfigEditor({
     onPolicyLeverageChange,
     onRunPreview
 }: BacktestConfigEditorProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const confidenceRisk = draftConfig.confidenceRisk
-    const profileName = currentProfile?.name ?? t('backtestFull.configEditor.profileUnnamed', { defaultValue: 'unnamed' })
+    const tooltipLocale = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru') ? 'ru' : 'en'
+    const profileName =
+        currentProfile?.name ?? t('backtestFull.configEditor.profileUnnamed', { defaultValue: 'unnamed' })
     const profileIntro = t('backtestFull.configEditor.profileIntro', {
         profileName,
         defaultValue: 'What-if baseline: profile "{{profileName}}".'
@@ -74,6 +77,14 @@ export function BacktestConfigEditor({
     const resolveText = (key: string, defaultValue: string) => t(key, { defaultValue })
     const renderLocalizedTooltip = (term: string, descriptionKey: string, defaultDescription: string) =>
         renderTooltip(term, t(descriptionKey, { defaultValue: defaultDescription }))
+    const resolveSharedReportTooltip = (title: string): string => {
+        const description = resolveCommonReportColumnTooltipOrNull(title, tooltipLocale)
+        if (!description) {
+            throw new Error(`Missing shared report tooltip for '${title}' in BacktestConfigEditor.`)
+        }
+
+        return description
+    }
 
     return (
         <section id='whatif' className={cls.configEditor}>
@@ -344,8 +355,10 @@ export function BacktestConfigEditor({
                                             defaultValue: column.defaultTooltip
                                         }
                                     )
+                                    const resolvedTooltip =
+                                        column.id === 'name' ? resolveSharedReportTooltip('Policy') : tooltip
 
-                                    return <th key={column.id}>{renderTooltip(label, tooltip)}</th>
+                                    return <th key={column.id}>{renderTooltip(label, resolvedTooltip)}</th>
                                 })}
                             </tr>
                         </thead>

@@ -6,8 +6,8 @@ import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import { buildRouteSubTabLabelI18nKey } from '@/app/providers/router/config/i18nKeys'
-import { readAvailableDeveloperTermGroups, readDeveloperSentenceOrThrow } from './developerI18n'
-import { buildDeveloperGlossaryOrThrow, renderDeveloperRichText } from './developerRichText'
+import { readAvailableDeveloperTermGroups, readDeveloperSentence } from './developerI18n'
+import { buildDeveloperGlossary, renderDeveloperRichText } from './developerRichText'
 import cls from './DeveloperContentPage.module.scss'
 import type {
     DeveloperPageContentConfig,
@@ -22,7 +22,7 @@ interface DeveloperContentPageProps {
     config: DeveloperPageContentConfig
 }
 
-type DeveloperGlossary = ReturnType<typeof buildDeveloperGlossaryOrThrow>
+type DeveloperGlossary = ReturnType<typeof buildDeveloperGlossary>
 type DeveloperNodeLookupEntry = {
     node: DeveloperTreeNodeConfig
     sectionId: string
@@ -38,7 +38,7 @@ const DETAIL_SENTENCE_LABEL_KEYS: Record<string, string> = {
     excluded: 'labels.detailExcluded'
 }
 
-function appendDeveloperNodesOrThrow(
+function appendDeveloperNodes(
     sectionId: string,
     nodes: readonly DeveloperTreeNodeConfig[],
     lookup: Map<string, DeveloperNodeLookupEntry>
@@ -54,38 +54,33 @@ function appendDeveloperNodesOrThrow(
         })
 
         if (node.children && node.children.length > 0) {
-            appendDeveloperNodesOrThrow(sectionId, node.children, lookup)
+            appendDeveloperNodes(sectionId, node.children, lookup)
         }
     })
 }
 
-function buildDeveloperNodeLookupOrThrow(
-    config: DeveloperPageContentConfig
-): ReadonlyMap<string, DeveloperNodeLookupEntry> {
+function buildDeveloperNodeLookup(config: DeveloperPageContentConfig): ReadonlyMap<string, DeveloperNodeLookupEntry> {
     const lookup = new Map<string, DeveloperNodeLookupEntry>()
 
     config.sections.forEach(section => {
         if (section.tree && section.tree.length > 0) {
-            appendDeveloperNodesOrThrow(section.id, section.tree, lookup)
+            appendDeveloperNodes(section.id, section.tree, lookup)
         }
     })
 
     return lookup
 }
 
-function readDeveloperTableCellOrThrow(
+function readDeveloperTableCell(
     i18n: ReturnType<typeof useTranslation>['i18n'],
     tableBaseKey: string,
     rowId: string,
     columnId: string
 ) {
-    return readDeveloperSentenceOrThrow(i18n, `${tableBaseKey}.rows.${rowId}.cells.${columnId}.text`)
+    return readDeveloperSentence(i18n, `${tableBaseKey}.rows.${rowId}.cells.${columnId}.text`)
 }
 
-function readDeveloperDetailNodeOrThrow(
-    rowId: string,
-    nodeLookup: ReadonlyMap<string, DeveloperNodeLookupEntry>
-) {
+function readDeveloperDetailNode(rowId: string, nodeLookup: ReadonlyMap<string, DeveloperNodeLookupEntry>) {
     const entry = nodeLookup.get(rowId)
 
     if (!entry) {
@@ -115,7 +110,7 @@ function renderWhyTooltip(
             term={label}
             tooltipTitle={label}
             description={() =>
-                renderDeveloperRichText(readDeveloperSentenceOrThrow(i18n, whyTextKey), {
+                renderDeveloperRichText(readDeveloperSentence(i18n, whyTextKey), {
                     glossary
                 })
             }
@@ -140,7 +135,7 @@ function SentenceBlock({
     whyLabel: string
     i18n: ReturnType<typeof useTranslation>['i18n']
 }) {
-    const text = readDeveloperSentenceOrThrow(i18n, sentenceKey)
+    const text = readDeveloperSentence(i18n, sentenceKey)
 
     return (
         <Text className={cls.sentenceBlock}>
@@ -178,15 +173,13 @@ function DeveloperSectionTable({
     const detailPanelId = `${table.id}-detail-panel`
     const activeDetailId =
         detailRowIds.length > 0 ? (selectedDetailId ?? table.defaultDetailId ?? detailRowIds[0]) : null
-    const activeDetail = activeDetailId ? readDeveloperDetailNodeOrThrow(activeDetailId, nodeLookup) : null
+    const activeDetail = activeDetailId ? readDeveloperDetailNode(activeDetailId, nodeLookup) : null
     const activeDetailProject =
-        activeDetailId ? readDeveloperTableCellOrThrow(i18n, tableBaseKey, activeDetailId, 'project') : null
-    const activeDetailZone =
-        activeDetailId ? readDeveloperTableCellOrThrow(i18n, tableBaseKey, activeDetailId, 'zone') : null
-    const activeDetailRole =
-        activeDetailId ? readDeveloperTableCellOrThrow(i18n, tableBaseKey, activeDetailId, 'role') : null
+        activeDetailId ? readDeveloperTableCell(i18n, tableBaseKey, activeDetailId, 'project') : null
+    const activeDetailZone = activeDetailId ? readDeveloperTableCell(i18n, tableBaseKey, activeDetailId, 'zone') : null
+    const activeDetailRole = activeDetailId ? readDeveloperTableCell(i18n, tableBaseKey, activeDetailId, 'role') : null
     const activeDetailWhenOpen =
-        activeDetailId ? readDeveloperTableCellOrThrow(i18n, tableBaseKey, activeDetailId, 'whenOpen') : null
+        activeDetailId ? readDeveloperTableCell(i18n, tableBaseKey, activeDetailId, 'whenOpen') : null
     const activeDetailRoleNode = activeDetailRole ? renderDeveloperRichText(activeDetailRole, { glossary }) : null
     const activeDetailWhenOpenNode =
         activeDetailWhenOpen ? renderDeveloperRichText(activeDetailWhenOpen, { glossary }) : null
@@ -221,7 +214,7 @@ function DeveloperSectionTable({
     return (
         <div className={cls.tableBlock}>
             <Text type='h4' className={cls.tableTitle}>
-                {readDeveloperSentenceOrThrow(i18n, `${tableBaseKey}.title`)}
+                {readDeveloperSentence(i18n, `${tableBaseKey}.title`)}
             </Text>
 
             <div className={cls.tableScroll}>
@@ -230,10 +223,7 @@ function DeveloperSectionTable({
                         <tr>
                             {table.columnIds.map(columnId => (
                                 <th key={`${table.id}-${columnId}`}>
-                                    {readDeveloperSentenceOrThrow(
-                                        i18n,
-                                        `${tableBaseKey}.columns.${columnId}.text`
-                                    )}
+                                    {readDeveloperSentence(i18n, `${tableBaseKey}.columns.${columnId}.text`)}
                                 </th>
                             ))}
                         </tr>
@@ -248,12 +238,7 @@ function DeveloperSectionTable({
                                     key={`${table.id}-${rowId}`}
                                     className={isSelected ? cls.tableRowSelected : undefined}>
                                     {table.columnIds.map(columnId => {
-                                        const cellText = readDeveloperTableCellOrThrow(
-                                            i18n,
-                                            tableBaseKey,
-                                            rowId,
-                                            columnId
-                                        )
+                                        const cellText = readDeveloperTableCell(i18n, tableBaseKey, rowId, columnId)
                                         const isDetailButton = columnId === 'project' && detailRowIdSet.has(rowId)
 
                                         return (
@@ -298,16 +283,12 @@ function DeveloperSectionTable({
 
                     <div className={cls.detailMetaGrid}>
                         <div className={cls.detailMetaCard}>
-                            <span className={cls.detailMetaLabel}>
-                                {t('labels.projectZone', { ns: 'developer' })}
-                            </span>
+                            <span className={cls.detailMetaLabel}>{t('labels.projectZone', { ns: 'developer' })}</span>
                             <Text className={cls.detailMetaText}>{activeDetailZone}</Text>
                         </div>
 
                         <div className={cls.detailMetaCard}>
-                            <span className={cls.detailMetaLabel}>
-                                {t('labels.projectRole', { ns: 'developer' })}
-                            </span>
+                            <span className={cls.detailMetaLabel}>{t('labels.projectRole', { ns: 'developer' })}</span>
                             <Text className={cls.detailMetaText}>{activeDetailRoleNode}</Text>
                         </div>
 
@@ -323,7 +304,7 @@ function DeveloperSectionTable({
                         {activeDetail.node.sentences?.map(sentence => {
                             const sentenceKey = `${pageKey}.sections.${activeDetail.sectionId}.treeNodes.${activeDetailId}.sentences.${sentence.id}.text`
                             const labelKey = DETAIL_SENTENCE_LABEL_KEYS[sentence.id]
-                            const sentenceText = readDeveloperSentenceOrThrow(i18n, sentenceKey)
+                            const sentenceText = readDeveloperSentence(i18n, sentenceKey)
 
                             return (
                                 <li key={`${activeDetailId}-${sentence.id}`} className={cls.detailListItem}>
@@ -348,9 +329,7 @@ function DeveloperSectionTable({
 
                             <div className={cls.detailChildrenList}>
                                 {activeDetail.node.children.map(child => (
-                                    <code
-                                        key={`${activeDetailId}-${child.id}`}
-                                        className={cls.detailChildTag}>
+                                    <code key={`${activeDetailId}-${child.id}`} className={cls.detailChildTag}>
                                         {child.label}
                                     </code>
                                 ))}
@@ -388,7 +367,7 @@ function DeveloperSectionGroups({
                         <div className={cls.groupHeader}>
                             <span className={cls.groupBadge}>{index + 1}</span>
                             <Text type='h4' className={cls.groupTitle}>
-                                {readDeveloperSentenceOrThrow(i18n, `${groupBaseKey}.title`)}
+                                {readDeveloperSentence(i18n, `${groupBaseKey}.title`)}
                             </Text>
                         </div>
 
@@ -483,8 +462,8 @@ export default function DeveloperContentPage({ className, config }: DeveloperCon
         [config.routeId, config.tabs, t]
     )
     const glossaryKeys = config.sections.map(section => `${config.pageKey}.sections.${section.id}.terms`)
-    const buildGlossary = () => buildDeveloperGlossaryOrThrow(readAvailableDeveloperTermGroups(i18n, glossaryKeys))
-    const nodeLookup = useMemo(() => buildDeveloperNodeLookupOrThrow(config), [config])
+    const buildGlossary = () => buildDeveloperGlossary(readAvailableDeveloperTermGroups(i18n, glossaryKeys))
+    const nodeLookup = useMemo(() => buildDeveloperNodeLookup(config), [config])
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true

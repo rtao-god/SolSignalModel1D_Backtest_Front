@@ -17,6 +17,18 @@
         "explain": "Explain",
         "developer": "For developers"
     },
+    "sectionCompact": {
+        "predictions": "Predict",
+        "models": "Models",
+        "backtest": "Backtest",
+        "analysis": "Analysis",
+        "diagnostics": "Diag",
+        "features": "PFI",
+        "guide": "Guide",
+        "docs": "Docs",
+        "explain": "Explain",
+        "developer": "Dev"
+    },
     "route": {
         "main": "Main",
         "diagnostics_home": "Diagnostics",
@@ -124,7 +136,7 @@
             "explain-splits-full": "Full history"
         },
         "guide_time": {
-            "explain-time-overview": "NY trading day",
+            "explain-time-overview": "Trading day",
             "explain-time-baseline": "Baseline exit",
             "explain-time-day-keys": "Day keys and time types",
             "explain-time-weekend": "Weekends and exclusions"
@@ -200,7 +212,7 @@
             "explain-project-tests": "Tests and safeguards"
         },
         "explain_time": {
-            "explain-time-overview": "NY trading day",
+            "explain-time-overview": "Trading day",
             "explain-time-baseline": "Baseline exit",
             "explain-time-day-keys": "Day keys and time types",
             "explain-time-weekend": "Weekends and exclusions"

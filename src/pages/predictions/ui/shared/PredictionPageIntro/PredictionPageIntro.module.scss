@@ -1,0 +1,33 @@
+.PredictionPageIntro {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.title {
+    margin: 0;
+}
+
+.lead {
+    margin: 0;
+    line-height: 1.55;
+    opacity: 0.95;
+}
+
+.bulletList {
+    gap: 10px;
+}
+
+.bulletItem {
+    align-items: flex-start;
+}
+
+.bulletText {
+    line-height: 1.55;
+    opacity: 0.86;
+}

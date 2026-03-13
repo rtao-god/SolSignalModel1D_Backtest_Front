@@ -71,9 +71,7 @@ function localizeStopReasonForRu(rawValue: string): string {
         return rawValue
     }
 
-    const localizedDetails = details
-        .split(',')
-        .map(part => localizeStopReasonSegment(part))
+    const localizedDetails = details.split(',').map(part => localizeStopReasonSegment(part))
 
     if (localizedDetails.some(part => part === null)) {
         return rawValue

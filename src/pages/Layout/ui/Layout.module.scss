@@ -1,42 +1,74 @@
 .Layout {
     display: flex;
     flex-direction: column;
-
-    // Страница тянется минимум на высоту окна, но footer не фиксирован:
-    // при большом контенте он уезжает вверх как обычно.
-    min-height: 100vh;
+    @include safe-viewport-min-height();
 }
 
 .content {
-    display: flex;
     flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.fullSidebarShell,
+.compactSidebarShell {
+    display: none;
+    min-height: 0;
 }
 
 .main {
-    flex: 1 1 auto;
-    padding: 12px 24px;
-
-    // Чтобы не разъезжалась ширина в flex-контейнере
     min-width: 0;
-
-    @media (max-width: 576px) {
-        padding: 12px 15px;
-    }
+    padding: 10px 0 20px;
 }
 
 .guideMain {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2px 6px 6px;
+    padding: 8px 0 14px;
 
     > * {
-        width: 100%;
-        max-width: 1120px;
+        width: min(100%, var(--page-shell-max-reading));
         min-width: 0;
     }
+}
 
-    @media (max-width: 576px) {
-        padding: 2px 4px 4px;
+.sidebarModal {
+    max-width: min(92vw, var(--sidebar-modal-width));
+}
+
+// Компактная rail нужна только на узких ноутбуках; с 1200px возвращается полный sidebar.
+@include viewport-sidebar-compact-shell {
+    .content {
+        grid-template-columns: var(--sidebar-compact-width) minmax(0, 1fr);
+    }
+
+    .compactSidebarShell {
+        display: block;
+    }
+
+    .main {
+        padding-right: 8px;
+    }
+}
+
+@include viewport-from-sidebar-full-shell {
+    .content {
+        grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    }
+
+    .fullSidebarShell {
+        display: block;
+    }
+}
+
+@include viewport-upto-tablet {
+    .main {
+        padding-bottom: 16px;
+    }
+
+    .guideMain {
+        padding-bottom: 10px;
     }
 }

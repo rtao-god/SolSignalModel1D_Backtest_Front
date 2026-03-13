@@ -218,10 +218,7 @@ function parseMetricNumberOrNull(raw: string | undefined): number | null {
     return parseBooleanLikeNumberOrNull(raw)
 }
 
-function parseCompositeMetricValuesOrThrow(
-    raw: string,
-    definition: CompositeMetricDraft
-): number[] | null {
+function parseCompositeMetricValues(raw: string, definition: CompositeMetricDraft): number[] | null {
     const normalized = raw.trim()
     if (!normalized || normalized === '—' || normalized === 'нет данных' || normalized === 'no data') {
         return null
@@ -303,7 +300,7 @@ function resolveMetricKind(key: string): PolicyBranchMegaChartMetricKind {
     return 'number'
 }
 
-function resolvePartNumberFromTitleOrThrow(title: string | undefined): number {
+function resolvePartNumberFromTitle(title: string | undefined): number {
     const normalized = normalizePolicyBranchMegaTitle(title)
     if (!normalized) {
         throw new Error('[policy-branch-mega] chart model cannot resolve part number from empty title.')
@@ -330,10 +327,7 @@ function buildRowId(policy: string, branch: string, slMode: string | null): stri
     return `${policy}${ROW_KEY_SEPARATOR}${branch}${ROW_KEY_SEPARATOR}${slMode}`
 }
 
-function ensureRequiredRowFieldOrThrow(
-    value: string | undefined,
-    fieldName: 'Policy' | 'Branch'
-): string {
+function ensureRequiredRowField(value: string | undefined, fieldName: 'Policy' | 'Branch'): string {
     const normalized = value?.trim()
     if (!normalized) {
         throw new Error(`[policy-branch-mega] chart model row is missing required field=${fieldName}.`)
@@ -413,14 +407,15 @@ function buildMetricCounts(
  * Модель объединяет строки по Policy/Branch/SL Mode и дополнительно
  * распаковывает составные колонки avg/min/max и p50/p90 в отдельные метрики.
  */
-export function buildPolicyBranchMegaChartModelOrThrow(
-    sections: readonly TableSectionDto[]
-): PolicyBranchMegaChartModel {
+export function buildPolicyBranchMegaChartModel(sections: readonly TableSectionDto[]): PolicyBranchMegaChartModel {
     if (!sections || sections.length === 0) {
         throw new Error('[policy-branch-mega] chart model cannot be built from empty sections list.')
     }
 
-    const partDrafts = new Map<number, { part: number; title: string; columns: string[]; metricDrafts: CompositeMetricDescriptorDraft[] }>()
+    const partDrafts = new Map<
+        number,
+        { part: number; title: string; columns: string[]; metricDrafts: CompositeMetricDescriptorDraft[] }
+    >()
     const rowBuilders = new Map<string, PolicyBranchMegaChartRowBuilder>()
     const allMetricDrafts: PolicyBranchMegaChartMetricDescriptor[] = []
 
@@ -430,7 +425,7 @@ export function buildPolicyBranchMegaChartModelOrThrow(
             throw new Error('[policy-branch-mega] chart model cannot use a section without columns.')
         }
 
-        const part = resolvePartNumberFromTitleOrThrow(section.title)
+        const part = resolvePartNumberFromTitle(section.title)
         const partDraft = partDrafts.get(part)
 
         if (!partDraft) {
@@ -448,8 +443,9 @@ export function buildPolicyBranchMegaChartModelOrThrow(
                     key: metric.key,
                     title: metric.title,
                     sourceColumn:
-                        columns.find(column => buildMetricDraftsForColumn(column).some(draft => draft.key === metric.key)) ??
-                        metric.title,
+                        columns.find(column =>
+                            buildMetricDraftsForColumn(column).some(draft => draft.key === metric.key)
+                        ) ?? metric.title,
                     part,
                     kind: resolveMetricKind(metric.title),
                     availableValueCount: 0,
@@ -470,21 +466,19 @@ export function buildPolicyBranchMegaChartModelOrThrow(
                 valuesByColumn.set(column, String(row[columnIndex] ?? '').trim())
             })
 
-            const policy = ensureRequiredRowFieldOrThrow(valuesByColumn.get('Policy'), 'Policy')
-            const branch = ensureRequiredRowFieldOrThrow(valuesByColumn.get('Branch'), 'Branch')
+            const policy = ensureRequiredRowField(valuesByColumn.get('Policy'), 'Policy')
+            const branch = ensureRequiredRowField(valuesByColumn.get('Branch'), 'Branch')
             const slModeValue = valuesByColumn.get('SL Mode')?.trim() || null
             const rowId = buildRowId(policy, branch, slModeValue)
 
-            const rowBuilder =
-                rowBuilders.get(rowId) ??
-                {
-                    id: rowId,
-                    policy,
-                    branch,
-                    slMode: slModeValue,
-                    values: {},
-                    numericValues: {}
-                }
+            const rowBuilder = rowBuilders.get(rowId) ?? {
+                id: rowId,
+                policy,
+                branch,
+                slMode: slModeValue,
+                values: {},
+                numericValues: {}
+            }
 
             if (rowBuilder.policy !== policy || rowBuilder.branch !== branch || rowBuilder.slMode !== slModeValue) {
                 throw new Error(
@@ -506,7 +500,7 @@ export function buildPolicyBranchMegaChartModelOrThrow(
 
                 const composite = COMPOSITE_METRICS.get(column)
                 if (composite) {
-                    const values = parseCompositeMetricValuesOrThrow(rawValue, composite)
+                    const values = parseCompositeMetricValues(rawValue, composite)
                     if (values) {
                         composite.metrics.forEach((metric, metricIndex) => {
                             rowBuilder.numericValues[metric.key] = values[metricIndex]!
@@ -583,7 +577,9 @@ export function buildPolicyBranchMegaChartModelOrThrow(
         parts,
         rows,
         metrics,
-        branchOptions: Array.from(new Set(rows.map(row => row.branch))).sort((left, right) => left.localeCompare(right)),
+        branchOptions: Array.from(new Set(rows.map(row => row.branch))).sort((left, right) =>
+            left.localeCompare(right)
+        ),
         slModeOptions: Array.from(
             new Set(
                 rows
@@ -594,7 +590,7 @@ export function buildPolicyBranchMegaChartModelOrThrow(
     }
 }
 
-export function resolvePolicyBranchMegaChartMetricOrThrow(
+export function resolvePolicyBranchMegaChartMetric(
     model: PolicyBranchMegaChartModel,
     key: string
 ): PolicyBranchMegaChartMetricDescriptor {
@@ -606,7 +602,7 @@ export function resolvePolicyBranchMegaChartMetricOrThrow(
     return metric
 }
 
-export function resolvePolicyBranchMegaChartPartOrThrow(
+export function resolvePolicyBranchMegaChartPart(
     model: PolicyBranchMegaChartModel,
     part: number
 ): PolicyBranchMegaChartPartDescriptor {
@@ -618,9 +614,7 @@ export function resolvePolicyBranchMegaChartPartOrThrow(
     return resolvedPart
 }
 
-export function resolvePreferredPolicyBranchMegaMetricKeyOrThrow(
-    part: PolicyBranchMegaChartPartDescriptor
-): string {
+export function resolvePreferredPolicyBranchMegaMetricKey(part: PolicyBranchMegaChartPartDescriptor): string {
     const preferredKeys = DEFAULT_PREFERRED_METRICS_BY_PART.get(part.part) ?? []
 
     for (const preferredKey of preferredKeys) {

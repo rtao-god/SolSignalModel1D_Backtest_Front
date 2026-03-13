@@ -1,16 +1,32 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
+import {
+    ANTI_D_SHARE_DESCRIPTION,
+    CAP_AVG_MIN_MAX_DESCRIPTION,
+    CAP_P50_P90_DESCRIPTION,
+    COMMON_ANTI_D_SHARE_DESCRIPTION_EN,
+    COMMON_CAP_AVG_MIN_MAX_DESCRIPTION_EN,
+    COMMON_CAP_P50_P90_DESCRIPTION_EN,
+    COMMON_LONG_SHARE_DESCRIPTION_EN,
+    COMMON_NO_TRADE_SHARE_DESCRIPTION_EN,
+    COMMON_RISK_DAY_SHARE_DESCRIPTION_EN,
+    COMMON_SHORT_SHARE_DESCRIPTION_EN,
+    LONG_SHARE_DESCRIPTION,
+    NO_TRADE_SHARE_DESCRIPTION,
+    RISK_DAY_SHARE_DESCRIPTION,
+    SHORT_SHARE_DESCRIPTION
+} from '@/shared/terms/common'
 import { POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS } from '@/shared/terms/reports/policyBranchMega'
 import {
     normalizePolicyBranchMegaTitle,
     resolvePolicyBranchMegaBucketFromTitle,
     resolvePolicyBranchMegaMetricFromTitle
 } from '@/shared/utils/policyBranchMegaTabs'
+import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
 export interface PolicyBranchMegaTermDefinition {
     key: string
     title: string
     description: string
-    tooltip: string
 }
 
 export interface PolicyBranchMegaTermReference {
@@ -18,12 +34,8 @@ export interface PolicyBranchMegaTermReference {
     title: string
 }
 
-export const POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION = '__POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION__' as const
-type PolicyBranchMegaTooltipDraft = string | typeof POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION
-export type PolicyBranchMegaTooltipResolutionMode = 'description' | 'draft'
 export type PolicyBranchMegaTermLocale = 'ru' | 'en'
 export interface PolicyBranchMegaTermResolveOptions {
-    tooltipMode?: PolicyBranchMegaTooltipResolutionMode
     locale?: PolicyBranchMegaTermLocale
 }
 
@@ -31,14 +43,12 @@ interface PolicyBranchMegaTermDraft {
     key: string
     title: string
     description: string
-    tooltip?: PolicyBranchMegaTooltipDraft
 }
 
 interface PolicyBranchMegaResolvedLocaleContent {
     description: string
     readingHint: string
     example: string | null
-    tooltip: string
 }
 
 export function resolvePolicyBranchMegaTermLocale(language: string | null | undefined): PolicyBranchMegaTermLocale {
@@ -47,688 +57,576 @@ export function resolvePolicyBranchMegaTermLocale(language: string | null | unde
 }
 
 const MEGA_TITLE_MARKER = 'Policy Branch Mega'
-// Дефолтный режим для Mega: tooltip всегда полный и совпадает с description.
-const POLICY_BRANCH_MEGA_DEFAULT_TOOLTIP_MODE: PolicyBranchMegaTooltipResolutionMode = 'description'
+const POLICY_BRANCH_MEGA_SHARED_COMMON_TERM_KEYS = new Set(Object.keys(POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS))
 const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
     Days: {
         key: 'Days',
         title: 'Days',
         description:
             'Количество торговых дней периода по данной политике и ветке. Включает дни со сделкой и дни без сделки. Выходные (суббота и воскресенье) в метрику не входят: модели на них не обучались и сделки по ним не моделируются. [[why-weekends|Почему?]]',
-        tooltip: 'Сколько торговых дней было в расчёте (без выходных).'
     },
     StartDay: {
         key: 'StartDay',
         title: 'StartDay',
         description:
             'StartDay + EndDay — границы периода в формате UTC day-key.\n\nStartDay — первая дата окна, EndDay — последняя дата окна (или дата ранней остановки).\n\nМетрика нужна, чтобы сравнивать стратегии только на одном и том же интервале.',
-        tooltip: 'Первая дата периода (UTC).'
     },
     EndDay: {
         key: 'EndDay',
         title: 'EndDay',
         description:
             'EndDay — последняя дата периода в формате UTC day-key. При ранней остановке фиксируется дата остановки.',
-        tooltip: 'Последняя дата периода (UTC).'
     },
     StopReason: {
         key: 'StopReason',
         title: 'StopReason',
         description:
-            'Почему серия закончилась.\n\nДо конца периода:\nтест дошёл до последнего дня окна. Это штатный и хороший сценарий завершения.\n\nЛиквидация (ранний stop):\nбиржа принудительно закрыла позицию из-за критического убытка.\n\nРанний stop без ликвидации:\nпринудительного закрытия биржей не было; рабочий баланс был потерян серией убыточных сделок, и сработал сценарий руины (AccRuin).',
-        tooltip: 'Почему период завершился именно здесь.'
+            'Почему серия закончилась.\n\n- До конца периода: тест дошёл до последнего дня окна. Это штатный и хороший сценарий завершения.\n- Ликвидация (ранний stop): биржа принудительно закрыла позицию из-за критического убытка.\n- Ранний stop без ликвидации: принудительного закрытия биржей не было; рабочий баланс был потерян серией убыточных сделок, и сработал сценарий руины (AccRuin).',
     },
     Miss: {
         key: 'Miss',
         title: 'Miss',
         description:
             'Пропуски внутри рабочего периода в формате "будни | выходные". Слева — пропуски будних дней: для расчёта не хватило обязательных дневных записей или дневного журнала решений. Справа — пропуски выходных: суббота и воскресенье здесь штатно исключаются из расчёта и не считаются ошибкой.',
-        tooltip: 'Пропуски: "будни | выходные" (например, "0 | 21").'
     },
     'Trade%': {
         key: 'Trade%',
         title: 'Trade%',
         description:
             'Доля дней с реальной сделкой: TradeDays / Days * 100. День считается торговым только после всех фильтров: есть валидное направление, не сработал внутренний запрет политики, доля капитала на сделку больше 0 и вход не заблокирован риск-фильтром.',
-        tooltip: 'Процент торговых дней.'
     },
     'Long%': {
         key: 'Long%',
         title: 'Long%',
-        description:
-            'Long% + Short% — распределение дней по направлению входа.\n\nLong% = LongDays / Days * 100,\nShort% = ShortDays / Days * 100.\n\nСумма Long% и Short% может быть меньше 100%: остаток приходится на дни без входа (NoTrade%).\n\nЧем выше Long%, тем сильнее смещение в сделки на рост; чем выше Short%, тем сильнее смещение в сделки на падение.',
-        tooltip: 'Процент дней с LONG.'
+        description: LONG_SHARE_DESCRIPTION
     },
     'Short%': {
         key: 'Short%',
         title: 'Short%',
-        description:
-            'Доля дней, где стратегия открывала SHORT-позиции. Чем выше значение, тем сильнее стратегия смещена в сделки на падение. Читается как ShortDays / Days * 100.',
-        tooltip: 'Процент дней с SHORT.'
+        description: SHORT_SHARE_DESCRIPTION
     },
     'NoTrade%': {
         key: 'NoTrade%',
         title: 'NoTrade%',
-        description:
-            'Доля дней без сделки: NoTradeDays / Days * 100. Сюда попадают дни без направления, внутренний запрет политики, риск‑фильтры и дни, где доля капитала на сделку оказалась равной 0.',
-        tooltip: 'Процент дней без сделки.'
+        description: NO_TRADE_SHARE_DESCRIPTION
     },
     'RiskDay%': {
         key: 'RiskDay%',
         title: 'RiskDay%',
-        description:
-            'Доля дней, которые SL‑модель пометила как рискованные: RiskDays / Days * 100. Если SL‑слой не применим, такие дни не считаются риск‑днями.',
-        tooltip: 'Процент риск‑дней по SL‑логике.'
+        description: RISK_DAY_SHARE_DESCRIPTION
     },
     'AntiD%': {
         key: 'AntiD%',
         title: 'AntiD%',
-        description:
-            'Доля дней, где реально сработал anti‑direction overlay: AntiDAppliedDays / Days * 100. Отображается только для ветки ANTI‑D, для BASE ставится "—".',
-        tooltip: 'Процент дней, где применилось anti‑direction.'
+        description: ANTI_D_SHARE_DESCRIPTION
     },
     'AntiD|Risk%': {
         key: 'AntiD|Risk%',
         title: 'AntiD|Risk%',
         description:
             'Доля срабатываний anti‑direction только внутри риск‑дней: AntiDAppliedRiskDays / RiskDays * 100.\n\nДля ветки BASE выводится "—". Для ANTI‑D значение всегда лежит в диапазоне 0..100.\n\nЕсли риск‑дней не было и anti‑direction не применялся внутри риск‑дней, метрика равна 0.0.\n\nВажно: AntiD% показывает все дни применения anti‑direction, включая случаи вне риск‑дней. Поэтому AntiD|Risk% отвечает только на вопрос, насколько часто инверсия реально включалась именно в риск‑днях.',
-        tooltip: 'Процент anti‑direction только внутри RiskDay: AntiDAppliedRiskDays / RiskDays * 100.'
     },
     'Lev avg/min/max': {
         key: 'Lev avg/min/max',
         title: 'Lev avg/min/max',
         description:
             'Плечо (leverage) — во сколько раз размер позиции больше залога (маржи). Здесь показаны среднее, минимум и максимум плеча по торговым дням.\n\nДля верхнего хвоста агрессии используется [[p90-quantile|p90]] в соседней колонке Lev p50/p90.\n\nБольшие значения означают более агрессивную торговлю: прибыль и убыток по залогу меняются быстрее.',
-        tooltip: 'Среднее/мин/макс плечо по торговым дням.'
     },
     'Lev p50/p90': {
         key: 'Lev p50/p90',
         title: 'Lev p50/p90',
         description:
             'Распределение плеча по торговым дням: p50 (медиана, «обычное» значение) и p90 (высокий уровень, который стратегия достигает редко, но регулярно). Помогает видеть, насколько часто стратегия уходит в агрессивное плечо.',
-        tooltip: 'Медиана и p90 по плечу.'
     },
     'Cap avg/min/max': {
         key: 'Cap avg/min/max',
         title: 'Cap avg/min/max',
-        description:
-            'Средняя/минимальная/максимальная [[cap-fraction|доля капитала]] на сделку, использованная в сделках.\n\nЗначение берётся из [[cap-policy|cap-политики]] и [[trace|дневного журнала решений]] и выводится в процентах от капитала.',
-        tooltip: 'Среднее/мин/макс использование капитала.'
+        description: CAP_AVG_MIN_MAX_DESCRIPTION
     },
     'Cap p50/p90': {
         key: 'Cap p50/p90',
         title: 'Cap p50/p90',
-        description:
-            'Квантили доли капитала на сделку по торговым дням: медиана и верхний хвост распределения. Полезно, чтобы видеть, насколько часто размер позиции близок к максимуму.',
-        tooltip: 'Медиана и p90 по cap‑доле.'
+        description: CAP_P50_P90_DESCRIPTION
     },
     CapAp: {
         key: 'CapAp',
         title: 'CapAp',
         description:
             'Сколько дней cap‑фильтр был применён (доля капитала на сделку > 0) и сделка действительно произошла. Если значение сильно ниже TradeDays, часть входов была отфильтрована другими условиями.',
-        tooltip: 'Дни, где cap применился.'
     },
     CapSk: {
         key: 'CapSk',
         title: 'CapSk',
         description:
             'Сколько дней были пропущены, потому что доля капитала на сделку обнулила размер входа. Это прямой запрет на сделку в этот день.',
-        tooltip: 'Дни, где доля капитала на сделку обнулила размер входа и запретила сделку.'
     },
     'AvgStake%': {
         key: 'AvgStake%',
         title: 'AvgStake%',
         description:
             'AvgStake% + AvgStake$ — средний размер залога (маржи) на одну сделку.\n\nПоказатель отражает, какой суммой стратегия обычно рискует в одной позиции до применения плеча.\n\nРазница только в единицах измерения: AvgStake% показывает долю от [[start-cap|стартового капитала]] в процентах, AvgStake$ показывает ту же величину в долларах.',
-        tooltip: 'Средняя маржа на сделку, % от total capital.'
     },
     AvgStake$: {
         key: 'AvgStake$',
         title: 'AvgStake$',
         description:
             'Средний размер залога (маржи) на одну сделку в долларах. Это денежная версия AvgStake%: чем выше число, тем больше абсолютный риск на сделку.',
-        tooltip: 'Средняя маржа на сделку, $.'
     },
     'Exposure% (avg/p50/p90/p99/max)': {
         key: 'Exposure% (avg/p50/p90/p99/max)',
         title: 'Exposure% (avg/p50/p90/p99/max)',
         description:
             'Exposure% — фактическая нагрузка позиции на капитал в каждой сделке.\n\nФормула по сделке:\nExposure = ([[margin-used|MarginUsed]] * LeverageUsed / [[start-cap|StartCap$]]) * 100.\n\nВ колонке выводится распределение по сделкам:\navg (среднее), p50 (медиана), [[p90-quantile|p90]]/p99 (верхний риск-хвост), max (пиковое значение).\n\nКак читать:\nрост p90/p99 и max означает, что стратегия чаще уходит в агрессивные режимы с высоким хвостовым риском.',
-        tooltip: 'Trade-level экспозиция: avg/p50/p90/p99/max.'
     },
     'HighExposureTr% (>=20/50)': {
         key: 'HighExposureTr% (>=20/50)',
         title: 'HighExposureTr% (>=20/50)',
         description:
             'Доля сделок с повышенной экспозицией: первая часть — процент сделок, где Exposure >= 20%, вторая часть — где Exposure >= 50%. Формат значения: >=20%/>=50%.',
-        tooltip: 'Доля сделок с Exposure >=20% и >=50%.'
     },
     'DailyTP%': {
         key: 'DailyTP%',
         title: 'DailyTP%',
         description:
             'Take-profit (TP) — уровень прибыли, при котором позиция закрывается автоматически. В этой колонке показаны фактические TP-пороги для дневных сделок: средний/минимальный/максимальный процент от цены входа.',
-        tooltip: 'Дневной TP: avg/min/max, % от входа.'
     },
     'DailySL%': {
         key: 'DailySL%',
         title: 'DailySL%',
         description:
             '[[tp-sl|Стоп лосс]] — уровень убытка, при котором позиция закрывается автоматически для ограничения потерь.\n\nВ этой колонке показаны фактические уровни стоп лосса для дневных сделок (avg/min/max, % от цены входа).\n\nВ режиме [[no-sl-mode|NO SL]] вместо чисел показывается «—», потому что стоп лосс отключён.',
-        tooltip: 'Дневной стоп лосс: avg/min/max, % от входа.'
     },
     'DynTP/SL Days': {
         key: 'DynTP/SL Days',
         title: 'DynTP/SL Days',
         description:
             'Количество уникальных дней, где реально включился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этих днях движок не только менял уровни [[tp-sl|stop-loss]] / [[tp-sl|take-profit]], но и масштабировал [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nДень попадает сюда только после прохождения [[confidence-bucket|confidence-bucket]] по минимуму наблюдений и качеству (win-rate).',
-        tooltip: 'Уникальные дни с dynamic TP/SL (Daily/Intraday).'
     },
     'DynTP/SL Tr': {
         key: 'DynTP/SL Tr',
         title: 'DynTP/SL Tr',
         description:
             'Количество сделок, где реально применился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этом режиме движок масштабирует уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]], а также [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nОбычно таких сделок меньше общего числа: без подтверждения по [[confidence-bucket|confidence-bucket]] день не попадает в dynamic-срез.',
-        tooltip: 'Число сделок с dynamic TP/SL.'
     },
     'DynTP/SL PnL%': {
         key: 'DynTP/SL PnL%',
         title: 'DynTP/SL PnL%',
         description:
-            'Вклад в итоговую доходность только от сделок с [[dynamic-tp-sl|DYNAMIC risk]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nЭто не отдельный бэктест, а часть общего результата строки.',
-        tooltip: 'Вклад в PnL% только от dynamic TP/SL сделок.'
+            'Вклад в итоговую доходность только от сделок с [[dynamic-tp-sl|DYNAMIC risk]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nМетрика выделяет только часть общего результата этой [[policy|Policy]], которая пришлась на dynamic-сделки.',
     },
     'StatTP/SL Days': {
         key: 'StatTP/SL Days',
         title: 'StatTP/SL Days',
         description:
             'Количество дней, где сделка прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея, то есть в режиме [[static-tp-sl|STATIC base]].\n\nВ этом режиме используются базовые правила сделки без dynamic-множителей по уровням выхода и [[cap-fraction|доле капитала на сделку]].',
-        tooltip: 'Уникальные дни со static TP/SL (Daily/Intraday).'
     },
     'StatTP/SL Tr': {
         key: 'StatTP/SL Tr',
         title: 'StatTP/SL Tr',
         description:
             'Количество сделок, где [[dynamic-tp-sl|DYNAMIC risk]] не применился и расчёт остался в режиме [[static-tp-sl|STATIC base]].\n\nРост этой метрики означает, что dynamic-оверлей реже проходил условия допуска по исторической статистике.',
-        tooltip: 'Число сделок со static TP/SL.'
     },
     'StatTP/SL PnL%': {
         key: 'StatTP/SL PnL%',
         title: 'StatTP/SL PnL%',
         description:
             'Вклад в итоговую доходность только от сделок режима [[static-tp-sl|STATIC base]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nПоказатель читается вместе с [[dynamic-tp-sl|DynTP/SL PnL%]], чтобы видеть, какой режим дал основную часть результата.\n\nПереключатель dynamic-risk режима меняет состав сделок этого среза, но не пересчитывает задним числом уже применённые в сделке [[leverage|плечо]] и [[cap-fraction|долю капитала на сделку]].',
-        tooltip: 'Вклад в PnL% только от static TP/SL сделок.'
     },
     'DelayedTP%': {
         key: 'DelayedTP%',
         title: 'DelayedTP%',
         description:
             'Средний TP для delayed-сделок (отложенный вход, то есть вход не в момент сигнала, а позже по правилу). Порог показан в процентах от цены входа.',
-        tooltip: 'Средний intraday TP для delayed, % от входа.'
     },
     'DelayedSL%': {
         key: 'DelayedSL%',
         title: 'DelayedSL%',
         description:
             'Средний [[tp-sl|стоп лосс]] для [[bucket-delayed|delayed]]-сделок в процентах от цены входа.\n\nВ режиме [[no-sl-mode|NO SL]] вместо чисел показывается «—», потому что стоп лосс отключён.',
-        tooltip: 'Средний intraday стоп лосс для delayed, % от входа.'
     },
     Tr: {
         key: 'Tr',
         title: 'Tr',
         description:
             'Общее число сделок в [[backtest|бэктесте]] по этой политике и ветке. Это количество отдельных позиций, а не количество дней.',
-        tooltip: 'Количество сделок.'
     },
     'TotalPnl%': {
         key: 'TotalPnl%',
         title: 'TotalPnl%',
         description:
             'Итоговая доходность стратегии в процентах.\n\n- REAL: фактический результат симуляции.\n- NO BIGGEST LIQ LOSS: контрфактный тест, где из расчёта убирается одна самая убыточная [[liquidation|ликвидация]], чтобы увидеть чувствительность результата к редкому экстремуму.',
-        tooltip: 'Итоговая доходность, %.'
     },
     TotalPnl$: {
         key: 'TotalPnl$',
         title: 'TotalPnl$',
         description:
             'Суммарная прибыль/убыток в долларах по wealth-базе: (equity now + withdrawn) − start capital. Как и TotalPnl%, зависит от выбранного режима метрик: REAL или NO BIGGEST LIQ LOSS.',
-        tooltip: 'Итоговый PnL в $ по wealth‑базе.'
     },
     BucketNow$: {
         key: 'BucketNow$',
         title: 'BucketNow$',
         description:
             'Текущий реальный баланс выбранного бакета после всех сделок, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nДля [[bucket-daily|daily]] / [[bucket-intraday|intraday]] / [[bucket-delayed|delayed]] это локальный баланс бакета.\n\nДля [[bucket-total-aggregate|aggregate]] — сумма по всем бакетам.',
-        tooltip: 'Текущий баланс бакета на бирже, $.'
     },
     'Wealth%': {
         key: 'Wealth%',
         title: 'Wealth%',
         description:
             'Доходность по wealth‑базе: (equity now + withdrawn − start capital) / start capital * 100. Отличается от TotalPnl% тем, что учитывает выводы.',
-        tooltip: 'Доходность с учётом выводов, %.'
     },
     'MaxDD%': {
         key: 'MaxDD%',
         title: 'MaxDD%',
         description:
             'MaxDD% — максимальная просадка (drawdown): самое глубокое падение капитала от локального пика до следующего минимума. В REAL это фактическая просадка, в NO BIGGEST LIQ LOSS — пересчёт после удаления одной самой тяжёлой ликвидации.',
-        tooltip: 'Максимальная просадка, %.'
     },
     'MaxDD_NoLiq%': {
         key: 'MaxDD_NoLiq%',
         title: 'MaxDD_NoLiq%',
         description:
             'Максимальная просадка без учёта сделок с ликвидацией (принудительным закрытием позиции биржей). Показывает, насколько глубоко стратегия проседает в обычных условиях, если убрать аварийные события.',
-        tooltip: 'MaxDD без ликвидаций, %.'
     },
     'MaxDD_Active%': {
         key: 'MaxDD_Active%',
         title: 'MaxDD_Active%',
         description:
             'Максимальная просадка по active equity (живой сумме капиталов по бакетам). Это тоже падение от пика к минимуму, но по другой кривой, поэтому число может отличаться от MaxDD%.',
-        tooltip: 'Просадка по active equity, %.'
     },
     Sharpe: {
         key: 'Sharpe',
         title: 'Sharpe',
         description:
             'Коэффициент Sharpe по дневным доходностям: средняя дневная доходность / стандартное отклонение * √252. Дневные доходности агрегируются из сделок с весом позиции относительно общего капитала.',
-        tooltip: 'Sharpe по дневным доходностям (annualized).'
     },
     Sortino: {
         key: 'Sortino',
         title: 'Sortino',
         description:
             'Коэффициент Sortino: средняя дневная доходность / down‑std * √252. Down‑std считается только по отрицательным дневным доходностям, что делает метрику чувствительной именно к падениям.',
-        tooltip: 'Sortino по дневным доходностям.'
     },
     Calmar: {
         key: 'Calmar',
         title: 'Calmar',
         description:
             'Calmar = CAGR / MaxDD (по дневной кривой из ratio‑метрик). Показывает доходность на единицу глубины просадки. Если MaxDD почти нулевая, выводится "—".',
-        tooltip: 'CAGR, делённый на MaxDD.'
     },
     'CAGR%': {
         key: 'CAGR%',
         title: 'CAGR%',
         description:
             'Годовой темп роста (CAGR), рассчитанный на дневной кривой доходностей: years = N/252, CAGR = equity^(1/years) − 1. Это годовая скорость роста, а не просто среднее по дням.',
-        tooltip: 'Годовой темп роста (CAGR), %.'
     },
     'WinRate%': {
         key: 'WinRate%',
         title: 'WinRate%',
         description:
             'Доля прибыльных сделок: сделки, где [[net-return-pct|NetReturnPct]] > 0, от общего числа сделок * 100.',
-        tooltip: 'Процент прибыльных сделок.'
     },
     ProfitFactor: {
         key: 'ProfitFactor',
         title: 'ProfitFactor',
         description:
-            'ProfitFactor = сумма положительного NetPnl$ / abs(сумма отрицательного NetPnl$).\n\nМетрика отвечает на вопрос, перекрывает ли общий денежный выигрыш общий денежный убыток. Значение выше 1 означает, что прибыльных долларов больше, чем убыточных.\n\nЕсли в строке нет убыточных сделок, метрика математически не определена и выводится как "—".',
-        tooltip: 'Отношение суммы положительного NetPnl$ к abs(суммы отрицательного NetPnl$).'
+            'ProfitFactor = сумма положительного NetPnl$ / abs(сумма отрицательного NetPnl$).\n\nМетрика отвечает на вопрос, перекрывает ли общий денежный выигрыш общий денежный убыток. Значение выше 1 означает, что прибыльных долларов больше, чем убыточных.\n\nЕсли у этой [[policy|Policy]] нет убыточных сделок, метрика математически не определена и выводится как "—".',
     },
     PayoffRatio: {
         key: 'PayoffRatio',
         title: 'PayoffRatio',
         description:
-            'PayoffRatio = abs(AvgHit% / AvgMiss%).\n\nПоказывает, насколько средняя прибыльная сделка по проценту больше средней убыточной сделки по модулю.\n\nЕсли в строке нет хотя бы одной прибыльной и одной убыточной сделки, метрика не определена и выводится как "—".',
-        tooltip: 'Отношение средней прибыльной сделки к средней убыточной по модулю.'
+            'PayoffRatio = abs(AvgHit% / AvgMiss%).\n\nПоказывает, насколько средняя прибыльная сделка по проценту больше средней убыточной сделки по модулю.\n\nЕсли у этой [[policy|Policy]] нет хотя бы одной прибыльной и одной убыточной сделки, метрика не определена и выводится как "—".',
     },
     'AvgHit%': {
         key: 'AvgHit%',
         title: 'AvgHit%',
         description:
             'Средний NetReturnPct только по сделкам, где NetReturnPct > 0.\n\nЭто типичный размер выигрыша одной прибыльной сделки после комиссий и всех текущих правил симуляции.\n\nЕсли прибыльных сделок нет, метрика не определяется и выводится как "—".',
-        tooltip: 'Средний NetReturnPct по прибыльным сделкам, %.'
     },
     'AvgMiss%': {
         key: 'AvgMiss%',
         title: 'AvgMiss%',
         description:
             'Средний NetReturnPct только по сделкам, где NetReturnPct < 0.\n\nМетрика показывает, насколько глубокой обычно была убыточная сделка по проценту к использованной марже.\n\nЕсли убыточных сделок нет, выводится "—".',
-        tooltip: 'Средний NetReturnPct по убыточным сделкам, %.'
     },
     'Expectancy%': {
         key: 'Expectancy%',
         title: 'Expectancy%',
         description:
-            'Средний NetReturnPct по всем сделкам строки.\n\nЭто ожидаемый процент результата одной случайной сделки из этой выборки после комиссий и текущих правил симуляции.\n\nПоложительное значение означает положительное математическое ожидание на сделку в процентах, отрицательное — отрицательное.',
-        tooltip: 'Средний NetReturnPct по всем сделкам, %.'
+            'Средний NetReturnPct по всем сделкам этой [[policy|Policy]].\n\nЭто ожидаемый процент результата одной случайной сделки из этой выборки после комиссий и текущих правил симуляции.\n\nПоложительное значение означает положительное математическое ожидание на сделку в процентах, отрицательное — отрицательное.',
     },
-    'Expectancy$': {
+    Expectancy$: {
         key: 'Expectancy$',
         title: 'Expectancy$',
         description:
-            'Средний NetPnl$ по всем сделкам строки.\n\nМетрика показывает средний денежный результат одной сделки, а не всей серии.\n\nЕсли сделок нет, выводится "—".',
-        tooltip: 'Средний NetPnl$ по всем сделкам.'
+            'Средний NetPnl$ по всем сделкам этой [[policy|Policy]].\n\nМетрика показывает средний денежный результат одной сделки, а не всей серии.\n\nЕсли сделок нет, выводится "—".',
     },
     'LongWinRate%': {
         key: 'LongWinRate%',
         title: 'LongWinRate%',
         description:
             'Доля прибыльных LONG‑сделок: прибыльные long / все long * 100.\n\nПоказатель помогает понять, действительно ли стратегия умеет зарабатывать именно в направлении роста, а не только за счёт общего микса сделок.\n\nЕсли long‑сделок нет, выводится "—".',
-        tooltip: 'Процент прибыльных LONG‑сделок.'
     },
     'ShortWinRate%': {
         key: 'ShortWinRate%',
         title: 'ShortWinRate%',
         description:
             'Доля прибыльных SHORT‑сделок: прибыльные short / все short * 100.\n\nЧитается отдельно от общего WinRate%, чтобы видеть устойчивость стратегии именно в сделках на падение.\n\nЕсли short‑сделок нет, выводится "—".',
-        tooltip: 'Процент прибыльных SHORT‑сделок.'
     },
     'BestDay%': {
         key: 'BestDay%',
         title: 'BestDay%',
         description:
             'Лучшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nМетрика показывает самый сильный положительный день в выбранном срезе без введения второй альтернативной серии.',
-        tooltip: 'Максимальная дневная доходность той же ratio‑серии, %.'
     },
     'WorstDay%': {
         key: 'WorstDay%',
         title: 'WorstDay%',
         description:
             'Худшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nЭто самый глубокий однодневный провал в выбранном срезе.',
-        tooltip: 'Минимальная дневная доходность той же ratio‑серии, %.'
     },
     RetSkew: {
         key: 'RetSkew',
         title: 'RetSkew',
         description:
             'Skewness дневной серии доходностей.\n\nПоложительный skew означает, что правый хвост распределения длиннее: редкие большие положительные дни выражены сильнее. Отрицательный skew означает более тяжёлый левый хвост и более неприятные редкие падения.',
-        tooltip: 'Skewness дневной серии доходностей.'
     },
     RetKurt: {
         key: 'RetKurt',
         title: 'RetKurt',
         description:
             'Kurtosis дневной серии доходностей в non-excess виде, где нормальное распределение = 3.\n\nЧем выше значение, тем тяжелее хвосты распределения и тем чаще серия даёт экстремальные дни относительно обычной волатильности.',
-        tooltip: 'Kurtosis дневной серии доходностей, normal = 3.'
     },
     'PSR>0%': {
         key: 'PSR>0%',
         title: 'PSR>0%',
         description:
             'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах 0..100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
-        tooltip: 'Вероятность того, что true Sharpe > 0, в процентах.'
     },
     'MinTRL95 SR>0': {
         key: 'MinTRL95 SR>0',
         title: 'MinTRL95 SR>0',
         description:
             'Minimum Track Record Length для доверия 95% к гипотезе true SR > 0.\n\nМетрика показывает, сколько дневных наблюдений требуется при текущем observed Sharpe, RetSkew и RetKurt, чтобы статистически доверять положительному Sharpe на уровне 95%.\n\nЕсли observed Sharpe <= 0 или формула вырождается, выводится "—".',
-        tooltip: 'Минимальная длина дневной серии для 95% доверия к true SR > 0.'
     },
     'MeanRet%': {
         key: 'MeanRet%',
         title: 'MeanRet%',
         description:
             'Средняя дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR. Сначала все сделки одного дня сворачиваются в один дневной итог, после чего берётся среднее по дням. Выводится в процентах.',
-        tooltip: 'Средняя дневная доходность, %.'
     },
     'StdRet%': {
         key: 'StdRet%',
         title: 'StdRet%',
         description:
             'Стандартное отклонение дневных доходностей (volatility) по той же дневной серии, что используется для [[sharpe-ratio|Sharpe]].\n\nВыводится в процентах.',
-        tooltip: 'Волатильность дневных доходностей, %.'
     },
     'DownStd%': {
         key: 'DownStd%',
         title: 'DownStd%',
         description:
             'Downside deviation: стандартное отклонение отрицательных дневных доходностей (все положительные значения обнуляются).\n\nИспользуется в [[sortino-ratio|Sortino]].',
-        tooltip: 'Downside‑волатильность, %.'
     },
     'MaxDD_Ratio%': {
         key: 'MaxDD_Ratio%',
         title: 'MaxDD_Ratio%',
         description:
             'Максимальная просадка на [[ratio-curve|ratio-кривой]]: глубина падения капитала от пика до минимума, рассчитанная по дневной ratio-серии.\n\nПоказатель сравнивается отдельно с MaxDD%, потому что строится по другой кривой.',
-        tooltip: 'MaxDD на дневной ratio‑кривой.'
     },
     Withdrawn$: {
         key: 'Withdrawn$',
         title: 'Withdrawn$',
         description:
             'Сумма выведенной прибыли в долларах (WithdrawnTotal). Это деньги, которые «сняты» с баланса, когда equity превышал стартовый капитал.',
-        tooltip: 'Сумма выведенной прибыли, $.'
     },
     OnExch$: {
         key: 'OnExch$',
         title: 'OnExch$',
         description:
             'Текущий капитал на бирже — сумма по всем бакетам. Это то, что осталось «в работе», без учёта выводов.',
-        tooltip: 'Текущая equity на бирже, $.'
     },
     HadLiq: {
         key: 'HadLiq',
         title: 'HadLiq',
         description:
             'Были ли [[liquidation|ликвидации]]. Значение Yes означает аварийный риск в истории: у стратегии хотя бы раз было биржевое принудительное закрытие позиции. Это флаг риска, а не прямой ответ, почему остановился весь прогон.',
-        tooltip: 'Была ли ликвидация (по правилу отображения).'
     },
     RealLiq: {
         key: 'RealLiq',
         title: 'RealLiq',
         description:
-            'Сколько раз произошла реальная [[liquidation|ликвидация]] сделок. Рост метрики означает более частый аварийный режим. В строках, где показатель не применим к выбранному режиму маржи, выводится "—".',
-        tooltip: 'Число реальных ликвидаций (Isolated).'
+            'Сколько раз произошла реальная [[liquidation|ликвидация]] сделок. Рост метрики означает более частый аварийный режим. Если показатель не применим к выбранному режиму маржи этой [[policy|Policy]], выводится "—".',
     },
     EODExit_n: {
         key: 'EODExit_n',
         title: 'EODExit_n',
         description:
             'Количество сделок, закрытых в конце торгового окна (EndOfDay), когда раньше не сработали ни [[tp-sl|TP]], ни [[tp-sl|SL]], ни [[liquidation|ликвидация]]. Рост метрики показывает, что стратегия чаще дотягивает до конца дня без раннего выхода.',
-        tooltip:
-            'Количество сделок с ExitReason=EndOfDay. Рост метрики означает, что TP/SL/ликвидация реже срабатывают до конца окна.'
     },
     'EODExit%': {
         key: 'EODExit%',
         title: 'EODExit%',
         description:
             'Доля принудительных EndOfDay-выходов среди всех сделок: EODExit_n / Tr * 100. Нужна, чтобы видеть, насколько часто позиция доживает до конца окна.',
-        tooltip:
-            'Formula: EODExit_n / Tr * 100. Нормирует EODExit_n на объём торгов и позволяет сравнивать политики с разным числом сделок.'
     },
     EODExit$: {
         key: 'EODExit$',
         title: 'EODExit$',
         description:
             'Суммарный NetPnL в долларах только по сделкам с принудительным EndOfDay-выходом. Показывает вклад EOD-сделок в общий денежный результат.',
-        tooltip:
-            'Сумма NetPnL по всем EndOfDay-сделкам. Отрицательное значение означает, что принудительное закрытие в конце окна ухудшает итоговый PnL.'
     },
     'EODExit_AvgRet%': {
         key: 'EODExit_AvgRet%',
         title: 'EODExit_AvgRet%',
         description:
             'Средняя NetReturn% по сделкам, закрытым принудительно в конце окна (EndOfDay). Это средняя доходность одной EOD-сделки без взвешивания по частоте других причин выхода.',
-        tooltip:
-            'Mean NetReturn% только по EndOfDay-сделкам. Используется для оценки качества «дефолтного» выхода в конце окна.'
     },
     LiqBeforeSL_n: {
         key: 'LiqBeforeSL_n',
         title: 'LiqBeforeSL_n',
         description:
             'Сколько раз при включённом SL [[liquidation|ликвидация]] произошла раньше стоп-лосса. Это означает, что защита была включена, но биржа закрыла позицию раньше, чем успел сработать SL.',
-        tooltip:
-            'Количество случаев ликвидации раньше SL при включённом SL-режиме. Ненулевые значения требуют проверки leverage/cap/SL-порогов.'
     },
     LiqBeforeSL_BadSL_n: {
         key: 'LiqBeforeSL_BadSL_n',
         title: 'LiqBeforeSL_BadSL_n',
         description:
             'Подмножество LiqBeforeSL_n, где SL стоял дальше, чем цена [[liquidation|ликвидации]]. Это означает, что защитный стоп-лосс фактически бесполезен при выбранном плече и залоге.',
-        tooltip:
-            'Количество случаев, где SL расположен «дальше», чем уровень ликвидации. Для корректной риск-настройки метрика должна стремиться к нулю.'
     },
     LiqBeforeSL_Same1m_n: {
         key: 'LiqBeforeSL_Same1m_n',
         title: 'LiqBeforeSL_Same1m_n',
         description:
             'Подмножество LiqBeforeSL_n, где SL и [[liquidation|ликвидация]] коснулись цены в одной минутной свече. Это зона повышенной чувствительности к правилу приоритета событий внутри минуты.',
-        tooltip:
-            'Количество конфликтных кейсов в одной 1m-свече: одновременно касаются SL и ликвидации. Это редкие случаи, где особенно важно правило приоритета событий внутри минуты.'
     },
     LiqBeforeSL$: {
         key: 'LiqBeforeSL$',
         title: 'LiqBeforeSL$',
         description:
             'Суммарный денежный результат только по сделкам, где [[liquidation|ликвидация]] произошла раньше SL. Чем сильнее отрицательное значение, тем дороже для стратегии обходится ситуация, в которой защита не успела сработать.',
-        tooltip:
-            'Сумма NetPnL по сделкам LiqBeforeSL_n. Чем сильнее отрицательное значение, тем дороже обходятся ликвидации до срабатывания SL.'
     },
     'BalMin%': {
         key: 'BalMin%',
         title: 'BalMin%',
         description:
             'Минимальная active equity в процентах от стартового капитала. Active equity строится по сумме бакетов на выходах сделок.',
-        tooltip: 'Минимум активной equity, % от старта.'
     },
     BalDead: {
         key: 'BalDead',
         title: 'BalDead',
         description:
             'Флаг «балансовой смерти»: true, если активная equity падала ниже 35% от старта (порог BalanceDeathThresholdFrac).',
-        tooltip: 'Equity опускалась ниже 35%.'
     },
     RecovSignals: {
         key: 'RecovSignals',
         title: 'RecovSignals',
         description:
             'Количество уникальных trade‑дней между дном MaxDD и восстановлением. Это «сколько сигналов понадобилось» для возврата к пику.',
-        tooltip: 'Сколько trade‑дней до восстановления.'
     },
     'Time<35%': {
         key: 'Time<35%',
         title: 'Time<35%',
         description:
             'Суммарное время (в днях), которое equity провела ниже 35% от старта. Считается по отрезкам active equity кривой, включая частичные пересечения порога.',
-        tooltip: 'Сколько дней equity была ниже 35%.'
     },
     'DD70_Min%': {
         key: 'DD70_Min%',
         title: 'DD70_Min%',
         description:
             'Минимальная equity в самом глубоком эпизоде, когда equity падала ниже 70% от старта. Это аналитический порог, а не правило выхода из сделки.',
-        tooltip: 'Минимум в эпизоде equity < 70%.'
     },
     DD70_Recov: {
         key: 'DD70_Recov',
         title: 'DD70_Recov',
         description:
             'Флаг восстановления после глубокой просадки: поднялась ли equity обратно выше 70% после самого глубокого эпизода.',
-        tooltip: 'Было ли восстановление выше 70%.'
     },
     DD70_RecovDays: {
         key: 'DD70_RecovDays',
         title: 'DD70_RecovDays',
         description:
             'Сколько календарных дней прошло от минимума глубокой просадки до восстановления выше 70%. Если восстановления не было — выводится "—".',
-        tooltip: 'Дни до восстановления выше 70%.'
     },
     DD70_n: {
         key: 'DD70_n',
         title: 'DD70_n',
         description:
             'Количество эпизодов, когда equity опускалась ниже 70% от старта. Это отдельный счётчик глубоких просадок.',
-        tooltip: 'Сколько эпизодов equity < 70%.'
     },
     HorizonDays: {
         key: 'HorizonDays',
         title: 'HorizonDays',
         description:
             'Длина периода симуляции в календарных днях между первой и последней сделкой. Это база для расчёта средних темпов AvgDay/Week/Month/Year.',
-        tooltip: 'Календарная длина горизонта, дни.'
     },
     'AvgDay%': {
         key: 'AvgDay%',
         title: 'AvgDay%',
         description:
             'Средняя дневная доходность, полученная геометрическим способом: общий множитель wealth^(1/HorizonDays) − 1. Показывает «типичный день» на длинной дистанции.',
-        tooltip: 'Геометрическая средняя дневная доходность.'
     },
     'AvgWeek%': {
         key: 'AvgWeek%',
         title: 'AvgWeek%',
         description:
             'Средняя недельная доходность, полученная из среднего дневного множителя: (dailyFactor^7 − 1) * 100. Это не простая сумма, а геометрия.',
-        tooltip: 'Геометрическая средняя недельная доходность.'
     },
     'AvgMonth%': {
         key: 'AvgMonth%',
         title: 'AvgMonth%',
         description:
             'Средняя месячная доходность: (dailyFactor^30 − 1) * 100. Отражает «типичный месяц» при сохранении темпа роста.',
-        tooltip: 'Геометрическая средняя месячная доходность.'
     },
     'AvgYear%': {
         key: 'AvgYear%',
         title: 'AvgYear%',
         description:
             'Средняя годовая доходность, полученная из дневного множителя: (dailyFactor^365 − 1) * 100. Не равна CAGR, так как базируется на календарных днях, а не 252 торговых.',
-        tooltip: 'Геометрическая средняя годовая доходность.'
     },
     'Long n': {
         key: 'Long n',
         title: 'Long n',
         description:
             'Количество LONG-сделок (позиции на рост цены) по данной политике/ветке. Это число сделок, не число дней.',
-        tooltip: 'Сколько long‑сделок.'
     },
     'Short n': {
         key: 'Short n',
         title: 'Short n',
         description:
             'Количество SHORT-сделок (позиции на падение цены) по данной политике/ветке. Это число сделок, не число дней.',
-        tooltip: 'Сколько short‑сделок.'
     },
     'Long $': {
         key: 'Long $',
         title: 'Long $',
         description:
             'Денежный вклад LONG-сделок (сделок на рост) в общий результат. Помогает понять, на каком направлении стратегия реально зарабатывает или теряет больше.',
-        tooltip: 'PnL по LONG‑сделкам, $.'
     },
     'Short $': {
         key: 'Short $',
         title: 'Short $',
         description:
             'Денежный вклад SHORT-сделок (сделок на падение) в общий результат. Нужен для сравнения, насколько стратегия зависит от падения рынка.',
-        tooltip: 'PnL по SHORT‑сделкам, $.'
     },
     'AvgLong%': {
         key: 'AvgLong%',
         title: 'AvgLong%',
         description:
             'Средняя доходность одной LONG-сделки (позиции на рост) в процентах. Это среднее по сделкам, без учёта их размера.',
-        tooltip: 'Средняя доходность long‑сделки, %.'
     },
     'AvgShort%': {
         key: 'AvgShort%',
         title: 'AvgShort%',
         description:
             'Средняя доходность одной SHORT-сделки (позиции на падение) в процентах. Это среднее по сделкам, без учёта их размера.',
-        tooltip: 'Средняя доходность short‑сделки, %.'
     },
     inv_liq_mismatch: {
         key: 'inv_liq_mismatch',
         title: 'inv_liq_mismatch',
         description:
             'Технический индикатор качества симуляции: сколько найдено нарушений инвариантов по ликвидациям (принудительным закрытиям позиций биржей). Ноль — норма, любое ненулевое значение означает, что расчёт нужно перепроверить до бизнес-выводов.',
-        tooltip: 'Диагностические несоответствия по ликвидациям.'
     },
     minutes_anomaly: {
         key: 'minutes_anomaly',
         title: 'minutes_anomaly',
         description:
             'Сколько обнаружено аномалий в минутных данных (пробелы, ошибки в 1m-серии) во время бэктеста, то есть проверки на исторических данных. Это индикатор качества данных, а не качества стратегии.',
-        tooltip: 'Аномалии минутных данных.'
     }
 }
 
@@ -883,7 +781,9 @@ function ensureSentenceEnding(text: string): string {
         .replace(/\n{3,}/g, '\n\n')
         .trim()
     if (!normalized) return normalized
-    return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`
+
+    const visibleText = normalized.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '$2')
+    return /[.!?]$/.test(visibleText) ? normalized : `${normalized}.`
 }
 
 function removeRedundantGlossaryFromDescription(text: string): string {
@@ -919,10 +819,7 @@ function removeRedundantGlossaryFromDescription(text: string): string {
     return next.trim()
 }
 
-function rewriteRichTextVisibleContent(
-    text: string,
-    rewriteVisibleSegment: (segment: string) => string
-): string {
+function rewriteRichTextVisibleContent(text: string, rewriteVisibleSegment: (segment: string) => string): string {
     const explicitTermRegex = /\[\[([^|\]]+)\|([^\]]+)\]\]/g
     let cursor = 0
     let next = ''
@@ -933,13 +830,37 @@ function rewriteRichTextVisibleContent(
             continue
         }
 
-        next += rewriteVisibleSegment(text.slice(cursor, matchIndex))
+        next += rewriteVisibleSegmentPreservingBoundaryWhitespace(
+            text.slice(cursor, matchIndex),
+            rewriteVisibleSegment
+        )
         next += `[[${match[1]}|${rewriteVisibleSegment(match[2])}]]`
         cursor = matchIndex + match[0].length
     }
 
-    next += rewriteVisibleSegment(text.slice(cursor))
+    next += rewriteVisibleSegmentPreservingBoundaryWhitespace(text.slice(cursor), rewriteVisibleSegment)
     return next
+}
+
+function rewriteVisibleSegmentPreservingBoundaryWhitespace(
+    segment: string,
+    rewriteVisibleSegment: (segment: string) => string
+): string {
+    if (!segment) {
+        return segment
+    }
+
+    const leadingWhitespace = segment.match(/^\s+/)?.[0] ?? ''
+    const trailingWhitespace = segment.match(/\s+$/)?.[0] ?? ''
+    const visibleSegmentStart = leadingWhitespace.length
+    const visibleSegmentEnd = segment.length - trailingWhitespace.length
+    const visibleSegment = segment.slice(visibleSegmentStart, visibleSegmentEnd)
+
+    if (!visibleSegment) {
+        return segment
+    }
+
+    return `${leadingWhitespace}${rewriteVisibleSegment(visibleSegment)}${trailingWhitespace}`
 }
 
 function applyRuInternalTextReplacements(text: string): string {
@@ -953,6 +874,10 @@ function applyRuInternalTextReplacements(text: string): string {
     next = next.replace(/[ \t]{2,}/g, ' ')
     next = next.replace(/[ \t]+([,.;:!?])/g, '$1')
     return next.trim()
+}
+
+function isFallbackCountMetricKey(key: string): boolean {
+    return /(?:_n| n|Days|Tr|Signals)$/.test(key)
 }
 
 function humanizeInternalTerms(text: string): string {
@@ -988,103 +913,7 @@ function resolveExampleLabel(locale: PolicyBranchMegaTermLocale): string {
     return locale === 'ru' ? 'Пример' : 'Example'
 }
 
-function _resolveTermImportanceHintOrDefault(key: string): string {
-    if (key === 'Policy') {
-        return 'по этой строке сравнивается конкретный набор торговых правил с другими политиками в одинаковых рыночных условиях.'
-    }
-    if (key === 'Branch') {
-        return 'она показывает, как одна и та же политика ведёт себя в базовом и инверсном режиме риск-дней.'
-    }
-    if (key === 'SL Mode') {
-        return 'режим SL определяет, есть ли жёсткая граница убытка на сделку; в NO SL хвостовой риск выше и возможны обнуления капитала.'
-    }
-    if (key === 'StopReason') {
-        return 'по ней видно, завершился ли прогон штатно или стратегия остановилась из-за критической потери капитала.'
-    }
-    if (key === 'RiskDay%') {
-        return 'чем выше доля риск-дней, тем чаще стратегия работала в стрессовом режиме рынка.'
-    }
-    if (key === 'Miss') {
-        return 'пропуски данных могут искажать статистику и делать сравнение стратегий некорректным.'
-    }
-    if (key === 'Trade%' || key === 'NoTrade%' || key === 'Tr' || key === 'Days') {
-        return 'это базовые метрики активности: без них нельзя понять, на какой частоте получен результат.'
-    }
-    if (key === 'Long%' || key === 'Short%' || key === 'Long n' || key === 'Short n') {
-        return 'метрики направления показывают, куда стратегия смещена по рынку: в рост, в падение или нейтрально.'
-    }
-    if (key === 'Long $' || key === 'Short $' || key === 'AvgLong%' || key === 'AvgShort%') {
-        return 'они показывают вклад каждой стороны рынка в итоговый результат, а не только общую сумму PnL.'
-    }
-    if (
-        key === 'Lev avg/min/max' ||
-        key === 'Lev p50/p90' ||
-        key === 'Cap avg/min/max' ||
-        key === 'Cap p50/p90' ||
-        key === 'AvgStake%' ||
-        key === 'AvgStake$' ||
-        key === 'Exposure% (avg/p50/p90/p99/max)' ||
-        key === 'HighExposureTr% (>=20/50)' ||
-        key === 'CapAp' ||
-        key === 'CapSk'
-    ) {
-        return 'это прямые индикаторы агрессивности риска: как сильно стратегия нагружает капитал и плечо.'
-    }
-    if (
-        key === 'DailyTP%' ||
-        key === 'DailySL%' ||
-        key === 'DelayedTP%' ||
-        key === 'DelayedSL%' ||
-        key === 'DynTP/SL Days' ||
-        key === 'DynTP/SL Tr' ||
-        key === 'DynTP/SL PnL%' ||
-        key === 'StatTP/SL Days' ||
-        key === 'StatTP/SL Tr' ||
-        key === 'StatTP/SL PnL%'
-    ) {
-        return 'эти метрики раскрывают механику выходов из сделок и показывают, где именно формируется прибыль или убыток.'
-    }
-    if (key === 'BucketNow$' || key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
-        return 'это балансный срез капитала: сколько уже выведено, сколько осталось в рынке и от какой базы считался результат.'
-    }
-    if (DRAW_DOWN_KEYS.has(key)) {
-        return 'просадка и глубина падения капитала определяют практическую выживаемость стратегии при стрессе.'
-    }
-    if (LIQUIDATION_RISK_KEYS.has(key)) {
-        return 'ликвидационные метрики отражают аварийный риск, который может уничтожить прибыль нескольких месяцев.'
-    }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
-        return 'они показывают, как часто стратегия не получает раннего выхода по TP/SL и доживает до принудительного закрытия окна.'
-    }
-    if (RECOVERY_KEYS.has(key)) {
-        return 'восстановление показывает не только глубину падения, но и цену возврата к прежнему капиталу во времени и усилиях.'
-    }
-    if (key === 'HorizonDays') {
-        return 'горизонт нужен для корректной интерпретации средних темпов: короткий и длинный период нельзя сравнивать напрямую.'
-    }
-    if (DIAGNOSTIC_ZERO_KEYS.has(key)) {
-        return 'это контроль качества расчёта и данных: ненулевые значения требуют проверки до бизнес-решений.'
-    }
-    if (PERFORMANCE_RESULT_KEYS.has(key)) {
-        return 'это итоговый результативный слой, который нужно читать вместе с просадкой и ликвидациями.'
-    }
-    if (ABSOLUTE_MONEY_KEYS.has(key)) {
-        return 'денежные значения важны для бизнес-оценки: они показывают абсолютный финансовый эффект, а не только проценты.'
-    }
-
-    return 'метрика помогает сравнивать стратегии не по одному числу, а по устойчивости результата в одинаковом срезе.'
-}
-
 function resolveTermReadingHintOrDefault(key: string): string {
-    if (key === 'Policy') {
-        return 'В таблице Policy оценивается по колонкам: [[total-pnl|TotalPnl%]], [[wealth-pct|Wealth%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]], [[req-gain|ReqGain%]].\n\nОриентир чтения:\n- лучше, когда [[total-pnl|TotalPnl%]] и [[wealth-pct|Wealth%]] выше;\n- лучше, когда [[drawdown|MaxDD%]] менее глубокая (например, -22% лучше, чем -48%);\n- лучший сценарий [[liquidation|HadLiq]]=0 и [[account-ruin|AccRuin]]=0;\n- лучше, когда [[recovered|Recovered]]=true, а [[recov-days|RecovDays]] и [[req-gain|ReqGain%]] ниже.'
-    }
-    if (key === 'Branch') {
-        return 'Сравнение выполняется только внутри одной и той же Policy и одного среза режимов (bucket, SL mode, TP/SL mode, metric view).\n\nСначала оценивается риск: MaxDD%, HadLiq, AccRuin.\n\nЗатем оценивается цена улучшения риска по доходности: TotalPnl% и Wealth%.\n\nПример: BASE = TotalPnl% 26, MaxDD -44, HadLiq 2, AccRuin 1. ANTI-D = TotalPnl% 22, MaxDD -24, HadLiq 0, AccRuin 0.\n\nВывод: ANTI-D снижает аварийный риск; цена улучшения риска — 4 п.п. по TotalPnl%.'
-    }
-    if (key === 'SL Mode') {
-        return 'Сравнение WITH SL и NO SL выполняется только внутри одной строки Policy/Branch.\n\nЕсли при NO SL растут MaxDD%, HadLiq и AccRuin, доходность куплена ценой риска обнуления бакета (а в cross-марже — всего торгового баланса).'
-    }
     if (key === 'StartDay' || key === 'EndDay') {
         return 'эти даты должны совпадать с окном сравнения; разные границы периода делают сравнение политик некорректным.'
     }
@@ -1219,19 +1048,10 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'в формате "будни | выходные" левое число (будние пропуски) в норме равно 0; правое число отражает выходные пропуски и считается штатным.'
     }
 
-    return 'корректное сравнение возможно только для строк в одном и том же срезе (bucket, SL mode, TP/SL mode, zonal, metric view), иначе вывод будет некорректным.'
+    return 'корректное сравнение возможно только для [[policy|Policy]] в одном и том же срезе (bucket, SL mode, TP/SL mode, zonal, metric view), иначе вывод будет некорректным.'
 }
 
 function resolveEnglishTermReadingHintOrDefault(key: string): string {
-    if (key === 'Policy') {
-        return 'Policy is assessed through [[total-pnl|TotalPnl%]], [[wealth-pct|Wealth%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]], and [[req-gain|ReqGain%]].\n\nReading guide:\n- higher [[total-pnl|TotalPnl%]] and [[wealth-pct|Wealth%]] are better;\n- shallower [[drawdown|MaxDD%]] is better (for example, -22% is better than -48%);\n- best case is [[liquidation|HadLiq]]=0 and [[account-ruin|AccRuin]]=0;\n- better when [[recovered|Recovered]]=true and [[recov-days|RecovDays]] / [[req-gain|ReqGain%]] are lower.'
-    }
-    if (key === 'Branch') {
-        return 'Comparison is valid only inside the same Policy and the same mode slice (bucket, SL mode, TP/SL mode, metric view).\n\nEvaluate risk first: MaxDD%, HadLiq, AccRuin.\n\nThen evaluate how much return was sacrificed or preserved: TotalPnl% and Wealth%.\n\nExample inside the branch comparison itself: BASE = TotalPnl% 26, MaxDD -44, HadLiq 2, AccRuin 1. ANTI-D = TotalPnl% 22, MaxDD -24, HadLiq 0, AccRuin 0.\n\nConclusion: ANTI-D reduces emergency risk; the price of that improvement is 4 p.p. of TotalPnl%.'
-    }
-    if (key === 'SL Mode') {
-        return 'WITH SL and NO SL must be compared only inside the same Policy/Branch row.\n\nIf NO SL increases MaxDD%, HadLiq, and AccRuin, the extra return was bought at the cost of bucket wipeout risk (and, in cross margin, full trading-balance wipeout risk).'
-    }
     if (key === 'StartDay' || key === 'EndDay') {
         return 'These dates must match the comparison window; different date boundaries make policy comparison invalid.'
     }
@@ -1366,118 +1186,7 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
         return 'In the "weekday | weekend" format, the left number (weekday misses) should normally be 0; the right number reflects weekend skips and is expected.'
     }
 
-    return 'Correct comparison is possible only for rows inside the same slice (bucket, SL mode, TP/SL mode, zonal, metric view); otherwise the conclusion is invalid.'
-}
-
-function _resolveTermDecisionContextHintOrDefault(key: string): string {
-    if (key === 'Policy') {
-        return 'в ежедневном решении это главный набор правил: открыть LONG, открыть SHORT или пропустить день, если условий для входа недостаточно.'
-    }
-    if (key === 'Branch') {
-        return 'в сравнении это второй сценарий той же стратегии: BASE использует исходное направление сигнала, а ANTI-D либо инвертирует направление (при срабатывании anti-direction), либо пропускает день.'
-    }
-    if (key === 'SL Mode') {
-        return 'в расчёте это переключатель механики выхода: WITH SL добавляет защитное ограничение убытка по стоп-лоссу, а NO SL оставляет позицию без этого предела до TP, ликвидации или EndOfDay.'
-    }
-    if (key === 'StartDay' || key === 'EndDay' || key === 'Days') {
-        return 'для бизнеса это границы окна анализа: сравнивать стратегии корректно только на одинаковом периоде.'
-    }
-    if (key === 'StopReason') {
-        return 'это причина, почему расчёт завершился: штатно до конца периода или аварийно раньше времени.'
-    }
-    if (key === 'Tr' || key === 'Trade%' || key === 'NoTrade%') {
-        return 'это частота торговли: она показывает, как часто стратегия вообще принимает решение входить в рынок.'
-    }
-    if (key === 'Long%' || key === 'Short%' || key === 'Long n' || key === 'Short n') {
-        return 'это профиль направления: куда стратегия чаще входила и насколько это совпадает с её фактической прибылью по направлениям.'
-    }
-    if (key === 'RiskDay%' || key === 'AntiD%' || key === 'AntiD|Risk%') {
-        return 'это поведение в сложные дни: как часто активируется риск-режим и как часто стратегия меняет направление для защиты.'
-    }
-    if (
-        key === 'Lev avg/min/max' ||
-        key === 'Lev p50/p90' ||
-        key === 'Cap avg/min/max' ||
-        key === 'Cap p50/p90' ||
-        key === 'AvgStake%' ||
-        key === 'AvgStake$' ||
-        key === 'Exposure% (avg/p50/p90/p99/max)' ||
-        key === 'HighExposureTr% (>=20/50)' ||
-        key === 'CapAp' ||
-        key === 'CapSk'
-    ) {
-        return 'это фактический размер риска на сделку: сколько капитала ставится и насколько агрессивно используется плечо.'
-    }
-    if (key === 'DailyTP%' || key === 'DailySL%' || key === 'DelayedTP%' || key === 'DelayedSL%') {
-        return 'это параметры выхода по прибыли и убытку для разных типов сделок; их смотрят парой, чтобы понимать баланс риск/прибыль.'
-    }
-    if (
-        key === 'DynTP/SL Days' ||
-        key === 'DynTP/SL Tr' ||
-        key === 'DynTP/SL PnL%' ||
-        key === 'StatTP/SL Days' ||
-        key === 'StatTP/SL Tr' ||
-        key === 'StatTP/SL PnL%'
-    ) {
-        return 'это разбор вклада двух режимов: [[dynamic-tp-sl|DYNAMIC risk]] меняет уровни выхода и [[cap-fraction|долю капитала на сделку]] по уверенности, а [[static-tp-sl|STATIC base]] оставляет базовые правила сделки.'
-    }
-    if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
-        return 'это итог результата: проценты удобны для сравнения стратегий, деньги показывают реальный финансовый эффект.'
-    }
-    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
-        return 'это метрики качества результата с учётом риска: они нужны, чтобы не выбирать стратегию только по максимальной доходности.'
-    }
-    if (
-        key === 'ProfitFactor' ||
-        key === 'PayoffRatio' ||
-        key === 'AvgHit%' ||
-        key === 'AvgMiss%' ||
-        key === 'Expectancy%' ||
-        key === 'Expectancy$' ||
-        key === 'LongWinRate%' ||
-        key === 'ShortWinRate%'
-    ) {
-        return 'это trade-derived метрики: что происходит на уровне одной сделки после комиссий и реального исполнения.'
-    }
-    if (
-        key === 'BestDay%' ||
-        key === 'WorstDay%' ||
-        key === 'RetSkew' ||
-        key === 'RetKurt' ||
-        key === 'PSR>0%' ||
-        key === 'MinTRL95 SR>0'
-    ) {
-        return 'это advanced-метрики дневной серии: форма распределения доходностей и статистическая надёжность положительного Sharpe.'
-    }
-    if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
-        return 'это статистика распределения доходности: средний результат, разброс и устойчивость отрицательных дней.'
-    }
-    if (key === 'BucketNow$' || key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
-        return 'это структура капитала: сколько денег осталось в торговом срезе, сколько уже выведено и от какой базы считался результат.'
-    }
-    if (DRAW_DOWN_KEYS.has(key)) {
-        return 'это фактическая глубина провалов капитала: сколько бизнес должен выдержать до восстановления.'
-    }
-    if (LIQUIDATION_RISK_KEYS.has(key)) {
-        return 'это аварийные события: где позиция была закрыта принудительно и где защитные механизмы не успели сработать.'
-    }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
-        return 'это выход по времени, а не по целевым уровням; он показывает, как часто сделка доживает до конца дня.'
-    }
-    if (RECOVERY_KEYS.has(key)) {
-        return 'это цена восстановления после крупной просадки: сколько дней и какого роста требуется до возврата к прошлому пику.'
-    }
-    if (key === 'HorizonDays' || key === 'AvgDay%' || key === 'AvgWeek%' || key === 'AvgMonth%' || key === 'AvgYear%') {
-        return 'это темпы роста на разных горизонтах, полезные для планирования, но их нужно читать рядом с просадкой и ликвидациями.'
-    }
-    if (key === 'Long $' || key === 'Short $' || key === 'AvgLong%' || key === 'AvgShort%') {
-        return 'это вклад каждого направления в деньги и проценты: где стратегия зарабатывала, а где теряла.'
-    }
-    if (DIAGNOSTIC_ZERO_KEYS.has(key) || key === 'Miss') {
-        return 'это контроль качества данных и симуляции: любые аномалии нужно проверить до принятия финансового решения.'
-    }
-
-    return 'это часть общего профиля стратегии в выбранном срезе отчёта; корректный вывод возможен только при сравнении одинаковых режимов и периодов.'
+    return 'Correct comparison is possible only for Policies inside the same slice (bucket, SL mode, TP/SL mode, zonal, metric view); otherwise the conclusion is invalid.'
 }
 
 function resolveFallbackExampleHint(key: string): string {
@@ -1490,20 +1199,10 @@ function resolveFallbackExampleHint(key: string): string {
     if (key.includes('%')) {
         return `${key}=28 означает, что показатель равен 28% в выбранном срезе таблицы.`
     }
-    if (/_n$/.test(key) || /Days|Tr|Signals|n$/.test(key)) {
-        return `${key}=120 означает 120 событий (дней, сделок или сигналов) по выбранной строке.`
+    if (isFallbackCountMetricKey(key)) {
+        return `${key}=120 означает 120 событий (дней, сделок или сигналов) в выбранном срезе таблицы.`
     }
-    if (key === 'Policy') {
-        return 'если у Policy A ниже доходность, но заметно ниже просадка и нет ликвидаций, бизнес часто выбирает её как более устойчивую.'
-    }
-    if (key === 'Branch') {
-        return 'если у ANTI-D чуть ниже доходность, но существенно ниже просадка, этот режим даёт более безопасный риск-профиль для запуска.'
-    }
-    if (key === 'SL Mode') {
-        return 'если в одной строке NO SL даёт немного выше PnL, но при этом растут MaxDD%, HadLiq или AccRuin, прирост доходности куплен ценой аварийного риска.'
-    }
-
-    return `${key} читается в связке с соседними метриками той же строки: доходность, просадка, ликвидации и восстановление.`
+    return `${key} читается в связке с соседними метриками той же [[policy|Policy]]: доходность, просадка, ликвидации и восстановление.`
 }
 
 function resolveEnglishFallbackExampleHint(key: string): string {
@@ -1516,34 +1215,18 @@ function resolveEnglishFallbackExampleHint(key: string): string {
     if (key.includes('%')) {
         return `${key}=28 means the metric equals 28% in the selected table slice.`
     }
-    if (/_n$/.test(key) || /Days|Tr|Signals|n$/.test(key)) {
-        return `${key}=120 means 120 events (days, trades, or signals) for the selected row.`
+    if (isFallbackCountMetricKey(key)) {
+        return `${key}=120 means 120 events (days, trades, or signals) in the selected table slice.`
     }
-    if (key === 'Policy') {
-        return 'If Policy A has lower return but much lower drawdown and no liquidations, the business often chooses it as the more robust option.'
-    }
-    if (key === 'Branch') {
-        return 'If ANTI-D has slightly lower return but materially lower drawdown, it provides a safer risk profile for launch.'
-    }
-    if (key === 'SL Mode') {
-        return 'If NO SL gives slightly higher PnL in the same row but MaxDD%, HadLiq, or AccRuin rise, the extra return was bought at the cost of emergency risk.'
-    }
-
-    return `${key} must be read together with neighboring metrics in the same row: return, drawdown, liquidations, and recovery.`
+    return `${key} must be read together with neighboring metrics in the same Policy: return, drawdown, liquidations, and recovery.`
 }
 
 function resolveTermExampleHintOrNull(key: string): string | null {
-    if (key === 'Policy') {
-        return 'если Policy A дала +48% при MaxDD -18%, а Policy B дала +55% при MaxDD -52%, бизнес чаще выберет A как более устойчивую.'
-    }
-    if (key === 'Branch') {
-        return 'если BASE = +22%, а ANTI-D = +19%, но при этом MaxDD снижается с -40% до -24%, ANTI-D практичнее для риск-ограниченного запуска.'
-    }
-    if (key === 'SL Mode') {
-        return 'для одной и той же строки Policy/Branch сравнение WITH SL и NO SL показывает цену риска: если NO SL даёт выше PnL, но приводит к росту ликвидаций и/или AccRuin, режим становится неприемлемым для рабочего запуска.'
-    }
     if (key === 'Days') {
         return 'значение 365 означает, что расчёт охватил 365 торговых дней (без выходных).'
+    }
+    if (key === 'StopReason') {
+        return null
     }
     if (key === 'StartDay' || key === 'EndDay') {
         return 'StartDay=2022-01-01 и EndDay=2025-12-31 означает, что симуляция читалась по этому окну дат.'
@@ -1697,17 +1380,11 @@ function resolveTermExampleHintOrNull(key: string): string | null {
 }
 
 function resolveEnglishTermExampleHintOrNull(key: string): string | null {
-    if (key === 'Policy') {
-        return 'If Policy A delivered +48% with MaxDD -18%, while Policy B delivered +55% with MaxDD -52%, the business usually prefers A as the more stable option.'
-    }
-    if (key === 'Branch') {
-        return 'If BASE = +22% and ANTI-D = +19%, but MaxDD drops from -40% to -24%, ANTI-D is more practical for a risk-limited launch.'
-    }
-    if (key === 'SL Mode') {
-        return 'For the same Policy/Branch row, WITH SL vs NO SL shows the price of risk: if NO SL improves PnL but increases liquidations and/or AccRuin, the mode becomes unacceptable for production use.'
-    }
     if (key === 'Days') {
         return 'A value of 365 means the calculation covered 365 trading days (excluding weekends).'
+    }
+    if (key === 'StopReason') {
+        return null
     }
     if (key === 'StartDay' || key === 'EndDay') {
         return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the simulation was read on exactly that date window.'
@@ -1779,7 +1456,7 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
         return 'AvgHit%=2.3 and AvgMiss%=-1.7 mean the average win is larger than the average loss in absolute size.'
     }
     if (key === 'Expectancy%' || key === 'Expectancy$') {
-        return 'Expectancy%=0.18 and Expectancy$=34 mean a random trade from this row added about 0.18% and 34 USD on average.'
+        return 'Expectancy%=0.18 and Expectancy$=34 mean a random trade from this Policy added about 0.18% and 34 USD on average.'
     }
     if (key === 'LongWinRate%' || key === 'ShortWinRate%') {
         return 'LongWinRate%=62 and ShortWinRate%=47 mean the strategy is materially stronger in LONG than in SHORT.'
@@ -1862,549 +1539,424 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
 
 interface PolicyBranchMegaManualTranslation {
     description: string
-    tooltip: string
     readingHint?: string
     example?: string | null
 }
 
 const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTranslation> = {
-    Policy: {
-        description:
-            'Name of the trading policy. A policy is the full rule set for this row: when a position may open, which action is chosen on that day (LONG, SHORT, or no trade), what size is used, what leverage is applied, and where stop-loss / take-profit are defined.\n\nThe day is skipped when entry conditions are not satisfied (for example: no valid signal direction, the policy-level skip rule fired, a risk filter blocked entry, or capital share per trade = 0).\n\nPolicy name therefore stands for the full entry, exit, and risk configuration.',
-        tooltip:
-            'Trading policy name and its full entry, exit, and risk configuration.'
-    },
-    Branch: {
-        description:
-            'Branch is the execution scenario of the same Policy.\n\nBASE keeps the original daily signal direction without inversion (LONG stays LONG, SHORT stays SHORT).\n\nANTI-D checks the anti-direction rule every day. If the rule fires, direction is forcibly inverted (LONG -> SHORT, SHORT -> LONG).\n\nOne mandatory anti-direction filter is MinMove inside the working range (0.5%-12%).\n\nThis comparison shows whether inversion reduces stress-day risk without causing a critical loss of return.',
-        tooltip:
-            'Execution scenario of the same Policy: BASE keeps the original direction, ANTI-D can invert it when anti-direction conditions fire.'
-    },
-    'SL Mode': {
-        description:
-            'SL Mode is the switch for trade-exit mechanics.\n\n- WITH SL keeps the protective [[tp-sl|stop-loss]] enabled. The trade can close by [[tp-sl|stop-loss]], [[tp-sl|take-profit]], [[liquidation|liquidation]], or [[eod|EndOfDay]].\n- NO SL disables the protective [[tp-sl|stop-loss]], so the trade can close only by [[tp-sl|take-profit]], [[liquidation|liquidation]], or [[eod|EndOfDay]].\n\nRisk in NO SL:\n- for [[isolated-margin|isolated]] margin this raises the chance of losing the full trade margin.\n- for [[cross-margin|cross]] margin this raises the chance of losing the whole bucket balance.',
-        tooltip:
-            'Exit-mechanics mode for the row: WITH SL keeps protective stop-loss, NO SL removes it and leaves only take-profit, liquidation, or EndOfDay exits.'
-    },
     Days: {
         description: 'Total trading days in this policy/branch slice (trade and no-trade days).',
-        tooltip: 'Total days in slice.'
     },
     StartDay: {
         description: 'First UTC day key of the analyzed period.',
-        tooltip: 'Period start day (UTC).'
     },
     EndDay: {
         description: 'Last UTC day key of the analyzed period.',
-        tooltip: 'Period end day (UTC).'
     },
     StopReason: {
         description:
-            'Why the series ended.\n\nEnd of period means the test reached the final day of the window. That is the normal and healthy completion path.\n\nLiquidation (early stop) means the exchange force-closed a position because loss became critical.\n\nEarly stop without liquidation means the exchange did not force-close the trade, but the working balance was destroyed by a sequence of losses and the ruin scenario (AccRuin) fired.',
-        tooltip: 'Why this simulation slice ended exactly here.'
+            'Why the series ended.\n\n- End of period: the test reached the final day of the window. That is the normal and healthy completion path.\n- Liquidation (early stop): the exchange force-closed a position because loss became critical.\n- Early stop without liquidation: the exchange did not force-close the trade, but the working balance was destroyed by a sequence of losses and the ruin scenario (AccRuin) fired.',
     },
     Miss: {
         description:
             'Missing days inside the working period in "weekday | weekend" format. The left side shows weekday gaps when required daily records or the day-level decision log are missing for calculation. The right side shows weekend gaps, which are intentionally excluded from this model and are not treated as errors.',
-        tooltip: 'Missing days: weekday | weekend.'
     },
     'Trade%': {
         description:
             'Share of days with a real trade: TradeDays / Days * 100. A day counts as a trading day only after all filters are passed: a valid direction exists, the policy-level skip rule did not fire, capital share per trade is above 0, and entry is not blocked by the risk filter.',
-        tooltip: 'Percent of days that actually turned into trades.'
     },
     'Long%': {
-        description: 'Share of days where final action was LONG.',
-        tooltip: 'Percent of LONG days.'
+        description: COMMON_LONG_SHARE_DESCRIPTION_EN,
     },
     'Short%': {
-        description: 'Share of days where final action was SHORT.',
-        tooltip: 'Percent of SHORT days.'
+        description: COMMON_SHORT_SHARE_DESCRIPTION_EN,
     },
     'NoTrade%': {
-        description:
-            'Share of days without trades. A no-trade day appears when the model has no valid direction, the policy-level skip rule blocks the day, a risk filter blocks entry, or capital share per trade is reduced to 0.\n\nA high value does not automatically mean the policy is bad, but it does mean the strategy acts less often and the sample of actual trades becomes thinner.',
-        tooltip: 'Percent of days where the strategy did not open a trade.'
+        description: COMMON_NO_TRADE_SHARE_DESCRIPTION_EN,
     },
     'RiskDay%': {
-        description: 'Share of days flagged as risk days by the SL layer.',
-        tooltip: 'Percent of risk days.'
+        description: COMMON_RISK_DAY_SHARE_DESCRIPTION_EN,
     },
     'AntiD%': {
-        description: 'Share of days where anti-direction overlay was actually applied.',
-        tooltip: 'Percent of days with anti-direction applied.'
+        description: COMMON_ANTI_D_SHARE_DESCRIPTION_EN,
     },
     'AntiD|Risk%': {
         description: 'Anti-direction application rate inside risk days only.',
-        tooltip: 'Anti-direction rate within risk days.'
     },
     'Lev avg/min/max': {
         description: 'Average, minimum, and maximum leverage used on trade days.',
-        tooltip: 'Leverage avg/min/max.'
     },
     'Lev p50/p90': {
         description: 'Leverage distribution quantiles on trade days: median (p50) and upper tail (p90).',
-        tooltip: 'Leverage p50/p90.'
     },
     'Cap avg/min/max': {
-        description: 'Average, minimum, and maximum capital share used per trade.',
-        tooltip: 'Cap fraction avg/min/max.'
+        description: COMMON_CAP_AVG_MIN_MAX_DESCRIPTION_EN,
     },
     'Cap p50/p90': {
-        description: 'Cap fraction quantiles on trade days: p50 and p90.',
-        tooltip: 'Cap fraction p50/p90.'
+        description: COMMON_CAP_P50_P90_DESCRIPTION_EN,
     },
     CapAp: {
         description: 'Count of days where cap filter was applied and trade was executed.',
-        tooltip: 'Days with cap applied.'
     },
     CapSk: {
         description: 'Count of days skipped because capital share per trade disabled entry.',
-        tooltip: 'Days skipped because capital share per trade became zero.'
     },
     'AvgStake%': {
         description: 'Average margin per trade in percent of total start capital.',
-        tooltip: 'Average stake, %.'
     },
     AvgStake$: {
         description: 'Average margin per trade in USD.',
-        tooltip: 'Average stake, $.'
     },
     'Exposure% (avg/p50/p90/p99/max)': {
         description: 'Trade-level exposure distribution in %: avg, p50, p90, p99, max.',
-        tooltip: 'Exposure distribution per trade.'
     },
     'HighExposureTr% (>=20/50)': {
         description: 'Share of trades with high exposure thresholds: >=20% and >=50%.',
-        tooltip: 'High-exposure trade share (>=20% / >=50%).'
     },
     'DailyTP%': {
         description: 'Daily TP threshold distribution (avg/min/max), in % from entry.',
-        tooltip: 'Daily TP avg/min/max, %.'
     },
     'DailySL%': {
         description: 'Daily SL threshold distribution (avg/min/max), in % from entry.',
-        tooltip: 'Daily SL avg/min/max, %.'
     },
     'DynTP/SL Days': {
         description: 'Unique days where the DYNAMIC risk overlay was actually applied.',
-        tooltip: 'Days with dynamic TP/SL.'
     },
     'DynTP/SL Tr': {
         description: 'Trades where the DYNAMIC risk overlay was actually applied.',
-        tooltip: 'Trades with dynamic TP/SL.'
     },
     'DynTP/SL PnL%': {
         description: 'PnL contribution from DYNAMIC risk trades, in % of StartCap$.',
-        tooltip: 'Dynamic TP/SL contribution, %.'
     },
     'StatTP/SL Days': {
         description: 'Unique days where trades stayed in STATIC base mode without dynamic overlay.',
-        tooltip: 'Days with static TP/SL.'
     },
     'StatTP/SL Tr': {
         description: 'Trades that stayed in STATIC base mode without dynamic overlay.',
-        tooltip: 'Trades with static TP/SL.'
     },
     'StatTP/SL PnL%': {
         description: 'PnL contribution from STATIC base trades, in % of StartCap$.',
-        tooltip: 'Static TP/SL contribution, %.'
     },
     'DelayedTP%': {
         description: 'Average delayed-entry TP threshold, % from entry.',
-        tooltip: 'Delayed TP, %.'
     },
     'DelayedSL%': {
         description: 'Average delayed-entry SL threshold, % from entry.',
-        tooltip: 'Delayed SL, %.'
     },
     Tr: {
-        description: 'Total number of trades in this row.',
-        tooltip: 'Trade count.'
+        description: 'Total number of trades in this Policy.',
     },
     'TotalPnl%': {
         description:
             'Total profit or loss relative to the start capital of the selected slice, in %.\n\n- REAL: the factual result of the simulation.\n- NO BIGGEST LIQ LOSS: a counterfactual recalculation that removes one worst [[liquidation|liquidation]] to show how sensitive the slice is to a rare tail event.',
-        tooltip: 'Total profit or loss relative to slice start capital, in %.'
     },
     TotalPnl$: {
         description:
             'Total profit or loss in USD for the selected slice. Unlike TotalPnl%, this is the absolute money result, not a normalized percentage.\n\nIt is useful for business reading because it shows how large the effect is in dollars, not only in relative return terms.',
-        tooltip: 'Total profit or loss in USD for the slice.'
     },
     BucketNow$: {
         description: 'Current capital of selected bucket after all closed trades.',
-        tooltip: 'Current bucket capital, $.'
     },
     'Wealth%': {
         description:
             'Wealth-based growth in %: (equity now + withdrawn profit - start capital) / start capital * 100.\n\nUnlike TotalPnl%, Wealth% explicitly includes money already withdrawn from the slice, so it reflects total accumulated wealth rather than only current in-slice capital.',
-        tooltip: 'Total wealth growth including withdrawn profit, in %.'
     },
     'MaxDD%': {
         description:
             'Maximum drawdown: the deepest capital drop from a local peak to the following minimum, in %.\n\nIn REAL it is the factual drawdown. In NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation.\n\nThis is one of the main survival metrics of the row: a deeper MaxDD means the business must tolerate a larger capital collapse before recovery starts.',
-        tooltip: 'Deepest peak-to-trough capital decline, in %.'
     },
     'MaxDD_NoLiq%': {
         description: 'Maximum drawdown excluding liquidation effects, in %.',
-        tooltip: 'Max drawdown without liquidation, %.'
     },
     'MaxDD_Active%': {
         description: 'Maximum drawdown based on active equity curve, in %.',
-        tooltip: 'Max active drawdown, %.'
     },
     Sharpe: {
-        description: 'Sharpe ratio for this row.',
-        tooltip: 'Sharpe ratio.'
+        description: 'Sharpe ratio for this Policy.',
     },
     Sortino: {
-        description: 'Sortino ratio for this row.',
-        tooltip: 'Sortino ratio.'
+        description: 'Sortino ratio for this Policy.',
     },
     Calmar: {
-        description: 'Calmar ratio for this row.',
-        tooltip: 'Calmar ratio.'
+        description: 'Calmar ratio for this Policy.',
     },
     'CAGR%': {
         description: 'Compound annual growth rate, in %.',
-        tooltip: 'CAGR, %.'
     },
     'WinRate%': {
         description: 'Share of profitable trades, in %.',
-        tooltip: 'Win rate, %.'
     },
     ProfitFactor: {
         description: 'Profit factor = sum of positive NetPnl$ / abs(sum of negative NetPnl$).',
-        tooltip: 'Profit factor.'
     },
     PayoffRatio: {
         description: 'Payoff ratio = abs(AvgHit% / AvgMiss%).',
-        tooltip: 'Payoff ratio.'
     },
     'AvgHit%': {
         description: 'Average NetReturnPct of profitable trades only.',
-        tooltip: 'Average winning trade return, %.'
     },
     'AvgMiss%': {
         description: 'Average NetReturnPct of losing trades only.',
-        tooltip: 'Average losing trade return, %.'
     },
     'Expectancy%': {
         description: 'Average NetReturnPct across all trades.',
-        tooltip: 'Average trade return, %.'
     },
-    'Expectancy$': {
+    Expectancy$: {
         description: 'Average NetPnl$ across all trades.',
-        tooltip: 'Average trade PnL, $.'
     },
     'LongWinRate%': {
         description: 'Share of profitable LONG trades, in %.',
-        tooltip: 'LONG win rate, %.'
     },
     'ShortWinRate%': {
         description: 'Share of profitable SHORT trades, in %.',
-        tooltip: 'SHORT win rate, %.'
     },
     'BestDay%': {
         description: 'Best daily return of the same series used for Sharpe/Sortino/Calmar/CAGR.',
-        tooltip: 'Best day return, %.'
     },
     'WorstDay%': {
         description: 'Worst daily return of the same series used for Sharpe/Sortino/Calmar/CAGR.',
-        tooltip: 'Worst day return, %.'
     },
     RetSkew: {
         description: 'Skewness of the daily return series.',
-        tooltip: 'Return skewness.'
     },
     RetKurt: {
         description: 'Non-excess kurtosis of the daily return series (normal = 3).',
-        tooltip: 'Return kurtosis.'
     },
     'PSR>0%': {
         description: 'Probabilistic Sharpe Ratio against the threshold true SR > 0, in %.',
-        tooltip: 'Probability that true Sharpe > 0, %.'
     },
     'MinTRL95 SR>0': {
         description: 'Minimum Track Record Length needed for 95% confidence that true SR > 0.',
-        tooltip: 'Minimum track record length for SR > 0.'
     },
     'MeanRet%': {
         description:
             'Average daily return of the same day-level series used for Sharpe, Sortino, Calmar, and CAGR. All trades from the same day are first combined into one daily result, then the mean is taken across days. Reported in %.',
-        tooltip: 'Mean return, %.'
     },
     'StdRet%': {
         description: 'Standard deviation of returns, in %.',
-        tooltip: 'Return standard deviation, %.'
     },
     'DownStd%': {
         description: 'Downside standard deviation of returns, in %.',
-        tooltip: 'Downside deviation, %.'
     },
     'MaxDD_Ratio%': {
         description: 'Drawdown ratio metric in % for risk diagnostics.',
-        tooltip: 'MaxDD ratio, %.'
     },
     Withdrawn$: {
         description: 'Total withdrawn profit in USD.',
-        tooltip: 'Withdrawn profit, $.'
     },
     OnExch$: {
         description: 'Capital still on exchange in USD.',
-        tooltip: 'On-exchange capital, $.'
     },
     StartCap$: {
-        description: 'Start capital baseline in USD for this row.',
-        tooltip: 'Start capital, $.'
+        description: 'Start capital baseline in USD for this Policy.',
     },
     HadLiq: {
         description:
-            'HadLiq tracks liquidation events in this row.\n\nFor a single bucket row it behaves like a flag: 0 means no liquidation, 1 means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
-        tooltip: 'Whether the row had liquidation events.'
+            'HadLiq tracks liquidation events in this Policy.\n\nFor one bucket-specific Policy it behaves like a flag: 0 means no liquidation, 1 means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
     },
     AccRuin: {
         description:
             'AccRuin is the ruin metric of the working bucket capital.\n\nA bucket is considered ruined when it is explicitly marked as dead or when EquityNow / StartCapital falls to 20% or below, which means 80% or more of the start capital was lost.\n\nFor a single bucket row this is usually 0 or 1. For total aggregate it can show how many buckets were ruined.\n\nThis is stricter than ordinary drawdown: ruin means the strategy is no longer operational on that capital base.',
-        tooltip: 'Whether working capital reached the ruin threshold.'
     },
     RealLiq: {
         description: 'Count/flag of real liquidations using strict liquidation criterion.',
-        tooltip: 'Real liquidation.'
     },
     EODExit_n: {
         description: 'Number of trades closed by EndOfDay.',
-        tooltip: 'EndOfDay exits count.'
     },
     'EODExit%': {
         description: 'Share of trades closed by EndOfDay: EODExit_n / Tr * 100.',
-        tooltip: 'EndOfDay exits, %.'
     },
     EODExit$: {
         description: 'Sum of NetPnl$ for EndOfDay exits only.',
-        tooltip: 'EndOfDay PnL, $.'
     },
     'EODExit_AvgRet%': {
         description: 'Average NetRet% for EndOfDay exits only.',
-        tooltip: 'EndOfDay average return, %.'
     },
     LiqBeforeSL_n: {
         description: 'Cases where liquidation happened before SL trigger.',
-        tooltip: 'Liquidation before SL, count.'
     },
     LiqBeforeSL_BadSL_n: {
         description: 'Subset of LiqBeforeSL_n where SL level was beyond liquidation level.',
-        tooltip: 'Bad-SL liquidation-before-SL cases.'
     },
     LiqBeforeSL_Same1m_n: {
         description: 'Subset of LiqBeforeSL_n where SL and liquidation touched in the same 1m candle.',
-        tooltip: 'Same-1m SL/liquidation conflicts.'
     },
     LiqBeforeSL$: {
         description: 'Total NetPnl$ of trades where liquidation happened before SL.',
-        tooltip: 'PnL of liquidation-before-SL trades, $.'
     },
     'BalMin%': {
         description: 'Minimum active equity as % of StartCap$.',
-        tooltip: 'Minimum active balance, %.'
     },
     BalDead: {
         description: 'Flag showing equity dropped below balance-death threshold.',
-        tooltip: 'Balance-death flag.'
     },
     Recovered: {
         description:
             'Recovered is the recovery flag after the MaxDD episode on active equity.\n\nThe check is simple: after the MaxDD bottom, the current balance must return to the peak that existed before that drawdown.\n\ntrue means the old peak was regained; false means the series ended without full recovery.',
-        tooltip: 'Whether the row fully recovered after its deepest drawdown.'
     },
     RecovDays: {
         description:
             'Calendar days from the MaxDD bottom to the moment when balance returns to the peak before that drawdown.\n\nIf recovery never happened, the raw calculation keeps -1 and the table renders an empty / unavailable marker instead.\n\nThis metric shows not only whether recovery exists, but also how long the business has to wait for it.',
-        tooltip: 'Time needed to recover from MaxDD, in calendar days.'
     },
     RecovSignals: {
         description: 'Trade-day count needed for recovery after MaxDD.',
-        tooltip: 'Recovery signals count.'
     },
     'Time<35%': {
         description: 'Time spent with equity below 35% of StartCap$, measured in days.',
-        tooltip: 'Time below 35%, days.'
     },
     'ReqGain%': {
         description:
             'Required gain from the MaxDD bottom to return to the peak before that drawdown.\n\nFormula: ReqGain% = (1 / (1 - MaxDD) - 1) * 100.\n\nInterpretation is direct: the lower the value, the more realistic the recovery. 100%+ already means a heavy comeback requirement, and 200%+ is extremely demanding.',
-        tooltip: 'Required rebound from drawdown bottom back to the previous peak, in %.'
     },
     'DD70_Min%': {
         description: 'Minimum equity in deepest episode where equity fell below 70% of start.',
-        tooltip: 'Minimum in DD<70% episode.'
     },
     DD70_Recov: {
         description: 'Whether equity recovered above 70% after deepest DD<70% episode.',
-        tooltip: 'Recovered above 70%.'
     },
     DD70_RecovDays: {
         description: 'Calendar days to recover above 70% after deepest DD<70% episode.',
-        tooltip: 'Days to recover above 70%.'
     },
     DD70_n: {
         description: 'Count of episodes where equity dropped below 70% of start.',
-        tooltip: 'Number of DD<70% episodes.'
     },
     HorizonDays: {
         description: 'Calendar length of simulation horizon in days.',
-        tooltip: 'Simulation horizon, days.'
     },
     'AvgDay%': {
         description: 'Geometric average daily return, in %.',
-        tooltip: 'Average day return, %.'
     },
     'AvgWeek%': {
         description: 'Geometric average weekly return, in %.',
-        tooltip: 'Average week return, %.'
     },
     'AvgMonth%': {
         description: 'Geometric average monthly return, in %.',
-        tooltip: 'Average month return, %.'
     },
     'AvgYear%': {
         description: 'Geometric average annual return, in %.',
-        tooltip: 'Average year return, %.'
     },
     'Long n': {
         description: 'Number of LONG trades.',
-        tooltip: 'LONG trades count.'
     },
     'Short n': {
         description: 'Number of SHORT trades.',
-        tooltip: 'SHORT trades count.'
     },
     'Long $': {
         description: 'Total PnL contribution of LONG trades, in USD.',
-        tooltip: 'LONG PnL, $.'
     },
     'Short $': {
         description: 'Total PnL contribution of SHORT trades, in USD.',
-        tooltip: 'SHORT PnL, $.'
     },
     'AvgLong%': {
         description: 'Average return per LONG trade, in %.',
-        tooltip: 'Average LONG return, %.'
     },
     'AvgShort%': {
         description: 'Average return per SHORT trade, in %.',
-        tooltip: 'Average SHORT return, %.'
     },
     inv_liq_mismatch: {
         description: 'Diagnostic count of liquidation-invariant mismatches. Should be zero.',
-        tooltip: 'Liquidation invariant mismatches.'
     },
     minutes_anomaly: {
         description: 'Diagnostic count of minute-level data anomalies. Should be zero in healthy datasets.',
-        tooltip: 'Minute-data anomalies.'
     }
 }
 
-function resolveManualEnglishTermTranslationOrThrow(key: string): PolicyBranchMegaManualTranslation {
+function resolveManualEnglishTermTranslation(key: string): PolicyBranchMegaManualTranslation {
     const translation = POLICY_BRANCH_MEGA_MANUAL_EN[key]
     if (!translation) {
         throw new Error(`[policy-branch-mega] manual en translation is missing for term=${key}.`)
     }
 
-    if (!translation.description || !translation.tooltip) {
+    if (!translation.description) {
         throw new Error(`[policy-branch-mega] manual en translation is empty for term=${key}.`)
     }
 
     return translation
 }
 
-function resolveEnglishTermContentOrThrow(key: string): PolicyBranchMegaResolvedLocaleContent {
-    const translation = resolveManualEnglishTermTranslationOrThrow(key)
+function resolveEnglishTermContent(key: string): PolicyBranchMegaResolvedLocaleContent {
+    if (POLICY_BRANCH_MEGA_SHARED_COMMON_TERM_KEYS.has(key)) {
+        const sharedDescription = resolveCommonReportColumnTooltipOrNull(key, 'en')
+        if (!sharedDescription) {
+            throw new Error(`[policy-branch-mega] shared common en tooltip is missing for term=${key}.`)
+        }
+
+        return {
+            description: sharedDescription,
+            readingHint: '',
+            example: null,
+        }
+    }
+
+    const translation = resolveManualEnglishTermTranslation(key)
 
     return {
         description: translation.description,
         readingHint: translation.readingHint ?? resolveEnglishTermReadingHintOrDefault(key),
         example:
             typeof translation.example === 'undefined' ? resolveEnglishTermExampleHintOrNull(key) : translation.example,
-        tooltip: translation.tooltip
     }
 }
 
-function resolveRuTermContentOrThrow(term: PolicyBranchMegaTermDraft, key: string): PolicyBranchMegaResolvedLocaleContent {
-    if (!term.description || term.description.trim().length === 0) {
-        throw new Error(`[policy-branch-mega] description is empty for term=${key}.`)
+function resolveRuTermContent(
+    term: PolicyBranchMegaTermDraft,
+    key: string
+): PolicyBranchMegaResolvedLocaleContent {
+    if (POLICY_BRANCH_MEGA_SHARED_COMMON_TERM_KEYS.has(key)) {
+        const sharedDescription = resolveCommonReportColumnTooltipOrNull(key, 'ru')
+        if (!sharedDescription) {
+            throw new Error(`[policy-branch-mega] shared common ru tooltip is missing for term=${key}.`)
+        }
+
+        return {
+            description: sharedDescription,
+            readingHint: '',
+            example: null
+        }
     }
 
-    const tooltip =
-        typeof term.tooltip === 'undefined' || term.tooltip === POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION ?
-            term.description
-        :   term.tooltip
-
-    if (typeof tooltip !== 'string' || tooltip.trim().length === 0) {
-        throw new Error(`[policy-branch-mega] tooltip is empty for term=${key}.`)
+    if (!term.description || term.description.trim().length === 0) {
+        throw new Error(`[policy-branch-mega] description is empty for term=${key}.`)
     }
 
     return {
         description: term.description,
         readingHint: resolveTermReadingHintOrDefault(key),
-        example: resolveTermExampleHintOrNull(key),
-        tooltip
+        example: resolveTermExampleHintOrNull(key)
     }
 }
 
-function resolvePolicyBranchMegaTermContentOrThrow(
+function resolvePolicyBranchMegaTermContent(
     term: PolicyBranchMegaTermDraft,
     key: string,
     locale: PolicyBranchMegaTermLocale
 ): PolicyBranchMegaResolvedLocaleContent {
-    return locale === 'en' ? resolveEnglishTermContentOrThrow(key) : resolveRuTermContentOrThrow(term, key)
+    return locale === 'en' ? resolveEnglishTermContent(key) : resolveRuTermContent(term, key)
 }
 
-function buildUserFacingTermDescriptionOrThrow(
+function buildUserFacingTermDescription(
     term: PolicyBranchMegaTermDraft,
     key: string,
     locale: PolicyBranchMegaTermLocale
 ): string {
-    const content = resolvePolicyBranchMegaTermContentOrThrow(term, key, locale)
+    const content = resolvePolicyBranchMegaTermContent(term, key, locale)
     const base = normalizeLocaleAwareTermBlock(content.description, locale)
     const reading = normalizeLocaleAwareTermBlock(content.readingHint, locale)
     const exampleBlock =
         typeof content.example === 'string' && content.example.trim().length > 0 ?
             normalizeLocaleAwareTermBlock(`${resolveExampleLabel(locale)}: ${content.example}`, locale)
         :   ''
-
-    const blocks = [
-        base,
-        `${resolveReadingLabel(locale)}: ${reading}`,
-        exampleBlock
-    ].filter((block): block is string => Boolean(block))
+    const readingBlock = reading.length > 0 ? `${resolveReadingLabel(locale)}: ${reading}` : ''
+    const blocks = [base, readingBlock, exampleBlock].filter((block): block is string => Boolean(block))
 
     return blocks.join('\n\n')
 }
 
-function resolvePolicyBranchMegaTermTooltipOrThrow(
-    term: PolicyBranchMegaTermDraft,
-    key: string,
-    tooltipMode: PolicyBranchMegaTooltipResolutionMode,
-    resolvedDescription: string,
-    locale: PolicyBranchMegaTermLocale
-): string {
-    if (tooltipMode === 'description') {
-        return resolvedDescription
-    }
-
-    const content = resolvePolicyBranchMegaTermContentOrThrow(term, key, locale)
-    return normalizeLocaleAwareTermBlock(content.tooltip, locale)
-}
-
-function resolvePolicyBranchMegaTermDraftOrThrow(key: string): PolicyBranchMegaTermDraft {
+function resolvePolicyBranchMegaTermDraft(key: string): PolicyBranchMegaTermDraft {
     const commonTerm = POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS[key]
     if (commonTerm) {
-        return {
-            ...commonTerm,
-            tooltip: POLICY_BRANCH_MEGA_TOOLTIP_FROM_DESCRIPTION
-        }
+        return commonTerm
     }
 
     const term = TERMS[key]
@@ -2415,7 +1967,7 @@ function resolvePolicyBranchMegaTermDraftOrThrow(key: string): PolicyBranchMegaT
     return term
 }
 
-export function getPolicyBranchMegaTermOrThrow(
+export function getPolicyBranchMegaTerm(
     title: string,
     options?: PolicyBranchMegaTermResolveOptions
 ): PolicyBranchMegaTermDefinition {
@@ -2424,22 +1976,15 @@ export function getPolicyBranchMegaTermOrThrow(
         throw new Error('[policy-branch-mega] column title is empty.')
     }
 
-    const term = resolvePolicyBranchMegaTermDraftOrThrow(key)
+    const term = resolvePolicyBranchMegaTermDraft(key)
 
     const locale = options?.locale ?? 'ru'
-    const resolvedDescription = buildUserFacingTermDescriptionOrThrow(term, key, locale)
+    const resolvedDescription = buildUserFacingTermDescription(term, key, locale)
 
     return {
         key: term.key,
         title: term.title,
-        description: resolvedDescription,
-        tooltip: resolvePolicyBranchMegaTermTooltipOrThrow(
-            term,
-            key,
-            options?.tooltipMode ?? POLICY_BRANCH_MEGA_DEFAULT_TOOLTIP_MODE,
-            resolvedDescription,
-            locale
-        )
+        description: resolvedDescription
     }
 }
 
@@ -2462,7 +2007,7 @@ export function buildPolicyBranchMegaTermReferencesForColumns(columns: string[])
             return
         }
 
-        const term = resolvePolicyBranchMegaTermDraftOrThrow(column)
+        const term = resolvePolicyBranchMegaTermDraft(column)
         const secondaryKey = MERGED_PRIMARY_TO_SECONDARY.get(column)
         const hasSecondaryPair = Boolean(secondaryKey && normalizedSet.has(secondaryKey))
         const mergedTitle = hasSecondaryPair ? (MERGED_PRIMARY_TITLE_BY_KEY.get(column) ?? term.title) : term.title
@@ -2476,7 +2021,7 @@ export function buildPolicyBranchMegaTermReferencesForColumns(columns: string[])
     return resolved
 }
 
-export function orderPolicyBranchMegaSectionsOrThrow(sections: TableSectionDto[]): TableSectionDto[] {
+export function orderPolicyBranchMegaSections(sections: TableSectionDto[]): TableSectionDto[] {
     if (!sections || sections.length === 0) {
         throw new Error('[policy-branch-mega] report has no sections.')
     }
@@ -2545,7 +2090,7 @@ export function buildPolicyBranchMegaTermsForColumns(
             return
         }
 
-        const term = getPolicyBranchMegaTermOrThrow(column, options)
+        const term = getPolicyBranchMegaTerm(column, options)
         const secondaryKey = MERGED_PRIMARY_TO_SECONDARY.get(column)
         const hasSecondaryPair = Boolean(secondaryKey && normalizedSet.has(secondaryKey))
         const mergedTitle = hasSecondaryPair ? (MERGED_PRIMARY_TITLE_BY_KEY.get(column) ?? column) : column

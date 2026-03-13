@@ -62,12 +62,7 @@ const SECTION_SENTENCES = {
     reading: plainSentences('coverage', 'nodeKinds', 'readingOrder'),
     rootSolution: [] as DeveloperSentenceConfig[],
     foundation: plainSentences('foundationBoundary', 'contractProjects', 'timeAndCore', 'commonPitfall'),
-    modelPipeline: plainSentences(
-        'pipelineBoundary',
-        'causalVsOmniscient',
-        'trainInferFlow',
-        'whereToStart'
-    ),
+    modelPipeline: plainSentences('pipelineBoundary', 'causalVsOmniscient', 'trainInferFlow', 'whereToStart'),
     runtimeDelivery: plainSentences('runtimeBoundary', 'linkedSource', 'reportsApiSplit', 'whereToDebug'),
     guards: plainSentences('guardBoundary', 'testsVsAnalyzers', 'archRules', 'failureStrategy'),
     rootSource: plainSentences('rootSourceFolders', 'excludedEmpty', 'excludedGenerated', 'inactiveSnapshot')
@@ -198,7 +193,6 @@ export const DEVELOPER_BACKEND_STRUCTURE_PAGE_CONFIG: DeveloperPageContentConfig
                     treeNode('coreCausalData', 'Data', FOLDER_SENTENCES),
                     treeNode('coreCausalDomain', 'Domain', FOLDER_SENTENCES),
                     treeNode('coreCausalInfra', 'Infra', FOLDER_SENTENCES),
-                    treeNode('coreCausalLegacy', 'Legacy', FOLDER_SENTENCES),
                     treeNode('coreCausalMl', 'ML', FOLDER_SENTENCES),
                     treeNode('coreCausalTime', 'Time', FOLDER_SENTENCES),
                     treeNode('coreCausalTrading', 'Trading', FOLDER_SENTENCES),
@@ -245,11 +239,20 @@ export const DEVELOPER_BACKEND_STRUCTURE_PAGE_CONFIG: DeveloperPageContentConfig
                 treeNode('infra', 'SolSignalModel1D_Backtest.Infra', PROJECT_SENTENCES, [
                     treeNode('infraData', 'Data', FOLDER_SENTENCES)
                 ]),
-                treeNode('appOrchestrationProject', 'SolSignalModel1D_Backtest.AppOrchestration', PROJECT_WITH_FILES_SENTENCES),
-                treeNode('appOrchestrationInterop', 'SolSignalModel1D_Backtest.AppOrchestration.Interop', PROJECT_SENTENCES, [
-                    treeNode('appInteropInterop', 'Interop', FOLDER_SENTENCES),
-                    treeNode('appInteropOmniscient', 'Omniscient', FOLDER_SENTENCES)
-                ]),
+                treeNode(
+                    'appOrchestrationProject',
+                    'SolSignalModel1D_Backtest.AppOrchestration',
+                    PROJECT_WITH_FILES_SENTENCES
+                ),
+                treeNode(
+                    'appOrchestrationInterop',
+                    'SolSignalModel1D_Backtest.AppOrchestration.Interop',
+                    PROJECT_SENTENCES,
+                    [
+                        treeNode('appInteropInterop', 'Interop', FOLDER_SENTENCES),
+                        treeNode('appInteropOmniscient', 'Omniscient', FOLDER_SENTENCES)
+                    ]
+                ),
                 treeNode('reports', 'SolSignalModel1D_Backtest.Reports', PROJECT_WITH_FILES_SENTENCES, [
                     treeNode('reportsBacktest', 'Backtest', FOLDER_SENTENCES),
                     treeNode('reportsCurrentPrediction', 'CurrentPrediction', FOLDER_SENTENCES),
@@ -303,8 +306,16 @@ export const DEVELOPER_BACKEND_STRUCTURE_PAGE_CONFIG: DeveloperPageContentConfig
                 treeNode('archTests', 'SolSignalModel1D_Backtest.ArchTests', PROJECT_WITH_FILES_SENTENCES),
                 treeNode('analyzers', 'SolSignalModel1D_Backtest.Analyzers', PROJECT_WITH_FILES_SENTENCES),
                 treeNode('analyzersTests', 'SolSignalModel1D_Backtest.Analyzers.Tests', PROJECT_WITH_FILES_SENTENCES),
-                treeNode('cachePathAnalyzers', 'SolSignalModel1D_Backtest.CachePath.Analyzers', PROJECT_WITH_FILES_SENTENCES),
-                treeNode('cachePathAnalyzersTests', 'SolSignalModel1D_Backtest.CachePath.Analyzers.Tests', PROJECT_WITH_FILES_SENTENCES)
+                treeNode(
+                    'cachePathAnalyzers',
+                    'SolSignalModel1D_Backtest.CachePath.Analyzers',
+                    PROJECT_WITH_FILES_SENTENCES
+                ),
+                treeNode(
+                    'cachePathAnalyzersTests',
+                    'SolSignalModel1D_Backtest.CachePath.Analyzers.Tests',
+                    PROJECT_WITH_FILES_SENTENCES
+                )
             ]
         },
         {
@@ -325,7 +336,11 @@ export const DEVELOPER_BACKEND_STRUCTURE_PAGE_CONFIG: DeveloperPageContentConfig
                 ]),
                 treeNode('rootCurrentPredictionExcluded', 'CurrentPrediction (empty root folder)', EXCLUDED_SENTENCES),
                 treeNode('rootUtilsExcluded', 'Utils (empty root folder)', EXCLUDED_SENTENCES),
-                treeNode('coreCausalTrustedExcluded', 'SolSignalModel1D_Backtest.Core.Causal.Trusted (inactive snapshot folder)', EXCLUDED_SENTENCES)
+                treeNode(
+                    'coreCausalTrustedExcluded',
+                    'SolSignalModel1D_Backtest.Core.Causal.Trusted (inactive snapshot folder)',
+                    EXCLUDED_SENTENCES
+                )
             ]
         }
     ]

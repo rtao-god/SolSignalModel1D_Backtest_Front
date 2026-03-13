@@ -12,6 +12,10 @@ export function buildRouteSectionTitleI18nKey(section: RouteSection): string {
     return `nav:section.${section}`
 }
 
+export function buildRouteSectionCompactTitleI18nKey(section: RouteSection): string {
+    return `nav:sectionCompact.${section}`
+}
+
 export function buildRouteSubNavAriaI18nKey(routeId: AppRoute): string {
     return `nav:subnav.${toRouteToken(routeId)}`
 }

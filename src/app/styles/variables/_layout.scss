@@ -1,9 +1,63 @@
 :root {
-    --sidebar-width: 310px;
-    --navbar-height: 72px;
+    --bp-phone-max: 767px;
+    --bp-tablet-min: 768px;
+    --bp-tablet-max: 1023px;
+    --bp-compact-desktop-min: 1024px;
+    --bp-compact-desktop-max: 1439px;
+    --bp-desktop-min: 1440px;
+    --bp-desktop-max: 1919px;
+    --bp-wide-min: 1920px;
 
-    // Единое смещение для всех якорей (navbar + небольшой отступ). Нужен, чтобы при пагинации был виден заголовок таблиц и проочего, а не только сама таблица.
+    --navbar-height: 72px;
+    --sidebar-width: 308px;
+    --sidebar-compact-width: 88px;
+    --sidebar-modal-width: 440px;
+
+    --page-gutter-inline: 32px;
+    --page-padding-top: 24px;
+    --page-padding-bottom: 32px;
+    --page-section-gap: 24px;
+    --page-shell-max: 1360px;
+    --page-shell-max-wide: 1520px;
+    --page-shell-max-reading: 1120px;
+
     --anchor-offset: calc(var(--navbar-height) + 18px);
-    // глобальный отступ снизу: насколько не "доезжать" до конца страницы при якорном скролле
-    --anchor-bottom-guard: 64px; // подогнать под высоту футера + небольшой запас (пока что не работает)
+    --anchor-bottom-guard: 64px;
+}
+
+@media (min-width: 1920px) {
+    :root {
+        --page-gutter-inline: 40px;
+        --page-shell-max: var(--page-shell-max-wide);
+    }
+}
+
+@media (max-width: 1439px) {
+    :root {
+        --page-gutter-inline: 24px;
+        --page-padding-top: 20px;
+        --page-padding-bottom: 28px;
+        --page-section-gap: 22px;
+    }
+}
+
+@media (max-width: 1023px) {
+    :root {
+        --navbar-height: 68px;
+        --page-gutter-inline: 18px;
+        --page-padding-top: 18px;
+        --page-padding-bottom: 24px;
+        --page-section-gap: 18px;
+    }
+}
+
+@media (max-width: 767px) {
+    :root {
+        --navbar-height: 64px;
+        --sidebar-modal-width: 100vw;
+        --page-gutter-inline: 16px;
+        --page-padding-top: 16px;
+        --page-padding-bottom: 22px;
+        --page-section-gap: 16px;
+    }
 }

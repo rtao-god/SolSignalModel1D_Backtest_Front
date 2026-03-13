@@ -2,6 +2,7 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Icon.module.scss'
 import { ComponentType, SVGProps, useEffect, useState } from 'react'
 import IconProps from './types'
+import { logError } from '@/shared/lib/logging/logError'
 
 export default function Icon({
     name,
@@ -20,7 +21,12 @@ export default function Icon({
                 const { default: ImportedIcon } = await import(`@/shared/assets/icons/${name}.svg`)
                 setSvgIcon(() => ImportedIcon)
             } catch (error) {
-                console.error(`Icon ${name} not found`)
+                logError(new Error(`Icon "${name}" could not be loaded.`), undefined, {
+                    source: 'icon-loader',
+                    domain: 'asset_contract',
+                    severity: 'warning',
+                    extra: { name }
+                })
             }
         }
         loadIcon()

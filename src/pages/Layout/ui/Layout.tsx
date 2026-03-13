@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import LayoutProps from './types'
 import { Navbar, Sidebar, Footer } from '@/widgets/components'
-import { TABLET, MOBILE } from '@/shared/utils'
 import cls from './Layout.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Outlet, useLocation } from 'react-router-dom'
@@ -11,8 +10,6 @@ import { logError } from '@/shared/lib/logging/logError'
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary/ErrorBoundary'
 
 export default function Layout({ children, className }: LayoutProps) {
-    const isDesktop = !MOBILE && !TABLET
-
     const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
     const location = useLocation()
     const isGuideRoute = location.pathname.startsWith('/guide')
@@ -25,12 +22,22 @@ export default function Layout({ children, className }: LayoutProps) {
         setIsSidebarModalOpen(false)
     }, [])
 
+    useEffect(() => {
+        setIsSidebarModalOpen(false)
+    }, [location.pathname])
+
     return (
         <div className={classNames(cls.Layout, {}, [className ?? ''])}>
-            <Navbar showSidebarToggle={!isDesktop} onSidebarToggleClick={handleOpenSidebarModal} />
+            <Navbar showSidebarToggle onSidebarToggleClick={handleOpenSidebarModal} />
 
             <div className={cls.content}>
-                {isDesktop && <Sidebar />}
+                <div className={cls.fullSidebarShell}>
+                    <Sidebar />
+                </div>
+
+                <div className={cls.compactSidebarShell}>
+                    <Sidebar mode='compact' onItemClick={handleOpenSidebarModal} />
+                </div>
 
                 <main className={classNames(cls.main, { [cls.guideMain]: isGuideRoute })} data-tooltip-boundary>
                     <ErrorBoundary
@@ -38,7 +45,8 @@ export default function Layout({ children, className }: LayoutProps) {
                         onError={(error, errorInfo) =>
                             logError(error, errorInfo, {
                                 source: 'layout-error-boundary',
-                                path: location.pathname
+                                path: location.pathname,
+                                domain: 'route_runtime'
                             })
                         }
                         fallbackRender={props => <PageErrorFallback {...props} />}>
@@ -49,8 +57,12 @@ export default function Layout({ children, className }: LayoutProps) {
 
             <Footer />
 
-            {!isDesktop && isSidebarModalOpen && (
-                <Modal width='min(90vw, 420px)' height='auto' onClose={handleCloseSidebarModal}>
+            {isSidebarModalOpen && (
+                <Modal
+                    className={cls.sidebarModal}
+                    width='min(92vw, var(--sidebar-modal-width))'
+                    height='auto'
+                    onClose={handleCloseSidebarModal}>
                     <Sidebar mode='modal' onItemClick={handleCloseSidebarModal} />
                 </Modal>
             )}

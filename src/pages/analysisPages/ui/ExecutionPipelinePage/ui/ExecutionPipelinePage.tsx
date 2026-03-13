@@ -4,10 +4,10 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { ReportActualStatusCard, Text } from '@/shared/ui'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
-import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { useBacktestExecutionPipelineReportQuery } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
-import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
 import cls from './ExecutionPipelinePage.module.scss'
 import type { ExecutionPipelinePageProps } from './types'
 
@@ -48,7 +48,7 @@ function isTableSection(section: ReportSectionDto): section is TableSectionDto {
     return Array.isArray(typed.columns) && Array.isArray(typed.rows)
 }
 
-function parseSectionsOrThrow(sections: ReportSectionDto[]): ParsedPipelineSections {
+function parseSections(sections: ReportSectionDto[]): ParsedPipelineSections {
     if (!Array.isArray(sections)) {
         throw new Error('[execution-pipeline] report.sections must be an array.')
     }
@@ -121,8 +121,9 @@ function resolveSectionDescription(
 }
 
 export default function ExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
-    const { t } = useTranslation('reports')
-    const { data, isError, error, refetch } = useBacktestExecutionPipelineReportQuery()
+    const { t, i18n } = useTranslation('reports')
+    const { data, isLoading, isError, error, refetch } = useBacktestExecutionPipelineReportQuery()
+    const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
 
     const generatedAtState = useMemo(() => {
         if (!data) return { value: null as Date | null, error: null as Error | null }
@@ -144,7 +145,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
     const sourceEndpointState = useMemo(() => {
         try {
             return {
-                value: resolveReportSourceEndpointOrThrow(),
+                value: resolveReportSourceEndpoint(),
                 error: null as Error | null
             }
         } catch (err) {
@@ -163,7 +164,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
         try {
             return {
-                value: parseSectionsOrThrow(data.sections),
+                value: parseSections(data.sections),
                 error: null as Error | null
             }
         } catch (err) {
@@ -178,124 +179,127 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
-    let content: JSX.Element | null = null
-    if (data) {
-        if (generatedAtState.error || !generatedAtState.value) {
-            const safeError =
-                generatedAtState.error ?? new Error('[execution-pipeline] generatedAtUtc is missing after validation.')
-
-            content = (
-                <PageError
-                    title={t('executionPipeline.page.errors.invalidGeneratedAt.title')}
-                    message={t('executionPipeline.page.errors.invalidGeneratedAt.description')}
-                    error={safeError}
-                    onRetry={refetch}
-                />
-            )
-        } else if (sourceEndpointState.error || !sourceEndpointState.value) {
-            const safeError =
-                sourceEndpointState.error ??
-                new Error('[execution-pipeline] report source endpoint is missing after validation.')
-
-            content = (
-                <PageError
-                    title={t('executionPipeline.page.errors.invalidSource.title')}
-                    message={t('executionPipeline.page.errors.invalidSource.description')}
-                    error={safeError}
-                    onRetry={refetch}
-                />
-            )
-        } else if (parsedSectionsState.error || !parsedSectionsState.value) {
-            const safeError =
-                parsedSectionsState.error ?? new Error('[execution-pipeline] sections are missing after validation.')
-
-            content = (
-                <PageError
-                    title={t('executionPipeline.page.errors.invalidSections.title')}
-                    message={t('executionPipeline.page.errors.invalidSections.description')}
-                    error={safeError}
-                    onRetry={refetch}
-                />
-            )
-        } else {
-            content = (
-                <div className={rootClassName}>
-                    <header className={cls.hero}>
-                        <div>
-                            <Text type='h1' className={cls.heroTitle}>
-                                {t('executionPipeline.page.title')}
-                            </Text>
-                            <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
-                        </div>
-
-                        <ReportActualStatusCard
-                            statusMode='debug'
-                            statusTitle={t('executionPipeline.page.status.title')}
-                            statusMessage={t('executionPipeline.page.status.description')}
-                            dataSource={sourceEndpointState.value}
-                            reportTitle={data.title}
-                            reportId={data.id}
-                            reportKind={data.kind}
-                            generatedAtUtc={data.generatedAtUtc}
-                        />
-                    </header>
-
-                    {parsedSectionsState.value.keyValueSections.length > 0 && (
-                        <section className={cls.keyValueSection}>
-                            {parsedSectionsState.value.keyValueSections.map((section, sectionIndex) => {
-                                const sectionTitle =
-                                    normalizeTitle(section.title) ||
-                                    t('executionPipeline.page.fallbacks.configTitle', { index: sectionIndex + 1 })
-                                return (
-                                    <article key={`${sectionTitle}-${sectionIndex}`} className={cls.keyValueCard}>
-                                        <Text type='h3' className={cls.keyValueTitle}>
-                                            {sectionTitle}
-                                        </Text>
-                                        <dl className={cls.keyValueGrid}>
-                                            {(section.items ?? []).map(item => (
-                                                <div key={item.key} className={cls.keyValueRow}>
-                                                    <dt className={cls.keyValueKey}>{item.key}</dt>
-                                                    <dd className={cls.keyValueValue}>{item.value}</dd>
-                                                </div>
-                                            ))}
-                                        </dl>
-                                    </article>
-                                )
-                            })}
-                        </section>
-                    )}
-
-                    <section className={cls.tablesSection}>
-                        {parsedSectionsState.value.tableSections.map((section, sectionIndex) => {
-                            const title =
-                                normalizeTitle(section.title) ||
-                                t('executionPipeline.page.fallbacks.tableTitle', { index: sectionIndex + 1 })
-                            const domIdBase = toDomSlug(title) || `execution-pipeline-${sectionIndex + 1}`
-                            return (
-                                <ReportTableCard
-                                    key={`${title}-${sectionIndex}`}
-                                    title={title}
-                                    description={resolveSectionDescription(title, (key, options) => t(key, options))}
-                                    columns={section.columns ?? []}
-                                    rows={section.rows ?? []}
-                                    domId={`execution-pipeline-${sectionIndex + 1}-${domIdBase}`}
-                                />
-                            )
-                        })}
-                    </section>
-                </div>
-            )
-        }
-    }
+    const reportStateError = error ?? generatedAtState.error ?? sourceEndpointState.error ?? null
+    const hasReadyReport = Boolean(data && generatedAtState.value && sourceEndpointState.value)
 
     return (
-        <PageDataBoundary
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
-            onRetry={refetch}
-            errorTitle={t('executionPipeline.page.errorTitle')}>
-            {content}
-        </PageDataBoundary>
+        <div className={rootClassName}>
+            <header className={cls.hero}>
+                <div>
+                    <Text type='h1' className={cls.heroTitle}>
+                        {t('executionPipeline.page.title')}
+                    </Text>
+                    <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
+                </div>
+
+                {hasReadyReport && data && sourceEndpointState.value && (
+                    <ReportActualStatusCard
+                        statusMode='debug'
+                        statusTitle={t('executionPipeline.page.status.title')}
+                        statusMessage={t('executionPipeline.page.status.description')}
+                        dataSource={sourceEndpointState.value}
+                        reportTitle={data.title}
+                        reportId={data.id}
+                        reportKind={data.kind}
+                        generatedAtUtc={data.generatedAtUtc}
+                    />
+                )}
+            </header>
+
+            <SectionDataState
+                isLoading={isLoading}
+                isError={Boolean(isError || reportStateError)}
+                error={reportStateError}
+                hasData={hasReadyReport}
+                onRetry={refetch}
+                title={
+                    generatedAtState.error ? t('executionPipeline.page.errors.invalidGeneratedAt.title')
+                    : sourceEndpointState.error ?
+                        t('executionPipeline.page.errors.invalidSource.title')
+                    :   t('executionPipeline.page.errorTitle')
+                }
+                description={
+                    generatedAtState.error ? t('executionPipeline.page.errors.invalidGeneratedAt.description')
+                    : sourceEndpointState.error ?
+                        t('executionPipeline.page.errors.invalidSource.description')
+                    :   undefined
+                }
+                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                logContext={{ source: 'execution-pipeline-page' }}>
+                {data && (
+                    <SectionDataState
+                        isError={Boolean(parsedSectionsState.error)}
+                        error={parsedSectionsState.error}
+                        hasData={Boolean(parsedSectionsState.value)}
+                        onRetry={refetch}
+                        title={t('executionPipeline.page.errors.invalidSections.title')}
+                        description={t('executionPipeline.page.errors.invalidSections.description')}
+                        logContext={{ source: 'execution-pipeline-sections' }}>
+                        {parsedSectionsState.value && (
+                            <>
+                                {parsedSectionsState.value.keyValueSections.length > 0 && (
+                                    <section className={cls.keyValueSection}>
+                                        {parsedSectionsState.value.keyValueSections.map((section, sectionIndex) => {
+                                            const rawSectionTitle =
+                                                normalizeTitle(section.title) ||
+                                                t('executionPipeline.page.fallbacks.configTitle', {
+                                                    index: sectionIndex + 1
+                                                })
+                                            const sectionTitle = localizeReportSectionTitle(
+                                                data.kind,
+                                                rawSectionTitle,
+                                                reportUiLanguage
+                                            )
+                                            return (
+                                                <article
+                                                    key={`${sectionTitle}-${sectionIndex}`}
+                                                    className={cls.keyValueCard}>
+                                                    <Text type='h3' className={cls.keyValueTitle}>
+                                                        {sectionTitle}
+                                                    </Text>
+                                                    <dl className={cls.keyValueGrid}>
+                                                        {(section.items ?? []).map(item => (
+                                                            <div key={item.key} className={cls.keyValueRow}>
+                                                                <dt className={cls.keyValueKey}>{item.key}</dt>
+                                                                <dd className={cls.keyValueValue}>{item.value}</dd>
+                                                            </div>
+                                                        ))}
+                                                    </dl>
+                                                </article>
+                                            )
+                                        })}
+                                    </section>
+                                )}
+
+                                <section className={cls.tablesSection}>
+                                    {parsedSectionsState.value.tableSections.map((section, sectionIndex) => {
+                                        const rawTitle =
+                                            normalizeTitle(section.title) ||
+                                            t('executionPipeline.page.fallbacks.tableTitle', {
+                                                index: sectionIndex + 1
+                                            })
+                                        const title = localizeReportSectionTitle(data.kind, rawTitle, reportUiLanguage)
+                                        const domIdBase =
+                                            toDomSlug(rawTitle) || `execution-pipeline-${sectionIndex + 1}`
+                                        return (
+                                            <ReportTableCard
+                                                key={`${title}-${sectionIndex}`}
+                                                title={title}
+                                                description={resolveSectionDescription(rawTitle, (key, options) =>
+                                                    t(key, options)
+                                                )}
+                                                columns={section.columns ?? []}
+                                                rows={section.rows ?? []}
+                                                domId={`execution-pipeline-${sectionIndex + 1}-${domIdBase}`}
+                                            />
+                                        )
+                                    })}
+                                </section>
+                            </>
+                        )}
+                    </SectionDataState>
+                )}
+            </SectionDataState>
+        </div>
     )
 }

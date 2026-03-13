@@ -23,17 +23,26 @@ import type {
 } from '@/shared/types/report.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
-import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
-import { buildReportTermsFromSectionsOrThrow, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { useTranslation } from 'react-i18next'
 import cls from './ReportDocumentView.module.scss'
 
+export interface ReportDocumentFreshnessInfo {
+    statusMode: 'actual' | 'debug'
+    statusTitle: string
+    statusMessage: string
+    statusLagMinutes?: number | null
+    statusLines?: Array<{ label: string; value: string }>
+}
+
 interface ReportDocumentViewProps {
     report: ReportDocumentDto
+    freshness: ReportDocumentFreshnessInfo
     className?: string
 }
 
-export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
+export function ReportDocumentView({ report, freshness, className }: ReportDocumentViewProps) {
     const { i18n } = useTranslation()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
@@ -54,7 +63,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
     const sourceEndpointState = useMemo(() => {
         try {
             return {
-                value: resolveReportSourceEndpointOrThrow(),
+                value: resolveReportSourceEndpoint(),
                 error: null as Error | null
             }
         } catch (err) {
@@ -80,7 +89,7 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
         try {
             return {
-                terms: buildReportTermsFromSectionsOrThrow({
+                terms: buildReportTermsFromSections({
                     sections: tableSections,
                     reportKind: report.kind,
                     contextTag: 'report-document-view',
@@ -147,14 +156,16 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
                 </div>
 
                 <ReportActualStatusCard
-                    statusMode='debug'
-                    statusTitle='DEBUG: freshness not verified'
-                    statusMessage={`Status endpoint для ${report.kind} не настроен: показываются metadata отчёта без freshness-проверки.`}
+                    statusMode={freshness.statusMode}
+                    statusTitle={freshness.statusTitle}
+                    statusMessage={freshness.statusMessage}
+                    statusLagMinutes={freshness.statusLagMinutes ?? null}
                     dataSource={sourceEndpointState.value}
                     reportTitle={report.title}
                     reportId={report.id}
                     reportKind={report.kind}
                     generatedAtUtc={report.generatedAtUtc}
+                    statusLines={freshness.statusLines}
                 />
             </header>
 

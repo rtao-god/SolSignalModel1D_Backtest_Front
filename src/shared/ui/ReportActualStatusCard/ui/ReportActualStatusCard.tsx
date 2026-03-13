@@ -23,7 +23,7 @@ interface ReportActualStatusCardProps {
     className?: string
 }
 
-function formatUtcOrThrow(value: string): string {
+function formatUtc(value: string): string {
     if (!value || value.trim().length === 0) {
         throw new Error('[report-meta] generatedAtUtc is empty.')
     }
@@ -42,7 +42,7 @@ function formatUtcOrThrow(value: string): string {
     return `${year}-${month}-${day} ${hour}:${minute} UTC`
 }
 
-function ensureNonEmptyOrThrow(value: string, label: string): string {
+function ensureNonEmpty(value: string, label: string): string {
     if (!value || value.trim().length === 0) {
         throw new Error(`[report-meta] ${label} is empty.`)
     }
@@ -63,12 +63,12 @@ export default function ReportActualStatusCard({
     statusLines,
     className
 }: ReportActualStatusCardProps) {
-    const safeDataSource = ensureNonEmptyOrThrow(dataSource, 'dataSource')
-    const safeReportTitle = ensureNonEmptyOrThrow(reportTitle, 'reportTitle')
-    const safeReportId = ensureNonEmptyOrThrow(reportId, 'reportId')
-    const safeReportKind = ensureNonEmptyOrThrow(reportKind, 'reportKind')
+    const safeDataSource = ensureNonEmpty(dataSource, 'dataSource')
+    const safeReportTitle = ensureNonEmpty(reportTitle, 'reportTitle')
+    const safeReportId = ensureNonEmpty(reportId, 'reportId')
+    const safeReportKind = ensureNonEmpty(reportKind, 'reportKind')
 
-    const generatedUtcText = formatUtcOrThrow(generatedAtUtc)
+    const generatedUtcText = formatUtc(generatedAtUtc)
     const generatedLocalText = new Date(generatedAtUtc).toLocaleString()
 
     const resolvedTitle =
@@ -76,8 +76,8 @@ export default function ReportActualStatusCard({
         (statusMode === 'actual' ? 'ACTUAL: latest verified (for current API source)' : 'DEBUG: freshness not verified')
 
     const validatedStatusLines = (statusLines ?? []).map(line => ({
-        label: ensureNonEmptyOrThrow(line.label, 'statusLine.label'),
-        value: ensureNonEmptyOrThrow(line.value, `statusLine.value:${line.label}`)
+        label: ensureNonEmpty(line.label, 'statusLine.label'),
+        value: ensureNonEmpty(line.value, `statusLine.value:${line.label}`)
     }))
 
     return (

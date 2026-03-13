@@ -1,10 +1,7 @@
-import {
-    buildDocsGlossaryOrThrow,
-    renderDocsRichText
-} from '@/pages/docsPages/ui/shared/docsRichText'
+import { buildDocsGlossary, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
 import type { DeveloperLocalizedTermItem } from './types'
 
-type DeveloperGlossary = ReturnType<typeof buildDocsGlossaryOrThrow>
+type DeveloperGlossary = ReturnType<typeof buildDocsGlossary>
 
 interface RenderDeveloperRichTextOptions {
     glossary: DeveloperGlossary
@@ -15,8 +12,8 @@ interface RenderDeveloperRichTextOptions {
  * Developer-страницы используют тот же explicit-term контракт, что и docs/guide,
  * чтобы inline-подсказки и why-tooltip рендерились единообразно.
  */
-export function buildDeveloperGlossaryOrThrow(groups: DeveloperLocalizedTermItem[][]): DeveloperGlossary {
-    return buildDocsGlossaryOrThrow(groups)
+export function buildDeveloperGlossary(groups: DeveloperLocalizedTermItem[][]): DeveloperGlossary {
+    return buildDocsGlossary(groups)
 }
 
 /**

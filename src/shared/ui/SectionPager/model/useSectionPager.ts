@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { scrollToAnchor } from '../lib/scrollToAnchor'
+import { logError } from '@/shared/lib/logging/logError'
 
 export interface SectionConfig {
     id: string
@@ -64,7 +65,12 @@ function resolveStep(step?: number): number {
 
     const isValid = Number.isFinite(step) && step > 0
     if (!isValid) {
-        console.warn('[useSectionPager] Invalid step; fallback to 1', { step })
+        logError(new Error('[useSectionPager] Invalid step value.'), undefined, {
+            source: 'section-pager-step',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { step }
+        })
         return 1
     }
 

@@ -1,19 +1,4 @@
 .BacktestPage {
-    max-width: 1320px;
-    margin: 0 auto;
-    padding: 24px 24px 56px;
+    @include product-page-shell(1320px, true, 24px, 56px);
     box-sizing: border-box;
-}
-
-/* Адаптив */
-@media (max-width: 1100px) {
-    .BacktestPage {
-        padding: 16px 16px 40px;
-    }
-}
-
-@media (max-width: 768px) {
-    .BacktestPage {
-        padding: 12px 12px 32px;
-    }
 }

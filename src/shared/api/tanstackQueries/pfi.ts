@@ -64,7 +64,7 @@ function buildPfiPerModelWithFreshnessQueryKey() {
     return PFI_PER_MODEL_WITH_FRESHNESS_QUERY_KEY
 }
 
-function toObjectOrThrow(raw: unknown): Record<string, unknown> {
+function toObject(raw: unknown): Record<string, unknown> {
     if (!raw || typeof raw !== 'object') {
         throw new Error('[pfi] status payload is not an object.')
     }
@@ -72,7 +72,7 @@ function toObjectOrThrow(raw: unknown): Record<string, unknown> {
     return raw as Record<string, unknown>
 }
 
-function toStateOrThrow(raw: unknown): PfiPerModelFreshnessState {
+function toState(raw: unknown): PfiPerModelFreshnessState {
     if (raw === 'fresh' || raw === 'missing' || raw === 'unknown') {
         return raw
     }
@@ -96,8 +96,8 @@ function toOptionalInteger(raw: unknown, fieldName: string): number | null {
 }
 
 function mapPfiPerModelStatus(raw: unknown): PfiPerModelStatusDto {
-    const payload = toObjectOrThrow(raw)
-    const state = toStateOrThrow(payload.state)
+    const payload = toObject(raw)
+    const state = toState(payload.state)
     const message =
         typeof payload.message === 'string' && payload.message.trim().length > 0 ?
             payload.message.trim()

@@ -13,10 +13,7 @@ import {
     type ReportMetricScatterDatum
 } from '@/shared/ui'
 import { renderTermTooltipRichText, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import {
-    getPolicyBranchMegaTermOrThrow,
-    type PolicyBranchMegaTermLocale
-} from '@/shared/utils/policyBranchMegaTerms'
+import { getPolicyBranchMegaTerm, type PolicyBranchMegaTermLocale } from '@/shared/utils/policyBranchMegaTerms'
 import type {
     PolicyBranchMegaChartMetricDescriptor,
     PolicyBranchMegaChartModel,
@@ -25,9 +22,9 @@ import type {
 } from '../model/policyBranchMegaChartModel'
 import {
     formatPolicyBranchMegaChartMetricValue,
-    resolvePolicyBranchMegaChartMetricOrThrow,
-    resolvePolicyBranchMegaChartPartOrThrow,
-    resolvePreferredPolicyBranchMegaMetricKeyOrThrow
+    resolvePolicyBranchMegaChartMetric,
+    resolvePolicyBranchMegaChartPart,
+    resolvePreferredPolicyBranchMegaMetricKey
 } from '../model/policyBranchMegaChartModel'
 import cls from './PolicyBranchMegaChartExplorer.module.scss'
 
@@ -232,10 +229,7 @@ function resolveMetricLabel(metric: PolicyBranchMegaChartMetricDescriptor): stri
 
 function renderMetricTitle(title: string, sourceColumn: string, locale: PolicyBranchMegaTermLocale) {
     try {
-        const term = getPolicyBranchMegaTermOrThrow(sourceColumn, {
-            tooltipMode: 'description',
-            locale
-        })
+        const term = getPolicyBranchMegaTerm(sourceColumn, { locale })
 
         return renderTermTooltipTitle(title, () => renderTermTooltipRichText(term.description))
     } catch {
@@ -267,14 +261,19 @@ function modelHasMetric(model: PolicyBranchMegaChartModel, key: string): boolean
 }
 
 function partHasMetric(model: PolicyBranchMegaChartModel, part: number, key: string): boolean {
-    return model.parts.some(partDescriptor => partDescriptor.part === part && partDescriptor.metrics.some(metric => metric.key === key))
+    return model.parts.some(
+        partDescriptor => partDescriptor.part === part && partDescriptor.metrics.some(metric => metric.key === key)
+    )
 }
 
-function isChartPresetAvailable(model: PolicyBranchMegaChartModel, preset: PolicyBranchMegaChartPresetDescriptor): boolean {
+function isChartPresetAvailable(
+    model: PolicyBranchMegaChartModel,
+    preset: PolicyBranchMegaChartPresetDescriptor
+): boolean {
     return (
-        partHasMetric(model, preset.part, preset.rankingMetricKey)
-        && modelHasMetric(model, preset.scatterXMetricKey)
-        && modelHasMetric(model, preset.scatterYMetricKey)
+        partHasMetric(model, preset.part, preset.rankingMetricKey) &&
+        modelHasMetric(model, preset.scatterXMetricKey) &&
+        modelHasMetric(model, preset.scatterYMetricKey)
     )
 }
 
@@ -302,9 +301,19 @@ export default function PolicyBranchMegaChartExplorer({
     const [limitMode, setLimitMode] = useState<RankingLimitMode>('12')
     const [policySearch, setPolicySearch] = useState('')
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
-    const [rankingMetricKey, setRankingMetricKey] = useState<string>(() => CHART_PRESETS[0]?.rankingMetricKey ?? resolvePreferredPolicyBranchMegaMetricKeyOrThrow(model.parts[0]!))
-    const [scatterXMetricKey, setScatterXMetricKey] = useState<string>(() => CHART_PRESETS[0]?.scatterXMetricKey ?? pickInitialScatterMetricKey(model, ['MaxDD%', 'ReqGain%', 'Trade%'], 0))
-    const [scatterYMetricKey, setScatterYMetricKey] = useState<string>(() => CHART_PRESETS[0]?.scatterYMetricKey ?? pickInitialScatterMetricKey(model, ['TotalPnl%', 'Wealth%', 'AvgDay%'], 1))
+    const [rankingMetricKey, setRankingMetricKey] = useState<string>(
+        () => CHART_PRESETS[0]?.rankingMetricKey ?? resolvePreferredPolicyBranchMegaMetricKey(model.parts[0]!)
+    )
+    const [scatterXMetricKey, setScatterXMetricKey] = useState<string>(
+        () =>
+            CHART_PRESETS[0]?.scatterXMetricKey ??
+            pickInitialScatterMetricKey(model, ['MaxDD%', 'ReqGain%', 'Trade%'], 0)
+    )
+    const [scatterYMetricKey, setScatterYMetricKey] = useState<string>(
+        () =>
+            CHART_PRESETS[0]?.scatterYMetricKey ??
+            pickInitialScatterMetricKey(model, ['TotalPnl%', 'Wealth%', 'AvgDay%'], 1)
+    )
 
     const deferredSearch = useDeferredValue(policySearch.trim().toLowerCase())
     const availableChartPresets = useMemo(
@@ -313,19 +322,19 @@ export default function PolicyBranchMegaChartExplorer({
     )
 
     const selectedPartDescriptor = useMemo(
-        () => resolvePolicyBranchMegaChartPartOrThrow(model, selectedPart),
+        () => resolvePolicyBranchMegaChartPart(model, selectedPart),
         [model, selectedPart]
     )
     const rankingMetric = useMemo(
-        () => resolvePolicyBranchMegaChartMetricOrThrow(model, rankingMetricKey),
+        () => resolvePolicyBranchMegaChartMetric(model, rankingMetricKey),
         [model, rankingMetricKey]
     )
     const scatterXMetric = useMemo(
-        () => resolvePolicyBranchMegaChartMetricOrThrow(model, scatterXMetricKey),
+        () => resolvePolicyBranchMegaChartMetric(model, scatterXMetricKey),
         [model, scatterXMetricKey]
     )
     const scatterYMetric = useMemo(
-        () => resolvePolicyBranchMegaChartMetricOrThrow(model, scatterYMetricKey),
+        () => resolvePolicyBranchMegaChartMetric(model, scatterYMetricKey),
         [model, scatterYMetricKey]
     )
     const selectedChartPreset = useMemo(
@@ -336,7 +345,9 @@ export default function PolicyBranchMegaChartExplorer({
     const applyChartPreset = (nextPresetKey: Exclude<ChartPresetKey, 'custom'>) => {
         const nextPreset = availableChartPresets.find(preset => preset.key === nextPresetKey)
         if (!nextPreset) {
-            throw new Error(`[policy-branch-mega] chart preset is unavailable for current model. preset=${nextPresetKey}.`)
+            throw new Error(
+                `[policy-branch-mega] chart preset is unavailable for current model. preset=${nextPresetKey}.`
+            )
         }
 
         setChartPresetKey(nextPresetKey)
@@ -369,7 +380,7 @@ export default function PolicyBranchMegaChartExplorer({
 
     useEffect(() => {
         if (selectedPartDescriptor.metrics.some(metric => metric.key === rankingMetricKey)) return
-        setRankingMetricKey(resolvePreferredPolicyBranchMegaMetricKeyOrThrow(selectedPartDescriptor))
+        setRankingMetricKey(resolvePreferredPolicyBranchMegaMetricKey(selectedPartDescriptor))
     }, [rankingMetricKey, selectedPartDescriptor])
 
     useEffect(() => {
@@ -597,7 +608,18 @@ export default function PolicyBranchMegaChartExplorer({
                     onChange: (next: RankingLimitMode) => setLimitMode(next)
                 }
             ] as const,
-        [branchFilter, limitMode, model.branchOptions, model.parts, model.slModeOptions, partsCount, rowSlModeFilter, selectedPart, sortMode, translate]
+        [
+            branchFilter,
+            limitMode,
+            model.branchOptions,
+            model.parts,
+            model.slModeOptions,
+            partsCount,
+            rowSlModeFilter,
+            selectedPart,
+            sortMode,
+            translate
+        ]
     )
 
     return (
@@ -774,7 +796,8 @@ export default function PolicyBranchMegaChartExplorer({
                             ranking: rankingMetric.title,
                             x: scatterXMetric.title,
                             y: scatterYMetric.title
-                        })}
+                        })
+                    }
                 </Text>
 
                 <Text className={cls.metricHint}>
@@ -842,7 +865,9 @@ export default function PolicyBranchMegaChartExplorer({
                             defaultValue:
                                 'После branch/SL/search фильтров не осталось ни одной Policy-конфигурации, где выбранная метрика имеет числовое значение.'
                         })}
-                        valueFormatter={value => formatPolicyBranchMegaChartMetricValue(rankingMetric, value, formatNumber)}
+                        valueFormatter={value =>
+                            formatPolicyBranchMegaChartMetricValue(rankingMetric, value, formatNumber)
+                        }
                         getTooltipTitle={datum => datum.row.label}
                         getTooltipRows={datum => [
                             {
@@ -905,8 +930,12 @@ export default function PolicyBranchMegaChartExplorer({
                             defaultValue:
                                 'После текущих фильтров нет Policy-конфигураций, где обе выбранные метрики присутствуют одновременно.'
                         })}
-                        xValueFormatter={value => formatPolicyBranchMegaChartMetricValue(scatterXMetric, value, formatNumber)}
-                        yValueFormatter={value => formatPolicyBranchMegaChartMetricValue(scatterYMetric, value, formatNumber)}
+                        xValueFormatter={value =>
+                            formatPolicyBranchMegaChartMetricValue(scatterXMetric, value, formatNumber)
+                        }
+                        yValueFormatter={value =>
+                            formatPolicyBranchMegaChartMetricValue(scatterYMetric, value, formatNumber)
+                        }
                         getTooltipTitle={datum => datum.row.label}
                         getTooltipRows={datum => [
                             {
@@ -985,16 +1014,25 @@ export default function PolicyBranchMegaChartExplorer({
                                 emptyTitle={translate('policyBranchMega.page.chart.detail.policyCompareEmptyTitle', {
                                     defaultValue: 'Для выбранной Policy нет чисел по ranking-метрике'
                                 })}
-                                emptyDescription={translate('policyBranchMega.page.chart.detail.policyCompareEmptyDescription', {
-                                    defaultValue:
-                                        'У этой Policy есть другие Branch / SL Mode конфигурации, но у них отсутствует выбранная ranking-метрика.'
-                                })}
-                                valueFormatter={value => formatPolicyBranchMegaChartMetricValue(rankingMetric, value, formatNumber)}
+                                emptyDescription={translate(
+                                    'policyBranchMega.page.chart.detail.policyCompareEmptyDescription',
+                                    {
+                                        defaultValue:
+                                            'У этой Policy есть другие Branch / SL Mode конфигурации, но у них отсутствует выбранная ranking-метрика.'
+                                    }
+                                )}
+                                valueFormatter={value =>
+                                    formatPolicyBranchMegaChartMetricValue(rankingMetric, value, formatNumber)
+                                }
                                 getTooltipTitle={datum => `${selectedRow.policy} · ${datum.row.branch}`}
                                 getTooltipRows={datum => [
                                     {
                                         label: rankingMetric.title,
-                                        value: formatPolicyBranchMegaChartMetricValue(rankingMetric, datum.value, formatNumber)
+                                        value: formatPolicyBranchMegaChartMetricValue(
+                                            rankingMetric,
+                                            datum.value,
+                                            formatNumber
+                                        )
                                     },
                                     ...(datum.row.slMode ? [{ label: 'SL Mode', value: datum.row.slMode }] : []),
                                     {
@@ -1010,7 +1048,9 @@ export default function PolicyBranchMegaChartExplorer({
                         <div className={cls.detailSections}>
                             {model.parts.map(part => {
                                 const detailItems = part.columns
-                                    .filter(column => column !== 'Policy' && column !== 'Branch' && column !== 'SL Mode')
+                                    .filter(
+                                        column => column !== 'Policy' && column !== 'Branch' && column !== 'SL Mode'
+                                    )
                                     .map(column => ({
                                         key: column,
                                         title: column,

@@ -21,23 +21,11 @@ export const useLoginMutation = (identifier: string, password: string) => {
             return response.data
         },
         mutationKey: ['login', identifier],
-        onSuccess: data => {
-            console.log(data)
-            const storedIdentifier = localStorage.getItem('identifier')
-            const storedPassword = localStorage.getItem('password')
-            console.log('storedIdentifier: ', storedIdentifier, 'storedPassword: ', storedPassword)
-
-            if (storedIdentifier == identifier && storedPassword == password) {
-                console.log('true auth')
-            } else {
-                console.log('false auth')
-            }
-
+        onSuccess: () => {
             navigate('/')
         },
         onError: () => {
             dispatch(setError('FALSE AUTH'))
-            console.log('localStorage: ', localStorage)
         }
     })
 }

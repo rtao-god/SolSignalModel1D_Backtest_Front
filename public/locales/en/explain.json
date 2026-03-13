@@ -1,5 +1,7 @@
 {
-  "page": { "title": "Explain" },
+  "page": {
+    "title": "Explain"
+  },
   "home": {
     "hero": {
       "title": "Project explain",
@@ -37,7 +39,7 @@
         },
         "time": {
           "title": "Time and trading days",
-          "description": "NY entry, baseline exit, day keys, DST, and weekends.",
+          "description": "Trading day, baseline exit, day keys, DST, and weekends.",
           "hint": "Open time rules →"
         },
         "features": {
@@ -69,7 +71,7 @@
     "explain-project-structure": "Projects and folders",
     "explain-project-reports": "Reports and API",
     "explain-project-tests": "Tests and safeguards",
-    "explain-time-overview": "NY trading day",
+    "explain-time-overview": "Trading day",
     "explain-time-baseline": "Baseline exit",
     "explain-time-day-keys": "Day keys and time types",
     "explain-time-weekend": "Weekends and exclusions",
@@ -91,75 +93,181 @@
         "title": "Layer overview",
         "text": "Pipeline: Day -> Day+Micro -> Total (with SL overlay).",
         "table": {
-          "headers": { "layer": "Layer", "role": "What it solves", "output": "Output" },
+          "headers": {
+            "layer": "Layer",
+            "role": "What it solves",
+            "output": "Output"
+          },
           "rows": [
-            ["Day (Move+Dir)", "Is there a move and in which direction", "ProbUp / ProbFlat / ProbDown"],
-            ["Micro (flat-only)", "Refines FLAT days", "Day+Micro"],
-            ["SL", "Risk of SL before TP", "Total"]
+            [
+              "Day (Move+Dir)",
+              "Is there a move and in which direction",
+              "ProbUp / ProbFlat / ProbDown"
+            ],
+            [
+              "Micro (flat-only)",
+              "Refines FLAT days",
+              "Day+Micro"
+            ],
+            [
+              "SL",
+              "Risk of SL before TP",
+              "Total"
+            ]
           ]
         },
         "terms": [
-          { "term": "Daily layer (Move + Dir)", "description": "Base prediction layer for movement and direction." },
-          { "term": "Move (P(move))", "description": "Estimates whether a meaningful move will happen." },
-          { "term": "Dir (P(up|move))", "description": "Chooses direction when movement is expected." },
-          { "term": "Micro layer (flat-only)", "description": "Runs only for FLAT scenarios." },
-          { "term": "SL risk layer", "description": "Estimates risk of hitting SL before TP." },
-          { "term": "Total prediction", "description": "Final probabilities after all overlays." }
+          {
+            "term": "Daily layer (Move + Dir)",
+            "description": "Daily layer (Move + Dir) is the base model of the current forecast.\n\nWhat it shows:\nfirst the Move layer estimates whether the day is likely to reach [[min-move|MinMove]]. Then the Dir layer decides whether that move is more likely to go up or down.\n\nHow to read it:\nthis is the first and main model answer for the day. All later layers only refine or constrain it."
+          },
+          {
+            "term": "Move (P(move))",
+            "description": "Move (P(move)) is the probability that the day will reach [[min-move|MinMove]] and deliver enough movement for an entry into a trade.\n\nWhat it shows:\nif this probability is low, the day is closer to [[landing-day-flat|sideways]]. If it is high, the system believes there is enough movement to continue into direction.\n\nHow to read it:\nMove is not about trade direction. It is only about whether the day is likely to produce a meaningful move at all."
+          },
+          {
+            "term": "Dir (P(up|move))",
+            "description": "Dir (P(up|move)) is the conditional probability of an upward move once the Move layer already believes the day can reach [[min-move|MinMove]].\n\nWhat it shows:\nDir does not decide whether movement exists. It chooses the side inside an already expected move: up or down.\n\nHow to read it:\nDir only makes sense together with Move. A strong Dir value alone does not make the day tradeable if Move is still weak."
+          },
+          {
+            "term": "Micro layer (flat-only)",
+            "description": "Micro layer (flat-only) is the additional layer that activates only for [[landing-day-flat|sideways]] days.\n\nWhat it shows:\nit looks for a weak tilt up or down inside a day that [[current-prediction-daily-layer|Daily]] did not classify as a full directional scenario.\n\nHow to read it:\nthe micro layer does not replace the daily model. It exists only to refine neutral days."
+          },
+          {
+            "term": "SL risk layer",
+            "description": "SL risk layer is the layer that estimates the probability that [[tp-sl|stop-loss]] will hit before [[tp-sl|take-profit]] after entry into a trade.\n\nWhat it shows:\nit does not choose market direction. It evaluates bad-entry risk. If risk is high, the final system cuts position size or can refuse the trade.\n\nHow to read it:\nif the final forecast looks more cautious than Day + Micro, the reason often sits in the SL risk layer."
+          },
+          {
+            "term": "Total prediction",
+            "description": "Total prediction is the final answer after [[current-prediction-daily-layer|Daily]], the micro layer, and the SL risk layer.\n\nWhat it shows:\nthis is no longer an intermediate probability block. It is the final scenario of the day that the trading [[policy|Policy]] reads next.\n\nHow to read it:\nif one main answer is needed from the system for the day, Total is the correct field to use, while earlier layers explain how that answer was assembled."
+          }
         ]
       },
       "daily": {
         "title": "Daily model",
         "text": "Outputs three classes: UP / FLAT / DOWN.",
         "table": {
-          "headers": { "class": "Class", "condition": "Labeling condition" },
+          "headers": {
+            "class": "Class",
+            "condition": "Labeling condition"
+          },
           "rows": [
-            ["UP (2)", "entry * (1 + MinMove) is reached first"],
-            ["DOWN (0)", "entry * (1 - MinMove) is reached first"],
-            ["FLAT (1)", "+/-MinMove levels are not reached"]
+            [
+              "UP (2)",
+              "entry * (1 + MinMove) is reached first"
+            ],
+            [
+              "DOWN (0)",
+              "entry * (1 - MinMove) is reached first"
+            ],
+            [
+              "FLAT (1)",
+              "+/-MinMove levels are not reached"
+            ]
           ]
         },
         "terms": [
-          { "term": "Who defines FLAT", "description": "FLAT is defined by baseline-window conditions and runtime probabilities." },
-          { "term": "UP / FLAT / DOWN", "description": "Three target classes for daily direction." },
-          { "term": "MinMove", "description": "Threshold of meaningful daily movement." },
-          { "term": "ATR (Average True Range)", "description": "Volatility indicator used for adaptive thresholds." },
-          { "term": "RegimeDownFlag", "description": "Bearish market regime flag." },
-          { "term": "HardRegimeIs2Flag", "description": "Hard market regime flag." },
-          { "term": "Quiet day (technical)", "description": "No +/-MinMove touch inside baseline window." }
+          {
+            "term": "Who defines FLAT",
+            "description": "Who defines FLAT — FLAT is defined by baseline-window conditions and runtime probabilities.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "UP / FLAT / DOWN",
+            "description": "Up / Sideways / Down are the three classes of the [[current-prediction-daily-layer|Daily]] model.\n\nWhat it shows:\n[[landing-day-up|Up]] means the model expects an upward move above [[min-move|MinMove]]. [[landing-day-down|Down]] means a downward move below that threshold. [[landing-day-flat|Sideways]] means the day does not reach a meaningful move in either direction.\n\nHow to read it:\nthese classes do not describe final profit or loss yet. They describe the type of day the model sees before [[policy|Policy]] rules, filters, and risk layers are applied.\n\nExample:\nif the day is classified as [[landing-day-flat|sideways]], that is not a model error. It means the market did not show enough movement for an entry into a trade."
+          },
+          {
+            "term": "MinMove",
+            "sharedTermId": "min-move"
+          },
+          {
+            "term": "ATR (Average True Range)",
+            "sharedTermId": "atr-indicator"
+          },
+          {
+            "term": "RegimeDownFlag",
+            "sharedTermId": "regime-down-flag"
+          },
+          {
+            "term": "HardRegimeIs2Flag",
+            "description": "HardRegimeIs2Flag — Hard market regime flag.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Quiet day (technical)",
+            "description": "Quiet day (technical) — No +/-MinMove touch inside baseline window.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "micro": {
         "title": "Micro model",
-        "text": "Refines FLAT days and does not replace the daily layer.",
+        "text": "The micro model is a separate model that activates only after [[current-prediction-daily-layer|Daily]] has classified the day as [[landing-day-flat|sideways]]. It does not replace Daily; it refines a weak tilt inside an otherwise neutral day.",
         "notes": [
-          "For UP/DOWN outputs, micro is not applied.",
-          "For FLAT outputs, micro can refine directional tilt.",
-          "This reduces loss of weak but consistent directional signals."
+          "For [[landing-day-up|up]] and [[landing-day-down|down]] outputs, the micro model is not applied.",
+          "For [[landing-day-flat|sideways]] outputs, the micro model can refine a weak tilt up or down.",
+          "This helps preserve weak but repeatable directional signals inside days that Daily would otherwise leave neutral."
         ],
         "terms": [
-          { "term": "When micro model is enabled", "description": "Only for FLAT predictions from the daily layer." },
-          { "term": "MicroTruth", "description": "Micro-model target for FLAT days." },
-          { "term": "Minimum data for micro", "description": "Requires enough flat days and both classes." },
-          { "term": "Why micro layer exists", "description": "Captures weak but repeatable directional tilt inside sideways days." }
+          {
+            "term": "When micro model is enabled",
+            "description": "When the micro model is enabled — only after [[current-prediction-daily-layer|Daily]] has classified the day as [[landing-day-flat|sideways]].\n\nWhat it shows:\nthe micro model is not used on days where Daily already chose [[landing-day-up|up]] or [[landing-day-down|down]]. Its working zone is limited to neutral days that do not cross [[min-move|MinMove]].\n\nHow to read it:\nif a micro answer exists, it means the base daily layer did not see a full directional day and the stack needed extra refinement inside a sideways regime."
+          },
+          {
+            "term": "MicroTruth",
+            "description": "MicroTruth is the realized target used by the micro model inside [[landing-day-flat|sideways]] days.\n\nWhat it shows:\nit is the label that teaches the micro model to separate weak upward tilt from weak downward tilt among days that [[current-prediction-daily-layer|Daily]] first considered neutral.\n\nHow to read it:\nMicroTruth does not replace the main daily truth. It only exists for the internal refinement of sideways days where a full directional signal was not strong enough for Daily."
+          },
+          {
+            "term": "Minimum data for micro",
+            "description": "Minimum data for micro is the condition that makes micro training possible at all.\n\nWhat it shows:\nthe micro model needs enough [[landing-day-flat|sideways]] days and observations from both micro classes. Without that, it cannot learn the difference between weak upside and weak downside tilt.\n\nHow to read it:\nif there is not enough data for micro, the base [[current-prediction-daily-layer|Daily]] layer remains the only working layer and no extra refinement inside sideways days is built."
+          },
+          {
+            "term": "Why micro layer exists",
+            "description": "Why the micro layer exists — to avoid losing weak but repeatable directional signals inside [[landing-day-flat|sideways]] days.\n\nWhat it shows:\nwithout the micro model, those days would stay simply neutral. With the micro layer, the system can still detect that price tends to lean in one direction inside an otherwise flat day.\n\nHow to read it:\nif the micro layer adds a tilt, that does not mean a fully strong directional day. It is only a refinement inside a weak borderline regime that [[current-prediction-daily-layer|Daily]] would not turn into a strong class on its own."
+          }
         ]
       },
       "sl": {
         "title": "SL model",
         "text": "Risk layer: probability of SL before TP.",
         "table": {
-          "headers": { "parameter": "Parameter", "rule": "Current rule" },
+          "headers": {
+            "parameter": "Parameter",
+            "rule": "Current rule"
+          },
           "rows": [
-            ["Risk threshold", "SlHighDecision=true when p >= 0.55 and HighRisk"],
-            ["TP for labels", "3%"],
-            ["SL for labels", "5%"]
+            [
+              "Risk threshold",
+              "SlHighDecision=true when p >= 0.55 and HighRisk"
+            ],
+            [
+              "TP for labels",
+              "3%"
+            ],
+            [
+              "SL for labels",
+              "5%"
+            ]
           ]
         },
         "terms": [
-          { "term": "TP (Take Profit)", "description": "Target profit level for labeling." },
-          { "term": "SL (Stop Loss)", "description": "Loss limit level for labeling." },
-          { "term": "SlProb", "description": "Probability of SL before TP." },
-          { "term": "SlHighDecision", "description": "Risk-day flag from the SL model." },
-          { "term": "StrongSignal by MinMove", "description": "Strong-day feature used in SL logic." }
+          {
+            "term": "TP (Take Profit)",
+            "description": "TP (Take Profit) — Target profit level for labeling.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SL (Stop Loss)",
+            "description": "SL (Stop Loss) — Loss limit level for labeling.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SlProb",
+            "sharedTermId": "sl-prob"
+          },
+          {
+            "term": "SlHighDecision",
+            "sharedTermId": "sl-model"
+          },
+          {
+            "term": "StrongSignal by MinMove",
+            "description": "StrongSignal by MinMove — Strong-day feature used in SL logic.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "aggregation": {
@@ -171,10 +279,22 @@
           "Apply SL overlay and produce Total output."
         ],
         "terms": [
-          { "term": "Day", "description": "Probabilities after the daily layer." },
-          { "term": "Day+Micro", "description": "Probabilities after micro refinement." },
-          { "term": "Total (Day+Micro+SL)", "description": "Final probabilities after SL overlay." },
-          { "term": "ProbUp / ProbFlat / ProbDown", "description": "Three final probabilities, sum = 1.0." }
+          {
+            "term": "Day",
+            "description": "Day — Probabilities after the daily layer.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Day+Micro",
+            "description": "Day+Micro — Probabilities after micro refinement.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Total (Day+Micro+SL)",
+            "description": "Total (Day+Micro+SL) — Final probabilities after SL overlay.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "ProbUp / ProbFlat / ProbDown",
+            "description": "ProbUp / ProbFlat / ProbDown — Three final probabilities, sum = 1.0.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       }
     }
@@ -189,64 +309,149 @@
         "title": "Why branches exist",
         "text": "These are different execution rules for the same forecast.",
         "table": {
-          "headers": { "branch": "Branch", "howItWorks": "How it works", "whenUseful": "When useful" },
+          "headers": {
+            "branch": "Branch",
+            "howItWorks": "How it works",
+            "whenUseful": "When useful"
+          },
           "rows": [
-            ["BASE", "Trades in model direction", "Reference signal quality"],
-            ["ANTI-D", "Can flip direction on risk days", "Potential drawdown reduction"]
+            [
+              "BASE",
+              "Trades in model direction",
+              "Reference signal quality"
+            ],
+            [
+              "ANTI-D",
+              "Can flip direction on risk days",
+              "Potential drawdown reduction"
+            ]
           ]
         },
         "terms": [
-          { "term": "Policy", "description": "Rules for leverage, stake, TP/SL, and skip conditions." },
-          { "term": "Branch", "description": "PnL execution mode inside one policy." },
-          { "term": "BASE", "description": "Directly follows model direction." },
-          { "term": "ANTI-D (anti-direction)", "description": "Direction flip when risk filters are met." }
+          {
+            "term": "Policy",
+            "sharedTermId": "policy"
+          },
+          {
+            "term": "Branch",
+            "sharedTermId": "branch"
+          },
+          {
+            "term": "BASE",
+            "description": "BASE — Directly follows model direction.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "ANTI-D (anti-direction)",
+            "description": "ANTI-D (anti-direction) — Direction flip when risk filters are met.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "base": {
         "title": "BASE",
         "text": "Baseline reference point for evaluating protective overlays.",
         "terms": [
-          { "term": "How direction is selected", "description": "UP -> long, DOWN -> short (with micro adjustments)." },
-          { "term": "What BASE shows", "description": "Raw model quality without anti-direction." },
-          { "term": "Why BASE matters", "description": "Without baseline, protection impact cannot be measured." }
+          {
+            "term": "How direction is selected",
+            "description": "How direction is selected — UP -> long, DOWN -> short (with micro adjustments).\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "What BASE shows",
+            "description": "What BASE shows — Raw model quality without anti-direction.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why BASE matters",
+            "description": "Why BASE matters — Without baseline, protection impact cannot be measured.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "anti": {
         "title": "ANTI-D",
         "text": "Enabled only by risk conditions, not permanently.",
         "terms": [
-          { "term": "Anti-direction", "description": "Direction swap long <-> short." },
-          { "term": "RiskDay (SlHighDecision)", "description": "Primary trigger for ANTI-D activation." },
-          { "term": "Where flip is applied", "description": "Applied before trade simulation at daily decision level." },
-          { "term": "Why ANTI-D", "description": "Reduces heavy drawdowns at the cost of some upside." }
+          {
+            "term": "Anti-direction",
+            "sharedTermId": "anti-direction"
+          },
+          {
+            "term": "RiskDay (SlHighDecision)",
+            "description": "RiskDay (SlHighDecision) — Primary trigger for ANTI-D activation.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Where flip is applied",
+            "description": "Where flip is applied — Applied before trade simulation at daily decision level.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why ANTI-D",
+            "description": "Why ANTI-D — Reduces heavy drawdowns at the cost of some upside.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "conditions": {
         "title": "ANTI-D activation conditions",
         "text": "If one filter fails, branch behaves as BASE.",
         "table": {
-          "headers": { "filter": "Filter", "threshold": "Threshold", "protection": "What it protects" },
+          "headers": {
+            "filter": "Filter",
+            "threshold": "Threshold",
+            "protection": "What it protects"
+          },
           "rows": [
-            ["SL risk day", "SlHighDecision=true", "No risk -> no flip"],
-            ["MinMove", "0.5%..12%", "Removes noise and extremes"],
-            ["Liquidation buffer", "liqAdversePct >= 2xMinMove", "Avoids thin liquidation buffer"]
+            [
+              "SL risk day",
+              "SlHighDecision=true",
+              "No risk -> no flip"
+            ],
+            [
+              "MinMove",
+              "0.5%..12%",
+              "Removes noise and extremes"
+            ],
+            [
+              "Liquidation buffer",
+              "liqAdversePct >= 2xMinMove",
+              "Avoids thin liquidation buffer"
+            ]
           ]
         },
         "terms": [
-          { "term": "SlHighDecision=true", "description": "Mandatory trigger for ANTI-D." },
-          { "term": "MinMove in 0.5%-12% range", "description": "Filter for too-quiet and too-extreme days." },
-          { "term": "Liquidation buffer >= 2xMinMove", "description": "Controls liquidation distance after flip." },
-          { "term": "Valid leverage", "description": "ANTI-D requires finite leverage > 0." }
+          {
+            "term": "SlHighDecision=true",
+            "description": "SlHighDecision=true — Mandatory trigger for ANTI-D.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "MinMove in 0.5%-12% range",
+            "description": "MinMove in 0.5%-12% range — Filter for too-quiet and too-extreme days.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Liquidation buffer >= 2xMinMove",
+            "description": "Liquidation buffer >= 2xMinMove — Controls liquidation distance after flip.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Valid leverage",
+            "description": "Valid leverage — ANTI-D requires finite leverage > 0.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "usage": {
         "title": "How to read results",
         "text": "Compare branches as a metric package, not as one number.",
         "terms": [
-          { "term": "PnL %", "description": "Total branch return." },
-          { "term": "MaxDD %", "description": "Maximum drawdown on equity." },
-          { "term": "Trade% / NoTrade%", "description": "Share of trading and skipped days." },
-          { "term": "Policy Branch Mega", "description": "Main comparison table for policies and branches." }
+          {
+            "term": "PnL %",
+            "sharedTermId": "pnl"
+          },
+          {
+            "term": "MaxDD %",
+            "description": "MaxDD % — Maximum drawdown on equity.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Trade% / NoTrade%",
+            "description": "Trade% / NoTrade% — Share of trading and skipped days.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Policy Branch Mega",
+            "sharedTermId": "landing-policy-branch-mega"
+          }
         ]
       }
     }
@@ -261,57 +466,131 @@
         "title": "Why splits are needed",
         "text": "A single slice cannot explain both history and current regime quality.",
         "table": {
-          "headers": { "slice": "Slice", "includes": "What it includes", "question": "Key question" },
+          "headers": {
+            "slice": "Slice",
+            "includes": "What it includes",
+            "question": "Key question"
+          },
           "rows": [
-            ["Train", "Days up to TrainUntilExitDayKeyUtc", "What was the model trained on?"],
-            ["OOS", "Days after TrainUntilExitDayKeyUtc", "How does it generalize?"],
-            ["Recent", "Last 240 EntryDayKeyUtc", "How relevant is the model now?"],
-            ["Full", "Train + OOS", "How stable is long-horizon performance?"]
+            [
+              "Train",
+              "Days up to TrainUntilExitDayKeyUtc",
+              "What was the model trained on?"
+            ],
+            [
+              "OOS",
+              "Days after TrainUntilExitDayKeyUtc",
+              "How does it generalize?"
+            ],
+            [
+              "Recent",
+              "Last 240 EntryDayKeyUtc",
+              "How relevant is the model now?"
+            ],
+            [
+              "Full",
+              "Train + OOS",
+              "How stable is long-horizon performance?"
+            ]
           ]
         },
         "terms": [
-          { "term": "Train", "description": "History segment used for training." },
-          { "term": "OOS (Out-of-sample)", "description": "Post-train segment for honest evaluation." },
-          { "term": "Recent (240d)", "description": "Last 240 trading days." },
-          { "term": "Full history", "description": "Combined train and oos history." },
-          { "term": "TrainUntilExitDayKeyUtc", "description": "Canonical split boundary by exit day key." },
-          { "term": "EntryDayKeyUtc / ExitDayKeyUtc", "description": "Day keys for entry and baseline exit." }
+          {
+            "term": "Train",
+            "sharedTermId": "train-segment"
+          },
+          {
+            "term": "OOS (Out-of-sample)",
+            "sharedTermId": "oos-segment"
+          },
+          {
+            "term": "Recent (240d)",
+            "description": "Recent (240d) — Last 240 trading days.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Full history",
+            "description": "Full history — Combined train and oos history.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "TrainUntilExitDayKeyUtc",
+            "description": "TrainUntilExitDayKeyUtc — Canonical split boundary by exit day key.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "EntryDayKeyUtc / ExitDayKeyUtc",
+            "description": "EntryDayKeyUtc / ExitDayKeyUtc — Day keys for entry and baseline exit.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "train": {
         "title": "Train",
         "text": "The only segment allowed for model fitting.",
         "terms": [
-          { "term": "Train-only", "description": "Subset before TrainUntilExitDayKeyUtc." },
-          { "term": "Minimum train volume", "description": "Data threshold for stable layer training." },
-          { "term": "Why train must not include oos", "description": "Mixing inflates metrics and breaks validity." }
+          {
+            "term": "Train-only",
+            "description": "Train-only — Subset before TrainUntilExitDayKeyUtc.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Minimum train volume",
+            "description": "Minimum train volume — Data threshold for stable layer training.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why train must not include oos",
+            "description": "Why train must not include oos — Mixing inflates metrics and breaks validity.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "oos": {
         "title": "OOS",
         "text": "Represents real behavior after training.",
         "terms": [
-          { "term": "Honest quality control", "description": "Measures generalization on unseen data." },
-          { "term": "Strong OOS degradation", "description": "Suggests overfit or regime drift." },
-          { "term": "Strict split", "description": "Strict mode without silent exclusions." }
+          {
+            "term": "Honest quality control",
+            "description": "Honest quality control — Measures generalization on unseen data.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Strong OOS degradation",
+            "description": "Strong OOS degradation — Suggests overfit or regime drift.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Strict split",
+            "description": "Strict split — Strict mode without silent exclusions.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "recent": {
         "title": "Recent (last 240 days)",
         "text": "Dedicated indicator of current-market performance.",
         "terms": [
-          { "term": "Last 240 days", "description": "Rolling window from the latest day backwards." },
-          { "term": "What recent shows", "description": "Current regime quality, not historical average." },
-          { "term": "How to interpret", "description": "Gap vs full often means adaptation is needed." }
+          {
+            "term": "Last 240 days",
+            "description": "Last 240 days — Rolling window from the latest day backwards.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "What recent shows",
+            "description": "What recent shows — Current regime quality, not historical average.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "How to interpret",
+            "description": "How to interpret — Gap vs full often means adaptation is needed.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "full": {
         "title": "Full history",
         "text": "Long-range context, always interpreted together with recent.",
         "terms": [
-          { "term": "Train + OOS", "description": "Combined long-range horizon." },
-          { "term": "Why full is useful", "description": "Shows robustness across rare regimes." },
-          { "term": "Why full alone is not enough", "description": "Strong full does not guarantee current fit." }
+          {
+            "term": "Train + OOS",
+            "description": "Train + OOS — Combined long-range horizon.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why full is useful",
+            "description": "Why full is useful — Shows robustness across rare regimes.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why full alone is not enough",
+            "description": "Why full alone is not enough — Strong full does not guarantee current fit.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       }
     }
@@ -326,92 +605,253 @@
         "title": "Overall pipeline",
         "text": "Flow: market -> causal features -> prediction -> omniscient evaluation -> reports -> API -> UI.",
         "table": {
-          "headers": { "stage": "Stage", "artifact": "Artifact", "why": "Why it matters" },
+          "headers": {
+            "stage": "Stage",
+            "artifact": "Artifact",
+            "why": "Why it matters"
+          },
           "rows": [
-            ["Data prep", "Candles + indicators", "Stable model input"],
-            ["Causal layer", "CausalDataRow", "Decision without future data"],
-            ["Omniscient layer", "BacktestRecord", "Quality and PnL by fact"],
-            ["Reports", "ReportDocument", "Single output format for API/UI"]
+            [
+              "Data prep",
+              "Candles + indicators",
+              "Stable model input"
+            ],
+            [
+              "Causal layer",
+              "CausalDataRow",
+              "Decision without future data"
+            ],
+            [
+              "Omniscient layer",
+              "BacktestRecord",
+              "Quality and PnL by fact"
+            ],
+            [
+              "Reports",
+              "ReportDocument",
+              "Single output format for API/UI"
+            ]
           ]
         },
         "terms": [
-          { "term": "6h / 1h / 1m candles", "description": "Input series for daily and intraday computations." },
-          { "term": "CausalDataRow", "description": "Feature row available at entry time." },
-          { "term": "PredictionEngine", "description": "Combines day/micro/sl probabilities." },
-          { "term": "BacktestRecord (omniscient)", "description": "Observed outcomes plus PnL context." },
-          { "term": "Reports", "description": "Snapshot documents for API and UI." },
-          { "term": "API -> Front", "description": "Delivery of prebuilt report documents." }
+          {
+            "term": "6h / 1h / 1m candles",
+            "description": "6h / 1h / 1m candles — Input series for daily and intraday computations.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "CausalDataRow",
+            "description": "CausalDataRow — Feature row available at entry time.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "PredictionEngine",
+            "description": "PredictionEngine — Combines day/micro/sl probabilities.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BacktestRecord (omniscient)",
+            "description": "BacktestRecord (omniscient) — Observed outcomes plus PnL context.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Reports",
+            "description": "Reports — Snapshot documents for API and UI.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "API -> Front",
+            "description": "API -> Front — Delivery of prebuilt report documents.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "causal": {
         "title": "Causal vs Omniscient",
         "text": "Decision logic and evaluation logic are separated by design.",
         "terms": [
-          { "term": "Causal logic", "description": "Uses only data available at EntryUtc." },
-          { "term": "Omniscient logic", "description": "Used only for post-fact evaluation." },
-          { "term": "Why separation is critical", "description": "Prevents future data leakage." },
-          { "term": "Leakage guards", "description": "Tests and architecture barriers against leakage." }
+          {
+            "term": "Causal logic",
+            "description": "Causal logic — Uses only data available at EntryUtc.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Omniscient logic",
+            "description": "Omniscient logic — Used only for post-fact evaluation.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why separation is critical",
+            "description": "Why separation is critical — Prevents future data leakage.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Leakage guards",
+            "sharedTermId": "landing-leakage-guards"
+          }
         ]
       },
       "structure": {
         "title": "Projects and solution structure",
         "text": "Key projects and their architecture roles.",
         "table": {
-          "headers": { "project": "Project", "task": "Technical role" },
+          "headers": {
+            "project": "Project",
+            "task": "Technical role"
+          },
           "rows": [
-            ["SolSignalModel1D_Backtest", "Pipeline host orchestration"],
-            ["Core.Causal / Core.Omniscient", "Decision vs evaluation split"],
-            ["Core.Time / Core.Config", "Time contracts and validation"],
-            ["Infra / Reports / Api", "Storage, report build, delivery"],
-            ["AppOrchestration / Interop", "Scenario integration and DTO bridge"],
-            ["SanityChecks / Tests / ArchTests / Analyzers", "Correctness and dependency control"]
+            [
+              "SolSignalModel1D_Backtest",
+              "Pipeline host orchestration"
+            ],
+            [
+              "Core.Causal / Core.Omniscient",
+              "Decision vs evaluation split"
+            ],
+            [
+              "Core.Time / Core.Config",
+              "Time contracts and validation"
+            ],
+            [
+              "Infra / Reports / Api",
+              "Storage, report build, delivery"
+            ],
+            [
+              "AppOrchestration / Interop",
+              "Scenario integration and DTO bridge"
+            ],
+            [
+              "SanityChecks / Tests / ArchTests / Analyzers",
+              "Correctness and dependency control"
+            ]
           ]
         },
         "terms": [
-          { "term": "SolSignalModel1D_Backtest", "description": "Main full-cycle orchestrator." },
-          { "term": "SolSignalModel1D_Backtest.Core.Causal", "description": "Causal training and inference loop." },
-          { "term": "SolSignalModel1D_Backtest.Core.Omniscient", "description": "Evaluation and factual PnL loop." },
-          { "term": "SolSignalModel1D_Backtest.Core.Time", "description": "Time types and NY window rules." },
-          { "term": "SolSignalModel1D_Backtest.Core.Config", "description": "Configuration and coverage contracts." },
-          { "term": "SolSignalModel1D_Backtest.Infra", "description": "Storage/read infrastructure." },
-          { "term": "SolSignalModel1D_Backtest.Reports", "description": "ReportDocument assembly." },
-          { "term": "SolSignalModel1D_Backtest.Api", "description": "HTTP report delivery layer." },
-          { "term": "SolSignalModel1D_Backtest.AppOrchestration", "description": "Scenario and runtime orchestration." },
-          { "term": "SolSignalModel1D_Backtest.AppOrchestration.Interop", "description": "Inter-layer DTO bridge." },
-          { "term": "SolSignalModel1D_Backtest.SanityChecks", "description": "Post-run sanity checks." },
-          { "term": "SolSignalModel1D_Backtest.Tests / ArchTests / Analyzers", "description": "Unit/integration/arch/compile-time safeguards." }
+          {
+            "term": "SolSignalModel1D_Backtest",
+            "description": "SolSignalModel1D_Backtest — Main full-cycle orchestrator.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Core.Causal",
+            "description": "SolSignalModel1D_Backtest.Core.Causal — Causal training and inference loop.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Core.Omniscient",
+            "description": "SolSignalModel1D_Backtest.Core.Omniscient — Evaluation and factual PnL loop.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Core.Time",
+            "description": "SolSignalModel1D_Backtest.Core.Time — Time types and NY window rules.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Core.Config",
+            "description": "SolSignalModel1D_Backtest.Core.Config — Configuration and coverage contracts.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Infra",
+            "description": "SolSignalModel1D_Backtest.Infra — Storage/read infrastructure.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Reports",
+            "description": "SolSignalModel1D_Backtest.Reports — ReportDocument assembly.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Api",
+            "description": "SolSignalModel1D_Backtest.Api — HTTP report delivery layer.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.AppOrchestration",
+            "description": "SolSignalModel1D_Backtest.AppOrchestration — Scenario and runtime orchestration.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.AppOrchestration.Interop",
+            "description": "SolSignalModel1D_Backtest.AppOrchestration.Interop — Inter-layer DTO bridge.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.SanityChecks",
+            "description": "SolSignalModel1D_Backtest.SanityChecks — Post-run sanity checks.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolSignalModel1D_Backtest.Tests / ArchTests / Analyzers",
+            "description": "SolSignalModel1D_Backtest.Tests / ArchTests / Analyzers — Unit/integration/arch/compile-time safeguards.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "reports": {
         "title": "Reports and API",
         "text": "UI consumes stable report format regardless of internal training details.",
         "terms": [
-          { "term": "ReportDocument", "description": "Unified format for headers, tables, and key-value blocks." },
-          { "term": "ReportStorage", "description": "Report file storage by kind/id." },
-          { "term": "Report kind", "description": "Logical report type and structure." },
-          { "term": "API endpoints", "description": "Routes for reports and current prediction." }
+          {
+            "term": "ReportDocument",
+            "sharedTermId": "landing-report-document"
+          },
+          {
+            "term": "ReportStorage",
+            "description": "ReportStorage — Report file storage by kind/id.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Report kind",
+            "description": "Report kind — Logical report type and structure.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "API endpoints",
+            "description": "API endpoints — Routes for reports and current prediction.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "tests": {
         "title": "Tests and safeguards",
         "text": "Control stack includes leakage tests, architecture checks, sanity rules, and split/time contract.",
         "table": {
-          "headers": { "group": "Group", "example": "Example", "problem": "Failure pattern" },
+          "headers": {
+            "group": "Group",
+            "example": "Example",
+            "problem": "Failure pattern"
+          },
           "rows": [
-            ["Leakage / shuffle", "DailyPipelineLeakageTests", "Quality does not degrade after randomization"],
-            ["Model isolation", "ModelTrainerIsolationTests", "Shuffle labels do not hurt metrics"],
-            ["Future-blind rows", "RowFeatureLeakageChecks", "Features mirror future targets"],
-            ["Split/time contract", "NyTrainSplit strict", "Broken train/oos boundaries"],
-            ["Architecture barriers", "AssemblyDependencyTests", "Causal depends on Omniscient"]
+            [
+              "Leakage / shuffle",
+              "DailyPipelineLeakageTests",
+              "Quality does not degrade after randomization"
+            ],
+            [
+              "Model isolation",
+              "ModelTrainerIsolationTests",
+              "Shuffle labels do not hurt metrics"
+            ],
+            [
+              "Future-blind rows",
+              "RowFeatureLeakageChecks",
+              "Features mirror future targets"
+            ],
+            [
+              "Split/time contract",
+              "NyTrainSplit strict",
+              "Broken train/oos boundaries"
+            ],
+            [
+              "Architecture barriers",
+              "AssemblyDependencyTests",
+              "Causal depends on Omniscient"
+            ]
           ]
         },
         "terms": [
-          { "term": "Degradation shuffle tests", "description": "Validate quality drop on randomized data." },
-          { "term": "Trainer isolation", "description": "Checks sensitivity to shuffled labels." },
-          { "term": "Future-blind checks", "description": "Future data must not alter causal outputs." },
-          { "term": "Split/time contract", "description": "Validates train/oos and baseline boundaries." },
-          { "term": "Architecture barriers", "description": "Prevents forbidden cross-layer dependencies." },
-          { "term": "SelfCheckRunner", "description": "Post-run sanity check bundle." }
+          {
+            "term": "Degradation shuffle tests",
+            "description": "Degradation shuffle tests — Validate quality drop on randomized data.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Trainer isolation",
+            "description": "Trainer isolation — Checks sensitivity to shuffled labels.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Future-blind checks",
+            "description": "Future-blind checks — Future data must not alter causal outputs.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Split/time contract",
+            "description": "Split/time contract — Validates train/oos and baseline boundaries.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Architecture barriers",
+            "description": "Architecture barriers — Prevents forbidden cross-layer dependencies.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SelfCheckRunner",
+            "description": "SelfCheckRunner — Post-run sanity check bundle.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       }
     }
@@ -423,49 +863,106 @@
     },
     "sections": {
       "overview": {
-        "title": "NYSE trading day",
-        "text": "The regular session of the New York Stock Exchange defines entry, exit, and split boundaries.",
+        "title": "Trading day",
+        "text": "The main New York session defines entry, exit, and split boundaries.",
         "table": {
-          "headers": { "season": "NY season", "entryTime": "Entry time", "comment": "Comment" },
+          "headers": {
+            "season": "NY season",
+            "entryTime": "Entry time",
+            "comment": "Comment"
+          },
           "rows": [
-            ["Summer (EDT / DST)", "09:30 NY / 13:30 UTC", "Regular-session open"],
-            ["Winter (EST)", "09:30 NY / 14:30 UTC", "Regular-session open"]
+            [
+              "Summer (EDT / DST)",
+              "09:30 NY / 13:30 UTC",
+              "Regular-session open"
+            ],
+            [
+              "Winter (EST)",
+              "09:30 NY / 14:30 UTC",
+              "Regular-session open"
+            ]
           ]
         },
         "terms": [
-          { "term": "NYSE regular session", "description": "The main New York Stock Exchange session: open at 09:30 and close at 16:00 America/New_York." },
-          { "term": "DST (Daylight Saving Time)", "description": "Seasonal New York time shift." },
-          { "term": "EntryUtc", "description": "UTC timestamp of trading-day entry." },
-          { "term": "NyTradingDay", "description": "NY local day as business key." }
+          {
+            "term": "U.S. regular session",
+            "sharedTermId": "landing-nyse-session"
+          },
+          {
+            "term": "DST (Daylight Saving Time)",
+            "description": "DST (Daylight Saving Time) — Seasonal New York time shift.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "EntryUtc",
+            "description": "EntryUtc — UTC timestamp of trading-day entry.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "NyTradingDay",
+            "description": "NyTradingDay — NY local day as business key.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "baseline": {
         "title": "Baseline exit",
         "text": "Defines the end of the same NYSE session window for labels and split.",
         "terms": [
-          { "term": "Baseline-exit", "description": "The actual close of the current NYSE session minus two minutes." },
-          { "term": "Early close", "description": "If NYSE closes early, baseline-exit also shifts to actual close minus two minutes." },
-          { "term": "Why minus two minutes", "description": "A small technical gap before the official close of the same session." }
+          {
+            "term": "Baseline-exit",
+            "description": "Baseline-exit — The actual close of the current NYSE session minus two minutes.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Early close",
+            "description": "Early close — If NYSE closes early, baseline-exit also shifts to actual close minus two minutes.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why minus two minutes",
+            "description": "Why minus two minutes — A small technical gap before the official close of the same session.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "dayKeys": {
         "title": "Day keys and time types",
         "text": "Separates entry day and exit day to avoid split mistakes.",
         "terms": [
-          { "term": "EntryDayKeyUtc", "description": "UTC day key of entry time." },
-          { "term": "ExitDayKeyUtc", "description": "UTC day key of baseline exit." },
-          { "term": "TrainUntilExitDayKeyUtc", "description": "Canonical split boundary by exit day key." },
-          { "term": "BaselineExitUtc", "description": "UTC timestamp of baseline-window end." }
+          {
+            "term": "EntryDayKeyUtc",
+            "description": "EntryDayKeyUtc — UTC day key of entry time.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "ExitDayKeyUtc",
+            "description": "ExitDayKeyUtc — UTC day key of baseline exit.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "TrainUntilExitDayKeyUtc",
+            "description": "TrainUntilExitDayKeyUtc — Canonical split boundary by exit day key.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BaselineExitUtc",
+            "description": "BaselineExitUtc — UTC timestamp of baseline-window end.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "weekend": {
         "title": "Weekends and exclusions",
         "text": "NY weekends are excluded from trading flow by contract.",
         "terms": [
-          { "term": "Technical weekend filter", "description": "No entry for NY Saturday/Sunday." },
-          { "term": "Why weekends are excluded", "description": "Reduces noise and improves training signal quality." },
-          { "term": "What it provides", "description": "Cleaner feature-to-move relation." },
-          { "term": "Future extension", "description": "Weekend-only branch/model can be added later." }
+          {
+            "term": "Technical weekend filter",
+            "description": "Technical weekend filter — No entry for NY Saturday/Sunday.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Why weekends are excluded",
+            "description": "Why weekends are excluded — Reduces noise and improves training signal quality.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "What it provides",
+            "description": "What it provides — Cleaner feature-to-move relation.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Future extension",
+            "description": "Future extension — Weekend-only branch/model can be added later.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       }
     }
@@ -486,66 +983,166 @@
         "title": "How to read features",
         "text": "The table below explains core PFI metrics.",
         "table": {
-          "headers": { "metric": "Metric", "meaning": "Meaning", "reading": "How to read" },
+          "headers": {
+            "metric": "Metric",
+            "meaning": "Meaning",
+            "reading": "How to read"
+          },
           "rows": [
-            ["ΔAUC", "Quality drop after feature permutation", "Higher absolute value = more important feature"],
-            ["Corr(score)", "Correlation of feature value with model score", "Sign = direction, magnitude = strength"],
-            ["ΔMean", "Mean difference between classes", "Shows feature shift by target class"]
+            [
+              "ΔAUC",
+              "Quality drop after feature permutation",
+              "Higher absolute value = more important feature"
+            ],
+            [
+              "Corr(score)",
+              "Correlation of feature value with model score",
+              "Sign = direction, magnitude = strength"
+            ],
+            [
+              "ΔMean",
+              "Mean difference between classes",
+              "Shows feature shift by target class"
+            ]
           ]
         },
         "terms": [
-          { "term": "Feature", "description": "Numeric signal passed to the model at entry time." },
-          { "term": "PFI", "description": "Permutation Feature Importance for feature impact." },
-          { "term": "AUC", "description": "Binary classifier quality metric." },
-          { "term": "ΔAUC", "description": "AUC change after feature permutation." },
-          { "term": "Corr(score)", "description": "Correlation between feature value and score." },
-          { "term": "ΔMean", "description": "Difference of class means for a feature." }
+          {
+            "term": "Feature",
+            "description": "Feature — Numeric signal passed to the model at entry time.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "PFI",
+            "sharedTermId": "landing-pfi"
+          },
+          {
+            "term": "AUC",
+            "description": "AUC — Binary classifier quality metric.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "ΔAUC",
+            "description": "ΔAUC — AUC change after feature permutation.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "Corr(score)",
+            "description": "Corr(score) — Correlation between feature value and score.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "ΔMean",
+            "description": "ΔMean — Difference of class means for a feature.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "returns": {
         "title": "Returns and relative dynamics",
         "text": "SOL/BTC movement on short and medium horizons.",
         "terms": [
-          { "term": "SolRet30", "description": "SOL return over last 30 6h bars." },
-          { "term": "BtcRet30", "description": "BTC return over the same horizon." },
-          { "term": "SolBtcRet30", "description": "Difference between SolRet30 and BtcRet30." },
-          { "term": "SolRet1", "description": "SOL return over 1 bar." },
-          { "term": "SolRet3", "description": "SOL return over 3 bars." },
-          { "term": "BtcRet1", "description": "BTC return over 1 bar." },
-          { "term": "BtcRet3", "description": "BTC return over 3 bars." },
-          { "term": "GapBtcSol1", "description": "Difference between BtcRet1 and SolRet1." },
-          { "term": "GapBtcSol3", "description": "Difference between BtcRet3 and SolRet3." }
+          {
+            "term": "SolRet30",
+            "description": "SolRet30 — SOL return over last 30 6h bars.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BtcRet30",
+            "description": "BtcRet30 — BTC return over the same horizon.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolBtcRet30",
+            "description": "SolBtcRet30 — Difference between SolRet30 and BtcRet30.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolRet1",
+            "description": "SolRet1 — SOL return over 1 bar.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolRet3",
+            "description": "SolRet3 — SOL return over 3 bars.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BtcRet1",
+            "description": "BtcRet1 — BTC return over 1 bar.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BtcRet3",
+            "description": "BtcRet3 — BTC return over 3 bars.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "GapBtcSol1",
+            "description": "GapBtcSol1 — Difference between BtcRet1 and SolRet1.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "GapBtcSol3",
+            "description": "GapBtcSol3 — Difference between BtcRet3 and SolRet3.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "indicators": {
         "title": "Indicators and macro",
         "text": "Market context: sentiment, dollar background, long BTC trend.",
         "terms": [
-          { "term": "FngNorm", "description": "Normalized Fear & Greed index." },
-          { "term": "DxyChg30", "description": "30-day DXY change." },
-          { "term": "GoldChg30", "description": "PAXG change over last 30 6h bars." },
-          { "term": "BtcVs200", "description": "BTC position vs SMA200." }
+          {
+            "term": "FngNorm",
+            "description": "FngNorm — Normalized Fear & Greed index.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "DxyChg30",
+            "description": "DxyChg30 — 30-day DXY change.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "GoldChg30",
+            "description": "GoldChg30 — PAXG change over last 30 6h bars.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BtcVs200",
+            "description": "BtcVs200 — BTC position vs SMA200.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "momentum": {
         "title": "Momentum and volatility",
         "text": "Speed and stress of market movement via RSI/ATR/dynVol.",
         "terms": [
-          { "term": "SolRsiCenteredScaled", "description": "Centered and scaled RSI(14) for SOL." },
-          { "term": "RsiSlope3Scaled", "description": "RSI slope over 3 steps." },
-          { "term": "AtrPct", "description": "ATR(14) normalized by entry price." },
-          { "term": "DynVol", "description": "Average absolute move over 10 bars." }
+          {
+            "term": "SolRsiCenteredScaled",
+            "description": "SolRsiCenteredScaled — Centered and scaled RSI(14) for SOL.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "RsiSlope3Scaled",
+            "description": "RsiSlope3Scaled — RSI slope over 3 steps.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "AtrPct",
+            "description": "AtrPct — ATR(14) normalized by entry price.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "DynVol",
+            "description": "DynVol — Average absolute move over 10 bars.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       },
       "regime": {
         "title": "Regimes and EMA",
         "text": "Regime flags and EMA spreads for model behavior switching.",
         "terms": [
-          { "term": "RegimeDownFlag", "description": "Bearish market regime flag." },
-          { "term": "HardRegimeIs2Flag", "description": "Hard market regime flag." },
-          { "term": "SolAboveEma50", "description": "SOL position relative to EMA50." },
-          { "term": "SolEma50vs200", "description": "SOL EMA50/EMA200 spread." },
-          { "term": "BtcEma50vs200", "description": "BTC EMA50/EMA200 spread." }
+          {
+            "term": "RegimeDownFlag",
+            "sharedTermId": "regime-down-flag"
+          },
+          {
+            "term": "HardRegimeIs2Flag",
+            "description": "HardRegimeIs2Flag — Hard market regime flag.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolAboveEma50",
+            "description": "SolAboveEma50 — SOL position relative to EMA50.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "SolEma50vs200",
+            "description": "SolEma50vs200 — SOL EMA50/EMA200 spread.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          },
+          {
+            "term": "BtcEma50vs200",
+            "description": "BtcEma50vs200 — BTC EMA50/EMA200 spread.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+          }
         ]
       }
     }

@@ -7,8 +7,28 @@ import { API_BASE_URL } from '../../configs/config'
 const BACKTEST_DIAGNOSTICS_QUERY_KEY = ['backtest', 'diagnostics'] as const
 const { path } = API_ROUTES.backtest.diagnosticsGet
 
+export const BACKTEST_DIAGNOSTICS_QUERY_SCOPES = {
+    backtestPage: 'diagnostics-page-backtest',
+    guardrailPage: 'diagnostics-page-guardrail',
+    decisionsPage: 'diagnostics-page-decisions',
+    hotspotsPage: 'diagnostics-page-hotspots',
+    otherPage: 'diagnostics-page-other',
+    ratingsPage: 'diagnostics-page-ratings',
+    dayStatsPage: 'diagnostics-page-day-stats',
+    sidebarNav: 'diagnostics-sidebar-nav'
+} as const
+
+export type BacktestDiagnosticsQueryScope =
+    (typeof BACKTEST_DIAGNOSTICS_QUERY_SCOPES)[keyof typeof BACKTEST_DIAGNOSTICS_QUERY_SCOPES]
+
 interface UseBacktestDiagnosticsNavOptions {
     enabled: boolean
+    scope?: BacktestDiagnosticsQueryScope
+}
+
+interface BacktestDiagnosticsQueryOptions {
+    enabled?: boolean
+    scope?: BacktestDiagnosticsQueryScope
 }
 
 export interface BacktestDiagnosticsReportQueryArgs {
@@ -69,9 +89,15 @@ function buildBacktestDiagnosticsPath(args?: BacktestDiagnosticsReportQueryArgs)
     return query ? `${path}?${query}` : path
 }
 
-function buildBacktestDiagnosticsQueryKey(args?: BacktestDiagnosticsReportQueryArgs) {
+// Один backend endpoint питает несколько diagnostics-страниц и навигацию.
+// Scope изолирует TanStack cache между владельцами UI, чтобы ошибка одной зоны не переезжала в другую.
+export function buildBacktestDiagnosticsQueryKey(
+    args?: BacktestDiagnosticsReportQueryArgs,
+    scope?: BacktestDiagnosticsQueryScope
+) {
     return [
         ...BACKTEST_DIAGNOSTICS_QUERY_KEY,
+        scope ?? 'diagnostics-default',
         args?.bucket ?? null,
         args?.tpSlMode ?? null,
         args?.slMode ?? null,
@@ -79,9 +105,7 @@ function buildBacktestDiagnosticsQueryKey(args?: BacktestDiagnosticsReportQueryA
     ] as const
 }
 
-async function fetchBacktestDiagnosticsReport(
-    args?: BacktestDiagnosticsReportQueryArgs
-): Promise<ReportDocumentDto> {
+async function fetchBacktestDiagnosticsReport(args?: BacktestDiagnosticsReportQueryArgs): Promise<ReportDocumentDto> {
     const reportPath = buildBacktestDiagnosticsPath(args)
     const resp = await fetch(`${API_BASE_URL}${reportPath}`)
 
@@ -96,43 +120,45 @@ async function fetchBacktestDiagnosticsReport(
 
 function useBacktestDiagnosticsQuery(
     args: BacktestDiagnosticsReportQueryArgs | undefined,
-    enabled: boolean
+    options?: BacktestDiagnosticsQueryOptions
 ): UseQueryResult<ReportDocumentDto, Error> {
-    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, enabled)
+    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, options)
 
     return useQuery(queryOptions)
 }
 
 function buildBacktestDiagnosticsQueryOptions(
     args: BacktestDiagnosticsReportQueryArgs | undefined,
-    enabled: boolean
+    options?: BacktestDiagnosticsQueryOptions
 ) {
     return {
-        queryKey: buildBacktestDiagnosticsQueryKey(args),
+        queryKey: buildBacktestDiagnosticsQueryKey(args, options?.scope),
         queryFn: () => fetchBacktestDiagnosticsReport(args),
-        enabled,
+        enabled: options?.enabled ?? true,
         retry: false
     }
 }
 
 export function useBacktestDiagnosticsReportQuery(
-    args?: BacktestDiagnosticsReportQueryArgs
+    args?: BacktestDiagnosticsReportQueryArgs,
+    options?: BacktestDiagnosticsQueryOptions
 ): UseQueryResult<ReportDocumentDto, Error> {
-    return useBacktestDiagnosticsQuery(args, true)
+    return useBacktestDiagnosticsQuery(args, options)
 }
 
 export function useBacktestDiagnosticsReportNavQuery(
     options: UseBacktestDiagnosticsNavOptions,
     args?: BacktestDiagnosticsReportQueryArgs
 ): UseQueryResult<ReportDocumentDto, Error> {
-    return useBacktestDiagnosticsQuery(args, options.enabled)
+    return useBacktestDiagnosticsQuery(args, options)
 }
 
 export async function prefetchBacktestDiagnosticsReport(
     queryClient: QueryClient,
-    args?: BacktestDiagnosticsReportQueryArgs
+    args?: BacktestDiagnosticsReportQueryArgs,
+    options?: BacktestDiagnosticsQueryOptions
 ): Promise<void> {
-    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, true)
+    const queryOptions = buildBacktestDiagnosticsQueryOptions(args, options)
     await queryClient.prefetchQuery({
         queryKey: queryOptions.queryKey,
         queryFn: queryOptions.queryFn,

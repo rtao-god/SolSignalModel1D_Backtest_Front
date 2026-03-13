@@ -22,10 +22,15 @@ import { BacktestBaselineColumn } from '../BacktestBaselineColumn/BacktestBaseli
 import { BacktestWhatIfColumn } from '../BacktestWhatIfColumn/BacktestWhatIfColumn'
 import { BacktestCompareBlock } from '../BacktestCompareBlock/BacktestCompareBlock'
 import { useTranslation } from 'react-i18next'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 
 interface BacktestPageContentProps {
-    baselineSummary: BacktestSummaryDto
+    baselineSummary: BacktestSummaryDto | null
+    baselineLoadError: string | null
     profiles: BacktestProfileDto[]
+    isProfilesLoading: boolean
+    profilesLoadError: string | null
+    onRetryShell: () => void
 }
 
 function parseInputNumber(valueStr: string): number | null {
@@ -42,7 +47,14 @@ function clamp(value: number, min: number, max: number): number {
     return value
 }
 
-export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageContentProps) {
+export function BacktestPageContent({
+    baselineSummary,
+    baselineLoadError,
+    profiles,
+    isProfilesLoading,
+    profilesLoadError,
+    onRetryShell
+}: BacktestPageContentProps) {
     const { t } = useTranslation('reports')
     const [runPreviewFull, { isLoading: isPreviewLoading }] = usePreviewBacktestFullMutation()
     const [runBaselineModePreview] = usePreviewBacktestFullMutation()
@@ -190,15 +202,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         syncHash: true
     })
 
-    if (!currentProfile || !currentProfile.config || !draftConfig) {
-        return (
-            <div className={cls.content}>
-                <Text type='h2'>{t('backtestFull.content.initializingProfile')}</Text>
-            </div>
-        )
-    }
-
-    const updateDraftConfigOrThrow = (updater: (prev: BacktestConfigDto) => BacktestConfigDto) => {
+    const updateDraftConfig = (updater: (prev: BacktestConfigDto) => BacktestConfigDto) => {
         setDraftConfig(prev => {
             if (!prev) {
                 throw new Error('Draft config is not initialized.')
@@ -207,8 +211,8 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         })
     }
 
-    const patchConfidenceRiskNumberFieldOrThrow = (field: string, value: number) => {
-        updateDraftConfigOrThrow(prev => {
+    const patchConfidenceRiskNumberField = (field: string, value: number) => {
+        updateDraftConfig(prev => {
             if (!prev.confidenceRisk) {
                 throw new Error(`Cannot patch confidenceRisk.${field}: confidenceRisk is null.`)
             }
@@ -227,7 +231,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         const value = parseInputNumber(valueStr)
         if (value === null || value <= 0) return
 
-        updateDraftConfigOrThrow(prev => ({
+        updateDraftConfig(prev => ({
             ...prev,
             dailyStopPct: value / 100
         }))
@@ -237,7 +241,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         const value = parseInputNumber(valueStr)
         if (value === null || value <= 0) return
 
-        updateDraftConfigOrThrow(prev => ({
+        updateDraftConfig(prev => ({
             ...prev,
             dailyTpPct: value / 100
         }))
@@ -246,25 +250,25 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
     const handleConfidenceRiskPctChange = (field: string, valueStr: string) => {
         const value = parseInputNumber(valueStr)
         if (value === null || value < 0) return
-        patchConfidenceRiskNumberFieldOrThrow(field, value / 100)
+        patchConfidenceRiskNumberField(field, value / 100)
     }
 
     const handleConfidenceRiskRawChange = (field: string, valueStr: string) => {
         const value = parseInputNumber(valueStr)
         if (value === null || value < 0) return
-        patchConfidenceRiskNumberFieldOrThrow(field, value)
+        patchConfidenceRiskNumberField(field, value)
     }
 
     const handleConfidenceRiskIntChange = (field: string, valueStr: string) => {
         const value = parseInputNumber(valueStr)
         if (value === null || value <= 0) return
-        patchConfidenceRiskNumberFieldOrThrow(field, Math.floor(value))
+        patchConfidenceRiskNumberField(field, Math.floor(value))
     }
 
     const handleShiftDynamicTpSl = (mode: 'tighter' | 'wider') => {
         const factor = mode === 'tighter' ? 0.95 : 1.05
 
-        updateDraftConfigOrThrow(prev => {
+        updateDraftConfig(prev => {
             if (!prev.confidenceRisk) {
                 throw new Error('Cannot shift dynamic TP/SL: confidenceRisk is null.')
             }
@@ -300,7 +304,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         const normalized = valueStr.replace(',', '.').trim()
         if (normalized.length > 0 && value === null) return
 
-        updateDraftConfigOrThrow(prev => ({
+        updateDraftConfig(prev => ({
             ...prev,
             policies: prev.policies.map(policy =>
                 policy.name === name ?
@@ -316,6 +320,10 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
     const handleRunPreview = async () => {
         setPreviewError(null)
         setPreviewBundle(null)
+
+        if (!draftConfig) {
+            throw new Error('[backtest-full] draft config is not initialized.')
+        }
 
         try {
             const result = await runPreviewFull({
@@ -369,7 +377,7 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
     const isModeScopedBaseline = tpSlMode !== 'all'
     const baselineSummaryForView = isModeScopedBaseline ? (baselineModeBundle?.summary ?? null) : baselineSummary
     const baselineSummaryLoading = isModeScopedBaseline && baselineModeBundle === null && baselineModeError === null
-    const baselineSummaryError = isModeScopedBaseline ? baselineModeError : null
+    const baselineSummaryError = isModeScopedBaseline ? baselineModeError : baselineLoadError
     const baselinePolicyRatiosReport = isModeScopedBaseline ? (baselineModeBundle?.policyRatios ?? null) : undefined
     const baselinePolicyRatiosLoading =
         isModeScopedBaseline && baselineModeBundle === null && baselineModeError === null
@@ -382,6 +390,11 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
         tpSlMode === 'all' ?
             t('backtestFull.content.baselineSummaryTitleAll')
         :   t('backtestFull.content.baselineSummaryTitleMode', { mode: tpSlMode })
+    const interactiveContentError =
+        profilesLoadError ??
+        (!isProfilesLoading && (!currentProfile || !draftConfig) ?
+            '[backtest-full] active profile is not initialized.'
+        :   null)
 
     return (
         <div className={cls.content}>
@@ -393,78 +406,95 @@ export function BacktestPageContent({ baselineSummary, profiles }: BacktestPageC
                 onTpSlModeChange={setTpSlMode}
             />
 
-            <SectionErrorBoundary
-                name='BacktestBaselineMetrics'
-                fallback={({ error, reset }) => (
-                    <ErrorBlock
-                        code='CLIENT'
-                        title={t('backtestFull.content.errors.baselineMetricsBlockTitle')}
-                        description={t('backtestFull.content.errors.baselineMetricsBlockDescription')}
-                        details={error.message}
-                        onRetry={reset}
-                        compact
-                    />
-                )}>
-                <BacktestBaselineMetrics baselineSummary={baselineSummaryForView} previewSummary={previewSummary} />
-            </SectionErrorBoundary>
+            <SectionDataState
+                isLoading={isProfilesLoading && !currentProfile}
+                isError={Boolean(interactiveContentError)}
+                error={interactiveContentError ? new Error(interactiveContentError) : null}
+                hasData={Boolean(currentProfile && draftConfig)}
+                onRetry={onRetryShell}
+                title={t('backtestFull.page.errorTitle')}
+                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                logContext={{ source: 'backtest-full-shell' }}>
+                {currentProfile && draftConfig && (
+                    <>
+                        <SectionErrorBoundary
+                            name='BacktestBaselineMetrics'
+                            fallback={({ error, reset }) => (
+                                <ErrorBlock
+                                    code='CLIENT'
+                                    title={t('backtestFull.content.errors.baselineMetricsBlockTitle')}
+                                    description={t('backtestFull.content.errors.baselineMetricsBlockDescription')}
+                                    details={error.message}
+                                    onRetry={reset}
+                                    compact
+                                />
+                            )}>
+                            <BacktestBaselineMetrics
+                                baselineSummary={baselineSummaryForView}
+                                previewSummary={previewSummary}
+                            />
+                        </SectionErrorBoundary>
 
-            <div className={cls.columns}>
-                <BacktestBaselineColumn
-                    baselineSummary={baselineSummaryForView}
-                    sectionTitle={baselineSectionTitle}
-                    summaryTitle={baselineSummaryTitle}
-                    summaryLoading={baselineSummaryLoading}
-                    summaryError={baselineSummaryError}
-                    policyRatiosReport={baselinePolicyRatiosReport}
-                    policyRatiosLoading={baselinePolicyRatiosLoading}
-                    policyRatiosError={baselinePolicyRatiosError}
-                />
-                <BacktestWhatIfColumn
-                    currentProfile={currentProfile}
-                    draftConfig={draftConfig}
-                    selectedPolicies={selectedPolicies}
-                    isPreviewLoading={isPreviewLoading}
-                    previewError={previewError}
-                    previewSummary={previewSummary}
-                    previewPolicyRatios={previewPolicyRatios}
-                    onStopPctChange={handleStopPctChange}
-                    onTpPctChange={handleTpPctChange}
-                    onConfidenceRiskPctChange={handleConfidenceRiskPctChange}
-                    onConfidenceRiskRawChange={handleConfidenceRiskRawChange}
-                    onConfidenceRiskIntChange={handleConfidenceRiskIntChange}
-                    onShiftDynamicTpSl={handleShiftDynamicTpSl}
-                    onPolicyEnabledChange={handlePolicyEnabledChange}
-                    onPolicyLeverageChange={handlePolicyLeverageChange}
-                    onRunPreview={handleRunPreview}
-                />
-            </div>
+                        <div className={cls.columns}>
+                            <BacktestBaselineColumn
+                                baselineSummary={baselineSummaryForView}
+                                sectionTitle={baselineSectionTitle}
+                                summaryTitle={baselineSummaryTitle}
+                                summaryLoading={baselineSummaryLoading}
+                                summaryError={baselineSummaryError}
+                                policyRatiosReport={baselinePolicyRatiosReport}
+                                policyRatiosLoading={baselinePolicyRatiosLoading}
+                                policyRatiosError={baselinePolicyRatiosError}
+                            />
+                            <BacktestWhatIfColumn
+                                currentProfile={currentProfile}
+                                draftConfig={draftConfig}
+                                selectedPolicies={selectedPolicies}
+                                isPreviewLoading={isPreviewLoading}
+                                previewError={previewError}
+                                previewSummary={previewSummary}
+                                previewPolicyRatios={previewPolicyRatios}
+                                onStopPctChange={handleStopPctChange}
+                                onTpPctChange={handleTpPctChange}
+                                onConfidenceRiskPctChange={handleConfidenceRiskPctChange}
+                                onConfidenceRiskRawChange={handleConfidenceRiskRawChange}
+                                onConfidenceRiskIntChange={handleConfidenceRiskIntChange}
+                                onShiftDynamicTpSl={handleShiftDynamicTpSl}
+                                onPolicyEnabledChange={handlePolicyEnabledChange}
+                                onPolicyLeverageChange={handlePolicyLeverageChange}
+                                onRunPreview={handleRunPreview}
+                            />
+                        </div>
 
-            <BacktestCompareBlock
-                profiles={profiles}
-                profileAId={profileAId}
-                profileBId={profileBId}
-                summaryA={summaryA}
-                summaryB={summaryB}
-                policyRatiosA={policyRatiosA}
-                policyRatiosB={policyRatiosB}
-                deltaBestTotalPnlPct={deltaBestTotalPnlPct}
-                deltaWorstMaxDdPct={deltaWorstMaxDdPct}
-                deltaTotalTrades={deltaTotalTrades}
-                compareError={compareError}
-                isCompareLoading={isCompareLoading}
-                onProfileAChange={setProfileAId}
-                onProfileBChange={setProfileBId}
-                onRunCompare={handleRunCompare}
-            />
+                        <BacktestCompareBlock
+                            profiles={profiles}
+                            profileAId={profileAId}
+                            profileBId={profileBId}
+                            summaryA={summaryA}
+                            summaryB={summaryB}
+                            policyRatiosA={policyRatiosA}
+                            policyRatiosB={policyRatiosB}
+                            deltaBestTotalPnlPct={deltaBestTotalPnlPct}
+                            deltaWorstMaxDdPct={deltaWorstMaxDdPct}
+                            deltaTotalTrades={deltaTotalTrades}
+                            compareError={compareError}
+                            isCompareLoading={isCompareLoading}
+                            onProfileAChange={setProfileAId}
+                            onProfileBChange={setProfileBId}
+                            onRunCompare={handleRunCompare}
+                        />
 
-            <SectionPager
-                sections={pagerSections}
-                currentIndex={currentIndex}
-                canPrev={canPrev}
-                canNext={canNext}
-                onPrev={handlePrev}
-                onNext={handleNext}
-            />
+                        <SectionPager
+                            sections={pagerSections}
+                            currentIndex={currentIndex}
+                            canPrev={canPrev}
+                            canNext={canNext}
+                            onPrev={handlePrev}
+                            onNext={handleNext}
+                        />
+                    </>
+                )}
+            </SectionDataState>
         </div>
     )
 }

@@ -98,7 +98,7 @@ export function resolveReportViewCapabilities(sections: TableSectionDto[]): Repo
     }
 }
 
-export function validateReportViewSelectionOrThrow(
+export function validateReportViewSelection(
     selection: ReportViewSelection,
     capabilities: ReportViewCapabilities,
     contextTag: string

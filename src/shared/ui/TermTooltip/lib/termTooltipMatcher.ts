@@ -242,7 +242,12 @@ function isLowerCaseAsciiSuffix(value: string): boolean {
     return /^[a-z]+$/.test(value) && value === value.toLowerCase()
 }
 
-function isSafeExpandedRegexWord(rawValue: string, rawStart: number, expandedStart: number, expandedValue: string): boolean {
+function isSafeExpandedRegexWord(
+    rawValue: string,
+    rawStart: number,
+    expandedStart: number,
+    expandedValue: string
+): boolean {
     if (expandedStart !== rawStart) {
         return false
     }

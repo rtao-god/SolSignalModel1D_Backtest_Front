@@ -44,7 +44,8 @@ function AppWithGlobalErrorBoundary() {
             onError={(error, errorInfo) =>
                 logError(error, errorInfo, {
                     source: 'global-error-boundary',
-                    path: location.pathname
+                    path: location.pathname,
+                    domain: 'app_runtime'
                 })
             }
             fallbackRender={props => <GlobalErrorFallback {...props} />}>
@@ -70,7 +71,10 @@ const RootApp = () => (
 const rootElement = document.getElementById('root')
 
 if (!rootElement) {
-    console.error('Root element with id="root" not found in DOM')
+    logError(new Error('Root element with id="root" not found in DOM.'), undefined, {
+        source: 'root-element',
+        domain: 'app_runtime'
+    })
 } else {
     const root = ReactDOM.createRoot(rootElement)
 
@@ -85,7 +89,8 @@ if (!rootElement) {
     } catch (error) {
         const safeError = error instanceof Error ? error : new Error(String(error ?? 'Unknown bootstrap error.'))
         logError(safeError, undefined, {
-            source: 'root.render'
+            source: 'root.render',
+            domain: 'app_runtime'
         })
         showFatalErrorOverlay(safeError, 'root.render')
     }

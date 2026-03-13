@@ -1,12 +1,14 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Text } from '@/shared/ui'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import classNames from '@/shared/lib/helpers/classNames'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
 import cls from './ReportTableCard.module.scss'
 import {
     SortableTable,
+    type TableDensity,
     type TableRow,
     getCellValue,
     toExportCell,
@@ -20,6 +22,7 @@ interface ReportTableCardProps {
     rows: TableRow[]
     domId: string
     className?: string
+    tableDensity?: TableDensity
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
 const PROFIT_COLUMN_PRIORITY: RegExp[] = [
@@ -52,6 +55,7 @@ export default function ReportTableCard({
     rows,
     domId,
     className,
+    tableDensity = 'dense',
     renderColumnTitle
 }: ReportTableCardProps) {
     const { i18n } = useTranslation()
@@ -134,7 +138,15 @@ export default function ReportTableCard({
                     <Text type='h3' className={cls.cardTitle}>
                         {title}
                     </Text>
-                    {description && <Text className={cls.cardSubtitle}>{description}</Text>}
+                    {description && (
+                        <Text className={cls.cardSubtitle}>
+                            {
+                                // Подписи таблиц должны уметь переиспользовать общий glossary,
+                                // иначе page-level descriptions быстро расходятся по смыслу.
+                                renderTermTooltipRichText(description)
+                            }
+                        </Text>
+                    )}
                 </div>
 
                 <TableExportButton
@@ -148,6 +160,7 @@ export default function ReportTableCard({
             <SortableTable
                 columns={columns}
                 rows={localizedRows}
+                density={tableDensity}
                 storageKey={`report.sort.${domId}`}
                 getRowClassName={getRowClassName}
                 getCellClassName={getCellClassName}

@@ -70,18 +70,18 @@ const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
     },
     {
         match: /^(Почему модель дала такой прогноз|Why the model produced this forecast \(top factors\)|Why the model gave this prediction)/i,
-        ru: 'Топ факторов (фичей/сигналов), которые сильнее всего повлияли на решение. Колонки показывают тип фактора, его имя, краткое описание, значение и ранг важности.',
-        en: 'Top factors (features/signals) that contributed most to the decision. Columns show factor type, name, short description, current value, and importance rank.'
+        ru: 'Топ [[factor|факторов]] (фичей/сигналов), которые сильнее всего повлияли на решение. Колонки показывают тип [[factor|фактора]], его имя, краткое описание, значение и ранг важности.',
+        en: 'Top [[factor|factors]] (features/signals) that contributed most to the decision. Columns show [[factor|factor]] type, name, short description, current value, and importance rank.'
     },
     {
         match: /^(Факт дня и расхождение с прогнозом|Actual day outcome vs forecast|Day outcome and prediction mismatch)/i,
-        ru: 'Сводка post-factum по backfilled-дню: что реально случилось, совпал ли итоговый прогноз с фактом, как отличились MinMove и диапазон цены, и какой фактор explain/PFI был ключевым. Эти данные появляются только после закрытия окна и не используются в causal/live решении.',
-        en: 'Post-factum summary for a backfilled day: actual outcome, whether Total prediction matched the fact, MinMove and range deviations, and the key explain/PFI factor. These fields appear only after window close and are not used in causal/live decision-making.'
+        ru: 'Сводка post-factum по backfilled-дню: что реально случилось, совпал ли итоговый прогноз с фактом, как отличились MinMove и диапазон цены, и какой [[factor|фактор]] из слоя пояснений / PFI был ключевым. Эти данные появляются только после закрытия окна и не используются в causal/live решении.',
+        en: 'Post-factum summary for a backfilled day: actual outcome, whether Total prediction matched the fact, MinMove and range deviations, and the key explain/PFI [[factor|factor]]. These fields appear only after window close and are not used in causal/live decision-making.'
     },
     {
-        match: /^(Политики плеча|Leverage policies)/i,
-        ru: 'Торговый план по каждой политике и ветке: направление, плечо, цены входа/SL/TP, размер позиции и оценка риска ликвидации. Это прикладная «инструкция», как политики интерпретируют прогноз.',
-        en: 'Execution plan per policy and branch: direction, leverage, entry/SL/TP prices, position size, and liquidation-risk estimate. This is the practical policy interpretation layer built on top of the forecast.'
+        match: /^(Политики плеча|Leverage policies|Policy по веткам BASE и ANTI-D)/i,
+        ru: 'Торговый план по каждой Policy и ветке: направление, плечо, цены входа, уровни выхода, размер позиции и риск ликвидации. Это прикладной слой, который показывает, как разные Policy читают один и тот же прогноз.',
+        en: 'Execution plan per Policy and branch: direction, leverage, entry and exit levels, position size, and liquidation risk. This is the practical layer that shows how different Policies interpret the same forecast.'
     }
 ]
 

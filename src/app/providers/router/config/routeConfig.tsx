@@ -2,6 +2,7 @@ import { AppRoute, AppRouteConfig, SidebarNavItem, RouteSection, NavbarNavItem }
 import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
+import { logError } from '@/shared/lib/logging/logError'
 import { Navigate } from 'react-router-dom'
 const importMainPage = () => import('@/pages/Main')
 const MainPage = lazyPage(importMainPage)
@@ -773,7 +774,15 @@ export function prefetchRouteChunk(routeId: AppRoute): void {
         return
     }
 
-    void prefetcher()
+    void prefetcher().catch(error => {
+        const normalizedError = error instanceof Error ? error : new Error(String(error ?? 'Unknown prefetch error.'))
+        logError(normalizedError, undefined, {
+            source: 'route-chunk-prefetch',
+            domain: 'route_runtime',
+            severity: 'warning',
+            extra: { routeId }
+        })
+    })
 }
 
 export type { RouteSection }

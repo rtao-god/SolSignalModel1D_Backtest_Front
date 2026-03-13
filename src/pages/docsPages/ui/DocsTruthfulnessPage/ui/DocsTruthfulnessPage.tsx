@@ -3,8 +3,12 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui'
 import { DOCS_TRUTHFULNESS_TABS } from '@/shared/utils/docsTabs'
 import { useTranslation } from 'react-i18next'
-import { buildDocsGlossaryOrThrow, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
-import { readAvailableDocsTermGroups, readDocsStringListOrThrow, readDocsTableRowsOrThrow } from '@/pages/docsPages/ui/shared/docsI18n'
+import { buildDocsGlossary, renderDocsRichText } from '@/pages/docsPages/ui/shared/docsRichText'
+import {
+    readAvailableDocsTermGroups,
+    readDocsStringList,
+    readDocsTableRows
+} from '@/pages/docsPages/ui/shared/docsI18n'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
@@ -17,10 +21,7 @@ const SECTION_TABLE_KEYS: Partial<Record<string, string>> = {
     'truth-tests': 'truthfulnessPage.sections.truth-tests.table.rows'
 }
 
-export default function DocsTruthfulnessPage({
-    className,
-    translationNamespace = 'docs'
-}: DocsTruthfulnessPageProps) {
+export default function DocsTruthfulnessPage({ className, translationNamespace = 'docs' }: DocsTruthfulnessPageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
     const sections = useMemo(
         () =>
@@ -31,7 +32,7 @@ export default function DocsTruthfulnessPage({
         [t]
     )
     const termKeys = DOCS_TRUTHFULNESS_TABS.map(section => `truthfulnessPage.sections.${section.id}.terms`)
-    const buildPageGlossary = () => buildDocsGlossaryOrThrow(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
+    const buildPageGlossary = () => buildDocsGlossary(readAvailableDocsTermGroups(i18n, termKeys, translationNamespace))
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections,
         syncHash: true
@@ -53,7 +54,7 @@ export default function DocsTruthfulnessPage({
 
                         <LocalizedContentBoundary name={`DocsTruthfulness:${section.id}:paragraphs`}>
                             {() => {
-                                const paragraphs = readDocsStringListOrThrow(
+                                const paragraphs = readDocsStringList(
                                     i18n,
                                     `truthfulnessPage.sections.${section.id}.paragraphs`,
                                     translationNamespace
@@ -63,7 +64,9 @@ export default function DocsTruthfulnessPage({
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderDocsRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -75,7 +78,7 @@ export default function DocsTruthfulnessPage({
                         {SECTION_TABLE_KEYS[section.id] && (
                             <LocalizedContentBoundary name={`DocsTruthfulness:${section.id}:table`}>
                                 {() => {
-                                    const tableRows = readDocsTableRowsOrThrow(
+                                    const tableRows = readDocsTableRows(
                                         i18n,
                                         SECTION_TABLE_KEYS[section.id]!,
                                         translationNamespace
@@ -87,16 +90,29 @@ export default function DocsTruthfulnessPage({
                                             <table className={cls.infoTable}>
                                                 <thead>
                                                     <tr>
-                                                        <th>{t(`truthfulnessPage.sections.${section.id}.table.headers.col1`)}</th>
-                                                        <th>{t(`truthfulnessPage.sections.${section.id}.table.headers.col2`)}</th>
-                                                        <th>{t(`truthfulnessPage.sections.${section.id}.table.headers.col3`)}</th>
+                                                        <th>
+                                                            {t(
+                                                                `truthfulnessPage.sections.${section.id}.table.headers.col1`
+                                                            )}
+                                                        </th>
+                                                        <th>
+                                                            {t(
+                                                                `truthfulnessPage.sections.${section.id}.table.headers.col2`
+                                                            )}
+                                                        </th>
+                                                        <th>
+                                                            {t(
+                                                                `truthfulnessPage.sections.${section.id}.table.headers.col3`
+                                                            )}
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {tableRows.map((row, rowIndex) => (
                                                         <tr key={`${section.id}-row-${rowIndex}`}>
                                                             {row.map((cell, cellIndex) => (
-                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                <td
+                                                                    key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                     {renderDocsRichText(cell, { glossary })}
                                                                 </td>
                                                             ))}
@@ -121,7 +137,9 @@ export default function DocsTruthfulnessPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderDocsRichText(t(`truthfulnessPage.sections.${section.id}.why`), { glossary })}
+                                                {renderDocsRichText(t(`truthfulnessPage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -139,7 +157,10 @@ export default function DocsTruthfulnessPage({
 
                                             return (
                                                 <Text className={cls.calloutText}>
-                                                    {renderDocsRichText(t(`truthfulnessPage.sections.${section.id}.example`), { glossary })}
+                                                    {renderDocsRichText(
+                                                        t(`truthfulnessPage.sections.${section.id}.example`),
+                                                        { glossary }
+                                                    )}
                                                 </Text>
                                             )
                                         }}
@@ -162,5 +183,3 @@ export default function DocsTruthfulnessPage({
         </div>
     )
 }
-
-

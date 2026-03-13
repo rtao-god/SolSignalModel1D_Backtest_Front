@@ -8,10 +8,10 @@ import { GUIDE_SPLITS_TABS } from '@/shared/utils/guideTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
     readAvailableGuideTermGroups,
-    readGuideStringListOrThrow,
-    readGuideTableRowsOrThrow
+    readGuideStringList,
+    readGuideTableRows
 } from '@/pages/guidePages/ui/shared/guideI18n'
-import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
+import { buildGuideGlossary, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainSplitsPage.module.scss'
 import type { ExplainSplitsPageProps } from './types'
 
@@ -45,10 +45,7 @@ const GUIDE_SPLITS_SECTIONS: readonly GuideSplitsSectionConfig[] = [
     }
 ]
 
-export default function ExplainSplitsPage({
-    className,
-    translationNamespace = 'guide'
-}: ExplainSplitsPageProps) {
+export default function ExplainSplitsPage({ className, translationNamespace = 'guide' }: ExplainSplitsPageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
 
     const sections = useMemo(
@@ -60,7 +57,7 @@ export default function ExplainSplitsPage({
         [t]
     )
     const buildPageGlossary = () =>
-        buildGuideGlossaryOrThrow(
+        buildGuideGlossary(
             readAvailableGuideTermGroups(
                 i18n,
                 GUIDE_SPLITS_SECTIONS.map(section => `splitsPage.sections.${section.id}.terms`)
@@ -90,12 +87,17 @@ export default function ExplainSplitsPage({
                         <LocalizedContentBoundary name={`GuideSplits:${section.id}:paragraphs`}>
                             {() => {
                                 const glossary = buildPageGlossary()
-                                const paragraphs = readGuideStringListOrThrow(i18n, `splitsPage.sections.${section.id}.paragraphs`)
+                                const paragraphs = readGuideStringList(
+                                    i18n,
+                                    `splitsPage.sections.${section.id}.paragraphs`
+                                )
 
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderGuideRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -113,7 +115,10 @@ export default function ExplainSplitsPage({
                                     }
 
                                     const glossary = buildPageGlossary()
-                                    const rows = readGuideTableRowsOrThrow(i18n, `splitsPage.sections.${section.id}.table.rows`)
+                                    const rows = readGuideTableRows(
+                                        i18n,
+                                        `splitsPage.sections.${section.id}.table.rows`
+                                    )
 
                                     return (
                                         <div className={cls.tableWrap}>
@@ -122,7 +127,9 @@ export default function ExplainSplitsPage({
                                                     <tr>
                                                         {headerKeys.map(headerKey => (
                                                             <th key={`${section.id}-header-${headerKey}`}>
-                                                                {t(`splitsPage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                                {t(
+                                                                    `splitsPage.sections.${section.id}.table.headers.${headerKey}`
+                                                                )}
                                                             </th>
                                                         ))}
                                                     </tr>
@@ -131,7 +138,8 @@ export default function ExplainSplitsPage({
                                                     {rows.map((row, rowIndex) => (
                                                         <tr key={`${section.id}-row-${rowIndex}`}>
                                                             {row.map((cell, cellIndex) => (
-                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                <td
+                                                                    key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                     {renderGuideRichText(cell, { glossary })}
                                                                 </td>
                                                             ))}
@@ -156,7 +164,9 @@ export default function ExplainSplitsPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.why`), { glossary })}
+                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -173,7 +183,9 @@ export default function ExplainSplitsPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.example`), { glossary })}
+                                                {renderGuideRichText(t(`splitsPage.sections.${section.id}.example`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -195,6 +207,3 @@ export default function ExplainSplitsPage({
         </div>
     )
 }
-
-
-

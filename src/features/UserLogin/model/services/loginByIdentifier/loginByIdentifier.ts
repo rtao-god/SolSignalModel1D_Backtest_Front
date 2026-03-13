@@ -3,6 +3,7 @@ import axios from 'axios'
 import { CONSTANS } from '@/shared/consts/localStorage'
 import { User, userActions } from '@/entities/User'
 import { API_BASE_URL } from '@/shared/configs/config'
+import { logError } from '@/shared/lib/logging/logError'
 
 interface loginByIdentifierProps {
     identifier: string
@@ -46,7 +47,14 @@ export const loginByIdentifier = createAsyncThunk<User, loginByIdentifierProps>(
             }
             return response.data
         } catch (error) {
-            console.error(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error ?? 'Unknown login request error.'))
+
+            logError(normalizedError, undefined, {
+                source: 'login-by-identifier',
+                domain: 'api_transport',
+                severity: 'warning'
+            })
             return thunkAPI.rejectWithValue(resolveLoginErrorMessage(error))
         }
     }

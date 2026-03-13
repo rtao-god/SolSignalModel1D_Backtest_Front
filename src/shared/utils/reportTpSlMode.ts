@@ -29,7 +29,7 @@ interface TpSlColumnIndexes {
     statPnlIdx: number
 }
 
-function parseNonNegativeIntOrThrow(raw: string | undefined, label: string, contextTag: string): number {
+function parseNonNegativeInt(raw: string | undefined, label: string, contextTag: string): number {
     const value = Number(raw)
     if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
         throw new Error(`[${contextTag}] ${label} must be a non-negative integer. value=${raw}`)
@@ -64,7 +64,7 @@ function resolvePart1Indexes(columns: string[]): TpSlColumnIndexes | null {
     }
 }
 
-function buildPolicyBranchKeyOrThrow(
+function buildPolicyBranchKey(
     row: string[],
     policyIdx: number,
     branchIdx: number,
@@ -81,7 +81,7 @@ function buildPolicyBranchKeyOrThrow(
     return `${policy}::${branch}`
 }
 
-function ensureRowShapeOrThrow(
+function ensureRowShape(
     row: string[] | undefined,
     requiredIdx: number,
     contextTag: string,
@@ -100,7 +100,7 @@ function ensureRowShapeOrThrow(
  * Для остальных PART дополнительно отфильтровывает строки по Policy+Branch,
  * чтобы разрез оставался согласован между всеми секциями группы.
  */
-export function applyReportTpSlModeToSectionsOrThrow(
+export function applyReportTpSlModeToSections(
     sections: TableSectionDto[],
     mode: PolicyBranchMegaTpSlMode,
     contextTag: string
@@ -142,9 +142,9 @@ export function applyReportTpSlModeToSectionsOrThrow(
                 selectedDaysIdx,
                 selectedPnlIdx
             )
-            ensureRowShapeOrThrow(row, requiredIdx, contextTag, sectionTitle, rowIndex)
+            ensureRowShape(row, requiredIdx, contextTag, sectionTitle, rowIndex)
 
-            const selectedTrades = parseNonNegativeIntOrThrow(row[selectedTradesIdx], `${mode}.trades`, contextTag)
+            const selectedTrades = parseNonNegativeInt(row[selectedTradesIdx], `${mode}.trades`, contextTag)
             if (selectedTrades <= 0) {
                 continue
             }
@@ -156,7 +156,7 @@ export function applyReportTpSlModeToSectionsOrThrow(
 
             selectedRows.push(nextRow)
             selectedKeys.add(
-                buildPolicyBranchKeyOrThrow(
+                buildPolicyBranchKey(
                     nextRow,
                     indexes.policyIdx,
                     indexes.branchIdx,
@@ -212,9 +212,9 @@ export function applyReportTpSlModeToSectionsOrThrow(
 
         const nextRows = rows.filter((row, rowIndex) => {
             const requiredIdx = Math.max(policyIdx, branchIdx)
-            ensureRowShapeOrThrow(row, requiredIdx, contextTag, sectionTitle, rowIndex)
+            ensureRowShape(row, requiredIdx, contextTag, sectionTitle, rowIndex)
 
-            const rowKey = buildPolicyBranchKeyOrThrow(row, policyIdx, branchIdx, contextTag, sectionTitle, rowIndex)
+            const rowKey = buildPolicyBranchKey(row, policyIdx, branchIdx, contextTag, sectionTitle, rowIndex)
             return selectedKeys.has(rowKey)
         })
 

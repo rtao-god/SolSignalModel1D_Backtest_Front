@@ -7,6 +7,17 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { getMonthGridDates } from '@/shared/consts/date'
 import buildMonthCells from './lib/buildMonthCells'
 
+/*
+	Month — один календарный месяц внутри двухколоночного popup.
+
+	Зачем:
+		- Собирает заголовок месяца, подписи дней недели и готовую сетку `Day`-ячеек.
+
+	Контракты:
+		- Логика диапазона и disabled-состояний не считается в JSX напрямую, а приходит из `buildMonthCells`.
+		- Заголовок остаётся визуально центрированным, даже если навигация доступна только с одной стороны.
+*/
+
 export default function Month({
     className,
     year,
@@ -36,6 +47,7 @@ export default function Month({
         [i18n.language]
     )
     const weekDays = useMemo(
+        // Недельные подписи строим через Intl, чтобы календарь синхронно локализовался вместе с month title.
         () => Array.from({ length: 7 }, (_, index) => weekDayFormatter.format(new Date(2024, 0, 1 + index))),
         [weekDayFormatter]
     )
@@ -55,27 +67,33 @@ export default function Month({
     return (
         <section className={classNames(cls.month, {}, [className ?? ''])} aria-label={monthTitle}>
             <div className={cls.header}>
-                {onPrevMonth ?
-                    <button
-                        type='button'
-                        className={cls.navButton}
-                        onClick={onPrevMonth}
-                        aria-label={t('dateRangePicker.prevMonthAria')}>
-                        <span className={classNames(cls.navIcon, {}, [cls.navIconPrev])} aria-hidden='true'></span>
-                    </button>
-                :   <span className={cls.navSpacer} aria-hidden='true'></span>}
+                {
+                    onPrevMonth ?
+                        <button
+                            type='button'
+                            className={cls.navButton}
+                            onClick={onPrevMonth}
+                            aria-label={t('dateRangePicker.prevMonthAria')}>
+                            <span className={classNames(cls.navIcon, {}, [cls.navIconPrev])} aria-hidden='true'></span>
+                        </button>
+                        // Пустой spacer сохраняет заголовок по центру, когда листание назад недоступно.
+                    :   <span className={cls.navSpacer} aria-hidden='true'></span>
+                }
 
                 <span className={cls.dateTitle}>{monthTitle}</span>
 
-                {onNextMonth ?
-                    <button
-                        type='button'
-                        className={cls.navButton}
-                        onClick={onNextMonth}
-                        aria-label={t('dateRangePicker.nextMonthAria')}>
-                        <span className={cls.navIcon} aria-hidden='true'></span>
-                    </button>
-                :   <span className={cls.navSpacer} aria-hidden='true'></span>}
+                {
+                    onNextMonth ?
+                        <button
+                            type='button'
+                            className={cls.navButton}
+                            onClick={onNextMonth}
+                            aria-label={t('dateRangePicker.nextMonthAria')}>
+                            <span className={cls.navIcon} aria-hidden='true'></span>
+                        </button>
+                        // Пустой spacer симметризует header, когда справа нет кнопки навигации.
+                    :   <span className={cls.navSpacer} aria-hidden='true'></span>
+                }
             </div>
 
             <div className={cls.weekDays}>
@@ -100,8 +118,6 @@ export default function Month({
                         isInRange={cell.isInRange}
                         isRangeMonthStart={cell.isRangeMonthStart}
                         isRangeMonthEnd={cell.isRangeMonthEnd}
-                        showLeftBridge={cell.showLeftBridge}
-                        showRightBridge={cell.showRightBridge}
                         onSelectDate={onDateSelect}
                     />
                 ))}

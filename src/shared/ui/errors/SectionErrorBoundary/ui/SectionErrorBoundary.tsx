@@ -2,6 +2,7 @@ import React from 'react'
 import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 import i18n from '@/shared/configs/i18n/i18n'
 import { markErrorHandledByBoundary } from '@/shared/lib/logging/setupGlobalErrorHandlers'
+import { logError } from '@/shared/lib/logging/logError'
 
 interface SectionErrorBoundaryProps {
     name?: string
@@ -31,8 +32,11 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
         markErrorHandledByBoundary(error)
-        // eslint-disable-next-line no-console
-        console.error('[SectionErrorBoundary]', this.props.name, error, info)
+        logError(error, info, {
+            source: 'section-error-boundary',
+            domain: 'ui_section',
+            extra: { sectionName: this.props.name }
+        })
     }
 
     componentDidUpdate(prevProps: SectionErrorBoundaryProps): void {

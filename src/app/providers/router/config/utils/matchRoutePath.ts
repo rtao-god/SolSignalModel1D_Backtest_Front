@@ -29,8 +29,5 @@ export function isRouteBranchMatch(pathname: string, routePath: string): boolean
         return normalizedPathname === '/'
     }
 
-    return (
-        normalizedPathname === normalizedRoutePath ||
-        normalizedPathname.startsWith(`${normalizedRoutePath}/`)
-    )
+    return normalizedPathname === normalizedRoutePath || normalizedPathname.startsWith(`${normalizedRoutePath}/`)
 }

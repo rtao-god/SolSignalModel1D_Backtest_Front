@@ -8,6 +8,9 @@ import { toStartOfDay } from '@/shared/consts/date'
 
 const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2022, 3, 13))
 
+/**
+ * Позиция видимого календаря на уровне года и месяца без привязки к конкретному дню.
+ */
 interface MonthCursor {
     year: number
     month: number
@@ -65,6 +68,16 @@ function resolveInitialVisibleMonth(
     return clampCursor(targetCursor, minMonth, maxVisibleMonth)
 }
 
+/*
+	Calendar — popup-календарь с двумя синхронизированными месяцами.
+
+	Зачем:
+		- Даёт выбрать диапазон дат внутри допустимого окна и сохраняет контекст активного поля `from/to`.
+
+	Контракты:
+		- Левый месяц никогда не выходит за допустимое окно так, чтобы правый месяц перескочил за текущий день.
+		- Начальный видимый месяц подбирается от активного поля и уже выбранных дат, а не от жёстко заданного today-only курса.
+*/
 export default function Calendar({
     className,
     departureDate,
@@ -90,6 +103,7 @@ export default function Calendar({
     )
 
     const maxVisibleMonth = useMemo(() => {
+        // Правый календарь всегда показывает следующий месяц, поэтому левый не должен доходить до текущего месяца.
         const candidate = addMonths(maxMonth, -1)
         return compareMonthCursors(candidate, minMonth) < 0 ? minMonth : candidate
     }, [maxMonth, minMonth])
@@ -103,6 +117,7 @@ export default function Calendar({
     const canGoNext = compareMonthCursors(visibleMonth, maxVisibleMonth) < 0
 
     const availableYears = useMemo(() => {
+        // Новые годы держим ближе к началу dropdown, чтобы текущий рабочий диапазон выбирался быстрее.
         const years: number[] = []
         for (let year = maxMonth.year; year >= minMonth.year; year -= 1) {
             years.push(year)

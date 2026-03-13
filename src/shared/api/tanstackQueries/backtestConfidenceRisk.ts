@@ -92,9 +92,7 @@ function buildBacktestConfidenceRiskQueryKey(args?: BacktestConfidenceRiskQueryA
     ] as const
 }
 
-async function fetchBacktestConfidenceRiskReport(
-    args?: BacktestConfidenceRiskQueryArgs
-): Promise<ReportDocumentDto> {
+async function fetchBacktestConfidenceRiskReport(args?: BacktestConfidenceRiskQueryArgs): Promise<ReportDocumentDto> {
     const reportPath = buildBacktestConfidenceRiskPath(args)
     const resp = await fetch(`${API_BASE_URL}${reportPath}`)
 

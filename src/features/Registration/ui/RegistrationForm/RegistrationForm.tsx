@@ -168,9 +168,6 @@ export default function RegistrationForm({ className }: RegistrationFormProps) {
         setLocalIdentifier(value)
         debouncedSet(value)
     }
-
-    console.log('user: ', identifier, password)
-    console.log('localStorage: ', localStorage.user)
     return (
         <div className={classNames(cls.Registration_form, {}, [className ?? ''])}>
             <form onSubmit={handleOnSubmit}>

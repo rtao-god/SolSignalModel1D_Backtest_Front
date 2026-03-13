@@ -6,68 +6,44 @@
     flex-direction: column;
     align-items: stretch;
     width: var(--sidebar-width);
-
+    min-height: 0;
     height: calc(100vh - var(--navbar-height));
+    height: calc(100dvh - var(--navbar-height));
     margin: 0;
-
     padding: 12px;
 
-    /* Премиальный тёмный градиент для всего фона сайдбара */
-    background: radial-gradient(circle at top left, #0b1220 0%, #020617 40%, #000000 100%);
-    box-shadow: 5px 20px 20px 2px rgba(0, 0, 0, 0.35);
-    transition: all 0.3s;
+    background: radial-gradient(circle at top left, #0b1220 0%, #020617 42%, #000000 100%);
+    border-right: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: 10px 0 24px rgba(0, 0, 0, 0.22);
 
     flex-shrink: 0;
-    min-height: 0;
     overflow: hidden;
-
     caret-color: transparent;
 }
 
-/* Кнопка-бургер выравнивается по левому краю */
-.burgerBtn {
-    align-self: flex-start;
-}
-
-.switchers {
-    display: flex;
-    gap: 10px;
-
-    justify-content: center;
-    width: 100%;
-    margin-top: auto;
-    margin-bottom: 20px;
-}
-
-.btnBurger {
-    display: flex;
-}
-
-/* Контейнер со ссылками: отдельная скроллируемая зона */
 .links {
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-top: 0;
-
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1 1 auto;
     min-height: 0;
-
     overscroll-behavior: contain;
 }
 
-/* Заголовок группы ссылок (Модели / Бэктест / Фичи) */
+.sectionBlock + .sectionBlock {
+    margin-top: 4px;
+}
+
 .sectionTitle {
     margin: 0 0 6px;
     padding: 0 4px;
-
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-
     color: #9ca3af;
     opacity: 0.9;
 }
@@ -76,127 +52,89 @@
     margin-bottom: 4px;
 }
 
-/* Групповая карточка для пунктов с подвкладками */
 .itemBlockGroup {
     margin-top: 14px;
     margin-bottom: 20px;
     padding: 6px 8px;
-    border-radius: 18px;
+    border-radius: var(--radius-xl);
     background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
-    border: 1px solid rgba(148, 163, 184, 0.26);
+    border: 1px solid rgba(148, 163, 184, 0.22);
     transition:
-        background-color 0.2s ease-out,
-        border-color 0.2s ease-out,
-        box-shadow 0.2s ease-out,
-        transform 0.15s ease-out;
+        background-color var(--transition-medium),
+        border-color var(--transition-medium),
+        box-shadow var(--transition-medium),
+        transform var(--transition-fast);
 }
 
-/* Активная карточка (есть подвкладки и роут активен) */
 .itemBlockGroupActive {
-    background: radial-gradient(circle at top left, rgba(15, 23, 42, 1), rgba(15, 23, 42, 1));
-    border-color: rgba(56, 189, 248, 0.7);
+    border-color: rgba(56, 189, 248, 0.62);
     box-shadow:
-        0 0 0 1px rgba(56, 189, 248, 0.5),
-        0 10px 20px rgba(15, 23, 42, 0.9);
+        0 0 0 1px rgba(56, 189, 248, 0.32),
+        0 12px 22px rgba(15, 23, 42, 0.82);
 }
 
-/* Единый лёгкий hover по карточке */
 .itemBlockGroup:hover {
-    border-color: rgba(148, 163, 184, 0.5);
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.46);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.54);
 }
-
-/* ===== Основные ссылки сайдбара ===== */
 
 .link {
     position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
-
     padding: 8px 10px;
-    border-radius: 999px;
-
+    border-radius: var(--radius-pill);
     text-decoration: none;
-
     color: #e5e7eb;
     font-size: 13px;
     font-weight: 500;
-
     background: transparent;
     cursor: pointer;
     caret-color: transparent;
 
     transition:
-        background-color 0.18s ease-out,
-        color 0.18s ease-out,
-        transform 0.14s ease-out,
-        box-shadow 0.18s ease-out,
-        opacity 0.18s ease-out;
+        background-color var(--transition-medium),
+        color var(--transition-medium),
+        transform var(--transition-fast),
+        box-shadow var(--transition-medium),
+        opacity var(--transition-medium);
 }
 
-/* Родитель внутри групповой карточки — чуть компактнее */
 .linkGroup {
     padding: 6px 6px;
 }
 
-/* Активная основная ссылка (только для пунктов БЕЗ подвкладок) */
 .linkActive {
-    background: radial-gradient(circle at left center, rgba(0, 200, 255, 0.2), rgba(15, 23, 42, 0.95));
+    background: radial-gradient(circle at left center, rgba(0, 200, 255, 0.18), rgba(15, 23, 42, 0.95));
     color: #f9fafb;
     box-shadow:
-        0 0 0 1px rgba(56, 189, 248, 0.65),
-        0 8px 18px rgba(15, 23, 42, 0.8);
-    transform: translateX(6px);
-    width: 97%;
+        0 0 0 1px rgba(56, 189, 248, 0.56),
+        0 8px 18px rgba(15, 23, 42, 0.72);
+    transform: translateX(4px);
 }
 
 .linkBullet {
     flex-shrink: 0;
     width: 6px;
     height: 6px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: rgba(148, 163, 184, 0.9);
 }
 
 .label {
     opacity: 1;
-    transition: opacity 0.2s;
+    transition: opacity var(--transition-medium);
     cursor: pointer;
     caret-color: transparent;
 }
 
-/* Ховер по основной ссылке */
 .link:hover {
     background: rgba(15, 23, 42, 0.9);
     color: #f9fafb;
-    width: 97%;
-    transform: translateX(6px);
-    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.35);
+    transform: translateX(4px);
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.28);
 }
-
-/* Свернутый сайдбар - LEGACY */
-.collapsed {
-    width: var(--sidebar-collapsed-width);
-    padding: 12px 4px;
-
-    .links {
-        .link {
-            padding: 10px 6px;
-            justify-content: center;
-        }
-    }
-
-    .label {
-        opacity: 0;
-    }
-
-    .itemBlockGroup {
-        padding: 4px;
-    }
-}
-
-/* ===== Подвкладки (универсальный стиль для пунктов с hasSubNav) ===== */
 
 .subNav {
     display: flex;
@@ -209,7 +147,7 @@
     width: 1px;
     height: 100%;
     margin-right: 8px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: linear-gradient(180deg, rgba(148, 163, 184, 0.6), rgba(148, 163, 184, 0.06));
     opacity: 0.9;
 }
@@ -220,40 +158,39 @@
     gap: 4px;
 }
 
-/* Подвкладка */
 .subLink {
     position: relative;
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 4px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 13px;
-    color: var(--text-secondary, #a0a0a0);
+    color: #a0a0a0;
     text-decoration: none;
     overflow: hidden;
-
     cursor: pointer;
     caret-color: transparent;
     transform: translateX(0);
     opacity: 0.9;
+
     transition:
-        background-color 0.25s ease,
-        color 0.25s ease,
-        transform 0.2s ease,
-        opacity 0.2s ease;
+        background-color var(--transition-medium),
+        color var(--transition-medium),
+        transform var(--transition-medium),
+        opacity var(--transition-medium);
 }
 
 .subLink:hover {
     background-color: rgba(255, 255, 255, 0.06);
-    color: var(--text-primary, #ffffff);
+    color: #ffffff;
     transform: translateX(2px);
     opacity: 1;
 }
 
 .subLinkActive {
     background: linear-gradient(120deg, rgba(0, 200, 255, 0.18), rgba(120, 80, 255, 0.26));
-    color: var(--text-primary, #ffffff);
+    color: #ffffff;
     transform: translateX(4px);
     opacity: 1;
 }
@@ -282,7 +219,6 @@
     caret-color: transparent;
 }
 
-/* Лёгкий “ripple” внутри под-пункта при hover/active */
 .subRipple {
     position: absolute;
     inset: 0;
@@ -290,38 +226,88 @@
     background: radial-gradient(circle at left center, rgba(255, 255, 255, 0.18), transparent 60%);
     opacity: 0;
     transform: translateX(-20%);
+
     transition:
-        opacity 0.25s ease,
-        transform 0.25s ease;
+        opacity var(--transition-medium),
+        transform var(--transition-medium);
 }
 
-.subLink:hover .subRipple {
-    opacity: 0.28;
-    transform: translateX(0);
-}
-
+.subLink:hover .subRipple,
 .subLinkActive .subRipple {
-    opacity: 0.35;
+    opacity: 0.32;
     transform: translateX(0);
 }
-
-/* ===== Режим сайдбара внутри модалки (мобилки/планшеты) ===== */
 
 .Sidebar_modal {
     position: static;
     top: auto;
-
     width: 100%;
     max-width: 100%;
-
     height: auto;
-    max-height: 70vh;
-
+    max-height: min(78vh, calc(100dvh - 32px));
     margin: 0;
     padding: 12px 10px;
-
+    border-right: none;
+    border-radius: var(--radius-xl);
     box-shadow: none;
-    border-radius: 14px;
-
     overflow: auto;
+}
+
+.Sidebar_compact {
+    width: var(--sidebar-compact-width);
+    padding: 10px 8px;
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
+    box-shadow: none;
+}
+
+.compactSections {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.compactSectionButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    padding: 10px 8px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: var(--radius-lg);
+    background: rgba(15, 23, 42, 0.72);
+    color: #dbeafe;
+    cursor: pointer;
+
+    transition:
+        border-color var(--transition-medium),
+        background-color var(--transition-medium),
+        transform var(--transition-fast),
+        box-shadow var(--transition-medium);
+}
+
+.compactSectionButton:hover,
+.compactSectionButton:focus-visible {
+    border-color: rgba(125, 211, 252, 0.42);
+    background: rgba(15, 23, 42, 0.92);
+    box-shadow: 0 10px 20px rgba(2, 6, 23, 0.3);
+    transform: translateX(1px);
+}
+
+.compactSectionButtonActive {
+    border-color: rgba(56, 189, 248, 0.56);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.92));
+    box-shadow: 0 12px 22px rgba(2, 6, 23, 0.36);
+}
+
+.compactSectionLabel {
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.03em;
+    overflow-wrap: anywhere;
 }

@@ -10,12 +10,10 @@ import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/r
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute, SidebarNavItem } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
-import {
-    isRouteBranchMatch,
-    isRouteExactMatch
-} from '@/app/providers/router/config/utils/matchRoutePath'
+import { isRouteBranchMatch, isRouteExactMatch } from '@/app/providers/router/config/utils/matchRoutePath'
 import {
     buildRouteNavLabelI18nKey,
+    buildRouteSectionCompactTitleI18nKey,
     buildRouteSubTabLabelI18nKey,
     buildRouteSectionTitleI18nKey,
     buildRouteSubNavAriaI18nKey
@@ -48,7 +46,12 @@ import {
     EXPLAIN_TIME_TABS
 } from '@/shared/utils/explainTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
-import { buildPolicyBranchMegaTabsFromSections } from '@/shared/utils/policyBranchMegaTabs'
+import {
+    buildPolicyBranchMegaTabsFromAvailableParts,
+    buildPolicyBranchMegaTabsFromSections,
+    type PolicyBranchMegaBucketMode,
+    type PolicyBranchMegaTotalBucketView
+} from '@/shared/utils/policyBranchMegaTabs'
 import {
     buildDiagnosticsTabsFromSections,
     getDiagnosticsGroupSections,
@@ -57,10 +60,13 @@ import {
     type DiagnosticsGroupId,
     type DiagnosticsTabConfig
 } from '@/shared/utils/backtestDiagnosticsSections'
-import { useBacktestDiagnosticsReportNavQuery } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import {
+    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
+    useBacktestDiagnosticsReportNavQuery
+} from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import {
     DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS,
-    resolvePolicyBranchMegaReportQueryArgsOrThrow,
+    resolvePolicyBranchMegaReportQueryArgs,
     usePolicyBranchMegaReportWithFreshnessQuery
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
@@ -87,7 +93,7 @@ import {
 interface SidebarProps {
     className?: string
 
-    mode?: 'default' | 'modal'
+    mode?: 'default' | 'modal' | 'compact'
 
     onItemClick?: () => void
 }
@@ -113,6 +119,18 @@ const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     guide: 'Knowledge Base',
     developer: 'Developer',
     docs: 'Documentation',
+    explain: 'Объяснение'
+}
+const SECTION_COMPACT_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
+    predictions: 'Predictions',
+    models: 'Models',
+    backtest: 'Backtest',
+    analysis: 'Analysis',
+    diagnostics: 'Diag',
+    features: 'PFI',
+    guide: 'Guide',
+    developer: 'Dev',
+    docs: 'Docs',
     explain: 'Explain'
 }
 
@@ -125,6 +143,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
     // Режим страницы определяет, какие секции вообще должны быть видимы в сайдбаре.
     const isModal = mode === 'modal'
+    const isCompact = mode === 'compact'
     const isGuideRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.GUIDE])
     const isDeveloperRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DEVELOPER])
     const isDocsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DOCS])
@@ -160,7 +179,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         policyBranchMegaRoutePath ? isRouteBranchMatch(pathname, policyBranchMegaRoutePath) : false
     // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
     const { data: pfiReport } = usePfiPerModelReportNavQuery({
-        enabled: isOnPfiPage
+        enabled: !isCompact && isOnPfiPage
     })
     const currentSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
 
@@ -174,10 +193,11 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     )
 
     // Подгружаем данные для поднавигации только на тех страницах, где она реально используется.
-    const shouldLoadDiagnosticsNav = isDiagnosticsRoute || isAnalysisRoute
+    const shouldLoadDiagnosticsNav = !isCompact && (isDiagnosticsRoute || isAnalysisRoute)
     const { data: diagnosticsReport } = useBacktestDiagnosticsReportNavQuery(
         {
-            enabled: shouldLoadDiagnosticsNav
+            enabled: shouldLoadDiagnosticsNav,
+            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.sidebarNav
         },
         diagnosticsNavArgs
     )
@@ -185,10 +205,11 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const policyBranchMegaArgsState = useMemo(() => {
         try {
             return {
-                value: resolvePolicyBranchMegaReportQueryArgsOrThrow({
+                value: resolvePolicyBranchMegaReportQueryArgs({
                     bucket: currentSearchParams.get('bucket'),
                     bucketView: currentSearchParams.get('bucketview'),
                     metric: currentSearchParams.get('metric'),
+                    part: 1,
                     tpSlMode: currentSearchParams.get('tpsl'),
                     slMode: currentSearchParams.get('slmode'),
                     zonalMode: currentSearchParams.get('zonal')
@@ -204,18 +225,21 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     }, [currentSearchParams])
 
     const shouldLoadPolicyBranchMegaNav =
-        isOnPolicyBranchMegaPage && policyBranchMegaArgsState.error === null
-    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(policyBranchMegaArgsState.value, {
-        enabled: shouldLoadPolicyBranchMegaNav
-    })
+        !isCompact && isOnPolicyBranchMegaPage && policyBranchMegaArgsState.error === null
+    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(
+        policyBranchMegaArgsState.value,
+        {
+            enabled: shouldLoadPolicyBranchMegaNav
+        }
+    )
     const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
+    const policyBranchMegaCapabilities = policyBranchMegaPayload?.capabilities ?? null
 
     const handleRouteWarmup = useCallback(
         (routeId: AppRoute) => {
             warmupRouteNavigation(routeId, queryClient, dispatch, {
                 diagnosticsArgs: diagnosticsNavArgs,
-                policyBranchMegaArgs:
-                    policyBranchMegaArgsState.error ? undefined : policyBranchMegaArgsState.value
+                policyBranchMegaArgs: policyBranchMegaArgsState.error ? undefined : policyBranchMegaArgsState.value
             })
         },
         [diagnosticsNavArgs, dispatch, policyBranchMegaArgsState.error, policyBranchMegaArgsState.value, queryClient]
@@ -271,6 +295,17 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     }, [diagnosticsReport])
 
     const policyBranchMegaTabs = useMemo(() => {
+        if (policyBranchMegaCapabilities?.availableParts && policyBranchMegaCapabilities.availableParts.length > 0) {
+            const selectedBucket = policyBranchMegaArgsState.value.bucket as PolicyBranchMegaBucketMode
+            const selectedBucketView = policyBranchMegaArgsState.value.bucketView as PolicyBranchMegaTotalBucketView
+
+            return buildPolicyBranchMegaTabsFromAvailableParts(
+                policyBranchMegaCapabilities.availableParts,
+                selectedBucket,
+                selectedBucketView
+            )
+        }
+
         if (!policyBranchMegaReport) return []
 
         const tableSections = (policyBranchMegaReport.sections ?? []).filter(
@@ -279,7 +314,12 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         )
 
         return buildPolicyBranchMegaTabsFromSections(tableSections)
-    }, [policyBranchMegaReport])
+    }, [
+        policyBranchMegaArgsState.value.bucket,
+        policyBranchMegaArgsState.value.bucketView,
+        policyBranchMegaCapabilities,
+        policyBranchMegaReport
+    ])
 
     // На специализированных страницах оставляем только профильную секцию в сайдбаре.
     const grouped = useMemo(() => {
@@ -365,6 +405,48 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     }, [grouped])
 
     const currentHash = location.hash.replace('#', '')
+
+    if (isCompact) {
+        return (
+            <div className={classNames(cls.Sidebar, { [cls.Sidebar_compact]: true }, [className ?? ''])}>
+                <div className={cls.compactSections}>
+                    {orderedSections.map(section => {
+                        const items = grouped.get(section) ?? []
+                        if (items.length === 0) {
+                            return null
+                        }
+
+                        const fallbackTitle = SECTION_FALLBACK_TITLES[section] ?? section
+                        const sectionTitle = t(buildRouteSectionTitleI18nKey(section), {
+                            defaultValue: fallbackTitle
+                        })
+                        const sectionCompactTitle = t(buildRouteSectionCompactTitleI18nKey(section), {
+                            defaultValue: SECTION_COMPACT_FALLBACK_TITLES[section] ?? sectionTitle
+                        })
+                        const isActiveSection = items.some(
+                            item => isRouteExactMatch(pathname, item.path) || isRouteBranchMatch(pathname, item.path)
+                        )
+
+                        return (
+                            <button
+                                key={section}
+                                type='button'
+                                title={sectionTitle}
+                                aria-label={sectionTitle}
+                                onClick={onItemClick}
+                                className={classNames(
+                                    cls.compactSectionButton,
+                                    { [cls.compactSectionButtonActive]: isActiveSection },
+                                    []
+                                )}>
+                                <span className={cls.compactSectionLabel}>{sectionCompactTitle}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div
@@ -528,10 +610,10 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     : isDocsModels ? 'Model docs'
                                     : isDocsTests ? 'Test docs'
                                     : isDocsTruthfulness ? 'Truthfulness docs'
-                                    : isExplainBranches ? 'Branch explain'
-                                    : isExplainSplits ? 'Split explain'
-                                    : isExplainTime ? 'Time explain'
-                                    : isExplainFeatures ? 'Feature explain'
+                                    : isExplainBranches ? 'Раздел про ветки'
+                                    : isExplainSplits ? 'Раздел про сплиты'
+                                    : isExplainTime ? 'Раздел про время'
+                                    : isExplainFeatures ? 'Раздел про признаки'
                                     : isAggregationStats ? 'Aggregation sections'
                                     : isBacktestDiagnostics ? 'Diagnostics sections'
                                     : isBacktestDiagnosticsGuardrail ? 'Guardrail sections'
@@ -574,7 +656,8 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                 <div className={cls.subNavLine} />
                                                 <div className={cls.subNavList}>
                                                     {tabs.map(tab => {
-                                                        const isActiveTab = isRouteActiveBase && currentHash === tab.anchor
+                                                        const isActiveTab =
+                                                            isRouteActiveBase && currentHash === tab.anchor
 
                                                         // Для Policy Branch Mega сохраняем весь query-контекст фильтров при кликах по якорям.
                                                         const linkBase = `${item.path}${routeSearch}`

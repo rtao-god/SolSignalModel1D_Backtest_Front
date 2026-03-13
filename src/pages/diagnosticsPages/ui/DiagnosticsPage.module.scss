@@ -1,8 +1,8 @@
 .root {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 24px 32px;
+    @include product-page-shell(1440px, true, 24px);
+    width: 100%;
+    container-type: inline-size;
+    container-name: diagnostics-page;
 }
 
 .hero {
@@ -29,7 +29,7 @@
 .sections {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
 }
 
 .sectionsTitle {
@@ -39,13 +39,7 @@
 }
 
 .cards {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-
-    @media (max-width: 900px) {
-        grid-template-columns: 1fr;
-    }
+    @include responsive-grid(320px, 16px);
 }
 
 .cardLink {
@@ -54,11 +48,13 @@
 
 .card {
     height: 100%;
-    padding: 16px 18px;
-    border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.9));
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-lg),
+        $background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.9)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
 
     display: flex;
     flex-direction: column;
@@ -95,4 +91,14 @@
     font-size: 12px;
     font-weight: 500;
     color: #93c5fd;
+}
+
+@container diagnostics-page (max-width: 760px) {
+    .hero {
+        max-width: none;
+    }
+
+    .heroTitle {
+        font-size: 26px;
+    }
 }

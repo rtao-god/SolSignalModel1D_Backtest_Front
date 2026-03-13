@@ -6,8 +6,8 @@ import type { TableSectionDto } from '@/shared/types/report.types'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import {
-    getPolicyBranchMegaTermOrThrow,
-    orderPolicyBranchMegaSectionsOrThrow,
+    getPolicyBranchMegaTerm,
+    orderPolicyBranchMegaSections,
     resolvePolicyBranchMegaTermLocale,
     type PolicyBranchMegaTermLocale
 } from '@/shared/utils/policyBranchMegaTerms'
@@ -31,6 +31,15 @@ interface DemoMetricDefinition {
     termTitle: string
 }
 
+interface DemoMetaItem {
+    label: string
+    value: string
+}
+
+interface DemoNarrativeSummary {
+    paragraphs: string[]
+}
+
 const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
     { labelKey: 'bucketNow', termKey: 'BucketNow$', termTitle: 'BucketNow$' },
@@ -46,6 +55,52 @@ const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'noTrade', termKey: 'NoTrade%', termTitle: 'NoTrade%' }
 ]
 
+function parseRequiredNumber(rawValue: string, metricTitle: string): number {
+    const parsed = tryParseNumberFromString(rawValue)
+    if (parsed === null) {
+        throw new Error(`[main.demo] ${metricTitle} is not a numeric value: ${rawValue}.`)
+    }
+
+    return parsed
+}
+
+function formatLocalizedNumber(value: number, locale: string, options?: Intl.NumberFormatOptions): string {
+    if (!Number.isFinite(value)) {
+        throw new Error(`[main.demo] Number must be finite. value=${value}.`)
+    }
+
+    return new Intl.NumberFormat(locale, options).format(value)
+}
+
+function formatLocalizedPercent(value: number, locale: string, maximumFractionDigits = 2): string {
+    return `${formatLocalizedNumber(value, locale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits
+    })}%`
+}
+
+function formatLocalizedCompactUsd(value: number, locale: string): string {
+    const absValue = Math.abs(value)
+    if (absValue >= 1_000_000) {
+        return `≈ $${formatLocalizedNumber(value / 1_000_000, locale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })}M`
+    }
+
+    if (absValue >= 1_000) {
+        return `≈ $${formatLocalizedNumber(value / 1_000, locale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        })}k`
+    }
+
+    return `$${formatLocalizedNumber(value, locale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    })}`
+}
+
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     return (sections ?? []).filter(
         (section): section is TableSectionDto =>
@@ -53,7 +108,7 @@ function buildTableSections(sections: unknown[]): TableSectionDto[] {
     )
 }
 
-function columnIndexOrThrow(columns: string[] | undefined, title: string, tag: string): number {
+function columnIndex(columns: string[] | undefined, title: string, tag: string): number {
     if (!columns || columns.length === 0) {
         throw new Error(`[main.demo] ${tag} columns are empty.`)
     }
@@ -70,27 +125,27 @@ function buildPolicyBranchKey(policy: string, branch: string): string {
     return `${policy}::${branch}`
 }
 
-function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: string): string[] {
+function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string): string[] {
     const columns = section.columns ?? []
     const rows = section.rows ?? []
-    const policyIdx = columnIndexOrThrow(columns, 'Policy', tag)
-    const branchIdx = columnIndexOrThrow(columns, 'Branch', tag)
+    const policyIdx = columnIndex(columns, 'Policy', tag)
+    const branchIdx = columnIndex(columns, 'Branch', tag)
     const rowsByKey = new Map<string, string[]>()
 
     for (const row of rows) {
         if (!row || row.length <= Math.max(policyIdx, branchIdx)) {
-            throw new Error(`[main.demo] ${tag} row is malformed.`)
+            throw new Error(`[main.demo] ${tag} Policy entry is malformed.`)
         }
 
         const policy = row[policyIdx] ?? ''
         const branch = row[branchIdx] ?? ''
         if (!policy || !branch) {
-            throw new Error(`[main.demo] ${tag} row missing Policy or Branch.`)
+            throw new Error(`[main.demo] ${tag} Policy entry is missing Policy or Branch.`)
         }
 
         const rowKey = buildPolicyBranchKey(policy, branch)
         if (rowsByKey.has(rowKey)) {
-            throw new Error(`[main.demo] ${tag} has duplicate policy row for ${rowKey}.`)
+            throw new Error(`[main.demo] ${tag} has duplicate Policy entry for ${rowKey}.`)
         }
 
         rowsByKey.set(rowKey, row)
@@ -98,13 +153,13 @@ function resolveRowByPolicyOrThrow(section: TableSectionDto, key: string, tag: s
 
     const resolved = rowsByKey.get(key)
     if (!resolved) {
-        throw new Error(`[main.demo] ${tag} row not found for ${key}.`)
+        throw new Error(`[main.demo] ${tag} Policy entry was not found for ${key}.`)
     }
 
     return resolved
 }
 
-function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRowBundle {
+function resolveBestPolicyRows(sections: TableSectionDto[]): BestPolicyRowBundle {
     if (!sections || sections.length === 0) {
         throw new Error('[main.demo] policy branch mega sections are empty.')
     }
@@ -120,16 +175,16 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
         throw new Error('[main.demo] Policy Branch Mega anchor section has no rows.')
     }
 
-    const policyIdx = columnIndexOrThrow(anchorColumns, 'Policy', 'anchor')
-    const branchIdx = columnIndexOrThrow(anchorColumns, 'Branch', 'anchor')
-    const totalPnlIdx = columnIndexOrThrow(anchorColumns, 'TotalPnl%', 'anchor')
+    const policyIdx = columnIndex(anchorColumns, 'Policy', 'anchor')
+    const branchIdx = columnIndex(anchorColumns, 'Branch', 'anchor')
+    const totalPnlIdx = columnIndex(anchorColumns, 'TotalPnl%', 'anchor')
 
     let bestRow: string[] | null = null
     let bestTotal = -Infinity
 
     for (const row of anchorRows) {
         if (!row || row.length <= totalPnlIdx) {
-            throw new Error('[main.demo] Policy Branch Mega anchor row is malformed.')
+            throw new Error('[main.demo] Policy Branch Mega anchor Policy entry is malformed.')
         }
 
         const totalRaw = row[totalPnlIdx]
@@ -145,13 +200,13 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
     }
 
     if (!bestRow) {
-        throw new Error('[main.demo] Failed to resolve best policy row.')
+        throw new Error('[main.demo] Failed to resolve best Policy.')
     }
 
     const policyName = bestRow[policyIdx] ?? ''
     const branchName = bestRow[branchIdx] ?? ''
     if (!policyName || !branchName) {
-        throw new Error('[main.demo] Best policy row missing Policy or Branch.')
+        throw new Error('[main.demo] Best Policy is missing Policy or Branch.')
     }
 
     const key = buildPolicyBranchKey(policyName, branchName)
@@ -162,10 +217,7 @@ function resolveBestPolicyRowsOrThrow(sections: TableSectionDto[]): BestPolicyRo
         totalPnlPct: bestTotal,
         sectionRows: sections.map((section, index) => ({
             section,
-            row:
-                section === anchorSection ?
-                    bestRow
-                :   resolveRowByPolicyOrThrow(section, key, `section-${index + 1}`)
+            row: section === anchorSection ? bestRow : resolveRowByPolicy(section, key, `section-${index + 1}`)
         }))
     }
 }
@@ -198,12 +250,9 @@ function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string 
 }
 
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
-    const term = getPolicyBranchMegaTermOrThrow(termKey, {
-        tooltipMode: 'description',
-        locale
-    })
+    const term = getPolicyBranchMegaTerm(termKey, { locale })
 
-    return renderTermTooltipRichText(term.tooltip, {
+    return renderTermTooltipRichText(term.description, {
         excludeTerms: [termTitle, term.title],
         excludeRuleTitles: [termTitle, term.title]
     })
@@ -222,7 +271,7 @@ function DemoErrorCard({ title, description, details }: { title: string; descrip
 }
 
 /**
- * Компактная карточка по лучшей строке Policy Branch Mega для главной страницы.
+ * Компактная карточка по лучшей Policy из Policy Branch Mega для главной страницы.
  * Источник данных остаётся тем же, но витрина не тянет таблицы и терм-блоки в первый экран.
  */
 export default function MainBestPolicySection() {
@@ -239,10 +288,10 @@ export default function MainBestPolicySection() {
         }
 
         try {
-            const sections = orderPolicyBranchMegaSectionsOrThrow(buildTableSections(data.sections ?? []))
+            const sections = orderPolicyBranchMegaSections(buildTableSections(data.sections ?? []))
 
             return {
-                best: resolveBestPolicyRowsOrThrow(sections),
+                best: resolveBestPolicyRows(sections),
                 error: null as Error | null
             }
         } catch (err) {
@@ -255,10 +304,31 @@ export default function MainBestPolicySection() {
 
     const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
-            return { items: [] as Array<{ label: string; value: string }>, error: null as Error | null }
+            return { items: [] as DemoMetaItem[], error: null as Error | null }
         }
 
         try {
+            const startCapital = formatLocalizedCompactUsd(
+                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'StartCap$'), 'StartCap$'),
+                i18n.language
+            )
+            const finalBalance = formatLocalizedCompactUsd(
+                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'BucketNow$'), 'BucketNow$'),
+                i18n.language
+            )
+            const withdrawnProfit = formatLocalizedCompactUsd(
+                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Withdrawn$'), 'Withdrawn$'),
+                i18n.language
+            )
+            const totalTrades = formatLocalizedNumber(
+                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr'),
+                i18n.language,
+                {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }
+            )
+
             return {
                 items: [
                     {
@@ -284,14 +354,127 @@ export default function MainBestPolicySection() {
                             resolveMetricValue(bestPolicyState.best, 'Days'),
                             i18n.language
                         )
+                    },
+                    {
+                        label: t('main.demo.meta.startCapital'),
+                        value: startCapital
+                    },
+                    {
+                        label: t('main.demo.meta.finalBalance'),
+                        value: finalBalance
+                    },
+                    {
+                        label: t('main.demo.meta.withdrawnProfit'),
+                        value: withdrawnProfit
+                    },
+                    {
+                        label: t('main.demo.meta.trades'),
+                        value: totalTrades
                     }
                 ],
                 error: null as Error | null
             }
         } catch (err) {
             return {
-                items: [] as Array<{ label: string; value: string }>,
+                items: [] as DemoMetaItem[],
                 error: err instanceof Error ? err : new Error('Failed to build demo meta items.')
+            }
+        }
+    }, [bestPolicyState.best, i18n.language, t])
+
+    const demoSummaryState = useMemo(() => {
+        if (!bestPolicyState.best) {
+            return { data: null as DemoNarrativeSummary | null, error: null as Error | null }
+        }
+
+        try {
+            const totalPnlPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl%'), 'TotalPnl%')
+            const totalPnlUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl$'), 'TotalPnl$')
+            const bucketNowUsd = parseRequiredNumber(
+                resolveMetricValue(bestPolicyState.best, 'BucketNow$'),
+                'BucketNow$'
+            )
+            const withdrawnUsd = parseRequiredNumber(
+                resolveMetricValue(bestPolicyState.best, 'Withdrawn$'),
+                'Withdrawn$'
+            )
+            const startCapitalUsd = parseRequiredNumber(
+                resolveMetricValue(bestPolicyState.best, 'StartCap$'),
+                'StartCap$'
+            )
+            const days = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Days'), 'Days')
+            const trades = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr')
+            const noTradePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'NoTrade%'), 'NoTrade%')
+            const winRatePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'WinRate%'), 'WinRate%')
+            const maxDdPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'MaxDD%'), 'MaxDD%')
+            const hadLiqValue = resolveMetricValue(bestPolicyState.best, 'HadLiq').trim().toLowerCase()
+            const periodStart = localizeReportCellValue(
+                'StartDay',
+                resolveMetricValue(bestPolicyState.best, 'StartDay'),
+                i18n.language
+            )
+            const periodEnd = localizeReportCellValue(
+                'EndDay',
+                resolveMetricValue(bestPolicyState.best, 'EndDay'),
+                i18n.language
+            )
+
+            let liquidationSentenceKey:
+                | 'main.demo.summary.riskNoLiquidations'
+                | 'main.demo.summary.riskWithLiquidations'
+            if (hadLiqValue === 'no') {
+                liquidationSentenceKey = 'main.demo.summary.riskNoLiquidations'
+            } else if (hadLiqValue === 'yes') {
+                liquidationSentenceKey = 'main.demo.summary.riskWithLiquidations'
+            } else {
+                throw new Error(`[main.demo] HadLiq must be "yes" or "no". value=${hadLiqValue}.`)
+            }
+
+            const tradesPerDay = trades / days
+
+            return {
+                data: {
+                    paragraphs: [
+                        t('main.demo.summary.performance', {
+                            policy: bestPolicyState.best.policy,
+                            branch: bestPolicyState.best.branch,
+                            periodStart,
+                            periodEnd,
+                            totalPnlPct: formatLocalizedPercent(totalPnlPct, i18n.language, 2),
+                            totalPnlUsd: formatLocalizedCompactUsd(totalPnlUsd, i18n.language),
+                            startCapitalUsd: formatLocalizedCompactUsd(startCapitalUsd, i18n.language),
+                            withdrawnUsd: formatLocalizedCompactUsd(withdrawnUsd, i18n.language),
+                            bucketNowUsd: formatLocalizedCompactUsd(bucketNowUsd, i18n.language)
+                        }),
+                        t('main.demo.summary.activity', {
+                            days: formatLocalizedNumber(days, i18n.language, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }),
+                            trades: formatLocalizedNumber(trades, i18n.language, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }),
+                            tradesPerDay: formatLocalizedNumber(tradesPerDay, i18n.language, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2
+                            }),
+                            noTradePct: formatLocalizedPercent(noTradePct, i18n.language, 1)
+                        }),
+                        t('main.demo.summary.winRate', {
+                            winRatePct: formatLocalizedPercent(winRatePct, i18n.language, 1)
+                        }),
+                        t(liquidationSentenceKey, {
+                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
+                        })
+                    ]
+                },
+                error: null as Error | null
+            }
+        } catch (err) {
+            return {
+                data: null as DemoNarrativeSummary | null,
+                error: err instanceof Error ? err : new Error('Failed to build demo summary.')
             }
         }
     }, [bestPolicyState.best, i18n.language, t])
@@ -391,6 +574,22 @@ export default function MainBestPolicySection() {
                     </div>
                 }
             </div>
+
+            {demoSummaryState.error ?
+                <DemoErrorCard
+                    title={t('main.demo.errors.summaryTitle')}
+                    description={t('main.demo.errors.summaryDescription')}
+                    details={demoSummaryState.error.message}
+                />
+            : demoSummaryState.data ?
+                <div className={cls.demoSummary}>
+                    {demoSummaryState.data.paragraphs.map((paragraph, index) => (
+                        <Text key={`main-demo-summary-${index}`} className={cls.demoSummaryText}>
+                            {renderTermTooltipRichText(paragraph)}
+                        </Text>
+                    ))}
+                </div>
+            :   null}
 
             {demoMetricsState.error ?
                 <DemoErrorCard

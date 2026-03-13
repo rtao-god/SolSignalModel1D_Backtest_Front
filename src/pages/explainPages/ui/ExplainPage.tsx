@@ -7,6 +7,7 @@ import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { useTranslation } from 'react-i18next'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import cls from './ExplainPage.module.scss'
 import type { ExplainPageProps } from './types'
 
@@ -15,9 +16,16 @@ export default function ExplainPage({ className }: ExplainPageProps) {
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
 
-    const handleRouteWarmup = useCallback((routeId: AppRoute) => {
-        warmupRouteNavigation(routeId, queryClient, dispatch)
-    }, [dispatch, queryClient])
+    const handleRouteWarmup = useCallback(
+        (routeId: AppRoute) => {
+            warmupRouteNavigation(routeId, queryClient, dispatch)
+        },
+        [dispatch, queryClient]
+    )
+
+    // Доменные слова в карточках explain должны раскрываться прямо в copy,
+    // а не оставаться отдельным техническим слоем без связи с текстом страницы.
+    const renderCardDescription = useCallback((text: string) => renderTermTooltipRichText(text), [])
 
     return (
         <div className={classNames(cls.ExplainPageRoot, {}, [className ?? ''])}>
@@ -49,7 +57,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.models.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.models.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.models.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.models.hint')}</span>
                         </article>
                     </Link>
@@ -63,7 +73,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.branches.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.branches.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.branches.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.branches.hint')}</span>
                         </article>
                     </Link>
@@ -77,7 +89,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.splits.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.splits.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.splits.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.splits.hint')}</span>
                         </article>
                     </Link>
@@ -91,7 +105,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.project.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.project.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.project.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.project.hint')}</span>
                         </article>
                     </Link>
@@ -105,7 +121,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.time.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.time.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.time.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.time.hint')}</span>
                         </article>
                     </Link>
@@ -119,7 +137,9 @@ export default function ExplainPage({ className }: ExplainPageProps) {
                             <Text type='h3' className={cls.cardTitle}>
                                 {t('home.sections.cards.features.title')}
                             </Text>
-                            <Text className={cls.cardText}>{t('home.sections.cards.features.description')}</Text>
+                            <Text className={cls.cardText}>
+                                {renderCardDescription(t('home.sections.cards.features.description'))}
+                            </Text>
                             <span className={cls.cardHint}>{t('home.sections.cards.features.hint')}</span>
                         </article>
                     </Link>

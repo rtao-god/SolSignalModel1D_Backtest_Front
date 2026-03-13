@@ -4,7 +4,7 @@ function trimTrailingSlashes(value: string): string {
     return value.replace(/\/+$/, '')
 }
 
-export function resolveReportSourceEndpointOrThrow(): string {
+export function resolveReportSourceEndpoint(): string {
     const base = API_BASE_URL.trim()
     if (!base) {
         throw new Error('[report-source] API_BASE_URL is empty.')

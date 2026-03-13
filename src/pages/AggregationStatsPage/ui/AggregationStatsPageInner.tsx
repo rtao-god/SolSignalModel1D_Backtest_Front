@@ -30,9 +30,15 @@ const renderTooltip = (term: string, description?: string) => {
     return <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
 }
 
-export function AggregationStatsPageInner({ className, probs, metrics }: AggregationStatsPageInnerProps) {
+export function AggregationStatsPageInner({
+    className,
+    probs,
+    metrics,
+    showHeader = true,
+    embedded = false
+}: AggregationStatsPageInnerProps) {
     const { t } = useTranslation('reports')
-    const rootClassName = classNames(cls.AggregationStatsPage, {}, [className ?? ''])
+    const rootClassName = classNames(embedded ? cls.contentRoot : cls.AggregationStatsPage, {}, [className ?? ''])
 
     const sections = useMemo(
         () => [
@@ -50,33 +56,35 @@ export function AggregationStatsPageInner({ className, probs, metrics }: Aggrega
 
     return (
         <div className={rootClassName}>
-            <header className={cls.headerRow}>
-                <div className={cls.headerMain}>
-                    <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
-                    <Text className={cls.subtitle}>{t('aggregation.inner.header.subtitle')}</Text>
-                </div>
+            {showHeader && (
+                <header className={cls.headerRow}>
+                    <div className={cls.headerMain}>
+                        <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
+                        <Text className={cls.subtitle}>{t('aggregation.inner.header.subtitle')}</Text>
+                    </div>
 
-                <div className={cls.metaGrid}>
-                    <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
-                        <div className={cls.metaValue}>{formatRange(probs.MinDateUtc, probs.MaxDateUtc)}</div>
-                    </div>
-                    <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
-                        <div className={cls.metaValue}>{formatCount(probs.TotalInputRecords)}</div>
-                    </div>
-                    <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
-                        <div className={cls.metaValue}>{formatCount(probs.ExcludedCount)}</div>
-                    </div>
-                    <div className={cls.metaCard}>
-                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
-                        <div className={cls.metaValue}>
-                            {probs.Segments.length} / {probs.DebugLastDays.length}
+                    <div className={cls.metaGrid}>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
+                            <div className={cls.metaValue}>{formatRange(probs.MinDateUtc, probs.MaxDateUtc)}</div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
+                            <div className={cls.metaValue}>{formatCount(probs.TotalInputRecords)}</div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
+                            <div className={cls.metaValue}>{formatCount(probs.ExcludedCount)}</div>
+                        </div>
+                        <div className={cls.metaCard}>
+                            <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
+                            <div className={cls.metaValue}>
+                                {probs.Segments.length} / {probs.DebugLastDays.length}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             <section id='agg-probs' className={cls.section}>
                 <div className={cls.sectionHeader}>

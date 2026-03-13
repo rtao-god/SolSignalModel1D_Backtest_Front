@@ -33,6 +33,14 @@ export const API_ROUTES = {
         byDate: {
             path: '/real-forecast-journal/by-date',
             method: 'GET' as const
+        },
+        liveStatus: {
+            path: '/real-forecast-journal/live-status',
+            method: 'GET' as const
+        },
+        opsStatus: {
+            path: '/real-forecast-journal/ops-status',
+            method: 'GET' as const
         }
     },
 
@@ -43,6 +51,10 @@ export const API_ROUTES = {
         },
         baselineSummaryGet: {
             path: '/backtest/summary',
+            method: 'GET' as const
+        },
+        baselineSummaryStatusGet: {
+            path: '/backtest/summary/status',
             method: 'GET' as const
         },
         baselineSnapshotGet: {
@@ -122,6 +134,10 @@ export const API_ROUTES = {
         },
         modelStatsPerModel: {
             path: '/ml/stats/per-model',
+            method: 'GET' as const
+        },
+        modelStatsPerModelStatus: {
+            path: '/ml/stats/per-model/status',
             method: 'GET' as const
         }
     }

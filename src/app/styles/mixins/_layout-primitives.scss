@@ -1,0 +1,167 @@
+@mixin safe-viewport-min-height($offset: 0px) {
+    min-height: calc(100vh - #{$offset});
+    min-height: calc(100dvh - #{$offset});
+}
+
+@mixin product-page-shell(
+    $max-width: none,
+    $centered-or-gap: false,
+    $gap-or-padding-bottom: var(--page-section-gap),
+    $padding-bottom: var(--page-padding-bottom)
+) {
+    $centered: false;
+    $gap: var(--page-section-gap);
+    $resolved-padding-bottom: $padding-bottom;
+
+    @if type-of($centered-or-gap) == bool {
+        $centered: $centered-or-gap;
+        $gap: $gap-or-padding-bottom;
+    } @else {
+        $gap: $centered-or-gap;
+        $resolved-padding-bottom: $gap-or-padding-bottom;
+    }
+
+    display: flex;
+    flex-direction: column;
+    gap: $gap;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: var(--page-padding-top) var(--page-gutter-inline) $resolved-padding-bottom;
+    container-type: inline-size;
+    container-name: page-shell;
+
+    @if $max-width != none {
+        max-width: $max-width;
+    }
+
+    @if $centered {
+        margin-inline: auto;
+    }
+}
+
+@mixin page-content-container($max-width: var(--page-shell-max-reading)) {
+    width: 100%;
+    max-width: $max-width;
+    min-width: 0;
+    margin-inline: auto;
+}
+
+@mixin section-stack($gap: var(--page-section-gap)) {
+    display: flex;
+    flex-direction: column;
+    gap: $gap;
+    min-width: 0;
+}
+
+@mixin surface-card(
+    $padding: var(--surface-padding-md),
+    $radius: var(--radius-lg),
+    $background: var(--surface-bg-default),
+    $border: var(--surface-border-default),
+    $shadow: var(--surface-shadow-md)
+) {
+    padding: $padding;
+    border-radius: $radius;
+    border: 1px solid $border;
+    background: $background;
+    box-shadow: $shadow;
+    box-sizing: border-box;
+}
+
+@mixin subtle-surface($padding: var(--surface-padding-md)) {
+    @include surface-card(
+        $padding: $padding,
+        $background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
+}
+
+@mixin responsive-grid($min-width, $gap: 16px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+    gap: $gap;
+}
+
+@mixin table-density($density: medium) {
+    @if $density == simple {
+        --table-font-size: 13px;
+        --table-header-font-size: 12px;
+        --table-cell-padding-y: 10px;
+        --table-cell-padding-x: 12px;
+        --table-min-width: 420px;
+    } @else if $density == dense {
+        --table-font-size: 12px;
+        --table-header-font-size: 11px;
+        --table-cell-padding-y: 6px;
+        --table-cell-padding-x: 8px;
+        --table-min-width: 620px;
+    } @else {
+        --table-font-size: 12px;
+        --table-header-font-size: 11px;
+        --table-cell-padding-y: 8px;
+        --table-cell-padding-x: 10px;
+        --table-min-width: 480px;
+    }
+}
+
+@mixin table-scroll-shell($density: medium, $min-width: null) {
+    @include table-density($density);
+
+    @if $min-width != null {
+        --table-min-width: #{$min-width};
+    }
+
+    width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
+}
+
+@mixin data-table-base($min-width: null, $font-size: null, $line-height: null) {
+    @if $min-width != null {
+        --table-min-width: #{$min-width};
+    }
+
+    width: 100%;
+    min-width: var(--table-min-width);
+    border-collapse: collapse;
+    font-size: if($font-size != null, $font-size, var(--table-font-size));
+    line-height: if($line-height != null, $line-height, var(--table-line-height));
+
+    th,
+    td {
+        padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
+        border-bottom: 1px solid var(--surface-border-subtle);
+        white-space: nowrap;
+    }
+
+    th {
+        font-size: var(--table-header-font-size);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-subtle);
+    }
+}
+
+@mixin chart-surface(
+    $min-height: var(--chart-min-height),
+    $padding: 14px 14px 10px,
+    $compact-min-height: var(--chart-min-height-compact),
+    $compact-padding: 10px 10px 6px
+) {
+    width: 100%;
+    min-height: $min-height;
+    padding: $padding;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--surface-border-default);
+    background: var(--surface-bg-accent);
+    box-shadow: var(--surface-shadow-md);
+
+    @include viewport-phone {
+        min-height: $compact-min-height;
+        padding: $compact-padding;
+    }
+}

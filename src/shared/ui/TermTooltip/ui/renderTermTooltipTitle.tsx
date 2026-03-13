@@ -24,13 +24,10 @@ export function renderTermTooltipTitle(
             <TermTooltip
                 term={term}
                 description={() =>
-                    enrichTermTooltipDescription(
-                        typeof description === 'function' ? description() : description,
-                        {
-                            term,
-                            selfAliases: options?.selfAliases
-                        }
-                    )
+                    enrichTermTooltipDescription(description, {
+                        term,
+                        selfAliases: options?.selfAliases
+                    })
                 }
                 type='span'
             />

@@ -2,14 +2,18 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { TermTooltip, Text } from '@/shared/ui'
-import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import {
+    enrichTermTooltipDescription,
+    renderRegisteredTermTooltipDescriptionById,
+    resolveRegisteredTermTooltipTitle
+} from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { EXPLAIN_PROJECT_TABS } from '@/shared/utils/explainTabs'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
-    readExplainTableRowsOrThrow,
-    readExplainTermItemsOrThrow,
+    readExplainTableRows,
+    readExplainTermItems,
     type ExplainLocalizedTermItem
 } from '@/pages/explainPages/ui/shared/explainI18n'
 import cls from './ExplainProjectPage.module.scss'
@@ -22,7 +26,16 @@ function TermGrid({ items }: { items: ExplainLocalizedTermItem[] }) {
                 <TermTooltip
                     key={item.term}
                     term={item.term}
-                    description={enrichTermTooltipDescription(item.description, { term: item.term })}
+                    tooltipTitle={
+                        item.sharedTermId ?
+                            (resolveRegisteredTermTooltipTitle(item.sharedTermId) ?? item.term)
+                        :   undefined
+                    }
+                    description={
+                        item.sharedTermId ?
+                            () => renderRegisteredTermTooltipDescriptionById(item.sharedTermId!, item.term)
+                        :   enrichTermTooltipDescription(item.description, { term: item.term })
+                    }
                     type='span'
                     className={cls.termItem}
                 />
@@ -64,7 +77,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                     <Text className={cls.sectionText}>{t('projectPage.sections.overview.text')}</Text>
                     <LocalizedContentBoundary name='ExplainProject:overview:table'>
                         {() => {
-                            const overviewRows = readExplainTableRowsOrThrow(i18n, 'projectPage.sections.overview.table.rows')
+                            const overviewRows = readExplainTableRows(i18n, 'projectPage.sections.overview.table.rows')
 
                             return (
                                 <div className={cls.tableWrap}>
@@ -80,7 +93,9 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                                             {overviewRows.map((row, rowIndex) => (
                                                 <tr key={`overview-row-${rowIndex}`}>
                                                     {row.map((cell, cellIndex) => (
-                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                        <td key={`overview-row-${rowIndex}-cell-${cellIndex}`}>
+                                                            {cell}
+                                                        </td>
                                                     ))}
                                                 </tr>
                                             ))}
@@ -91,7 +106,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                         }}
                     </LocalizedContentBoundary>
                     <LocalizedContentBoundary name='ExplainProject:overview:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'projectPage.sections.overview.terms')} />}
+                        {() => <TermGrid items={readExplainTermItems(i18n, 'projectPage.sections.overview.terms')} />}
                     </LocalizedContentBoundary>
                 </section>
 
@@ -101,7 +116,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                     </Text>
                     <Text className={cls.sectionText}>{t('projectPage.sections.causal.text')}</Text>
                     <LocalizedContentBoundary name='ExplainProject:causal:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'projectPage.sections.causal.terms')} />}
+                        {() => <TermGrid items={readExplainTermItems(i18n, 'projectPage.sections.causal.terms')} />}
                     </LocalizedContentBoundary>
                 </section>
 
@@ -112,7 +127,10 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                     <Text className={cls.sectionText}>{t('projectPage.sections.structure.text')}</Text>
                     <LocalizedContentBoundary name='ExplainProject:structure:table'>
                         {() => {
-                            const structureRows = readExplainTableRowsOrThrow(i18n, 'projectPage.sections.structure.table.rows')
+                            const structureRows = readExplainTableRows(
+                                i18n,
+                                'projectPage.sections.structure.table.rows'
+                            )
 
                             return (
                                 <div className={cls.tableWrap}>
@@ -127,7 +145,9 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                                             {structureRows.map((row, rowIndex) => (
                                                 <tr key={`structure-row-${rowIndex}`}>
                                                     {row.map((cell, cellIndex) => (
-                                                        <td key={`structure-row-${rowIndex}-cell-${cellIndex}`}>{cell}</td>
+                                                        <td key={`structure-row-${rowIndex}-cell-${cellIndex}`}>
+                                                            {cell}
+                                                        </td>
                                                     ))}
                                                 </tr>
                                             ))}
@@ -138,7 +158,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                         }}
                     </LocalizedContentBoundary>
                     <LocalizedContentBoundary name='ExplainProject:structure:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'projectPage.sections.structure.terms')} />}
+                        {() => <TermGrid items={readExplainTermItems(i18n, 'projectPage.sections.structure.terms')} />}
                     </LocalizedContentBoundary>
                 </section>
 
@@ -148,7 +168,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                     </Text>
                     <Text className={cls.sectionText}>{t('projectPage.sections.reports.text')}</Text>
                     <LocalizedContentBoundary name='ExplainProject:reports:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'projectPage.sections.reports.terms')} />}
+                        {() => <TermGrid items={readExplainTermItems(i18n, 'projectPage.sections.reports.terms')} />}
                     </LocalizedContentBoundary>
                 </section>
 
@@ -159,7 +179,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                     <Text className={cls.sectionText}>{t('projectPage.sections.tests.text')}</Text>
                     <LocalizedContentBoundary name='ExplainProject:tests:table'>
                         {() => {
-                            const testsRows = readExplainTableRowsOrThrow(i18n, 'projectPage.sections.tests.table.rows')
+                            const testsRows = readExplainTableRows(i18n, 'projectPage.sections.tests.table.rows')
 
                             return (
                                 <div className={cls.tableWrap}>
@@ -186,7 +206,7 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
                         }}
                     </LocalizedContentBoundary>
                     <LocalizedContentBoundary name='ExplainProject:tests:terms'>
-                        {() => <TermGrid items={readExplainTermItemsOrThrow(i18n, 'projectPage.sections.tests.terms')} />}
+                        {() => <TermGrid items={readExplainTermItems(i18n, 'projectPage.sections.tests.terms')} />}
                     </LocalizedContentBoundary>
                 </section>
             </div>
@@ -202,6 +222,3 @@ export default function ExplainProjectPage({ className }: ExplainProjectPageProp
         </div>
     )
 }
-
-
-

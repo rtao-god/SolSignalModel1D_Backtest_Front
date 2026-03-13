@@ -4,9 +4,10 @@ import { TermTooltip, Text } from '@/shared/ui'
 import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import type { BacktestBaselinePageProps } from './types'
 import { useTranslation } from 'react-i18next'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
 const renderTooltip = (term: string, description?: string) =>
     description ?
@@ -15,44 +16,54 @@ const renderTooltip = (term: string, description?: string) =>
 
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { t } = useTranslation('reports')
-    const { data, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
+    const { data, isLoading, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
 
     const rootClassName = classNames(cls.BacktestBaselinePage, {}, [className ?? ''])
 
     return (
-        <PageDataBoundary
-            isError={isError}
-            error={error}
-            hasData={Boolean(data)}
-            onRetry={refetch}
-            errorTitle={t('backtestBaseline.page.errorTitle')}>
-            {data && (
-                <div className={rootClassName}>
-                    <Header snapshot={data} />
-                    <GlobalParams snapshot={data} />
-                    <PoliciesTable policies={data.policies ?? []} />
-                </div>
-            )}
-        </PageDataBoundary>
+        <div className={rootClassName}>
+            <Header snapshot={data ?? null} />
+
+            <SectionDataState
+                isLoading={isLoading}
+                isError={isError}
+                error={error}
+                hasData={Boolean(data)}
+                onRetry={refetch}
+                title={t('backtestBaseline.page.errorTitle')}
+                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                logContext={{ source: 'backtest-baseline-page' }}>
+                {data && (
+                    <>
+                        <GlobalParams snapshot={data} />
+                        <PoliciesTable policies={data.policies ?? []} />
+                    </>
+                )}
+            </SectionDataState>
+        </div>
     )
 }
 interface HeaderProps {
-    snapshot: BacktestBaselineSnapshotDto
+    snapshot: BacktestBaselineSnapshotDto | null
 }
 
 function Header({ snapshot }: HeaderProps) {
     const { t } = useTranslation('reports')
-    const generatedUtc = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : null
+    const generatedUtc = snapshot?.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : null
     const generatedUtcStr = generatedUtc ? generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : '—'
     const generatedLocalStr = generatedUtc ? generatedUtc.toLocaleString() : '—'
 
     return (
         <header className={cls.header}>
             <Text type='h1'>{t('backtestBaseline.header.title')}</Text>
-            <Text>{t('backtestBaseline.header.snapshotId', { id: snapshot.id })}</Text>
-            <Text>{t('backtestBaseline.header.config', { configName: snapshot.configName })}</Text>
-            <Text>{t('backtestBaseline.header.generatedUtc', { generatedUtc: generatedUtcStr })}</Text>
-            <Text>{t('backtestBaseline.header.generatedLocal', { generatedLocal: generatedLocalStr })}</Text>
+            {snapshot && (
+                <>
+                    <Text>{t('backtestBaseline.header.snapshotId', { id: snapshot.id })}</Text>
+                    <Text>{t('backtestBaseline.header.config', { configName: snapshot.configName })}</Text>
+                    <Text>{t('backtestBaseline.header.generatedUtc', { generatedUtc: generatedUtcStr })}</Text>
+                    <Text>{t('backtestBaseline.header.generatedLocal', { generatedLocal: generatedLocalStr })}</Text>
+                </>
+            )}
         </header>
     )
 }
@@ -97,12 +108,21 @@ interface PoliciesTableProps {
 }
 
 function PoliciesTable({ policies }: PoliciesTableProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
+    const tooltipLocale = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru') ? 'ru' : 'en'
+    const resolveSharedReportTooltip = (title: string): string => {
+        const description = resolveCommonReportColumnTooltipOrNull(title, tooltipLocale)
+        if (!description) {
+            throw new Error(`Missing shared report tooltip for '${title}' in BacktestBaselinePage.`)
+        }
+
+        return description
+    }
 
     const tableColumns = [
         {
             label: t('backtestBaseline.table.columns.policy.label'),
-            tooltip: t('backtestBaseline.table.columns.policy.tooltip')
+            tooltip: resolveSharedReportTooltip('Policy')
         },
         {
             label: t('backtestBaseline.table.columns.margin.label'),

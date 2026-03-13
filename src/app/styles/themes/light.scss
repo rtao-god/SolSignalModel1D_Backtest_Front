@@ -4,6 +4,19 @@
     --inverted-bg-color-btn: var(--color-blue-light);
     --inverted-bg-color-input: var(--color-white);
     --inverted-border-color-input: var(--color-white-black);
+    --bg-color-elevated: rgba(255, 255, 255, 0.92);
+    --bg-color-muted: rgba(249, 229, 249, 0.88);
+    --surface-bg-default: rgba(255, 255, 255, 0.9);
+    --surface-bg-elevated: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 229, 249, 0.92));
+    --surface-bg-muted: rgba(255, 255, 255, 0.82);
+    --surface-border-subtle: rgba(61, 139, 255, 0.12);
+    --surface-border-default: rgba(61, 139, 255, 0.18);
+    --surface-border-strong: rgba(61, 139, 255, 0.26);
+    --surface-shadow-sm: 0 12px 28px rgba(25, 65, 126, 0.08);
+    --surface-shadow-md: 0 18px 42px rgba(25, 65, 126, 0.12);
+    --surface-shadow-lg: 0 24px 56px rgba(25, 65, 126, 0.16);
+    --text-muted: rgba(42, 45, 52, 0.74);
+    --text-subtle: rgba(42, 45, 52, 0.88);
 
     text-shadow: 1px 1px 2px #00000080;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -27,7 +27,6 @@ import {
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
-import PageDataBoundary from '@/shared/ui/errors/PageDataBoundary/ui/PageDataBoundary'
 import type { CurrentPredictionSet, CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
@@ -35,9 +34,7 @@ import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { parseDateKey } from '@/shared/consts/date'
-import {
-    type PolicyBranchMegaBucketMode
-} from '@/shared/utils/policyBranchMegaTabs'
+import { type PolicyBranchMegaBucketMode } from '@/shared/utils/policyBranchMegaTabs'
 import {
     CURRENT_PREDICTION_POLICY_COLUMN_KEYS,
     type CurrentPredictionPolicyColumnKey
@@ -48,6 +45,10 @@ import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import { useLocale } from '@/shared/lib/i18n'
 import type { PredictionHistoryPageProps } from './types'
 import { useTranslation } from 'react-i18next'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
+import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = Math.max(1, Math.floor(PAGE_SIZE / 2))
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
@@ -67,10 +68,13 @@ const HISTORY_WINDOW_OPTION_DEFS: readonly HistoryWindowOptionDef[] = [
 type PredictionHistoryIndex = NonNullable<ReturnType<typeof useCurrentPredictionIndexQuery>['data']>
 interface PredictionHistoryPageInnerProps {
     className?: string
-    index: PredictionHistoryIndex
+    index: PredictionHistoryIndex | null
     allIndex: PredictionHistoryIndex | null
     isAllIndexLoading: boolean
     allIndexErrorMessage: string | null
+    isIndexLoading: boolean
+    indexError: unknown
+    onIndexRetry: () => void
     trainingScope: CurrentPredictionTrainingScope
     onTrainingScopeChange: (scope: CurrentPredictionTrainingScope) => void
     historyWindow: PredictionHistoryWindow
@@ -140,7 +144,7 @@ function isKeyValueSection(section: ReportSectionDto): section is ReportKeyValue
     return Array.isArray(candidate.items) && !Array.isArray(candidate.columns)
 }
 
-function findCanonicalColumnIndexOrThrow(
+function findCanonicalColumnIndex(
     table: ReportTableSectionView,
     key: CurrentPredictionPolicyColumnKey,
     label: string
@@ -152,7 +156,7 @@ function findCanonicalColumnIndexOrThrow(
     return idx
 }
 
-function parseNumberOrThrow(raw: unknown, label: string): number {
+function parseNumber(raw: unknown, label: string): number {
     if (typeof raw === 'number' && Number.isFinite(raw)) {
         return raw
     }
@@ -195,7 +199,7 @@ function parseOptionalNumber(raw: unknown): number | null {
     return parsed
 }
 
-function parseBooleanTextOrThrow(raw: unknown, label: string): boolean {
+function parseBooleanText(raw: unknown, label: string): boolean {
     if (typeof raw !== 'string') {
         throw new Error(`[ui] Missing or invalid boolean-like text. field=${label}.`)
     }
@@ -241,7 +245,7 @@ function formatPercent(value: number, locale: string): string {
     })
 }
 
-function parsePolicyBucketModeOrThrow(raw: unknown, label: string): PolicyBranchMegaBucketMode {
+function parsePolicyBucketMode(raw: unknown, label: string): PolicyBranchMegaBucketMode {
     if (typeof raw !== 'string') {
         throw new Error(`[ui] Missing or invalid bucket value. field=${label}.`)
     }
@@ -260,7 +264,7 @@ function parsePolicyBucketModeOrThrow(raw: unknown, label: string): PolicyBranch
     throw new Error(`[ui] Unsupported bucket value. field=${label}, value=${raw}.`)
 }
 
-function resolvePolicyTableSectionsOrThrow(report: ReportDocumentDto): ReportTableSectionView[] {
+function resolvePolicyTableSections(report: ReportDocumentDto): ReportTableSectionView[] {
     const tables = report.sections.filter(
         (section): section is ReportTableSectionView =>
             isTableSection(section) &&
@@ -290,57 +294,69 @@ function resolvePolicyTableSectionsOrThrow(report: ReportDocumentDto): ReportTab
     return strictTables
 }
 
-function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTradeRows {
-    const tables = resolvePolicyTableSectionsOrThrow(report)
+function parsePolicyTradeRows(report: ReportDocumentDto): ParsedPolicyTradeRows {
+    const tables = resolvePolicyTableSections(report)
 
     const executedTrades: PolicyTradeRow[] = []
     const skippedDirectionalSignals: PolicySkippedSignalRow[] = []
 
     for (const table of tables) {
-        const bucketIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucket, 'Bucket')
+        const bucketIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucket, 'Bucket')
 
-        const policyIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.policy, 'Policy')
-        const branchIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.branch, 'Branch')
-        const hasDirectionIdx = findCanonicalColumnIndexOrThrow(
+        const policyIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.policy, 'Policy')
+        const branchIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.branch, 'Branch')
+        const hasDirectionIdx = findCanonicalColumnIndex(
             table,
             CURRENT_PREDICTION_POLICY_COLUMN_KEYS.hasDirection,
             'HasDirection'
         )
-        const skippedIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.skipped, 'Skipped')
-        const directionIdx = findCanonicalColumnIndexOrThrow(
+        const skippedIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.skipped, 'Skipped')
+        const directionIdx = findCanonicalColumnIndex(
             table,
             CURRENT_PREDICTION_POLICY_COLUMN_KEYS.direction,
             'Direction'
         )
-        const leverageIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.leverage, 'Leverage')
-        const entryIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.entryPrice, 'EntryPrice')
-        const slPctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPct, 'SlPct')
-        const tpPctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPct, 'TpPct')
-        const slPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice, 'SlPrice')
-        const tpPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice, 'TpPrice')
-        const notionalUsdIdx = findCanonicalColumnIndexOrThrow(
+        const leverageIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.leverage, 'Leverage')
+        const entryIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.entryPrice, 'EntryPrice')
+        const slPctIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPct, 'SlPct')
+        const tpPctIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPct, 'TpPct')
+        const slPriceIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.slPrice, 'SlPrice')
+        const tpPriceIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.tpPrice, 'TpPrice')
+        const notionalUsdIdx = findCanonicalColumnIndex(
             table,
             CURRENT_PREDICTION_POLICY_COLUMN_KEYS.notionalUsd,
             'NotionalUsd'
         )
-        const liqPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice, 'LiquidationPrice')
-        const exitPriceIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitPrice, 'ExitPrice')
-        const exitReasonIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitReason, 'ExitReason')
-        const bucketCapitalUsdIdx = findCanonicalColumnIndexOrThrow(
+        const liqPriceIdx = findCanonicalColumnIndex(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.liqPrice,
+            'LiquidationPrice'
+        )
+        const exitPriceIdx = findCanonicalColumnIndex(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitPrice,
+            'ExitPrice'
+        )
+        const exitReasonIdx = findCanonicalColumnIndex(
+            table,
+            CURRENT_PREDICTION_POLICY_COLUMN_KEYS.exitReason,
+            'ExitReason'
+        )
+        const bucketCapitalUsdIdx = findCanonicalColumnIndex(
             table,
             CURRENT_PREDICTION_POLICY_COLUMN_KEYS.bucketCapitalUsd,
             'BucketCapitalUsd'
         )
-        const stakeUsdIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakeUsd, 'StakeUsd')
-        const stakePctIdx = findCanonicalColumnIndexOrThrow(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakePct, 'StakePct')
+        const stakeUsdIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakeUsd, 'StakeUsd')
+        const stakePctIdx = findCanonicalColumnIndex(table, CURRENT_PREDICTION_POLICY_COLUMN_KEYS.stakePct, 'StakePct')
 
         for (const row of table.rows) {
             if (!Array.isArray(row)) {
                 throw new Error('[ui] Invalid policy table row.')
             }
 
-            const hasDirection = parseBooleanTextOrThrow(row[hasDirectionIdx], 'Есть направление')
-            const skipped = parseBooleanTextOrThrow(row[skippedIdx], 'Пропущено')
+            const hasDirection = parseBooleanText(row[hasDirectionIdx], 'Есть направление')
+            const skipped = parseBooleanText(row[skippedIdx], 'Пропущено')
 
             if (!hasDirection) {
                 continue
@@ -359,13 +375,12 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
                 throw new Error('[ui] Policy or branch value is empty in policy table row.')
             }
 
-            const leverage = parseNumberOrThrow(row[leverageIdx], 'Плечо')
+            const leverage = parseNumber(row[leverageIdx], 'Плечо')
             if (!(leverage > 0)) {
                 throw new Error(`[ui] Leverage must be > 0. value=${leverage}.`)
             }
 
-            const bucket =
-                parsePolicyBucketModeOrThrow(row[bucketIdx], 'Бакет')
+            const bucket = parsePolicyBucketMode(row[bucketIdx], 'Бакет')
 
             if (skipped) {
                 const skipReason = String(row[exitReasonIdx] ?? '').trim()
@@ -384,11 +399,11 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
                 continue
             }
 
-            const entryPrice = parseNumberOrThrow(row[entryIdx], 'Цена входа')
-            const slPrice = parseNumberOrThrow(row[slPriceIdx], 'Цена SL')
-            const tpPrice = parseNumberOrThrow(row[tpPriceIdx], 'Цена TP')
+            const entryPrice = parseNumber(row[entryIdx], 'Цена входа')
+            const slPrice = parseNumber(row[slPriceIdx], 'Цена SL')
+            const tpPrice = parseNumber(row[tpPriceIdx], 'Цена TP')
             const liqPrice = parseOptionalNumber(row[liqPriceIdx])
-            const notionalUsd = parseNumberOrThrow(row[notionalUsdIdx], 'Номинал позиции, $')
+            const notionalUsd = parseNumber(row[notionalUsdIdx], 'Номинал позиции, $')
 
             if (!(entryPrice > 0 && slPrice > 0 && tpPrice > 0)) {
                 throw new Error('[ui] Trade prices must be positive.')
@@ -397,12 +412,12 @@ function parsePolicyTradeRowsOrThrow(report: ReportDocumentDto): ParsedPolicyTra
                 throw new Error(`[ui] Notional usd is invalid. value=${notionalUsd}.`)
             }
 
-            const slPctFromEntry = parseNumberOrThrow(row[slPctIdx], 'SL, %')
-            const tpPctFromEntry = parseNumberOrThrow(row[tpPctIdx], 'TP, %')
-            const bucketCapitalUsd = parseNumberOrThrow(row[bucketCapitalUsdIdx], 'Капитал бакета, $')
-            const stakeUsd = parseNumberOrThrow(row[stakeUsdIdx], 'Ставка, $')
-            const stakePct = parseNumberOrThrow(row[stakePctIdx], 'Ставка, %')
-            const exitPrice = parseNumberOrThrow(row[exitPriceIdx], 'Цена выхода')
+            const slPctFromEntry = parseNumber(row[slPctIdx], 'SL, %')
+            const tpPctFromEntry = parseNumber(row[tpPctIdx], 'TP, %')
+            const bucketCapitalUsd = parseNumber(row[bucketCapitalUsdIdx], 'Капитал бакета, $')
+            const stakeUsd = parseNumber(row[stakeUsdIdx], 'Ставка, $')
+            const stakePct = parseNumber(row[stakePctIdx], 'Ставка, %')
+            const exitPrice = parseNumber(row[exitPriceIdx], 'Цена выхода')
             const exitReason = String(row[exitReasonIdx] ?? '').trim()
 
             if (!(bucketCapitalUsd > 0) || !Number.isFinite(bucketCapitalUsd)) {
@@ -452,7 +467,7 @@ function isPredictionHistoryWindow(value: string): value is PredictionHistoryWin
     return value === '365' || value === '730' || value === 'all'
 }
 
-function resolveHistoryWindowDaysOrThrow(window: PredictionHistoryWindow): number | undefined {
+function resolveHistoryWindowDays(window: PredictionHistoryWindow): number | undefined {
     if (window === 'all') {
         return undefined
     }
@@ -491,15 +506,15 @@ interface HistoryMissingStats {
     toDateUtc: string
 }
 
-function resolveHistoryMissingStatsOrThrow(allDatesDesc: string[]): HistoryMissingStats | null {
+function resolveHistoryMissingStats(allDatesDesc: string[]): HistoryMissingStats | null {
     if (allDatesDesc.length === 0) {
         return null
     }
 
     const newest = allDatesDesc[0]
     const oldest = allDatesDesc[allDatesDesc.length - 1]
-    const fromUtc = parseIsoDateUtcOrThrow(oldest)
-    const toUtc = parseIsoDateUtcOrThrow(newest)
+    const fromUtc = parseIsoDateUtc(oldest)
+    const toUtc = parseIsoDateUtc(newest)
 
     let expectedWeekdays = 0
     for (let day = fromUtc; day.getTime() <= toUtc.getTime(); day = addUtcDays(day, 1)) {
@@ -518,7 +533,7 @@ function resolveHistoryMissingStatsOrThrow(allDatesDesc: string[]): HistoryMissi
     }
 }
 
-function parseIsoDateUtcOrThrow(value: string): Date {
+function parseIsoDateUtc(value: string): Date {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         throw new Error(`[ui] Invalid ISO date in prediction index: ${value}.`)
     }
@@ -544,12 +559,15 @@ function PredictionHistoryPageInner({
     allIndex,
     isAllIndexLoading,
     allIndexErrorMessage,
+    isIndexLoading,
+    indexError,
+    onIndexRetry,
     trainingScope,
     onTrainingScopeChange,
     historyWindow,
     onHistoryWindowChange
 }: PredictionHistoryPageInnerProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
@@ -558,6 +576,11 @@ function PredictionHistoryPageInner({
 
     const [pageIndex, setPageIndex] = useState(0)
     const [cardsAnimating, setCardsAnimating] = useState(false)
+    const introBullets = useMemo(
+        () => readPredictionPageStringList(i18n, 'predictionHistory.page.intro.bullets'),
+        [i18n]
+    )
+    const renderIntroText = useCallback((text: string) => renderTermTooltipRichText(text), [])
 
     const historyWindowOptions = useMemo(
         () =>
@@ -679,7 +702,7 @@ function PredictionHistoryPageInner({
     const totalBuiltCount = allBuiltDatesDesc.length
     const filteredCount = filteredDates.length
     const historyTag = `current_prediction_${HISTORY_SET}_${trainingScope}`
-    const missingStats = resolveHistoryMissingStatsOrThrow(allBuiltDatesDesc)
+    const missingStats = resolveHistoryMissingStats(allBuiltDatesDesc)
     const totalBuiltLabel =
         allIndexErrorMessage ? t('predictionHistory.page.meta.notAvailableWithIndexError')
         : isAllIndexLoading ? t('predictionHistory.page.meta.loading')
@@ -698,9 +721,7 @@ function PredictionHistoryPageInner({
         :   t('predictionHistory.page.meta.noData')
     const latestDateUtc = allDatesDesc.length > 0 ? allDatesDesc[0] : null
     const latestReportQuery = useGetCurrentPredictionByDateQuery(
-        latestDateUtc ?
-            { set: HISTORY_SET, scope: trainingScope, dateUtc: latestDateUtc }
-        :   skipToken,
+        latestDateUtc ? { set: HISTORY_SET, scope: trainingScope, dateUtc: latestDateUtc } : skipToken,
         { refetchOnMountOrArgChange: true }
     )
     const trainingLabel = resolveTrainingLabel(latestReportQuery.data)
@@ -730,20 +751,6 @@ function PredictionHistoryPageInner({
     const handlePagePrev = () => setPageIndex(prev => Math.max(prev - 1, 0))
     const handlePageNext = () => setPageIndex(prev => Math.min(prev + 1, totalPages - 1))
 
-    if (!allDatesDesc.length) {
-        const details = `set=${HISTORY_SET}, scope=${trainingScope}, window=${selectedHistoryWindowMeta.value}`
-        return (
-            <div className={rootClassName}>
-                <ErrorBlock
-                    code='DATA'
-                    title={t('predictionHistory.page.emptyIndex.title')}
-                    description={t('predictionHistory.page.emptyIndex.description')}
-                    details={details}
-                />
-            </div>
-        )
-    }
-
     return (
         <div className={rootClassName}>
             <header className={cls.header}>
@@ -768,6 +775,14 @@ function PredictionHistoryPageInner({
                 </div>
             </header>
 
+            {/* История должна сначала объяснять, зачем нужен этот архив, а уже потом открывать фильтры, даты и карточки отчётов. */}
+            <PredictionPageIntro
+                title={t('predictionHistory.page.intro.title')}
+                lead={t('predictionHistory.page.intro.lead')}
+                bullets={introBullets}
+                renderText={renderIntroText}
+            />
+
             <section className={cls.filters}>
                 <div className={cls.controlsPanel}>
                     <ReportViewControls groups={controlGroups} className={cls.filtersControls} />
@@ -790,80 +805,102 @@ function PredictionHistoryPageInner({
             </section>
 
             <section className={cls.content}>
-                {filteredCount === 0 && <Text type='p'>{t('predictionHistory.content.empty')}</Text>}
+                <SectionDataState
+                    isLoading={isIndexLoading}
+                    isError={Boolean(indexError)}
+                    error={indexError}
+                    hasData={allDatesDesc.length > 0}
+                    onRetry={onIndexRetry}
+                    title={
+                        indexError ?
+                            t('predictionHistory.page.indexErrorTitle', { reportSet: HISTORY_SET })
+                        :   t('predictionHistory.page.emptyIndex.title')
+                    }
+                    description={indexError ? undefined : t('predictionHistory.page.emptyIndex.description')}
+                    loadingText={t('predictionHistory.page.loadingTitle')}
+                    logContext={{
+                        source: 'prediction-history-index',
+                        extra: {
+                            reportSet: HISTORY_SET,
+                            trainingScope,
+                            historyWindow: selectedHistoryWindowMeta.value
+                        }
+                    }}>
+                    {filteredCount === 0 && <Text type='p'>{t('predictionHistory.content.empty')}</Text>}
 
-                {filteredCount > 0 && (
-                    <>
-                        <div className={cls.pagination}>
-                            {canPrev ?
-                                <button
-                                    type='button'
-                                    className={cls.paginationButton}
-                                    onClick={handlePagePrev}
-                                    aria-label={t('predictionHistory.pagination.prevAria')}>
-                                    <Icon name='arrow' flipped />
-                                </button>
-                            :   <span className={cls.paginationSpacer} aria-hidden='true' />}
+                    {filteredCount > 0 && (
+                        <>
+                            <div className={cls.pagination}>
+                                {canPrev ?
+                                    <button
+                                        type='button'
+                                        className={cls.paginationButton}
+                                        onClick={handlePagePrev}
+                                        aria-label={t('predictionHistory.pagination.prevAria')}>
+                                        <Icon name='arrow' flipped />
+                                    </button>
+                                :   <span className={cls.paginationSpacer} aria-hidden='true' />}
 
-                            <div className={cls.paginationInfo}>
-                                <Text type='p'>
-                                    {t('predictionHistory.pagination.shown', {
-                                        from: visibleFrom,
-                                        to: visibleTo,
-                                        total: filteredCount
-                                    })}
-                                </Text>
-                                <Text type='p' className={cls.paginationHint}>
-                                    {t('predictionHistory.pagination.pageOf', {
-                                        current: totalPages === 0 ? 0 : clampedPageIndex + 1,
-                                        total: totalPages
-                                    })}
-                                </Text>
+                                <div className={cls.paginationInfo}>
+                                    <Text type='p'>
+                                        {t('predictionHistory.pagination.shown', {
+                                            from: visibleFrom,
+                                            to: visibleTo,
+                                            total: filteredCount
+                                        })}
+                                    </Text>
+                                    <Text type='p' className={cls.paginationHint}>
+                                        {t('predictionHistory.pagination.pageOf', {
+                                            current: totalPages === 0 ? 0 : clampedPageIndex + 1,
+                                            total: totalPages
+                                        })}
+                                    </Text>
+                                </div>
+
+                                {canNext ?
+                                    <button
+                                        type='button'
+                                        className={cls.paginationButton}
+                                        onClick={handlePageNext}
+                                        aria-label={t('predictionHistory.pagination.nextAria')}>
+                                        <Icon name='arrow' />
+                                    </button>
+                                :   <span className={cls.paginationSpacer} aria-hidden='true' />}
                             </div>
 
-                            {canNext ?
-                                <button
-                                    type='button'
-                                    className={cls.paginationButton}
-                                    onClick={handlePageNext}
-                                    aria-label={t('predictionHistory.pagination.nextAria')}>
-                                    <Icon name='arrow' />
-                                </button>
-                            :   <span className={cls.paginationSpacer} aria-hidden='true' />}
-                        </div>
+                            <div className={classNames(cls.cards, { [cls.cardsAnimating]: cardsAnimating }, [])}>
+                                {visibleDates.map(date => (
+                                    <PredictionHistoryReportCard
+                                        key={`${trainingScope}-${date}`}
+                                        dateUtc={date}
+                                        domId={`pred-${date}`}
+                                        trainingScope={trainingScope}
+                                    />
+                                ))}
+                            </div>
 
-                        <div className={classNames(cls.cards, { [cls.cardsAnimating]: cardsAnimating }, [])}>
-                            {visibleDates.map(date => (
-                                <PredictionHistoryReportCard
-                                    key={`${trainingScope}-${date}`}
-                                    dateUtc={date}
-                                    domId={`pred-${date}`}
-                                    trainingScope={trainingScope}
-                                />
-                            ))}
-                        </div>
-
-                        <SectionPager
-                            variant='dpad'
-                            sections={cardSections}
-                            currentIndex={cardIndex}
-                            canPrev={canCardPrev}
-                            canNext={canCardNext}
-                            onPrev={handleCardPrev}
-                            onNext={handleCardNext}
-                            tightRight
-                            canGroupPrev={canPrev}
-                            canGroupNext={canNext}
-                            onGroupPrev={handlePagePrev}
-                            onGroupNext={handlePageNext}
-                            groupStatus={
-                                totalPages > 0 ?
-                                    { current: clampedPageIndex + 1, total: totalPages }
-                                :   { current: 0, total: 0 }
-                            }
-                        />
-                    </>
-                )}
+                            <SectionPager
+                                variant='dpad'
+                                sections={cardSections}
+                                currentIndex={cardIndex}
+                                canPrev={canCardPrev}
+                                canNext={canCardNext}
+                                onPrev={handleCardPrev}
+                                onNext={handleCardNext}
+                                tightRight
+                                canGroupPrev={canPrev}
+                                canGroupNext={canNext}
+                                onGroupPrev={handlePagePrev}
+                                onGroupNext={handlePageNext}
+                                groupStatus={
+                                    totalPages > 0 ?
+                                        { current: clampedPageIndex + 1, total: totalPages }
+                                    :   { current: 0, total: 0 }
+                                }
+                            />
+                        </>
+                    )}
+                </SectionDataState>
             </section>
         </div>
     )
@@ -908,7 +945,7 @@ interface PredictionPolicyTradesTableProps {
     skippedDirectionalSignals: PolicySkippedSignalRow[]
 }
 
-const POLICY_TRADES_SECTION_TITLE = 'Leverage policies (BASE vs ANTI-D)'
+const POLICY_TRADES_SECTION_TITLE = 'Policy по веткам BASE и ANTI-D'
 
 function resolvePolicyBucketLabel(
     bucket: PolicyBranchMegaBucketMode,
@@ -1121,6 +1158,7 @@ function PredictionPolicyTradesTable({
 
 function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: PredictionHistoryReportCardProps) {
     const { t } = useTranslation('reports')
+    const trainingScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
 
     const { data, isLoading, isError, error } = useGetCurrentPredictionByDateQuery(
         {
@@ -1167,7 +1205,7 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
     let parsedPolicyTrades: ParsedPolicyTradeRows | null = null
     let policyTradesSchemaError: string | null = null
     try {
-        parsedPolicyTrades = parsePolicyTradeRowsOrThrow(data)
+        parsedPolicyTrades = parsePolicyTradeRows(data)
     } catch (error) {
         policyTradesSchemaError = error instanceof Error ? error.message : String(error)
     }
@@ -1183,6 +1221,14 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
                 ...data,
                 sections: sanitizedSections
             }
+    const documentFreshness = {
+        statusMode: 'actual' as const,
+        statusTitle: t('predictionHistory.reportCard.status.title'),
+        statusMessage: t('predictionHistory.reportCard.status.message', {
+            dateUtc,
+            mode: trainingScopeMeta.label
+        })
+    }
 
     return (
         <div id={domId} className={cls.reportCard}>
@@ -1198,7 +1244,7 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
                         compact
                     />
                 )}>
-                <ReportDocumentView report={reportForView} />
+                <ReportDocumentView report={reportForView} freshness={documentFreshness} />
             </SectionErrorBoundary>
 
             <SectionErrorBoundary
@@ -1243,11 +1289,9 @@ function PredictionHistoryReportCard({ dateUtc, domId, trainingScope }: Predicti
 
 function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     const { t } = useTranslation('reports')
-    const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>(
-        DEFAULT_BACKFILLED_HISTORY_SCOPE
-    )
+    const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>(DEFAULT_BACKFILLED_HISTORY_SCOPE)
     const [historyWindow, setHistoryWindow] = useState<PredictionHistoryWindow>('365')
-    const historyDays = resolveHistoryWindowDaysOrThrow(historyWindow)
+    const historyDays = resolveHistoryWindowDays(historyWindow)
 
     const { data, isLoading, isError, error, refetch } = useCurrentPredictionIndexQuery(
         HISTORY_SET,
@@ -1273,27 +1317,20 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     }
 
     return (
-        <PageDataBoundary
-            isLoading={isLoading}
-            isError={isError}
-            error={error}
-            hasData={hasData}
-            onRetry={handleRetry}
-            errorTitle={t('predictionHistory.page.indexErrorTitle', { reportSet: HISTORY_SET })}>
-            {data && (
-                <PredictionHistoryPageInner
-                    {...props}
-                    index={data}
-                    allIndex={allIndexData ?? null}
-                    isAllIndexLoading={isAllIndexLoading}
-                    allIndexErrorMessage={allIndexErrorMessage}
-                    trainingScope={trainingScope}
-                    onTrainingScopeChange={setTrainingScope}
-                    historyWindow={historyWindow}
-                    onHistoryWindowChange={setHistoryWindow}
-                />
-            )}
-        </PageDataBoundary>
+        <PredictionHistoryPageInner
+            {...props}
+            index={hasData ? data : null}
+            allIndex={allIndexData ?? null}
+            isAllIndexLoading={isAllIndexLoading}
+            allIndexErrorMessage={allIndexErrorMessage}
+            isIndexLoading={isLoading}
+            indexError={isError ? error : null}
+            onIndexRetry={handleRetry}
+            trainingScope={trainingScope}
+            onTrainingScopeChange={setTrainingScope}
+            historyWindow={historyWindow}
+            onHistoryWindowChange={setHistoryWindow}
+        />
     )
 }
 

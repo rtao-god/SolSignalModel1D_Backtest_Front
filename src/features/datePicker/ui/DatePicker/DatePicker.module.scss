@@ -1,3 +1,4 @@
+/* Корневой блок хранит локальные theme-токены picker и anchor-точку для абсолютного popup. */
 .datePicker {
     --picker-accent: #58a6ff;
     --picker-accent-strong: #1f6feb;
@@ -7,7 +8,8 @@
     --picker-surface-muted: #161b22;
     --picker-text: #f0f6fc;
     --picker-text-muted: #8b949e;
-    --picker-range-fill: rgba(88, 166, 255, 0.16);
+    --picker-range-fill: #203750;
+    --picker-range-hover-fill: rgba(88, 166, 255, 0.16);
     --picker-shadow: 0 18px 56px rgba(0, 0, 0, 0.45);
 
     position: relative;
@@ -112,6 +114,7 @@
     right: 0;
 }
 
+/* На узком экране инпуты переходят в wrap, чтобы picker оставался usable без горизонтального скролла. */
 @media (max-width: 920px) {
     .datePicker {
         width: 100%;

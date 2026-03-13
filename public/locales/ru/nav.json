@@ -17,6 +17,18 @@
         "explain": "Объяснение",
         "developer": "Для разработчика"
     },
+    "sectionCompact": {
+        "predictions": "Прогнозы",
+        "models": "Модели",
+        "backtest": "Бэктест",
+        "analysis": "Анализ",
+        "diagnostics": "Диагн.",
+        "features": "PFI",
+        "guide": "База",
+        "docs": "Док.",
+        "explain": "Объясн.",
+        "developer": "Dev"
+    },
     "route": {
         "main": "Главная",
         "diagnostics_home": "Диагностика",
@@ -124,7 +136,7 @@
             "explain-splits-full": "Full history"
         },
         "guide_time": {
-            "explain-time-overview": "NY-торговый день",
+            "explain-time-overview": "Торговый день",
             "explain-time-baseline": "Baseline-exit",
             "explain-time-day-keys": "Day-key и типы времени",
             "explain-time-weekend": "Выходные и исключения"
@@ -200,7 +212,7 @@
             "explain-project-tests": "Тесты и защиты"
         },
         "explain_time": {
-            "explain-time-overview": "NY-торговый день",
+            "explain-time-overview": "Торговый день",
             "explain-time-baseline": "Baseline-exit",
             "explain-time-day-keys": "Day-key и типы времени",
             "explain-time-weekend": "Выходные и исключения"

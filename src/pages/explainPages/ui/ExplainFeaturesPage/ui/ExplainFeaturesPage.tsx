@@ -15,12 +15,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import {
-    readGuideStringListOrThrow,
-    readGuideTableRowsOrThrow,
-    readGuideTermItemsOrThrow,
+    readGuideStringList,
+    readGuideTableRows,
+    readGuideTermItems,
     type GuideLocalizedTermItem
 } from '@/pages/guidePages/ui/shared/guideI18n'
-import { buildGuideGlossaryOrThrow, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
+import { buildGuideGlossary, renderGuideRichText } from '@/pages/guidePages/ui/shared/guideRichText'
 import cls from './ExplainFeaturesPage.module.scss'
 import type { ExplainFeaturesPageProps } from './types'
 
@@ -194,10 +194,7 @@ const GUIDE_FEATURE_SECTIONS: readonly GuideFeaturesSectionConfig[] = [
     }
 ]
 
-export default function ExplainFeaturesPage({
-    className,
-    translationNamespace = 'guide'
-}: ExplainFeaturesPageProps) {
+export default function ExplainFeaturesPage({ className, translationNamespace = 'guide' }: ExplainFeaturesPageProps) {
     const { t, i18n } = useTranslation(translationNamespace)
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
@@ -218,28 +215,28 @@ export default function ExplainFeaturesPage({
         [t]
     )
     const buildPageGlossary = () =>
-        buildGuideGlossaryOrThrow([
-            readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.overview.terms'),
+        buildGuideGlossary([
+            readGuideTermItems(i18n, 'featuresPage.sections.overview.terms'),
             buildFeatureGlossaryItems(
-                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.returns.terms'),
+                readGuideTermItems(i18n, 'featuresPage.sections.returns.terms'),
                 pfiStats,
                 hasPfiReport,
                 t
             ),
             buildFeatureGlossaryItems(
-                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.indicators.terms'),
+                readGuideTermItems(i18n, 'featuresPage.sections.indicators.terms'),
                 pfiStats,
                 hasPfiReport,
                 t
             ),
             buildFeatureGlossaryItems(
-                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.momentum.terms'),
+                readGuideTermItems(i18n, 'featuresPage.sections.momentum.terms'),
                 pfiStats,
                 hasPfiReport,
                 t
             ),
             buildFeatureGlossaryItems(
-                readGuideTermItemsOrThrow(i18n, 'featuresPage.sections.regime.terms'),
+                readGuideTermItems(i18n, 'featuresPage.sections.regime.terms'),
                 pfiStats,
                 hasPfiReport,
                 t
@@ -279,7 +276,7 @@ export default function ExplainFeaturesPage({
                         <LocalizedContentBoundary name={`GuideFeatures:${section.id}:paragraphs`}>
                             {() => {
                                 const glossary = buildPageGlossary()
-                                const paragraphs = readGuideStringListOrThrow(
+                                const paragraphs = readGuideStringList(
                                     i18n,
                                     `featuresPage.sections.${section.id}.paragraphs`
                                 )
@@ -287,7 +284,9 @@ export default function ExplainFeaturesPage({
                                 return (
                                     <div className={cls.copyBlock}>
                                         {paragraphs.map((paragraph, paragraphIndex) => (
-                                            <Text key={`${section.id}-paragraph-${paragraphIndex}`} className={cls.sectionText}>
+                                            <Text
+                                                key={`${section.id}-paragraph-${paragraphIndex}`}
+                                                className={cls.sectionText}>
                                                 {renderGuideRichText(paragraph, { glossary })}
                                             </Text>
                                         ))}
@@ -305,7 +304,10 @@ export default function ExplainFeaturesPage({
                                     }
 
                                     const glossary = buildPageGlossary()
-                                    const rows = readGuideTableRowsOrThrow(i18n, `featuresPage.sections.${section.id}.table.rows`)
+                                    const rows = readGuideTableRows(
+                                        i18n,
+                                        `featuresPage.sections.${section.id}.table.rows`
+                                    )
 
                                     return (
                                         <div className={cls.tableWrap}>
@@ -314,7 +316,9 @@ export default function ExplainFeaturesPage({
                                                     <tr>
                                                         {headerKeys.map(headerKey => (
                                                             <th key={`${section.id}-header-${headerKey}`}>
-                                                                {t(`featuresPage.sections.${section.id}.table.headers.${headerKey}`)}
+                                                                {t(
+                                                                    `featuresPage.sections.${section.id}.table.headers.${headerKey}`
+                                                                )}
                                                             </th>
                                                         ))}
                                                     </tr>
@@ -323,7 +327,8 @@ export default function ExplainFeaturesPage({
                                                     {rows.map((row, rowIndex) => (
                                                         <tr key={`${section.id}-row-${rowIndex}`}>
                                                             {row.map((cell, cellIndex) => (
-                                                                <td key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
+                                                                <td
+                                                                    key={`${section.id}-row-${rowIndex}-cell-${cellIndex}`}>
                                                                     {renderGuideRichText(cell, { glossary })}
                                                                 </td>
                                                             ))}
@@ -348,7 +353,9 @@ export default function ExplainFeaturesPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.why`), { glossary })}
+                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.why`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -365,7 +372,9 @@ export default function ExplainFeaturesPage({
 
                                         return (
                                             <Text className={cls.calloutText}>
-                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.example`), { glossary })}
+                                                {renderGuideRichText(t(`featuresPage.sections.${section.id}.example`), {
+                                                    glossary
+                                                })}
                                             </Text>
                                         )
                                     }}
@@ -387,6 +396,3 @@ export default function ExplainFeaturesPage({
         </div>
     )
 }
-
-
-

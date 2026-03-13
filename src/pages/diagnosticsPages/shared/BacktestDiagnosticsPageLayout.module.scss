@@ -1,11 +1,7 @@
 .root {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-
-    padding: 24px;
-    max-width: 1600px;
-    margin: 0 auto;
+    @include product-page-shell(1600px, true, 24px);
+    container-type: inline-size;
+    container-name: diagnostics-layout;
 }
 
 .header {
@@ -14,6 +10,16 @@
     align-items: flex-start;
     gap: 18px;
     flex-wrap: wrap;
+}
+
+.headerMain {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.headerState {
+    max-width: 720px;
 }
 
 .subtitle {
@@ -49,6 +55,12 @@
 }
 
 .sharedSubtitle {
-    opacity: 0.75;
+    color: var(--text-muted);
     max-width: 780px;
+}
+
+@container diagnostics-layout (max-width: 760px) {
+    .header {
+        flex-direction: column;
+    }
 }

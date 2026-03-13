@@ -56,7 +56,7 @@ export interface RealForecastJournalCombinedPolicyRow {
     actualMaxDdPct: number | null
     actualHadLiquidation: boolean | null
     actualWithdrawnUsd: number | null
-    publishedInMorningSnapshot: boolean
+    publishedInSessionOpenSnapshot: boolean
     finalizedAfterClose: boolean
 }
 
@@ -65,10 +65,10 @@ export interface RealForecastJournalIndicatorComparisonRow {
     label: string
     group: string
     unit: string | null
-    morningDisplay: string
+    sessionOpenDisplay: string
     closeDisplay: string | null
     deltaDisplay: string | null
-    morningNumeric: number | null
+    sessionOpenNumeric: number | null
     closeNumeric: number | null
 }
 
@@ -156,7 +156,7 @@ interface LiveFinalizedDaySummary {
 
 const EPSILON = 1e-12
 
-function toFiniteNumberOrThrow(value: unknown, label: string): number {
+function toFiniteNumber(value: unknown, label: string): number {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value
     }
@@ -171,8 +171,8 @@ function toFiniteNumberOrThrow(value: unknown, label: string): number {
     throw new Error(`[real-forecast-journal] ${label} must be finite.`)
 }
 
-function toIntegerOrThrow(value: unknown, label: string): number {
-    const parsed = toFiniteNumberOrThrow(value, label)
+function toInteger(value: unknown, label: string): number {
+    const parsed = toFiniteNumber(value, label)
     if (!Number.isInteger(parsed)) {
         throw new Error(`[real-forecast-journal] ${label} must be an integer.`)
     }
@@ -180,7 +180,7 @@ function toIntegerOrThrow(value: unknown, label: string): number {
     return parsed
 }
 
-function toNonEmptyStringOrThrow(value: unknown, label: string): string {
+function toNonEmptyString(value: unknown, label: string): string {
     if (typeof value !== 'string' || !value.trim()) {
         throw new Error(`[real-forecast-journal] ${label} must be a non-empty string.`)
     }
@@ -188,7 +188,7 @@ function toNonEmptyStringOrThrow(value: unknown, label: string): string {
     return value.trim()
 }
 
-function toObjectOrThrow(value: unknown, label: string): Record<string, unknown> {
+function toObject(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new Error(`[real-forecast-journal] ${label} must be an object.`)
     }
@@ -206,7 +206,7 @@ function readRequiredField(raw: Record<string, unknown>, label: string, ...keys:
     throw new Error(`[real-forecast-journal] ${label} is missing.`)
 }
 
-function resolveScopeOrThrow(value: string): CurrentPredictionTrainingScope {
+function resolveScope(value: string): CurrentPredictionTrainingScope {
     const normalized = value.trim().toLowerCase()
     if (normalized === 'train') return 'train'
     if (normalized === 'oos') return 'oos'
@@ -216,7 +216,7 @@ function resolveScopeOrThrow(value: string): CurrentPredictionTrainingScope {
     throw new Error(`[real-forecast-journal] unsupported scope: ${value}.`)
 }
 
-function resolveDirectionOrThrow(value: string): RealForecastJournalDirection {
+function resolveDirection(value: string): RealForecastJournalDirection {
     const normalized = value.trim().toUpperCase()
     if (normalized === 'UP') return 'UP'
     if (normalized === 'FLAT') return 'FLAT'
@@ -293,10 +293,10 @@ function compareDirectionBucketNames(left: string, right: string): number {
 export function buildCombinedPolicyRows(
     record: RealForecastJournalDayRecordDto
 ): RealForecastJournalCombinedPolicyRow[] {
-    const morningRows = record.forecastSnapshot.policyRows
+    const sessionOpenRows = record.forecastSnapshot.policyRows
     const uniqueRows = new Map<string, RealForecastJournalPolicyRowDto>()
 
-    for (const row of morningRows) {
+    for (const row of sessionOpenRows) {
         uniqueRows.set(buildPolicyRowKey(row), row)
     }
 
@@ -342,7 +342,9 @@ export function buildCombinedPolicyRows(
                 actualMaxDdPct: resolveRowNumericValue(actualRow?.maxDdPct ?? null, null),
                 actualHadLiquidation: actualRow?.hadLiquidation ?? null,
                 actualWithdrawnUsd: resolveRowNumericValue(actualRow?.withdrawnTotal ?? null, null),
-                publishedInMorningSnapshot: morningRows.some(candidate => buildPolicyRowKey(candidate) === rowKey),
+                publishedInSessionOpenSnapshot: sessionOpenRows.some(
+                    candidate => buildPolicyRowKey(candidate) === rowKey
+                ),
                 finalizedAfterClose: actualRow !== null
             }
         })
@@ -404,7 +406,7 @@ export function buildPolicyBranchOptions(rows: RealForecastJournalCombinedPolicy
 
 export function buildIndicatorGroupOptions(record: RealForecastJournalDayRecordDto): string[] {
     const groups = new Set<string>()
-    for (const item of record.morningIndicators.items) {
+    for (const item of record.sessionOpenIndicators.items) {
         groups.add(item.group)
     }
     for (const item of record.finalize?.endOfDayIndicators.items ?? []) {
@@ -421,23 +423,23 @@ function buildIndicatorLookup(
 }
 
 function formatIndicatorDelta(
-    morning: RealForecastJournalIndicatorValueDto,
+    sessionOpen: RealForecastJournalIndicatorValueDto,
     close: RealForecastJournalIndicatorValueDto
 ): string | null {
-    if (morning.numericValue === null || close.numericValue === null) {
+    if (sessionOpen.numericValue === null || close.numericValue === null) {
         return null
     }
 
-    const delta = close.numericValue - morning.numericValue
+    const delta = close.numericValue - sessionOpen.numericValue
     if (!Number.isFinite(delta)) {
-        throw new Error(`[real-forecast-journal] indicator delta is non-finite. key=${morning.key}.`)
+        throw new Error(`[real-forecast-journal] indicator delta is non-finite. key=${sessionOpen.key}.`)
     }
 
-    if (morning.unit === '%') {
+    if (sessionOpen.unit === '%') {
         return `${(delta * 100).toFixed(2)} p.p.`
     }
 
-    if (morning.unit === '$') {
+    if (sessionOpen.unit === '$') {
         return delta.toFixed(4)
     }
 
@@ -449,18 +451,18 @@ export function buildIndicatorComparisonRows(
     selectedGroup: RealForecastJournalIndicatorGroupFilter
 ): RealForecastJournalIndicatorComparisonRow[] {
     const closeIndicators = record.finalize?.endOfDayIndicators ?? null
-    const morningLookup = buildIndicatorLookup(record.morningIndicators)
+    const sessionOpenLookup = buildIndicatorLookup(record.sessionOpenIndicators)
     const closeLookup =
         closeIndicators ?
             buildIndicatorLookup(closeIndicators)
         :   new Map<string, RealForecastJournalIndicatorValueDto>()
-    const keys = new Set<string>([...morningLookup.keys(), ...closeLookup.keys()])
+    const keys = new Set<string>([...sessionOpenLookup.keys(), ...closeLookup.keys()])
 
     return Array.from(keys)
         .map(key => {
-            const morning = morningLookup.get(key) ?? null
+            const sessionOpen = sessionOpenLookup.get(key) ?? null
             const close = closeLookup.get(key) ?? null
-            const source = morning ?? close
+            const source = sessionOpen ?? close
             if (!source) {
                 throw new Error(`[real-forecast-journal] indicator row source is missing. key=${key}.`)
             }
@@ -470,10 +472,10 @@ export function buildIndicatorComparisonRows(
                 label: source.label,
                 group: source.group,
                 unit: source.unit,
-                morningDisplay: morning?.displayValue ?? 'Not published in morning snapshot',
+                sessionOpenDisplay: sessionOpen?.displayValue ?? 'Not published in the fixed morning forecast',
                 closeDisplay: close?.displayValue ?? null,
-                deltaDisplay: morning && close ? formatIndicatorDelta(morning, close) : null,
-                morningNumeric: morning?.numericValue ?? null,
+                deltaDisplay: sessionOpen && close ? formatIndicatorDelta(sessionOpen, close) : null,
+                sessionOpenNumeric: sessionOpen?.numericValue ?? null,
                 closeNumeric: close?.numericValue ?? null
             }
         })
@@ -496,7 +498,7 @@ function collectFinalizedDays(dayList: RealForecastJournalDayListItemDto[]): Liv
             } => item.status === 'finalized' && item.actualDirection !== null && item.directionMatched !== null
         )
         .map(item => {
-            const predictedDirection = resolveDirectionOrThrow(item.predLabelDisplay)
+            const predictedDirection = resolveDirection(item.predLabelDisplay)
             const assignedProbability = directionToProbability(predictedDirection, item)
             if (!(assignedProbability > 0 && assignedProbability <= 1)) {
                 throw new Error(
@@ -535,15 +537,15 @@ function buildLiveSummary(days: LiveFinalizedDaySummary[]): RealForecastJournalL
     }
 }
 
-function resolveAggregationSegmentNameOrThrow(value: unknown): CurrentPredictionTrainingScope {
+function resolveAggregationSegmentName(value: unknown): CurrentPredictionTrainingScope {
     if (typeof value !== 'string' || !value.trim()) {
         throw new Error('[real-forecast-journal] aggregation segmentName is missing.')
     }
 
-    return resolveScopeOrThrow(value)
+    return resolveScope(value)
 }
 
-export function resolveAggregationBenchmarkOrThrow(
+export function resolveAggregationBenchmark(
     metrics: AggregationMetricsSnapshotDto,
     scope: CurrentPredictionTrainingScope
 ): RealForecastJournalAggregationBenchmark {
@@ -554,10 +556,10 @@ export function resolveAggregationBenchmarkOrThrow(
     }
 
     const segment = rawSegments
-        .map(candidate => toObjectOrThrow(candidate, 'aggregation.segment'))
+        .map(candidate => toObject(candidate, 'aggregation.segment'))
         .find(
             candidate =>
-                resolveAggregationSegmentNameOrThrow(
+                resolveAggregationSegmentName(
                     String(readRequiredField(candidate, 'segmentName', 'segmentName', 'SegmentName'))
                 ) === scope
         )
@@ -567,40 +569,40 @@ export function resolveAggregationBenchmarkOrThrow(
     }
 
     const segmentCandidate = segment as AggregationSegmentCandidate
-    const totalCandidate = toObjectOrThrow(
+    const totalCandidate = toObject(
         segmentCandidate.total ?? segmentCandidate.Total,
         'aggregation.segment.total'
     ) as AggregationTotalCandidate
 
     return {
-        label: toNonEmptyStringOrThrow(
+        label: toNonEmptyString(
             readRequiredField(segment, 'segmentLabel', 'segmentLabel', 'SegmentLabel'),
             'segmentLabel'
         ),
-        accuracy: toFiniteNumberOrThrow(
+        accuracy: toFiniteNumber(
             readRequiredField(totalCandidate as Record<string, unknown>, 'Accuracy', 'accuracy', 'Accuracy'),
             'Accuracy'
         ),
-        microF1: toFiniteNumberOrThrow(
+        microF1: toFiniteNumber(
             readRequiredField(totalCandidate as Record<string, unknown>, 'MicroF1', 'microF1', 'MicroF1'),
             'MicroF1'
         ),
-        logLoss: toFiniteNumberOrThrow(
+        logLoss: toFiniteNumber(
             readRequiredField(totalCandidate as Record<string, unknown>, 'LogLoss', 'logLoss', 'LogLoss'),
             'LogLoss'
         ),
-        sampleSize: toIntegerOrThrow(readRequiredField(totalCandidate as Record<string, unknown>, 'N', 'n', 'N'), 'N')
+        sampleSize: toInteger(readRequiredField(totalCandidate as Record<string, unknown>, 'N', 'n', 'N'), 'N')
     }
 }
 
-export function buildAggregationComparisonOrThrow(
+export function buildAggregationComparison(
     dayList: RealForecastJournalDayListItemDto[],
     metrics: AggregationMetricsSnapshotDto,
     scope: CurrentPredictionTrainingScope
 ): RealForecastJournalAggregationComparison {
     const finalizedDays = collectFinalizedDays(dayList)
     const live = buildLiveSummary(finalizedDays)
-    const benchmark = resolveAggregationBenchmarkOrThrow(metrics, scope)
+    const benchmark = resolveAggregationBenchmark(metrics, scope)
 
     return {
         live,
@@ -610,7 +612,7 @@ export function buildAggregationComparisonOrThrow(
     }
 }
 
-function resolveConfidenceRiskSourceOrThrow(configSection: ReportSectionDto | undefined): ConfidenceRiskConfig {
+function resolveConfidenceRiskSource(configSection: ReportSectionDto | undefined): ConfidenceRiskConfig {
     if (!configSection || !('items' in configSection) || !Array.isArray(configSection.items)) {
         throw new Error('[real-forecast-journal] confidence-risk config section is missing.')
     }
@@ -628,7 +630,7 @@ function resolveConfidenceRiskSourceOrThrow(configSection: ReportSectionDto | un
     throw new Error(`[real-forecast-journal] unsupported confidence-risk source: ${sourceItem.value}.`)
 }
 
-function resolveConfidenceValuePctOrThrow(day: LiveFinalizedDaySummary, config: ConfidenceRiskConfig): number {
+function resolveConfidenceValuePct(day: LiveFinalizedDaySummary, config: ConfidenceRiskConfig): number {
     if (config.source === 'total') {
         return day.assignedProbability * 100
     }
@@ -642,11 +644,11 @@ function resolveConfidenceValuePctOrThrow(day: LiveFinalizedDaySummary, config: 
     )
 }
 
-export function resolveConfidenceRiskRowsOrThrow(
+export function resolveConfidenceRiskRows(
     report: ReportDocumentDto,
     scope: CurrentPredictionTrainingScope
 ): { config: ConfidenceRiskConfig; rows: RealForecastJournalConfidenceRiskRow[] } {
-    const config = resolveConfidenceRiskSourceOrThrow(
+    const config = resolveConfidenceRiskSource(
         report.sections.find(section => section.sectionKey === 'confidence_risk_config')
     )
     const tableSection = report.sections.find(
@@ -685,30 +687,24 @@ export function resolveConfidenceRiskRowsOrThrow(
                 throw new Error(`[real-forecast-journal] confidence-risk row must be an array. index=${rowIndex}.`)
             }
 
-            const rowScope = resolveScopeOrThrow(String(row[keyToIndex.get('split')!]))
+            const rowScope = resolveScope(String(row[keyToIndex.get('split')!]))
             return {
                 scope: rowScope,
-                bucket: toNonEmptyStringOrThrow(row[keyToIndex.get('bucket')!], `confidence-risk.bucket[${rowIndex}]`),
-                confidenceFromPct: toFiniteNumberOrThrow(
+                bucket: toNonEmptyString(row[keyToIndex.get('bucket')!], `confidence-risk.bucket[${rowIndex}]`),
+                confidenceFromPct: toFiniteNumber(
                     row[keyToIndex.get('confidence_from_pct')!],
                     `confidence-risk.from[${rowIndex}]`
                 ),
-                confidenceToPct: toFiniteNumberOrThrow(
+                confidenceToPct: toFiniteNumber(
                     row[keyToIndex.get('confidence_to_pct')!],
                     `confidence-risk.to[${rowIndex}]`
                 ),
-                confidenceAvgPct: toFiniteNumberOrThrow(
+                confidenceAvgPct: toFiniteNumber(
                     row[keyToIndex.get('confidence_average_pct')!],
                     `confidence-risk.avg[${rowIndex}]`
                 ),
-                tradeDays: toIntegerOrThrow(
-                    row[keyToIndex.get('trade_days')!],
-                    `confidence-risk.tradeDays[${rowIndex}]`
-                ),
-                winRatePct: toFiniteNumberOrThrow(
-                    row[keyToIndex.get('win_rate_pct')!],
-                    `confidence-risk.winRate[${rowIndex}]`
-                )
+                tradeDays: toInteger(row[keyToIndex.get('trade_days')!], `confidence-risk.tradeDays[${rowIndex}]`),
+                winRatePct: toFiniteNumber(row[keyToIndex.get('win_rate_pct')!], `confidence-risk.winRate[${rowIndex}]`)
             }
         })
         .filter(row => row.scope === scope)
@@ -744,14 +740,14 @@ function resolveBucketForConfidenceOrNull(
     return null
 }
 
-export function buildConfidenceRiskComparisonOrThrow(
+export function buildConfidenceRiskComparison(
     dayList: RealForecastJournalDayListItemDto[],
     report: ReportDocumentDto,
     scope: CurrentPredictionTrainingScope
 ): RealForecastJournalConfidenceRiskComparison {
     const finalizedDays = collectFinalizedDays(dayList)
     const live = buildLiveSummary(finalizedDays)
-    const baseline = resolveConfidenceRiskRowsOrThrow(report, scope)
+    const baseline = resolveConfidenceRiskRows(report, scope)
     const bucketMap = new Map<
         string,
         { benchmark: RealForecastJournalConfidenceRiskRow; days: LiveFinalizedDaySummary[] }
@@ -763,7 +759,7 @@ export function buildConfidenceRiskComparisonOrThrow(
     }
 
     for (const day of finalizedDays) {
-        const confidencePct = resolveConfidenceValuePctOrThrow(day, baseline.config)
+        const confidencePct = resolveConfidenceValuePct(day, baseline.config)
         const bucket = resolveBucketForConfidenceOrNull(confidencePct, baseline.rows)
         if (!bucket) {
             outOfRangeDays++
@@ -785,8 +781,7 @@ export function buildConfidenceRiskComparisonOrThrow(
             const matched = entry.days.filter(day => day.matched).length
             const liveWinRate = matched / liveDays
             const liveAverageConfidencePct =
-                entry.days.reduce((sum, day) => sum + resolveConfidenceValuePctOrThrow(day, baseline.config), 0) /
-                liveDays
+                entry.days.reduce((sum, day) => sum + resolveConfidenceValuePct(day, baseline.config), 0) / liveDays
 
             return {
                 bucket: entry.benchmark.bucket,

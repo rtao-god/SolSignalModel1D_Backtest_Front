@@ -37,7 +37,7 @@ export const EXPLAIN_PROJECT_TABS: ExplainTabConfig[] = [
 ]
 
 export const EXPLAIN_TIME_TABS: ExplainTabConfig[] = [
-    { id: 'explain-time-overview', label: 'NY-торговый день', anchor: 'explain-time-overview' },
+    { id: 'explain-time-overview', label: 'Торговый день', anchor: 'explain-time-overview' },
     { id: 'explain-time-baseline', label: 'Baseline-exit', anchor: 'explain-time-baseline' },
     { id: 'explain-time-day-keys', label: 'Day-key и типы времени', anchor: 'explain-time-day-keys' },
     { id: 'explain-time-weekend', label: 'Выходные и исключения', anchor: 'explain-time-weekend' }

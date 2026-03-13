@@ -9,40 +9,19 @@ function normalizeValue(value: string | undefined | null): string {
     return value?.trim() ?? ''
 }
 
-function localizePreviewStatusMetadata(rawMetadata: string): string {
-    const normalized = normalizeValue(rawMetadata)
-    if (!normalized) {
-        return ''
-    }
-
-    return normalized
-        .replace(/\basOfUtc=/g, 'asOfUtc=')
-        .replace(/\bnyLocal=/g, 'время NY=')
-        .replace(/\bsessionEntryUtc=/g, 'вход сессии (UTC)=')
-        .replace(/\bsessionExitUtc=/g, 'выход сессии (UTC)=')
-        .replace(/\bfeatureAnchorUtc=/g, 'feature anchor (UTC)=')
-}
-
 function localizePreviewStatusValue(rawValue: string): string | null {
     const weekendMatch = rawValue.match(
         /^PREVIEW_WEEKEND:\s*forecast was built on an NY weekend day and uses the latest closed trading session\.\s*(.*)$/i
     )
     if (weekendMatch) {
-        const metadata = localizePreviewStatusMetadata(weekendMatch[1] ?? '')
-        return metadata ?
-                `Предварительный прогноз построен в выходной день по New York и использует последнюю уже закрытую торговую сессию. ${metadata}`
-            :   'Предварительный прогноз построен в выходной день по New York и использует последнюю уже закрытую торговую сессию.'
+        return 'Предварительный прогноз построен в выходной день и использует последнюю уже закрытую торговую сессию.'
     }
 
     const earlyMatch = rawValue.match(
         /^PREVIEW_EARLY:\s*forecast was built before NY entry on partially closed current candles;\s*accuracy may be lower than the standard daily run after NY entry\.\s*(.*)$/i
     )
     if (earlyMatch) {
-        const metadata = localizePreviewStatusMetadata(earlyMatch[1] ?? '')
-        return metadata ?
-                'Предварительный прогноз построен до входа в NY-сессию на частично закрытых текущих свечах, поэтому точность может быть ниже, чем у стандартного дневного расчёта после входа в NY. ' +
-                    metadata
-            :   'Предварительный прогноз построен до входа в NY-сессию на частично закрытых текущих свечах, поэтому точность может быть ниже, чем у стандартного дневного расчёта после входа в NY.'
+        return 'Предварительный прогноз построен до начала основного торгового окна на частично закрытых текущих свечах, поэтому точность может быть ниже, чем у стандартного дневного расчёта.'
     }
 
     return null
@@ -60,12 +39,126 @@ function localizeCurrentPredictionReportTitleForRu(rawTitle: string): string {
         :   `Исторический прогноз (${symbol}) — прошлая дата с известным исходом (Backfilled)`
 }
 
+const BACKTEST_DIAGNOSTICS_SECTION_TITLE_RU: Record<string, string> = {
+    'Market DayType Distribution': 'Распределение дней по типу рынка',
+    'Policy PnL by DayType': 'Результат Policy по типу дня',
+    'Policy NoTrade/Opportunity by DayType': 'Дни без сделки и упущенные возможности по типу дня',
+    'Policy WinRate by DayType': 'Доля успешных сделок по типу дня',
+    'Policy Opposite-Direction by DayType': 'Сделки против фактического направления по типу дня',
+    'Policy Opposite-Direction (ALL HISTORY, by DayType)': 'Сделки против фактического направления по типу дня (вся история)',
+    'Policy NoTrade by Weekday': 'Дни без сделки по дням недели',
+    'Policy NoTrade Reasons': 'Причины дней без сделки',
+    'Missing Weekday Details': 'Пропуски по дням недели',
+    'Data Integrity (Record Days)': 'Целостность данных по торговым дням',
+    'Policy Branch RiskDay': 'Риск-дни по Policy / Branch',
+    'Trade Duration / MAE / MFE': 'Длительность сделок и путь цены (MAE / MFE)',
+    'Liquidation Distance': 'Дистанция до ликвидации',
+    'Liquidation Summary': 'Сводка по ликвидациям',
+    'Policy Commission / Leverage Sanity': 'Комиссии и sanity-проверка плеча',
+    'Policy Leverage/Cap Quantiles': 'Квантили плеча и доли капитала',
+    'Guardrail Confusion': 'Ошибки и попадания guardrail',
+    'Specificity Rolling Guardrail': 'Specificity по rolling guardrail',
+    'Specificity Global Thresholds': 'Specificity по глобальным порогам',
+    'Policy Specificity Split': 'Разрез specificity по Policy',
+    'Decision Attribution': 'Атрибуция решений',
+    'Model vs Policy Blame Split': 'Разделение вины: модель vs Policy',
+    'Top Decision Days': 'Топ дней по decision-модели',
+    'Policy Low-Coverage Hotspots': 'Hotspots низкого покрытия',
+    'Policy NoTrade Hotspots': 'Hotspots дней без сделки',
+    'Policy Opposite Hotspots': 'Hotspots противоположного направления'
+}
+
+const BACKTEST_EXECUTION_PIPELINE_SECTION_TITLE_RU: Record<string, string> = {
+    'Model Level': 'Уровень модели',
+    'Decision Level': 'Уровень решения',
+    'Execution Level': 'Уровень исполнения',
+    'Accounting Level': 'Денежный итог сделки',
+    'Aggregation Level': 'Итог по стратегии'
+}
+
+function normalizeDiagnosticsSuffixItem(item: string): string {
+    const normalized = normalizeValue(item).toLowerCase()
+    const exactMap: Record<string, string> = {
+        best: 'лучшие',
+        worst: 'худшие',
+        'all sl': 'все SL-режимы',
+        'all buckets together': 'все бакеты вместе',
+        'all history': 'вся история',
+        'with sl': 'WITH SL',
+        'no sl': 'NO SL'
+    }
+
+    return exactMap[normalized] ?? normalizeValue(item)
+}
+
+function localizeDiagnosticsSuffixList(rawSuffix: string | undefined): string {
+    const suffix = normalizeValue(rawSuffix)
+    if (!suffix) {
+        return ''
+    }
+
+    const localizedItems = suffix
+        .split(',')
+        .map(item => normalizeDiagnosticsSuffixItem(item))
+        .filter(item => item.length > 0)
+
+    return localizedItems.length > 0 ? ` (${localizedItems.join(', ')})` : ''
+}
+
+function localizeDiagnosticsRatingsTitleForRu(rawTitle: string): string | null {
+    const capitalTradesMatch = rawTitle.match(/^Top\s+(\d+)\s+trades\s+by\s+CapitalDeltaUsd(?:\s*\((.+)\))?$/i)
+    if (capitalTradesMatch) {
+        const [, limit, suffix] = capitalTradesMatch
+        return `Топ-${limit} сделок по изменению капитала, $${localizeDiagnosticsSuffixList(suffix)}`
+    }
+
+    const netPnlTradesMatch = rawTitle.match(/^Top\s+(\d+)\s+trades\s+by\s+NetPnlUsd(?:\s*\((.+)\))?$/i)
+    if (netPnlTradesMatch) {
+        const [, limit, suffix] = netPnlTradesMatch
+        return `Топ-${limit} сделок по чистому результату, $${localizeDiagnosticsSuffixList(suffix)}`
+    }
+
+    const netReturnTradesMatch = rawTitle.match(/^Top\s+(\d+)\s+trades\s+by\s+NetReturnPct(?:\s*\((.+)\))?$/i)
+    if (netReturnTradesMatch) {
+        const [, limit, suffix] = netReturnTradesMatch
+        return `Топ-${limit} сделок по доходности сделки, %${localizeDiagnosticsSuffixList(suffix)}`
+    }
+
+    const tradeDaysMatch = rawTitle.match(/^Top\s+Trade\s+Days\s+\((BEST|WORST)(?:,\s*(.+))?\)$/i)
+    if (tradeDaysMatch) {
+        const [, bucket, suffix] = tradeDaysMatch
+        const prefix = bucket.toLowerCase() === 'best' ? 'Лучшие дни по результату сделок' : 'Худшие дни по результату сделок'
+        return `${prefix}${localizeDiagnosticsSuffixList(suffix)}`
+    }
+
+    if (/^Equity\/DD Summary$/i.test(rawTitle)) {
+        return 'Сводка по капиталу и максимальной просадке (Equity / MaxDD%)'
+    }
+
+    return null
+}
+
+function localizeBacktestDiagnosticsSectionTitleForRu(rawTitle: string): string {
+    const normalized = normalizeValue(rawTitle)
+    if (!normalized) {
+        return rawTitle
+    }
+
+    const localizedRatingsTitle = localizeDiagnosticsRatingsTitleForRu(normalized)
+    if (localizedRatingsTitle) {
+        return localizedRatingsTitle
+    }
+
+    return BACKTEST_DIAGNOSTICS_SECTION_TITLE_RU[normalized] ?? rawTitle
+}
+
 const CURRENT_PREDICTION_SECTION_TITLE_RU: Record<string, string> = {
     'Prediction summary': 'Общие параметры прогноза',
     'Prediction probabilities (%)': 'Вероятности прогноза (%)',
     '24h price range (historical baseline)': 'Диапазон цены за 24 часа (исторический ориентир)',
     'Actual day outcome vs forecast': 'Факт дня и сравнение с прогнозом',
-    'Why the model produced this forecast (top factors)': 'Почему модель дала такой прогноз (топ факторов)'
+    'Why the model produced this forecast (top factors)': 'Почему модель дала такой прогноз (топ факторов)',
+    'Leverage policies (BASE vs ANTI-D)': 'Policy по веткам BASE и ANTI-D'
 }
 
 const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
@@ -127,13 +220,13 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Model forecast (Total)': 'Прогноз модели (Total)',
     'Match vs forecast': 'Совпадение с прогнозом',
     'Why it differs': 'Почему отличается',
-    'Key explain/PFI factor': 'Ключевой фактор explain/PFI',
+    'Key explain/PFI factor': 'Ключевой фактор слоя пояснений / PFI',
     'Return to close, %': 'Доходность к закрытию, %',
     '24h max from entry, %': 'Максимум за 24ч от входа, %',
     '24h min from entry, %': 'Минимум за 24ч от входа, %',
     '24h high-low range, %': 'Диапазон high-low за 24ч, %',
     'Actual MinMove over 24h': 'Факт MinMove за 24ч',
-    'Forecast MinMove (causal)': 'Прогнозный MinMove (causal)',
+    'Forecast MinMove (causal)': 'Прогнозный MinMove (казуальный)',
     'Delta MinMove (actual - forecast)': 'Δ MinMove (факт - прогноз)',
     'Probability of actual outcome (Total)': 'Вероятность фактического исхода (Total)',
     Type: 'Тип',
@@ -179,6 +272,8 @@ function localizeMissingReason(reason: string): string {
         'invalid features': 'некорректные признаки',
         'indicators unavailable': 'индикаторы недоступны',
         'history unavailable': 'история недоступна',
+        missing_daily: 'дневной слой данных недоступен',
+        data_not_closed: 'день ещё не закрыт, поэтому итоговые данные пока не готовы',
         invalid_sl_prob: 'некорректная вероятность стоп-лосса',
         'outside NYSE regular session (entryUtc is missing)': 'вход вне regular session NYSE (entryUtc отсутствует)'
     }
@@ -198,6 +293,46 @@ function localizeMissingReason(reason: string): string {
     }
 
     return reason
+}
+
+function localizeTrainingWindowScope(scope: string): string {
+    const normalized = normalizeValue(scope).toLowerCase()
+
+    switch (normalized) {
+        case 'full':
+            return 'Полная история'
+        case 'train':
+            return 'Обучающая история'
+        case 'oos':
+            return 'Новые данные после обучения'
+        case 'recent':
+            return 'Свежий рабочий отрезок'
+        default:
+            return scope
+    }
+}
+
+function localizeModelCommentValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue)
+    if (!normalized) {
+        return rawValue
+    }
+
+    const parts = normalized
+        .split(';')
+        .map(part => normalizeValue(part))
+        .filter(Boolean)
+
+    if (parts.length === 2 && parts[0] === 'missing_daily' && parts[1] === 'data_not_closed') {
+        return 'Дневные данные ещё не закрыты, поэтому итоговый расчёт пока недоступен.'
+    }
+
+    if (parts.length > 0) {
+        const localizedParts = parts.map(localizeMissingReason)
+        return localizedParts.join('. ')
+    }
+
+    return localizeCommonCurrentPredictionValue(rawValue)
 }
 
 function localizeCommonCurrentPredictionValue(rawValue: string): string {
@@ -300,7 +435,7 @@ function localizeTrainingWindowValue(rawValue: string): string {
     }
 
     const [, scope, range, records] = match
-    return `${scope.trim()}; ${range.trim()}; записей=${records.trim()}`
+    return `Режим: ${localizeTrainingWindowScope(scope.trim())}; история: ${range.trim()}; записей: ${records.trim()}`
 }
 
 function localizeMatchValue(rawValue: string): string {
@@ -357,7 +492,7 @@ function localizeMismatchReasonValue(rawValue: string): string {
         return localizedBase
     }
 
-    return `${localizedBase} Ключевой фактор explain/PFI: ${localizeExplainFactorValue(factorHint)}.`
+    return `${localizedBase} Ключевой фактор слоя пояснений / PFI: ${localizeExplainFactorValue(factorHint)}.`
 }
 
 function localizeCurrentPredictionKeyValueForRu(rawKey: string, rawValue: string): string {
@@ -370,8 +505,9 @@ function localizeCurrentPredictionKeyValueForRu(rawKey: string, rawValue: string
         case 'SL model signal':
         case 'Primary model (Daily)':
         case 'Micro model':
-        case 'Model comment':
             return localizeCommonCurrentPredictionValue(rawValue)
+        case 'Model comment':
+            return localizeModelCommentValue(rawValue)
         case 'Combined response (model interpretation)':
             return localizeCombinedResponseValue(rawValue)
         case 'Model training window':
@@ -407,6 +543,10 @@ export function localizeReportDocumentTitle(
         return localizeCurrentPredictionReportTitleForRu(rawTitle)
     }
 
+    if (reportKind === 'backtest_execution_pipeline') {
+        return 'Путь расчёта бэктеста'
+    }
+
     return rawTitle
 }
 
@@ -421,6 +561,14 @@ export function localizeReportSectionTitle(
 
     if (reportKind?.startsWith('current_prediction')) {
         return CURRENT_PREDICTION_SECTION_TITLE_RU[rawTitle] ?? rawTitle
+    }
+
+    if (reportKind === 'backtest_diagnostics') {
+        return localizeBacktestDiagnosticsSectionTitleForRu(rawTitle)
+    }
+
+    if (reportKind === 'backtest_execution_pipeline') {
+        return BACKTEST_EXECUTION_PIPELINE_SECTION_TITLE_RU[rawTitle] ?? rawTitle
     }
 
     return rawTitle

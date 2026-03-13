@@ -1,13 +1,11 @@
+/* День остаётся компактной ячейкой как в vs-chat, а fill диапазона дорисовывается псевдоэлементами самой ячейки. */
 .emptyCell,
 .dayCell {
-    width: 30px;
-    height: 30px;
-    box-sizing: border-box;
-    padding: 3.5px 0;
+    width: 100%;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: auto;
     user-select: none;
     border-radius: 50%;
     position: relative;
@@ -19,53 +17,58 @@
 
 .dayCell {
     border: none;
+    appearance: none;
     background: transparent;
     color: var(--picker-text);
     font-size: 13px;
     font-weight: 600;
+    line-height: 1;
     cursor: pointer;
     overflow: visible;
+    z-index: 0;
+    isolation: isolate;
     transition:
-        background-color 0.2s ease,
         color 0.2s ease,
         box-shadow 0.2s ease,
         border-radius 0.2s ease;
 }
 
-.dayValue {
+.daySurface {
+    width: var(--calendar-day-surface-width, 25px);
+    height: 32px;
+    box-sizing: border-box;
+    padding: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    z-index: 2;
+    z-index: 0;
+    border-radius: 50%;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-radius 0.2s ease;
+}
+
+.dayValue {
+    min-width: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+    text-align: center;
     user-select: none;
 }
 
-.dayCell:hover:not(:disabled) {
-    background-color: var(--picker-range-fill);
+.dayCell:hover:not(:disabled) .daySurface {
+    background-color: var(--picker-range-hover-fill);
 }
 
 .dayCell:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
-}
-
-.bridgeLeft::before,
-.bridgeRight::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background-color: var(--picker-range-fill);
-    pointer-events: none;
-    z-index: 0;
-}
-
-.bridgeLeft::before {
-    left: -100%;
-    right: 50%;
-}
-
-.bridgeRight::after {
-    left: 50%;
-    right: -100%;
 }
 
 .selected,
@@ -75,41 +78,123 @@
 .inRange,
 .rangeMonthStart,
 .rangeMonthEnd {
+    background-color: transparent;
+}
+
+.selected .daySurface,
+.singleSelected .daySurface,
+.rangeStart .daySurface,
+.rangeEnd .daySurface,
+.inRange .daySurface,
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
     background-color: var(--picker-range-fill);
+}
+
+/* Обычная лента диапазона и продолжение от start/end используют один и тот же fill-цвет без отдельного accent-state. */
+.rangeStart::after,
+.inRange::after,
+.rangeMonthStart::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+    width: calc(100% - var(--calendar-day-surface-width, 25px) + var(--calendar-day-gap, 8px));
+    background-color: var(--picker-range-fill);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.rangeEnd::before,
+.inRange::before,
+.rangeMonthEnd::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+    width: calc(100% - var(--calendar-day-surface-width, 25px) + var(--calendar-day-gap, 8px));
+    background-color: var(--picker-range-fill);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .rangeStart {
     border-radius: 999px 0 0 999px;
 }
 
-.rangeEnd {
+.rangeStart .daySurface {
+    border-radius: 999px 0 0 999px;
+}
+
+.rangeEnd .daySurface {
     border-radius: 0 999px 999px 0;
 }
 
-.inRange,
-.rangeMonthStart,
-.rangeMonthEnd {
+.inRange .daySurface,
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
     border-radius: 0;
 }
 
+/* Month tail нужен только на переходе между месяцами и клипуется контейнером месяца на краях таблицы. */
 .rangeMonthStart,
 .rangeMonthEnd {
     overflow: visible;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 44px 30px;
 }
 
 .rangeMonthStart {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='30' viewBox='0 0 44 30' fill='none'%3E%3Crect width='44' height='30' fill='url(%23paint0)'/%3E%3Cdefs%3E%3ClinearGradient id='paint0' x1='17.5' y1='15' x2='4' y2='15' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2358A6FF' stop-opacity='0.16'/%3E%3Cstop offset='1' stop-color='%2358A6FF' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E");
+    justify-content: flex-end;
+}
+
+.rangeMonthStart::after {
+    left: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
 }
 
 .rangeMonthEnd {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='30' viewBox='0 0 44 30' fill='none'%3E%3Crect width='44' height='30' fill='url(%23paint0)'/%3E%3Cdefs%3E%3ClinearGradient id='paint0' x1='22' y1='15' x2='37.5' y2='15' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2358A6FF' stop-opacity='0.16'/%3E%3Cstop offset='1' stop-color='%2358A6FF' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E");
+    justify-content: flex-start;
+}
+
+.rangeMonthEnd::before {
+    right: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+}
+
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
+    overflow: visible;
+}
+
+.rangeMonthStart .daySurface::before,
+.rangeMonthEnd .daySurface::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    width: 44px;
+    height: 30px;
+    background-repeat: no-repeat;
+    background-size: 44px 30px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.rangeMonthStart .daySurface::before {
+    left: -19px;
+    background-position: left center;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIHZpZXdCb3g9JzAgMCA0NCAzMCcgZmlsbD0nbm9uZScgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48cmVjdCB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIGZpbGw9J3VybCgjcGFpbnQwX2xpbmVhciknIC8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSdwYWludDBfbGluZWFyJyB4MT0nMTcuNScgeTE9JzE1JyB4Mj0nNCcgeTI9JzE1JyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZSc+PHN0b3Agc3RvcC1jb2xvcj0nIzIwMzc1MCcvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nIzIwMzc1MCcgc3RvcC1vcGFjaXR5PScwJy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+');
+}
+
+.rangeMonthEnd .daySurface::after {
+    left: 0;
+    background-position: right center;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIHZpZXdCb3g9JzAgMCA0NCAzMCcgZmlsbD0nbm9uZScgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48cmVjdCB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIGZpbGw9J3VybCgjcGFpbnQwX2xpbmVhciknIC8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSdwYWludDBfbGluZWFyJyB4MT0nMjInIHkxPScxNScgeDI9JzM3LjUnIHkyPScxNScgZ3JhZGllbnRVbml0cz0ndXNlclNwYWNlT25Vc2UnPjxzdG9wIHN0b3AtY29sb3I9JyMyMDM3NTAnLz48c3RvcCBvZmZzZXQ9JzEnIHN0b3AtY29sb3I9JyMyMDM3NTAnIHN0b3Atb3BhY2l0eT0nMCcvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjwvc3ZnPg==');
+}
+
+.today .daySurface {
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.45);
 }
 
 .today {
-    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.45);
     color: var(--picker-accent);
 }
 
@@ -117,12 +202,4 @@
     color: #6e7681;
     pointer-events: none;
     cursor: default;
-}
-
-@media (max-width: 920px) {
-    .emptyCell,
-    .dayCell {
-        width: 30px;
-        height: 30px;
-    }
 }

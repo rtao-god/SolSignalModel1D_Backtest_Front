@@ -3,7 +3,8 @@ import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
-import { resolveReportSourceEndpointOrThrow } from '@/shared/utils/reportSourceEndpoint'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from './utils/fetchWithTimeout'
 import {
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaTotalBucketViewFromQuery,
@@ -47,6 +48,7 @@ export interface PolicyBranchMegaReportQueryArgs {
     bucket?: string | null
     bucketView?: string | null
     metric?: string | null
+    part?: number | null
     tpSlMode?: string | null
     slMode?: string | null
     zonalMode?: string | null
@@ -78,8 +80,9 @@ const POLICY_BRANCH_MEGA_AVAILABLE_TP_SL: readonly PolicyBranchMegaTpSlMode[] = 
 const POLICY_BRANCH_MEGA_AVAILABLE_SL: readonly PolicyBranchMegaExplicitSlMode[] = ['with-sl', 'no-sl']
 const POLICY_BRANCH_MEGA_AVAILABLE_ZONAL: readonly PolicyBranchMegaZonalMode[] = ['with-zonal', 'without-zonal']
 
-const POLICY_BRANCH_MEGA_STALE_TIME_MS = 2 * 60 * 1000
-const POLICY_BRANCH_MEGA_GC_TIME_MS = 15 * 60 * 1000
+export const POLICY_BRANCH_MEGA_STALE_TIME_MS = 2 * 60 * 1000
+export const POLICY_BRANCH_MEGA_GC_TIME_MS = 15 * 60 * 1000
+export const POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
 
 function buildPolicyBranchMegaPath(args?: PolicyBranchMegaReportQueryArgs): string {
     const params = new URLSearchParams()
@@ -94,6 +97,10 @@ function buildPolicyBranchMegaPath(args?: PolicyBranchMegaReportQueryArgs): stri
 
     if (args?.metric) {
         params.set('metric', args.metric)
+    }
+
+    if (typeof args?.part === 'number' && Number.isInteger(args.part) && args.part > 0) {
+        params.set('part', String(args.part))
     }
 
     if (args?.tpSlMode) {
@@ -112,12 +119,13 @@ function buildPolicyBranchMegaPath(args?: PolicyBranchMegaReportQueryArgs): stri
     return query ? `${path}?${query}` : path
 }
 
-function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
+export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_QUERY_KEY_BASE,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
+        args?.part ?? null,
         args?.tpSlMode ?? null,
         args?.slMode ?? null,
         args?.zonalMode ?? null
@@ -130,6 +138,7 @@ function buildPolicyBranchMegaWithFreshnessQueryKey(args?: PolicyBranchMegaRepor
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
+        args?.part ?? null,
         args?.tpSlMode ?? null,
         args?.slMode ?? null,
         args?.zonalMode ?? null
@@ -145,6 +154,7 @@ interface PolicyBranchMegaStatusDto {
     diagnosticsId: string | null
     diagnosticsGeneratedAtUtc: string | null
     availableBuckets: PolicyBranchMegaBucketMode[]
+    availableParts: number[]
     availableTotalBucketViews: PolicyBranchMegaTotalBucketView[]
     availableMetrics: PolicyBranchMegaMetricMode[]
     availableTpSlModes: PolicyBranchMegaTpSlMode[]
@@ -166,6 +176,7 @@ export interface PolicyBranchMegaFreshnessInfoDto {
 
 export interface PolicyBranchMegaCapabilitiesDto {
     availableBuckets: PolicyBranchMegaBucketMode[]
+    availableParts: number[]
     availableTotalBucketViews: PolicyBranchMegaTotalBucketView[]
     availableMetrics: PolicyBranchMegaMetricMode[]
     availableTpSlModes: PolicyBranchMegaTpSlMode[]
@@ -177,6 +188,7 @@ export interface PolicyBranchMegaResolvedQueryDto {
     bucket: PolicyBranchMegaBucketMode
     bucketView: PolicyBranchMegaTotalBucketView
     metric: PolicyBranchMegaMetricMode
+    part: number | null
     tpSlMode: PolicyBranchMegaTpSlMode
     slMode: PolicyBranchMegaSlMode
     zonalMode: PolicyBranchMegaZonalMode
@@ -189,7 +201,7 @@ export interface PolicyBranchMegaReportWithFreshnessDto {
     resolvedQuery: PolicyBranchMegaResolvedQueryDto
 }
 
-function toObjectOrThrow(raw: unknown): Record<string, unknown> {
+function toObject(raw: unknown): Record<string, unknown> {
     if (!raw || typeof raw !== 'object') {
         throw new Error('[policy-branch-mega] status payload is not an object.')
     }
@@ -197,7 +209,7 @@ function toObjectOrThrow(raw: unknown): Record<string, unknown> {
     return raw as Record<string, unknown>
 }
 
-function toStateOrThrow(raw: unknown): PolicyBranchMegaFreshnessState {
+function toState(raw: unknown): PolicyBranchMegaFreshnessState {
     if (raw === 'fresh' || raw === 'stale' || raw === 'missing' || raw === 'unknown') {
         return raw
     }
@@ -216,7 +228,7 @@ function toOptionalNumber(raw: unknown): number | null {
     return raw
 }
 
-function toAllowedValueArrayOrThrow<TValue extends string>(
+function toAllowedValueArray<TValue extends string>(
     raw: unknown,
     fieldName: string,
     allowedValues: readonly TValue[]
@@ -248,7 +260,41 @@ function toAllowedValueArrayOrThrow<TValue extends string>(
     return allowedValues.filter(value => values.has(value))
 }
 
-export function resolvePolicyBranchMegaReportQueryArgsOrThrow(
+function toPositiveIntArray(raw: unknown, fieldName: string): number[] {
+    if (raw == null) {
+        return []
+    }
+
+    if (!Array.isArray(raw)) {
+        throw new Error(`[policy-branch-mega] status field '${fieldName}' must be an array.`)
+    }
+
+    const values = new Set<number>()
+
+    raw.forEach((item, index) => {
+        if (typeof item !== 'number' || !Number.isInteger(item) || item < 1) {
+            throw new Error(`[policy-branch-mega] status field '${fieldName}' has invalid part at index=${index}.`)
+        }
+
+        values.add(item)
+    })
+
+    return Array.from(values).sort((a, b) => a - b)
+}
+
+function normalizePolicyBranchMegaPart(part: number | null | undefined): number | null {
+    if (part == null) {
+        return null
+    }
+
+    if (!Number.isInteger(part) || part < 1) {
+        throw new Error(`[policy-branch-mega] invalid part query '${String(part)}'.`)
+    }
+
+    return part
+}
+
+export function resolvePolicyBranchMegaReportQueryArgs(
     args?: PolicyBranchMegaReportQueryArgs
 ): PolicyBranchMegaReportQueryArgs {
     const bucket = resolvePolicyBranchMegaBucketFromQuery(args?.bucket, DEFAULT_REPORT_BUCKET_MODE)
@@ -261,6 +307,7 @@ export function resolvePolicyBranchMegaReportQueryArgsOrThrow(
         bucket,
         bucketView: bucket === 'total' ? bucketView : DEFAULT_REPORT_TOTAL_BUCKET_VIEW,
         metric: resolvePolicyBranchMegaMetricFromQuery(args?.metric, DEFAULT_REPORT_METRIC_MODE),
+        part: normalizePolicyBranchMegaPart(args?.part),
         tpSlMode: resolvePolicyBranchMegaTpSlModeFromQuery(args?.tpSlMode, DEFAULT_REPORT_TP_SL_MODE),
         slMode: resolvePolicyBranchMegaSlModeFromQuery(args?.slMode, DEFAULT_REPORT_SL_MODE),
         zonalMode: resolvePolicyBranchMegaZonalModeFromQuery(args?.zonalMode, DEFAULT_REPORT_ZONAL_MODE)
@@ -268,25 +315,29 @@ export function resolvePolicyBranchMegaReportQueryArgsOrThrow(
 }
 
 function buildRequestedPolicyBranchMegaQuery(args: PolicyBranchMegaReportQueryArgs): PolicyBranchMegaResolvedQueryDto {
-    const explicitArgs = resolvePolicyBranchMegaReportQueryArgsOrThrow(args)
+    const explicitArgs = resolvePolicyBranchMegaReportQueryArgs(args)
 
     return {
         bucket: explicitArgs.bucket as PolicyBranchMegaBucketMode,
         bucketView: explicitArgs.bucketView as PolicyBranchMegaTotalBucketView,
         metric: explicitArgs.metric as PolicyBranchMegaMetricMode,
+        part: explicitArgs.part ?? null,
         tpSlMode: explicitArgs.tpSlMode as PolicyBranchMegaTpSlMode,
         slMode: explicitArgs.slMode as PolicyBranchMegaSlMode,
         zonalMode: explicitArgs.zonalMode as PolicyBranchMegaZonalMode
     }
 }
 
-function resolveCapabilitiesFromStatus(status: PolicyBranchMegaStatusDto | null): PolicyBranchMegaCapabilitiesDto | null {
+function resolveCapabilitiesFromStatus(
+    status: PolicyBranchMegaStatusDto | null
+): PolicyBranchMegaCapabilitiesDto | null {
     if (!status) {
         return null
     }
 
     return {
         availableBuckets: status.availableBuckets,
+        availableParts: status.availableParts,
         availableTotalBucketViews: status.availableTotalBucketViews,
         availableMetrics: status.availableMetrics,
         availableTpSlModes: status.availableTpSlModes,
@@ -295,7 +346,7 @@ function resolveCapabilitiesFromStatus(status: PolicyBranchMegaStatusDto | null)
     }
 }
 
-function validateRequestedPolicyBranchMegaQueryOrThrow(
+function validateRequestedPolicyBranchMegaQuery(
     requested: PolicyBranchMegaResolvedQueryDto,
     capabilities: PolicyBranchMegaCapabilitiesDto | null
 ): void {
@@ -324,6 +375,14 @@ function validateRequestedPolicyBranchMegaQueryOrThrow(
     }
 
     assertSupported('metric', requested.metric, capabilities.availableMetrics)
+    if (requested.part !== null) {
+        const availableParts = capabilities.availableParts
+        if (availableParts.length > 0 && !availableParts.includes(requested.part)) {
+            throw new Error(
+                `[policy-branch-mega] requested part is unsupported. requested=${requested.part}, available=${availableParts.join(',')}.`
+            )
+        }
+    }
     assertSupported('tpsl', requested.tpSlMode, capabilities.availableTpSlModes)
     if (requested.slMode !== 'all') {
         assertSupported('slmode', requested.slMode, capabilities.availableSlModes)
@@ -336,6 +395,7 @@ function toReportQueryArgs(query: PolicyBranchMegaResolvedQueryDto): PolicyBranc
         bucket: query.bucket,
         bucketView: query.bucket === 'total' ? query.bucketView : null,
         metric: query.metric,
+        part: query.part,
         tpSlMode: query.tpSlMode,
         slMode: query.slMode,
         zonalMode: query.zonalMode
@@ -343,8 +403,8 @@ function toReportQueryArgs(query: PolicyBranchMegaResolvedQueryDto): PolicyBranc
 }
 
 function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
-    const payload = toObjectOrThrow(raw)
-    const state = toStateOrThrow(payload.state)
+    const payload = toObject(raw)
+    const state = toState(payload.state)
     const message =
         typeof payload.message === 'string' && payload.message.trim().length > 0 ?
             payload.message.trim()
@@ -358,32 +418,33 @@ function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
         policyBranchMegaGeneratedAtUtc: toOptionalString(payload.policyBranchMegaGeneratedAtUtc),
         diagnosticsId: toOptionalString(payload.diagnosticsId),
         diagnosticsGeneratedAtUtc: toOptionalString(payload.diagnosticsGeneratedAtUtc),
-        availableBuckets: toAllowedValueArrayOrThrow(
+        availableBuckets: toAllowedValueArray(
             payload.availableBuckets,
             'availableBuckets',
             POLICY_BRANCH_MEGA_AVAILABLE_BUCKETS
         ),
-        availableTotalBucketViews: toAllowedValueArrayOrThrow(
+        availableParts: toPositiveIntArray(payload.availableParts, 'availableParts'),
+        availableTotalBucketViews: toAllowedValueArray(
             payload.availableTotalBucketViews,
             'availableTotalBucketViews',
             POLICY_BRANCH_MEGA_AVAILABLE_TOTAL_BUCKET_VIEWS
         ),
-        availableMetrics: toAllowedValueArrayOrThrow(
+        availableMetrics: toAllowedValueArray(
             payload.availableMetrics,
             'availableMetrics',
             POLICY_BRANCH_MEGA_AVAILABLE_METRICS
         ),
-        availableTpSlModes: toAllowedValueArrayOrThrow(
+        availableTpSlModes: toAllowedValueArray(
             payload.availableTpSlModes,
             'availableTpSlModes',
             POLICY_BRANCH_MEGA_AVAILABLE_TP_SL
         ),
-        availableSlModes: toAllowedValueArrayOrThrow(
+        availableSlModes: toAllowedValueArray(
             payload.availableSlModes,
             'availableSlModes',
             POLICY_BRANCH_MEGA_AVAILABLE_SL
         ),
-        availableZonalModes: toAllowedValueArrayOrThrow(
+        availableZonalModes: toAllowedValueArray(
             payload.availableZonalModes,
             'availableZonalModes',
             POLICY_BRANCH_MEGA_AVAILABLE_ZONAL
@@ -392,7 +453,7 @@ function mapPolicyBranchMegaStatus(raw: unknown): PolicyBranchMegaStatusDto {
 }
 
 function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranchMegaFreshnessInfoDto {
-    const sourceEndpoint = resolveReportSourceEndpointOrThrow()
+    const sourceEndpoint = resolveReportSourceEndpoint()
 
     if (!status) {
         return {
@@ -421,7 +482,10 @@ function toFreshnessInfo(status: PolicyBranchMegaStatusDto | null): PolicyBranch
     }
 }
 async function fetchPolicyBranchMegaStatusOrNull(): Promise<PolicyBranchMegaStatusDto | null> {
-    const resp = await fetch(`${API_BASE_URL}${statusPath}`, { cache: 'no-store' })
+    const resp = await fetchWithTimeout(`${API_BASE_URL}${statusPath}`, {
+        cache: 'no-store',
+        timeoutMs: POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS
+    })
     if (!resp.ok) {
         return null
     }
@@ -430,9 +494,12 @@ async function fetchPolicyBranchMegaStatusOrNull(): Promise<PolicyBranchMegaStat
     return mapPolicyBranchMegaStatus(raw)
 }
 
-async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQueryArgs): Promise<ReportDocumentDto> {
+export async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQueryArgs): Promise<ReportDocumentDto> {
     const reportPath = buildPolicyBranchMegaPath(args)
-    const resp = await fetch(`${API_BASE_URL}${reportPath}`, { cache: 'no-store' })
+    const resp = await fetchWithTimeout(`${API_BASE_URL}${reportPath}`, {
+        cache: 'no-store',
+        timeoutMs: POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS
+    })
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
@@ -454,25 +521,12 @@ async function fetchPolicyBranchMegaReportWithFreshness(
         status = null
     }
 
-    if (status?.state === 'missing') {
-        throw new Error(
-            '[policy-branch-mega] Latest policy_branch_mega report is missing. Regenerate backtest reports first.'
-        )
-    }
-
-    if (status?.state === 'stale') {
-        const lagHint =
-            typeof status.lagSeconds === 'number' && status.lagSeconds > 0 ?
-                ` Lag: ${Math.round(status.lagSeconds / 60)} min.`
-            :   ''
-        throw new Error(
-            `[policy-branch-mega] policy_branch_mega is stale relative to backtest_diagnostics.${lagHint} Regenerate Policy Branch Mega.`
-        )
-    }
-
     const capabilities = resolveCapabilitiesFromStatus(status)
     const resolvedQuery = buildRequestedPolicyBranchMegaQuery(args)
-    validateRequestedPolicyBranchMegaQueryOrThrow(resolvedQuery, capabilities)
+    validateRequestedPolicyBranchMegaQuery(resolvedQuery, capabilities)
+
+    // Freshness status only enriches the UI. Actual page failure must come from the report endpoint itself,
+    // otherwise stale/missing metadata would mask the real 4xx/5xx or network error that blocked the payload.
     const report = await fetchPolicyBranchMegaReport(toReportQueryArgs(resolvedQuery))
     const freshness = toFreshnessInfo(status)
 
@@ -503,7 +557,7 @@ async function loadPolicyBranchMegaReportWithFreshnessAndCache(
     queryClient: QueryClient,
     args: PolicyBranchMegaReportQueryArgs
 ): Promise<PolicyBranchMegaReportWithFreshnessDto> {
-    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgsOrThrow(args)
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
     const payload = await fetchPolicyBranchMegaReportWithFreshness(resolvedArgs)
     queryClient.setQueryData(buildPolicyBranchMegaQueryKey(resolvedArgs), payload.report)
     queryClient.setQueryData(buildPolicyBranchMegaWithFreshnessQueryKey(resolvedArgs), payload)
@@ -513,12 +567,9 @@ async function loadPolicyBranchMegaReportWithFreshnessAndCache(
 export function usePolicyBranchMegaReportWithFreshnessQuery(
     args: PolicyBranchMegaReportQueryArgs,
     options?: UsePolicyBranchMegaWithFreshnessOptions
-): UseQueryResult<
-    PolicyBranchMegaReportWithFreshnessDto,
-    Error
-> {
+): UseQueryResult<PolicyBranchMegaReportWithFreshnessDto, Error> {
     const queryClient = useQueryClient()
-    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgsOrThrow(args)
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
     const withFreshnessKey = buildPolicyBranchMegaWithFreshnessQueryKey(resolvedArgs)
 
     return useQuery({
@@ -536,7 +587,7 @@ export async function prefetchPolicyBranchMegaReportWithFreshness(
     queryClient: QueryClient,
     args: PolicyBranchMegaReportQueryArgs
 ): Promise<void> {
-    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgsOrThrow(args)
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
     const withFreshnessKey = buildPolicyBranchMegaWithFreshnessQueryKey(resolvedArgs)
 
     await queryClient.prefetchQuery({
@@ -552,16 +603,14 @@ export function usePolicyBranchMegaReportNavQuery(
     args: PolicyBranchMegaReportQueryArgs
 ): UseQueryResult<ReportDocumentDto, Error> {
     const queryClient = useQueryClient()
-    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgsOrThrow(args)
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
     const reportKey = buildPolicyBranchMegaQueryKey(resolvedArgs)
     const withFreshnessKey = buildPolicyBranchMegaWithFreshnessQueryKey(resolvedArgs)
 
     return useQuery({
         queryKey: reportKey,
         queryFn: async () => {
-            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(
-                withFreshnessKey
-            )
+            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(withFreshnessKey)
             if (cachedPayload?.report) {
                 return cachedPayload.report
             }
@@ -569,9 +618,7 @@ export function usePolicyBranchMegaReportNavQuery(
             return fetchPolicyBranchMegaReport(resolvedArgs)
         },
         initialData: () => {
-            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(
-                withFreshnessKey
-            )
+            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportWithFreshnessDto>(withFreshnessKey)
             return cachedPayload?.report
         },
         enabled: options.enabled,

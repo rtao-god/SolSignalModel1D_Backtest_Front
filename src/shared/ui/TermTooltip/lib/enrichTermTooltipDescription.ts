@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { renderTermTooltipRichText, resolveMatchingTermTooltipRuleIds } from '../ui/renderTermTooltipRichText'
+import { resolveTermTooltipDescriptionContent } from './resolveTermTooltipDescriptionContent'
 
 interface EnrichTermTooltipDescriptionOptions {
     term?: string | null
@@ -15,27 +16,29 @@ function normalizeNonEmptyValues(values: Array<string | null | undefined>): stri
 }
 
 export function enrichTermTooltipDescription(
-    description: ReactNode,
+    description: ReactNode | (() => ReactNode),
     options?: EnrichTermTooltipDescriptionOptions
 ): ReactNode {
-    if (typeof description !== 'string') {
-        return description
-    }
+    return resolveTermTooltipDescriptionContent(description, {
+        resolveString: resolvedDescription => {
+            const term = options?.term?.trim() ?? ''
+            const selfAliases = normalizeNonEmptyValues([term || undefined, ...(options?.selfAliases ?? [])])
+            const excludeTerms = normalizeNonEmptyValues([...(options?.excludeTerms ?? []), ...selfAliases])
+            const excludeRuleTitles = normalizeNonEmptyValues([...(options?.excludeRuleTitles ?? []), ...selfAliases])
+            const matchedRuleIds = Array.from(
+                new Set(selfAliases.flatMap(alias => resolveMatchingTermTooltipRuleIds(alias)))
+            )
+            const excludeRuleIds = Array.from(
+                new Set(normalizeNonEmptyValues([...(options?.excludeRuleIds ?? []), ...matchedRuleIds]))
+            )
 
-    const term = options?.term?.trim() ?? ''
-    const selfAliases = normalizeNonEmptyValues([term || undefined, ...(options?.selfAliases ?? [])])
-    const excludeTerms = normalizeNonEmptyValues([...(options?.excludeTerms ?? []), ...selfAliases])
-    const excludeRuleTitles = normalizeNonEmptyValues([...(options?.excludeRuleTitles ?? []), ...selfAliases])
-    const matchedRuleIds = Array.from(new Set(selfAliases.flatMap(alias => resolveMatchingTermTooltipRuleIds(alias))))
-    const excludeRuleIds = Array.from(
-        new Set(normalizeNonEmptyValues([...(options?.excludeRuleIds ?? []), ...matchedRuleIds]))
-    )
-
-    return renderTermTooltipRichText(description, {
-        excludeTerms,
-        excludeRuleIds,
-        excludeRuleTitles,
-        // Два уровня оставляют вложенные glossary-ссылки интерактивными и при этом ограничивают циклы.
-        maxRecursionDepth: options?.maxRecursionDepth ?? 2
+            return renderTermTooltipRichText(resolvedDescription, {
+                excludeTerms,
+                excludeRuleIds,
+                excludeRuleTitles,
+                // Два уровня оставляют вложенные glossary-ссылки интерактивными и при этом ограничивают циклы.
+                maxRecursionDepth: options?.maxRecursionDepth ?? 2
+            })
+        }
     })
 }

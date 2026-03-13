@@ -15,21 +15,27 @@ import {
     useCurrentPredictionIndexQuery
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
+import { useRealForecastJournalDayListQuery } from '@/shared/api/tanstackQueries/realForecastJournal'
 import type { CurrentPredictionIndexItemDto } from '@/shared/api/endpoints/reportEndpoints'
+import type { RealForecastJournalDayListItemDto } from '@/shared/types/realForecastJournal.types'
 import type { KeyValueSectionDto, ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
 import { useTranslation } from 'react-i18next'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { BulletList } from '@/shared/ui/BulletList'
-import { formatDateWithLocaleOrThrow } from '@/shared/utils/dateFormat'
+import { formatDateWithLocale } from '@/shared/utils/dateFormat'
+import { logError } from '@/shared/lib/logging/logError'
 import cls from './Main.module.scss'
 import MainProps from './types'
-import { readMainStringListOrThrow } from './mainLandingI18n'
+import { readMainStringList } from './mainLandingI18n'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
 const HERO_BULLETS_KEY = 'main.hero.bullets'
 const HERO_SUBTITLE_PARAGRAPHS_KEY = 'main.hero.subtitleParagraphs'
+const AUDIENCE_BUSINESS_QUESTIONS_KEY = 'main.audience.businessQuestions'
+const REAL_JOURNAL_BULLETS_KEY = 'main.realJournal.bullets'
+const MEGA_TABLE_BULLETS_KEY = 'main.megaTable.bullets'
+const SANDBOX_BULLETS_KEY = 'main.sandbox.bullets'
 const PROOF_SECTION_DOM_ID = 'main-proof'
-const AUDIENCE_CARD_IDS = ['business', 'analyst', 'quantRisk'] as const
 const WORKFLOW_STEP_IDS = ['forecast', 'archive', 'validate'] as const
 const TOUR_GROUP_DEFS = [
     {
@@ -81,6 +87,13 @@ interface MainCardErrorProps {
     title: string
 }
 
+interface MainBulletCardProps {
+    lead: string
+    items: readonly string[]
+    renderText: (text: string) => ReactNode
+    title: string
+}
+
 interface MainProofFactItem {
     label: string
     value: string
@@ -126,14 +139,18 @@ function logMainWarmupError(error: unknown): void {
     }
 
     const safeError = error instanceof Error ? error : new Error(String(error ?? 'Unknown warmup error.'))
-    console.warn('[main] Failed to warm up Policy Branch Mega.', safeError)
+    logError(safeError, undefined, {
+        source: 'main-policy-branch-mega-warmup',
+        domain: 'api_transport',
+        severity: 'warning'
+    })
 }
 
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
     return Array.isArray((section as KeyValueSectionDto).items)
 }
 
-function formatLocalizedDateOrThrow(value: string, locale: string): string {
+function formatLocalizedDate(value: string, locale: string): string {
     const isoValue = value.includes('T') ? value : `${value}T00:00:00Z`
     const parsed = new Date(isoValue)
 
@@ -141,14 +158,14 @@ function formatLocalizedDateOrThrow(value: string, locale: string): string {
         throw new Error(`[main] Invalid date value: ${value}.`)
     }
 
-    return formatDateWithLocaleOrThrow(parsed, locale, {
+    return formatDateWithLocale(parsed, locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     })
 }
 
-function formatLocalizedNumberOrThrow(value: number, locale: string, options?: Intl.NumberFormatOptions): string {
+function formatLocalizedNumber(value: number, locale: string, options?: Intl.NumberFormatOptions): string {
     if (!Number.isFinite(value)) {
         throw new Error(`[main] Number must be finite. value=${value}.`)
     }
@@ -156,31 +173,31 @@ function formatLocalizedNumberOrThrow(value: number, locale: string, options?: I
     return new Intl.NumberFormat(locale, options).format(value)
 }
 
-function formatPercentValueOrThrow(rawValue: string, locale: string): string {
+function formatPercentValue(rawValue: string, locale: string): string {
     const parsed = Number(rawValue)
     if (!Number.isFinite(parsed)) {
         throw new Error(`[main] Percent value must be finite. value=${rawValue}.`)
     }
 
-    return `${formatLocalizedNumberOrThrow(parsed, locale, {
+    return `${formatLocalizedNumber(parsed, locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
     })}%`
 }
 
-function formatIntegerValueOrThrow(rawValue: string, locale: string): string {
+function formatIntegerValue(rawValue: string, locale: string): string {
     const parsed = Number(rawValue)
     if (!Number.isFinite(parsed)) {
         throw new Error(`[main] Integer-like value must be finite. value=${rawValue}.`)
     }
 
-    return formatLocalizedNumberOrThrow(parsed, locale, {
+    return formatLocalizedNumber(parsed, locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
     })
 }
 
-function buildPredictionArchiveProofFactsOrThrow(
+function buildPredictionArchiveProofFacts(
     index: CurrentPredictionIndexItemDto[],
     locale: string
 ): { firstDate: string; lastDate: string; totalDays: string } {
@@ -195,16 +212,16 @@ function buildPredictionArchiveProofFactsOrThrow(
     }
 
     return {
-        firstDate: formatLocalizedDateOrThrow(orderedDates[0], locale),
-        lastDate: formatLocalizedDateOrThrow(orderedDates[orderedDates.length - 1], locale),
-        totalDays: formatLocalizedNumberOrThrow(orderedDates.length, locale, {
+        firstDate: formatLocalizedDate(orderedDates[0], locale),
+        lastDate: formatLocalizedDate(orderedDates[orderedDates.length - 1], locale),
+        totalDays: formatLocalizedNumber(orderedDates.length, locale, {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         })
     }
 }
 
-function findKeyValueSectionOrThrow(report: ReportDocumentDto, sectionKey: string): KeyValueSectionDto {
+function findKeyValueSection(report: ReportDocumentDto, sectionKey: string): KeyValueSectionDto {
     const section = report.sections.find(candidate => candidate.sectionKey === sectionKey)
     if (!section) {
         throw new Error(`[main] Key-value section is missing. sectionKey=${sectionKey}.`)
@@ -217,7 +234,7 @@ function findKeyValueSectionOrThrow(report: ReportDocumentDto, sectionKey: strin
     return section
 }
 
-function findSectionItemValueOrThrow(section: KeyValueSectionDto, itemKey: string): string {
+function findSectionItemValue(section: KeyValueSectionDto, itemKey: string): string {
     const item = (section.items ?? []).find(candidate => (candidate.itemKey ?? '').trim() === itemKey)
     if (!item) {
         throw new Error(
@@ -234,7 +251,7 @@ function findSectionItemValueOrThrow(section: KeyValueSectionDto, itemKey: strin
     return item.value
 }
 
-function buildBacktestProofFactsOrThrow(
+function buildBacktestProofFacts(
     report: ReportDocumentDto,
     locale: string
 ): {
@@ -244,20 +261,65 @@ function buildBacktestProofFactsOrThrow(
     worstMaxDdPct: string
     policiesWithLiquidation: string
 } {
-    const summarySection = findKeyValueSectionOrThrow(report, 'summary_parameters')
-    const fromDateUtc = findSectionItemValueOrThrow(summarySection, 'from_date_utc')
-    const toDateUtc = findSectionItemValueOrThrow(summarySection, 'to_date_utc')
-    const signalDays = findSectionItemValueOrThrow(summarySection, 'signal_days')
-    const bestTotalPnlPct = findSectionItemValueOrThrow(summarySection, 'best_total_pnl_pct')
-    const worstMaxDdPct = findSectionItemValueOrThrow(summarySection, 'worst_max_dd_pct')
-    const policiesWithLiquidation = findSectionItemValueOrThrow(summarySection, 'policies_with_liquidation')
+    const summarySection = findKeyValueSection(report, 'summary_parameters')
+    const fromDateUtc = findSectionItemValue(summarySection, 'from_date_utc')
+    const toDateUtc = findSectionItemValue(summarySection, 'to_date_utc')
+    const signalDays = findSectionItemValue(summarySection, 'signal_days')
+    const bestTotalPnlPct = findSectionItemValue(summarySection, 'best_total_pnl_pct')
+    const worstMaxDdPct = findSectionItemValue(summarySection, 'worst_max_dd_pct')
+    const policiesWithLiquidation = findSectionItemValue(summarySection, 'policies_with_liquidation')
 
     return {
-        dateRange: `${formatLocalizedDateOrThrow(fromDateUtc, locale)} - ${formatLocalizedDateOrThrow(toDateUtc, locale)}`,
-        signalDays: formatIntegerValueOrThrow(signalDays, locale),
-        bestTotalPnlPct: formatPercentValueOrThrow(bestTotalPnlPct, locale),
-        worstMaxDdPct: formatPercentValueOrThrow(worstMaxDdPct, locale),
-        policiesWithLiquidation: formatIntegerValueOrThrow(policiesWithLiquidation, locale)
+        dateRange: `${formatLocalizedDate(fromDateUtc, locale)} - ${formatLocalizedDate(toDateUtc, locale)}`,
+        signalDays: formatIntegerValue(signalDays, locale),
+        bestTotalPnlPct: formatPercentValue(bestTotalPnlPct, locale),
+        worstMaxDdPct: formatPercentValue(worstMaxDdPct, locale),
+        policiesWithLiquidation: formatIntegerValue(policiesWithLiquidation, locale)
+    }
+}
+
+function buildRealForecastJournalProofFacts(
+    dayList: RealForecastJournalDayListItemDto[],
+    locale: string
+): {
+    trackedDays: string
+    finalizedDays: string
+    realizedAccuracy: string | null
+} {
+    const finalizedDays = dayList.filter(item => item.status === 'finalized')
+    const comparableFinalizedDays = finalizedDays.filter(
+        (
+            item
+        ): item is RealForecastJournalDayListItemDto & {
+            directionMatched: boolean
+        } => item.directionMatched !== null
+    )
+
+    const realizedAccuracy =
+        comparableFinalizedDays.length === 0 ?
+            null
+        :   `${formatLocalizedNumber(
+                (comparableFinalizedDays.filter(item => item.directionMatched).length /
+                    comparableFinalizedDays.length) *
+                    100,
+                locale,
+                {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 1
+                }
+            )}%`
+
+    // Для live-журнала пустой список остаётся валидным стартовым состоянием: это отсутствие зафиксированных дней, а не поломка структуры.
+    return {
+        trackedDays: formatLocalizedNumber(dayList.length, locale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }),
+        finalizedDays: formatLocalizedNumber(finalizedDays.length, locale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }),
+        realizedAccuracy
     }
 }
 
@@ -272,7 +334,7 @@ function MainTextCard({ badge, title, bodyKey, renderText }: MainTextCardProps) 
             </Text>
             <LocalizedContentBoundary name={`Main:${bodyKey}`}>
                 {() => {
-                    const paragraphs = readMainStringListOrThrow(i18n, bodyKey)
+                    const paragraphs = readMainStringList(i18n, bodyKey)
 
                     return (
                         <div className={cls.contentCardBody}>
@@ -310,6 +372,27 @@ function MainCardError({ title, description, details }: MainCardErrorProps) {
             <Text className={cls.cardErrorText}>{description}</Text>
             {details && <Text className={cls.cardErrorDetails}>{details}</Text>}
         </div>
+    )
+}
+
+function MainBulletCard({ title, lead, items, renderText }: MainBulletCardProps) {
+    return (
+        <article className={classNames(cls.contentCard, {}, [cls.businessCard])}>
+            <Text type='h3' className={cls.contentCardTitle}>
+                {renderText(title)}
+            </Text>
+            <Text className={cls.contentCardText}>{renderText(lead)}</Text>
+            <BulletList
+                className={cls.businessBulletList}
+                markerTone='primary'
+                itemClassName={cls.businessBulletItem}
+                contentClassName={cls.businessBulletText}
+                items={items.map((item, index) => ({
+                    key: `bullet-card-item-${index}`,
+                    content: renderText(item)
+                }))}
+            />
+        </article>
     )
 }
 
@@ -380,16 +463,12 @@ export default function Main({ className }: MainProps) {
         isLoading: isBacktestProofLoading,
         error: backtestProofError
     } = useBacktestBaselineSummaryReportQuery()
+    const {
+        data: realJournalDayList,
+        isLoading: isRealJournalLoading,
+        error: realJournalError
+    } = useRealForecastJournalDayListQuery()
 
-    const audienceCards = useMemo(
-        () =>
-            AUDIENCE_CARD_IDS.map(cardId => ({
-                key: cardId,
-                title: t(`main.audience.cards.${cardId}.title`),
-                bodyKey: `main.audience.cards.${cardId}.body`
-            })),
-        [t]
-    )
     const workflowSteps = useMemo(
         () =>
             WORKFLOW_STEP_IDS.map((stepId, index) => ({
@@ -403,19 +482,19 @@ export default function Main({ className }: MainProps) {
     const archiveProofState = useMemo(() => {
         if (!archiveIndex) {
             return {
-                data: null as ReturnType<typeof buildPredictionArchiveProofFactsOrThrow> | null,
+                data: null as ReturnType<typeof buildPredictionArchiveProofFacts> | null,
                 error: null as Error | null
             }
         }
 
         try {
             return {
-                data: buildPredictionArchiveProofFactsOrThrow(archiveIndex, locale),
+                data: buildPredictionArchiveProofFacts(archiveIndex, locale),
                 error: null as Error | null
             }
         } catch (error) {
             return {
-                data: null as ReturnType<typeof buildPredictionArchiveProofFactsOrThrow> | null,
+                data: null as ReturnType<typeof buildPredictionArchiveProofFacts> | null,
                 error: error instanceof Error ? error : new Error(String(error))
             }
         }
@@ -423,23 +502,47 @@ export default function Main({ className }: MainProps) {
     const backtestProofState = useMemo(() => {
         if (!backtestSummaryReport) {
             return {
-                data: null as ReturnType<typeof buildBacktestProofFactsOrThrow> | null,
+                data: null as ReturnType<typeof buildBacktestProofFacts> | null,
                 error: null as Error | null
             }
         }
 
         try {
             return {
-                data: buildBacktestProofFactsOrThrow(backtestSummaryReport, locale),
+                data: buildBacktestProofFacts(backtestSummaryReport, locale),
                 error: null as Error | null
             }
         } catch (error) {
             return {
-                data: null as ReturnType<typeof buildBacktestProofFactsOrThrow> | null,
+                data: null as ReturnType<typeof buildBacktestProofFacts> | null,
                 error: error instanceof Error ? error : new Error(String(error))
             }
         }
     }, [backtestSummaryReport, locale])
+    const realJournalProofState = useMemo(() => {
+        if (!realJournalDayList) {
+            return {
+                data: null as ReturnType<typeof buildRealForecastJournalProofFacts> | null,
+                error: null as Error | null
+            }
+        }
+
+        try {
+            return {
+                data: buildRealForecastJournalProofFacts(realJournalDayList, locale),
+                error: null as Error | null
+            }
+        } catch (error) {
+            return {
+                data: null as ReturnType<typeof buildRealForecastJournalProofFacts> | null,
+                error: error instanceof Error ? error : new Error(String(error))
+            }
+        }
+    }, [locale, realJournalDayList])
+    const audienceBusinessQuestions = useMemo(() => readMainStringList(i18n, AUDIENCE_BUSINESS_QUESTIONS_KEY), [i18n])
+    const realJournalBullets = useMemo(() => readMainStringList(i18n, REAL_JOURNAL_BULLETS_KEY), [i18n])
+    const megaTableBullets = useMemo(() => readMainStringList(i18n, MEGA_TABLE_BULLETS_KEY), [i18n])
+    const sandboxBullets = useMemo(() => readMainStringList(i18n, SANDBOX_BULLETS_KEY), [i18n])
     const archiveProofCardError = useMemo(() => {
         if (archiveError) {
             return archiveError
@@ -470,6 +573,21 @@ export default function Main({ className }: MainProps) {
 
         return null
     }, [backtestProofError, backtestProofState.data, backtestProofState.error, isBacktestProofLoading])
+    const realJournalCardError = useMemo(() => {
+        if (realJournalError) {
+            return realJournalError
+        }
+
+        if (realJournalProofState.error) {
+            return realJournalProofState.error
+        }
+
+        if (!isRealJournalLoading && !realJournalProofState.data) {
+            return new Error('[main] Real forecast journal proof data is missing after query resolution.')
+        }
+
+        return null
+    }, [isRealJournalLoading, realJournalError, realJournalProofState.data, realJournalProofState.error])
     const resolveMainExplicitTermLink = useCallback(
         (termId: string) => {
             const resolveRouteLink = (routeId: AppRoute) => ({
@@ -562,7 +680,7 @@ export default function Main({ className }: MainProps) {
                     </Text>
                     <LocalizedContentBoundary name='MainHeroSubtitle'>
                         {() => {
-                            const heroSubtitleParagraphs = readMainStringListOrThrow(i18n, HERO_SUBTITLE_PARAGRAPHS_KEY)
+                            const heroSubtitleParagraphs = readMainStringList(i18n, HERO_SUBTITLE_PARAGRAPHS_KEY)
 
                             return (
                                 <div className={cls.heroSubtitle}>
@@ -599,11 +717,12 @@ export default function Main({ className }: MainProps) {
                     </Text>
                     <LocalizedContentBoundary name='MainHeroBullets'>
                         {() => {
-                            const heroBullets = readMainStringListOrThrow(i18n, HERO_BULLETS_KEY)
+                            const heroBullets = readMainStringList(i18n, HERO_BULLETS_KEY)
 
                             return (
                                 <BulletList
                                     className={cls.heroBulletList}
+                                    markerTone='primary'
                                     itemClassName={cls.heroBulletItem}
                                     contentClassName={cls.heroBulletText}
                                     items={heroBullets.map((bullet, index) => ({
@@ -617,6 +736,32 @@ export default function Main({ className }: MainProps) {
                 </div>
             </section>
 
+            <SectionErrorBoundary name='MainDemoConfiguration'>
+                <section className={cls.sectionSurface}>
+                    <div className={cls.demoHeader}>
+                        <MainSectionHeader
+                            eyebrow={t('main.demo.eyebrow')}
+                            title={t('main.demo.title')}
+                            subtitle={t('main.demo.subtitle')}
+                            renderText={renderMainRichText}
+                        />
+                        <Link
+                            to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}
+                            className={cls.cardLink}
+                            onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}
+                            onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}>
+                            {renderTermTooltipRichText(t('main.demo.openMega'))}
+                        </Link>
+                    </div>
+
+                    {isBestPolicyReady ?
+                        <Suspense fallback={<Text className={cls.cardStatus}>{t('main.demo.loading')}</Text>}>
+                            <MainBestPolicySection />
+                        </Suspense>
+                    :   <Text className={cls.cardStatus}>{t('main.demo.loading')}</Text>}
+                </section>
+            </SectionErrorBoundary>
+
             <section className={cls.sectionSurface}>
                 <MainSectionHeader
                     eyebrow={t('main.audience.eyebrow')}
@@ -624,16 +769,12 @@ export default function Main({ className }: MainProps) {
                     subtitle={t('main.audience.subtitle')}
                     renderText={renderMainRichText}
                 />
-                <div className={cls.audienceGrid}>
-                    {audienceCards.map(card => (
-                        <MainTextCard
-                            key={card.key}
-                            title={card.title}
-                            bodyKey={card.bodyKey}
-                            renderText={renderMainRichText}
-                        />
-                    ))}
-                </div>
+                <MainBulletCard
+                    title={t('main.audience.businessTitle')}
+                    lead={t('main.audience.businessLead')}
+                    items={audienceBusinessQuestions}
+                    renderText={renderMainRichText}
+                />
             </section>
 
             <section className={cls.sectionSurface}>
@@ -782,6 +923,125 @@ export default function Main({ className }: MainProps) {
 
             <section className={cls.sectionSurface}>
                 <MainSectionHeader
+                    eyebrow={t('main.realJournal.eyebrow')}
+                    title={t('main.realJournal.title')}
+                    subtitle={t('main.realJournal.subtitle')}
+                    renderText={renderMainRichText}
+                />
+                <article className={classNames(cls.proofCard, {}, [cls.businessCard])}>
+                    <Text type='h3' className={cls.cardTitle}>
+                        {renderMainRichText(t('main.realJournal.cardTitle'))}
+                    </Text>
+                    <Text className={cls.cardText}>{renderMainRichText(t('main.realJournal.description'))}</Text>
+                    <BulletList
+                        className={cls.businessBulletList}
+                        markerTone='primary'
+                        itemClassName={cls.businessBulletItem}
+                        contentClassName={cls.businessBulletText}
+                        items={realJournalBullets.map((bullet, index) => ({
+                            key: `real-journal-bullet-${index}`,
+                            content: renderMainRichText(bullet)
+                        }))}
+                    />
+
+                    {isRealJournalLoading ?
+                        <Text className={cls.cardStatus}>{t('main.realJournal.loading')}</Text>
+                    : realJournalCardError ?
+                        <MainCardError
+                            title={t('main.realJournal.errorTitle')}
+                            description={t('main.realJournal.errorDescription')}
+                            details={realJournalCardError.message}
+                        />
+                    : realJournalProofState.data ?
+                        <MainProofFacts
+                            renderText={renderMainRichText}
+                            items={[
+                                {
+                                    label: t('main.realJournal.facts.trackedDays'),
+                                    value: realJournalProofState.data.trackedDays
+                                },
+                                {
+                                    label: t('main.realJournal.facts.finalizedDays'),
+                                    value: realJournalProofState.data.finalizedDays
+                                },
+                                {
+                                    label: t('main.realJournal.facts.realizedAccuracy'),
+                                    value:
+                                        realJournalProofState.data.realizedAccuracy ??
+                                        t('main.realJournal.facts.pendingAccuracy')
+                                }
+                            ]}
+                        />
+                    :   null}
+
+                    <div className={cls.cardLinkRow}>
+                        <Link
+                            to={ROUTE_PATH[AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]}
+                            className={cls.cardLink}
+                            onMouseEnter={() => handleRouteWarmup(AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL)}
+                            onFocus={() => handleRouteWarmup(AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL)}>
+                            {renderTermTooltipRichText(t('main.realJournal.journalLinkLabel'))}
+                        </Link>
+                        <Link
+                            to={ROUTE_PATH[AppRoute.MODELS_STATS]}
+                            className={cls.cardLink}
+                            onMouseEnter={() => handleRouteWarmup(AppRoute.MODELS_STATS)}
+                            onFocus={() => handleRouteWarmup(AppRoute.MODELS_STATS)}>
+                            {renderTermTooltipRichText(t('main.realJournal.modelStatsLinkLabel'))}
+                        </Link>
+                    </div>
+                </article>
+            </section>
+
+            <section className={cls.sectionSurface}>
+                <MainSectionHeader
+                    eyebrow={t('main.megaTable.eyebrow')}
+                    title={t('main.megaTable.title')}
+                    subtitle={t('main.megaTable.subtitle')}
+                    renderText={renderMainRichText}
+                />
+                <article className={cls.proofCard}>
+                    <Text type='h3' className={cls.cardTitle}>
+                        {renderMainRichText(t('main.megaTable.cardTitle'))}
+                    </Text>
+                    <Text className={cls.cardText}>{renderMainRichText(t('main.megaTable.description'))}</Text>
+                    <BulletList
+                        className={cls.businessBulletList}
+                        markerTone='primary'
+                        itemClassName={cls.businessBulletItem}
+                        contentClassName={cls.businessBulletText}
+                        items={megaTableBullets.map((bullet, index) => ({
+                            key: `mega-table-bullet-${index}`,
+                            content: renderMainRichText(bullet)
+                        }))}
+                    />
+                    <Link
+                        to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}
+                        className={cls.cardLink}
+                        onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}
+                        onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}>
+                        {renderTermTooltipRichText(t('main.megaTable.linkLabel'))}
+                    </Link>
+                </article>
+            </section>
+
+            <section className={cls.sectionSurface}>
+                <MainSectionHeader
+                    eyebrow={t('main.sandbox.eyebrow')}
+                    title={t('main.sandbox.title')}
+                    subtitle={t('main.sandbox.subtitle')}
+                    renderText={renderMainRichText}
+                />
+                <MainBulletCard
+                    title={t('main.sandbox.cardTitle')}
+                    lead={t('main.sandbox.description')}
+                    items={sandboxBullets}
+                    renderText={renderMainRichText}
+                />
+            </section>
+
+            <section className={cls.sectionSurface}>
+                <MainSectionHeader
                     eyebrow={t('main.tour.eyebrow')}
                     title={t('main.tour.title')}
                     subtitle={t('main.tour.subtitle')}
@@ -828,32 +1088,6 @@ export default function Main({ className }: MainProps) {
                     ))}
                 </div>
             </section>
-
-            <SectionErrorBoundary name='MainDemoConfiguration'>
-                <section className={cls.sectionSurface}>
-                    <div className={cls.demoHeader}>
-                        <MainSectionHeader
-                            eyebrow={t('main.demo.eyebrow')}
-                            title={t('main.demo.title')}
-                            subtitle={t('main.demo.subtitle')}
-                            renderText={renderMainRichText}
-                        />
-                        <Link
-                            to={ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA]}
-                            className={cls.cardLink}
-                            onMouseEnter={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}
-                            onFocus={() => handleRouteWarmup(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)}>
-                            {renderTermTooltipRichText(t('main.demo.openMega'))}
-                        </Link>
-                    </div>
-
-                    {isBestPolicyReady ?
-                        <Suspense fallback={<Text className={cls.cardStatus}>{t('main.demo.loading')}</Text>}>
-                            <MainBestPolicySection />
-                        </Suspense>
-                    :   <Text className={cls.cardStatus}>{t('main.demo.loading')}</Text>}
-                </section>
-            </SectionErrorBoundary>
         </div>
     )
 }

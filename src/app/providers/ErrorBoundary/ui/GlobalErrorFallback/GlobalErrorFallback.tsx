@@ -3,6 +3,7 @@ import type { ErrorBoundaryFallbackProps } from '../../ErrorBoundary'
 import cls from './GlobalErrorFallback.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
+import { logError } from '@/shared/lib/logging/logError'
 
 interface GlobalErrorFallbackProps extends ErrorBoundaryFallbackProps {
     className?: string
@@ -25,8 +26,12 @@ export default function GlobalErrorFallback({ error, resetErrorBoundary, classNa
     }
 
     const handleReportClick = () => {
-        // eslint-disable-next-line no-console
-        console.info('[ErrorReport]', { errorId, message: error?.message })
+        logError(error ?? new Error('Unknown global error report.'), undefined, {
+            source: 'global-error-fallback-report',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { errorId, reportedFromFallback: true }
+        })
     }
 
     return (
