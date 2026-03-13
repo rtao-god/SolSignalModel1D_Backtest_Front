@@ -2,6 +2,11 @@ import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
 import DatePicker from './DatePicker'
 
+/*
+	Интеграционные тесты фиксируют главный пользовательский контракт:
+	picker не теряет контекст месяца при повторном открытии и корректно очищает перевёрнутую границу диапазона.
+*/
+
 describe('DatePicker', () => {
     test('keeps a valid end date, clears an invalid one and reopens on the same month', () => {
         const { container } = render(<DatePicker />, {
@@ -27,6 +32,7 @@ describe('DatePicker', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Select start date' }))
 
         monthSections = container.querySelectorAll('section[aria-label]')
+        // Повторное открытие должно вернуть пользователя в тот же календарный контекст, где он продолжает править диапазон.
         expect(monthSections[0]).toHaveAttribute('aria-label', 'November 2024')
 
         fireEvent.click(screen.getByRole('button', { name: '2024-11-25' }))
@@ -35,6 +41,7 @@ describe('DatePicker', () => {
         expect(screen.getByRole('button', { name: 'Select end date' })).toHaveTextContent('Date to')
 
         monthSections = container.querySelectorAll('section[aria-label]')
+        // После очистки перевёрнутой границы календарь остаётся в том же месяце, чтобы второй клик не требовал новой навигации.
         expect(monthSections[0]).toHaveAttribute('aria-label', 'November 2024')
 
         fireEvent.click(screen.getByRole('button', { name: '2024-11-28' }))

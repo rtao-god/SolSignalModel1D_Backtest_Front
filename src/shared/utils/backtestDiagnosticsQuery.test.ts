@@ -4,14 +4,18 @@ import {
     DEFAULT_DIAGNOSTICS_SL_MODE,
     DEFAULT_DIAGNOSTICS_TP_SL_MODE,
     DEFAULT_DIAGNOSTICS_ZONAL_MODE,
-    resolveBacktestDiagnosticsSearchSelectionOrThrow
+    resolveBacktestDiagnosticsSearchSelection
 } from './backtestDiagnosticsQuery'
 
 describe('backtestDiagnosticsQuery', () => {
+    test('keeps daily bucket as the shared diagnostics default', () => {
+        expect(DEFAULT_DIAGNOSTICS_BUCKET_MODE).toBe('daily')
+    })
+
     test('uses diagnostics defaults when search is empty', () => {
         const searchParams = new URLSearchParams('')
 
-        expect(resolveBacktestDiagnosticsSearchSelectionOrThrow(searchParams)).toEqual({
+        expect(resolveBacktestDiagnosticsSearchSelection(searchParams)).toEqual({
             bucket: DEFAULT_DIAGNOSTICS_BUCKET_MODE,
             slMode: DEFAULT_DIAGNOSTICS_SL_MODE,
             tpSlMode: DEFAULT_DIAGNOSTICS_TP_SL_MODE,

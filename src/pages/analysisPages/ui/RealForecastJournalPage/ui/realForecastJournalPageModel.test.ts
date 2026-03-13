@@ -5,7 +5,7 @@ import type {
     RealForecastJournalSnapshotDto
 } from '@/shared/types/realForecastJournal.types'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { buildCombinedPolicyRows, buildConfidenceRiskComparisonOrThrow } from './realForecastJournalPageModel'
+import { buildCombinedPolicyRows, buildConfidenceRiskComparison } from './realForecastJournalPageModel'
 
 function buildPolicyRow(overrides?: Partial<RealForecastJournalPolicyRowDto>): RealForecastJournalPolicyRowDto {
     return {
@@ -44,11 +44,11 @@ function buildPolicyRow(overrides?: Partial<RealForecastJournalPolicyRowDto>): R
 
 function buildSnapshot(policyRows: RealForecastJournalPolicyRowDto[]): RealForecastJournalSnapshotDto {
     return {
-        generatedAtUtc: '2026-03-10T12:00:00.000Z',
+        generatedAtUtc: '2026-03-10T13:30:00.000Z',
         predictionDateUtc: '2026-03-10',
-        asOfUtc: '2026-03-10T12:00:00.000Z',
-        dataCutoffUtc: '2026-03-10T12:00:00.000Z',
-        entryUtc: '2026-03-10T12:00:00.000Z',
+        asOfUtc: '2026-03-10T13:30:00.000Z',
+        dataCutoffUtc: '2026-03-10T13:30:00.000Z',
+        entryUtc: '2026-03-10T13:30:00.000Z',
         exitUtc: '2026-03-10T20:00:00.000Z',
         predLabel: 2,
         predLabelDisplay: 'UP',
@@ -71,33 +71,33 @@ function buildReport(sections: ReportDocumentDto['sections'] = []): ReportDocume
         id: 'report',
         kind: 'current_prediction_live_full',
         title: 'Report',
-        generatedAtUtc: '2026-03-10T12:00:00.000Z',
+        generatedAtUtc: '2026-03-10T13:30:00.000Z',
         sections
     }
 }
 
 describe('realForecastJournalPageModel', () => {
-    test('buildCombinedPolicyRows keeps immutable morning rows and adds finalize-only rows explicitly', () => {
+    test('buildCombinedPolicyRows keeps immutable session-open rows and adds finalize-only rows explicitly', () => {
         const record: RealForecastJournalDayRecordDto = {
             id: 'real-forecast-2026-03-10',
             trainingScope: 'full',
             predictionDateUtc: '2026-03-10',
-            capturedAtUtc: '2026-03-10T12:00:00.000Z',
-            entryUtc: '2026-03-10T12:00:00.000Z',
+            capturedAtUtc: '2026-03-10T13:30:00.000Z',
+            entryUtc: '2026-03-10T13:30:00.000Z',
             exitUtc: '2026-03-10T20:00:00.000Z',
             forecastHash: 'ABC',
             forecastSnapshot: buildSnapshot([buildPolicyRow()]),
             forecastReport: buildReport(),
-            morningIndicators: {
-                phase: 'morning',
-                anchorUtc: '2026-03-10T12:00:00.000Z',
+            sessionOpenIndicators: {
+                phase: 'session_open',
+                anchorUtc: '2026-03-10T13:30:00.000Z',
                 featureBarOpenUtc: '2026-03-10T06:00:00.000Z',
                 featureBarCloseUtc: '2026-03-10T12:00:00.000Z',
                 indicatorDayUtc: '2026-03-09',
                 items: []
             },
             finalize: {
-                finalizedAtUtc: '2026-03-10T20:05:00.000Z',
+                finalizedAtUtc: '2026-03-10T20:15:00.000Z',
                 forecastHash: 'ABC',
                 snapshot: buildSnapshot([
                     buildPolicyRow({
@@ -129,29 +129,29 @@ describe('realForecastJournalPageModel', () => {
 
         expect(rows).toHaveLength(2)
         expect(rows.find(row => row.policyName === 'const_2x_cross')).toMatchObject({
-            publishedInMorningSnapshot: true,
+            publishedInSessionOpenSnapshot: true,
             finalizedAfterClose: true,
             actualExitReason: 'EndOfDay'
         })
         expect(rows.find(row => row.policyName === 'intraday_policy')).toMatchObject({
-            publishedInMorningSnapshot: false,
+            publishedInSessionOpenSnapshot: false,
             finalizedAfterClose: true,
             actualExitReason: 'TakeProfit'
         })
     })
 
-    test('buildConfidenceRiskComparisonOrThrow maps live days into historical confidence buckets', () => {
-        const comparison = buildConfidenceRiskComparisonOrThrow(
+    test('buildConfidenceRiskComparison maps live days into historical confidence buckets', () => {
+        const comparison = buildConfidenceRiskComparison(
             [
                 {
                     id: 'a',
                     predictionDateUtc: '2026-03-10',
                     status: 'finalized',
                     trainingScope: 'full',
-                    capturedAtUtc: '2026-03-10T12:00:00.000Z',
-                    entryUtc: '2026-03-10T12:00:00.000Z',
+                    capturedAtUtc: '2026-03-10T13:30:00.000Z',
+                    entryUtc: '2026-03-10T13:30:00.000Z',
                     exitUtc: '2026-03-10T20:00:00.000Z',
-                    finalizedAtUtc: '2026-03-10T20:05:00.000Z',
+                    finalizedAtUtc: '2026-03-10T20:15:00.000Z',
                     predLabelDisplay: 'UP',
                     microDisplay: 'not used',
                     totalUpProbability: 0.72,
@@ -167,10 +167,10 @@ describe('realForecastJournalPageModel', () => {
                     predictionDateUtc: '2026-03-11',
                     status: 'finalized',
                     trainingScope: 'full',
-                    capturedAtUtc: '2026-03-11T12:00:00.000Z',
-                    entryUtc: '2026-03-11T12:00:00.000Z',
+                    capturedAtUtc: '2026-03-11T13:30:00.000Z',
+                    entryUtc: '2026-03-11T13:30:00.000Z',
                     exitUtc: '2026-03-11T20:00:00.000Z',
-                    finalizedAtUtc: '2026-03-11T20:05:00.000Z',
+                    finalizedAtUtc: '2026-03-11T20:15:00.000Z',
                     predLabelDisplay: 'UP',
                     microDisplay: 'not used',
                     totalUpProbability: 0.83,

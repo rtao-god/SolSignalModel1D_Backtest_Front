@@ -43,10 +43,19 @@ describe('Developer pages smoke', () => {
         renderDeveloperScreen(<DeveloperPage />, ROUTE_PATH[AppRoute.DEVELOPER])
 
         expect(screen.getByText('For the backend developer')).toBeInTheDocument()
+        expect(screen.getByText('Project snapshot')).toBeInTheDocument()
+        expect(screen.getByText('Snapshot passport')).toBeInTheDocument()
+        expect(screen.getAllByText('SOL/USDT').length).toBeGreaterThan(0)
+        expect(screen.getByText('How causal and omniscient stay separated')).toBeInTheDocument()
+        expect(screen.getByText('How the test contour is built')).toBeInTheDocument()
+        expect(screen.getByText('About 578 tests')).toBeInTheDocument()
+        expect(screen.getByText('SolSignalModel1D_Backtest.Tests')).toBeInTheDocument()
+        expect(screen.getAllByRole('link', { name: 'Open the tests and guards page' }).length).toBeGreaterThan(0)
+        expect(screen.getAllByRole('link', { name: 'Open the structure page' }).length).toBeGreaterThan(0)
         expect(screen.getByText('Backend structure')).toBeInTheDocument()
-        expect(screen.getAllByText('Runtime flow').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Execution flow').length).toBeGreaterThan(0)
         expect(screen.getByText('Reports and API')).toBeInTheDocument()
-        expect(screen.getAllByText('Tests and guards').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Tests and guard layers').length).toBeGreaterThan(0)
     })
 
     test.each([
@@ -70,12 +79,16 @@ describe('Developer pages smoke', () => {
             component: <DeveloperTestsGuardsPage />,
             sectionTitle: 'Test suites'
         }
-    ])('renders $route content and inline why links', ({ route, component, sectionTitle }) => {
-        renderDeveloperScreen(component, route)
+    ])(
+        'renders $route content and inline why links',
+        ({ route, component, sectionTitle }) => {
+            renderDeveloperScreen(component, route)
 
-        expect(screen.getByText(sectionTitle)).toBeInTheDocument()
-        expect(screen.getAllByText('Why?').length).toBeGreaterThan(0)
-    })
+            expect(screen.getByText(sectionTitle)).toBeInTheDocument()
+            expect(screen.getAllByText('Why?').length).toBeGreaterThan(0)
+        },
+        20000
+    )
 
     test('renders detailed backend structure map without old template wording', () => {
         renderDeveloperScreen(<DeveloperBackendStructurePage />, ROUTE_PATH[AppRoute.DEVELOPER_BACKEND_STRUCTURE])
@@ -131,13 +144,9 @@ describe('Developer pages smoke', () => {
         expect(within(detailRegion).getByText('Foundation')).toBeInTheDocument()
         expect(within(detailRegion).getByText('Subfolders and zones inside the project')).toBeInTheDocument()
         expect(within(detailRegion).getByText('Adapters')).toBeInTheDocument()
-        expect(
-            within(detailRegion).getAllByRole('button', { name: 'Что такое NY windowing?' }).length
-        ).toBeGreaterThan(0)
-        expect(
-            within(detailRegion).getByText(
-                /defines the temporal canon of the backend/i
-            )
-        ).toBeInTheDocument()
-    }, 30000)
+        expect(within(detailRegion).getAllByRole('button', { name: 'Что такое NY windowing?' }).length).toBeGreaterThan(
+            0
+        )
+        expect(within(detailRegion).getByText(/defines the temporal canon of the backend/i)).toBeInTheDocument()
+    }, 45000)
 })

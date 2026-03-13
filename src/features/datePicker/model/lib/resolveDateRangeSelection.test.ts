@@ -2,7 +2,13 @@ import { describe, expect, test } from 'vitest'
 import { parseDateKey } from '@/shared/consts/date'
 import resolveDateRangeSelection from './resolveDateRangeSelection'
 
-function getDateOrThrow(value: string): Date {
+/*
+	Тесты фиксируют owner-контракт выбора диапазона:
+	перевёрнутый диапазон очищает противоположную границу,
+	а валидная пара дат завершает сценарий и закрывает picker.
+*/
+
+function getDate(value: string): Date {
     const parsedDate = parseDateKey(value)
     if (!parsedDate) {
         throw new Error(`Failed to parse date for test: ${value}`)
@@ -12,9 +18,10 @@ function getDateOrThrow(value: string): Date {
 }
 
 function createUiDate(value: string) {
+    // Тестовые сценарии используют тот же YYYY-MM-DD ключ, что и production store/selectors.
     return {
         value,
-        dateObj: getDateOrThrow(value)
+        dateObj: getDate(value)
     }
 }
 
@@ -24,7 +31,7 @@ describe('resolveDateRangeSelection', () => {
             activeField: 'from',
             departureDate: createUiDate('2024-11-10'),
             arrivalDate: createUiDate('2024-11-12'),
-            selectedDate: getDateOrThrow('2024-11-15')
+            selectedDate: getDate('2024-11-15')
         })
 
         expect(result.nextDepartureDate?.value).toBe('2024-11-15')
@@ -38,7 +45,7 @@ describe('resolveDateRangeSelection', () => {
             activeField: 'to',
             departureDate: createUiDate('2024-11-20'),
             arrivalDate: createUiDate('2024-11-25'),
-            selectedDate: getDateOrThrow('2024-11-12')
+            selectedDate: getDate('2024-11-12')
         })
 
         expect(result.nextDepartureDate).toBeNull()
@@ -52,7 +59,7 @@ describe('resolveDateRangeSelection', () => {
             activeField: 'to',
             departureDate: createUiDate('2024-11-10'),
             arrivalDate: null,
-            selectedDate: getDateOrThrow('2024-11-12')
+            selectedDate: getDate('2024-11-12')
         })
 
         expect(result.nextDepartureDate?.value).toBe('2024-11-10')

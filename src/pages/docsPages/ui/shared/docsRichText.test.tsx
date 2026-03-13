@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
-import { buildDocsGlossaryOrThrow, renderDocsRichText } from './docsRichText'
+import { buildDocsGlossary, renderDocsRichText } from './docsRichText'
 
-const GLOSSARY = buildDocsGlossaryOrThrow([
+const GLOSSARY = buildDocsGlossary([
     [
         {
             id: 'truth-overview-causal',
@@ -18,19 +18,34 @@ const GLOSSARY = buildDocsGlossaryOrThrow([
             id: 'branches-base',
             term: 'BASE',
             description: 'Базовый режим исполнения.'
+        },
+        {
+            id: 'shared-policy',
+            term: 'Policy',
+            sharedTermId: 'policy'
         }
     ]
 ])
 
 describe('renderDocsRichText', () => {
     test('keeps tooltip for explicit term at the start of a regular sentence', () => {
-        render(<div>{renderDocsRichText('[[truth-overview-causal|Causal snapshot]] отрезает будущие поля.', { glossary: GLOSSARY })}</div>)
+        render(
+            <div>
+                {renderDocsRichText('[[truth-overview-causal|Causal snapshot]] отрезает будущие поля.', {
+                    glossary: GLOSSARY
+                })}
+            </div>
+        )
 
         expect(screen.getByRole('button', { name: 'Что такое Causal snapshot?' })).toBeInTheDocument()
     })
 
     test('suppresses tooltip for explicit self-definition lead', () => {
-        render(<div data-testid='definition'>{renderDocsRichText('[[branches-base|BASE]] — базовый режим исполнения.', { glossary: GLOSSARY })}</div>)
+        render(
+            <div data-testid='definition'>
+                {renderDocsRichText('[[branches-base|BASE]] — базовый режим исполнения.', { glossary: GLOSSARY })}
+            </div>
+        )
 
         expect(screen.queryByRole('button', { name: 'Что такое BASE?' })).not.toBeInTheDocument()
         expect(screen.getByTestId('definition')).toHaveTextContent('BASE — базовый режим исполнения.')
@@ -53,5 +68,17 @@ describe('renderDocsRichText', () => {
         )
 
         expect(screen.queryByRole('button', { name: 'Что такое Causal snapshot?' })).not.toBeInTheDocument()
+    })
+
+    test('renders shared glossary term through canonical tooltip registry', () => {
+        render(
+            <div>
+                {renderDocsRichText('[[shared-policy|Policy]] задаёт логику входа.', {
+                    glossary: GLOSSARY
+                })}
+            </div>
+        )
+
+        expect(screen.getByRole('button', { name: 'Что такое Policy?' })).toBeInTheDocument()
     })
 })

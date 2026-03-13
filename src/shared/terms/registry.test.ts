@@ -1,9 +1,15 @@
 import { COMMON_TERM_TOOLTIP_REGISTRY } from './common'
-import { resolveSharedTermSelfAliasesOrThrow } from './registry'
+import { validateCommonTooltipDescription } from './common/tooltipQuality'
+import { resolveSharedTermSelfAliases } from './registry'
 import { buildSafeTermTooltipRegistry } from '@/shared/ui/TermTooltip/lib/termTooltipRegistryIntegrity'
+import { resolveTermTooltipDescriptionContent } from '@/shared/ui/TermTooltip/lib/resolveTermTooltipDescriptionContent'
 import type { TermTooltipRegistryEntry } from '@/shared/ui/TermTooltip/lib/termTooltipMatcher'
 
-function buildTestAliases(title: string | undefined, aliases: string[] | undefined, autolink: boolean | undefined): string[] {
+function buildTestAliases(
+    title: string | undefined,
+    aliases: string[] | undefined,
+    autolink: boolean | undefined
+): string[] {
     if (autolink === false) {
         return []
     }
@@ -24,6 +30,15 @@ function buildCommonRegistryEntriesForValidation(): TermTooltipRegistryEntry[] {
     }))
 }
 
+function resolveTooltipText(description: string | (() => string)): string {
+    const resolvedDescription = resolveTermTooltipDescriptionContent(description)
+    if (typeof resolvedDescription !== 'string') {
+        throw new Error('Shared tooltip registry test expects plain string descriptions.')
+    }
+
+    return resolvedDescription
+}
+
 describe('shared term registry', () => {
     test('contains unique ids', () => {
         const ids = COMMON_TERM_TOOLTIP_REGISTRY.map(term => term.id)
@@ -36,6 +51,15 @@ describe('shared term registry', () => {
     })
 
     test('policy exposes canonical self aliases', () => {
-        expect(resolveSharedTermSelfAliasesOrThrow('policy')).toEqual(expect.arrayContaining(['Policy']))
+        expect(resolveSharedTermSelfAliases('policy')).toEqual(expect.arrayContaining(['Policy']))
+    })
+
+    test('keeps canonical common tooltip descriptions full and structured', () => {
+        const issues = COMMON_TERM_TOOLTIP_REGISTRY.flatMap(term => {
+            const description = resolveTooltipText(term.description as string | (() => string))
+            return validateCommonTooltipDescription(description).map(issue => `${term.id}: ${issue.message}`)
+        })
+
+        expect(issues).toEqual([])
     })
 })

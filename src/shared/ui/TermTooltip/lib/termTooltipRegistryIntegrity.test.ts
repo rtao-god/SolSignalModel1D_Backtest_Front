@@ -1,11 +1,7 @@
 import type { TermTooltipRegistryEntry } from './termTooltipMatcher'
 import { buildSafeTermTooltipRegistry, formatTermTooltipRegistryIssue } from './termTooltipRegistryIntegrity'
 
-function createRegistryEntry(
-    id: string,
-    aliases: string[],
-    title?: string
-): TermTooltipRegistryEntry {
+function createRegistryEntry(id: string, aliases: string[], title?: string): TermTooltipRegistryEntry {
     return {
         id,
         title,

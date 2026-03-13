@@ -11,6 +11,16 @@ function createRegexRule(id: string, title: string, pattern: RegExp): TermToolti
     }
 }
 
+function createAliasRule(id: string, title: string, aliases: string[], priority = 100): TermTooltipRegistryEntry {
+    return {
+        id,
+        title,
+        description: `${id} description`,
+        aliases,
+        priority
+    }
+}
+
 describe('term tooltip matcher', () => {
     test('does not match regex terms inside camel case token without separators', () => {
         const registry = [
@@ -55,6 +65,34 @@ describe('term tooltip matcher', () => {
         expect(matches.map(match => ({ id: match.rule.id, value: match.value }))).toEqual([
             { id: 'liquidation', value: 'ликвидационная' },
             { id: 'margin', value: 'залогу' }
+        ])
+    })
+
+    test('prefers whole Policy Branch Mega term over nested Policy and Branch terms', () => {
+        const registry = [
+            createAliasRule(
+                'policy-branch-mega',
+                'Policy Branch Mega',
+                ['Policy Branch Mega', 'PolicyBranchMega'],
+                300
+            ),
+            createRegexRule('policy', 'Policy', /\bPolicy\b/i),
+            createRegexRule('branch', 'Branch', /\bBranch\b/i)
+        ]
+
+        const spacedMatches = matchTermTooltips(
+            'Policy Branch Mega показывает полную историю.',
+            registry,
+            new Set<string>(),
+            new Set<string>()
+        )
+        const gluedMatches = matchTermTooltips('PolicyBranchMega', registry, new Set<string>(), new Set<string>())
+
+        expect(spacedMatches.map(match => ({ id: match.rule.id, value: match.value }))).toEqual([
+            { id: 'policy-branch-mega', value: 'Policy Branch Mega' }
+        ])
+        expect(gluedMatches.map(match => ({ id: match.rule.id, value: match.value }))).toEqual([
+            { id: 'policy-branch-mega', value: 'PolicyBranchMega' }
         ])
     })
 })
