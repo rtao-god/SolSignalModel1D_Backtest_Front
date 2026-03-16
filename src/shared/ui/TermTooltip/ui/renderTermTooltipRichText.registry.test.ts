@@ -50,10 +50,12 @@ const REPORT_OWNER_TOOLTIP_KEYS = [
     'featureImportance',
     'predictionAggregation',
     'allHistory',
+    'recentTailHistory',
     'baselineBacktest',
     'experimentalBacktest',
     'modelConfidence',
-    'liquidationBuffer'
+    'liquidationBuffer',
+    'liqUnreachableBucket'
 ] as const
 const DOCS_OWNER_TERM_IDS = [
     'causal-term',
@@ -207,6 +209,10 @@ describe('renderTermTooltipRichText registry coverage', () => {
             { text: 'Current prediction', expectedRuleId: 'landing-current-prediction' },
             { text: 'Prediction history', expectedRuleId: 'landing-prediction-history' },
             { text: 'Backtest summary', expectedRuleId: 'landing-backtest-summary' },
+            { text: 'Полная история', expectedRuleId: 'landing-all-history' },
+            { text: 'Full history', expectedRuleId: 'landing-all-history' },
+            { text: 'Хвост истории', expectedRuleId: 'landing-recent-tail-history' },
+            { text: 'Recent tail', expectedRuleId: 'landing-recent-tail-history' },
             { text: 'Policy Branch Mega', expectedRuleId: 'landing-policy-branch-mega' },
             { text: 'Path-based labeling', expectedRuleId: 'landing-path-labeling' },
             { text: 'Blame split', expectedRuleId: 'landing-blame-split' },

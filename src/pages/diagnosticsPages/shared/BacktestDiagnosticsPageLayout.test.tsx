@@ -42,11 +42,12 @@ describe('BacktestDiagnosticsPageLayout', () => {
 
         expect(termsBlock).not.toBeNull()
         expect(termsBlock).toHaveTextContent('Policy — имя набора торговых правил')
-        expect(termsBlock).toHaveTextContent('две строки с разными Policy нельзя сравнивать только по названию')
+        expect(termsBlock).toHaveTextContent('две конфигурации с разными Policy нельзя сравнивать только по названию')
         expect(termsBlock).toHaveTextContent('SL Mode — переключатель механики выхода из сделки.')
         expect(termsBlock).toHaveTextContent('AccRuin — метрика руины рабочего капитала бакета.')
         expect(termsBlock).toHaveTextContent('Specificity — доля хороших base-trade дней')
-        expect(termsBlock).toHaveTextContent('Bucket — итоговый blame-split класс исхода.')
+        expect(termsBlock).toHaveTextContent('Bucket — независимый контур симуляции')
+        expect(termsBlock).toHaveTextContent('Policy задаёт правила входа и риска, Branch задаёт сценарий направления')
         expect(screen.queryByText(/\[\[/)).not.toBeInTheDocument()
     })
 
@@ -87,8 +88,6 @@ describe('BacktestDiagnosticsPageLayout', () => {
         expect(screen.getByText('SL-режим')).toBeInTheDocument()
         expect(screen.getByText('Бакет сделок')).toBeInTheDocument()
         expect(screen.getByText('Зональный риск')).toBeInTheDocument()
-        expect(
-            screen.getByText('Топ-20 сделок по доходности сделки, % (лучшие, все SL-режимы, все бакеты вместе)')
-        ).toBeInTheDocument()
+        expect(screen.getByText('Лучшие сделки по доходности, %')).toBeInTheDocument()
     })
 })

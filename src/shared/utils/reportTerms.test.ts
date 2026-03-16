@@ -1,4 +1,4 @@
-import { buildReportTermsFromSections } from './reportTerms'
+import { buildReportTermsFromReferences, buildReportTermsFromSections } from './reportTerms'
 
 describe('buildReportTermsFromSections', () => {
     test('merges diagnostics alias columns into a single glossary term', () => {
@@ -38,5 +38,31 @@ describe('buildReportTermsFromSections', () => {
         })
 
         expect(terms.map(term => term.key)).toEqual(['Policy', 'Branch'])
+    })
+
+    test('builds canonical custom terms with merged self aliases', () => {
+        const terms = buildReportTermsFromReferences({
+            references: [
+                {
+                    key: 'Policy',
+                    title: 'Policy',
+                    selfAliases: ['Политика']
+                }
+            ],
+            contextTag: 'report-terms-test',
+            resolveDescription: () => 'Описание policy.',
+            resolveTooltip: () => 'Tooltip policy.',
+            resolveSelfAliases: () => ['Policy']
+        })
+
+        expect(terms).toEqual([
+            {
+                key: 'Policy',
+                title: 'Policy',
+                description: 'Описание policy.',
+                tooltip: 'Tooltip policy.',
+                selfAliases: ['Политика', 'Policy']
+            }
+        ])
     })
 })

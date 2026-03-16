@@ -4,6 +4,7 @@ import type { PropsWithChildren, ReactElement } from 'react'
 import {
     buildPolicyBranchMegaQueryKey,
     fetchPolicyBranchMegaReport,
+    prefetchPolicyBranchMegaReportParts,
     prefetchPolicyBranchMegaReportWithFreshness,
     POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS,
     resolvePolicyBranchMegaReportQueryArgs,
@@ -128,6 +129,38 @@ describe('policyBranchMega freshness query', () => {
         expect(queryClient.getQueryData(buildPolicyBranchMegaQueryKey(resolvedArgs))).toMatchObject({
             id: 'policy-branch-mega-test'
         })
+    })
+
+    test('prefetches all known part slices for current mega selection', async () => {
+        const queryClient = createQueryClient()
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input)
+
+            if (url.includes('/api/backtest/policy-branch-mega/status')) {
+                return jsonResponse(createPolicyBranchMegaStatus('fresh'))
+            }
+
+            if (url.includes('/api/backtest/policy-branch-mega?')) {
+                return jsonResponse(createPolicyBranchMegaReport())
+            }
+
+            throw new Error(`Unexpected url: ${url}`)
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        await prefetchPolicyBranchMegaReportParts(queryClient, { part: 1 })
+
+        expect(fetchMock).toHaveBeenCalledTimes(5)
+        const requestedUrls = fetchMock.mock.calls.map(call => String(call[0]))
+
+        expect(requestedUrls[0]).toContain('/api/backtest/policy-branch-mega/status')
+        expect(requestedUrls.slice(1)).toHaveLength(4)
+        expect(requestedUrls.slice(1).every(url => url.includes('/api/backtest/policy-branch-mega?'))).toBe(true)
+        expect(requestedUrls.slice(1).some(url => url.includes('part=1'))).toBe(true)
+        expect(requestedUrls.slice(1).some(url => url.includes('part=2'))).toBe(true)
+        expect(requestedUrls.slice(1).some(url => url.includes('part=3'))).toBe(true)
+        expect(requestedUrls.slice(1).some(url => url.includes('part=4'))).toBe(true)
     })
 
     test('surfaces the real report endpoint error when status endpoint is unavailable', async () => {

@@ -190,4 +190,22 @@ describe('renderTermTooltipRichText', () => {
         )
         expect(screen.getByRole('button', { name: 'Что такое американской сессии?' })).toBeInTheDocument()
     })
+
+    test('renders history-scope owner terms inside training-window copy', () => {
+        render(
+            <div data-testid='training-scope-text'>
+                {renderTermTooltipRichText(
+                    'Это поле отвечает на вопрос, насколько длинная и какого типа история стоит за текущим прогнозом. Если сравниваются [[landing-all-history|полная история]], [[train-segment|Train]], [[landing-oos|OOS]] или [[landing-recent-tail-history|хвост истории]], различие между ними начинается именно здесь.'
+                )}
+            </div>
+        )
+
+        expect(screen.getByTestId('training-scope-text')).toHaveTextContent(
+            'Это поле отвечает на вопрос, насколько длинная и какого типа история стоит за текущим прогнозом. Если сравниваются полная история, Train, OOS или хвост истории, различие между ними начинается именно здесь.'
+        )
+        expect(screen.getByRole('button', { name: 'Что такое полная история?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое Train?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое OOS?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое хвост истории?' })).toBeInTheDocument()
+    })
 })

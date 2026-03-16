@@ -12,7 +12,19 @@ const SENTINEL_KEYS = [
     'ReqGain%'
 ] as const
 
-const SHARED_MEGA_TERM_KEYS = ['Policy', 'Branch', 'SL Mode', 'StartCap$', 'AccRuin', 'Recovered', 'RecovDays', 'ReqGain%'] as const
+const SHARED_MEGA_TERM_KEYS = [
+    'Policy',
+    'Branch',
+    'SL Mode',
+    'TotalPnl%',
+    'Wealth%',
+    'OnExch%',
+    'StartCap$',
+    'AccRuin',
+    'Recovered',
+    'RecovDays',
+    'ReqGain%'
+] as const
 
 describe('policyBranchMegaTerms parity', () => {
     test('all ru/en terms resolve with non-empty description and tooltip', () => {

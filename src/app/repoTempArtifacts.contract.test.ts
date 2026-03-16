@@ -38,11 +38,13 @@ describe('repository temp artifacts contract', () => {
         const policy = loadPolicy(repositoryRoot)
         const forbiddenPatterns = policy.forbiddenRootEntryPatterns.map(convertWildcardPatternToRegex)
 
-        const offenders = fs.readdirSync(repositoryRoot, { withFileTypes: true })
+        const offenders = fs
+            .readdirSync(repositoryRoot, { withFileTypes: true })
             .map(entry => entry.name)
-            .filter(entryName =>
-                entryName.toLowerCase() !== policy.canonicalTempRootDirectory.toLowerCase() &&
-                forbiddenPatterns.some(pattern => pattern.test(entryName))
+            .filter(
+                entryName =>
+                    entryName.toLowerCase() !== policy.canonicalTempRootDirectory.toLowerCase() &&
+                    forbiddenPatterns.some(pattern => pattern.test(entryName))
             )
             .sort((left, right) => left.localeCompare(right))
 
@@ -56,10 +58,14 @@ describe('repository temp artifacts contract', () => {
 
         expect(fs.existsSync(canonicalTempRootPath)).toBe(true)
 
-        const offenders = fs.readdirSync(canonicalTempRootPath, { withFileTypes: true })
+        const offenders = fs
+            .readdirSync(canonicalTempRootPath, { withFileTypes: true })
             .map(entry => entry.name)
-            .filter(entryName =>
-                !policy.allowedTrackedTempFiles.some(allowedName => allowedName.toLowerCase() === entryName.toLowerCase())
+            .filter(
+                entryName =>
+                    !policy.allowedTrackedTempFiles.some(
+                        allowedName => allowedName.toLowerCase() === entryName.toLowerCase()
+                    )
             )
             .sort((left, right) => left.localeCompare(right))
 

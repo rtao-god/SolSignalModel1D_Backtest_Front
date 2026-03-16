@@ -1,6 +1,7 @@
 import {
     localizeReportKeyValue,
     localizeReportDocumentTitle,
+    localizeReportSectionCompactTitle,
     localizeReportSectionTitle
 } from './reportPresentationLocalization'
 
@@ -31,6 +32,24 @@ describe('reportPresentationLocalization', () => {
         expect(
             localizeReportSectionTitle('backtest_execution_pipeline', 'Accounting Level', 'ru')
         ).toBe('Денежный итог сделки')
+    })
+
+    test('builds compact diagnostics labels for navigation in RU', () => {
+        expect(
+            localizeReportSectionCompactTitle(
+                'backtest_diagnostics',
+                'Top 20 trades by NetReturnPct (best, ALL SL, daily bucket)',
+                'ru'
+            )
+        ).toBe('Лучшие сделки по доходности, %')
+
+        expect(
+            localizeReportSectionCompactTitle(
+                'backtest_diagnostics',
+                'Policy NoTrade Hotspots (BASE, ALL HISTORY, WITH SL)',
+                'ru'
+            )
+        ).toBe('Зоны без сделки: BASE')
     })
 
     test('keeps raw section titles outside RU locale', () => {

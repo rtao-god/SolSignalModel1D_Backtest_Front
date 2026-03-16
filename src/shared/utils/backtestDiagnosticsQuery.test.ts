@@ -1,5 +1,7 @@
 import {
+    buildBacktestDiagnosticsQueryArgs,
     buildBacktestDiagnosticsQueryArgsFromSearchParams,
+    DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION,
     DEFAULT_DIAGNOSTICS_BUCKET_MODE,
     DEFAULT_DIAGNOSTICS_SL_MODE,
     DEFAULT_DIAGNOSTICS_TP_SL_MODE,
@@ -31,6 +33,15 @@ describe('backtestDiagnosticsQuery', () => {
             slMode: 'no-sl',
             tpSlMode: 'dynamic',
             zonalMode: 'without-zonal'
+        })
+    })
+
+    test('builds tanstack query args from resolved diagnostics selection', () => {
+        expect(buildBacktestDiagnosticsQueryArgs(DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION)).toEqual({
+            bucket: 'daily',
+            slMode: 'all',
+            tpSlMode: 'all',
+            zonalMode: 'with-zonal'
         })
     })
 })

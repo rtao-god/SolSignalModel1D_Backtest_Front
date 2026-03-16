@@ -3,6 +3,8 @@ import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 import { DIAGNOSTICS_SHARED_TERM_KEYS } from '@/shared/terms/reports/diagnostics'
 import {
     BACKTEST_SUMMARY_COLUMN_KEYS,
+    BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS,
+    BACKTEST_EXECUTION_PIPELINE_KEY_KEYS,
     BACKTEST_SUMMARY_KEY_KEYS,
     CURRENT_PREDICTION_OWNER_COLUMN_KEYS,
     CURRENT_PREDICTION_OWNER_KEY_KEYS,
@@ -34,6 +36,14 @@ describe('report tooltips shared-term guard', () => {
         })
     })
 
+    test('keeps execution pipeline Policy on canonical shared description in RU and EN', () => {
+        ;(['ru', 'en'] as const).forEach(locale => {
+            expect(resolveReportColumnTooltip('backtest_execution_pipeline', undefined, 'Policy', locale)).toBe(
+                resolveCommonReportColumnTooltipOrNull('Policy', locale)
+            )
+        })
+    })
+
     test('keeps current prediction Policy and Branch on canonical shared descriptions in RU and EN', () => {
         ;(['ru', 'en'] as const).forEach(locale => {
             ;(['Policy', 'Branch'] as const).forEach(title => {
@@ -51,7 +61,7 @@ describe('report tooltips shared-term guard', () => {
         expect(ru).not.toContain('explain-таблицы')
     })
 
-    test('never returns deprecated diagnostics fallback text', () => {
+    test('never returns generic diagnostics placeholder text', () => {
         const ru = resolveReportColumnTooltip('backtest_diagnostics', undefined, 'UndefinedReason', 'ru')
         const en = resolveReportColumnTooltip('backtest_diagnostics', undefined, 'UndefinedReason', 'en')
 
@@ -93,7 +103,7 @@ describe('report tooltips shared-term guard', () => {
         expect(anomalyRu).toContain('data_anomaly_gap_count')
         expect(anomalyRu).toContain('разрывы между соседними отметками времени')
         expect(specificityRu).toContain('Specificity — доля хороших base-trade дней')
-        expect(attributionRu).toContain('Bucket — итоговый blame-split класс исхода')
+        expect(attributionRu).toContain('Bucket — независимый контур симуляции')
         expect(rollingYearRu).toContain('календарный год')
         expect(specificityDaysRu).toContain('сколько дней попало в класс specific')
         expect(globalModeRu).toContain('вариант глобального порога')
@@ -115,11 +125,79 @@ describe('report tooltips shared-term guard', () => {
         })
     })
 
+    test('keeps diagnostics hotspots and decision-day tooltips full and section-aware in RU and EN', () => {
+        const hotspotsAndDecisionTerms = [
+            {
+                sectionTitle: 'Policy Opposite Hotspots',
+                key: 'Type'
+            },
+            {
+                sectionTitle: 'Policy Opposite Hotspots',
+                key: 'MarketReturn%'
+            },
+            {
+                sectionTitle: 'Policy Opposite Hotspots',
+                key: 'IsSpecificityDay'
+            },
+            {
+                sectionTitle: 'Policy Opposite Hotspots',
+                key: 'Opp%'
+            },
+            {
+                sectionTitle: 'Policy Opposite Hotspots',
+                key: 'OppHarmSum%'
+            },
+            {
+                sectionTitle: 'Policy NoTrade Hotspots',
+                key: 'NoTradeOppAvg%'
+            },
+            {
+                sectionTitle: 'Policy Low-Coverage Hotspots',
+                key: 'Trade%'
+            },
+            {
+                sectionTitle: 'Top Decision Days (Opposite Harm, TOP 20)',
+                key: 'MarketReturn%'
+            },
+            {
+                sectionTitle: 'Top Decision Days (Opposite Harm, TOP 20)',
+                key: 'IsSpecificityDay'
+            }
+        ] as const
+
+        ;(['ru', 'en'] as const).forEach(locale => {
+            hotspotsAndDecisionTerms.forEach(({ sectionTitle, key }) => {
+                const description = resolveReportColumnTooltip('backtest_diagnostics', sectionTitle, key, locale)
+                const issues = validateCommonTooltipDescription(description)
+
+                expect(
+                    issues,
+                    `[${locale}] diagnostics tooltip "${sectionTitle}:${key}" has quality issues`
+                ).toEqual([])
+            })
+        })
+    })
+
+    test('keeps diagnostics day-type tooltips full and structured in RU and EN', () => {
+        ;(['ru', 'en'] as const).forEach(locale => {
+            ;(['UpOpp%', 'FlatPnL%', 'DownOppDirDays'] as const).forEach(key => {
+                const description = resolveReportColumnTooltip('backtest_diagnostics', undefined, key, locale)
+                const issues = validateCommonTooltipDescription(description)
+
+                expect(issues, `[${locale}] diagnostics day-type tooltip "${key}" has quality issues`).toEqual([])
+            })
+        })
+    })
+
     test('keeps report owner-tooltips full and structured across shared report maps', () => {
         const reportColumnSuites = [
             {
                 reportKind: 'backtest_summary',
                 keys: BACKTEST_SUMMARY_COLUMN_KEYS
+            },
+            {
+                reportKind: 'backtest_execution_pipeline',
+                keys: BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS
             },
             {
                 reportKind: 'current_prediction_history',
@@ -164,6 +242,18 @@ describe('report tooltips shared-term guard', () => {
                 )
             })
 
+            BACKTEST_EXECUTION_PIPELINE_KEY_KEYS.forEach(key => {
+                const description = resolveReportKeyTooltip('backtest_execution_pipeline', undefined, key, locale)
+                const descriptionIssues = validateCommonTooltipDescription(description)
+
+                issues.push(
+                    ...descriptionIssues.map(
+                        issue =>
+                            `[${locale}] report key tooltip "backtest_execution_pipeline:${key}" has quality issue: ${issue.message}`
+                    )
+                )
+            })
+
             CURRENT_PREDICTION_OWNER_KEY_KEYS.forEach(key => {
                 const description = resolveReportKeyTooltip('current_prediction_history', undefined, key, locale)
                 const descriptionIssues = validateCommonTooltipDescription(description)
@@ -178,5 +268,33 @@ describe('report tooltips shared-term guard', () => {
         })
 
         expect(issues).toEqual([])
+    })
+
+    test('resolves model-stats Day type tooltip in both exact casings', () => {
+        ;(['ru', 'en'] as const).forEach(locale => {
+            expect(resolveReportColumnTooltip('backtest_model_stats', undefined, 'Day type', locale)).toContain(
+                locale === 'ru' ? 'фактический класс дня' : 'factual day or row class'
+            )
+            expect(resolveReportColumnTooltip('backtest_model_stats', undefined, 'day type', locale)).toContain(
+                locale === 'ru' ? 'фактический класс дня' : 'factual day or row class'
+            )
+        })
+    })
+
+    test('resolves live backend model-stats column aliases in RU and EN', () => {
+        ;(['ru', 'en'] as const).forEach(locale => {
+            expect(resolveReportColumnTooltip('backtest_model_stats', undefined, 'Accuracy, %', locale)).toContain(
+                locale === 'ru' ? 'доля правильных прогнозов' : 'share of correct predictions'
+            )
+            expect(resolveReportColumnTooltip('backtest_model_stats', undefined, 'Threshold', locale)).toContain(
+                locale === 'ru' ? 'значение threshold' : 'cut-off used by the SL model'
+            )
+            expect(
+                resolveReportColumnTooltip('backtest_model_stats', undefined, 'Stop-loss day recall, %', locale)
+            ).toContain(locale === 'ru' ? 'доля SL-дней' : 'share of stop-loss days')
+            expect(
+                resolveReportColumnTooltip('backtest_model_stats', undefined, 'High-risk prediction rate, %', locale)
+            ).toContain(locale === 'ru' ? 'доля случаев' : 'share of cases')
+        })
     })
 })

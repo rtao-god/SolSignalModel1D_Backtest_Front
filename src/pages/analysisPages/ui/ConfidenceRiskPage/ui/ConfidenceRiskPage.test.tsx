@@ -136,6 +136,23 @@ describe('ConfidenceRiskPage', () => {
         })
     })
 
+    test('does not treat missing bucket options as an error while report query is still loading', () => {
+        useBacktestConfidenceRiskReportQuery.mockReturnValue(
+            createQueryResult({
+                isLoading: true,
+                refetch: vi.fn()
+            })
+        )
+
+        render(<ConfidenceRiskPage />, {
+            route: '/analysis/confidence-risk'
+        })
+
+        expect(screen.getByText('Confidence and TP/SL')).toBeInTheDocument()
+        expect(screen.queryByText('Confidence risk bucket options are missing')).not.toBeInTheDocument()
+        expect(screen.queryByText('Failed to load confidence risk report')).not.toBeInTheDocument()
+    })
+
     test('renders current backend confidence-risk names without runtime term errors', async () => {
         useBacktestConfidenceRiskReportQuery.mockReturnValue(
             createQueryResult({
