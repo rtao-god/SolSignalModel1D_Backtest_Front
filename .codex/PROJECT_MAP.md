@@ -41,7 +41,6 @@
 - `profile/Profile` — профиль пользователя.
 - `404/NotFound` — 404‑страница.
 - `Layout` — общий shell (navbar/sidebar/контент).
-- `Users` — legacy‑страница, не подключена к `export const ROUTE_CONFIG`.
 
 ## Состояние и данные
 - Redux store: `src/app/providers/StoreProvider/config/configureStore.ts`.
