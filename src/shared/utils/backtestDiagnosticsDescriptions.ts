@@ -16,8 +16,8 @@ const RULES: DescriptionRule[] = [
     },
     {
         match: /^Policy Branch Mega/i,
-        ru: 'Расширенная таблица по политике и ветке с большим набором метрик: финрезультат, просадки, ликвидации, восстановление, средние доходности и прочие диагностические показатели. Используется для глубокого анализа, когда базовой сводки недостаточно.',
-        en: 'Extended policy/branch table with a broad metric set: final result, drawdowns, liquidations, recovery, average returns, and additional diagnostics. Used for deeper analysis when the compact summary is not enough.'
+        ru: 'Расширенная таблица по политике и ветке с большим набором метрик: полный итог wealth, капитал в рынке, просадки, ликвидации, восстановление, средние доходности и прочие диагностические показатели. Используется для глубокого анализа, когда базовой сводки недостаточно.',
+        en: 'Extended policy/branch table with a broad metric set: full wealth result, capital left in the market, drawdowns, liquidations, recovery, average returns, and additional diagnostics. Used for deeper analysis when the compact summary is not enough.'
     },
     {
         match: /^Market DayType Distribution/i,

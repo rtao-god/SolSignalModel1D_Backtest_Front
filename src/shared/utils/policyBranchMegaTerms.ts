@@ -27,6 +27,7 @@ export interface PolicyBranchMegaTermDefinition {
     key: string
     title: string
     description: string
+    tooltip: string
 }
 
 export interface PolicyBranchMegaTermReference {
@@ -124,28 +125,28 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'AntiD|Risk%',
         title: 'AntiD|Risk%',
         description:
-            'Доля срабатываний anti‑direction только внутри риск‑дней: AntiDAppliedRiskDays / RiskDays * 100.\n\nДля ветки BASE выводится "—". Для ANTI‑D значение всегда лежит в диапазоне 0..100.\n\nЕсли риск‑дней не было и anti‑direction не применялся внутри риск‑дней, метрика равна 0.0.\n\nВажно: AntiD% показывает все дни применения anti‑direction, включая случаи вне риск‑дней. Поэтому AntiD|Risk% отвечает только на вопрос, насколько часто инверсия реально включалась именно в риск‑днях.',
+            'AntiD|Risk% — доля риск-дней, где ветка [[branch|ANTI-D]] действительно перевернула направление позиции.\n\nФормула:\nAntiDAppliedRiskDays / RiskDays * 100.\n\nКак читать:\nвысокое значение означает, что инверсия часто работала именно в напряжённые дни. Низкое значение означает, что даже при наличии риск-дня ветка чаще оставляла базовое направление.\n\nДля [[branch|BASE]] колонка не применяется и показывает «—».',
     },
-    'Lev avg/min/max': {
-        key: 'Lev avg/min/max',
-        title: 'Lev avg/min/max',
+    'Lev avg / min / max': {
+        key: 'Lev avg / min / max',
+        title: 'Lev avg / min / max',
         description:
-            'Плечо (leverage) — во сколько раз размер позиции больше залога (маржи). Здесь показаны среднее, минимум и максимум плеча по торговым дням.\n\nДля верхнего хвоста агрессии используется [[p90-quantile|p90]] в соседней колонке Lev p50/p90.\n\nБольшие значения означают более агрессивную торговлю: прибыль и убыток по залогу меняются быстрее.',
+            'Плечо (leverage) — во сколько раз размер позиции больше залога (маржи). Здесь показаны среднее, минимум и максимум плеча по торговым дням.\n\nДля верхнего хвоста агрессии используется [[p90-quantile|p90]] в соседней колонке Lev p50 / p90.\n\nБольшие значения означают более агрессивную торговлю: прибыль и убыток по залогу меняются быстрее.',
     },
-    'Lev p50/p90': {
-        key: 'Lev p50/p90',
-        title: 'Lev p50/p90',
+    'Lev p50 / p90': {
+        key: 'Lev p50 / p90',
+        title: 'Lev p50 / p90',
         description:
             'Распределение плеча по торговым дням: p50 (медиана, «обычное» значение) и p90 (высокий уровень, который стратегия достигает редко, но регулярно). Помогает видеть, насколько часто стратегия уходит в агрессивное плечо.',
     },
-    'Cap avg/min/max': {
-        key: 'Cap avg/min/max',
-        title: 'Cap avg/min/max',
+    'Cap avg / min / max': {
+        key: 'Cap avg / min / max',
+        title: 'Cap avg / min / max',
         description: CAP_AVG_MIN_MAX_DESCRIPTION
     },
-    'Cap p50/p90': {
-        key: 'Cap p50/p90',
-        title: 'Cap p50/p90',
+    'Cap p50 / p90': {
+        key: 'Cap p50 / p90',
+        title: 'Cap p50 / p90',
         description: CAP_P50_P90_DESCRIPTION
     },
     CapAp: {
@@ -172,17 +173,17 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Средний размер залога (маржи) на одну сделку в долларах. Это денежная версия AvgStake%: чем выше число, тем больше абсолютный риск на сделку.',
     },
-    'Exposure% (avg/p50/p90/p99/max)': {
-        key: 'Exposure% (avg/p50/p90/p99/max)',
-        title: 'Exposure% (avg/p50/p90/p99/max)',
+    'Exposure% (avg / p50 / p90 / p99 / max)': {
+        key: 'Exposure% (avg / p50 / p90 / p99 / max)',
+        title: 'Exposure% (avg / p50 / p90 / p99 / max)',
         description:
-            'Exposure% — фактическая нагрузка позиции на капитал в каждой сделке.\n\nФормула по сделке:\nExposure = ([[margin-used|MarginUsed]] * LeverageUsed / [[start-cap|StartCap$]]) * 100.\n\nВ колонке выводится распределение по сделкам:\navg (среднее), p50 (медиана), [[p90-quantile|p90]]/p99 (верхний риск-хвост), max (пиковое значение).\n\nКак читать:\nрост p90/p99 и max означает, что стратегия чаще уходит в агрессивные режимы с высоким хвостовым риском.',
+            'Exposure% — фактическая нагрузка позиции на капитал в каждой сделке.\n\nФормула по сделке:\nExposure = ([[margin-used|MarginUsed]] * LeverageUsed / [[start-cap|StartCap$]]) * 100.\n\nВ колонке выводится распределение по сделкам:\navg (среднее), p50 (медиана), [[p90-quantile|p90]] / p99 (верхний риск-хвост), max (пиковое значение).\n\nКак читать:\nрост p90 / p99 и max означает, что стратегия чаще уходит в агрессивные режимы с высоким хвостовым риском.',
     },
-    'HighExposureTr% (>=20/50)': {
-        key: 'HighExposureTr% (>=20/50)',
-        title: 'HighExposureTr% (>=20/50)',
+    'HighExposureTr% (>=20 / 50)': {
+        key: 'HighExposureTr% (>=20 / 50)',
+        title: 'HighExposureTr% (>=20 / 50)',
         description:
-            'Доля сделок с повышенной экспозицией: первая часть — процент сделок, где Exposure >= 20%, вторая часть — где Exposure >= 50%. Формат значения: >=20%/>=50%.',
+            'Доля сделок с повышенной экспозицией: первая часть — процент сделок, где Exposure >= 20%, вторая часть — где Exposure >= 50%.\n\nФормат значения: >=20% / >=50%.',
     },
     'DailyTP%': {
         key: 'DailyTP%',
@@ -194,43 +195,67 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'DailySL%',
         title: 'DailySL%',
         description:
-            '[[tp-sl|Стоп лосс]] — уровень убытка, при котором позиция закрывается автоматически для ограничения потерь.\n\nВ этой колонке показаны фактические уровни стоп лосса для дневных сделок (avg/min/max, % от цены входа).\n\nВ режиме [[no-sl-mode|NO SL]] вместо чисел показывается «—», потому что стоп лосс отключён.',
+            '[[tp-sl|Стоп лосс]] — уровень убытка, при котором позиция закрывается автоматически для ограничения потерь.\n\nВ этой колонке показаны фактические уровни стоп лосса для дневных сделок (avg / min / max, % от цены входа).\n\nВ режиме [[no-sl-mode|NO SL]] вместо чисел показывается «—», потому что стоп лосс отключён.',
     },
-    'DynTP/SL Days': {
-        key: 'DynTP/SL Days',
-        title: 'DynTP/SL Days',
+    'DynTP / SL Days': {
+        key: 'DynTP / SL Days',
+        title: 'DynTP / SL Days',
         description:
             'Количество уникальных дней, где реально включился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этих днях движок не только менял уровни [[tp-sl|stop-loss]] / [[tp-sl|take-profit]], но и масштабировал [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nДень попадает сюда только после прохождения [[confidence-bucket|confidence-bucket]] по минимуму наблюдений и качеству (win-rate).',
     },
-    'DynTP/SL Tr': {
-        key: 'DynTP/SL Tr',
-        title: 'DynTP/SL Tr',
+    'DynTP / SL Tr': {
+        key: 'DynTP / SL Tr',
+        title: 'DynTP / SL Tr',
         description:
             'Количество сделок, где реально применился [[dynamic-tp-sl|DYNAMIC risk]]-оверлей.\n\nВ этом режиме движок масштабирует уровни [[tp-sl|stop-loss]] и [[tp-sl|take-profit]], а также [[cap-fraction|долю капитала на сделку]] по уверенности модели.\n\nОбычно таких сделок меньше общего числа: без подтверждения по [[confidence-bucket|confidence-bucket]] день не попадает в dynamic-срез.',
     },
-    'DynTP/SL PnL%': {
-        key: 'DynTP/SL PnL%',
-        title: 'DynTP/SL PnL%',
+    'DynTP / SL PnL%': {
+        key: 'DynTP / SL PnL%',
+        title: 'DynTP / SL PnL%',
         description:
             'Вклад в итоговую доходность только от сделок с [[dynamic-tp-sl|DYNAMIC risk]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nМетрика выделяет только часть общего результата этой [[policy|Policy]], которая пришлась на dynamic-сделки.',
     },
-    'StatTP/SL Days': {
-        key: 'StatTP/SL Days',
-        title: 'StatTP/SL Days',
+    'DynGate OK': {
+        key: 'DynGate OK',
+        title: 'DynGate OK',
+        description:
+            'DynGate OK — число дней, которые прошли все условия допуска к [[dynamic-tp-sl|DYNAMIC risk]].\n\nИменно эти дни попадают в [[dynamic-tp-sl|DynTP / SL Days]] и получают dynamic-настройку уровней выхода и размера позиции.\n\nКак читать:\nчем выше значение, тем чаще dynamic-слой реально участвовал в расчёте.',
+    },
+    'DynGate <Conf': {
+        key: 'DynGate <Conf',
+        title: 'DynGate <Conf',
+        description:
+            'DynGate <Conf — число дней, где уверенность модели оказалась ниже рабочего порога для [[dynamic-tp-sl|DYNAMIC risk]].\n\nВ такие дни dynamic-слой не включается, даже если сделка в целом была допустима.\n\nКак читать:\nрост этой колонки означает, что ограничение сидит в самой силе прогноза.',
+    },
+    'DynGate <Samples': {
+        key: 'DynGate <Samples',
+        title: 'DynGate <Samples',
+        description:
+            'DynGate <Samples — число дней, где нужная [[confidence-bucket|корзина уверенности]] не набрала минимум исторических сделок.\n\nDynamic-слой требует подтверждённую историю, поэтому без достаточной выборки день остаётся вне dynamic-среза.\n\nКак читать:\nрост этой колонки означает нехватку статистики, а не проблему расчёта отчёта.',
+    },
+    'DynGate <WinRate': {
+        key: 'DynGate <WinRate',
+        title: 'DynGate <WinRate',
+        description:
+            'DynGate <WinRate — число дней, где [[confidence-bucket|корзина уверенности]] уже набрала историю, но доля успешных сделок в ней осталась ниже рабочего порога.\n\nВ такие дни dynamic-слой не включается, потому что историческое качество сигнала недостаточно.\n\nКак читать:\nрост этой колонки означает, что ограничение сидит в слабом качестве похожих прошлых сделок.',
+    },
+    'StatTP / SL Days': {
+        key: 'StatTP / SL Days',
+        title: 'StatTP / SL Days',
         description:
             'Количество дней, где сделка прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея, то есть в режиме [[static-tp-sl|STATIC base]].\n\nВ этом режиме используются базовые правила сделки без dynamic-множителей по уровням выхода и [[cap-fraction|доле капитала на сделку]].',
     },
-    'StatTP/SL Tr': {
-        key: 'StatTP/SL Tr',
-        title: 'StatTP/SL Tr',
+    'StatTP / SL Tr': {
+        key: 'StatTP / SL Tr',
+        title: 'StatTP / SL Tr',
         description:
             'Количество сделок, где [[dynamic-tp-sl|DYNAMIC risk]] не применился и расчёт остался в режиме [[static-tp-sl|STATIC base]].\n\nРост этой метрики означает, что dynamic-оверлей реже проходил условия допуска по исторической статистике.',
     },
-    'StatTP/SL PnL%': {
-        key: 'StatTP/SL PnL%',
-        title: 'StatTP/SL PnL%',
+    'StatTP / SL PnL%': {
+        key: 'StatTP / SL PnL%',
+        title: 'StatTP / SL PnL%',
         description:
-            'Вклад в итоговую доходность только от сделок режима [[static-tp-sl|STATIC base]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nПоказатель читается вместе с [[dynamic-tp-sl|DynTP/SL PnL%]], чтобы видеть, какой режим дал основную часть результата.\n\nПереключатель dynamic-risk режима меняет состав сделок этого среза, но не пересчитывает задним числом уже применённые в сделке [[leverage|плечо]] и [[cap-fraction|долю капитала на сделку]].',
+            'Вклад в итоговую доходность только от сделок режима [[static-tp-sl|STATIC base]], в процентах от [[start-cap|стартового капитала]] выбранного бакета.\n\nПоказатель читается вместе с [[dynamic-tp-sl|DynTP / SL PnL%]], чтобы видеть, какой режим дал основную часть результата.\n\nПереключатель dynamic-risk режима меняет состав сделок этого среза, но не пересчитывает задним числом уже применённые в сделке [[leverage|плечо]] и [[cap-fraction|долю капитала на сделку]].',
     },
     'DelayedTP%': {
         key: 'DelayedTP%',
@@ -250,17 +275,11 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Общее число сделок в [[backtest|бэктесте]] по этой политике и ветке. Это количество отдельных позиций, а не количество дней.',
     },
-    'TotalPnl%': {
-        key: 'TotalPnl%',
-        title: 'TotalPnl%',
-        description:
-            'Итоговая доходность стратегии в процентах.\n\n- REAL: фактический результат симуляции.\n- NO BIGGEST LIQ LOSS: контрфактный тест, где из расчёта убирается одна самая убыточная [[liquidation|ликвидация]], чтобы увидеть чувствительность результата к редкому экстремуму.',
-    },
     TotalPnl$: {
         key: 'TotalPnl$',
         title: 'TotalPnl$',
         description:
-            'Суммарная прибыль/убыток в долларах по wealth-базе: (equity now + withdrawn) − start capital. Как и TotalPnl%, зависит от выбранного режима метрик: REAL или NO BIGGEST LIQ LOSS.',
+            'TotalPnl$ — денежный итог выбранного среза.\n\nФормула:\nTotalPnl$ = ([[current-balance|текущий баланс]] + [[withdrawn-profit|выведенная прибыль]]) - [[start-cap|стартовый капитал]].\n\nЧто показывает:\n1) это абсолютный результат в деньгах, а не процент;\n2) плюс означает прибыль, минус — убыток.\n\nКак читать:\n1) колонка нужна, когда важен не только относительный процент, но и реальный денежный масштаб эффекта;\n2) сравнение между строками корректно только вместе со [[start-cap|стартовым капиталом]], иначе одинаковый процент может скрывать разный денежный размер результата.',
     },
     BucketNow$: {
         key: 'BucketNow$',
@@ -268,17 +287,11 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Текущий реальный баланс выбранного бакета после всех сделок, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nДля [[bucket-daily|daily]] / [[bucket-intraday|intraday]] / [[bucket-delayed|delayed]] это локальный баланс бакета.\n\nДля [[bucket-total-aggregate|aggregate]] — сумма по всем бакетам.',
     },
-    'Wealth%': {
-        key: 'Wealth%',
-        title: 'Wealth%',
-        description:
-            'Доходность по wealth‑базе: (equity now + withdrawn − start capital) / start capital * 100. Отличается от TotalPnl% тем, что учитывает выводы.',
-    },
     'MaxDD%': {
         key: 'MaxDD%',
         title: 'MaxDD%',
         description:
-            'MaxDD% — максимальная просадка (drawdown): самое глубокое падение капитала от локального пика до следующего минимума. В REAL это фактическая просадка, в NO BIGGEST LIQ LOSS — пересчёт после удаления одной самой тяжёлой ликвидации.',
+            'MaxDD% — самое глубокое падение active equity от локального пика до худшей точки по минутному пути цены.\n\nМетрика показывает, насколько тяжёлый провал капитал переживал внутри сделок, а не только по их закрытию.\n\nКак читать:\nчем глубже MaxDD%, тем труднее стратегия переносит плохой участок и тем тяжелее потом восстановление.\n\nВ режиме [[no-biggest-liq-loss|NO BIGGEST LIQ LOSS]] расчёт остаётся тем же, но без одной самой тяжёлой ликвидации.',
     },
     'MaxDD_NoLiq%': {
         key: 'MaxDD_NoLiq%',
@@ -286,11 +299,11 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Максимальная просадка без учёта сделок с ликвидацией (принудительным закрытием позиции биржей). Показывает, насколько глубоко стратегия проседает в обычных условиях, если убрать аварийные события.',
     },
-    'MaxDD_Active%': {
-        key: 'MaxDD_Active%',
-        title: 'MaxDD_Active%',
+    'MaxDD_Active% / Days': {
+        key: 'MaxDD_Active% / Days',
+        title: 'MaxDD_Active% / Days',
         description:
-            'Максимальная просадка по active equity (живой сумме капиталов по бакетам). Это тоже падение от пика к минимуму, но по другой кривой, поэтому число может отличаться от MaxDD%.',
+            'MaxDD_Active% / Days — глубина и длительность одного худшего эпизода просадки по кривой [[active-equity|active equity]].\n\nПервое число показывает, насколько далеко капитал ушёл вниз от пика. Второе число показывает, сколько календарных дней капитал жил ниже этого пика до восстановления или до конца периода.\n\nКак читать:\nметрика нужна, когда важно видеть не только глубину провала, но и то, как долго капитал оставался под давлением.\n\nПример:\n42.7 / 181 означает просадку 42.7% и жизнь ниже старого пика в течение 181 дня.',
     },
     Sharpe: {
         key: 'Sharpe',
@@ -428,7 +441,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'MaxDD_Ratio%',
         title: 'MaxDD_Ratio%',
         description:
-            'Максимальная просадка на [[ratio-curve|ratio-кривой]]: глубина падения капитала от пика до минимума, рассчитанная по дневной ratio-серии.\n\nПоказатель сравнивается отдельно с MaxDD%, потому что строится по другой кривой.',
+            'Максимальная просадка на [[ratio-curve|ratio-кривой]]: глубина падения visible wealth от локального пика до минимума, рассчитанная по дневной серии.\n\nПоказатель может совпадать с [[drawdown|MaxDD%]], когда дневная visible-wealth серия и основная wealth-база дают одну и ту же глубину провала. Колонка нужна, чтобы drawdown на ratio-кривой читался рядом с Sharpe, Sortino, Calmar и CAGR как часть одного блока дневных ratio-метрик.',
     },
     Withdrawn$: {
         key: 'Withdrawn$',
@@ -440,7 +453,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'OnExch$',
         title: 'OnExch$',
         description:
-            'Текущий капитал на бирже — сумма по всем бакетам. Это то, что осталось «в работе», без учёта выводов.',
+            'OnExch$ — капитал, который после выбранного среза остаётся в рынке, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nВ [[bucket-total-aggregate|aggregate]] это сумма по всем бакетам.\n\nВ одном бакете число часто совпадает с [[bucket-now|BucketNow$]], но здесь акцент на той части капитала, которая ещё остаётся в работе.',
     },
     HadLiq: {
         key: 'HadLiq',
@@ -448,11 +461,23 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Были ли [[liquidation|ликвидации]]. Значение Yes означает аварийный риск в истории: у стратегии хотя бы раз было биржевое принудительное закрытие позиции. Это флаг риска, а не прямой ответ, почему остановился весь прогон.',
     },
-    RealLiq: {
-        key: 'RealLiq',
-        title: 'RealLiq',
+    'RealLiq#': {
+        key: 'RealLiq#',
+        title: 'RealLiq#',
         description:
-            'Сколько раз произошла реальная [[liquidation|ликвидация]] сделок. Рост метрики означает более частый аварийный режим. Если показатель не применим к выбранному режиму маржи этой [[policy|Policy]], выводится "—".',
+            'RealLiq# — сколько сделок дошло до строгого backtest-уровня [[liquidation|ликвидации]].\n\nКолонка считает сами аварийные события, а не деньги.\n\nКак читать:\nесли значение растёт, стратегия чаще доходит до принудительного закрытия. Денежный ущерб таких событий показывают [[real-liq-loss-usd|RealLiqLoss$]] и [[real-liq-loss-pct|RealLiqLoss%]].\n\nЕсли режим маржи не использует этот счётчик, выводится «—».',
+    },
+    'RealLiqLoss$': {
+        key: 'RealLiqLoss$',
+        title: 'RealLiqLoss$',
+        description:
+            'RealLiqLoss$ — суммарные денежные потери только по сделкам со строгой [[liquidation|ликвидацией]].\n\nВ расчёт входят только отрицательные денежные дельты этих сделок.\n\nКак читать:\nчем сильнее минус, тем дороже для капитала обходятся аварийные закрытия.\n\nЕсли режим маржи не использует этот показатель, выводится «—».',
+    },
+    'RealLiqLoss%': {
+        key: 'RealLiqLoss%',
+        title: 'RealLiqLoss%',
+        description:
+            'RealLiqLoss% — доля стартового капитала, потерянная именно на сделках со строгой [[liquidation|ликвидацией]].\n\nФормула:\n[[real-liq-loss-usd|RealLiqLoss$]] / [[start-cap|StartCap$]] * 100.\n\nКак читать:\nметрика показывает, какую часть стартовой базы уже сожгли аварийные закрытия.',
     },
     EODExit_n: {
         key: 'EODExit_n',
@@ -506,7 +531,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'BalMin%',
         title: 'BalMin%',
         description:
-            'Минимальная active equity в процентах от стартового капитала. Active equity строится по сумме бакетов на выходах сделок.',
+            'BalMin% — самый низкий уровень [[active-equity|active equity]] в процентах от стартового капитала по минутному пути цены.\n\nКолонка отвечает на вопрос, сколько капитала оставалось в худший момент.\n\nКак читать:\nчем ниже BalMin%, тем ближе стратегия подходила к аварийной зоне.',
     },
     BalDead: {
         key: 'BalDead',
@@ -554,31 +579,31 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'HorizonDays',
         title: 'HorizonDays',
         description:
-            'Длина периода симуляции в календарных днях между первой и последней сделкой. Это база для расчёта средних темпов AvgDay/Week/Month/Year.',
+            'HorizonDays — длина календарного периода строки от [[start-day|StartDay]] до [[end-day|EndDay]] включительно.\n\nЭта база используется для [[avg-day|AvgDay%]], [[avg-week|AvgWeek%]], [[avg-month|AvgMonth%]] и [[avg-year|AvgYear%]].\n\nКак читать:\nметрика показывает, на каком календарном горизонте получен итог строки.',
     },
     'AvgDay%': {
         key: 'AvgDay%',
         title: 'AvgDay%',
         description:
-            'Средняя дневная доходность, полученная геометрическим способом: общий множитель wealth^(1/HorizonDays) − 1. Показывает «типичный день» на длинной дистанции.',
+            'AvgDay% — средний дневной темп роста на календарной базе строки.\n\nМетрика переводит весь итог в один типичный день так, как если бы результат нарастал ровно на всём горизонте.\n\nКак читать:\nэто удобная шкала для сравнения строк разной длины по одному дневному темпу.',
     },
     'AvgWeek%': {
         key: 'AvgWeek%',
         title: 'AvgWeek%',
         description:
-            'Средняя недельная доходность, полученная из среднего дневного множителя: (dailyFactor^7 − 1) * 100. Это не простая сумма, а геометрия.',
+            'AvgWeek% — средний недельный темп роста, полученный из [[avg-day|AvgDay%]] на календарной базе.\n\nКак читать:\nметрика показывает, каким был бы типичный результат одной недели при том же темпе роста.',
     },
     'AvgMonth%': {
         key: 'AvgMonth%',
         title: 'AvgMonth%',
         description:
-            'Средняя месячная доходность: (dailyFactor^30 − 1) * 100. Отражает «типичный месяц» при сохранении темпа роста.',
+            'AvgMonth% — средний месячный темп роста, полученный из [[avg-day|AvgDay%]] на календарной базе.\n\nКак читать:\nметрика показывает, каким был бы типичный месяц при том же темпе роста.',
     },
     'AvgYear%': {
         key: 'AvgYear%',
         title: 'AvgYear%',
         description:
-            'Средняя годовая доходность, полученная из дневного множителя: (dailyFactor^365 − 1) * 100. Не равна CAGR, так как базируется на календарных днях, а не 252 торговых.',
+            'AvgYear% — средний годовой темп роста, полученный из [[avg-day|AvgDay%]] на календарной базе.\n\nМетрика использует 365 календарных дней и поэтому отвечает на вопрос о полном календарном темпе, а не о торговом годе.\n\nКак читать:\nзначение помогает сравнивать длинные периоды по одной годовой шкале.',
     },
     'Long n': {
         key: 'Long n',
@@ -697,23 +722,13 @@ function normalizeTermKey(rawTitle: string): string {
 const DRAW_DOWN_KEYS = new Set<string>([
     'MaxDD%',
     'MaxDD_NoLiq%',
-    'MaxDD_Active%',
+    'MaxDD_Active% / Days',
     'MaxDD_Ratio%',
     'BalMin%',
     'BalDead',
     'Time<35%',
     'DD70_Min%',
     'DD70_n'
-])
-
-const LIQUIDATION_RISK_KEYS = new Set<string>([
-    'HadLiq',
-    'AccRuin',
-    'RealLiq',
-    'LiqBeforeSL_n',
-    'LiqBeforeSL_BadSL_n',
-    'LiqBeforeSL_Same1m_n',
-    'LiqBeforeSL$'
 ])
 
 const RECOVERY_KEYS = new Set<string>([
@@ -723,35 +738,6 @@ const RECOVERY_KEYS = new Set<string>([
     'ReqGain%',
     'DD70_Recov',
     'DD70_RecovDays'
-])
-
-const PERFORMANCE_RESULT_KEYS = new Set<string>([
-    'TotalPnl%',
-    'TotalPnl$',
-    'Wealth%',
-    'WinRate%',
-    'MeanRet%',
-    'Sharpe',
-    'Sortino',
-    'Calmar',
-    'CAGR%',
-    'AvgDay%',
-    'AvgWeek%',
-    'AvgMonth%',
-    'AvgYear%'
-])
-
-const ABSOLUTE_MONEY_KEYS = new Set<string>([
-    'TotalPnl$',
-    'BucketNow$',
-    'Withdrawn$',
-    'OnExch$',
-    'StartCap$',
-    'AvgStake$',
-    'Long $',
-    'Short $',
-    'EODExit$',
-    'LiqBeforeSL$'
 ])
 
 const DIAGNOSTIC_ZERO_KEYS = new Set<string>(['inv_liq_mismatch', 'minutes_anomaly'])
@@ -789,7 +775,8 @@ function ensureSentenceEnding(text: string): string {
 function removeRedundantGlossaryFromDescription(text: string): string {
     let next = text
 
-    // Убираем встроенные словарные вставки для LONG/SHORT: они теперь читаются через hover-термины.
+    // Встроенные словарные вставки для LONG/SHORT убираются здесь,
+    // потому что расшифровка этих терминов приходит через hover-термины.
     next = next.replace(/\(\s*LONG\s*=\s*[^)]*SHORT\s*=\s*[^)]*\)/gi, '')
     next = next.replace(/,\s*где\s+LONG\s+означает[^.]*\./gi, '.')
     next = next.replace(/,\s*где\s+SHORT\s+означает[^.]*\./gi, '.')
@@ -933,18 +920,18 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'сами по себе не “хорошо/плохо”; интерпретация выполняется вместе с Long$/Short$ и AvgLong%/AvgShort%.'
     }
     if (key === 'RiskDay%') {
-        return 'чем выше, тем чаще стратегия работала в повышенном риске; интерпретация выполняется вместе с MaxDD%, HadLiq и AccRuin.'
+        return 'внутри одного исторического окна метрика часто близка у разных политик; это скорее фон риска периода, чем главный критерий сравнения.'
     }
     if (key === 'AntiD%' || key === 'AntiD|Risk%') {
         return 'высокие значения показывают активную работу инверсии; далее оценивается, улучшает ли это PnL при тех же или меньших рисках.'
     }
-    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+    if (key === 'Lev avg / min / max' || key === 'Lev p50 / p90') {
         return 'чем выше плечо, тем агрессивнее риск; особенно показателен верхний хвост (p90/max).'
     }
-    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+    if (key === 'Cap avg / min / max' || key === 'Cap p50 / p90' || key === 'AvgStake%' || key === 'AvgStake$') {
         return 'чем выше доля капитала на сделку, тем сильнее влияние каждой ошибки; оценка выполняется вместе с MaxDD и Liq-метриками.'
     }
-    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+    if (key === 'Exposure% (avg / p50 / p90 / p99 / max)' || key === 'HighExposureTr% (>=20 / 50)') {
         return 'рост верхних уровней (p90/p99/max, >=50%) означает рост хвостового риска.'
     }
     if (key === 'DailyTP%' || key === 'DelayedTP%') {
@@ -953,16 +940,19 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'DailySL%' || key === 'DelayedSL%') {
         return 'слишком широкий SL увеличивает убыток на сделку; слишком узкий резко снижает долю успешных сделок.'
     }
-    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
+    if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
         return 'обычно меньше общего объёма, потому что [[dynamic-tp-sl|DYNAMIC risk]] требует подтверждённой статистики по [[confidence-bucket|confidence-bucket]].'
     }
-    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
+    if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
+        return 'это owner-диагностика допуска dynamic-слоя по дням, а не доходность и не число сделок.'
+    }
+    if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
         return 'если сделок [[static-tp-sl|STATIC base]] резко больше, чем [[dynamic-tp-sl|DYNAMIC risk]], значит dynamic-оверлей редко проходит условия допуска в этом периоде.'
     }
-    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
+    if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
         return 'вклад [[dynamic-tp-sl|DYNAMIC risk]] и [[static-tp-sl|STATIC base]] оценивается совместно: так видно, какой режим реально даёт результат.'
     }
-    if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
+    if (key === 'TotalPnl$') {
         return 'чем выше, тем лучше по доходности, но финальное решение только вместе с MaxDD%, HadLiq и AccRuin.'
     }
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
@@ -993,8 +983,8 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'совместная интерпретация обязательна: высокая средняя доходность без контроля разброса и просадки часто даёт нестабильный профиль риска.'
     }
-    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$') {
-        return 'интерпретация выполняется в связке: OnExch$ + Withdrawn$ должны объяснять итоговую wealth-доходность.'
+    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$' || key === 'OnExch%' || key === 'Wealth%') {
+        return 'интерпретация идёт связкой: Wealth% показывает полный итог, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а BucketNow$ подчёркивает локальный баланс выбранного бакета.'
     }
     if (key === 'StartCap$') {
         return 'это база масштаба; проценты корректно сравнивать между стратегиями, а доллары — только при одинаковом стартовом капитале.'
@@ -1009,7 +999,9 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'лучший сценарий — 0. Значение 1 означает, что стратегия по сути “умерла” на выбранном горизонте.'
     }
     if (
-        key === 'RealLiq' ||
+        key === 'RealLiq#' ||
+        key === 'RealLiqLoss$' ||
+        key === 'RealLiqLoss%' ||
         key === 'LiqBeforeSL_n' ||
         key === 'LiqBeforeSL_BadSL_n' ||
         key === 'LiqBeforeSL_Same1m_n'
@@ -1029,7 +1021,7 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'лучше, когда восстановление есть (Recovered=true), быстрее (меньше RecovDays/RecovSignals) и дешевле по требуемому росту (ниже ReqGain%).'
     }
     if (key === 'HorizonDays' || key === 'AvgDay%' || key === 'AvgWeek%' || key === 'AvgMonth%' || key === 'AvgYear%') {
-        return 'эти темпы удобны для сравнения, но обязательна проверка рядом с просадками: средний рост скрывает тяжёлые провалы капитала.'
+        return 'здесь используется календарная шкала. Её полезно отличать от Days, RecovDays и длительности в MaxDD_Active% / Days, потому что эти поля отвечают на разные вопросы.'
     }
     if (
         key === 'Long n' ||
@@ -1071,18 +1063,18 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
         return 'These metrics are not “good” or “bad” on their own; interpret them together with Long$/Short$ and AvgLong%/AvgShort%.'
     }
     if (key === 'RiskDay%') {
-        return 'Higher values mean the strategy spent more time in elevated-risk conditions; interpret together with MaxDD%, HadLiq, and AccRuin.'
+        return 'Inside one historical window this metric is often very similar across policies; it is mostly the risk background of the period, not the main ranking metric.'
     }
     if (key === 'AntiD%' || key === 'AntiD|Risk%') {
         return 'High values mean direction inversion is active often; then assess whether that improves PnL at the same or lower risk.'
     }
-    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+    if (key === 'Lev avg / min / max' || key === 'Lev p50 / p90') {
         return 'Higher leverage means more aggressive risk; the upper tail (p90/max) is especially informative.'
     }
-    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+    if (key === 'Cap avg / min / max' || key === 'Cap p50 / p90' || key === 'AvgStake%' || key === 'AvgStake$') {
         return 'The larger the capital fraction per trade, the stronger the impact of each mistake; interpret together with MaxDD and liquidation metrics.'
     }
-    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+    if (key === 'Exposure% (avg / p50 / p90 / p99 / max)' || key === 'HighExposureTr% (>=20 / 50)') {
         return 'Growth in the upper levels (p90/p99/max, >=50%) means tail risk is increasing.'
     }
     if (key === 'DailyTP%' || key === 'DelayedTP%') {
@@ -1091,16 +1083,19 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'DailySL%' || key === 'DelayedSL%') {
         return 'An excessively wide SL increases loss per trade; an excessively tight SL sharply reduces the share of successful trades.'
     }
-    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
+    if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
         return 'These values are usually smaller than the full trade volume because [[dynamic-tp-sl|DYNAMIC risk]] requires confirmed statistics inside [[confidence-bucket|confidence-bucket]].'
     }
-    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
+    if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
+        return 'This is owner-level admission diagnostics for the dynamic layer by day, not return and not trade count.'
+    }
+    if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
         return 'If [[static-tp-sl|STATIC base]] trade count is much larger than [[dynamic-tp-sl|DYNAMIC risk]], the dynamic overlay rarely passes admission conditions in this period.'
     }
-    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
+    if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
         return 'The contribution of [[dynamic-tp-sl|DYNAMIC risk]] and [[static-tp-sl|STATIC base]] must be read together to see which mode actually drives the result.'
     }
-    if (key === 'TotalPnl%' || key === 'TotalPnl$' || key === 'Wealth%') {
+    if (key === 'TotalPnl$') {
         return 'Higher is better for return, but the final decision must always be made together with MaxDD%, HadLiq, and AccRuin.'
     }
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
@@ -1131,8 +1126,8 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'These must be interpreted together: high average return without control over dispersion and drawdown usually means unstable risk profile.'
     }
-    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$') {
-        return 'Interpret them together: OnExch$ + Withdrawn$ must explain the final wealth-based return.'
+    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$' || key === 'OnExch%' || key === 'Wealth%') {
+        return 'Interpret them together: Wealth% is the full outcome, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and BucketNow$ emphasizes the local balance of the selected bucket.'
     }
     if (key === 'StartCap$') {
         return 'This is the scale baseline: percentages can be compared between strategies, but dollar amounts only when start capital is the same.'
@@ -1147,7 +1142,9 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
         return 'Best case is 0. A value of 1 means the strategy effectively “died” on the selected horizon.'
     }
     if (
-        key === 'RealLiq' ||
+        key === 'RealLiq#' ||
+        key === 'RealLiqLoss$' ||
+        key === 'RealLiqLoss%' ||
         key === 'LiqBeforeSL_n' ||
         key === 'LiqBeforeSL_BadSL_n' ||
         key === 'LiqBeforeSL_Same1m_n'
@@ -1167,7 +1164,7 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
         return 'Better when recovery exists (Recovered=true), is faster (lower RecovDays/RecovSignals), and requires less growth (lower ReqGain%).'
     }
     if (key === 'HorizonDays' || key === 'AvgDay%' || key === 'AvgWeek%' || key === 'AvgMonth%' || key === 'AvgYear%') {
-        return 'These growth rates are convenient for comparison, but they must be read alongside drawdowns: average growth can hide severe capital collapses.'
+        return 'These fields use a calendar scale. That should be kept separate from Days, RecovDays, and the duration in MaxDD_Active% / Days, because those fields answer different timing questions.'
     }
     if (
         key === 'Long n' ||
@@ -1193,6 +1190,24 @@ function resolveFallbackExampleHint(key: string): string {
     if (key === 'StartDay' || key === 'EndDay') {
         return 'StartDay=2022-01-01 и EndDay=2025-12-31 означают, что сравнение выполнено на одном и том же историческом окне.'
     }
+    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%') {
+        return `${key}=28 означает, что в худшей точке капитал был на 28% ниже локального пика.`
+    }
+    if (key === 'BalMin%') {
+        return 'BalMin%=34 означает, что в худший момент оставалось 34% стартового капитала.'
+    }
+    if (key === 'HorizonDays') {
+        return 'HorizonDays=934 означает календарную длину периода от StartDay до EndDay включительно.'
+    }
+    if (key === 'Days') {
+        return 'Days=934 означает число рабочих дней строки без выходных, а не календарную длину периода.'
+    }
+    if (key === 'RecovDays') {
+        return 'RecovDays=45 означает, что от дна просадки до возврата к прежнему пику прошло 45 календарных дней.'
+    }
+    if (key === 'MaxDD_Active% / Days') {
+        return 'MaxDD_Active% / Days = 42.7 / 181 означает глубину худшего эпизода 42.7% и жизнь ниже прежнего пика в течение 181 дня.'
+    }
     if (key.includes('$')) {
         return `${key}=12 500 показывает денежный эффект именно в долларах, а не в процентах.`
     }
@@ -1208,6 +1223,24 @@ function resolveFallbackExampleHint(key: string): string {
 function resolveEnglishFallbackExampleHint(key: string): string {
     if (key === 'StartDay' || key === 'EndDay') {
         return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the comparison was run on the same historical window.'
+    }
+    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%') {
+        return `${key}=28 means capital was 28% below its local peak at the worst point.`
+    }
+    if (key === 'BalMin%') {
+        return 'BalMin%=34 means 34% of the starting capital was still left at the worst point.'
+    }
+    if (key === 'HorizonDays') {
+        return 'HorizonDays=934 means the calendar length from StartDay to EndDay inclusive.'
+    }
+    if (key === 'Days') {
+        return 'Days=934 means the count of working days in the row, not the calendar span of the period.'
+    }
+    if (key === 'RecovDays') {
+        return 'RecovDays=45 means 45 calendar days passed from the drawdown bottom to the recovery of the old peak.'
+    }
+    if (key === 'MaxDD_Active% / Days') {
+        return 'MaxDD_Active% / Days = 42.7 / 181 means a 42.7% worst active-equity drop and 181 days below the old peak.'
     }
     if (key.includes('$')) {
         return `${key}=12,500 shows the effect in dollars, not in percentages.`
@@ -1240,32 +1273,32 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'Long%' || key === 'Short%') {
         return 'Long%=70 и Short%=20 при NoTrade%=10 означает сильный уклон стратегии в сделки на рост.'
     }
-    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+    if (key === 'Lev avg / min / max' || key === 'Lev p50 / p90') {
         return 'avg=4, p90=9 означает, что в основном плечо умеренное, но в верхнем хвосте стратегия переходит в агрессивный режим.'
     }
-    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+    if (key === 'Cap avg / min / max' || key === 'Cap p50 / p90' || key === 'AvgStake%' || key === 'AvgStake$') {
         return 'AvgStake%=12 означает, что в среднем в одной сделке рискуется около 12% от стартового капитала бакета.'
     }
-    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+    if (key === 'Exposure% (avg / p50 / p90 / p99 / max)' || key === 'HighExposureTr% (>=20 / 50)') {
         return 'если доля >=50% выросла с 4% до 19%, стратегия стала заметно агрессивнее.'
     }
     if (key === 'DailyTP%' || key === 'DelayedTP%' || key === 'DailySL%' || key === 'DelayedSL%') {
         return 'TP=2.0% и SL=1.0% означает, что на бумаге цель прибыли в 2 раза больше лимита убытка.'
     }
-    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
-        return 'DynTP/SL Tr=120 при Tr=460 означает, что [[dynamic-tp-sl|DYNAMIC risk]] применился только к части сделок, а остальные остались в [[static-tp-sl|STATIC base]].'
+    if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
+        return 'DynTP / SL Tr=120 при Tr=460 означает, что [[dynamic-tp-sl|DYNAMIC risk]] применился только к части сделок, а остальные остались в [[static-tp-sl|STATIC base]].'
     }
-    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
-        return 'StatTP/SL Tr=340 при DynTP/SL Tr=120 показывает, что основная масса сделок прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея.'
+    if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
+        return 'DynGate <Samples=180 при DynGate OK=0 означает, что dynamic-слой не применялся из-за нехватки истории в confidence-bucket, а не из-за мёртвого feature.'
     }
-    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
-        return 'DynTP/SL PnL%=14 и StatTP/SL PnL%=6 означает, что основной вклад в доходность дал [[dynamic-tp-sl|DYNAMIC risk]]-срез.'
+    if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
+        return 'StatTP / SL Tr=340 при DynTP / SL Tr=120 показывает, что основная масса сделок прошла без [[dynamic-tp-sl|DYNAMIC risk]]-оверлея.'
+    }
+    if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
+        return 'DynTP / SL PnL%=14 и StatTP / SL PnL%=6 означает, что основной вклад в доходность дал [[dynamic-tp-sl|DYNAMIC risk]]-срез.'
     }
     if (key === 'Tr') {
         return 'Tr=520 означает, что в этом срезе у этой политики было 520 сделок.'
-    }
-    if (key === 'TotalPnl%') {
-        return 'TotalPnl%=38 означает рост на 38% от стартового капитала выбранного бакета.'
     }
     if (key === 'TotalPnl$') {
         return 'TotalPnl$=19 000 означает чистую прибыль 19 000 долларов в этом срезе.'
@@ -1273,11 +1306,8 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62 000 означает текущий капитал бакета после всех закрытых сделок.'
     }
-    if (key === 'Wealth%') {
-        return 'Wealth%=52 означает совокупный прирост богатства с учетом выведенной прибыли.'
-    }
-    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active%' || key === 'MaxDD_Ratio%') {
-        return 'MaxDD=-41% означает, что в худшей точке капитал падал на 41% от локального максимума.'
+    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
+        return 'MaxDD=41% означает, что в худшей точке капитал падал на 41% от локального максимума.'
     }
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
         return 'Sharpe=1.2 лучше, чем Sharpe=0.6, если сравнение идёт в одном и том же срезе.'
@@ -1327,8 +1357,11 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
         return 'Для отдельного бакета StartCap$ обычно 20 000, для total aggregate обычно 60 000; вместе с Withdrawn$ и OnExch$ это показывает структуру результата в деньгах.'
     }
-    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq') {
+    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq#') {
         return 'HadLiq=1 означает, что хотя бы одна позиция была принудительно закрыта биржей.'
+    }
+    if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
+        return 'RealLiqLoss%>0 означает, что strict liquidation уже съела измеримую часть стартового капитала.'
     }
     if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 означает, что 42% сделок закрылись по времени в конце окна, а не по TP/SL.'
@@ -1398,32 +1431,32 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'Long%' || key === 'Short%') {
         return 'Long%=70 and Short%=20 with NoTrade%=10 mean the strategy is heavily biased toward long entries.'
     }
-    if (key === 'Lev avg/min/max' || key === 'Lev p50/p90') {
+    if (key === 'Lev avg / min / max' || key === 'Lev p50 / p90') {
         return 'avg=4, p90=9 means leverage is moderate most of the time, but the upper tail shifts into aggressive mode.'
     }
-    if (key === 'Cap avg/min/max' || key === 'Cap p50/p90' || key === 'AvgStake%' || key === 'AvgStake$') {
+    if (key === 'Cap avg / min / max' || key === 'Cap p50 / p90' || key === 'AvgStake%' || key === 'AvgStake$') {
         return 'AvgStake%=12 means roughly 12% of bucket start capital is risked per trade on average.'
     }
-    if (key === 'Exposure% (avg/p50/p90/p99/max)' || key === 'HighExposureTr% (>=20/50)') {
+    if (key === 'Exposure% (avg / p50 / p90 / p99 / max)' || key === 'HighExposureTr% (>=20 / 50)') {
         return 'If the >=50% share rises from 4% to 19%, the strategy became materially more aggressive.'
     }
     if (key === 'DailyTP%' || key === 'DelayedTP%' || key === 'DailySL%' || key === 'DelayedSL%') {
         return 'TP=2.0% and SL=1.0% mean the paper profit target is twice the loss limit.'
     }
-    if (key === 'DynTP/SL Days' || key === 'DynTP/SL Tr') {
-        return 'DynTP/SL Tr=120 with Tr=460 means [[dynamic-tp-sl|DYNAMIC risk]] applied only to part of the trades, while the rest stayed in [[static-tp-sl|STATIC base]].'
+    if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
+        return 'DynTP / SL Tr=120 with Tr=460 means [[dynamic-tp-sl|DYNAMIC risk]] applied only to part of the trades, while the rest stayed in [[static-tp-sl|STATIC base]].'
     }
-    if (key === 'StatTP/SL Days' || key === 'StatTP/SL Tr') {
-        return 'StatTP/SL Tr=340 with DynTP/SL Tr=120 shows that most trades ran without the [[dynamic-tp-sl|DYNAMIC risk]] overlay.'
+    if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
+        return 'DynGate <Samples=180 with DynGate OK=0 means the dynamic layer stayed off because the confidence bucket lacked history, not because the feature was dead.'
     }
-    if (key === 'DynTP/SL PnL%' || key === 'StatTP/SL PnL%') {
-        return 'DynTP/SL PnL%=14 and StatTP/SL PnL%=6 mean the main return contribution came from the [[dynamic-tp-sl|DYNAMIC risk]] slice.'
+    if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
+        return 'StatTP / SL Tr=340 with DynTP / SL Tr=120 shows that most trades ran without the [[dynamic-tp-sl|DYNAMIC risk]] overlay.'
+    }
+    if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
+        return 'DynTP / SL PnL%=14 and StatTP / SL PnL%=6 mean the main return contribution came from the [[dynamic-tp-sl|DYNAMIC risk]] slice.'
     }
     if (key === 'Tr') {
         return 'Tr=520 means this policy had 520 trades in the selected slice.'
-    }
-    if (key === 'TotalPnl%') {
-        return 'TotalPnl%=38 means a 38% gain from the start capital of the selected bucket.'
     }
     if (key === 'TotalPnl$') {
         return 'TotalPnl$=19,000 means net profit of 19,000 USD in this slice.'
@@ -1431,11 +1464,8 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62,000 means the current bucket capital after all closed trades.'
     }
-    if (key === 'Wealth%') {
-        return 'Wealth%=52 means total wealth grew by 52% including withdrawn profit.'
-    }
-    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active%' || key === 'MaxDD_Ratio%') {
-        return 'MaxDD=-41% means capital fell 41% from the local peak at the worst point.'
+    if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
+        return 'MaxDD=41% means capital fell 41% from the local peak at the worst point.'
     }
     if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
         return 'Sharpe=1.2 is better than Sharpe=0.6 when the comparison is made inside the same slice.'
@@ -1485,8 +1515,11 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
         return 'For a single bucket StartCap$ is usually 20,000, while total aggregate is usually 60,000; together with Withdrawn$ and OnExch$ this shows the money structure of the result.'
     }
-    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq') {
+    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq#') {
         return 'HadLiq=1 means at least one position was force-closed by the exchange.'
+    }
+    if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
+        return 'RealLiqLoss%>0 means strict liquidation already consumed a measurable share of start capital.'
     }
     if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 means 42% of trades were closed by time at end of window, not by TP/SL.'
@@ -1583,16 +1616,16 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     'AntiD|Risk%': {
         description: 'Anti-direction application rate inside risk days only.',
     },
-    'Lev avg/min/max': {
+    'Lev avg / min / max': {
         description: 'Average, minimum, and maximum leverage used on trade days.',
     },
-    'Lev p50/p90': {
+    'Lev p50 / p90': {
         description: 'Leverage distribution quantiles on trade days: median (p50) and upper tail (p90).',
     },
-    'Cap avg/min/max': {
+    'Cap avg / min / max': {
         description: COMMON_CAP_AVG_MIN_MAX_DESCRIPTION_EN,
     },
-    'Cap p50/p90': {
+    'Cap p50 / p90': {
         description: COMMON_CAP_P50_P90_DESCRIPTION_EN,
     },
     CapAp: {
@@ -1607,10 +1640,10 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     AvgStake$: {
         description: 'Average margin per trade in USD.',
     },
-    'Exposure% (avg/p50/p90/p99/max)': {
+    'Exposure% (avg / p50 / p90 / p99 / max)': {
         description: 'Trade-level exposure distribution in %: avg, p50, p90, p99, max.',
     },
-    'HighExposureTr% (>=20/50)': {
+    'HighExposureTr% (>=20 / 50)': {
         description: 'Share of trades with high exposure thresholds: >=20% and >=50%.',
     },
     'DailyTP%': {
@@ -1619,22 +1652,34 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     'DailySL%': {
         description: 'Daily SL threshold distribution (avg/min/max), in % from entry.',
     },
-    'DynTP/SL Days': {
+    'DynTP / SL Days': {
         description: 'Unique days where the DYNAMIC risk overlay was actually applied.',
     },
-    'DynTP/SL Tr': {
+    'DynTP / SL Tr': {
         description: 'Trades where the DYNAMIC risk overlay was actually applied.',
     },
-    'DynTP/SL PnL%': {
+    'DynTP / SL PnL%': {
         description: 'PnL contribution from DYNAMIC risk trades, in % of StartCap$.',
     },
-    'StatTP/SL Days': {
+    'DynGate OK': {
+        description: 'Checked days that passed the historical-evidence gate and were allowed to use DYNAMIC risk.',
+    },
+    'DynGate <Conf': {
+        description: 'Checked days blocked because model confidence stayed below the minimum gate.',
+    },
+    'DynGate <Samples': {
+        description: 'Checked days blocked because the confidence bucket had too few historical samples.',
+    },
+    'DynGate <WinRate': {
+        description: 'Checked days blocked because the confidence bucket win-rate stayed below the minimum threshold.',
+    },
+    'StatTP / SL Days': {
         description: 'Unique days where trades stayed in STATIC base mode without dynamic overlay.',
     },
-    'StatTP/SL Tr': {
+    'StatTP / SL Tr': {
         description: 'Trades that stayed in STATIC base mode without dynamic overlay.',
     },
-    'StatTP/SL PnL%': {
+    'StatTP / SL PnL%': {
         description: 'PnL contribution from STATIC base trades, in % of StartCap$.',
     },
     'DelayedTP%': {
@@ -1646,30 +1691,23 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     Tr: {
         description: 'Total number of trades in this Policy.',
     },
-    'TotalPnl%': {
-        description:
-            'Total profit or loss relative to the start capital of the selected slice, in %.\n\n- REAL: the factual result of the simulation.\n- NO BIGGEST LIQ LOSS: a counterfactual recalculation that removes one worst [[liquidation|liquidation]] to show how sensitive the slice is to a rare tail event.',
-    },
     TotalPnl$: {
         description:
-            'Total profit or loss in USD for the selected slice. Unlike TotalPnl%, this is the absolute money result, not a normalized percentage.\n\nIt is useful for business reading because it shows how large the effect is in dollars, not only in relative return terms.',
+            'TotalPnl$ is the money result of the selected slice.\n\nFormula:\nTotalPnl$ = ([[current-balance|current balance]] + [[withdrawn-profit|withdrawn profit]]) - [[start-cap|starting capital]].\n\nWhat it shows:\n1) this is the absolute result in money, not a percentage;\n2) positive means profit, negative means loss.\n\nHow to read it:\n1) the column matters when the business needs the real dollar scale of the effect, not only relative return;\n2) comparison across rows is only fair together with [[start-cap|starting capital]], because the same percentage can hide very different money size.',
     },
     BucketNow$: {
         description: 'Current capital of selected bucket after all closed trades.',
     },
-    'Wealth%': {
-        description:
-            'Wealth-based growth in %: (equity now + withdrawn profit - start capital) / start capital * 100.\n\nUnlike TotalPnl%, Wealth% explicitly includes money already withdrawn from the slice, so it reflects total accumulated wealth rather than only current in-slice capital.',
-    },
     'MaxDD%': {
         description:
-            'Maximum drawdown: the deepest capital drop from a local peak to the following minimum, in %.\n\nIn REAL it is the factual drawdown. In NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation.\n\nThis is one of the main survival metrics of the row: a deeper MaxDD means the business must tolerate a larger capital collapse before recovery starts.',
+            'Maximum drawdown of active equity on the 1m price path, in %.\n\nIt captures the deepest capital drop from a local peak to the worst point reached inside open or already closed trades.\n\nIn NO BIGGEST LIQ LOSS it is recalculated after removing one largest liquidation.',
     },
     'MaxDD_NoLiq%': {
         description: 'Maximum drawdown excluding liquidation effects, in %.',
     },
-    'MaxDD_Active%': {
-        description: 'Maximum drawdown based on active equity curve, in %.',
+    'MaxDD_Active% / Days': {
+        description:
+            'MaxDD_Active% / Days is a two-part metric for the single worst drawdown episode of the [[active-equity|active equity]] curve.\n\nWhat it shows:\nthe first value is drawdown depth: how far active equity fell from the prior local peak to the trough. The second value is the duration of that same episode in calendar days: from that peak to recovery of the old peak, or to the last point of the selected period if recovery never happened.\n\nHow to read it:\nthis metric answers both how deep the worst active drawdown was and how long capital stayed below its old high-water mark. It can differ from [[drawdown|MaxDD%]] because it is computed on the sum of live bucket balances after trade exits, not on the wealth curve used by the PnL engine.\n\nExample:\n42.7 / 181 means the worst active-equity drawdown was 42.7%, and that same worst episode lasted 181 calendar days.',
     },
     Sharpe: {
         description: 'Sharpe ratio for this Policy.',
@@ -1739,7 +1777,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description: 'Downside standard deviation of returns, in %.',
     },
     'MaxDD_Ratio%': {
-        description: 'Drawdown ratio metric in % for risk diagnostics.',
+        description:
+            'Maximum drawdown on the [[ratio-curve|ratio curve]]: the drop of visible wealth from local peak to trough on the daily series.\n\nThis value can match [[drawdown|MaxDD%]] when the daily visible-wealth series and the main wealth base produce the same depth of decline. The column keeps ratio-curve drawdown next to Sharpe, Sortino, Calmar, and CAGR as part of one daily ratio block.',
     },
     Withdrawn$: {
         description: 'Total withdrawn profit in USD.',
@@ -1752,14 +1791,23 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     HadLiq: {
         description:
-            'HadLiq tracks liquidation events in this Policy.\n\nFor one bucket-specific Policy it behaves like a flag: 0 means no liquidation, 1 means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
+            'HadLiq tracks liquidation events in this Policy.\n\nFor one bucket-specific Policy it is rendered as "No" or "Yes". "Yes" means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
     },
     AccRuin: {
         description:
-            'AccRuin is the ruin metric of the working bucket capital.\n\nA bucket is considered ruined when it is explicitly marked as dead or when EquityNow / StartCapital falls to 20% or below, which means 80% or more of the start capital was lost.\n\nFor a single bucket row this is usually 0 or 1. For total aggregate it can show how many buckets were ruined.\n\nThis is stricter than ordinary drawdown: ruin means the strategy is no longer operational on that capital base.',
+            'AccRuin is the ruin metric of the working bucket capital.\n\nA bucket is considered ruined when it is explicitly marked as dead or when EquityNow / StartCapital falls to 20% or below, which means 80% or more of the start capital was lost.\n\nFor one bucket-specific Policy it is rendered as "No, the bucket is still alive" or "Yes, the bucket exhausted its starting capital". For total aggregate it can show how many buckets were ruined.\n\nThis is stricter than ordinary drawdown: ruin means the strategy is no longer operational on that capital base.',
     },
-    RealLiq: {
-        description: 'Count/flag of real liquidations using strict liquidation criterion.',
+    'RealLiq#': {
+        description:
+            'How many trades strictly reached the backtest [[liquidation|liquidation]] level.\n\nThis is a strict liquidation-touch counter, not a direct statement about how much capital each event economically destroyed. Read the capital effect through RealLiqLoss$, PnL, drawdown, and the balance metrics of the same row.',
+    },
+    'RealLiqLoss$': {
+        description:
+            'Total actual capital loss in USD only from strict liquidation-touch trades.\n\nOwner formula: sum only the negative visible-wealth deltas of trades with strict liquidation. This is already the economic effect, not just an event counter.',
+    },
+    'RealLiqLoss%': {
+        description:
+            'Share of strict liquidation losses relative to StartCap$.\n\nFormula: RealLiqLoss$ / StartCap$ * 100. This metric shows how much of the starting capital was actually consumed by strict liquidation events.',
     },
     EODExit_n: {
         description: 'Number of trades closed by EndOfDay.',
@@ -1786,7 +1834,7 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description: 'Total NetPnl$ of trades where liquidation happened before SL.',
     },
     'BalMin%': {
-        description: 'Minimum active equity as % of StartCap$.',
+        description: 'Lowest active equity reached on the 1m price path, as % of StartCap$.',
     },
     BalDead: {
         description: 'Flag showing equity dropped below balance-death threshold.',
@@ -1984,7 +2032,8 @@ export function getPolicyBranchMegaTerm(
     return {
         key: term.key,
         title: term.title,
-        description: resolvedDescription
+        description: resolvedDescription,
+        tooltip: resolvedDescription
     }
 }
 

@@ -187,7 +187,7 @@
             }
         },
         "aggregation_stats": {
-            "description": "Prediction aggregation collects probabilities, metrics, and the debug tail of recent days.",
+            "description": "Prediction aggregation collects probabilities, metrics, and a recent-day review over the same answer flow.",
             "blocks": {
                 "probs": {
                     "description": "Probability section across segments and aggregation layers."
@@ -196,7 +196,7 @@
                     "description": "Summary quality metrics for the aggregated signal."
                 },
                 "debug": {
-                    "description": "Recent-days debug block for fresh-row verification."
+                    "description": "Recent-day review for checking fresh rows and overlay impact."
                 }
             }
         },

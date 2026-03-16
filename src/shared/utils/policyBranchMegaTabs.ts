@@ -11,6 +11,20 @@ interface PolicyBranchMegaTabPartEntry {
     bucket: PolicyBranchMegaBucketMode | null
 }
 
+export interface PolicyBranchMegaSectionEntry {
+    part: number
+    bucket: PolicyBranchMegaBucketMode | null
+}
+
+export type PolicyBranchMegaAnchorSectionKind = 'terms' | 'table'
+
+export interface PolicyBranchMegaAnchorTarget {
+    part: number
+    bucket: PolicyBranchMegaBucketMode | null
+    sectionKind: PolicyBranchMegaAnchorSectionKind
+    anchor: string
+}
+
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
 export type PolicyBranchMegaTotalBucketView = 'aggregate' | 'separate'
 export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
@@ -20,84 +34,36 @@ export type PolicyBranchMegaZonalMode = 'with-zonal' | 'without-zonal'
 
 const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     daily: 'daily',
-    day: 'daily',
     intraday: 'intraday',
-    intra: 'intraday',
     delayed: 'delayed',
-    delay: 'delayed',
-    total: 'total',
-    sum: 'total',
-    all: 'total',
-    'all-buckets': 'total',
-    'sum-buckets': 'total',
-    'total-buckets': 'total'
+    total: 'total'
 }
 
 const METRIC_QUERY_ALIASES: Record<string, PolicyBranchMegaMetricMode> = {
     real: 'real',
-    default: 'real',
-    base: 'real',
-    noliq: 'no-biggest-liq-loss',
-    no_liq: 'no-biggest-liq-loss',
-    'no-liq': 'no-biggest-liq-loss',
-    no_biggest_liq_loss: 'no-biggest-liq-loss',
-    'no-biggest-liq-loss': 'no-biggest-liq-loss',
-    nobiggestliqloss: 'no-biggest-liq-loss',
-    stressless: 'no-biggest-liq-loss'
+    'no-biggest-liq-loss': 'no-biggest-liq-loss'
 }
 
 const TP_SL_QUERY_ALIASES: Record<string, PolicyBranchMegaTpSlMode> = {
     all: 'all',
-    default: 'all',
-    full: 'all',
     dynamic: 'dynamic',
-    dyn: 'dynamic',
-    confidence: 'dynamic',
-    static: 'static',
-    stat: 'static',
-    baseline: 'static'
+    static: 'static'
 }
 
 const SL_MODE_QUERY_ALIASES: Record<string, PolicyBranchMegaSlMode> = {
     all: 'all',
-    default: 'all',
-    full: 'all',
-    with: 'with-sl',
-    withsl: 'with-sl',
-    with_sl: 'with-sl',
     'with-sl': 'with-sl',
-    on: 'with-sl',
-    nosl: 'no-sl',
-    no_sl: 'no-sl',
-    'no-sl': 'no-sl',
-    without: 'no-sl',
-    off: 'no-sl'
+    'no-sl': 'no-sl'
 }
 
 const ZONAL_QUERY_ALIASES: Record<string, PolicyBranchMegaZonalMode> = {
-    with: 'with-zonal',
-    on: 'with-zonal',
-    enabled: 'with-zonal',
-    zonal: 'with-zonal',
     'with-zonal': 'with-zonal',
-    with_zonal: 'with-zonal',
-    without: 'without-zonal',
-    off: 'without-zonal',
-    disabled: 'without-zonal',
-    nozonal: 'without-zonal',
-    'without-zonal': 'without-zonal',
-    without_zonal: 'without-zonal'
+    'without-zonal': 'without-zonal'
 }
 
 const TOTAL_BUCKET_VIEW_QUERY_ALIASES: Record<string, PolicyBranchMegaTotalBucketView> = {
     aggregate: 'aggregate',
-    agg: 'aggregate',
-    'total-aggregate': 'aggregate',
-    separate: 'separate',
-    split: 'separate',
-    raw: 'separate',
-    'per-bucket': 'separate',
-    per_bucket: 'separate'
+    separate: 'separate'
 }
 
 const POLICY_BRANCH_MEGA_TABLE_SECTION_ANCHOR_REGEX = /^policy-branch-section-(?:(daily|intraday|delayed)-)?(\d+)$/i
@@ -707,6 +673,17 @@ function buildPolicyBranchMegaTabEntriesFromAvailableParts(
     return orderedParts.map(part => ({ bucket: null, part }))
 }
 
+export function buildPolicyBranchMegaSectionEntriesFromAvailableParts(
+    availableParts: number[],
+    bucket: PolicyBranchMegaBucketMode,
+    bucketView: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaSectionEntry[] {
+    return buildPolicyBranchMegaTabEntriesFromAvailableParts(availableParts, bucket, bucketView).map(entry => ({
+        part: entry.part,
+        bucket: entry.bucket
+    }))
+}
+
 export function buildPolicyBranchMegaTabsFromAvailableParts(
     availableParts: number[],
     bucket: PolicyBranchMegaBucketMode,
@@ -747,6 +724,12 @@ export function buildPolicyBranchMegaTabsFromAvailableParts(
 }
 
 export function resolvePolicyBranchMegaPartFromAnchor(anchor: string | null | undefined): number | null {
+    return resolvePolicyBranchMegaAnchorTarget(anchor)?.part ?? null
+}
+
+export function resolvePolicyBranchMegaAnchorTarget(
+    anchor: string | null | undefined
+): PolicyBranchMegaAnchorTarget | null {
     if (!anchor) {
         return null
     }
@@ -758,12 +741,22 @@ export function resolvePolicyBranchMegaPartFromAnchor(anchor: string | null | un
 
     const tableMatch = normalized.match(POLICY_BRANCH_MEGA_TABLE_SECTION_ANCHOR_REGEX)
     if (tableMatch?.[2]) {
-        return Number(tableMatch[2])
+        return {
+            part: Number(tableMatch[2]),
+            bucket: (tableMatch[1] as PolicyBranchMegaBucketMode | undefined) ?? null,
+            sectionKind: 'table',
+            anchor: normalized
+        }
     }
 
     const termsMatch = normalized.match(POLICY_BRANCH_MEGA_TERMS_SECTION_ANCHOR_REGEX)
     if (termsMatch?.[2]) {
-        return Number(termsMatch[2])
+        return {
+            part: Number(termsMatch[2]),
+            bucket: (termsMatch[1] as PolicyBranchMegaBucketMode | undefined) ?? null,
+            sectionKind: 'terms',
+            anchor: normalized
+        }
     }
 
     return null

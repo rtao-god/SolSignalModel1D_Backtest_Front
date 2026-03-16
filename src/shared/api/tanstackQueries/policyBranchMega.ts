@@ -1,5 +1,6 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
+import type { PolicyRowEvaluationMapDto } from '@/shared/types/policyEvaluation.types'
+import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
@@ -29,8 +30,10 @@ import {
 } from '@/shared/utils/reportViewCapabilities'
 
 const POLICY_BRANCH_MEGA_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega'] as const
+const POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'evaluation'] as const
 const POLICY_BRANCH_MEGA_WITH_FRESHNESS_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'with-freshness'] as const
 const { path } = API_ROUTES.backtest.policyBranchMegaGet
+const { path: evaluationPath } = API_ROUTES.backtest.policyBranchMegaEvaluationGet
 const { path: statusPath } = API_ROUTES.backtest.policyBranchMegaStatusGet
 
 export type PolicyBranchMegaFreshnessState = 'fresh' | 'stale' | 'missing' | 'unknown'
@@ -84,7 +87,14 @@ export const POLICY_BRANCH_MEGA_STALE_TIME_MS = 2 * 60 * 1000
 export const POLICY_BRANCH_MEGA_GC_TIME_MS = 15 * 60 * 1000
 export const POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
 
-function buildPolicyBranchMegaPath(args?: PolicyBranchMegaReportQueryArgs): string {
+interface PolicyBranchMegaPartPrefetchOptions {
+    queryKey: ReturnType<typeof buildPolicyBranchMegaQueryKey>
+    queryFn: () => Promise<ReportDocumentDto>
+    staleTime: number
+    gcTime: number
+}
+
+function buildPolicyBranchMegaPath(args: PolicyBranchMegaReportQueryArgs | undefined, basePath: string): string {
     const params = new URLSearchParams()
 
     if (args?.bucket) {
@@ -116,7 +126,7 @@ function buildPolicyBranchMegaPath(args?: PolicyBranchMegaReportQueryArgs): stri
     }
 
     const query = params.toString()
-    return query ? `${path}?${query}` : path
+    return query ? `${basePath}?${query}` : basePath
 }
 
 export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
@@ -130,6 +140,30 @@ export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQuery
         args?.slMode ?? null,
         args?.zonalMode ?? null
     ] as const
+}
+
+export function buildPolicyBranchMegaEvaluationQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
+    return [
+        ...POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE,
+        args?.bucket ?? null,
+        args?.bucketView ?? null,
+        args?.metric ?? null,
+        args?.part ?? null,
+        args?.tpSlMode ?? null,
+        args?.slMode ?? null,
+        args?.zonalMode ?? null
+    ] as const
+}
+
+function buildPolicyBranchMegaPartPrefetchOptions(
+    args: PolicyBranchMegaReportQueryArgs
+): PolicyBranchMegaPartPrefetchOptions {
+    return {
+        queryKey: buildPolicyBranchMegaQueryKey(args),
+        queryFn: () => fetchPolicyBranchMegaReport(args),
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS
+    }
 }
 
 function buildPolicyBranchMegaWithFreshnessQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
@@ -495,7 +529,7 @@ async function fetchPolicyBranchMegaStatusOrNull(): Promise<PolicyBranchMegaStat
 }
 
 export async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQueryArgs): Promise<ReportDocumentDto> {
-    const reportPath = buildPolicyBranchMegaPath(args)
+    const reportPath = buildPolicyBranchMegaPath(args, path)
     const resp = await fetchWithTimeout(`${API_BASE_URL}${reportPath}`, {
         cache: 'no-store',
         timeoutMs: POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS
@@ -507,7 +541,24 @@ export async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQ
     }
 
     const raw = await resp.json()
-    return mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'strict' })
+    return mapReportResponse(raw)
+}
+
+export async function fetchPolicyBranchMegaEvaluationMap(
+    args?: PolicyBranchMegaReportQueryArgs
+): Promise<PolicyRowEvaluationMapDto> {
+    const reportPath = buildPolicyBranchMegaPath(args, evaluationPath)
+    const resp = await fetchWithTimeout(`${API_BASE_URL}${reportPath}`, {
+        cache: 'no-store',
+        timeoutMs: POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS
+    })
+
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`Failed to load policy branch mega evaluation: ${resp.status} ${text}`)
+    }
+
+    return (await resp.json()) as PolicyRowEvaluationMapDto
 }
 
 async function fetchPolicyBranchMegaReportWithFreshness(
@@ -596,6 +647,54 @@ export async function prefetchPolicyBranchMegaReportWithFreshness(
         staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
         gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS
     })
+}
+
+export function usePolicyBranchMegaEvaluationQuery(
+    args: PolicyBranchMegaReportQueryArgs,
+    options?: UsePolicyBranchMegaWithFreshnessOptions
+): UseQueryResult<PolicyRowEvaluationMapDto, Error> {
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
+
+    return useQuery({
+        queryKey: buildPolicyBranchMegaEvaluationQueryKey(resolvedArgs),
+        queryFn: () => fetchPolicyBranchMegaEvaluationMap(resolvedArgs),
+        enabled: options?.enabled ?? true,
+        retry: false,
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        refetchOnWindowFocus: false
+    })
+}
+
+/**
+ * Прогревает первый payload вместе с freshness/status, затем подтягивает остальные part-срезы
+ * для текущего выбора фильтров. Нужен navigation warmup, чтобы стрелки и hash-переходы
+ * не ждали отдельный on-demand fetch после открытия mega-страницы.
+ */
+export async function prefetchPolicyBranchMegaReportParts(
+    queryClient: QueryClient,
+    args: PolicyBranchMegaReportQueryArgs
+): Promise<void> {
+    const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
+    const entryArgs = {
+        ...resolvedArgs,
+        part: resolvedArgs.part ?? 1
+    }
+    const payload = await loadPolicyBranchMegaReportWithFreshnessAndCache(queryClient, entryArgs)
+    const availableParts = payload.capabilities?.availableParts ?? []
+
+    for (const part of availableParts) {
+        if (part === entryArgs.part) {
+            continue
+        }
+
+        const partArgs = {
+            ...resolvedArgs,
+            part
+        }
+
+        await queryClient.prefetchQuery(buildPolicyBranchMegaPartPrefetchOptions(partArgs))
+    }
 }
 
 export function usePolicyBranchMegaReportNavQuery(

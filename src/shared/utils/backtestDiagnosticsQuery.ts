@@ -24,6 +24,13 @@ export interface BacktestDiagnosticsSearchSelection {
     zonalMode: PolicyBranchMegaZonalMode
 }
 
+export const DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION: BacktestDiagnosticsSearchSelection = {
+    bucket: DEFAULT_DIAGNOSTICS_BUCKET_MODE,
+    tpSlMode: DEFAULT_DIAGNOSTICS_TP_SL_MODE,
+    slMode: DEFAULT_DIAGNOSTICS_SL_MODE,
+    zonalMode: DEFAULT_DIAGNOSTICS_ZONAL_MODE
+}
+
 export function resolveBacktestDiagnosticsSearchSelection(
     searchParams: URLSearchParams
 ): BacktestDiagnosticsSearchSelection {
@@ -42,8 +49,12 @@ export function resolveBacktestDiagnosticsSearchSelection(
 export function buildBacktestDiagnosticsQueryArgsFromSearchParams(
     searchParams: URLSearchParams
 ): BacktestDiagnosticsReportQueryArgs {
-    const selection = resolveBacktestDiagnosticsSearchSelection(searchParams)
+    return buildBacktestDiagnosticsQueryArgs(resolveBacktestDiagnosticsSearchSelection(searchParams))
+}
 
+export function buildBacktestDiagnosticsQueryArgs(
+    selection: BacktestDiagnosticsSearchSelection
+): BacktestDiagnosticsReportQueryArgs {
     return {
         bucket: selection.bucket,
         tpSlMode: selection.tpSlMode,

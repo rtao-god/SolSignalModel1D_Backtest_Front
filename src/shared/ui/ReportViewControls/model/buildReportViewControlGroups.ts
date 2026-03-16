@@ -47,6 +47,7 @@ interface BuildMegaTpSlControlGroupArgs {
     label?: string
     ariaLabel?: string
     infoTooltip?: string
+    infoTooltipAppendix?: string
 }
 
 interface BuildMegaSlModeControlGroupArgs {
@@ -264,13 +265,18 @@ export function buildMegaTpSlControlGroup({
     onChange,
     label = 'Dynamic-risk режим',
     ariaLabel,
-    infoTooltip = TP_SL_MODE_DESCRIPTION
+    infoTooltip = TP_SL_MODE_DESCRIPTION,
+    infoTooltipAppendix
 }: BuildMegaTpSlControlGroupArgs): ReportViewControlGroup<PolicyBranchMegaTpSlMode> {
+    const resolvedInfoTooltip = infoTooltipAppendix
+        ? `${infoTooltip}\n\n${infoTooltipAppendix}`
+        : infoTooltip
+
     return {
         key: 'mega-tpsl',
         label,
         ariaLabel,
-        infoTooltip,
+        infoTooltip: resolvedInfoTooltip,
         value,
         options: [
             { value: 'all', label: 'ALL' },

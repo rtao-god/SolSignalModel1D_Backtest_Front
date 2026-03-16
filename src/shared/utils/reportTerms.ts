@@ -1,12 +1,13 @@
 import { resolveDiagnosticsReportCanonicalTermKey } from '@/shared/terms/reports/diagnostics'
 import { localizeReportColumnTitle } from './reportPresentationLocalization'
-import { resolveReportColumnTooltip } from './reportTooltips'
+import { resolveReportColumnTooltip, resolveReportTooltipSelfAliases } from './reportTooltips'
 
 export interface ReportTermItem {
     key: string
     title: string
     description: string
     tooltip: string
+    selfAliases?: string[]
 }
 
 interface ReportTermsSectionLike {
@@ -27,6 +28,23 @@ interface ReportTermAccumulator {
     titles: Set<string>
     description: string
     tooltip: string
+    selfAliases: Set<string>
+}
+
+export interface ReportTermReference {
+    key: string
+    title?: string
+    selfAliases?: string[]
+}
+
+interface BuildReportTermsFromReferencesParams<TReference extends ReportTermReference> {
+    references: TReference[]
+    contextTag: string
+    resolveCanonicalKey?: (reference: TReference) => string | undefined
+    resolveTitle?: (reference: TReference, canonicalKey: string) => string | undefined
+    resolveDescription: (reference: TReference, canonicalKey: string) => string | undefined
+    resolveTooltip?: (reference: TReference, canonicalKey: string) => string | undefined
+    resolveSelfAliases?: (reference: TReference, canonicalKey: string) => string[] | undefined
 }
 
 function ensureNonEmptyString(value: string | undefined, label: string, contextTag: string): string {
@@ -72,6 +90,85 @@ function buildMergedTermTitle(titles: Set<string>, preferredTitle: string): stri
     return uniqueTitles.join(' / ')
 }
 
+function normalizeNonEmptyAliases(values: string[]): string[] {
+    return Array.from(new Set(values.map(value => value.trim()).filter(value => value.length > 0)))
+}
+
+export function buildReportTermsFromReferences<TReference extends ReportTermReference>({
+    references,
+    contextTag,
+    resolveCanonicalKey,
+    resolveTitle,
+    resolveDescription,
+    resolveTooltip,
+    resolveSelfAliases
+}: BuildReportTermsFromReferencesParams<TReference>): ReportTermItem[] {
+    if (!references || !Array.isArray(references)) {
+        throw new Error(`[${contextTag}] references must be an array.`)
+    }
+
+    if (references.length === 0) {
+        return []
+    }
+
+    const termsByKey = new Map<string, ReportTermAccumulator>()
+
+    for (const reference of references) {
+        const rawKey = ensureNonEmptyString(reference.key, 'term key', contextTag)
+        const canonicalKey = ensureNonEmptyString(
+            resolveCanonicalKey ? resolveCanonicalKey(reference) : rawKey,
+            `canonical key for ${rawKey}`,
+            contextTag
+        )
+        const resolvedTitle = ensureNonEmptyString(
+            resolveTitle ? resolveTitle(reference, canonicalKey) : (reference.title ?? rawKey),
+            `title for ${canonicalKey}`,
+            contextTag
+        )
+        const existingTerm = termsByKey.get(canonicalKey)
+
+        if (existingTerm) {
+            existingTerm.titles.add(resolvedTitle)
+            normalizeNonEmptyAliases([
+                ...(reference.selfAliases ?? []),
+                ...(resolveSelfAliases?.(reference, canonicalKey) ?? [])
+            ]).forEach(alias => existingTerm.selfAliases.add(alias))
+            continue
+        }
+
+        const description = ensureNonEmptyString(
+            resolveDescription(reference, canonicalKey),
+            `description for ${canonicalKey}`,
+            contextTag
+        )
+        const tooltip = ensureNonEmptyString(
+            resolveTooltip ? resolveTooltip(reference, canonicalKey) : description,
+            `tooltip for ${canonicalKey}`,
+            contextTag
+        )
+        const selfAliases = normalizeNonEmptyAliases([
+            ...(reference.selfAliases ?? []),
+            ...(resolveSelfAliases?.(reference, canonicalKey) ?? [])
+        ])
+
+        termsByKey.set(canonicalKey, {
+            key: canonicalKey,
+            titles: new Set([resolvedTitle]),
+            description,
+            tooltip,
+            selfAliases: new Set(selfAliases)
+        })
+    }
+
+    return Array.from(termsByKey.values()).map(term => ({
+        key: term.key,
+        title: buildMergedTermTitle(term.titles, term.key),
+        description: term.description,
+        tooltip: term.tooltip,
+        selfAliases: Array.from(term.selfAliases)
+    }))
+}
+
 export function buildReportTermsFromSections<TSection extends ReportTermsSectionLike>({
     sections,
     reportKind,
@@ -89,45 +186,38 @@ export function buildReportTermsFromSections<TSection extends ReportTermsSection
         return []
     }
 
-    const termsByTitle = new Map<string, ReportTermAccumulator>()
+    return buildReportTermsFromReferences({
+        references: sections.flatMap(section => {
+            const sectionTitle = resolveSectionTitle ? resolveSectionTitle(section) : section.title
+            const columns = section.columns ?? []
 
-    for (const section of sections) {
-        const sectionTitle = resolveSectionTitle ? resolveSectionTitle(section) : section.title
-        const columns = section.columns ?? []
-
-        for (const rawColumn of columns) {
-            const column = ensureNonEmptyString(rawColumn, 'table column title', contextTag)
-            if (shouldSkipReportTermItem(kind, column)) {
-                continue
-            }
-
-            const canonicalKey = resolveReportTermCanonicalKey(kind, column)
-            const localizedTitle = localizeReportColumnTitle(kind, column, locale)
-            const existingTerm = termsByTitle.get(canonicalKey)
-
-            if (existingTerm) {
-                existingTerm.titles.add(localizedTitle)
-                continue
-            }
-
-            const tooltip = resolveReportColumnTooltip(kind, sectionTitle, column)
+            return columns
+                .map(column => ensureNonEmptyString(column, 'table column title', contextTag))
+                .filter(column => !shouldSkipReportTermItem(kind, column))
+                .map(column => ({
+                    key: column,
+                    sectionTitle
+                }))
+        }),
+        contextTag,
+        resolveCanonicalKey: reference => resolveReportTermCanonicalKey(kind, reference.key),
+        resolveTitle: reference => localizeReportColumnTitle(kind, reference.key, locale),
+        resolveDescription: reference => {
+            const tooltip = resolveReportColumnTooltip(kind, reference.sectionTitle, reference.key)
             if (!tooltip || tooltip.trim().length === 0) {
-                throw new Error(`[${contextTag}] tooltip is missing for column=${column}.`)
+                throw new Error(`[${contextTag}] tooltip is missing for column=${reference.key}.`)
             }
 
-            termsByTitle.set(canonicalKey, {
-                key: canonicalKey,
-                titles: new Set([localizedTitle]),
-                description: tooltip,
-                tooltip
-            })
-        }
-    }
+            return tooltip
+        },
+        resolveTooltip: reference => {
+            const tooltip = resolveReportColumnTooltip(kind, reference.sectionTitle, reference.key)
+            if (!tooltip || tooltip.trim().length === 0) {
+                throw new Error(`[${contextTag}] tooltip is missing for column=${reference.key}.`)
+            }
 
-    return Array.from(termsByTitle.values()).map(term => ({
-        key: term.key,
-        title: buildMergedTermTitle(term.titles, term.key),
-        description: term.description,
-        tooltip: term.tooltip
-    }))
+            return tooltip
+        },
+        resolveSelfAliases: reference => resolveReportTooltipSelfAliases(kind, reference.key)
+    })
 }

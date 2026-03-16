@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { BacktestBaselineSnapshotDto, BacktestSummaryDto } from '@/shared/types/backtest.types'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import { mapBacktestBaselineSnapshotResponse, mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 
 const BACKTEST_BASELINE_SUMMARY_URL = '/backtest/summary'
@@ -200,7 +200,8 @@ async function fetchBacktestBaselineSnapshot(): Promise<BacktestBaselineSnapshot
         throw new Error(`Failed to load backtest baseline snapshot: ${resp.status} ${text}`)
     }
 
-    return (await resp.json()) as BacktestBaselineSnapshotDto
+    const raw = await resp.json()
+    return mapBacktestBaselineSnapshotResponse(raw)
 }
 
 export function useBacktestBaselineSummaryReportQuery(): UseQueryResult<BacktestSummaryDto, Error> {

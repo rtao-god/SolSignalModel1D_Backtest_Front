@@ -26,7 +26,8 @@ export function BacktestPageHeader({
                 value: tpSlMode,
                 onChange: onTpSlModeChange,
                 label: t('backtestFull.header.tpSlSliceLabel'),
-                ariaLabel: t('backtestFull.header.tpSlSliceAria')
+                ariaLabel: t('backtestFull.header.tpSlSliceAria'),
+                infoTooltipAppendix: t('backtestFull.header.tpSlSliceHint')
             })
         ],
         [onTpSlModeChange, t, tpSlMode]
@@ -39,7 +40,6 @@ export function BacktestPageHeader({
 
             <div className={cls.tpSlModeBlock}>
                 <ReportViewControls groups={tpSlControlGroups} className={cls.tpSlControls} />
-                <Text className={cls.tpSlModeHint}>{t('backtestFull.header.tpSlSliceHint')}</Text>
             </div>
 
             {profiles.length > 0 && (

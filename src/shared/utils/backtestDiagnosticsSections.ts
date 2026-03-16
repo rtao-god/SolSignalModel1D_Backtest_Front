@@ -1,4 +1,5 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
+import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
 
 export type BacktestDiagnosticsCategory = 'ratings' | 'diagnostics' | 'dayStats' | 'unknown'
 
@@ -117,9 +118,13 @@ export function splitBacktestDiagnosticsSections(sections: TableSectionDto[]): B
 
 const MAX_TAB_LABEL = 64
 
-function trimTabLabel(title: string, index: number): string {
+function trimTabLabel(title: string, index: number, language?: string | null): string {
     const normalized = normalizeReportTitle(title)
-    const base = normalized && normalized.length > 0 ? normalized : `Секция ${index + 1}`
+    const localizedTitle =
+        normalized && normalized.length > 0 ?
+            localizeReportSectionCompactTitle('backtest_diagnostics', normalized, language)
+        :   ''
+    const base = localizedTitle && localizedTitle.length > 0 ? localizedTitle : `Секция ${index + 1}`
     if (base.length <= MAX_TAB_LABEL) {
         return base
     }
@@ -130,11 +135,14 @@ export function toDiagnosticsSectionRefs(sections: TableSectionDto[]): Diagnosti
     return sections.map((section, index) => ({ section, index }))
 }
 
-export function buildDiagnosticsTabsFromSections(sections: DiagnosticsSectionRef[]): DiagnosticsTabConfig[] {
+export function buildDiagnosticsTabsFromSections(
+    sections: DiagnosticsSectionRef[],
+    language?: string | null
+): DiagnosticsTabConfig[] {
     return sections.map(ref => {
         const id = `diag-section-${ref.index + 1}`
         const anchor = id
-        const label = trimTabLabel(ref.section.title ?? '', ref.index)
+        const label = trimTabLabel(ref.section.title ?? '', ref.index, language)
 
         return {
             id,

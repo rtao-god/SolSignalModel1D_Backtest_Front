@@ -24,7 +24,7 @@ import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
-import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
+import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
 import cls from './BacktestDiagnosticsPageLayout.module.scss'
 
 interface BacktestDiagnosticsPageLayoutProps {
@@ -193,7 +193,7 @@ export default function BacktestDiagnosticsPageLayout({
                         section.title ||
                         t('diagnosticsReport.layout.sectionFallback', { index: index + 1 })
 
-                    return localizeReportSectionTitle(report?.kind, rawTitle, reportUiLanguage)
+                    return localizeReportSectionCompactTitle(report?.kind, rawTitle, reportUiLanguage)
                 })()
             })),
         [report?.kind, reportUiLanguage, sectionsForView, t]
@@ -367,7 +367,7 @@ export default function BacktestDiagnosticsPageLayout({
                                         className={cls.sectionBlock}
                                         id={sectionDomId(index)}>
                                         <ReportTableCard
-                                            title={localizeReportSectionTitle(
+                                            title={localizeReportSectionCompactTitle(
                                                 report?.kind,
                                                 normalizeReportTitle(section.title) ||
                                                     section.title ||
@@ -381,6 +381,7 @@ export default function BacktestDiagnosticsPageLayout({
                                             }
                                             columns={section.columns ?? []}
                                             rows={section.rows ?? []}
+                                            rowEvaluations={section.rowEvaluations ?? []}
                                             domId={`${sectionDomId(index)}-table`}
                                             renderColumnTitle={title =>
                                                 // Diagnostics-колонки вроде Mode/Year меняют смысл от семейства таблицы,
@@ -415,7 +416,7 @@ export default function BacktestDiagnosticsPageLayout({
                                                 className={cls.sectionBlock}
                                                 id={sectionDomId(domIndex)}>
                                                 <ReportTableCard
-                                                    title={localizeReportSectionTitle(
+                                                    title={localizeReportSectionCompactTitle(
                                                         report?.kind,
                                                         normalizeReportTitle(section.title) ||
                                                             section.title ||
@@ -430,6 +431,7 @@ export default function BacktestDiagnosticsPageLayout({
                                                     }
                                                     columns={section.columns ?? []}
                                                     rows={section.rows ?? []}
+                                                    rowEvaluations={section.rowEvaluations ?? []}
                                                     domId={`${sectionDomId(domIndex)}-table`}
                                                     renderColumnTitle={title =>
                                                         // Общие diagnostics-секции используют тот же section-aware tooltip-контракт,

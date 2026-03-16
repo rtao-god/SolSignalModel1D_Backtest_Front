@@ -1,5 +1,5 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { mapReportResponseWithOptions } from '../utils/mapReportResponse'
+import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
@@ -31,12 +31,14 @@ interface BacktestDiagnosticsQueryOptions {
     scope?: BacktestDiagnosticsQueryScope
 }
 
-export interface BacktestDiagnosticsReportQueryArgs {
+export interface BacktestSliceReportQueryArgs {
     bucket?: string | null
     tpSlMode?: string | null
     slMode?: string | null
     zonalMode?: string | null
 }
+
+export type BacktestDiagnosticsReportQueryArgs = BacktestSliceReportQueryArgs
 
 interface ApiErrorPayload {
     error?: string
@@ -115,7 +117,7 @@ async function fetchBacktestDiagnosticsReport(args?: BacktestDiagnosticsReportQu
     }
 
     const raw = await resp.json()
-    return mapReportResponseWithOptions(raw, { policyBranchMegaMetadataMode: 'report-agnostic' })
+    return mapReportResponse(raw)
 }
 
 function useBacktestDiagnosticsQuery(

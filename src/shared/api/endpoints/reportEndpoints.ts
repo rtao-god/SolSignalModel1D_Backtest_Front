@@ -1,13 +1,34 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSummaryDto, BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
 import { normalizeCurrentPredictionDateUtc } from '@/shared/utils/currentPredictionDate'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import { mapBacktestBaselineSnapshotResponse, mapReportResponse } from '../utils/mapReportResponse'
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
 export interface CurrentPredictionIndexItemDto {
     id: string
     predictionDateUtc: string
+}
+export interface CurrentPredictionHistoryPageItemDto {
+    id: string
+    predictionDateUtc: string
+    report: ReportDocumentDto
+}
+export interface CurrentPredictionHistoryPageDto {
+    page: number
+    pageSize: number
+    totalPages: number
+    totalBuiltReports: number
+    filteredReports: number
+    hasPrevPage: boolean
+    hasNextPage: boolean
+    earliestBuiltPredictionDateUtc: string
+    latestBuiltPredictionDateUtc: string
+    missingBuiltWeekdays: number
+    expectedBuiltWeekdays: number
+    missingBuiltFromDateUtc: string
+    missingBuiltToDateUtc: string
+    items: CurrentPredictionHistoryPageItemDto[]
 }
 export type CurrentPredictionSet = 'live' | 'backfilled'
 export type CurrentPredictionTrainingScope = 'train' | 'full' | 'oos' | 'recent'
@@ -134,7 +155,8 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
             query: () => ({
                 url: baselineSnapshotGet.path,
                 method: baselineSnapshotGet.method
-            })
+            }),
+            transformResponse: mapBacktestBaselineSnapshotResponse
         }),
         getBacktestDiagnosticsReport: builder.query<ReportDocumentDto, void>({
             query: () => ({

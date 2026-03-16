@@ -40,9 +40,17 @@ interface ReportDocumentViewProps {
     report: ReportDocumentDto
     freshness: ReportDocumentFreshnessInfo
     className?: string
+    showTableTermsBlock?: boolean
+    sectionDomIdPrefix?: string
 }
 
-export function ReportDocumentView({ report, freshness, className }: ReportDocumentViewProps) {
+export function ReportDocumentView({
+    report,
+    freshness,
+    className,
+    showTableTermsBlock = true,
+    sectionDomIdPrefix
+}: ReportDocumentViewProps) {
     const { i18n } = useTranslation()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
@@ -76,11 +84,14 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
     }, [])
 
     const tableSections = useMemo(
-        () => report.sections.filter(section => isTableSection(section)) as TableSectionDto[],
-        [report.sections]
+        () =>
+            showTableTermsBlock ?
+                (report.sections.filter(section => isTableSection(section)) as TableSectionDto[])
+            :   ([] as TableSectionDto[]),
+        [report.sections, showTableTermsBlock]
     )
     const termsState = useMemo(() => {
-        if (tableSections.length === 0) {
+        if (!showTableTermsBlock || tableSections.length === 0) {
             return {
                 terms: [] as ReportTermItem[],
                 error: null as Error | null
@@ -106,7 +117,7 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
                 error: safeError
             }
         }
-    }, [report.kind, reportUiLanguage, tableSections])
+    }, [report.kind, reportUiLanguage, showTableTermsBlock, tableSections])
 
     if (generatedAtState.error) {
         return (
@@ -114,19 +125,6 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
                 title='Report has invalid generatedAtUtc'
                 message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчёта.'
                 error={generatedAtState.error}
-            />
-        )
-    }
-
-    if (sourceEndpointState.error || !sourceEndpointState.value) {
-        return (
-            <PageError
-                title='Report source is invalid'
-                message='API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET.'
-                error={
-                    sourceEndpointState.error ??
-                    new Error('[report-document-view] report source endpoint is missing after validation.')
-                }
             />
         )
     }
@@ -142,7 +140,7 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
     }
 
     const hasSections = Array.isArray(report.sections) && report.sections.length > 0
-    const hasTableSections = tableSections.length > 0
+    const hasTableSections = showTableTermsBlock && tableSections.length > 0
     const localizedReportTitle = localizeReportDocumentTitle(report.kind, report.title, reportUiLanguage)
 
     return (
@@ -155,18 +153,20 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
                     <span className={cls.kindTag}>{report.kind}</span>
                 </div>
 
-                <ReportActualStatusCard
-                    statusMode={freshness.statusMode}
-                    statusTitle={freshness.statusTitle}
-                    statusMessage={freshness.statusMessage}
-                    statusLagMinutes={freshness.statusLagMinutes ?? null}
-                    dataSource={sourceEndpointState.value}
-                    reportTitle={report.title}
-                    reportId={report.id}
-                    reportKind={report.kind}
-                    generatedAtUtc={report.generatedAtUtc}
-                    statusLines={freshness.statusLines}
-                />
+                {sourceEndpointState.value && (
+                    <ReportActualStatusCard
+                        statusMode={freshness.statusMode}
+                        statusTitle={freshness.statusTitle}
+                        statusMessage={freshness.statusMessage}
+                        statusLagMinutes={freshness.statusLagMinutes ?? null}
+                        dataSource={sourceEndpointState.value}
+                        reportTitle={report.title}
+                        reportId={report.id}
+                        reportKind={report.kind}
+                        generatedAtUtc={report.generatedAtUtc}
+                        statusLines={freshness.statusLines}
+                    />
+                )}
             </header>
 
             <div className={cls.sections}>
@@ -183,7 +183,12 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
 
                 {hasSections ?
                     report.sections.map((section, index) => (
-                        <SectionRenderer key={index} section={section} reportKind={report.kind} />
+                        <SectionRenderer
+                            key={index}
+                            section={section}
+                            reportKind={report.kind}
+                            sectionDomId={sectionDomIdPrefix ? `${sectionDomIdPrefix}-section-${index}` : undefined}
+                        />
                     ))
                 :   <Text>Нет секций отчёта для отображения.</Text>}
             </div>
@@ -194,6 +199,7 @@ export function ReportDocumentView({ report, freshness, className }: ReportDocum
 interface SectionRendererProps {
     section: ReportSectionDto
     reportKind?: string
+    sectionDomId?: string
 }
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
     return Array.isArray((section as KeyValueSectionDto).items)
@@ -210,6 +216,8 @@ function detectDirection(value: unknown): DirectionKind | null {
         return null
     }
 
+    // Карточки отчёта приходят уже с пользовательскими подписями, поэтому направление
+    // распознаётся по видимому тексту, а не по одному фиксированному backend-токену.
     const v = String(value).toLowerCase()
 
     if (v.includes('long') || v.includes('лонг') || v.includes('bull') || v.includes('рост')) {
@@ -226,7 +234,7 @@ function detectDirection(value: unknown): DirectionKind | null {
         return 'short'
     }
 
-    if (v.includes('flat') || v.includes('флэт') || v.includes('боковик') || v.includes('sideways')) {
+    if (v.includes('flat') || v.includes('боковик') || v.includes('sideways')) {
         return 'flat'
     }
 
@@ -241,7 +249,7 @@ function normalizeReportTitle(title: string | undefined): string {
         .trim()
 }
 
-function SectionRenderer({ section, reportKind }: SectionRendererProps) {
+function SectionRenderer({ section, reportKind, sectionDomId }: SectionRendererProps) {
     const { i18n } = useTranslation()
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
@@ -252,7 +260,7 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
         const visibleTitle = localizeReportSectionTitle(reportKind, rawVisibleTitle, i18n.language)
         const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, kv.title)
         return (
-            <section className={cls.section}>
+            <section id={sectionDomId} className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h2' className={cls.sectionTitle}>
                         {visibleTitle}
@@ -306,7 +314,7 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '')
-        const domId = `report-${safeTitle || 'table'}`
+        const domId = sectionDomId ?? `report-${safeTitle || 'table'}`
 
         const renderColumnTitle = (title: string) => {
             const tooltip = resolveReportColumnTooltip(reportKind, rawVisibleTitle, title)
@@ -326,6 +334,7 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
                     description={resolvedDescription ?? undefined}
                     columns={localizedColumns}
                     rows={rows}
+                    rowEvaluations={tbl.rowEvaluations ?? []}
                     domId={domId}
                     renderColumnTitle={renderColumnTitle}
                 />
@@ -334,7 +343,7 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
     }
 
     return (
-        <section className={cls.section}>
+        <section id={sectionDomId} className={cls.section}>
             <pre className={cls.jsonDump}>{JSON.stringify(section, null, 2)}</pre>
         </section>
     )

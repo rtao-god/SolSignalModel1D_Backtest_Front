@@ -28,12 +28,20 @@
     max-width: 720px;
 }
 
-.rowPositive {
-    background-color: rgba(16, 185, 129, 0.08);
+.rowGood {
+    background-color: rgba(34, 197, 94, 0.1);
 }
 
-.rowNegative {
-    background-color: rgba(239, 68, 68, 0.08);
+.rowCaution {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.rowBad {
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
+.rowUnknown {
+    background-color: rgba(56, 189, 248, 0.08);
 }
 
 .cellPositive {

@@ -1,10 +1,11 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react'
+import { CSSProperties, memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text } from '@/shared/ui'
+import { Text } from '@/shared/ui/Text'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import classNames from '@/shared/lib/helpers/classNames'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import cls from './ReportTableCard.module.scss'
 import {
     SortableTable,
@@ -23,21 +24,15 @@ interface ReportTableCardProps {
     domId: string
     className?: string
     tableDensity?: TableDensity
+    virtualizeRows?: boolean
+    tableMaxHeight?: CSSProperties['maxHeight']
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
+    rowEvaluations?: Array<PolicyEvaluationDto | null>
+    rowEvaluationMap?: Record<string, PolicyEvaluationDto>
+    getRowKey?: (row: TableRow, rowIndex: number) => string | null
+    renderCellOverride?: (value: unknown, rowIndex: number, colIdx: number, columnTitle: string) => ReactNode | null
 }
-const PROFIT_COLUMN_PRIORITY: RegExp[] = [
-    /totalpnl%|total%|netreturnpct|netreturn%|pnl%|return%/i,
-    /netpnlusd|total\$|pnl\$|profit|pnl/i
-]
-function resolveProfitColumnIndex(columns: string[]): number | null {
-    for (const re of PROFIT_COLUMN_PRIORITY) {
-        const idx = columns.findIndex(col => re.test(col))
-        if (idx >= 0) {
-            return idx
-        }
-    }
-    return null
-}
+const EMPTY_TABLE_ROWS: TableRow[] = []
 function parseNumericCell(value: unknown): number | null {
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : null
@@ -48,7 +43,57 @@ function parseNumericCell(value: unknown): number | null {
     return null
 }
 
-export default function ReportTableCard({
+function resolveEvaluationRowClass(evaluation: PolicyEvaluationDto | undefined): string | undefined {
+    if (!evaluation) {
+        return undefined
+    }
+
+    if (evaluation.status === 'good') return cls.rowGood
+    if (evaluation.status === 'caution') return cls.rowCaution
+    if (evaluation.status === 'bad') return cls.rowBad
+    if (evaluation.status === 'unknown') return cls.rowUnknown
+
+    return undefined
+}
+
+function resolveEvaluationRowTitle(evaluation: PolicyEvaluationDto | undefined): string | undefined {
+    if (!evaluation) {
+        return undefined
+    }
+
+    const reasons = evaluation.reasons?.map(reason => reason.message).filter(Boolean) ?? []
+    if (reasons.length === 0) {
+        return evaluation.status
+    }
+
+    return `${evaluation.status}: ${reasons.join(' | ')}`
+}
+
+function shouldRenderTermRichText(value: string): boolean {
+    return value.includes('[[') || /EOD|EndOfDay/i.test(value)
+}
+
+function resolveExplicitEvaluation(
+    row: TableRow,
+    rowIndex: number,
+    rowEvaluations: Array<PolicyEvaluationDto | null> | undefined,
+    rowEvaluationMap: Record<string, PolicyEvaluationDto> | undefined,
+    getRowKey: ((row: TableRow, rowIndex: number) => string | null) | undefined
+): PolicyEvaluationDto | undefined {
+    const directEvaluation = rowEvaluations?.[rowIndex] ?? undefined
+    if (directEvaluation) {
+        return directEvaluation
+    }
+
+    if (!rowEvaluationMap || !getRowKey) {
+        return undefined
+    }
+
+    const rowKey = getRowKey(row, rowIndex)
+    return rowKey ? rowEvaluationMap[rowKey] : undefined
+}
+
+function ReportTableCard({
     title,
     description,
     columns,
@@ -56,50 +101,25 @@ export default function ReportTableCard({
     domId,
     className,
     tableDensity = 'dense',
-    renderColumnTitle
+    virtualizeRows = false,
+    tableMaxHeight,
+    renderColumnTitle,
+    rowEvaluations,
+    rowEvaluationMap,
+    getRowKey,
+    renderCellOverride
 }: ReportTableCardProps) {
     const { i18n } = useTranslation()
-    const [sortedRows, setSortedRows] = useState<TableRow[]>([])
-    const localizedRows = useMemo(() => {
-        const stopReasonIdx = columns.indexOf('StopReason')
-        if (stopReasonIdx < 0 || !rows || rows.length === 0) {
-            return rows
-        }
-
-        let hasLocalizedRows = false
-        const nextRows = rows.map(row => {
-            if (!Array.isArray(row) || row.length <= stopReasonIdx) {
-                return row
-            }
-
-            const rawValue = row[stopReasonIdx]
-            if (typeof rawValue !== 'string' || !rawValue.trim()) {
-                return row
-            }
-
-            const localizedValue = localizeReportCellValue('StopReason', rawValue, i18n.language)
-            if (localizedValue === rawValue) {
-                return row
-            }
-
-            hasLocalizedRows = true
-            const nextRow = [...row]
-            nextRow[stopReasonIdx] = localizedValue
-            return nextRow
-        })
-
-        return hasLocalizedRows ? nextRows : rows
-    }, [columns, rows, i18n.language])
+    const sourceRows = rows ?? EMPTY_TABLE_ROWS
+    const [sortedRows, setSortedRows] = useState<TableRow[]>(() => sourceRows)
 
     useEffect(() => {
-        setSortedRows(localizedRows ?? [])
-    }, [localizedRows])
-
-    const profitColIdx = useMemo(() => resolveProfitColumnIndex(columns), [columns])
+        setSortedRows(prevRows => (prevRows === sourceRows ? prevRows : sourceRows))
+    }, [sourceRows])
 
     const exportColumns = columns
 
-    const rowsForExport = sortedRows.length > 0 ? sortedRows : localizedRows
+    const rowsForExport = sortedRows.length > 0 ? sortedRows : sourceRows
 
     const exportRows = useMemo(
         () =>
@@ -107,18 +127,39 @@ export default function ReportTableCard({
         [rowsForExport, exportColumns]
     )
 
-    const getRowClassName = (row: TableRow): string | undefined => {
-        if (profitColIdx === null) {
-            return undefined
-        }
-        const raw = getCellValue(row, profitColIdx)
-        const num = parseNumericCell(raw)
-        if (num === null) {
-            return undefined
-        }
-        if (num > 0) return cls.rowPositive
-        if (num < 0) return cls.rowNegative
-        return undefined
+    const renderLocalizedCell = useCallback(
+        (value: unknown, rowIndex: number, colIdx: number) => {
+            const columnTitle = columns[colIdx] ?? ''
+
+            if (renderCellOverride) {
+                const override = renderCellOverride(value, rowIndex, colIdx, columnTitle)
+                if (override !== null && override !== undefined) {
+                    return override
+                }
+            }
+
+            if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+                return toExportCell(value) as any
+            }
+
+            const localizedValue = localizeReportCellValue(columnTitle, String(value), i18n.language)
+            if (typeof localizedValue === 'string' && shouldRenderTermRichText(localizedValue)) {
+                return renderTermTooltipRichText(localizedValue)
+            }
+
+            return localizedValue
+        },
+        [columns, i18n.language, renderCellOverride]
+    )
+
+    const getRowClassName = (row: TableRow, rowIndex: number): string | undefined => {
+        const explicitEvaluation = resolveExplicitEvaluation(row, rowIndex, rowEvaluations, rowEvaluationMap, getRowKey)
+        return resolveEvaluationRowClass(explicitEvaluation)
+    }
+
+    const getRowTitle = (row: TableRow, rowIndex: number): string | undefined => {
+        const explicitEvaluation = resolveExplicitEvaluation(row, rowIndex, rowEvaluations, rowEvaluationMap, getRowKey)
+        return resolveEvaluationRowTitle(explicitEvaluation)
     }
 
     const getCellClassName = (value: unknown): string | undefined => {
@@ -159,14 +200,20 @@ export default function ReportTableCard({
 
             <SortableTable
                 columns={columns}
-                rows={localizedRows}
+                rows={sourceRows}
                 density={tableDensity}
+                virtualizeRows={virtualizeRows}
+                maxBodyHeight={tableMaxHeight}
                 storageKey={`report.sort.${domId}`}
                 getRowClassName={getRowClassName}
+                getRowTitle={getRowTitle}
                 getCellClassName={getCellClassName}
+                renderCell={renderLocalizedCell}
                 onSortedRowsChange={setSortedRows}
                 renderColumnTitle={renderColumnTitle}
             />
         </section>
     )
 }
+
+export default memo(ReportTableCard)

@@ -47,10 +47,14 @@ export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
         }
     }
 
-    const parseIntSafe = (key: string): number => {
+    const parseIntStrict = (key: string): number => {
         const raw = map.get(key)
         const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN
-        return Number.isFinite(parsed) ? parsed : 0
+        if (Number.isFinite(parsed)) {
+            return parsed
+        }
+
+        throw new Error(`[model-stats] invalid global meta integer: ${key}='${raw ?? '<missing>'}'.`)
     }
 
     const parseBoolSafe = (key: string): boolean => {
@@ -61,11 +65,11 @@ export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
     return {
         runKind: map.get('RunKind') ?? '',
         hasOos: parseBoolSafe('HasOos'),
-        trainRecordsCount: parseIntSafe('TrainRecordsCount'),
-        oosRecordsCount: parseIntSafe('OosRecordsCount'),
-        totalRecordsCount: parseIntSafe('TotalRecordsCount'),
-        recentDays: parseIntSafe('RecentDays'),
-        recentRecordsCount: parseIntSafe('RecentRecordsCount')
+        trainRecordsCount: parseIntStrict('TrainRecordsCount'),
+        oosRecordsCount: parseIntStrict('OosRecordsCount'),
+        totalRecordsCount: parseIntStrict('TotalRecordsCount'),
+        recentDays: parseIntStrict('RecentDays'),
+        recentRecordsCount: parseIntStrict('RecentRecordsCount')
     }
 }
 

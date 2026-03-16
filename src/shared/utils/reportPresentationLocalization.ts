@@ -1,4 +1,5 @@
 type ReportUiLocale = 'ru' | 'en'
+type DiagnosticsSectionTitleVariant = 'full' | 'compact'
 
 function resolveReportUiLocale(language: string | null | undefined): ReportUiLocale {
     const normalized = (language ?? '').trim().toLowerCase()
@@ -76,6 +77,25 @@ const BACKTEST_EXECUTION_PIPELINE_SECTION_TITLE_RU: Record<string, string> = {
     'Aggregation Level': 'Итог по стратегии'
 }
 
+const DIAGNOSTICS_SCOPE_TOKENS = new Set([
+    'best',
+    'worst',
+    'all sl',
+    'with sl',
+    'no sl',
+    'all history',
+    'all buckets together',
+    'daily bucket',
+    'intraday bucket',
+    'delayed bucket',
+    'with zonal',
+    'without zonal',
+    'by year',
+    'causal',
+    'summary',
+    'specificity'
+])
+
 function normalizeDiagnosticsSuffixItem(item: string): string {
     const normalized = normalizeValue(item).toLowerCase()
     const exactMap: Record<string, string> = {
@@ -85,7 +105,16 @@ function normalizeDiagnosticsSuffixItem(item: string): string {
         'all buckets together': 'все бакеты вместе',
         'all history': 'вся история',
         'with sl': 'WITH SL',
-        'no sl': 'NO SL'
+        'no sl': 'NO SL',
+        'daily bucket': 'daily',
+        'intraday bucket': 'intraday',
+        'delayed bucket': 'delayed',
+        'with zonal': 'с зональным риском',
+        'without zonal': 'без зонального риска',
+        'by year': 'по годам',
+        causal: 'causal',
+        summary: 'summary',
+        specificity: 'specificity'
     }
 
     return exactMap[normalized] ?? normalizeValue(item)
@@ -138,6 +167,245 @@ function localizeDiagnosticsRatingsTitleForRu(rawTitle: string): string | null {
     return null
 }
 
+function splitDiagnosticsScopeItems(rawScope: string | undefined): string[] {
+    const scope = normalizeValue(rawScope)
+    if (!scope) {
+        return []
+    }
+
+    return scope
+        .split(',')
+        .map(item => normalizeValue(item))
+        .filter(Boolean)
+}
+
+function resolveDiagnosticsBestWorst(rawScope: string | undefined): 'best' | 'worst' | null {
+    const scopeItems = splitDiagnosticsScopeItems(rawScope).map(item => item.toLowerCase())
+    if (scopeItems.includes('best')) {
+        return 'best'
+    }
+    if (scopeItems.includes('worst')) {
+        return 'worst'
+    }
+
+    return null
+}
+
+function resolveCompactBestWorstLabel(rawScope: string | undefined, baseLabel: string): string {
+    const variant = resolveDiagnosticsBestWorst(rawScope)
+    if (variant === 'best') {
+        return `Лучшие ${baseLabel}`
+    }
+    if (variant === 'worst') {
+        return `Худшие ${baseLabel}`
+    }
+
+    return baseLabel
+}
+
+function resolveDiagnosticsBranchLabel(rawTitle: string): string | null {
+    const match = rawTitle.match(/\((.+)\)\s*$/)
+    if (!match) {
+        return null
+    }
+
+    const [firstItem] = splitDiagnosticsScopeItems(match[1])
+    if (!firstItem) {
+        return null
+    }
+
+    return DIAGNOSTICS_SCOPE_TOKENS.has(firstItem.toLowerCase()) ? null : firstItem
+}
+
+function localizeBacktestDiagnosticsCompactTitleForRu(rawTitle: string): string {
+    const normalized = normalizeValue(rawTitle)
+    if (!normalized) {
+        return rawTitle
+    }
+
+    const capitalTradesMatch = normalized.match(/^Top\s+\d+\s+trades\s+by\s+CapitalDeltaUsd(?:\s*\((.+)\))?$/i)
+    if (capitalTradesMatch) {
+        return resolveCompactBestWorstLabel(capitalTradesMatch[1], 'сделки по изменению капитала, $')
+    }
+
+    const netPnlTradesMatch = normalized.match(/^Top\s+\d+\s+trades\s+by\s+NetPnlUsd(?:\s*\((.+)\))?$/i)
+    if (netPnlTradesMatch) {
+        return resolveCompactBestWorstLabel(netPnlTradesMatch[1], 'сделки по чистому результату, $')
+    }
+
+    const netReturnTradesMatch = normalized.match(/^Top\s+\d+\s+trades\s+by\s+NetReturnPct(?:\s*\((.+)\))?$/i)
+    if (netReturnTradesMatch) {
+        return resolveCompactBestWorstLabel(netReturnTradesMatch[1], 'сделки по доходности, %')
+    }
+
+    const tradeDaysMatch = normalized.match(/^Top\s+Trade\s+Days\s+\((BEST|WORST)(?:,\s*(.+))?\)$/i)
+    if (tradeDaysMatch) {
+        return tradeDaysMatch[1].toLowerCase() === 'best' ? 'Лучшие дни по сделкам' : 'Худшие дни по сделкам'
+    }
+
+    if (/^Equity\/DD Summary/i.test(normalized)) {
+        return 'Капитал и просадка'
+    }
+
+    if (/^Policy Branch RiskDay/i.test(normalized)) {
+        return 'Риск-дни по policy / branch'
+    }
+
+    if (/^Policy Leverage\/Cap Quantiles/i.test(normalized)) {
+        return 'Плечо и доля капитала'
+    }
+
+    if (/^Policy Commission \/ Leverage Sanity/i.test(normalized)) {
+        return 'Комиссии и плечо'
+    }
+
+    if (/^Liquidation Summary/i.test(normalized)) {
+        return 'Ликвидации'
+    }
+
+    if (/^Liquidation Distance/i.test(normalized)) {
+        return 'Запас до ликвидации'
+    }
+
+    if (/^Trade Duration \/ MAE \/ MFE/i.test(normalized)) {
+        return 'Длительность и путь цены'
+    }
+
+    if (/^Policy PnL by DayType/i.test(normalized)) {
+        return 'Результат по типу дня'
+    }
+
+    if (/^Policy WinRate by DayType/i.test(normalized)) {
+        return 'Успешность по типу дня'
+    }
+
+    if (/^Policy Drawdown <70% Details/i.test(normalized)) {
+        return 'Просадки ниже 70%'
+    }
+
+    if (/^Policy NoTrade\/Opportunity by DayType/i.test(normalized)) {
+        return 'Дни без сделки и упущенные входы'
+    }
+
+    if (/^Policy Opposite-Direction by DayType/i.test(normalized)) {
+        return 'Сделки против рынка по типу дня'
+    }
+
+    if (/^Policy Opposite-Direction/i.test(normalized)) {
+        return 'Сделки против рынка'
+    }
+
+    if (/^Policy NoTrade by Weekday/i.test(normalized)) {
+        return 'Дни без сделки по дням недели'
+    }
+
+    if (/^Policy NoTrade Reasons/i.test(normalized)) {
+        return 'Причины дней без сделки'
+    }
+
+    if (/^Daily misses/i.test(normalized)) {
+        return 'Дни с пропущенными сделками'
+    }
+
+    if (/^Policy Specificity Split/i.test(normalized)) {
+        return 'Specificity по policy'
+    }
+
+    if (/^Guardrail Confusion/i.test(normalized)) {
+        if (/BY YEAR/i.test(normalized)) {
+            return 'Guardrail по годам'
+        }
+        return 'Ошибки guardrail'
+    }
+
+    if (/^Guardrail Skips/i.test(normalized)) {
+        return 'Причины блокировки guardrail'
+    }
+
+    if (/^Policy NoTrade Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ? `Зоны без сделки: ${branchLabel}` : 'Зоны без сделки'
+    }
+
+    if (/^Policy Opposite Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ? `Зоны входа против рынка: ${branchLabel}` : 'Зоны входа против рынка'
+    }
+
+    if (/^Policy Low-Coverage Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ? `Зоны низкого покрытия: ${branchLabel}` : 'Зоны низкого покрытия'
+    }
+
+    if (/^Decision Attribution/i.test(normalized)) {
+        return 'Разбор решений'
+    }
+
+    if (/^Model vs Policy Blame Split/i.test(normalized)) {
+        return 'Модель или policy'
+    }
+
+    if (/^Top Decision Days/i.test(normalized)) {
+        if (/Opposite Harm/i.test(normalized)) {
+            return 'Дни с вредом от входа против рынка'
+        }
+        if (/Missed Opportunity/i.test(normalized)) {
+            return 'Дни с упущенной возможностью'
+        }
+        return 'Ключевые дни решений'
+    }
+
+    if (/^Policy Branch Split \(Train\/Out-of-sample/i.test(normalized)) {
+        return 'Policy по Train / OOS'
+    }
+
+    if (/^RiskDays: BASE vs ANTI-D/i.test(normalized)) {
+        return 'Риск-дни: BASE vs ANTI-D'
+    }
+
+    if (/^spot_conf_cap: RiskDay & MinMove by Year/i.test(normalized)) {
+        return 'spot_conf_cap: риск-дни и MinMove по годам'
+    }
+
+    if (/^spot_conf_cap: RiskDay & MinMove/i.test(normalized)) {
+        return 'spot_conf_cap: риск-дни и MinMove'
+    }
+
+    if (/^Market DayType Distribution/i.test(normalized)) {
+        return 'Типы рыночных дней'
+    }
+
+    if (/^Specificity Global Thresholds/i.test(normalized)) {
+        return 'Specificity по общим порогам'
+    }
+
+    if (/^Specificity Rolling Guardrail \(BY YEAR,\s*CAUSAL\)/i.test(normalized)) {
+        return 'Specificity по годам (causal)'
+    }
+
+    if (/^Specificity Rolling Guardrail \(BY YEAR\)/i.test(normalized)) {
+        return 'Specificity по годам'
+    }
+
+    if (/^Specificity Rolling Guardrail/i.test(normalized)) {
+        return 'Specificity по rolling guardrail'
+    }
+
+    if (/^SL Risk Days/i.test(normalized)) {
+        return 'SL-риск по дням'
+    }
+
+    if (/^Data Integrity \(Record Days\)/i.test(normalized)) {
+        return 'Покрытие торговых дней'
+    }
+
+    if (/^Missing Weekday Details/i.test(normalized)) {
+        return 'Пропуски по дням недели'
+    }
+
+    return localizeBacktestDiagnosticsSectionTitleForRu(rawTitle)
+}
+
 function localizeBacktestDiagnosticsSectionTitleForRu(rawTitle: string): string {
     const normalized = normalizeValue(rawTitle)
     if (!normalized) {
@@ -149,7 +417,81 @@ function localizeBacktestDiagnosticsSectionTitleForRu(rawTitle: string): string 
         return localizedRatingsTitle
     }
 
+    if (/^Policy Drawdown <70% Details/i.test(normalized)) {
+        return 'Детали просадок ниже 70%'
+    }
+
+    if (/^Daily misses/i.test(normalized)) {
+        return 'Пропущенные сделки по дням'
+    }
+
+    if (/^Guardrail Skips/i.test(normalized)) {
+        return 'Причины блокировки guardrail'
+    }
+
+    if (/^Guardrail Confusion/i.test(normalized)) {
+        return /BY YEAR/i.test(normalized) ? 'Ошибки и срабатывания guardrail по годам' : 'Ошибки и срабатывания guardrail'
+    }
+
+    if (/^Specificity Rolling Guardrail \(BY YEAR,\s*CAUSAL\)/i.test(normalized)) {
+        return 'Specificity по rolling guardrail (по годам, causal)'
+    }
+
+    if (/^Specificity Rolling Guardrail \(BY YEAR\)/i.test(normalized)) {
+        return 'Specificity по rolling guardrail (по годам)'
+    }
+
+    if (/^Policy NoTrade Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ? `Проблемные зоны без сделки (${branchLabel})` : 'Проблемные зоны без сделки'
+    }
+
+    if (/^Policy Opposite Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ?
+                `Проблемные зоны входа против рынка (${branchLabel})`
+            :   'Проблемные зоны входа против рынка'
+    }
+
+    if (/^Policy Low-Coverage Hotspots/i.test(normalized)) {
+        const branchLabel = resolveDiagnosticsBranchLabel(normalized)
+        return branchLabel ?
+                `Проблемные зоны низкого покрытия (${branchLabel})`
+            :   'Проблемные зоны низкого покрытия'
+    }
+
+    if (/^Policy Branch Split \(Train\/Out-of-sample/i.test(normalized)) {
+        return 'Разделение policy по Train / OOS'
+    }
+
+    if (/^RiskDays: BASE vs ANTI-D/i.test(normalized)) {
+        return 'Сравнение риск-дней BASE и ANTI-D'
+    }
+
+    if (/^spot_conf_cap: RiskDay & MinMove by Year/i.test(normalized)) {
+        return 'spot_conf_cap: риск-дни и MinMove по годам'
+    }
+
+    if (/^spot_conf_cap: RiskDay & MinMove/i.test(normalized)) {
+        return 'spot_conf_cap: риск-дни и MinMove'
+    }
+
+    if (/^Missing Weekday Details/i.test(normalized)) {
+        return 'Пропуски по дням недели'
+    }
+
     return BACKTEST_DIAGNOSTICS_SECTION_TITLE_RU[normalized] ?? rawTitle
+}
+
+function localizeBacktestDiagnosticsSectionTitleForRuWithVariant(
+    rawTitle: string,
+    variant: DiagnosticsSectionTitleVariant
+): string {
+    if (variant === 'compact') {
+        return localizeBacktestDiagnosticsCompactTitleForRu(rawTitle)
+    }
+
+    return localizeBacktestDiagnosticsSectionTitleForRu(rawTitle)
 }
 
 const CURRENT_PREDICTION_SECTION_TITLE_RU: Record<string, string> = {
@@ -222,6 +564,8 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Why it differs': 'Почему отличается',
     'Key explain/PFI factor': 'Ключевой фактор слоя пояснений / PFI',
     'Return to close, %': 'Доходность к закрытию, %',
+    'Actual 24h max price': 'Максимальная цена за торговый день (факт)',
+    'Actual 24h min price': 'Минимальная цена за торговый день (факт)',
     '24h max from entry, %': 'Максимум за 24ч от входа, %',
     '24h min from entry, %': 'Минимум за 24ч от входа, %',
     '24h high-low range, %': 'Диапазон high-low за 24ч, %',
@@ -564,7 +908,7 @@ export function localizeReportSectionTitle(
     }
 
     if (reportKind === 'backtest_diagnostics') {
-        return localizeBacktestDiagnosticsSectionTitleForRu(rawTitle)
+        return localizeBacktestDiagnosticsSectionTitleForRuWithVariant(rawTitle, 'full')
     }
 
     if (reportKind === 'backtest_execution_pipeline') {
@@ -572,6 +916,34 @@ export function localizeReportSectionTitle(
     }
 
     return rawTitle
+}
+
+/**
+ * Короткое пользовательское имя секции для навигации и compact-контролов.
+ * Убирает технические хвосты slice-фильтров там, где контекст уже выбран глобальными кнопками.
+ */
+export function localizeReportSectionCompactTitle(
+    reportKind: string | undefined,
+    rawTitle: string,
+    language: string | null | undefined
+): string {
+    if (resolveReportUiLocale(language) !== 'ru') {
+        return rawTitle
+    }
+
+    if (reportKind?.startsWith('current_prediction')) {
+        return CURRENT_PREDICTION_SECTION_TITLE_RU[rawTitle] ?? rawTitle
+    }
+
+    if (reportKind === 'backtest_diagnostics') {
+        return localizeBacktestDiagnosticsSectionTitleForRuWithVariant(rawTitle, 'compact')
+    }
+
+    if (reportKind === 'backtest_execution_pipeline') {
+        return BACKTEST_EXECUTION_PIPELINE_SECTION_TITLE_RU[rawTitle] ?? rawTitle
+    }
+
+    return localizeReportSectionTitle(reportKind, rawTitle, language)
 }
 
 export function localizeReportKeyLabel(

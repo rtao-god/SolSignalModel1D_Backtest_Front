@@ -3,6 +3,7 @@ import { resolveCommonReportColumnTooltipOrNull, type CommonReportTooltipLocale 
 export const DIAGNOSTICS_SHARED_TERM_KEYS = Object.freeze([
     'Policy',
     'Branch',
+    'Bucket',
     'Long%',
     'Short%',
     'NoTrade%',

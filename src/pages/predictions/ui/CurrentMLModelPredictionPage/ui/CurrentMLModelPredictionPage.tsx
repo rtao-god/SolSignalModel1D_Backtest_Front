@@ -11,7 +11,10 @@ import {
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import {
     ReportViewControls,
+    ReportTimingSection,
     Text,
+    formatTimingExactUtc,
+    useReportTimingNowMs,
     buildCurrentPredictionLiveTrainingScopeDescription,
     buildTrainingScopeControlGroup,
     resolveCurrentPredictionTrainingScopeMeta
@@ -31,6 +34,11 @@ import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 import { CURRENT_PREDICTION_POLICY_COLUMN_KEYS } from '@/shared/utils/reportCanonicalKeys'
+import {
+    resolveCurrentPredictionTimingSnapshot,
+    resolveCurrentPredictionTimingPhase,
+    resolveCurrentPredictionTimingStatus
+} from '@/shared/utils/currentPredictionTiming'
 
 const PREVIEW_STATUS_PREFIX = 'PREVIEW_'
 const PREVIEW_STATUS_ITEM_KEY = 'preview_status'
@@ -132,6 +140,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
     const { t, i18n } = useTranslation('reports')
     const reportSet: CurrentPredictionSet = 'live'
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
+    const nowMs = useReportTimingNowMs()
 
     const { data, isLoading, isError, error, refetch } = useCurrentPredictionReportQuery(reportSet, trainingScope)
     const trainingSplitStatsState = useCurrentPredictionBackfilledSplitStats()
@@ -146,6 +155,9 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
     const renderIntroText = useCallback((text: string) => renderTermTooltipRichText(text), [])
     const predictionStatus = resolveCurrentPredictionStatusMeta(data)
     const sanitizedReport = useMemo(() => (data ? sanitizeCurrentPredictionReport(data) : null), [data])
+    const timingSnapshot = useMemo(() => (data ? resolveCurrentPredictionTimingSnapshot(data) : null), [data])
+    const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
+    const locale = isRu ? 'ru-RU' : 'en-US'
     const localizedPredictionStatusText =
         predictionStatus ?
             localizeReportKeyValue(
@@ -175,6 +187,90 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
             })
         ],
         [setTrainingScope, t, trainingScope, trainingSplitStatsState.data]
+    )
+    const timingStatus = useMemo(
+        () =>
+            timingSnapshot ?
+                resolveCurrentPredictionTimingStatus(nowMs, timingSnapshot, isRu)
+            :   null,
+        [isRu, nowMs, timingSnapshot]
+    )
+    const timingPhase = useMemo(
+        () => (timingSnapshot ? resolveCurrentPredictionTimingPhase(nowMs, timingSnapshot) : 'incomplete'),
+        [nowMs, timingSnapshot]
+    )
+    const timingCards = useMemo(
+        () =>
+            timingSnapshot ?
+                [
+                    {
+                        id: 'report-built',
+                        label: isRu ? 'Сборка прогноза' : 'Forecast build',
+                        displayValue: formatTimingExactUtc(timingSnapshot.generatedAtUtc, locale),
+                        rows: [
+                            {
+                                label: isRu ? 'Дата прогноза' : 'Forecast day',
+                                value: timingSnapshot.predictionDateUtc ?? (isRu ? 'нет в отчёте' : 'missing in report')
+                            },
+                            {
+                                label: isRu ? 'Собран' : 'Built at',
+                                value: formatTimingExactUtc(timingSnapshot.generatedAtUtc, locale)
+                            }
+                        ]
+                    },
+                    {
+                        id: 'entry-window',
+                        label: isRu ? 'Открытие торгового окна' : 'Trading window open',
+                        targetUtc:
+                            timingPhase === 'before_entry' ? timingSnapshot.entryUtc
+                            : null,
+                        displayValue:
+                            timingPhase !== 'before_entry' && timingSnapshot.entryUtc ?
+                                formatTimingExactUtc(timingSnapshot.entryUtc, locale)
+                            :   undefined,
+                        headline: isRu ? 'Время входа недоступно' : 'Entry time is unavailable',
+                        rows: [
+                            {
+                                label: isRu ? 'Дата прогноза' : 'Forecast day',
+                                value: timingSnapshot.predictionDateUtc ?? (isRu ? 'нет в отчёте' : 'missing in report')
+                            },
+                            {
+                                label: isRu ? 'Открытие' : 'Opens at',
+                                value:
+                                    timingSnapshot.entryUtc ?
+                                        formatTimingExactUtc(timingSnapshot.entryUtc, locale)
+                                    :   (isRu ? 'нет в отчёте' : 'missing in report')
+                            }
+                        ]
+                    },
+                    {
+                        id: 'exit-window',
+                        label: isRu ? 'Закрытие окна факта' : 'Factual window close',
+                        targetUtc:
+                            timingPhase === 'before_entry' || timingPhase === 'active' ? timingSnapshot.exitUtc
+                            : null,
+                        displayValue:
+                            timingPhase === 'closed' && timingSnapshot.exitUtc ?
+                                formatTimingExactUtc(timingSnapshot.exitUtc, locale)
+                            :   undefined,
+                        headline: isRu ? 'Время закрытия недоступно' : 'Close time is unavailable',
+                        rows: [
+                            {
+                                label: isRu ? 'Закрытие' : 'Closes at',
+                                value:
+                                    timingSnapshot.exitUtc ?
+                                        formatTimingExactUtc(timingSnapshot.exitUtc, locale)
+                                    :   (isRu ? 'нет в отчёте' : 'missing in report')
+                            },
+                            {
+                                label: isRu ? 'Статус режима' : 'Forecast mode',
+                                value: localizedPredictionStatusText ?? (isRu ? 'стандартный расчёт' : 'standard run')
+                            }
+                        ]
+                    }
+                ]
+            :   [],
+        [isRu, locale, localizedPredictionStatusText, timingPhase, timingSnapshot]
     )
 
     return (
@@ -221,6 +317,23 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                                     {localizedPredictionStatusText}
                                 </Text>
                             </div>
+                        )}
+
+                        {timingSnapshot && timingStatus && (
+                            <ReportTimingSection
+                                title={isRu ? 'Тайминг текущего прогноза' : 'Current forecast timing'}
+                                subtitle={
+                                    isRu ?
+                                        'Блок показывает, когда собран текущий прогноз, во сколько открывается рабочее окно и когда закрывается фактический день.'
+                                    :   'This block shows when the current forecast was built, when its working window opens, and when the factual day closes.'
+                                }
+                                statusText={timingStatus.text}
+                                statusTone={timingStatus.tone}
+                                cards={timingCards}
+                                locale={locale}
+                                remainingLabel={isRu ? 'осталось' : 'remaining'}
+                                overdueLabel={isRu ? 'после срока' : 'overdue'}
+                            />
                         )}
 
                         <div className={cls.metaPanel}>

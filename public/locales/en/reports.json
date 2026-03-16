@@ -7,12 +7,12 @@
             "eyebrow": "SolSignal 1D",
             "title": "Forecast for [[landing-sol-usdt|SOL/USDT]] and historical simulation",
             "subtitleParagraphs": [
-                "SolSignal 1D is a system that evaluates, on each [[landing-time-horizon|trading day]], where [[landing-sol-usdt|SOL/USDT]] is more likely to move during that day ([[landing-day-up|Up]] / [[landing-day-down|Down]] / [[landing-day-flat|Sideways]]) and converts that forecast into a clear trading scenario: when to enter a trade, what the adaptive position size should be, and what the adaptive [[tp-sl|stop-loss]] and [[tp-sl|take-profit]] levels should be.",
+                "SolSignal 1D is a system that evaluates, on each [[landing-time-horizon|trading day]], where [[landing-sol-usdt|SOL/USDT]] is more likely to move during that day ([[landing-day-up|Up]] / [[landing-day-down|Down]] / [[landing-day-flat|Sideways]]) and converts that forecast into a clear trading scenario: when to enter a trade, what the [[cap-fraction|adaptive position size]] should be, and what the adaptive [[tp-sl|stop-loss]] and [[tp-sl|take-profit]] levels should be.",
                 "Alongside the current forecast, the website preserves the history of the same type of decisions, recalculated by past dates on the same strategy from 2022 onward: where the strategy earned, where it was wrong, what [[drawdown|drawdown]] it went through, and how quickly it recovered after weak periods."
             ],
             "panelTitle": "What the result contains",
             "bullets": [
-                "Decision for the nearest trading day: position direction, [[landing-model-confidence|confidence]], and risk limits.",
+                "Decision for the nearest trading day: [[signal-direction|position direction]], [[landing-model-confidence|confidence]], and [[risk-layers|risk limits]].",
                 "[[landing-prediction-history|An archive of past forecasts]] where each date can be compared with the realized outcome of the same window.",
                 "Historical simulation with return, [[drawdown|drawdown]], [[liquidation|liquidations]], and [[recovery|recovery speed after major drawdowns]]."
             ],
@@ -40,7 +40,7 @@
                     "title": "Forecast for the trading day",
                     "body": [
                         "At the start of the trading window the system calculates a [[landing-forecast|forecast]] for [[landing-sol-usdt|SOL/USDT]].",
-                        "The output contains position direction, [[landing-model-confidence|confidence]], and the final trade scenario after risk adjustment for that day."
+                        "The output contains [[signal-direction|position direction]], [[landing-model-confidence|confidence]], and the final trade scenario after [[risk-layers|risk adjustment]] for that day."
                     ]
                 },
                 "archive": {
@@ -101,10 +101,10 @@
         },
         "realJournal": {
             "eyebrow": "Live days",
-            "title": "Real forecast journal",
-            "subtitle": "This section accumulates new trading days after conditional live trading started on March 12, 2026. Unlike the archive of past forecasts, it grows only as new dates appear.",
+            "title": "[[landing-real-forecast-journal|Real forecast journal]]",
+            "subtitle": "This section accumulates new trading days after conditional live trading started on March 12, 2026. Unlike the [[landing-prediction-history|archive of past forecasts]], it grows only as new dates appear.",
             "cardTitle": "Why",
-            "description": "This journal is needed to compare historical simulation and model metrics with how the strategy behaves after the project has moved into a conditional live mode.",
+            "description": "This journal is needed to compare [[landing-backtest-summary|historical simulation]] and [[landing-model-metrics|model metrics]] with how the strategy behaves after the project has moved into a conditional live mode.",
             "bullets": [
                 "Unlike the [[landing-prediction-history|archive of past forecasts]], which is recalculated from historical dates, this journal grows only through new days starting from March 12, 2026.",
                 "For each of these days the forecast is fixed in advance, while the outcome is still unknown, and the comparison with reality appears only after that same day window closes.",
@@ -128,7 +128,7 @@
             "title": "[[landing-policy-branch-mega|Policy Branch Mega]]",
             "subtitle": "This section is used for detailed strategy comparison. The final reading of a [[policy|Policy]] usually comes down to this table.",
             "cardTitle": "What the table shows",
-            "description": "[[landing-policy-branch-mega|Policy Branch Mega]] gathers every [[policy|Policy]] configuration on one long history: [[branch|BASE / ANTI-D branches]], SL modes, filters, and the final risk/return metrics. That makes it possible to read not only final return, but also the price of that result through drawdown, liquidations, recovery, and trade structure.",
+            "description": "[[landing-policy-branch-mega|Policy Branch Mega]] gathers every [[policy|Policy]] configuration on one long history: [[branch|BASE / ANTI-D branches]], [[sl-mode-term|SL modes]], [[filters|filters]], and the final risk/return metrics. That makes it possible to read not only final return, but also the price of that result through drawdown, liquidations, recovery, and trade structure.",
             "bullets": [
                 "The table shows [[total-pnl|return]], [[drawdown|drawdown]], [[liquidation|liquidations]], [[recovery|recovery]], trade share, and days without entry into a trade side by side.",
                 "The comparison is valid because all configurations are calculated on the same history and on the same trading days.",
@@ -141,12 +141,12 @@
             "title": "Why the project matters beyond current return",
             "subtitle": "Even if the current return of the top strategy is not yet the main reason to buy the project on its own, the product can already be used as a sandbox for testing new trading hypotheses and practical theories.",
             "cardTitle": "What is already inside",
-            "description": "The project can already be used as an operating environment for testing ideas. It already contains the forecast layer, historical simulation, [[policy|Policy]] comparison, the real forecast journal, and diagnostic screens.",
+            "description": "The project can already be used as an operating environment for testing ideas. It already contains the [[landing-forecast|forecast]] layer, [[landing-backtest-summary|historical simulation]], [[policy|Policy]] comparison, the [[landing-real-forecast-journal|real forecast journal]], and [[landing-diagnostics|diagnostics]].",
             "bullets": [
-                "The current forecast shows how a new idea looks on the nearest trading day and what trade scenario it becomes.",
+                "The [[landing-forecast|current forecast]] shows how a new idea looks on the nearest trading day and what trade scenario it becomes.",
                 "[[landing-backtest-summary|Historical simulation]] and the [[landing-policy-branch-mega|main strategy table]] make it possible to compare hypotheses across return, [[drawdown|drawdown]], [[liquidation|liquidations]], trade share, and days without entering a trade.",
-                "The real forecast journal adds a separate validation layer on new dates after the conditional live mode started.",
-                "[[landing-diagnostics|Diagnostics]], the [[landing-explain|explain layer]], and [[landing-model-metrics|model metrics]] show why a result appeared, where strategy quality weakens, and which filters materially change the outcome."
+                "The [[landing-real-forecast-journal|real forecast journal]] adds a separate validation layer on new dates after the conditional live mode started.",
+                "[[landing-diagnostics|Diagnostics]], the [[landing-explain|explain layer]], and [[landing-model-metrics|model metrics]] show why a result appeared, where strategy quality weakens, and which [[filters|filters]] materially change the outcome."
             ]
         },
         "tooltipRules": {
@@ -172,6 +172,8 @@
             "dayUp": "Up is the day scenario where the model expects price to move mainly upward inside the working trading window.\n\nWhat it shows:\nthe class does not merely mean a green candle. It means the system sees enough probability skew toward upward movement to treat the day as directionally tradable.\n\nHow to read it:\nthe label should still be read together with policy and risk controls. An Up day can still end as no-trade or as a cautious trade if later layers decide the entry is too risky.",
             "dayDown": "Down is the day scenario where the model expects price to move mainly downward inside the working trading window.\n\nWhat it shows:\nthe class represents a directional downside bias inside the selected window rather than a random negative tick.\n\nHow to read it:\njust like Up, this is a forecast direction rather than a guaranteed executed trade. Policy rules and risk filters still decide whether that view is tradable.",
             "dayFlat": "Sideways is the day scenario without a strong directional move, where price is more likely to stay inside a range than to break clearly up or down.\n\nWhat it shows:\nthe class exists to separate weak, noisy days from days where the market shows a usable directional edge.\n\nHow to read it:\na Sideways label does not mean the market was frozen. It means the movement did not look stable or strong enough for a confident base directional call.",
+            "spotPolicy": "A spot strategy is a strategy without borrowed [[leverage|leverage]]. Trades are opened only on the strategy's own capital without margin amplification.\n\nWhat it shows:\nthis term matters in the top-strategy block because it separates a result earned on owned capital from a result that would have been amplified by exchange credit.\n\nHow to read it:\nif the strategy stays spot, return and risk here depend on trade direction, position size, and ordinary exit rules rather than extra margin acceleration.",
+            "realForecastJournal": "The real forecast journal is the section with new dates after the conditional live mode started on March 12, 2026.\n\nWhat it shows:\nunlike the [[landing-prediction-history|archive of past forecasts]], this journal does not recalculate old dates and accumulates only new days as they arrive.\n\nHow to read it:\nthis section is used to compare the realized outcome of new days with what [[landing-backtest-summary|historical simulation]] and [[landing-model-metrics|model metrics]] showed earlier.",
             "reinvestment": "Reinvestment means putting already earned profit back into the active trading balance so it can participate in future trades.\n\nWhat changes in the numbers:\nif profit is reinvested, it stays inside the working balance and affects the size of future trades. If profit is not reinvested, it is withdrawn separately and no longer participates in new entries.\n\nHow to read it:\nin the top-strategy block this term separates total earnings, the part already withdrawn, and the money that still remains in the active trading balance.",
             "pathBasedLabeling": "Path-based labeling is a way to label historical days not only by close price but also by the path price traveled inside the window. It helps separate a tradable move from a formally similar but unstable scenario.\n\nWhat it shows:\nthe method looks beyond one final tick and considers how the day behaved inside the window: whether the move was smooth, choppy, quickly reversed, or structurally weak for trading.\n\nHow to read it:\nit should be read as an attempt to make historical truth closer to real trading. The model sees not only how the day ended, but also whether the way it got there looked tradable.",
             "earlyPreview": "Early preview is the advance publication of the same [[landing-time-horizon|trading day]] forecast before the main session begins.\n\nWhat it shows:\nit does not describe another day and it does not replace the main forecast. It gives the same day-level decision earlier, when the market context is already fixed but the regular working session has not opened yet.\n\nHow to read it:\nearly preview is useful when the user wants to see whether the system already had a stable directional view before the main window started. The key comparison is not “preview versus live day”, but preview versus the later main forecast of that same trading day.",
@@ -190,11 +192,13 @@
             "attribution": "Attribution is the reading layer that explains which component or reason contributed most to the final result, weak period, or blocked trade.\n\nWhat it shows:\nit turns a blended outcome into an interpretable structure: what came from the model, from policy logic, from execution path, or from a later safety restriction.\n\nHow to read it:\nattribution matters when one aggregate number is no longer enough. It tells whether the next action should target model quality, risk rules, or trade execution rather than changing everything at once.",
             "featureImportance": "Feature importance is the layer that ranks which inputs matter most for the model and which ones change the result only marginally.\n\nWhat it shows:\nit does not promise causal truth by itself. It shows where the forecasting pipeline depends most on information content and where removing a feature would change the model least.\n\nHow to read it:\nfeature importance is strongest when it is read together with explain and PFI. If the same feature stays important across those layers, its role in the decision is much more credible than in a single ranking alone.",
             "predictionAggregation": "Prediction aggregation is the step where outputs of several model layers are combined into one final probability view.\n\nWhat it shows:\nthis step collects the daily layer, micro refinement, and risk-aware interpretation into the final scenario ranking that the strategy later consumes.\n\nHow to read it:\naggregation should be read as a structured merge, not as a blind average. If the final answer changes, the useful question is which layer shifted the balance and whether that shift improved robustness or only changed the final label.",
-            "allHistory": "All history means the widest historical slice available for that report or page, without cutting it down to a narrower training or recent-only subset.\n\nWhat it shows:\nthis mode gives the broadest context for stability, but it also mixes older and newer market regimes inside one reading window.\n\nHow to read it:\nall history is useful for the long baseline, but it should still be compared with narrower slices such as OOS or recent periods. If a result looks strong only on the full archive, the effect may be concentrated in one older regime.",
+            "allHistory": "All history means the widest historical slice available for that report or page, without cutting it down to a narrower training or recent-only subset.\n\nWhat it shows:\nthis mode gives the broadest context for stability, but it also mixes older and newer market regimes inside one reading window.\n\nHow to read it:\nall history is useful for the long baseline, but it should still be compared with narrower slices such as [[landing-oos|OOS]] or [[landing-recent-tail-history|recent tail]]. If a result looks strong only on the full archive, the effect may be concentrated in one older regime.",
+            "recentTailHistory": "Recent tail is the freshest slice of available history, used to read the model's current form rather than the average result over the long archive.\n\nWhat it shows:\nin the current contract this is the last 240 trading days of the active model row. It is not the whole [[landing-oos|OOS]] segment, only its latest part that stays closest to the current market.\n\nHow to read it:\nthis slice is the early warning check for degradation or regime shift. If [[landing-all-history|full history]] and [[landing-oos|OOS]] still look acceptable while the tail weakens, the model is losing relevance on fresh days.\n\nExample:\nif OOS still looks broadly stable but the recent tail over the last 240 days is already much weaker, the problem sits in the current market rather than in the distant archive.",
             "baselineBacktest": "Baseline backtest is the reference historical simulation under the main production-like setup used by the project.\n\nWhat it shows:\nit is the default comparison point for new variants, filters, and strategy changes. The point of the baseline is not to be “best”, but to provide a stable anchor for judging whether later modifications really improve the profile.\n\nHow to read it:\nwhen an experimental variant looks better, the right question is not only whether return increased. The comparison must also show what happened to drawdown, liquidation exposure, and recovery difficulty relative to the baseline.",
             "experimentalBacktest": "Experimental backtest is a non-baseline historical simulation used to test a modified rule set, filter, layer, or execution mode against the reference setup.\n\nWhat it shows:\nit exists to answer whether the new idea changes the result for the better or only moves risk into another place.\n\nHow to read it:\nan experimental result should never be judged by one attractive metric in isolation. It must beat or clarify the baseline across both return and risk, otherwise it is just a different profile, not a better one.",
             "modelConfidence": "Model confidence is the strength of the model's belief in the selected scenario for the trading day.\n\nWhat it shows:\nconfidence is not the same thing as guaranteed correctness. It is the internal strength of the probability edge that later controls whether the strategy trades, how strict filters become, and which risk layers are allowed to engage.\n\nHow to read it:\nhigh confidence matters only when history supports it. A strong-looking confidence value without stable behavior in OOS, diagnostics, and backtests is still weak evidence.",
-            "liquidationBuffer": "Liquidation buffer is the safety distance between the current trade state and the forced-close threshold.\n\nWhat it shows:\nit measures how much room the position still has before liquidation risk turns from theoretical into immediate. The smaller the buffer, the less tolerance remains for adverse price movement.\n\nHow to read it:\na shrinking buffer is a warning about execution fragility, not just about return. Even a profitable strategy becomes structurally unsafe if many trades keep operating too close to forced-close territory."
+            "liquidationBuffer": "Liquidation buffer is the safety distance between the current trade state and the forced-close threshold.\n\nWhat it shows:\nit measures how much room the position still has before liquidation risk turns from theoretical into immediate. The smaller the buffer, the less tolerance remains for adverse price movement.\n\nHow to read it:\na shrinking buffer is a warning about execution fragility, not just about return. Even a profitable strategy becomes structurally unsafe if many trades keep operating too close to forced-close territory.",
+            "liqUnreachableBucket": "Liquidation is unreachable is a note shown for a [[policy|Policy]] when the [[liquidation|liquidation]] level cannot be reached.\n\nWhat it shows:\nfor this specific [[policy|Policy]] the [[bucket|bucket]] has more capital than the cash size of the [[position|position]], so there is no critical level where the exchange would be forced to liquidate due to insufficient margin.\n\nHow to read it:\nthis does not mean the trade is risk-free. It only means the liquidation scenario does not apply to this specific [[policy|Policy]]."
         },
         "tour": {
             "eyebrow": "Website sections",
@@ -259,16 +263,34 @@
         "demo": {
             "eyebrow": "Top strategy on history",
             "title": "Top strategy by return",
-            "subtitle": "This block shows the [[policy|Policy]] with the highest [[total-pnl|TotalPnl%]] from the [[landing-policy-branch-mega|main strategy table]]. It shows how much it earned over the full period, how much profit was already withdrawn from trading, and how much money still remains in the active trading balance.",
+            "subtitle": "This block shows the strategy with the highest return ([[total-pnl|TotalPnl%]]) from the [[landing-policy-branch-mega|main strategy table]]. It shows how much it earned over the period, how many trading days and trades were needed to build that result, how much profit was already withdrawn from trading, and how much money still remains in the active trading balance.",
             "openMega": "Main strategy table",
             "loading": "Loading mini demo...",
-            "bestResult": "Maximum return on this history: {{value}}%.",
+            "bestResult": "Maximum return across the full history since 2022: {{value}}.",
+            "headings": {
+                "spot": "Spot strategy",
+                "generic": "Leader of the main table"
+            },
             "summary": {
-                "performance": "The top strategy in this table is [[policy|Policy]] {{policy}} / {{branch}}. From {{periodStart}} to {{periodEnd}} it earned {{totalPnlPct}}, which is {{totalPnlUsd}} on top of the starting capital of {{startCapitalUsd}}. Of that result, {{withdrawnUsd}} has already been [[withdrawn-profit|withdrawn]], which means it [[landing-reinvestment|is not reinvested]] into new trades. {{bucketNowUsd}} remains in the active trading balance.",
-                "activity": "Across {{days}} trading days the strategy executed {{trades}} trades, or {{tradesPerDay}} trades per day on average. About {{noTradePct}} of days were skipped without entering a trade.",
+                "performance": "From {{periodStart}} to {{periodEnd}} the strategy earned {{totalPnlPct}}, which is {{totalPnlUsd}} on top of the [[start-cap|starting capital]] of {{startCapitalUsd}}.",
+                "policyTypeSpot": "The current leader is a [[landing-spot-policy|spot strategy]]: trades are opened without borrowed [[leverage|leverage]] and use only its own capital.",
+                "policyTypeGeneric": "The current leader is one of the configurations from the [[landing-policy-branch-mega|main strategy table]]. Its exact entry, [[cap-fraction|position sizing]], and risk rules are explained on the [[landing-policy-branch-mega|Policy Branch Mega]] page.",
+                "capitalFlow": "Of the total profit earned over that period, {{withdrawnUsd}} has already been [[withdrawn-profit|withdrawn from trading]], which means it [[landing-reinvestment|is not reinvested]] into new trades. {{bucketNowUsd}} remains in the active trading balance.",
+                "activity": "Across {{days}} trading days the strategy executed {{trades}} trades, or {{tradesPerDay}} trades per day on average.",
+                "noTrade": "About {{noTradePct}} of days were skipped without entering a trade.",
+                "avgStake": "On average the strategy committed {{avgStakeUsd}} to one trade, which is about {{avgStakePct}} of the [[start-cap|starting capital]].",
+                "avgTargets": "Average daily [[tp-sl|take-profit]] was set at {{dailyTpAvg}} from entry price, while average daily [[tp-sl|stop-loss]] was set at {{dailySlAvg}}.",
+                "avgTargetsNoSl": "Average daily [[tp-sl|take-profit]] was set at {{dailyTpAvg}} from entry price. A separate daily [[tp-sl|stop-loss]] was not used in this mode.",
                 "winRate": "Among executed trades, {{winRatePct}} closed in profit. This figure describes trades only, not all days in the period.",
-                "riskNoLiquidations": "The maximum [[drawdown|drawdown]] over that period was {{maxDdPct}}. There were no [[liquidation|liquidations]].",
-                "riskWithLiquidations": "The maximum [[drawdown|drawdown]] over that period was {{maxDdPct}}. There were [[liquidation|liquidations]], so the result has to be read together with emergency risk."
+                "drawdownLow": "Maximum [[drawdown|drawdown]] was {{maxDdPct}} of capital. This is measured as a percentage of capital and looks low for this history.",
+                "drawdownModerate": "Maximum [[drawdown|drawdown]] was {{maxDdPct}} of capital. This is measured as a percentage of capital and looks moderate for this history: the worst point was noticeable, but the loss never moved into a double-digit share of capital.",
+                "drawdownHigh": "Maximum [[drawdown|drawdown]] was {{maxDdPct}} of capital. This is measured as a percentage of capital and looks elevated for this history: at the worst point the strategy was losing a double-digit share of capital.",
+                "liquidationsNo": "There were no [[liquidation|liquidations]] on this stretch.",
+                "liquidationsYes": "This stretch included [[liquidation|liquidations]], so the result has to be read together with emergency risk.",
+                "verdictStrength": "Verdict, strength: across the full history since 2022 the strategy remains profitable and delivers {{totalPnlPct}} without borrowed [[leverage|leverage]].",
+                "verdictRisk": "Verdict, strength: emergency risk looks contained — [[drawdown|drawdown]] is {{maxDdPct}}, and there were no forced [[liquidation|liquidations]] on this stretch.",
+                "verdictActivity": "Verdict, weakness: the strategy does not trade every day — about {{noTradePct}} of days end without entering a trade, and average activity stays near {{tradesPerDay}} trades per trading day.",
+                "verdictEdge": "Verdict, weakness: a {{winRatePct}} profitable-trade share does not create a large buffer on its own, so the result still depends heavily on disciplined position sizing, [[tp-sl|stop-loss]], and [[tp-sl|take-profit]]."
             },
             "note": "The figures below separate total earnings, already withdrawn profit, active trading balance, risk, and trading activity.",
             "meta": {
@@ -276,16 +298,16 @@
                 "periodEnd": "Period end",
                 "days": "Trading days",
                 "startCapital": "Starting capital",
-                "finalBalance": "Active balance left",
+                "finalBalance": "Active balance now",
                 "withdrawnProfit": "Already withdrawn",
                 "trades": "Trades"
             },
             "metrics": {
                 "totalPnl": "Return",
-                "bucketNow": "Still in trade",
+                "bucketNow": "Active balance",
                 "maxDd": "Max drawdown",
                 "liquidations": "Liquidations",
-                "accountRuin": "Ruin risk",
+                "accountRuin": "Capital ruin",
                 "recovery": "Recovery",
                 "winRate": "Profitable trades",
                 "meanRet": "Average trade",
@@ -848,33 +870,39 @@
             "sections": {
                 "probs": "Probabilities",
                 "metrics": "Metrics",
-                "debug": "Recent-days debug"
+                "debug": "Recent-day review"
             },
             "header": {
                 "title": "Prediction aggregation",
-                "subtitle": "Summary of probabilities and metrics across base and overlay layers (Day / Day+Micro / Total). Segments represent Train / OOS / Recent / Full, followed by detailed stats and recent-day debug."
+                "subtitle": "This page shows how several prediction layers turn into one final answer for a trading day and how that answer behaves across different parts of history.",
+                "points": {
+                    "overview": "The top block shows the overall contour of the sample: the date range, the size of the input set, how many rows were excluded, and how many segments are compared.",
+                    "probs": "The \"Probabilities\" block is used to read the average tilt of the forecast: what the base layer says, what [[landing-micro-model|Micro]] adds, and how the final answer changes after risk correction through the [[sl-model|SL model]].",
+                    "metrics": "The \"Metrics\" block is used to read answer quality: where the layer lands in the right class more often, where it makes confident mistakes, and what kinds of class mix-ups it produces.",
+                    "debug": "The \"Recent-day review\" block is used to inspect concrete dates: whether [[landing-micro-model|Micro]] changed the intermediate class, whether the [[sl-model|SL model]] was activated, and why the final answer differs from the base layer."
+                }
             },
             "meta": {
                 "dateRange": "Date range",
                 "totalInput": "Total input records",
                 "excluded": "Excluded from aggregation",
-                "segmentsAndDebug": "Segments / Debug days"
+                "segmentsAndDebug": "Segments / days in review"
             },
             "probs": {
                 "title": "Aggregated probabilities",
-                "hint": "Average class probabilities by segment. This checks calibration and drift, not prediction hit-rate."
+                "hint": "This section shows average class probabilities for each history segment. It is not for reading headline hit-rate. It is for reading answer balance: where the base layer leans, what [[landing-micro-model|Micro]] adds, and how the final assembly changes the probability distribution."
             },
             "metrics": {
                 "title": "Quality metrics",
-                "hint": "Accuracy/Micro‑F1/LogLoss by layer. Confusion matrices show which classes are confused.",
-                "layerHint": "Core layer-quality metrics: accuracy, log-loss, and data volume. Hover metrics for definitions.",
-                "confusionHint": "Confusion matrix shows how often the layer mixes classes. Rows are true labels, columns are predicted labels."
+                "hint": "This section shows the quality of each layer on the same history segments. It is not only about the share of correct answers. It also shows the cost of mistakes: which classes the layer confuses, how reliable its probabilities are, and whether the final assembly improves the intermediate answer.",
+                "layerHint": "The layer card keeps headline accuracy, probability quality, and sample size in one place. It is meant to compare layers by the full combination of result and statistical base, not by one number in isolation.",
+                "confusionHint": "A confusion matrix is needed when overall accuracy is no longer enough. It shows which exact classes the layer mixes most often: up with sideways, down with sideways, or a direct reversal of direction."
             },
             "debug": {
-                "title": "Recent-days debug",
-                "hint": "Last N days with ground truth and predictions. Flags show where micro/SL actually changed final class or probabilities.",
-                "empty": "No debug rows. Check aggregation generation consistency.",
-                "tableHint": "This table helps quickly spot days where micro/SL changed result. Columns include true label, layer predictions, and overlay-impact flags.",
+                "title": "Recent-day review",
+                "hint": "This section shows the last dates one by one instead of an average over the segment. It is used to inspect where [[landing-micro-model|Micro]] and the [[sl-model|SL model]] really changed the final answer, and where the final result stayed close to the base layer.",
+                "empty": "There are no rows for the recent-day review. This usually means the last-days block was not built together with the aggregation.",
+                "tableHint": "Each row is one trading day: the fact, layer outputs, probabilities, and overlay flags. This block is needed when an average metric no longer explains why one specific date looks surprising.",
                 "columns": {
                     "dateUtc": {
                         "label": "Date (UTC)"
@@ -920,7 +948,7 @@
             "segment": {
                 "rangePrefix": "Range:",
                 "recordsPrefix": "Records:",
-                "hint": "The table below shows average class probabilities for this data segment. Compare Day / Day+Micro / Total to see overlay contribution."
+                "hint": "The table below shows the same forecast flow at three assembly stages: the base layer, the layer with micro refinement, and the final answer. Comparing these rows shows whether an overlay added a useful shift or only changed the class without improving quality."
             },
             "pills": {
                 "confDay": {
@@ -957,21 +985,21 @@
             },
             "tooltips": {
                 "probTable": {
-                    "layer": "Aggregation stage: Day (base model), Day+Micro (with micro overlay), and Total (with SL overlay).",
+                    "layer": "Layer means one stage of forecast assembly inside [[landing-aggregation|aggregation]].\n\nWhat it shows:\n[[current-prediction-daily-layer|Day]] is the base daily answer without micro refinement and without risk correction. Day+[[landing-micro-model|Micro]] is the answer after the micro layer. Total is the final answer after the full assembly and the effect of the [[sl-model|SL model]].\n\nHow to read it:\nthese rows should be read top to bottom as the path of one and the same forecast through three assembly stages. If the final layer shifts probabilities a lot, the useful question is whether quality improved or the class simply changed.\n\nExample:\nif Day shows a clear tilt toward up, Day+Micro moves the answer toward sideways, and Total cuts the probability of up even more, the final class was shaped inside the assembly layers, not in the first model alone.",
                     "pUp": "Average probability of Up class for selected layer and segment.",
                     "pFlat": "Average probability of Flat class for selected layer and segment.",
                     "pDown": "Average probability of Down class for selected layer and segment.",
                     "sum": "Average sum P_up+P_flat+P_down. Normally close to 1; strong drift indicates normalization issues."
                 },
                 "pills": {
-                    "confDay": "Average confidence signal of the base Day layer. This is a separate signal (not probability sum), useful for sanity checks.",
+                    "confDay": "Conf Day is the average [[landing-model-confidence|model-confidence]] signal of the base daily layer.\n\nWhat it shows:\nthis is not a probability sum and not a share of correct answers. The field shows how strongly the base Day layer expressed its answer on average inside the segment.\n\nHow to read it:\na higher Conf Day means the base layer more often saw a more pronounced scenario, but it does not guarantee better quality. The signal should be compared with the layer metrics below.\n\nExample:\nif one segment has a high Conf Day but quality barely improves, the layer is becoming more confident without necessarily becoming better.",
                     "confMicro": "Average confidence signal of micro layer used inside flat regime. Separate from class probabilities.",
-                    "slScoreDays": "How many days in segment had non-zero SL-score. Shows how often SL model affected the flow."
+                    "slScoreDays": "SL-score days is the number of days in the segment that received a non-zero risk score from the [[sl-model|SL model]].\n\nWhat it shows:\nthis number separates segments where the risk layer almost never participated from segments where it regularly entered the final assembly.\n\nHow to read it:\nif the value is small, the influence of SL on the final answer should be read cautiously because the layer was rarely active. If the value is large, the final answer depends more on risk correction and not only on the base forecast.\n\nExample:\na value of 18 / 240 means the [[sl-model|SL model]] actually entered the calculation on only 18 days out of 240."
                 },
                 "metrics": {
                     "accuracy": "Share of correct predictions: Correct / N. Higher is better.",
                     "microF1": "Micro-F1 for 3-class task. In current implementation it equals Accuracy, but kept as a separate metric.",
-                    "logLoss": "Average log-loss on probabilities of true class. Lower is better. Only valid records are used.",
+                    "logLoss": "LogLoss is the average penalty for putting high confidence on the wrong answer.\n\nWhat it shows:\nthe metric looks not only at the final class but also at the probabilities assigned to the true class. A lower penalty means the layer either guesses more often or makes mistakes without excessive overconfidence.\n\nHow to read it:\nunlike plain hit-rate, LogLoss is sensitive to bad probability calibration. Two layers can have a similar share of correct answers, but the one that makes more overconfident mistakes will have a worse LogLoss.\n\nExample:\ntwo layers can have the same number of correct classifications, but if one of them puts a very high probability on the wrong class, its LogLoss will be noticeably worse.",
                     "nCorrect": "N is total records in segment, Correct is number of predictions matching true label.",
                     "validInvalidLogLoss": "Records used for log-loss. Invalid > 0 means invalid probabilities (ideally 0)."
                 },
@@ -992,7 +1020,7 @@
                     "pDay": "Probability triple Up/Flat/Down for base Day model.",
                     "pDayMicro": "Probability triple Up/Flat/Down after micro overlay.",
                     "pTotal": "Final Up/Flat/Down probabilities after SL overlay.",
-                    "microUsed": "Flag that micro overlay actually changed prediction (Day → Day+Micro).",
+                    "microUsed": "Micro used is the flag that [[landing-micro-model|Micro]] really intervened in the intermediate answer between Day and Day+Micro.\n\nWhat it shows:\n`yes` means the micro layer did not just calculate its own probabilities, but actually changed the intermediate answer or its balance. `no` means the base Day layer passed further without that intervention.\n\nHow to read it:\nthis column is the quick way to separate days where the final answer changed because of [[landing-micro-model|Micro]] from days where the final result was inherited almost entirely from the base layer.\n\nExample:\nif the base and final answers differ but `Micro used = no`, the reason for the final shift does not sit in the micro layer but lower in the stack, for example in risk correction.",
                     "slUsed": "Flag that SL overlay affected final outcome (Day+Micro → Total).",
                     "microAgree": "Whether Day and Day+Micro labels match (true = unchanged).",
                     "slPenLong": "SL overlay reduced long probability (penalty to P_up).",
@@ -1440,7 +1468,7 @@
                 "description": "Backend returned no report dates for selected mode."
             },
             "meta": {
-                "totalBuilt": "Total built: {{value}}",
+                "totalBuilt": "Total reports built: {{value}}",
                 "missingInRange": "Missing in range: {{value}}",
                 "currentlyVisible": "Currently visible: {{value}}",
                 "loadWindow": "Load window: {{value}}",
@@ -1450,7 +1478,7 @@
                 "notAvailableWithIndexError": "n/a (index error)",
                 "loading": "loading...",
                 "notAvailableWithDetails": "n/a ({{details}})",
-                "missingBuilt": "missing in range (built: {{built}})",
+                "missingBuilt": "{{missing}} out of {{expected}}",
                 "noData": "no data"
             }
         },
@@ -1525,7 +1553,13 @@
                 "stakeUsd": "Stake, $",
                 "stakePct": "Stake, %"
             },
-            "liqFallback": "no (leverage<=1x / not calculated)",
+            "liqFallback": {
+                "leverage1x": "[[leverage|Leverage]] 1x — [[position|position]] without leverage, liquidation is unreachable.",
+                "bucketBalance": "[[landing-liq-unreachable-bucket|Liquidation is unreachable]].",
+                "marginBalance": "[[margin|Margin]] is above position notional, liquidation is unreachable.",
+                "balance": "Balance is above position notional, liquidation is unreachable.",
+                "missing": "Liquidation was not computed: missing data for calculation."
+            },
             "skippedColumns": {
                 "policy": "Policy",
                 "branch": "Branch",
@@ -2054,9 +2088,9 @@
                 "controls": {
                     "partLabel": "Report part",
                     "branchLabel": "Branch",
-                    "rowSlModeLabel": "Policy SL mode",
+                    "rowSlModeLabel": "SL Mode",
                     "sortLabel": "Sort",
-                    "limitLabel": "Policy limit",
+                    "limitLabel": "Show Policy",
                     "allRows": "All",
                     "presetLabel": "Chart preset",
                     "rankingMetricLabel": "Ranking metric",
@@ -2071,7 +2105,7 @@
                             "pnlVsDrawdown": "Total PnL vs MaxDD",
                             "tradeVsReturn": "Trade rate vs Total PnL",
                             "recoveryVsDrawdown": "Required gain vs MaxDD",
-                            "ruinVsLiquidation": "AccRuin vs HadLiq",
+                            "ruinVsLiquidation": "Capital ruin vs liquidations",
                             "liquidationVsRecovery": "HadLiq vs RecovDays",
                             "recoveryDaysVsGain": "RecovDays vs ReqGain%",
                             "avgDayVsTotalPnl": "AvgDay% vs Total PnL",
@@ -2079,6 +2113,9 @@
                             "longVsTotalPnl": "Long $ vs Total PnL",
                             "shortVsTotalPnl": "Short $ vs Total PnL",
                             "eodVsTradeRate": "EODExit% vs Trade%",
+                            "profitFactorVsExpectancy": "ProfitFactor vs Expectancy%",
+                            "hitVsMiss": "AvgHit% vs AvgMiss%",
+                            "longVsShortWinRate": "LongWinRate% vs ShortWinRate%",
                             "custom": "Custom pair"
                         }
                     },
@@ -2118,7 +2155,7 @@
                     "partTitle": "PART {{part}}/{{total}}",
                     "empty": "After selecting a ranking bar or scatter point, this panel opens the selected Policy and the values of its current Branch / SL Mode configuration.",
                     "risk": {
-                        "ruin": "AccRuin > 0",
+                        "ruin": "Capital ruin present",
                         "liquidation": "Liquidation present",
                         "negative": "PnL below 0",
                         "safe": "No emergency events"

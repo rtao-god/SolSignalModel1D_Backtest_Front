@@ -1,6 +1,8 @@
 import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type {
+    CurrentPredictionHistoryPageDto,
+    CurrentPredictionHistoryPageItemDto,
     CurrentPredictionIndexItemDto,
     CurrentPredictionSet,
     CurrentPredictionTrainingScope
@@ -10,12 +12,15 @@ import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 
-const { latestReport, datesIndex } = API_ROUTES.currentPrediction
+const { latestReport, datesIndex, historyPage } = API_ROUTES.currentPrediction
 const CURRENT_PREDICTION_INDEX_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const CURRENT_PREDICTION_HISTORY_PAGE_CACHE_TTL_MS = 10 * 60 * 1000
 const DEFAULT_CURRENT_PREDICTION_LIVE_SCOPE: CurrentPredictionTrainingScope = 'full'
 const DEFAULT_CURRENT_PREDICTION_SET: CurrentPredictionSet = 'live'
 const DEFAULT_HISTORY_PREDICTION_SET: CurrentPredictionSet = 'backfilled'
 export const DEFAULT_BACKFILLED_HISTORY_SCOPE: CurrentPredictionTrainingScope = 'full'
+export const DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE = 1
+export const DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE = 10
 
 export interface CurrentPredictionBackfilledSplitStats {
     trainDays: number
@@ -36,6 +41,16 @@ interface CurrentPredictionBackfilledSplitStatsState {
 interface CurrentPredictionLatestResponse {
     live?: unknown
     backfilled?: unknown
+}
+
+export interface CurrentPredictionHistoryPageQueryArgs {
+    set: CurrentPredictionSet
+    scope: CurrentPredictionTrainingScope
+    page: number
+    pageSize: number
+    days?: number
+    fromDateUtc?: string
+    toDateUtc?: string
 }
 
 function resolveCurrentPredictionIndexScope(
@@ -124,6 +139,136 @@ async function fetchCurrentPredictionIndex(
     })
 }
 
+async function fetchCurrentPredictionHistoryPage(
+    args: CurrentPredictionHistoryPageQueryArgs
+): Promise<CurrentPredictionHistoryPageDto> {
+    const resolvedScope = resolveCurrentPredictionIndexScope(args.set, args.scope)
+    if (!Number.isInteger(args.page) || args.page <= 0) {
+        throw new Error(`[current-prediction] history page must be a positive integer. page=${args.page}.`)
+    }
+    if (!Number.isInteger(args.pageSize) || args.pageSize <= 0) {
+        throw new Error(`[current-prediction] history pageSize must be a positive integer. pageSize=${args.pageSize}.`)
+    }
+
+    const search = new URLSearchParams()
+    search.set('set', args.set)
+    search.set('scope', resolvedScope)
+    search.set('page', String(args.page))
+    search.set('pageSize', String(args.pageSize))
+
+    if (typeof args.days === 'number' && Number.isFinite(args.days) && args.days > 0) {
+        search.set('days', String(args.days))
+    }
+    if (args.fromDateUtc) {
+        search.set('fromDateUtc', normalizeCurrentPredictionDateUtc(args.fromDateUtc))
+    }
+    if (args.toDateUtc) {
+        search.set('toDateUtc', normalizeCurrentPredictionDateUtc(args.toDateUtc))
+    }
+
+    const querySuffix = search.toString()
+    const url = `${API_BASE_URL}${historyPage.path}?${querySuffix}`
+    const resp = await fetch(url)
+
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`Failed to load current prediction history page: ${resp.status} ${text}`)
+    }
+
+    const payload = (await resp.json()) as Record<string, unknown>
+    return mapCurrentPredictionHistoryPageResponse(payload)
+}
+
+function mapCurrentPredictionHistoryPageResponse(raw: Record<string, unknown>): CurrentPredictionHistoryPageDto {
+    const page = readRequiredFiniteNumber(raw.page, 'page')
+    const pageSize = readRequiredFiniteNumber(raw.pageSize, 'pageSize')
+    const totalPages = readRequiredFiniteNumber(raw.totalPages, 'totalPages')
+    const totalBuiltReports = readRequiredFiniteNumber(raw.totalBuiltReports, 'totalBuiltReports')
+    const filteredReports = readRequiredFiniteNumber(raw.filteredReports, 'filteredReports')
+    const hasPrevPage = readRequiredBoolean(raw.hasPrevPage, 'hasPrevPage')
+    const hasNextPage = readRequiredBoolean(raw.hasNextPage, 'hasNextPage')
+    const earliestBuiltPredictionDateUtc = readRequiredDateString(raw.earliestBuiltPredictionDateUtc, 'earliestBuiltPredictionDateUtc')
+    const latestBuiltPredictionDateUtc = readRequiredDateString(raw.latestBuiltPredictionDateUtc, 'latestBuiltPredictionDateUtc')
+    const missingBuiltWeekdays = readRequiredFiniteNumber(raw.missingBuiltWeekdays, 'missingBuiltWeekdays')
+    const expectedBuiltWeekdays = readRequiredFiniteNumber(raw.expectedBuiltWeekdays, 'expectedBuiltWeekdays')
+    const missingBuiltFromDateUtc = readRequiredDateString(raw.missingBuiltFromDateUtc, 'missingBuiltFromDateUtc')
+    const missingBuiltToDateUtc = readRequiredDateString(raw.missingBuiltToDateUtc, 'missingBuiltToDateUtc')
+    const itemsRaw = raw.items
+    if (!Array.isArray(itemsRaw)) {
+        throw new Error('[current-prediction] history page items payload must be an array.')
+    }
+
+    const items = itemsRaw.map((item, index) => mapCurrentPredictionHistoryPageItem(item, index))
+
+    return {
+        page,
+        pageSize,
+        totalPages,
+        totalBuiltReports,
+        filteredReports,
+        hasPrevPage,
+        hasNextPage,
+        earliestBuiltPredictionDateUtc,
+        latestBuiltPredictionDateUtc,
+        missingBuiltWeekdays,
+        expectedBuiltWeekdays,
+        missingBuiltFromDateUtc,
+        missingBuiltToDateUtc,
+        items
+    }
+}
+
+function mapCurrentPredictionHistoryPageItem(raw: unknown, index: number): CurrentPredictionHistoryPageItemDto {
+    if (!raw || typeof raw !== 'object') {
+        throw new Error(`[current-prediction] history page item must be an object. index=${index}.`)
+    }
+
+    const item = raw as Record<string, unknown>
+    const id = item.id
+    const predictionDateUtc = item.predictionDateUtc
+    const report = item.report
+
+    if (typeof id !== 'string' || !id.trim()) {
+        throw new Error(`[current-prediction] history page item id is invalid at index=${index}.`)
+    }
+    if (typeof predictionDateUtc !== 'string') {
+        throw new Error(`[current-prediction] history page item predictionDateUtc is invalid at index=${index}.`)
+    }
+    if (!report || typeof report !== 'object') {
+        throw new Error(`[current-prediction] history page item report is invalid at index=${index}.`)
+    }
+
+    return {
+        id,
+        predictionDateUtc: normalizeCurrentPredictionDateUtc(predictionDateUtc),
+        report: mapReportResponse(report)
+    }
+}
+
+function readRequiredFiniteNumber(raw: unknown, fieldName: string): number {
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+        throw new Error(`[current-prediction] history page field '${fieldName}' must be a finite number.`)
+    }
+
+    return raw
+}
+
+function readRequiredBoolean(raw: unknown, fieldName: string): boolean {
+    if (typeof raw !== 'boolean') {
+        throw new Error(`[current-prediction] history page field '${fieldName}' must be a boolean.`)
+    }
+
+    return raw
+}
+
+function readRequiredDateString(raw: unknown, fieldName: string): string {
+    if (typeof raw !== 'string') {
+        throw new Error(`[current-prediction] history page field '${fieldName}' must be a date string.`)
+    }
+
+    return normalizeCurrentPredictionDateUtc(raw)
+}
+
 function collectUniquePredictionDates(index: CurrentPredictionIndexItemDto[] | undefined): string[] {
     if (!index || index.length === 0) {
         return []
@@ -194,6 +339,13 @@ export function useCurrentPredictionIndexQuery(
     scope?: CurrentPredictionTrainingScope
 ): UseQueryResult<CurrentPredictionIndexItemDto[], Error> {
     const queryOptions = buildCurrentPredictionIndexQueryOptions(set, days, scope)
+    return useQuery(queryOptions)
+}
+
+export function useCurrentPredictionHistoryPageQuery(
+    args: CurrentPredictionHistoryPageQueryArgs
+): UseQueryResult<CurrentPredictionHistoryPageDto, Error> {
+    const queryOptions = buildCurrentPredictionHistoryPageQueryOptions(args)
     return useQuery(queryOptions)
 }
 
@@ -269,6 +421,31 @@ function buildCurrentPredictionIndexQueryOptions(
     }
 }
 
+function buildCurrentPredictionHistoryPageQueryOptions(args: CurrentPredictionHistoryPageQueryArgs) {
+    const resolvedScope = resolveCurrentPredictionIndexScope(args.set, args.scope)
+
+    return {
+        queryKey: [
+            'current-prediction',
+            'history-page',
+            args.set,
+            resolvedScope,
+            args.days ?? 'all',
+            args.fromDateUtc ?? 'from-all',
+            args.toDateUtc ?? 'to-all',
+            args.page,
+            args.pageSize
+        ] as const,
+        queryFn: () => fetchCurrentPredictionHistoryPage({ ...args, scope: resolvedScope }),
+        retry: false,
+        staleTime: CURRENT_PREDICTION_HISTORY_PAGE_CACHE_TTL_MS,
+        gcTime: CURRENT_PREDICTION_HISTORY_PAGE_CACHE_TTL_MS,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        refetchOnWindowFocus: false
+    }
+}
+
 export async function prefetchCurrentPredictionLatestReport(queryClient: QueryClient): Promise<void> {
     const queryOptions = buildCurrentPredictionReportQueryOptions(
         DEFAULT_CURRENT_PREDICTION_SET,
@@ -283,5 +460,21 @@ export async function prefetchCurrentPredictionHistoryIndex(queryClient: QueryCl
         undefined,
         DEFAULT_BACKFILLED_HISTORY_SCOPE
     )
+    await queryClient.prefetchQuery(queryOptions)
+}
+
+export async function prefetchCurrentPredictionHistoryPage(
+    queryClient: QueryClient,
+    args: Partial<CurrentPredictionHistoryPageQueryArgs> = {}
+): Promise<void> {
+    const queryOptions = buildCurrentPredictionHistoryPageQueryOptions({
+        set: args.set ?? DEFAULT_HISTORY_PREDICTION_SET,
+        scope: args.scope ?? DEFAULT_BACKFILLED_HISTORY_SCOPE,
+        page: args.page ?? DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE,
+        pageSize: args.pageSize ?? DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE,
+        days: args.days,
+        fromDateUtc: args.fromDateUtc,
+        toDateUtc: args.toDateUtc
+    })
     await queryClient.prefetchQuery(queryOptions)
 }

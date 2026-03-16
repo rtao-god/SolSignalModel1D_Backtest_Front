@@ -13,6 +13,13 @@
     margin-bottom: 14px;
 }
 
+.headerTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .title {
     font-size: 16px;
     font-weight: 600;
@@ -24,6 +31,11 @@
     line-height: 1.5;
     color: #94a3b8;
     max-width: 760px;
+}
+
+.toggleButton {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .grid {
@@ -56,6 +68,15 @@
 }
 
 @media (max-width: 980px) {
+    .headerTop {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toggleButton {
+        align-self: flex-start;
+    }
+
     .grid {
         grid-template-columns: 1fr;
     }

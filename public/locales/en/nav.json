@@ -162,6 +162,11 @@
             "tests-leakage": "Leakage tests",
             "tests-perf": "Performance tests"
         },
+        "aggregation_stats": {
+            "probs": "Probabilities",
+            "metrics": "Metrics",
+            "debug": "Recent-day review"
+        },
         "docs_models": {
             "models-overview": "What each model means",
             "models-daily": "Daily model",

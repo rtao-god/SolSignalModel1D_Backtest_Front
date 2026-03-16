@@ -6,7 +6,10 @@ import {
     RECOV_DAYS_DESCRIPTION,
     REQ_GAIN_DESCRIPTION,
     SL_MODE_TERM_DESCRIPTION,
-    START_CAP_DESCRIPTION
+    START_CAP_DESCRIPTION,
+    ON_EXCHANGE_PCT_DESCRIPTION,
+    TOTAL_PNL_DESCRIPTION,
+    WEALTH_PCT_DESCRIPTION
 } from '@/shared/terms/common'
 
 export interface PolicyBranchMegaSharedTermDraft {
@@ -30,6 +33,21 @@ export const POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS: Record<string, PolicyBranchM
         key: 'SL Mode',
         title: 'SL Mode',
         description: SL_MODE_TERM_DESCRIPTION
+    },
+    'TotalPnl%': {
+        key: 'TotalPnl%',
+        title: 'TotalPnl%',
+        description: TOTAL_PNL_DESCRIPTION
+    },
+    'Wealth%': {
+        key: 'Wealth%',
+        title: 'Wealth%',
+        description: WEALTH_PCT_DESCRIPTION
+    },
+    'OnExch%': {
+        key: 'OnExch%',
+        title: 'OnExch%',
+        description: ON_EXCHANGE_PCT_DESCRIPTION
     },
     StartCap$: {
         key: 'StartCap$',

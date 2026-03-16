@@ -1,4 +1,5 @@
 import type { PolicyRatiosReportDto } from './policyRatios.types'
+import type { PolicyEvaluationDto } from './policyEvaluation.types'
 import type { ReportDocumentDto } from './report.types'
 
 export interface BacktestPolicyConfigDto {
@@ -122,6 +123,7 @@ export interface BacktestPolicySummaryDto {
     hadLiquidation: boolean
     withdrawnTotal: number
     tradesCount: number
+    evaluation: PolicyEvaluationDto | null
 }
 
 export interface BacktestBaselineSnapshotDto {

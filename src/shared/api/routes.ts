@@ -19,6 +19,10 @@ export const API_ROUTES = {
             path: '/current-prediction/dates',
             method: 'GET' as const
         },
+        historyPage: {
+            path: '/current-prediction/history/page',
+            method: 'GET' as const
+        },
         byDateReport: {
             path: '/current-prediction/by-date',
             method: 'GET' as const
@@ -67,6 +71,10 @@ export const API_ROUTES = {
         },
         policyBranchMegaGet: {
             path: '/backtest/policy-branch-mega',
+            method: 'GET' as const
+        },
+        policyBranchMegaEvaluationGet: {
+            path: '/backtest/policy-branch-mega/evaluation',
             method: 'GET' as const
         },
         policyBranchMegaStatusGet: {

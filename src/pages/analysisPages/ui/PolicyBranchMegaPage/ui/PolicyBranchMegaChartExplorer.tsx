@@ -10,7 +10,8 @@ import {
     Text,
     type ReportMetricBarDatum,
     type ReportMetricChartTone,
-    type ReportMetricScatterDatum
+    type ReportMetricScatterDatum,
+    type ReportViewControlGroup
 } from '@/shared/ui'
 import { renderTermTooltipRichText, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { getPolicyBranchMegaTerm, type PolicyBranchMegaTermLocale } from '@/shared/utils/policyBranchMegaTerms'
@@ -43,6 +44,9 @@ type ChartPresetKey =
     | 'long-vs-total-pnl'
     | 'short-vs-total-pnl'
     | 'eod-vs-trade-rate'
+    | 'profit-factor-vs-expectancy'
+    | 'hit-vs-miss'
+    | 'long-vs-short-winrate'
     | 'custom'
 
 interface PolicyBranchMegaChartExplorerProps {
@@ -74,26 +78,29 @@ interface PolicyBranchMegaChartPresetDescriptor {
 }
 
 const DEFAULT_CHART_PRESET_KEY: Exclude<ChartPresetKey, 'custom'> = 'pnl-vs-drawdown'
+const DEFAULT_RANKING_LIMIT_MODE: RankingLimitMode = 'all'
+const RANKING_BAR_MAX_HEIGHT_PX = 860
+const POLICY_COMPARE_MAX_HEIGHT_PX = 420
 // Preset синхронно настраивает левый рейтинг и правый scatter,
 // чтобы пользователь переключал готовую diagnostic pair, а не разрозненные оси.
 const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
     {
         key: 'pnl-vs-drawdown',
         part: 1,
-        rankingMetricKey: 'TotalPnl%',
+        rankingMetricKey: 'Wealth%',
         scatterXMetricKey: 'MaxDD%',
-        scatterYMetricKey: 'TotalPnl%',
+        scatterYMetricKey: 'Wealth%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.pnlVsDrawdown',
-        defaultLabel: 'Total PnL vs MaxDD'
+        defaultLabel: 'Wealth vs MaxDD'
     },
     {
         key: 'trade-vs-return',
         part: 1,
         rankingMetricKey: 'Trade%',
         scatterXMetricKey: 'Trade%',
-        scatterYMetricKey: 'TotalPnl%',
+        scatterYMetricKey: 'Wealth%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.tradeVsReturn',
-        defaultLabel: 'Trade rate vs Total PnL'
+        defaultLabel: 'Trade rate vs Wealth'
     },
     {
         key: 'recovery-vs-drawdown',
@@ -136,9 +143,9 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
         part: 3,
         rankingMetricKey: 'AvgDay%',
         scatterXMetricKey: 'AvgDay%',
-        scatterYMetricKey: 'TotalPnl%',
+        scatterYMetricKey: 'Wealth%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.avgDayVsTotalPnl',
-        defaultLabel: 'Average day vs Total PnL'
+        defaultLabel: 'Average day vs Wealth'
     },
     {
         key: 'long-vs-short-cash',
@@ -154,18 +161,18 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
         part: 3,
         rankingMetricKey: 'Long $',
         scatterXMetricKey: 'Long $',
-        scatterYMetricKey: 'TotalPnl%',
+        scatterYMetricKey: 'Wealth%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.longVsTotalPnl',
-        defaultLabel: 'Long cash vs Total PnL'
+        defaultLabel: 'Long cash vs Wealth'
     },
     {
         key: 'short-vs-total-pnl',
         part: 3,
         rankingMetricKey: 'Short $',
         scatterXMetricKey: 'Short $',
-        scatterYMetricKey: 'TotalPnl%',
+        scatterYMetricKey: 'Wealth%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.shortVsTotalPnl',
-        defaultLabel: 'Short cash vs Total PnL'
+        defaultLabel: 'Short cash vs Wealth'
     },
     {
         key: 'eod-vs-trade-rate',
@@ -175,6 +182,33 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
         scatterYMetricKey: 'EODExit%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.eodVsTradeRate',
         defaultLabel: 'EndOfDay exit vs Trade rate'
+    },
+    {
+        key: 'profit-factor-vs-expectancy',
+        part: 4,
+        rankingMetricKey: 'ProfitFactor',
+        scatterXMetricKey: 'ProfitFactor',
+        scatterYMetricKey: 'Expectancy%',
+        labelKey: 'policyBranchMega.page.chart.controls.preset.options.profitFactorVsExpectancy',
+        defaultLabel: 'ProfitFactor vs Expectancy%'
+    },
+    {
+        key: 'hit-vs-miss',
+        part: 4,
+        rankingMetricKey: 'AvgHit%',
+        scatterXMetricKey: 'AvgMiss%',
+        scatterYMetricKey: 'AvgHit%',
+        labelKey: 'policyBranchMega.page.chart.controls.preset.options.hitVsMiss',
+        defaultLabel: 'AvgHit% vs AvgMiss%'
+    },
+    {
+        key: 'long-vs-short-winrate',
+        part: 4,
+        rankingMetricKey: 'LongWinRate%',
+        scatterXMetricKey: 'LongWinRate%',
+        scatterYMetricKey: 'ShortWinRate%',
+        labelKey: 'policyBranchMega.page.chart.controls.preset.options.longVsShortWinRate',
+        defaultLabel: 'LongWinRate% vs ShortWinRate%'
     }
 ] as const
 
@@ -191,7 +225,7 @@ function resolveRiskLabel(
 ): string {
     if (riskState === 'ruin') {
         return translate('policyBranchMega.page.chart.detail.risk.ruin', {
-            defaultValue: 'AccRuin > 0'
+            defaultValue: 'Есть руина капитала'
         })
     }
 
@@ -235,6 +269,30 @@ function renderMetricTitle(title: string, sourceColumn: string, locale: PolicyBr
     } catch {
         return title
     }
+}
+
+function resolveSharedTermTooltipDescription(termKey: string, locale: PolicyBranchMegaTermLocale): string | undefined {
+    try {
+        return getPolicyBranchMegaTerm(termKey, { locale }).description
+    } catch {
+        return undefined
+    }
+}
+
+function resolveHorizontalBarChartHeight(
+    itemCount: number,
+    minHeight: number,
+    rowHeight: number,
+    chromeHeight: number
+) {
+    return Math.max(minHeight, itemCount * rowHeight + chromeHeight)
+}
+
+function resolveScatterChartHeight(pointCount: number) {
+    if (pointCount >= 80) return 560
+    if (pointCount >= 48) return 520
+    if (pointCount >= 24) return 460
+    return 400
 }
 
 function pickInitialScatterMetricKey(
@@ -298,7 +356,7 @@ export default function PolicyBranchMegaChartExplorer({
     const [branchFilter, setBranchFilter] = useState<string | ChartFilterValue>('all')
     const [rowSlModeFilter, setRowSlModeFilter] = useState<string | ChartFilterValue>('all')
     const [sortMode, setSortMode] = useState<RankingSortMode>('metric-desc')
-    const [limitMode, setLimitMode] = useState<RankingLimitMode>('12')
+    const [limitMode, setLimitMode] = useState<RankingLimitMode>(DEFAULT_RANKING_LIMIT_MODE)
     const [policySearch, setPolicySearch] = useState('')
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
     const [rankingMetricKey, setRankingMetricKey] = useState<string>(
@@ -312,7 +370,7 @@ export default function PolicyBranchMegaChartExplorer({
     const [scatterYMetricKey, setScatterYMetricKey] = useState<string>(
         () =>
             CHART_PRESETS[0]?.scatterYMetricKey ??
-            pickInitialScatterMetricKey(model, ['TotalPnl%', 'Wealth%', 'AvgDay%'], 1)
+            pickInitialScatterMetricKey(model, ['Wealth%', 'OnExch%', 'AvgDay%'], 1)
     )
 
     const deferredSearch = useDeferredValue(policySearch.trim().toLowerCase())
@@ -341,6 +399,9 @@ export default function PolicyBranchMegaChartExplorer({
         () => availableChartPresets.find(preset => preset.key === chartPresetKey) ?? null,
         [availableChartPresets, chartPresetKey]
     )
+    const policyTooltip = useMemo(() => resolveSharedTermTooltipDescription('Policy', termsLocale), [termsLocale])
+    const branchTooltip = useMemo(() => resolveSharedTermTooltipDescription('Branch', termsLocale), [termsLocale])
+    const slModeTooltip = useMemo(() => resolveSharedTermTooltipDescription('SL Mode', termsLocale), [termsLocale])
 
     const applyChartPreset = (nextPresetKey: Exclude<ChartPresetKey, 'custom'>) => {
         const nextPreset = availableChartPresets.find(preset => preset.key === nextPresetKey)
@@ -390,7 +451,7 @@ export default function PolicyBranchMegaChartExplorer({
 
     useEffect(() => {
         if (model.metrics.some(metric => metric.key === scatterYMetricKey)) return
-        setScatterYMetricKey(pickInitialScatterMetricKey(model, ['TotalPnl%', 'Wealth%', 'AvgDay%'], 1))
+        setScatterYMetricKey(pickInitialScatterMetricKey(model, ['Wealth%', 'OnExch%', 'AvgDay%'], 1))
     }, [model, scatterYMetricKey])
 
     const filteredRows = useMemo(
@@ -501,122 +562,139 @@ export default function PolicyBranchMegaChartExplorer({
                 .filter((row): row is PolicyBranchMegaPolicyDatum => row !== null),
         [rankingMetric.key, selectedPolicyRows]
     )
+    const rankingChartHeight = useMemo(
+        () => resolveHorizontalBarChartHeight(rankingData.length, 360, 28, 96),
+        [rankingData.length]
+    )
+    const selectedPolicyChartHeight = useMemo(
+        () => resolveHorizontalBarChartHeight(selectedPolicyMetricData.length, 240, 40, 84),
+        [selectedPolicyMetricData.length]
+    )
+    const scatterChartHeight = useMemo(() => resolveScatterChartHeight(scatterData.length), [scatterData.length])
 
-    const topLevelControls = useMemo(
-        () =>
-            [
-                {
-                    key: 'mega-chart-part',
-                    label: translate('policyBranchMega.page.chart.controls.partLabel', {
-                        defaultValue: 'Часть отчёта'
-                    }),
-                    value: String(selectedPart),
-                    options: model.parts.map(part => ({
-                        value: String(part.part),
-                        label: `PART ${part.part}/${partsCount}`
-                    })),
-                    onChange: (next: string) => {
-                        setChartPresetKey('custom')
-                        setSelectedPart(Number(next))
-                    }
-                },
-                {
-                    key: 'mega-chart-branch',
-                    label: translate('policyBranchMega.page.chart.controls.branchLabel', {
-                        defaultValue: 'Branch'
-                    }),
-                    value: branchFilter,
-                    options: [
-                        {
-                            value: 'all',
-                            label: translate('policyBranchMega.page.chart.controls.allRows', {
-                                defaultValue: 'Все'
-                            })
-                        },
-                        ...model.branchOptions.map(branch => ({
-                            value: branch,
-                            label: branch
-                        }))
-                    ],
-                    onChange: (next: string) => setBranchFilter(next)
-                },
-                {
-                    key: 'mega-chart-slmode',
-                    label: translate('policyBranchMega.page.chart.controls.rowSlModeLabel', {
-                        defaultValue: 'SL Mode Policy'
-                    }),
-                    value: rowSlModeFilter,
-                    options: [
-                        {
-                            value: 'all',
-                            label: translate('policyBranchMega.page.chart.controls.allRows', {
-                                defaultValue: 'Все'
-                            })
-                        },
-                        ...model.slModeOptions.map(mode => ({
-                            value: mode,
-                            label: mode
-                        }))
-                    ],
-                    onChange: (next: string) => setRowSlModeFilter(next)
-                },
-                {
-                    key: 'mega-chart-sort',
-                    label: translate('policyBranchMega.page.chart.controls.sortLabel', {
-                        defaultValue: 'Сортировка'
-                    }),
-                    value: sortMode,
-                    options: [
-                        {
-                            value: 'metric-desc',
-                            label: translate('policyBranchMega.page.chart.controls.sort.metricDesc', {
-                                defaultValue: 'Метрика ↓'
-                            })
-                        },
-                        {
-                            value: 'metric-asc',
-                            label: translate('policyBranchMega.page.chart.controls.sort.metricAsc', {
-                                defaultValue: 'Метрика ↑'
-                            })
-                        },
-                        {
-                            value: 'policy-asc',
-                            label: translate('policyBranchMega.page.chart.controls.sort.policyAsc', {
-                                defaultValue: 'Policy A-Z'
-                            })
-                        }
-                    ],
-                    onChange: (next: RankingSortMode) => setSortMode(next)
-                },
-                {
-                    key: 'mega-chart-limit',
-                    label: translate('policyBranchMega.page.chart.controls.limitLabel', {
-                        defaultValue: 'Сколько Policy'
-                    }),
-                    value: limitMode,
-                    options: [
-                        { value: '8', label: '8' },
-                        { value: '12', label: '12' },
-                        { value: '20', label: '20' },
-                        {
-                            value: 'all',
-                            label: translate('policyBranchMega.page.chart.controls.limit.all', {
-                                defaultValue: 'Все'
-                            })
-                        }
-                    ],
-                    onChange: (next: RankingLimitMode) => setLimitMode(next)
+    const topLevelControls = useMemo<readonly ReportViewControlGroup[]>(
+        () => [
+            {
+                key: 'mega-chart-part',
+                label: translate('policyBranchMega.page.chart.controls.partLabel', {
+                    defaultValue: 'Часть отчёта'
+                }),
+                value: String(selectedPart),
+                options: model.parts.map(part => ({
+                    value: String(part.part),
+                    label: `PART ${part.part}/${partsCount}`
+                })),
+                onChange: (next: string) => {
+                    setChartPresetKey('custom')
+                    setSelectedPart(Number(next))
                 }
-            ] as const,
+            },
+            {
+                key: 'mega-chart-branch',
+                label: translate('policyBranchMega.page.chart.controls.branchLabel', {
+                    defaultValue: 'Branch'
+                }),
+                infoTooltip: branchTooltip,
+                infoTooltipExcludeTerms: ['Branch'],
+                value: branchFilter,
+                options: [
+                    {
+                        value: 'all',
+                        label: translate('policyBranchMega.page.chart.controls.allRows', {
+                            defaultValue: 'Все'
+                        })
+                    },
+                    ...model.branchOptions.map(branch => ({
+                        value: branch,
+                        label: branch
+                    }))
+                ],
+                onChange: (next: string) => setBranchFilter(next)
+            },
+            {
+                key: 'mega-chart-slmode',
+                label: translate('policyBranchMega.page.chart.controls.rowSlModeLabel', {
+                    defaultValue: 'SL Mode'
+                }),
+                infoTooltip: slModeTooltip,
+                infoTooltipExcludeTerms: ['SL Mode'],
+                value: rowSlModeFilter,
+                options: [
+                    {
+                        value: 'all',
+                        label: translate('policyBranchMega.page.chart.controls.allRows', {
+                            defaultValue: 'Все'
+                        })
+                    },
+                    ...model.slModeOptions.map(mode => ({
+                        value: mode,
+                        label: mode
+                    }))
+                ],
+                onChange: (next: string) => setRowSlModeFilter(next)
+            },
+            {
+                key: 'mega-chart-sort',
+                label: translate('policyBranchMega.page.chart.controls.sortLabel', {
+                    defaultValue: 'Сортировка'
+                }),
+                value: sortMode,
+                options: [
+                    {
+                        value: 'metric-desc',
+                        label: translate('policyBranchMega.page.chart.controls.sort.metricDesc', {
+                            defaultValue: 'Метрика ↓'
+                        })
+                    },
+                    {
+                        value: 'metric-asc',
+                        label: translate('policyBranchMega.page.chart.controls.sort.metricAsc', {
+                            defaultValue: 'Метрика ↑'
+                        })
+                    },
+                    {
+                        value: 'policy-asc',
+                        label: translate('policyBranchMega.page.chart.controls.sort.policyAsc', {
+                            defaultValue: 'Policy A-Z'
+                        })
+                    }
+                ],
+                onChange: (next: RankingSortMode) => setSortMode(next)
+            },
+            {
+                key: 'mega-chart-limit',
+                label: translate('policyBranchMega.page.chart.controls.limitLabel', {
+                    defaultValue: 'Показывать Policy'
+                }),
+                infoTooltip: policyTooltip,
+                infoTooltipExcludeTerms: ['Policy'],
+                value: limitMode,
+                options: [
+                    {
+                        value: 'all',
+                        label: translate('policyBranchMega.page.chart.controls.limit.all', {
+                            defaultValue: 'Все'
+                        })
+                    },
+                    { value: '8', label: '8' },
+                    { value: '12', label: '12' },
+                    { value: '20', label: '20' }
+                ],
+                onChange: (next: RankingLimitMode) => setLimitMode(next)
+            }
+        ],
         [
+            branchTooltip,
             branchFilter,
             limitMode,
             model.branchOptions,
             model.parts,
             model.slModeOptions,
             partsCount,
+            policyTooltip,
             rowSlModeFilter,
             selectedPart,
+            slModeTooltip,
             sortMode,
             translate
         ]
@@ -855,6 +933,9 @@ export default function PolicyBranchMegaChartExplorer({
 
                     <ReportMetricBarChart
                         data={rankingData}
+                        orientation='horizontal'
+                        height={rankingChartHeight}
+                        maxHeight={RANKING_BAR_MAX_HEIGHT_PX}
                         selectedId={selectedRowId}
                         onSelect={datum => setSelectedRowId(datum.row.id)}
                         valueLabel={rankingMetric.title}
@@ -919,6 +1000,7 @@ export default function PolicyBranchMegaChartExplorer({
 
                     <ReportMetricScatterChart
                         data={scatterData}
+                        height={scatterChartHeight}
                         selectedId={selectedRowId}
                         onSelect={datum => setSelectedRowId(datum.row.id)}
                         xLabel={scatterXMetric.title}
@@ -1008,6 +1090,9 @@ export default function PolicyBranchMegaChartExplorer({
 
                             <ReportMetricBarChart
                                 data={selectedPolicyMetricData}
+                                orientation='horizontal'
+                                height={selectedPolicyChartHeight}
+                                maxHeight={POLICY_COMPARE_MAX_HEIGHT_PX}
                                 selectedId={selectedRow.id}
                                 onSelect={datum => setSelectedRowId(datum.row.id)}
                                 valueLabel={rankingMetric.title}

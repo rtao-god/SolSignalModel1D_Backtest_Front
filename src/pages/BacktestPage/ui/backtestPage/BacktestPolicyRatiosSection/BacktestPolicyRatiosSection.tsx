@@ -114,6 +114,37 @@ function resolveBuckets(report: PolicyRatiosReportDto): string[] {
     return Array.from(bucketSet).sort((a, b) => a.localeCompare(b))
 }
 
+function resolvePolicyEvaluationTone(row: PolicyRatiosPerPolicyDto): ReportMetricBarDatum['tone'] {
+    if (!row.evaluation) {
+        return 'neutral'
+    }
+
+    if (row.evaluation.status === 'good') return 'positive'
+    if (row.evaluation.status === 'caution') return 'warning'
+    if (row.evaluation.status === 'bad') return 'negative'
+    return 'neutral'
+}
+
+function resolvePolicyEvaluationRowClass(row: PolicyRatiosPerPolicyDto): string | undefined {
+    if (!row.evaluation) {
+        return undefined
+    }
+
+    if (row.evaluation.status === 'good') return cls.rowGood
+    if (row.evaluation.status === 'caution') return cls.rowCaution
+    if (row.evaluation.status === 'bad') return cls.rowBad
+    return cls.rowUnknown
+}
+
+function resolvePolicyEvaluationRowTitle(row: PolicyRatiosPerPolicyDto): string | undefined {
+    const reasons = row.evaluation?.reasons?.map(reason => reason.message).filter(Boolean) ?? []
+    if (reasons.length === 0) {
+        return undefined
+    }
+
+    return reasons.join(' | ')
+}
+
 export function BacktestPolicyRatiosSection({
     profileId = 'baseline',
     report,
@@ -196,10 +227,7 @@ export function BacktestPolicyRatiosSection({
                     policyName: row.policyName,
                     label: row.policyName,
                     value: rawValue,
-                    tone:
-                        row.hadLiquidation ? 'warning'
-                        : rawValue >= 0 ? 'positive'
-                        : 'negative',
+                    tone: resolvePolicyEvaluationTone(row),
                     bucket: row.bucket,
                     tradesCount: row.tradesCount,
                     maxDdPct: row.maxDdPct,
@@ -410,9 +438,10 @@ export function BacktestPolicyRatiosSection({
                                             defaultValue: column.defaultTooltip
                                         })
                                         const resolvedTooltip =
-                                            column.id === 'policy' ? resolveSharedReportTooltip('Policy')
+                                            resolveCommonReportColumnTooltipOrNull(label, tooltipLocale)
+                                            ?? (column.id === 'policy' ? resolveSharedReportTooltip('Policy')
                                             : column.id === 'bucket' ? resolveSharedReportTooltip('Bucket')
-                                            : tooltip
+                                            : tooltip)
 
                                         return <th key={column.id}>{renderTermTooltipTitle(label, resolvedTooltip)}</th>
                                     })}
@@ -420,7 +449,10 @@ export function BacktestPolicyRatiosSection({
                             </thead>
                             <tbody>
                                 {filteredPolicies.map(row => (
-                                    <tr key={`${row.policyName}::${row.bucket}`}>
+                                    <tr
+                                        key={`${row.policyName}::${row.bucket}`}
+                                        className={resolvePolicyEvaluationRowClass(row)}
+                                        title={resolvePolicyEvaluationRowTitle(row)}>
                                         <td>{row.policyName}</td>
                                         <td>{row.bucket}</td>
                                         <td>{row.tradesCount}</td>

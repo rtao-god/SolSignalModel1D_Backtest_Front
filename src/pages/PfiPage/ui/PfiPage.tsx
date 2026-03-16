@@ -232,16 +232,11 @@ export default function PfiPage({ className }: PfiPageProps) {
 
             <SectionDataState
                 isLoading={isLoading}
-                isError={Boolean(error || sourceEndpointState.error)}
-                error={
-                    error ??
-                    sourceEndpointState.error ??
-                    new Error('[pfi] report source endpoint is missing after validation.')
-                }
-                hasData={Boolean(report && sourceEndpointState.value)}
+                isError={Boolean(error)}
+                error={error}
+                hasData={Boolean(report)}
                 onRetry={refetch}
-                title={sourceEndpointState.error ? t('pfi.page.errors.sourceEndpoint.title') : t('pfi.page.errorTitle')}
-                description={sourceEndpointState.error ? t('pfi.page.errors.sourceEndpoint.message') : undefined}
+                title={t('pfi.page.errorTitle')}
                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                 logContext={{ source: 'pfi-page-report' }}>
                 <SectionDataState

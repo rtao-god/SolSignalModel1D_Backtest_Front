@@ -146,9 +146,6 @@ const CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN =
 const CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION_EN =
     'Name is the exact [[factor|factor]] identifier that entered the top part of the [[landing-explain|explain]] or [[landing-pfi|PFI]] list for this forecast.\n\nIt links the row to a concrete [[current-prediction-model-stack|current prediction model]], feature, or decision rule.\n\nHow to read it:\nfirst identify what this [[factor|factor]] actually refers to, then compare it with the rank and description to understand whether it is the main driver or just supporting context.'
 
-const CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION_EN =
-    'Description is the human-readable explanation of what this [[factor|factor]] means in the current card.\n\nIt translates the raw [[factor|factor]] name into the role it plays in the forecast rather than into a separate score.\n\nHow to read it:\nthis field answers what kind of effect the [[factor|factor]] represents, while rank answers how high that effect stands in the current explanation list.'
-
 const CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION_EN =
     'Value is the actual state of the [[factor|factor]] at prediction time.\n\nIt can be a number, a category, or be empty when the row describes a rule without a standalone numeric value.\n\nHow to read it:\nthis is the current reading of the [[factor|factor]], not the size of its importance. To judge importance, compare the value with the factor rank and the surrounding context.'
 
@@ -176,7 +173,7 @@ const CURRENT_PREDICTION_MICRO_MODEL_DESCRIPTION_EN =
     'Micro model is an additional model that activates only after [[current-prediction-daily-layer|Daily]] has classified the day as flat.\n\nWhat it does:\n- it does not touch days where Daily already chose an up or down scenario;\n- it searches for a weak directional tilt inside a sideways day;\n- it passes that refinement into Day + Micro and then into Total.\n\nHow to read it:\nMicro does not replace [[current-prediction-daily-layer|Daily]]. It exists to recover weak directional signals that would otherwise stay inside a flat-looking day.'
 
 const CURRENT_PREDICTION_MODEL_TRAINING_WINDOW_DESCRIPTION_EN =
-    'Model training window shows which slice of history was used to build the current prediction stack.\n\nWhat it shows:\nit makes visible the training mode, the covered date range, and the number of observations behind the active forecast.\n\nHow to read it:\nthis field answers how much and what type of history stands behind the forecast. When Full, Train, OOS, and Recent differ, the explanation starts here.'
+    'Model training window shows which slice of history was used to build the current prediction stack.\n\nWhat it shows:\nit makes visible the training mode, the covered date range, and the number of observations behind the active forecast.\n\nHow to read it:\nthis field answers how much and what type of history stands behind the forecast. When [[landing-all-history|full history]], [[train-segment|Train]], [[landing-oos|OOS]], and [[landing-recent-tail-history|recent tail]] differ, the explanation starts here.'
 
 const CURRENT_PREDICTION_MODEL_COMMENT_DESCRIPTION_EN =
     'Model comment is the short note attached to the current calculation when the system needs to explain a special forecast mode or why the standard daily result is not ready yet.\n\nWhat it shows:\nit usually carries a human-readable reason such as an unclosed day, a missing daily layer, or another calculation mode that affects the card.\n\nHow to read it:\nit is supporting context for the forecast, not a standalone metric. It explains why the card looks this way, but it does not replace probabilities, the final scenario, or the risk fields.'
@@ -231,7 +228,6 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
         'Withdrawn$ is the amount of profit this policy already moved out of active trading balance.\n\nIt is not current on-exchange balance, but profit already taken out of the live equity curve.\n\nHow to read it:\nit matters for wealth interpretation because a strategy may have realized and withdrawn part of its gains even if current balance now looks smaller.',
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION_EN,
-    Описание: CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION_EN,
     Значение: CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION_EN,
     Ранг: CURRENT_PREDICTION_FACTOR_RANK_DESCRIPTION_EN
 }
@@ -242,7 +238,6 @@ Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
     Bucket: CURRENT_PREDICTION_COLUMNS_EN.Bucket,
     Type: CURRENT_PREDICTION_COLUMNS_EN['Тип'],
     Name: CURRENT_PREDICTION_COLUMNS_EN['Имя'],
-    Description: CURRENT_PREDICTION_COLUMNS_EN['Описание'],
     Value: CURRENT_PREDICTION_COLUMNS_EN['Значение'],
     Rank: CURRENT_PREDICTION_COLUMNS_EN['Ранг'],
     'Risk day': CURRENT_PREDICTION_COLUMNS_EN['Рискованный день'],
@@ -316,7 +311,6 @@ Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
     'MaxDD%': COMMON_MAX_DD_DESCRIPTION_EN,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION_EN,
-    Описание: CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION_EN,
     Значение: CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION_EN,
     Ранг: CURRENT_PREDICTION_FACTOR_RANK_DESCRIPTION_EN
 })
@@ -374,6 +368,10 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Ключевой фактор слоя пояснений / PFI':
         'Top [[factor|factor]] from [[landing-explain|explain]] or [[landing-pfi|PFI]] most associated with the model-selected scenario.',
     'Доходность к закрытию, %': 'Price change from entry to 24h close: (Close24 / Entry - 1) * 100.',
+    'Максимальная цена за торговый день (факт)':
+        'Actual 24h max price is the highest price reached inside the factual 24h window after entry.\n\nIt shows how high the market managed to go during the day even if it later gave the move back.\n\nHow to read it:\nfor [[position|LONG]] this is the best upward excursion; for [[position|SHORT]] it is the maximum adverse bounce.',
+    'Минимальная цена за торговый день (факт)':
+        'Actual 24h min price is the lowest price reached inside the factual 24h window after entry.\n\nIt shows how deep the market dipped during the day even if it later recovered.\n\nHow to read it:\nfor [[position|LONG]] this is the maximum adverse move; for [[position|SHORT]] it is the strongest favorable drop.',
     'Максимум за 24ч от входа, %': 'Maximum upward move vs entry during 24h window.',
     'Минимум за 24ч от входа, %': 'Maximum downward move vs entry during 24h window.',
     'Диапазон high-low за 24ч, %': 'Range width MaxHigh24 - MinLow24 vs entry price, in %.',
@@ -412,6 +410,8 @@ Object.assign(CURRENT_PREDICTION_KEYS_EN, {
     'Why it differs': CURRENT_PREDICTION_KEYS_EN['Почему отличается'],
     'Key explain/PFI factor': CURRENT_PREDICTION_KEYS_EN['Ключевой фактор слоя пояснений / PFI'],
     'Return to close, %': CURRENT_PREDICTION_KEYS_EN['Доходность к закрытию, %'],
+    'Actual 24h max price': CURRENT_PREDICTION_KEYS_EN['Максимальная цена за торговый день (факт)'],
+    'Actual 24h min price': CURRENT_PREDICTION_KEYS_EN['Минимальная цена за торговый день (факт)'],
     '24h max from entry, %': CURRENT_PREDICTION_KEYS_EN['Максимум за 24ч от входа, %'],
     '24h min from entry, %': CURRENT_PREDICTION_KEYS_EN['Минимум за 24ч от входа, %'],
     '24h high-low range, %': CURRENT_PREDICTION_KEYS_EN['Диапазон high-low за 24ч, %'],
@@ -516,15 +516,20 @@ export const MODEL_STATS_COLUMNS_EN: Record<string, string> = {
     correct: 'Number of correct predictions.',
     total: 'Total sample count in row.',
     'Точность, %': 'Accuracy percentage for this row.',
+    'Accuracy, %': 'Accuracy percentage for this row.',
+    'Day type': 'Day type by outcome: TP-day or SL-day.',
     'day type': 'Day type by outcome: TP-day or SL-day.',
     'pred LOW': 'How many times model predicted LOW risk.',
     'pred HIGH': 'How many times model predicted HIGH risk.',
     metric: 'Metric name.',
     value: 'Metric value.',
     Порог: 'SL-model threshold used for metric calculation.',
+    Threshold: 'SL-model threshold used for metric calculation.',
     'TPR(SL), %': 'True Positive Rate on SL-days: share of correct HIGH flags on SL-days.',
+    'Stop-loss day recall, %': 'True Positive Rate on SL-days: share of correct HIGH flags on SL-days.',
     'FPR(TP), %': 'False Positive Rate on TP-days: share of false HIGH flags on TP-days.',
     'pred HIGH, %': 'Share of HIGH predictions at this threshold.',
+    'High-risk prediction rate, %': 'Share of HIGH predictions at this threshold.',
     'high / total': 'HIGH prediction count out of total days.'
 }
 
@@ -572,6 +577,7 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
         case 'TRUE':
         case 'Тип дня':
         case 'True trend':
+        case 'Day type':
         case 'day type':
             return 'Class is the factual day or row class on which this part of the report is built.\n\nWhat it shows:\nit is the realized outcome, not the model forecast. It defines the row of the confusion-style block or threshold table.\n\nHow to read it:\nall neighboring counts and percentages in the row relate to this factual class.\n\nExample:\nif the row is DOWN, the cells to the right show how the model behaved on truly down days.'
         case 'Summary':
@@ -587,6 +593,7 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
             return 'Pred-* is how many times the model emitted a specific prediction inside the current statistics row.\n\nWhat it shows:\nit is the count of predicted classes under a fixed true class or under a fixed threshold setting.\n\nHow to read it:\na large count alone does not imply good quality; it only becomes meaningful relative to the row’s true class and sample size.\n\nExample:\nif TRUE=DOWN but Pred UP dominates, the model systematically misses down days.'
         case 'Hit %':
         case 'Точность, %':
+        case 'Accuracy, %':
             return 'Hit % is the share of correct predictions inside the current row or slice.\n\nWhat it shows:\nit is a local accuracy number for one class, day type, or threshold, not the global quality of the whole model.\n\nHow to read it:\nhigher values mean the model hit the right answer more often inside this exact subgroup.\n\nExample:\nHit %=82 means about 82 out of 100 observations in this slice were classified correctly.'
         case 'correct':
             return 'correct is how many observations in the current row were classified correctly.\n\nWhat it shows:\nit is the absolute numerator behind accuracy and similar shares, not a percentage.\n\nHow to read it:\nits meaning appears only together with total. A large correct on a very small sample can still be less convincing than a moderate correct on a large one.\n\nExample:\ncorrect=18 with total=20 is stronger evidence than correct=4 with total=4.'
@@ -597,12 +604,15 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
         case 'value':
             return 'value is the numeric value of the metric named in the neighboring metric column.\n\nWhat it shows:\nit can be a percentage, a raw count, or a threshold depending on the row.\n\nHow to read it:\nvalue must always be interpreted through metric, because the same number can mean accuracy, HIGH share, or threshold depending on context.\n\nExample:\nvalue=0.74 with metric=TPR(SL) means 74% of stop-loss days were correctly flagged.'
         case 'Порог':
+        case 'Threshold':
             return 'Threshold is the cut-off used by the SL model to separate LOW and HIGH risk days.\n\nWhat it shows:\nit is the working decision boundary: above it the day becomes HIGH, below it the day stays LOW.\n\nHow to read it:\nchanging threshold shifts the balance between sensitivity and false alarms.\n\nExample:\na lower threshold usually raises TPR(SL) but often increases FPR(TP) as well.'
         case 'TPR(SL), %':
+        case 'Stop-loss day recall, %':
             return 'TPR(SL), % is the share of stop-loss days that the model correctly labeled as HIGH risk.\n\nWhat it shows:\nit is the sensitivity of the SL model on harmful days.\n\nHow to read it:\nhigher TPR(SL) means the model catches more truly dangerous stop-loss days in advance.\n\nFormula:\nTP / (TP + FN).'
         case 'FPR(TP), %':
             return 'FPR(TP), % is the share of take-profit days that the model incorrectly labeled as HIGH risk.\n\nWhat it shows:\nit is the price of excessive caution on good days.\n\nHow to read it:\nlower FPR(TP) means fewer profitable days were damaged by a false high-risk warning.\n\nFormula:\nFP / (FP + TN).'
         case 'pred HIGH, %':
+        case 'High-risk prediction rate, %':
             return 'pred HIGH, % is the share of cases where the model emitted HIGH risk under the current threshold.\n\nWhat it shows:\nit is the overall aggressiveness of the HIGH flag on the whole evaluated sample.\n\nHow to read it:\nvery high values mean the model sees danger almost everywhere; very low values mean HIGH remains rare and may miss real problems.\n\nExample:\na HIGH share of 80% means the model treats the majority of days as elevated risk.'
         default:
             return null
@@ -621,8 +631,8 @@ Object.assign(
     )
 )
 
-// DIAGNOSTICS_EXACT_EN оставляет только действительно diagnostics-специфичные смыслы.
-// Канонические report-термины теперь должны приходить из shared common owner-layer.
+// DIAGNOSTICS_EXACT_EN хранит только diagnostics-специфичные смыслы.
+// Общие report-термины обслуживаются через shared common owner-layer.
 export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
     Margin: 'Margin is the trade margin mode: [[cross-margin|cross]] or [[isolated-margin|isolated]].\n\nIt is not the position size and not a money amount. It is the rule that defines which collateral absorbs the loss.\n\nHow to read it:\nin [[isolated-margin|isolated]] mode one trade is limited by its own margin, while in [[cross-margin|cross]] mode the position can pull on the whole bucket balance.',
     Days: 'Days is the number of days included in the current diagnostics slice.\n\nIt is not the number of [[trade-count|trades]] and not only the number of trading days. The count covers all days that belong to the selected group.\n\nHow to read it:\nwhen Days is small, every percentage and share in the row rests on a thinner statistical base.',
@@ -630,7 +640,7 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
         'StartDay is the first UTC date that actually entered the calculation of this row.\n\nIt defines the left edge of the period used for the current aggregate.\n\nHow to read it:\nStartDay should be judged together with EndDay because period boundaries define whether two rows are directly comparable.',
     EndDay: 'EndDay is the last UTC date that actually entered the calculation of this row.\n\nIf the series stopped early, this field shows the factual stop date rather than the theoretical end of the full report window.\n\nHow to read it:\nEndDay together with StartDay tells which exact period this diagnostics row represents.',
     StopReason:
-        'StopReason explains why the current series ended exactly on that date.\n\nWhat the field can show:\n- Through end of period means the row reached the final day of the window; this is the normal completion path.\n- Early stop means the series ended before the full window.\n- Liquidation means the series contained [[liquidation|liquidation]] events.\n- Ruin means the bucket lost its working capital and the [[account-ruin|AccRuin]] scenario fired.\n\nHow to read it:\nif the text contains early stop, the row ended before the full period.\n\nIf it contains liquidation, the stop was accompanied by exchange-forced closes.\n\nIf it contains ruin, the problem is no longer one bad trade but destruction of the bucket working capital.\n\nFor an aggregate of independent buckets, one single StopReason may be not applicable because each bucket can stop for its own reason.',
+        'StopReason explains why the current series ended exactly on that date.\n\nWhat the field can show:\n- Through end of period means the series reached the final day of the window; this is the normal completion path.\n- Early stop means the series ended before the full window.\n- Liquidation means the series contained [[liquidation|liquidation]] events.\n- Ruin means the bucket lost its working capital and the [[account-ruin|AccRuin]] scenario fired.\n\nHow to read it:\nif the text contains early stop, the series ended before the full period.\n\nIf it contains liquidation, the stop was accompanied by exchange-forced closes.\n\nIf it contains ruin, the problem is no longer one bad trade but destruction of the bucket working capital.\n\nFor an aggregate of independent buckets, one single StopReason may be not applicable because each bucket can stop for its own reason.',
     MissingDays:
         'MissingDays is the number of calendar days missing inside the interval from StartDay to EndDay.\n\nThis is not a no-trade metric and not an intentional strategy skip. It points to missing data coverage or missing day-level decision trace.\n\nHow to read it:\nfor weekdays the healthy value is usually near zero. Growth here means the slice was built on incomplete coverage and should be interpreted more cautiously.',
     'TradeDays%':
@@ -671,7 +681,7 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
     LiqBacktest:
         'LiqBacktest is the conservative backtest [[liquidation|liquidation]] price.\n\nIt is intentionally placed closer to entry than a softer theoretical level so the simulation does not look more optimistic than the real risk profile.\n\nHow to read it:\nthis is the main reference for [[real-liquidation|RealLiq]], MinDistPct, and liquidation-distance distributions.',
     RealLiq:
-        'RealLiq is the flag that price really reached the backtest [[liquidation|liquidation]] level.\n\nIt is a strict signal of actual liquidation-level contact, not just of a large loss.\n\nHow to read it:\nif the value is true, the trade in the model truly touched the critical liquidation boundary.\n\nFor isolated mode this is especially important because it means the row reached the scenario of losing the whole position margin.',
+        'RealLiq is the flag that price really reached the backtest [[liquidation|liquidation]] level.\n\nIt is a strict signal of actual liquidation-level contact, not just of a large loss.\n\nHow to read it:\nif the value is true, the trade in the model truly touched the critical liquidation boundary.\n\nThis is still not a standalone money-loss formula: the economic effect must be read through PnL, drawdown, and the rest of the balance metrics on the same row.',
     IsLiq:
         'IsLiq is the broad liquidation-outcome flag in the model.\n\nIt is wider than [[real-liquidation|RealLiq]]: a row can be marked liquidation-related not only when price strictly touched the backtest liquidation level, but also when the bucket effectively died on that trade.\n\nHow to read it:\nif the goal is strict backtest-level contact, use [[real-liquidation|IsRealLiq]] or RealLiq.\n\nIf the goal is the broader emergency outcome, read IsLiq.',
     IsRealLiq:

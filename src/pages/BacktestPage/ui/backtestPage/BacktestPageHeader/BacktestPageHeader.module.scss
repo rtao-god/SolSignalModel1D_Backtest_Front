@@ -62,12 +62,6 @@
     width: max-content;
 }
 
-.tpSlModeHint {
-    font-size: 14px;
-    opacity: 0.76;
-    line-height: 1.35;
-}
-
 @container backtest-page-header (max-width: 760px) {
     .header {
         gap: 6px;

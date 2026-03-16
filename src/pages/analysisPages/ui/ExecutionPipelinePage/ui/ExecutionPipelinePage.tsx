@@ -1,13 +1,31 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
-import { ReportActualStatusCard, Text } from '@/shared/ui'
+import {
+    ReportActualStatusCard,
+    ReportTableTermsBlock,
+    ReportViewControls,
+    Text,
+    buildMegaSlModeControlGroup,
+    buildMegaTpSlControlGroup,
+    buildPredictionPolicyBucketControlGroup,
+    buildMegaZonalControlGroup
+} from '@/shared/ui'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { useBacktestExecutionPipelineReportQuery } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
+import {
+    buildBacktestDiagnosticsQueryArgs,
+    DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION,
+    resolveBacktestDiagnosticsSearchSelection
+} from '@/shared/utils/backtestDiagnosticsQuery'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
+import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { buildReportTermsFromReferences } from '@/shared/utils/reportTerms'
 import cls from './ExecutionPipelinePage.module.scss'
 import type { ExecutionPipelinePageProps } from './types'
 
@@ -22,6 +40,11 @@ const SECTION_DESCRIPTION_KEYS: Record<string, string> = {
 interface ParsedPipelineSections {
     keyValueSections: KeyValueSectionDto[]
     tableSections: TableSectionDto[]
+}
+
+interface ExecutionPipelineKeyReference {
+    key: string
+    sectionTitle: string
 }
 
 function normalizeTitle(title: string | undefined): string {
@@ -120,10 +143,123 @@ function resolveSectionDescription(
     return translate(key)
 }
 
+function resolveExecutionPipelineTermsTitle(locale: 'ru' | 'en'): string {
+    return locale === 'ru' ? 'Термины секции' : 'Section terms'
+}
+
+function resolveExecutionPipelineTermsSubtitle(locale: 'ru' | 'en'): string {
+    return locale === 'ru' ?
+            'Краткие определения терминов, которые используются в блоке ниже.'
+        :   'Short definitions of the terms used in the block below.'
+}
+
+function buildExecutionPipelineKeyTerms(reportKind: string, sectionTitle: string, keys: string[], locale: 'ru' | 'en') {
+    const references = keys
+        .map(key => ({
+            key,
+            sectionTitle,
+            tooltip: resolveReportKeyTooltip(reportKind, sectionTitle, key, locale)
+        }))
+        .filter(reference => Boolean(reference.tooltip && reference.tooltip.trim().length > 0))
+
+    return buildReportTermsFromReferences<ExecutionPipelineKeyReference>({
+        references: references.map(reference => ({ key: reference.key, sectionTitle: reference.sectionTitle })),
+        contextTag: 'execution-pipeline-key-terms',
+        resolveDescription: reference => {
+            const tooltip = resolveReportKeyTooltip(reportKind, reference.sectionTitle, reference.key, locale)
+            if (!tooltip || tooltip.trim().length === 0) {
+                throw new Error(
+                    `[execution-pipeline] key tooltip is missing. section=${reference.sectionTitle}, key=${reference.key}.`
+                )
+            }
+
+            return tooltip
+        },
+        resolveTooltip: reference => {
+            const tooltip = resolveReportKeyTooltip(reportKind, reference.sectionTitle, reference.key, locale)
+            if (!tooltip || tooltip.trim().length === 0) {
+                throw new Error(
+                    `[execution-pipeline] key tooltip is missing. section=${reference.sectionTitle}, key=${reference.key}.`
+                )
+            }
+
+            return tooltip
+        }
+    })
+}
+
 export default function ExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
     const { t, i18n } = useTranslation('reports')
-    const { data, isLoading, isError, error, refetch } = useBacktestExecutionPipelineReportQuery()
+    const [searchParams, setSearchParams] = useSearchParams()
+
+    const sliceSelectionState = useMemo(() => {
+        try {
+            return {
+                value: resolveBacktestDiagnosticsSearchSelection(searchParams),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse execution pipeline query.')
+            return {
+                value: null,
+                error: safeError
+            }
+        }
+    }, [searchParams])
+    const effectiveSliceSelection = sliceSelectionState.value ?? DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION
+    const sliceQueryArgs = useMemo(
+        () => buildBacktestDiagnosticsQueryArgs(effectiveSliceSelection),
+        [effectiveSliceSelection]
+    )
+    const controlGroups = useMemo(
+        () => [
+            buildMegaTpSlControlGroup({
+                value: effectiveSliceSelection.tpSlMode,
+                onChange: next => {
+                    if (next === effectiveSliceSelection.tpSlMode) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('tpsl', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            }),
+            buildMegaSlModeControlGroup({
+                value: effectiveSliceSelection.slMode,
+                onChange: next => {
+                    if (next === effectiveSliceSelection.slMode) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('slmode', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            }),
+            buildPredictionPolicyBucketControlGroup({
+                value: effectiveSliceSelection.bucket,
+                onChange: next => {
+                    if (next === effectiveSliceSelection.bucket) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('bucket', next)
+                    setSearchParams(nextParams, { replace: true })
+                },
+                label: 'Бакет сделок'
+            }),
+            buildMegaZonalControlGroup({
+                value: effectiveSliceSelection.zonalMode,
+                onChange: next => {
+                    if (next === effectiveSliceSelection.zonalMode) return
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('zonal', next)
+                    setSearchParams(nextParams, { replace: true })
+                }
+            })
+        ],
+        [effectiveSliceSelection, searchParams, setSearchParams]
+    )
+    const { data, isLoading, isError, error, refetch } = useBacktestExecutionPipelineReportQuery(sliceQueryArgs, {
+        enabled: !sliceSelectionState.error
+    })
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
+    const reportTooltipLocale = reportUiLanguage.toLowerCase().startsWith('ru') ? 'ru' : 'en'
+    const termsBlockTitle = resolveExecutionPipelineTermsTitle(reportTooltipLocale)
+    const termsBlockSubtitle = resolveExecutionPipelineTermsSubtitle(reportTooltipLocale)
 
     const generatedAtState = useMemo(() => {
         if (!data) return { value: null as Date | null, error: null as Error | null }
@@ -179,8 +315,24 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
-    const reportStateError = error ?? generatedAtState.error ?? sourceEndpointState.error ?? null
+    const reportStateError =
+        sliceSelectionState.error ?? error ?? generatedAtState.error ?? sourceEndpointState.error ?? null
     const hasReadyReport = Boolean(data && generatedAtState.value && sourceEndpointState.value)
+    // Execution pipeline собирает одни и те же термины из backend report-contract,
+    // поэтому key-value и table headers должны читать shared glossary, а не локальные page aliases.
+    const renderColumnTitle = useCallback(
+        (title: string) =>
+            renderTermTooltipTitle(
+                title,
+                resolveReportColumnTooltip(
+                    data?.kind ?? 'backtest_execution_pipeline',
+                    undefined,
+                    title,
+                    reportTooltipLocale
+                )
+            ),
+        [data?.kind, reportTooltipLocale]
+    )
 
     return (
         <div className={rootClassName}>
@@ -190,6 +342,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                         {t('executionPipeline.page.title')}
                     </Text>
                     <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
+                    <ReportViewControls groups={controlGroups} className={cls.controls} />
                 </div>
 
                 {hasReadyReport && data && sourceEndpointState.value && (
@@ -250,22 +403,48 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                                                 rawSectionTitle,
                                                 reportUiLanguage
                                             )
+                                            const sectionTerms = buildExecutionPipelineKeyTerms(
+                                                data.kind,
+                                                rawSectionTitle,
+                                                (section.items ?? []).map(item => item.key),
+                                                reportTooltipLocale
+                                            )
                                             return (
-                                                <article
+                                                <div
                                                     key={`${sectionTitle}-${sectionIndex}`}
-                                                    className={cls.keyValueCard}>
-                                                    <Text type='h3' className={cls.keyValueTitle}>
-                                                        {sectionTitle}
-                                                    </Text>
-                                                    <dl className={cls.keyValueGrid}>
-                                                        {(section.items ?? []).map(item => (
-                                                            <div key={item.key} className={cls.keyValueRow}>
-                                                                <dt className={cls.keyValueKey}>{item.key}</dt>
-                                                                <dd className={cls.keyValueValue}>{item.value}</dd>
-                                                            </div>
-                                                        ))}
-                                                    </dl>
-                                                </article>
+                                                    className={cls.keyValueBlock}>
+                                                    {sectionTerms.length > 0 && (
+                                                        <ReportTableTermsBlock
+                                                            terms={sectionTerms}
+                                                            enhanceDomainTerms
+                                                            title={termsBlockTitle}
+                                                            subtitle={termsBlockSubtitle}
+                                                        />
+                                                    )}
+                                                    <article className={cls.keyValueCard}>
+                                                        <Text type='h3' className={cls.keyValueTitle}>
+                                                            {sectionTitle}
+                                                        </Text>
+                                                        <dl className={cls.keyValueGrid}>
+                                                            {(section.items ?? []).map(item => (
+                                                                <div key={item.key} className={cls.keyValueRow}>
+                                                                    <dt className={cls.keyValueKey}>
+                                                                        {renderTermTooltipTitle(
+                                                                            item.key,
+                                                                            resolveReportKeyTooltip(
+                                                                                data.kind,
+                                                                                rawSectionTitle,
+                                                                                item.key,
+                                                                                reportTooltipLocale
+                                                                            )
+                                                                        )}
+                                                                    </dt>
+                                                                    <dd className={cls.keyValueValue}>{item.value}</dd>
+                                                                </div>
+                                                            ))}
+                                                        </dl>
+                                                    </article>
+                                                </div>
                                             )
                                         })}
                                     </section>
@@ -282,16 +461,27 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                                         const domIdBase =
                                             toDomSlug(rawTitle) || `execution-pipeline-${sectionIndex + 1}`
                                         return (
-                                            <ReportTableCard
-                                                key={`${title}-${sectionIndex}`}
-                                                title={title}
-                                                description={resolveSectionDescription(rawTitle, (key, options) =>
-                                                    t(key, options)
-                                                )}
-                                                columns={section.columns ?? []}
-                                                rows={section.rows ?? []}
-                                                domId={`execution-pipeline-${sectionIndex + 1}-${domIdBase}`}
-                                            />
+                                            <div key={`${title}-${sectionIndex}`} className={cls.tableBlock}>
+                                                <ReportTableTermsBlock
+                                                    reportKind={data.kind}
+                                                    sectionTitle={rawTitle}
+                                                    columns={section.columns ?? []}
+                                                    enhanceDomainTerms
+                                                    title={termsBlockTitle}
+                                                    subtitle={termsBlockSubtitle}
+                                                />
+                                                <ReportTableCard
+                                                    title={title}
+                                                    description={resolveSectionDescription(rawTitle, (key, options) =>
+                                                        t(key, options)
+                                                    )}
+                                                    columns={section.columns ?? []}
+                                                    rows={section.rows ?? []}
+                                                    rowEvaluations={section.rowEvaluations ?? []}
+                                                    domId={`execution-pipeline-${sectionIndex + 1}-${domIdBase}`}
+                                                    renderColumnTitle={renderColumnTitle}
+                                                />
+                                            </div>
                                         )
                                     })}
                                 </section>

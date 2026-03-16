@@ -1,3 +1,5 @@
+import type { PolicyEvaluationDto } from './policyEvaluation.types'
+
 export interface BaseSectionDto {
     title: string
     sectionKey?: string
@@ -11,6 +13,7 @@ export interface KeyValueItemDto {
 }
 export interface KeyValueSectionDto extends BaseSectionDto {
     items?: KeyValueItemDto[]
+    metadata?: CapturedTableMetadataDto
 }
 export interface TableSectionDto extends BaseSectionDto {
     title: string
@@ -18,6 +21,7 @@ export interface TableSectionDto extends BaseSectionDto {
     columns?: string[]
     columnKeys?: string[]
     rows?: string[][]
+    rowEvaluations?: Array<PolicyEvaluationDto | null>
     metadata?: CapturedTableMetadataDto
 }
 export type ReportSectionDto = KeyValueSectionDto | TableSectionDto

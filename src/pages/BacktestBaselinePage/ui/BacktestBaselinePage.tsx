@@ -3,6 +3,7 @@ import cls from './BacktestBaselinePage.module.scss'
 import { TermTooltip, Text } from '@/shared/ui'
 import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
 import { BacktestBaselineSnapshotDto, BacktestPolicySummaryDto } from '@/shared/types/backtest.types'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 import type { BacktestBaselinePageProps } from './types'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,26 @@ const renderTooltip = (term: string, description?: string) =>
     description ?
         <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
     :   term
+
+function resolveEvaluationRowClass(evaluation: PolicyEvaluationDto | null): string | undefined {
+    if (!evaluation) {
+        return undefined
+    }
+
+    if (evaluation.status === 'good') return cls.rowGood
+    if (evaluation.status === 'caution') return cls.rowCaution
+    if (evaluation.status === 'bad') return cls.rowBad
+    return cls.rowUnknown
+}
+
+function resolveEvaluationRowTitle(evaluation: PolicyEvaluationDto | null): string | undefined {
+    const reasons = evaluation?.reasons?.map(reason => reason.message).filter(Boolean) ?? []
+    if (reasons.length === 0) {
+        return undefined
+    }
+
+    return reasons.join(' | ')
+}
 
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { t } = useTranslation('reports')
@@ -177,7 +198,10 @@ function PoliciesTable({ policies }: PoliciesTableProps) {
                 </thead>
                 <tbody>
                     {policies.map(policy => (
-                        <tr key={`${policy.policyName}_${policy.marginMode}_${String(policy.useAntiDirectionOverlay)}`}>
+                        <tr
+                            key={`${policy.policyName}_${policy.marginMode}_${String(policy.useAntiDirectionOverlay)}`}
+                            className={resolveEvaluationRowClass(policy.evaluation)}
+                            title={resolveEvaluationRowTitle(policy.evaluation)}>
                             <td>{policy.policyName}</td>
                             <td>{policy.marginMode}</td>
                             <td>

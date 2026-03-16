@@ -193,6 +193,7 @@ export default function TermTooltip({
     const parentTooltipInstanceIdRef = useRef<string | null>(null)
     const isSelfOpenPropagatedRef = useRef(false)
     const isOverlayHoveredRef = useRef(false)
+    const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const selfOpen = hovered || pinned
     const open = selfOpen || openDescendantCount > 0 || treeOverlayHoverCount > 0
@@ -203,6 +204,24 @@ export default function TermTooltip({
 
         return enrichTermTooltipDescription(description)
     }, [description, open])
+    const scheduleWarmup = useCallback(() => {
+        if (warmupTimerRef.current || open) {
+            return
+        }
+
+        // Превентивно разогреваем rich-text кэш, чтобы открытие tooltip не блокировалось разбором текста.
+        const warmup = () => {
+            warmupTimerRef.current = null
+            enrichTermTooltipDescription(description, { term })
+        }
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            ;(window as typeof window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(warmup)
+            return
+        }
+
+        warmupTimerRef.current = setTimeout(warmup, 0)
+    }, [description, open, term])
 
     const resolveTooltipTreeId = useCallback((): string => {
         const rootEl = rootRef.current
@@ -290,9 +309,10 @@ export default function TermTooltip({
     const handleTermEnter = useCallback(() => {
         hoverIntentRef.current = true
         onWarmup?.()
+        scheduleWarmup()
         cancelHide()
         scheduleShow()
-    }, [cancelHide, onWarmup, scheduleShow])
+    }, [cancelHide, onWarmup, scheduleShow, scheduleWarmup])
 
     const handleTermLeave = useCallback(() => {
         hoverIntentRef.current = false
@@ -301,6 +321,7 @@ export default function TermTooltip({
 
     const handleTermFocus = useCallback(() => {
         onWarmup?.()
+        scheduleWarmup()
         hoverIntentRef.current = true
         cancelShow()
         cancelHide()
@@ -310,7 +331,7 @@ export default function TermTooltip({
         }
 
         setHovered(true)
-    }, [cancelHide, cancelShow, onWarmup, tryActivateTooltipTree])
+    }, [cancelHide, cancelShow, onWarmup, scheduleWarmup, tryActivateTooltipTree])
 
     const handleTermBlur = useCallback(() => {
         hoverIntentRef.current = false
@@ -492,6 +513,15 @@ export default function TermTooltip({
             releaseOverlayHover()
         }
     }, [cancelHide, cancelShow, releaseOverlayHover])
+
+    useEffect(() => {
+        return () => {
+            if (warmupTimerRef.current) {
+                clearTimeout(warmupTimerRef.current)
+                warmupTimerRef.current = null
+            }
+        }
+    }, [])
 
     useEffect(() => {
         return () => {

@@ -24,6 +24,7 @@ import {
     NET_PNL_USD_DESCRIPTION,
     NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
     NO_DIRECTION_DESCRIPTION,
+    ON_EXCHANGE_PCT_DESCRIPTION,
     NO_SL_MODE_DESCRIPTION,
     PERCENTAGE_POINTS_DESCRIPTION,
     PNL_DESCRIPTION,
@@ -57,6 +58,8 @@ import {
     ACTIVE_EQUITY_DESCRIPTION,
     ANTI_D_NOT_APPLIED_DESCRIPTION,
     ANTI_DIRECTION_DESCRIPTION,
+    CAGR_DESCRIPTION,
+    CALMAR_DESCRIPTION,
     CAP_FRACTION_DESCRIPTION,
     CAP_POLICY_DESCRIPTION,
     CAP_ZERO_DESCRIPTION,
@@ -94,6 +97,7 @@ import {
     STATIC_TP_SL_DESCRIPTION,
     TP_SL_MODE_DESCRIPTION,
     TRACE_DESCRIPTION,
+    UNIT_INTERVAL_DESCRIPTION,
     WHY_DYNAMIC_RISK_DESCRIPTION,
     WHY_NO_SL_DESCRIPTION,
     WITHOUT_ZONAL_MODE_DESCRIPTION,
@@ -101,6 +105,7 @@ import {
     ZONAL_MODE_DESCRIPTION,
     BUCKET_DEAD_AFTER_LIQ_DESCRIPTION
 } from './risk'
+import { COMMON_CAGR_DESCRIPTION_EN, COMMON_CALMAR_DESCRIPTION_EN } from './reportColumns.en'
 import {
     ATR_INDICATOR_DESCRIPTION,
     EMA_200_BTC_SOL_DESCRIPTION,
@@ -133,6 +138,16 @@ const CAUSAL_DESCRIPTION_EN =
 function resolveLocalizedLeakageDescription(): string {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
     return isEnglish ? LEAKAGE_DESCRIPTION_EN : LEAKAGE_DESCRIPTION_RU
+}
+
+function resolveLocalizedCalmarDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? COMMON_CALMAR_DESCRIPTION_EN : CALMAR_DESCRIPTION
+}
+
+function resolveLocalizedCagrDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? COMMON_CAGR_DESCRIPTION_EN : CAGR_DESCRIPTION
 }
 
 function resolveLocalizedCausalDescription(): string {
@@ -246,6 +261,13 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         pattern: /Wealth%/i,
         title: 'Wealth%',
         description: WEALTH_PCT_DESCRIPTION,
+        scope: 'common'
+    },
+    {
+        id: 'on-exchange-pct',
+        pattern: /OnExch%/i,
+        title: 'OnExch%',
+        description: ON_EXCHANGE_PCT_DESCRIPTION,
         scope: 'common'
     },
     {
@@ -585,6 +607,24 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         scope: 'common'
     },
     {
+        id: 'calmar-ratio',
+        pattern: /\bCalmar\b/i,
+        title: 'Calmar',
+        description: () => resolveLocalizedCalmarDescription(),
+        aliases: ['Calmar'],
+        priority: 176,
+        scope: 'common'
+    },
+    {
+        id: 'cagr-ratio',
+        pattern: /\bCAGR\b%?/i,
+        title: 'CAGR',
+        description: () => resolveLocalizedCagrDescription(),
+        aliases: ['CAGR', 'CAGR%'],
+        priority: 176,
+        scope: 'common'
+    },
+    {
         id: 'policy',
         pattern: /\bpolicy\b/i,
         title: 'Policy',
@@ -754,9 +794,8 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'eod',
         pattern: /EndOfDay|end[-‑\s]?of[-‑\s]?day|\bEOD\b/i,
-        title: 'EOD (EndOfDay)',
         description: EOD_DESCRIPTION,
-        aliases: ['EndOfDay', 'EOD', 'end of day'],
+        aliases: ['EndOfDay', 'End Of Day', 'EOD', 'end of day', 'Конец дня'],
         priority: 130,
         scope: 'common'
     },
@@ -797,10 +836,19 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'start-cap',
         pattern: /\bStartCap\$?\b|StartCapital|стартов(?:ый|ого)\s+капитал/i,
-        title: 'StartCap',
+        title: 'Стартовый капитал',
         description: START_CAP_DESCRIPTION,
-        aliases: ['StartCap', 'StartCap$', 'стартовый капитал'],
+        aliases: ['StartCap', 'StartCap$', 'стартовый капитал', 'starting capital'],
         priority: 165,
+        scope: 'common'
+    },
+    {
+        id: 'unit-interval',
+        pattern: /\[0\.\.1\]|\b0\.\.1\b|от 0 до 1|from 0 to 1/i,
+        title: '[0..1]',
+        description: UNIT_INTERVAL_DESCRIPTION,
+        aliases: ['[0..1]', '0..1', 'от 0 до 1', 'from 0 to 1'],
+        priority: 175,
         scope: 'common'
     },
     {
@@ -1005,8 +1053,9 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'cap-fraction',
         pattern: /\bcap fraction\b|доля капитала на сделку/i,
-        title: 'Cap fraction',
+        title: 'Доля капитала на сделку',
         description: CAP_FRACTION_DESCRIPTION,
+        aliases: ['Cap fraction', 'доля капитала на сделку', 'capital share per trade'],
         scope: 'common'
     },
     {

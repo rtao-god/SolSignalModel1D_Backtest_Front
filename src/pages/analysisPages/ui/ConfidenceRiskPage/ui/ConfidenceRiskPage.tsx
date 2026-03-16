@@ -125,7 +125,7 @@ function buildConfidenceRiskTermLookup(
     terms: readonly ConfidenceRiskTerm[],
     tokenSelector: (term: ConfidenceRiskTerm) => readonly string[]
 ): ReadonlyMap<string, ConfidenceRiskTerm> {
-    // Страница должна одинаково понимать текущие backend-имена и legacy aliases одного и того же поля.
+    // Карта сводит допустимые токены одного и того же поля к одному описанию термина.
     const lookup = new Map<string, ConfidenceRiskTerm>()
 
     terms.forEach(term => {
@@ -173,8 +173,8 @@ function resolveConfidenceRiskTableTermDescription(key: string, locale: Confiden
                 :   'ConfidenceAvg% is the average model confidence inside the current confidence bucket.\n\nWhat it shows:\nit is not a bucket boundary, but the realized mean confidence of the days that landed in the row.\n\nHow to read it:\nif the mean sits close to one boundary, the bucket is populated unevenly and neighboring buckets should be compared more carefully.'
         case 'MFE_Avg%':
             return locale === 'ru' ?
-                    'MFE_Avg% — средний максимум благоприятного движения цены после входа.\n\nЧто показывает:\nэто среднее значение того, насколько далеко рынок успевал сходить в сторону позиции внутри дня.\n\nКак читать:\nрост MFE_Avg% означает, что даже без учёта фактического выхода рынок чаще давал запас хода в пользу сделки.'
-                :   'MFE_Avg% is the average maximum favorable move after entry.\n\nWhat it shows:\nit measures how far the market managed to travel in the direction of the position during the day.\n\nHow to read it:\nrising MFE_Avg% means the market more often offered usable room in favor of the trade even before considering the actual exit.'
+                    'MFE_Avg% — средний лучший ход цены после входа в сделку, то есть насколько далеко рынок успевал уйти в прибыльную сторону до конца торгового окна.\n\nЧто показывает:\nдля [[position|LONG]] это значит, насколько высоко цена успевала подняться выше цены входа; для [[position|SHORT]] — насколько глубоко цена успевала опуститься ниже цены входа. Метрика смотрит не на фактический выход, а на лучший момент внутри дня, который рынок вообще давал позиции.\n\nКак читать:\nрост MFE_Avg% означает, что этот confidence-bucket чаще даёт рабочее пространство в пользу сделки. Но сам по себе средний рост ещё не гарантирует устойчивый результат: его нужно сопоставлять с типичным движением и с ценой риска по MAE.\n\nПример:\nMFE_Avg%=2.4 означает, что после входа рынок в среднем успевал проходить около 2.4% в прибыльную сторону от цены входа, даже если сделка потом закрывалась раньше или по другому сценарию.'
+                :   'MFE_Avg% is the average best price move after entry, meaning how far the market managed to travel into profit before the trading window ended.\n\nWhat it shows:\nfor a [[position|LONG]] trade, it shows how high price managed to rise above the entry; for a [[position|SHORT]] trade, it shows how far price managed to fall below the entry. The metric does not look at the actual exit. It looks at the best intraday point the market offered to the position.\n\nHow to read it:\na rising MFE_Avg% means this confidence bucket more often gives usable room in favor of the trade. But the average alone is not enough: it still has to be compared with typical behavior and with MAE as the path cost.\n\nExample:\nMFE_Avg%=2.4 means that after entry the market managed to travel about 2.4% in the profitable direction from the entry price on average, even if the trade later exited earlier or by another path.'
         case 'MFE_P50%':
             return locale === 'ru' ?
                     'MFE_P50% — медианный максимум благоприятного движения внутри дня.\n\nЧто показывает:\nэто типичное, а не экстремальное значение MFE для bucket.\n\nКак читать:\nесли MFE_Avg% сильно выше MFE_P50%, результат bucket тянут несколько очень сильных дней, а не типичная картина.'
@@ -185,8 +185,8 @@ function resolveConfidenceRiskTableTermDescription(key: string, locale: Confiden
                 :   'MFE_P90% is the upper tail of favorable intraday movement.\n\nWhat it shows:\nit marks the level reached only by the strongest roughly 10% of bucket observations.\n\nHow to read it:\nthis metric separates ordinary in-favor movement from rare unusually strong impulse days.'
         case 'MAE_Avg%':
             return locale === 'ru' ?
-                    'MAE_Avg% — средний максимум неблагоприятного движения против позиции.\n\nЧто показывает:\nэто средняя глубина внутридневного отката против входа до того, как день закончился.\n\nКак читать:\nрост MAE_Avg% означает, что даже потенциально хорошие по направлению дни проходят через более болезненный adverse path.'
-                :   'MAE_Avg% is the average maximum adverse move against the position.\n\nWhat it shows:\nit is the average depth of the intraday move against the entry before the day finished.\n\nHow to read it:\nrising MAE_Avg% means even potentially good directional days go through a more painful adverse path.'
+                    'MAE_Avg% — средний худший ход цены после входа в сделку, то есть насколько далеко рынок успевал уйти в убыточную сторону до конца торгового окна.\n\nЧто показывает:\nдля [[position|LONG]] это значит, насколько глубоко цена успевала опуститься ниже цены входа; для [[position|SHORT]] — насколько высоко цена успевала подняться выше цены входа. Метрика смотрит не на итоговый результат дня, а на самый болезненный момент пути цены внутри дня.\n\nКак читать:\nрост MAE_Avg% означает, что даже дни с правильным направлением чаще проходят через более болезненный путь цены. Тогда точность сигнала приходится оплачивать более тяжёлой просадкой внутри дня.\n\nПример:\nMAE_Avg%=1.8 означает, что после входа рынок в среднем успевал проходить около 1.8% в убыточную сторону от цены входа, прежде чем день завершался.'
+                :   'MAE_Avg% is the average worst price move after entry, meaning how far the market managed to travel into loss before the trading window ended.\n\nWhat it shows:\nfor a [[position|LONG]] trade, it shows how far price managed to fall below the entry; for a [[position|SHORT]] trade, it shows how far price managed to rise above the entry. The metric does not describe the final day result. It captures the most painful intraday point along the path.\n\nHow to read it:\na rising MAE_Avg% means even directionally correct days more often go through a more painful path against the trade. In that case signal accuracy is being paid for by a heavier intraday drawdown.\n\nExample:\nMAE_Avg%=1.8 means that after entry the market managed to move about 1.8% in the loss direction from the entry price on average before the day finished.'
         case 'MAE_P50%':
             return locale === 'ru' ?
                     'MAE_P50% — медианный максимум неблагоприятного движения.\n\nЧто показывает:\nэто типичная глубина adverse-движения для bucket, а не отдельные экстремумы.\n\nКак читать:\nесли медиана already высока, проблема bucket не в нескольких хвостовых днях, а в обычной траектории сделки.'
@@ -197,16 +197,16 @@ function resolveConfidenceRiskTableTermDescription(key: string, locale: Confiden
                 :   'MAE_P90% is the upper tail of the adverse move against the position.\n\nWhat it shows:\nit is the worst-case adverse path level for the heaviest roughly 10% of bucket observations.\n\nHow to read it:\nrising MAE_P90% means the tail risk of this confidence range becomes materially heavier than the average case.'
         case 'TakeProfitReach%':
             return locale === 'ru' ?
-                    'TakeProfitReach% — как часто движение дня вообще доходило до базового [[tp-sl|take-profit]] из конфига.\n\nЧто показывает:\nметрика не говорит, что сделка реально закрылась по тейк-профиту. Она отвечает только на вопрос, был ли внутри дня такой уровень достижим.\n\nКак читать:\nвысокий TakeProfitReach% показывает, что bucket чаще давал достаточный ход в пользу сделки для базового тейк-профита.'
-                :   'TakeProfitReach% shows how often the day path reached the base [[tp-sl|take-profit]] from the config.\n\nWhat it shows:\nit does not say the trade actually exited by take-profit. It only answers whether that level became reachable during the day.\n\nHow to read it:\na high TakeProfitReach% means this bucket more often offered enough favorable room to hit the baseline take-profit.'
+                    'TakeProfitReach% — как часто движение дня вообще доходило до базового [[tp-sl|take-profit]] из конфига.\n\nЧто показывает:\nметрика отвечает только на вопрос достижимости этого уровня внутри дня. Она не говорит, что сделка реально закрылась по тейк-профиту, потому что раньше могли сработать другие правила выхода.\n\nКак читать:\nвысокий TakeProfitReach% показывает, что bucket чаще даёт достаточный ход в пользу сделки для базовой цели по прибыли. Но без сравнения со [[StopLossReach%|StopLossReach%]] не видно, какой ценой этот ход достаётся.\n\nПример:\nTakeProfitReach%=68 означает, что примерно в 68 из 100 дней траектория цены хотя бы один раз доходила до базового тейк-профита, даже если итоговый выход потом был другим.'
+                :   'TakeProfitReach% shows how often the day path reached the base [[tp-sl|take-profit]] from the config.\n\nWhat it shows:\nit only answers whether that level became reachable during the day. It does not say the trade actually exited by take-profit, because another exit rule may have triggered earlier.\n\nHow to read it:\na high TakeProfitReach% means this bucket more often offers enough favorable room to reach the baseline profit target. But without comparing it to [[StopLossReach%|StopLossReach%]], the path cost of that room is still hidden.\n\nExample:\nTakeProfitReach%=68 means that in about 68 out of 100 days the price path touched the baseline take-profit at least once, even if the final exit was different.'
         case 'StopLossReach%':
             return locale === 'ru' ?
-                    'StopLossReach% — как часто движение дня доходило до базового [[tp-sl|stop-loss]] из конфига.\n\nЧто показывает:\nэто не факт реального выхода по стопу, а частота случаев, когда рынок внутри дня проходил через опасный для базового стоп-лосса уровень.\n\nКак читать:\nрост StopLossReach% означает, что этот bucket чаще сталкивается с траекторией, где базовая защита уже оказывалась под ударом.'
-                :   'StopLossReach% shows how often the day path reached the base [[tp-sl|stop-loss]] from the config.\n\nWhat it shows:\nit is not the same as an actual stop-loss exit. It measures how often the intraday path crossed a level dangerous for the baseline stop.\n\nHow to read it:\nrising StopLossReach% means this bucket more often runs into price paths where the baseline protection is already under pressure.'
+                    'StopLossReach% — как часто движение дня доходило до базового [[tp-sl|stop-loss]] из конфига.\n\nЧто показывает:\nэто не обязательно реальный выход по стоп-лоссу. Метрика показывает, что внутри дня траектория цены хотя бы раз заходила в зону, где базовая защита уже должна была бы сработать.\n\nКак читать:\nрост StopLossReach% означает, что bucket чаще проходит через болезненный путь цены против позиции. Если показатель растёт вместе с [[TakeProfitReach%|TakeProfitReach%]], день даёт и ход в пользу сделки, и заметную цену риска.\n\nПример:\nStopLossReach%=41 означает, что примерно в 41 из 100 дней рынок хотя бы один раз доходил до базового стоп-лосса.'
+                :   'StopLossReach% shows how often the day path reached the base [[tp-sl|stop-loss]] from the config.\n\nWhat it shows:\nit is not necessarily an actual stop-loss exit. The metric shows that the intraday path entered the zone where the baseline protection would already have fired.\n\nHow to read it:\na rising StopLossReach% means the bucket more often goes through a painful path against the position. If it rises together with [[TakeProfitReach%|TakeProfitReach%]], the day offers both favorable room and a visible risk cost.\n\nExample:\nStopLossReach%=41 means that in about 41 out of 100 days the market touched the baseline stop-loss at least once.'
         case 'WinRate%':
             return locale === 'ru' ?
-                    'WinRate% — доля дней, где направление сигнала оказалось верным внутри TradeDays текущего bucket.\n\nЧто показывает:\nэто чистая directional-метрика по bucket без учёта размера позиции и без учёта того, какой ценой по MAE/MFE достался этот результат.\n\nКак читать:\nвысокий WinRate% сам по себе не делает bucket хорошим. Его нужно сопоставлять с MAE, MFE, TakeProfitReach% и StopLossReach%, чтобы понять цену точности.'
-                :   'WinRate% is the share of directional days where the signal side was correct inside TradeDays of the current bucket.\n\nWhat it shows:\nit is the pure directional accuracy of the bucket, without stake sizing and without the path cost shown by MAE/MFE.\n\nHow to read it:\na high WinRate% alone does not make the bucket good. It must be read together with MAE, MFE, TakeProfitReach%, and StopLossReach% to understand the cost of that accuracy.'
+                    'WinRate% — доля дней с фактическим входом, где направление сигнала оказалось верным.\n\nЧто показывает:\nэто частота правильного направления внутри текущего confidence-bucket без учёта размера позиции и без оценки того, насколько тяжёлым был путь цены до правильного исхода.\n\nКак читать:\nвысокий WinRate% сам по себе не делает bucket хорошим. Его нужно сопоставлять с MFE, MAE, [[TakeProfitReach%|TakeProfitReach%]] и [[StopLossReach%|StopLossReach%]], чтобы понять цену такой точности.\n\nПример:\nWinRate%=72 означает, что примерно в 72 из 100 дней с реальным входом направление сделки оказалось верным, но это ещё не говорит, насколько болезненным был путь до этого результата.'
+                :   'WinRate% is the share of executed-trade days where the signal direction was correct.\n\nWhat it shows:\nit is the directional hit rate of the current confidence bucket without stake sizing and without saying how painful the path was before reaching the correct outcome.\n\nHow to read it:\na high WinRate% alone does not make the bucket good. It has to be read together with MFE, MAE, [[TakeProfitReach%|TakeProfitReach%]], and [[StopLossReach%|StopLossReach%]] to understand the cost of that accuracy.\n\nExample:\nWinRate%=72 means that in about 72 out of 100 executed-trade days the trade direction was correct, but it still says nothing about how painful the path was before getting there.'
         default:
             return null
     }
@@ -520,6 +520,14 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         }
 
+        // Bucket options строятся только после загрузки базового отчёта для выбранного scope.
+        if (!optionsData) {
+            return {
+                options: [] as ConfidenceBucketOption[],
+                error: null as Error | null
+            }
+        }
+
         try {
             return {
                 options: buildConfidenceBucketOptions(
@@ -537,7 +545,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: safeError
             }
         }
-    }, [optionsTableSections, scopeState.error, scopeState.value, t])
+    }, [optionsData, optionsTableSections, scopeState.error, scopeState.value, t])
 
     const confidenceBucketState = useMemo(() => {
         if (confidenceBucketOptionsState.error) {
@@ -824,6 +832,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                                                 description={t('confidenceRisk.page.tableDescription')}
                                                 columns={section.columns ?? []}
                                                 rows={section.rows ?? []}
+                                                rowEvaluations={section.rowEvaluations ?? []}
                                                 domId={domId}
                                                 renderColumnTitle={renderColumnTitle}
                                             />

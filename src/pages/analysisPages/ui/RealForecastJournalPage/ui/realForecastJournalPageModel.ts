@@ -1,5 +1,6 @@
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import type { AggregationMetricsSnapshotDto } from '@/shared/types/aggregation.types'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import type {
     RealForecastJournalDayListItemDto,
     RealForecastJournalDayRecordDto,
@@ -30,6 +31,7 @@ export interface RealForecastJournalCombinedPolicyRow {
     policyName: string
     branch: string
     bucket: RealForecastJournalPolicyBucket
+    evaluation: PolicyEvaluationDto | null
     margin: RealForecastJournalMarginMode | null
     hasDirection: boolean
     skipped: boolean
@@ -155,6 +157,7 @@ interface LiveFinalizedDaySummary {
 }
 
 const EPSILON = 1e-12
+const POLICY_TABLE_SECTION_KEY = 'leverage_policies'
 
 function toFiniteNumber(value: unknown, label: string): number {
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -238,6 +241,55 @@ function buildPolicyRowKey(row: RealForecastJournalPolicyRowDto): string {
     return `${row.policyName}::${row.branch}::${row.bucket}`
 }
 
+function buildPolicyEvaluationMap(
+    report: ReportDocumentDto | null | undefined
+): ReadonlyMap<string, PolicyEvaluationDto> {
+    const result = new Map<string, PolicyEvaluationDto>()
+    if (!report) {
+        return result
+    }
+
+    for (const section of report.sections) {
+        const tableSection = section as TableSectionDto
+        if (
+            tableSection.sectionKey !== POLICY_TABLE_SECTION_KEY ||
+            !Array.isArray(tableSection.columnKeys) ||
+            !Array.isArray(tableSection.rows)
+        ) {
+            continue
+        }
+
+        const policyIndex = tableSection.columnKeys.findIndex(columnKey => columnKey === 'policy')
+        const branchIndex = tableSection.columnKeys.findIndex(columnKey => columnKey === 'branch')
+        const bucketIndex = tableSection.columnKeys.findIndex(columnKey => columnKey === 'bucket')
+        if (policyIndex < 0 || branchIndex < 0 || bucketIndex < 0) {
+            continue
+        }
+
+        tableSection.rows.forEach((row, rowIndex) => {
+            if (!Array.isArray(row)) {
+                return
+            }
+
+            const evaluation = tableSection.rowEvaluations?.[rowIndex] ?? null
+            if (!evaluation) {
+                return
+            }
+
+            const policyName = String(row[policyIndex] ?? '').trim()
+            const branch = String(row[branchIndex] ?? '').trim()
+            const bucket = String(row[bucketIndex] ?? '').trim()
+            if (!policyName || !branch || !bucket) {
+                return
+            }
+
+            result.set(`${policyName}::${branch}::${bucket}`, evaluation)
+        })
+    }
+
+    return result
+}
+
 function resolveActualPolicyRow(
     record: RealForecastJournalDayRecordDto,
     rowKey: string
@@ -294,6 +346,8 @@ export function buildCombinedPolicyRows(
     record: RealForecastJournalDayRecordDto
 ): RealForecastJournalCombinedPolicyRow[] {
     const sessionOpenRows = record.forecastSnapshot.policyRows
+    const forecastEvaluations = buildPolicyEvaluationMap(record.forecastReport)
+    const finalizedEvaluations = buildPolicyEvaluationMap(record.finalize?.report)
     const uniqueRows = new Map<string, RealForecastJournalPolicyRowDto>()
 
     for (const row of sessionOpenRows) {
@@ -316,6 +370,7 @@ export function buildCombinedPolicyRows(
                 policyName: row.policyName,
                 branch: row.branch,
                 bucket: row.bucket,
+                evaluation: finalizedEvaluations.get(rowKey) ?? forecastEvaluations.get(rowKey) ?? null,
                 margin: row.margin,
                 hasDirection: row.hasDirection,
                 skipped: row.skipped,

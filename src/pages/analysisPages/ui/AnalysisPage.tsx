@@ -58,7 +58,8 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
             (
                 routeId === AppRoute.BACKTEST_DIAGNOSTICS_RATINGS ||
                 routeId === AppRoute.BACKTEST_POLICY_BRANCH_MEGA ||
-                routeId === AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS
+                routeId === AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS ||
+                routeId === AppRoute.BACKTEST_EXECUTION_PIPELINE
             ) ?
                 `${ROUTE_PATH[routeId]}${diagnosticsSearch}`
             :   ROUTE_PATH[routeId],

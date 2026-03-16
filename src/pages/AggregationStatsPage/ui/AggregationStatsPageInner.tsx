@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { useLocale } from '@/shared/lib/i18n'
 import { TermTooltip, Text } from '@/shared/ui'
-import { enrichTermTooltipDescription } from '@/shared/ui/TermTooltip'
+import { enrichTermTooltipDescription, renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import type {
@@ -91,7 +91,9 @@ export function AggregationStatsPageInner({
                     <Text type='h3' className={cls.sectionTitle}>
                         {t('aggregation.inner.probs.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>{t('aggregation.inner.probs.hint')}</Text>
+                    <Text className={cls.sectionHint}>
+                        {renderTermTooltipRichText(t('aggregation.inner.probs.hint'))}
+                    </Text>
                 </div>
 
                 <div className={cls.segmentsGrid}>
@@ -106,7 +108,9 @@ export function AggregationStatsPageInner({
                     <Text type='h3' className={cls.sectionTitle}>
                         {t('aggregation.inner.metrics.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>{t('aggregation.inner.metrics.hint')}</Text>
+                    <Text className={cls.sectionHint}>
+                        {renderTermTooltipRichText(t('aggregation.inner.metrics.hint'))}
+                    </Text>
                 </div>
 
                 <div className={cls.segmentsGrid}>
@@ -121,13 +125,17 @@ export function AggregationStatsPageInner({
                     <Text type='h3' className={cls.sectionTitle}>
                         {t('aggregation.inner.debug.title')}
                     </Text>
-                    <Text className={cls.sectionHint}>{t('aggregation.inner.debug.hint')}</Text>
+                    <Text className={cls.sectionHint}>
+                        {renderTermTooltipRichText(t('aggregation.inner.debug.hint'))}
+                    </Text>
                 </div>
 
                 {probs.DebugLastDays.length === 0 ?
-                    <Text>{t('aggregation.inner.debug.empty')}</Text>
+                    <Text>{renderTermTooltipRichText(t('aggregation.inner.debug.empty'))}</Text>
                 :   <>
-                        <Text className={cls.tableHint}>{t('aggregation.inner.debug.tableHint')}</Text>
+                        <Text className={cls.tableHint}>
+                            {renderTermTooltipRichText(t('aggregation.inner.debug.tableHint'))}
+                        </Text>
                         <div className={cls.tableScroll}>
                             <table className={cls.table}>
                                 <thead>
@@ -277,7 +285,7 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
                 </span>
             </div>
 
-            <Text className={cls.segmentHint}>{t('aggregation.inner.segment.hint')}</Text>
+            <Text className={cls.segmentHint}>{renderTermTooltipRichText(t('aggregation.inner.segment.hint'))}</Text>
 
             <div className={cls.tableScroll}>
                 <table className={cls.table}>
@@ -360,7 +368,9 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
         <div className={cls.layerCard}>
             <Text className={cls.layerTitle}>{layer.LayerName}</Text>
 
-            <Text className={cls.metricsHint}>{t('aggregation.inner.metrics.layerHint')}</Text>
+            <Text className={cls.metricsHint}>
+                {renderTermTooltipRichText(t('aggregation.inner.metrics.layerHint'))}
+            </Text>
 
             <div className={cls.metricsList}>
                 <span className={cls.metricsLabel}>
@@ -392,7 +402,9 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
                 </span>
             </div>
 
-            <Text className={cls.confusionHint}>{t('aggregation.inner.metrics.confusionHint')}</Text>
+            <Text className={cls.confusionHint}>
+                {renderTermTooltipRichText(t('aggregation.inner.metrics.confusionHint'))}
+            </Text>
 
             <ConfusionMatrixTable layer={layer} />
         </div>

@@ -105,6 +105,7 @@
 .filtersInfo {
     flex: 1 1 260px;
     min-width: 260px;
+    margin-left: 8px;
     font-size: 13px;
     opacity: 0.9;
 }
@@ -198,7 +199,11 @@
         $border: var(--surface-border-strong),
         $shadow: var(--surface-shadow-md)
     );
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
+
 
 .tradeTableBlock {
     margin-top: 16px;
@@ -446,6 +451,7 @@
 
     .filtersInfo {
         min-width: 0;
+        margin-left: 0;
     }
 
     .reportCard {

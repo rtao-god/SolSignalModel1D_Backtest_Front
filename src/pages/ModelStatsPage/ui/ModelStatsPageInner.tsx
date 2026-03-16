@@ -80,7 +80,21 @@ export function ModelStatsPageInner({
 
     const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
     const allSections = useMemo(() => (data?.sections as ReportSection[] | undefined) ?? [], [data?.sections])
-    const globalMeta = useMemo(() => buildGlobalMeta(allSections), [allSections])
+    const globalMetaState = useMemo(() => {
+        try {
+            return {
+                value: buildGlobalMeta(allSections),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats global metadata.')
+            return {
+                value: null,
+                error: safeError
+            }
+        }
+    }, [allSections])
+    const globalMeta = globalMetaState.value
 
     const segmentState = useMemo(() => {
         try {
@@ -200,7 +214,7 @@ export function ModelStatsPageInner({
     const segmentDescription = currentSegmentMeta?.description ?? ''
 
     const controlsError = segmentState.error ?? viewState.error ?? null
-    const reportStateError = error ?? sourceEndpointState.error ?? null
+    const reportStateError = error ?? sourceEndpointState.error ?? globalMetaState.error ?? null
     const hasReadyReport = Boolean(data && sourceEndpointState.value)
 
     return (

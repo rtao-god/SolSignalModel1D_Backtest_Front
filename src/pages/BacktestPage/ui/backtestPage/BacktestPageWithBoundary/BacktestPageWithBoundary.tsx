@@ -1,4 +1,4 @@
-import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtestBaseline'
+import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
 import { useGetBacktestProfilesQuery } from '@/shared/api/api'
 import { BacktestPageContent } from '../BacktestPageContent/BacktestPageContent'
 import cls from './BacktestPageWithBoundary.module.scss'

@@ -67,75 +67,85 @@ const PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
 const ROW_KEY_SEPARATOR = '\u001e'
 
 const DEFAULT_PREFERRED_METRICS_BY_PART = new Map<number, readonly string[]>([
-    [1, ['TotalPnl%', 'MaxDD%', 'Trade%']],
-    [2, ['HadLiq', 'AccRuin', 'RecovDays', 'ReqGain%']],
+    [1, ['Wealth%', 'OnExch%', 'MaxDD%', 'Trade%']],
+    [2, ['HadLiq', 'BalMin%', 'AccRuin', 'ReqGain%']],
     [3, ['AvgDay%', 'Long $', 'Short $', 'EODExit%']]
 ])
 
 const COMPOSITE_METRICS = new Map<string, CompositeMetricDraft>([
     [
-        'Lev avg/min/max',
+        'MaxDD_Active% / Days',
         {
-            sourceColumn: 'Lev avg/min/max',
+            sourceColumn: 'MaxDD_Active% / Days',
+            metrics: [
+                { key: 'MaxDD_Active% / Days::pct', title: 'MaxDD active %' },
+                { key: 'MaxDD_Active% / Days::days', title: 'MaxDD active Days' }
+            ]
+        }
+    ],
+    [
+        'Lev avg / min / max',
+        {
+            sourceColumn: 'Lev avg / min / max',
             singleValueExpansion: 'repeat-to-all',
             metrics: [
-                { key: 'Lev avg/min/max::avg', title: 'Lev avg' },
-                { key: 'Lev avg/min/max::min', title: 'Lev min' },
-                { key: 'Lev avg/min/max::max', title: 'Lev max' }
+                { key: 'Lev avg / min / max::avg', title: 'Lev avg' },
+                { key: 'Lev avg / min / max::min', title: 'Lev min' },
+                { key: 'Lev avg / min / max::max', title: 'Lev max' }
             ]
         }
     ],
     [
-        'Lev p50/p90',
+        'Lev p50 / p90',
         {
-            sourceColumn: 'Lev p50/p90',
+            sourceColumn: 'Lev p50 / p90',
             metrics: [
-                { key: 'Lev p50/p90::p50', title: 'Lev p50' },
-                { key: 'Lev p50/p90::p90', title: 'Lev p90' }
+                { key: 'Lev p50 / p90::p50', title: 'Lev p50' },
+                { key: 'Lev p50 / p90::p90', title: 'Lev p90' }
             ]
         }
     ],
     [
-        'Cap avg/min/max',
+        'Cap avg / min / max',
         {
-            sourceColumn: 'Cap avg/min/max',
+            sourceColumn: 'Cap avg / min / max',
             metrics: [
-                { key: 'Cap avg/min/max::avg', title: 'Cap avg' },
-                { key: 'Cap avg/min/max::min', title: 'Cap min' },
-                { key: 'Cap avg/min/max::max', title: 'Cap max' }
+                { key: 'Cap avg / min / max::avg', title: 'Cap avg' },
+                { key: 'Cap avg / min / max::min', title: 'Cap min' },
+                { key: 'Cap avg / min / max::max', title: 'Cap max' }
             ]
         }
     ],
     [
-        'Cap p50/p90',
+        'Cap p50 / p90',
         {
-            sourceColumn: 'Cap p50/p90',
+            sourceColumn: 'Cap p50 / p90',
             metrics: [
-                { key: 'Cap p50/p90::p50', title: 'Cap p50' },
-                { key: 'Cap p50/p90::p90', title: 'Cap p90' }
+                { key: 'Cap p50 / p90::p50', title: 'Cap p50' },
+                { key: 'Cap p50 / p90::p90', title: 'Cap p90' }
             ]
         }
     ],
     [
-        'Exposure% (avg/p50/p90/p99/max)',
+        'Exposure% (avg / p50 / p90 / p99 / max)',
         {
-            sourceColumn: 'Exposure% (avg/p50/p90/p99/max)',
+            sourceColumn: 'Exposure% (avg / p50 / p90 / p99 / max)',
             metrics: [
-                { key: 'Exposure% (avg/p50/p90/p99/max)::avg', title: 'Exposure avg%' },
-                { key: 'Exposure% (avg/p50/p90/p99/max)::p50', title: 'Exposure p50%' },
-                { key: 'Exposure% (avg/p50/p90/p99/max)::p90', title: 'Exposure p90%' },
-                { key: 'Exposure% (avg/p50/p90/p99/max)::p99', title: 'Exposure p99%' },
-                { key: 'Exposure% (avg/p50/p90/p99/max)::max', title: 'Exposure max%' }
+                { key: 'Exposure% (avg / p50 / p90 / p99 / max)::avg', title: 'Exposure avg%' },
+                { key: 'Exposure% (avg / p50 / p90 / p99 / max)::p50', title: 'Exposure p50%' },
+                { key: 'Exposure% (avg / p50 / p90 / p99 / max)::p90', title: 'Exposure p90%' },
+                { key: 'Exposure% (avg / p50 / p90 / p99 / max)::p99', title: 'Exposure p99%' },
+                { key: 'Exposure% (avg / p50 / p90 / p99 / max)::max', title: 'Exposure max%' }
             ]
         }
     ],
     [
-        'HighExposureTr% (>=20/50)',
+        'HighExposureTr% (>=20 / 50)',
         {
-            sourceColumn: 'HighExposureTr% (>=20/50)',
+            sourceColumn: 'HighExposureTr% (>=20 / 50)',
             metrics: [
-                { key: 'HighExposureTr% (>=20/50)::gte20', title: 'HighExposureTr >=20%' },
-                { key: 'HighExposureTr% (>=20/50)::gte50', title: 'HighExposureTr >=50%' }
+                { key: 'HighExposureTr% (>=20 / 50)::gte20', title: 'HighExposureTr >=20%' },
+                { key: 'HighExposureTr% (>=20 / 50)::gte50', title: 'HighExposureTr >=50%' }
             ]
         }
     ],
@@ -282,7 +292,8 @@ function resolveMetricKind(key: string): PolicyBranchMegaChartMetricKind {
         normalized === 'CapAp' ||
         normalized === 'CapSk' ||
         normalized === 'RecovSignals' ||
-        normalized === 'HorizonDays'
+        normalized === 'HorizonDays' ||
+        normalized === 'RealLiq#'
     ) {
         return 'count'
     }
@@ -291,8 +302,7 @@ function resolveMetricKind(key: string): PolicyBranchMegaChartMetricKind {
         normalized === 'HadLiq' ||
         normalized === 'AccRuin' ||
         normalized === 'Recovered' ||
-        normalized === 'BalDead' ||
-        normalized === 'RealLiq'
+        normalized === 'BalDead'
     ) {
         return 'flag'
     }
@@ -365,13 +375,13 @@ function resolveRiskState(row: Pick<PolicyBranchMegaChartRow, 'numericValues'>):
         return 'ruin'
     }
 
-    const hadLiq = Math.max(row.numericValues.HadLiq ?? 0, row.numericValues.RealLiq ?? 0)
+    const hadLiq = row.numericValues.HadLiq ?? 0
     if (hadLiq > 0) {
         return 'liquidation'
     }
 
-    const totalPnl = row.numericValues['TotalPnl%']
-    if (typeof totalPnl === 'number' && totalPnl < 0) {
+    const wealthPct = row.numericValues['Wealth%']
+    if (typeof wealthPct === 'number' && wealthPct < 0) {
         return 'negative'
     }
 

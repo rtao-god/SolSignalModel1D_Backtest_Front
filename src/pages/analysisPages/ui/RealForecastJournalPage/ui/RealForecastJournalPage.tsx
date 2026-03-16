@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -7,15 +7,20 @@ import {
     Btn,
     Input,
     ReportTableCard,
+    ReportTableTermsBlock,
+    ReportTimingSection,
     ReportViewControls,
     TermTooltip,
     Text,
     buildMegaSlModeControlGroup,
     buildPredictionPolicyBucketControlGroup,
     buildTrainingScopeControlGroup,
+    formatTimingExactUtc,
+    formatTimingUtc,
     renderTermTooltipRichText,
     type ReportViewControlGroup
 } from '@/shared/ui'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import type { TableRow } from '@/shared/ui/SortableTable'
 import { useAggregationMetricsQuery } from '@/shared/api/tanstackQueries/aggregation'
 import {
@@ -51,10 +56,17 @@ import {
     type RealForecastJournalIndicatorGroupFilter,
     type RealForecastJournalPolicySearchValue
 } from './realForecastJournalPageModel'
+import {
+    resolveRealForecastJournalColumnTooltip,
+    type RealForecastJournalResolvedTooltip,
+    type RealForecastJournalTermsLocale
+} from './realForecastJournalTerms'
 import { formatDateWithLocale } from '@/shared/utils/dateFormat'
+import { resolveEndOfDayExitReasonLabel } from '@/shared/utils/reportCellLocalization'
 import cls from './RealForecastJournalPage.module.scss'
 import type { RealForecastJournalPageProps } from './types'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { buildReportTermsFromReferences } from '@/shared/utils/reportTerms'
 
 const DEFAULT_COMPARISON_SOURCE: RealForecastJournalComparisonSource = 'aggregation'
 const DEFAULT_COMPARISON_SCOPE: CurrentPredictionTrainingScope = 'oos'
@@ -64,6 +76,43 @@ const DEFAULT_MARGIN_FILTER: 'all' | RealForecastJournalMarginMode = 'all'
 const DEFAULT_BRANCH_FILTER: RealForecastJournalBranchFilter = 'all'
 const DEFAULT_POLICY_SEARCH: RealForecastJournalPolicySearchValue = ''
 const DEFAULT_INDICATOR_GROUP: RealForecastJournalIndicatorGroupFilter = 'all'
+
+function resolveJournalTermsBlockTitle(locale: RealForecastJournalTermsLocale): string {
+    return locale === 'ru' ? 'Термины секции' : 'Section terms'
+}
+
+function resolveJournalTermsBlockSubtitle(locale: RealForecastJournalTermsLocale): string {
+    return locale === 'ru' ?
+            'Краткие определения терминов, которые используются в блоке ниже.'
+        :   'Short definitions of the terms used in the block below.'
+}
+
+function buildRealForecastJournalTerms(columns: string[], locale: RealForecastJournalTermsLocale) {
+    const tooltipCache = new Map<string, RealForecastJournalResolvedTooltip>()
+
+    const resolveTerm = (title: string): RealForecastJournalResolvedTooltip => {
+        const cached = tooltipCache.get(title)
+        if (cached) {
+            return cached
+        }
+
+        const resolved = resolveRealForecastJournalColumnTooltip(title, locale)
+        if (!resolved || !resolved.description.trim()) {
+            throw new Error(`[real-forecast-journal] tooltip is missing for column=${title}.`)
+        }
+
+        tooltipCache.set(title, resolved)
+        return resolved
+    }
+
+    return buildReportTermsFromReferences({
+        references: columns.map(column => ({ key: column, title: column })),
+        contextTag: 'real-forecast-journal-terms',
+        resolveDescription: reference => resolveTerm(reference.key).description,
+        resolveTooltip: reference => resolveTerm(reference.key).description,
+        resolveSelfAliases: reference => resolveTerm(reference.key).selfAliases
+    })
+}
 
 function resolveComparisonSource(raw: string | null): RealForecastJournalComparisonSource {
     if (!raw) return DEFAULT_COMPARISON_SOURCE
@@ -99,51 +148,7 @@ function resolveSelectedDate(
 }
 
 function formatUtc(value: string, locale: string): string {
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) {
-        throw new Error(`[real-forecast-journal] invalid utc value: ${value}.`)
-    }
-
-    return formatDateWithLocale(parsed, locale, {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'UTC'
-    })
-}
-
-function formatExactTimeUtc(value: string, locale: string): string {
-    return `${formatUtc(value, locale)} UTC`
-}
-
-function formatCountdownLabel(targetUtc: string, nowMs: number, t: TranslateFn): string {
-    const targetMs = new Date(targetUtc).getTime()
-    if (Number.isNaN(targetMs)) {
-        throw new Error(`[real-forecast-journal] invalid countdown target utc value: ${targetUtc}.`)
-    }
-
-    const deltaMs = targetMs - nowMs
-    const totalSeconds = Math.max(0, Math.floor(Math.abs(deltaMs) / 1000))
-    const days = Math.floor(totalSeconds / 86400)
-    const hours = Math.floor((totalSeconds % 86400) / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
-    const durationLabel = `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
-
-    if (deltaMs >= 0) {
-        return t('realForecastJournal.timing.countdown.remaining', {
-            defaultValue: '{{duration}} remaining',
-            duration: durationLabel
-        })
-    }
-
-    return t('realForecastJournal.timing.countdown.overdue', {
-        defaultValue: '{{duration}} overdue',
-        duration: durationLabel
-    })
+    return formatTimingUtc(value, locale)
 }
 
 function formatPercent(value: number, locale: string, maxDigits = 2): string {
@@ -399,7 +404,7 @@ function resolveMarginModeLabel(mode: RealForecastJournalMarginMode, t: Translat
     }
 }
 
-function resolveExitReasonLabel(reason: string | null, t: TranslateFn, fallback: string): string {
+function resolveExitReasonLabel(reason: string | null, locale: string, t: TranslateFn, fallback: string): string {
     if (reason === null) {
         return fallback
     }
@@ -414,10 +419,13 @@ function resolveExitReasonLabel(reason: string | null, t: TranslateFn, fallback:
     if (normalized === 'stop loss') {
         return t('realForecastJournal.policy.exitReasons.stopLoss', { defaultValue: 'Stop loss' })
     }
-    if (normalized === 'forced close at end of window (eod)') {
-        return t('realForecastJournal.policy.exitReasons.endOfDay', {
-            defaultValue: 'Forced close at end of window (EOD)'
-        })
+    if (
+        normalized === 'forced close at end of window (eod)' ||
+        normalized === 'endofday' ||
+        normalized === 'end of day' ||
+        normalized === 'eod'
+    ) {
+        return resolveEndOfDayExitReasonLabel(locale)
     }
     if (normalized === 'liquidation') {
         return t('realForecastJournal.policy.exitReasons.liquidation', { defaultValue: 'Liquidation' })
@@ -814,7 +822,7 @@ function buildPolicyTableRows(
 
         rowCells.push(
             isFinalized ? formatOptionalPrice(row.actualExitPrice, locale, notPublished) : pendingFinalize,
-            isFinalized ? resolveExitReasonLabel(row.actualExitReason, t, notPublished) : pendingFinalize,
+            isFinalized ? resolveExitReasonLabel(row.actualExitReason, locale, t, notPublished) : pendingFinalize,
             isFinalized ? formatOptionalPercent(row.actualExitPnlPct, locale, notPublished) : pendingFinalize,
             isFinalized ?
                 row.actualTrades === null ?
@@ -1078,50 +1086,6 @@ function SectionNote({
     )
 }
 
-function useTimingNowMs(): number {
-    const [nowMs, setNowMs] = useState(() => Date.now())
-
-    useEffect(() => {
-        // Countdown пересчитывается локально каждую секунду, а каноничные UTC target-ы приходят с backend ops-status.
-        const timerId = window.setInterval(() => {
-            setNowMs(Date.now())
-        }, 1000)
-
-        return () => {
-            window.clearInterval(timerId)
-        }
-    }, [])
-
-    return nowMs
-}
-
-function TimingCard({
-    label,
-    countdown,
-    rows
-}: {
-    label: string
-    countdown: string
-    rows: Array<{ label: string; value: string }>
-}) {
-    return (
-        <article className={cls.timingCard}>
-            <Text className={cls.summaryLabel}>{label}</Text>
-            <Text type='h3' className={cls.timingCountdown}>
-                {countdown}
-            </Text>
-            <div className={cls.timingRows}>
-                {rows.map(row => (
-                    <div key={`${label}-${row.label}`} className={cls.timingRow}>
-                        <Text className={cls.timingRowLabel}>{row.label}</Text>
-                        <Text className={cls.timingRowValue}>{row.value}</Text>
-                    </div>
-                ))}
-            </div>
-        </article>
-    )
-}
-
 function buildNextCaptureRows(
     status: RealForecastJournalOpsStatusDto,
     locale: string,
@@ -1140,7 +1104,7 @@ function buildNextCaptureRows(
             label: t('realForecastJournal.timing.nextCapture.rows.exactTime', {
                 defaultValue: 'Scheduled capture'
             }),
-            value: formatExactTimeUtc(status.nextCaptureEntryUtc, locale)
+            value: formatTimingExactUtc(status.nextCaptureEntryUtc, locale)
         }
     ]
 }
@@ -1163,13 +1127,13 @@ function buildActiveFinalizeRows(
             label: t('realForecastJournal.timing.activeFinalize.rows.finalizeTarget', {
                 defaultValue: 'Data completion target'
             }),
-            value: formatExactTimeUtc(status.activePendingFinalizeDueUtc, locale)
+            value: formatTimingExactUtc(status.activePendingFinalizeDueUtc, locale)
         },
         {
             label: t('realForecastJournal.timing.activeFinalize.rows.marketCloseReference', {
                 defaultValue: 'Market close reference'
             }),
-            value: formatExactTimeUtc(status.activePendingExitUtc, locale)
+            value: formatTimingExactUtc(status.activePendingExitUtc, locale)
         }
     ]
 }
@@ -1192,7 +1156,7 @@ function buildActiveCloseRows(
             label: t('realForecastJournal.timing.activeClose.rows.marketClose', {
                 defaultValue: 'Market close'
             }),
-            value: formatExactTimeUtc(status.activePendingExitUtc, locale)
+            value: formatTimingExactUtc(status.activePendingExitUtc, locale)
         }
     ]
 }
@@ -1205,21 +1169,66 @@ function RealForecastJournalTimingSection({
     opsStatusQuery: ReturnType<typeof useRealForecastJournalOpsStatusQuery>
 }) {
     const { t } = useTranslation('reports')
-    const nowMs = useTimingNowMs()
+    const isRu = locale.startsWith('ru')
+    const activeWindowCards =
+        opsStatusQuery.data?.activePendingFinalizeDueUtc &&
+        opsStatusQuery.data.activePendingDayUtc &&
+        opsStatusQuery.data.activePendingExitUtc ?
+            [
+                {
+                    id: 'active-close',
+                    label: t('realForecastJournal.timing.activeClose.title', {
+                        defaultValue: 'Open trading day close'
+                    }),
+                    targetUtc: opsStatusQuery.data.activePendingExitUtc,
+                    rows: buildActiveCloseRows(opsStatusQuery.data, locale, t)
+                },
+                {
+                    id: 'active-finalize',
+                    label: t('realForecastJournal.timing.activeFinalize.title', {
+                        defaultValue: 'Post-close data completion'
+                    }),
+                    targetUtc: opsStatusQuery.data.activePendingFinalizeDueUtc,
+                    rows: buildActiveFinalizeRows(opsStatusQuery.data, locale, t)
+                }
+            ]
+        :   [
+                {
+                    id: 'active-window-empty',
+                    label: t('realForecastJournal.timing.activeWindow.title', {
+                        defaultValue: 'Open trading day timing'
+                    }),
+                    headline: t('realForecastJournal.timing.activeFinalize.none', {
+                        defaultValue: 'No open forecast day'
+                    }),
+                    rows: [
+                        {
+                            label: isRu ? 'Состояние' : 'Status',
+                            value: t('realForecastJournal.timing.activeFinalize.noneDescription', {
+                                defaultValue:
+                                    'After the next morning capture, this block starts counting down to the end-of-day data update.'
+                            })
+                        }
+                    ]
+                }
+            ]
+    const cards =
+        opsStatusQuery.data ?
+            [
+                {
+                    id: 'next-capture',
+                    label: t('realForecastJournal.timing.nextCapture.title', {
+                        defaultValue: 'Next journal capture'
+                    }),
+                    targetUtc: opsStatusQuery.data.nextCaptureEntryUtc,
+                    rows: buildNextCaptureRows(opsStatusQuery.data, locale, t)
+                },
+                ...activeWindowCards
+            ]
+        :   []
 
     return (
         <section className={cls.timingSection}>
-            <div className={cls.sectionHeader}>
-                <Text type='h2' className={cls.sectionTitle}>
-                    {t('realForecastJournal.timing.title', { defaultValue: 'Upcoming journal timing' })}
-                </Text>
-                <Text className={cls.sectionSubtitle}>
-                    {t('realForecastJournal.timing.subtitle', {
-                        defaultValue:
-                            'This block shows when the next immutable trading day will be captured and, when a live day is still open, how long remains until the post-close factual data is written into the journal.'
-                    })}
-                </Text>
-            </div>
             {opsStatusQuery.isLoading && !opsStatusQuery.data && (
                 <Text className={cls.loadingText}>
                     {t('realForecastJournal.timing.loading', { defaultValue: 'Loading journal timing...' })}
@@ -1234,75 +1243,30 @@ function RealForecastJournalTimingSection({
                 </div>
             )}
             {opsStatusQuery.data && (
-                <div className={cls.timingContent}>
-                    <Text
-                        className={classNames(cls.timingStatusText, {
-                            [cls.timingStatusHealthy]: opsStatusQuery.data.health === 'healthy',
-                            [cls.timingStatusDegraded]: opsStatusQuery.data.health === 'degraded'
-                        })}>
-                        {resolveOpsStatusReasonText(opsStatusQuery.data, t)}
-                    </Text>
-                    <div className={cls.timingGrid}>
-                        <TimingCard
-                            label={t('realForecastJournal.timing.nextCapture.title', {
-                                defaultValue: 'Next journal capture'
-                            })}
-                            countdown={formatCountdownLabel(opsStatusQuery.data.nextCaptureEntryUtc!, nowMs, t)}
-                            rows={buildNextCaptureRows(opsStatusQuery.data, locale, t)}
-                        />
-                        {(
-                            opsStatusQuery.data.activePendingFinalizeDueUtc &&
-                            opsStatusQuery.data.activePendingDayUtc &&
-                            opsStatusQuery.data.activePendingExitUtc
-                        ) ?
-                            <>
-                                <TimingCard
-                                    label={t('realForecastJournal.timing.activeClose.title', {
-                                        defaultValue: 'Open trading day close'
-                                    })}
-                                    countdown={formatCountdownLabel(opsStatusQuery.data.activePendingExitUtc, nowMs, t)}
-                                    rows={buildActiveCloseRows(opsStatusQuery.data, locale, t)}
-                                />
-                                <TimingCard
-                                    label={t('realForecastJournal.timing.activeFinalize.title', {
-                                        defaultValue: 'Post-close data completion'
-                                    })}
-                                    countdown={formatCountdownLabel(
-                                        opsStatusQuery.data.activePendingFinalizeDueUtc,
-                                        nowMs,
-                                        t
-                                    )}
-                                    rows={buildActiveFinalizeRows(opsStatusQuery.data, locale, t)}
-                                />
-                            </>
-                        :   <article className={cls.timingCard}>
-                                <Text className={cls.summaryLabel}>
-                                    {t('realForecastJournal.timing.activeWindow.title', {
-                                        defaultValue: 'Open trading day timing'
-                                    })}
-                                </Text>
-                                <Text type='h3' className={cls.timingCountdown}>
-                                    {t('realForecastJournal.timing.activeFinalize.none', {
-                                        defaultValue: 'No open forecast day'
-                                    })}
-                                </Text>
-                                <Text className={cls.summaryHint}>
-                                    {t('realForecastJournal.timing.activeFinalize.noneDescription', {
-                                        defaultValue:
-                                            'After the next morning capture, this block starts counting down to the end-of-day data update.'
-                                    })}
-                                </Text>
-                            </article>
-                        }
-                    </div>
-                </div>
+                <ReportTimingSection
+                    title={t('realForecastJournal.timing.title', { defaultValue: 'Upcoming journal timing' })}
+                    subtitle={t('realForecastJournal.timing.subtitle', {
+                        defaultValue:
+                            'This block shows when the next immutable trading day will be captured and, when a live day is still open, how long remains until the post-close factual data is written into the journal.'
+                    })}
+                    statusText={resolveOpsStatusReasonText(opsStatusQuery.data, t)}
+                    statusTone={
+                        opsStatusQuery.data.health === 'healthy' ? 'healthy'
+                        : opsStatusQuery.data.health === 'degraded' ? 'warning'
+                        : 'neutral'
+                    }
+                    cards={cards}
+                    locale={locale}
+                    remainingLabel={isRu ? 'осталось' : 'remaining'}
+                    overdueLabel={isRu ? 'после срока' : 'overdue'}
+                />
             )}
         </section>
     )
 }
 
 function RealForecastJournalPageInner({ className }: RealForecastJournalPageProps) {
-    const { t, i18n } = useTranslation('reports')
+    const { i18n } = useTranslation('reports')
     const locale = i18n.resolvedLanguage?.startsWith('ru') ? 'ru-RU' : 'en-US'
     const [searchParams, setSearchParams] = useSearchParams()
     const comparisonSourceState = useMemo(() => {
@@ -1482,6 +1446,9 @@ function RealForecastJournalPageContent({
     onDetailedToggle
 }: RealForecastJournalPageContentProps) {
     const { t } = useTranslation('reports')
+    const termsLocale: RealForecastJournalTermsLocale = locale === 'ru-RU' ? 'ru' : 'en'
+    const termsBlockTitle = resolveJournalTermsBlockTitle(termsLocale)
+    const termsBlockSubtitle = resolveJournalTermsBlockSubtitle(termsLocale)
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
     const selectedDay = useMemo(
         () => dayList.find(item => item.predictionDateUtc === selectedDate) ?? null,
@@ -1611,7 +1578,35 @@ function RealForecastJournalPageContent({
         :   null)
 
     const isFinalized = selectedDay?.status === 'finalized'
-    const policyColumns = buildPolicyTableColumns(t, isSelectedDayActive)
+    const policyColumns = useMemo(() => buildPolicyTableColumns(t, isSelectedDayActive), [isSelectedDayActive, t])
+    const policyTerms = useMemo(
+        () => buildRealForecastJournalTerms(policyColumns, termsLocale),
+        [policyColumns, termsLocale]
+    )
+    const indicatorColumns = useMemo(
+        () => [
+            t('realForecastJournal.indicators.table.columns.group', {
+                defaultValue: 'Group'
+            }),
+            t('realForecastJournal.indicators.table.columns.indicator', {
+                defaultValue: 'Indicator'
+            }),
+            t('realForecastJournal.indicators.table.columns.sessionOpen', {
+                defaultValue: 'Session open'
+            }),
+            t('realForecastJournal.indicators.table.columns.close', {
+                defaultValue: 'Close'
+            }),
+            t('realForecastJournal.indicators.table.columns.delta', {
+                defaultValue: 'Delta'
+            })
+        ],
+        [t]
+    )
+    const indicatorTerms = useMemo(
+        () => buildRealForecastJournalTerms(indicatorColumns, termsLocale),
+        [indicatorColumns, termsLocale]
+    )
     const policyRowsTable =
         selectedRecord && isFinalized !== undefined ?
             buildPolicyTableRows(
@@ -1625,6 +1620,17 @@ function RealForecastJournalPageContent({
             )
         :   []
     const indicatorRows = selectedRecord ? buildIndicatorTableRows(selectedRecord, indicatorGroup, t) : []
+    // Журнал объединяет разные доменные слои в одной странице,
+    // поэтому tooltip для колонок сначала ищется в shared glossary, а потом в локальном page-level resolver.
+    const renderJournalColumnTitle = useCallback(
+        (title: string) => {
+            const resolved = resolveRealForecastJournalColumnTooltip(title, termsLocale)
+            return renderTermTooltipTitle(title, resolved?.description, {
+                selfAliases: resolved?.selfAliases
+            })
+        },
+        [termsLocale]
+    )
 
     return (
         <div className={rootClassName}>
@@ -1967,6 +1973,12 @@ function RealForecastJournalPageContent({
                                     />
                                 </div>
                             </div>
+                            <ReportTableTermsBlock
+                                terms={policyTerms}
+                                enhanceDomainTerms
+                                title={termsBlockTitle}
+                                subtitle={termsBlockSubtitle}
+                            />
                             <ReportTableCard
                                 title={t('realForecastJournal.policy.table.title', {
                                     defaultValue: 'Published policy rows'
@@ -1977,7 +1989,9 @@ function RealForecastJournalPageContent({
                                 })}
                                 columns={policyColumns}
                                 rows={policyRowsTable}
+                                rowEvaluations={filteredPolicyRows.map(row => row.evaluation)}
                                 domId='real-forecast-policy-table'
+                                renderColumnTitle={renderJournalColumnTitle}
                             />
                             {filteredPolicyRows.length === 0 && (
                                 <Text className={cls.emptyState}>
@@ -2016,6 +2030,12 @@ function RealForecastJournalPageContent({
                             {isDetailedOpen && (
                                 <div className={cls.indicatorBlock}>
                                     <ReportViewControls groups={indicatorControlGroups} className={cls.controls} />
+                                    <ReportTableTermsBlock
+                                        terms={indicatorTerms}
+                                        enhanceDomainTerms
+                                        title={termsBlockTitle}
+                                        subtitle={termsBlockSubtitle}
+                                    />
                                     <ReportTableCard
                                         title={t('realForecastJournal.indicators.table.title', {
                                             defaultValue: 'Indicator value diff'
@@ -2024,25 +2044,10 @@ function RealForecastJournalPageContent({
                                             defaultValue:
                                                 'The morning value is the fixed value at publication time. The close value and delta appear only after finalization.'
                                         })}
-                                        columns={[
-                                            t('realForecastJournal.indicators.table.columns.group', {
-                                                defaultValue: 'Group'
-                                            }),
-                                            t('realForecastJournal.indicators.table.columns.indicator', {
-                                                defaultValue: 'Indicator'
-                                            }),
-                                            t('realForecastJournal.indicators.table.columns.sessionOpen', {
-                                                defaultValue: 'Session open'
-                                            }),
-                                            t('realForecastJournal.indicators.table.columns.close', {
-                                                defaultValue: 'Close'
-                                            }),
-                                            t('realForecastJournal.indicators.table.columns.delta', {
-                                                defaultValue: 'Delta'
-                                            })
-                                        ]}
+                                        columns={indicatorColumns}
                                         rows={indicatorRows}
                                         domId='real-forecast-indicator-table'
+                                        renderColumnTitle={renderJournalColumnTitle}
                                     />
                                 </div>
                             )}
@@ -2063,6 +2068,10 @@ function RealForecastJournalPageContent({
                 aggregationMetricsQuery={aggregationMetricsQuery}
                 confidenceRiskQuery={confidenceRiskQuery}
                 comparisonControlGroups={comparisonControlGroups}
+                renderColumnTitle={renderJournalColumnTitle}
+                termsLocale={termsLocale}
+                termsBlockTitle={termsBlockTitle}
+                termsBlockSubtitle={termsBlockSubtitle}
             />
         </div>
     )
@@ -2080,6 +2089,10 @@ interface RealForecastJournalComparisonSectionProps {
     aggregationMetricsQuery: ReturnType<typeof useAggregationMetricsQuery>
     confidenceRiskQuery: ReturnType<typeof useBacktestConfidenceRiskReportQuery>
     comparisonControlGroups: ReportViewControlGroup[]
+    renderColumnTitle: (title: string) => ReactNode
+    termsLocale: RealForecastJournalTermsLocale
+    termsBlockTitle: string
+    termsBlockSubtitle: string
 }
 
 function RealForecastJournalComparisonSection({
@@ -2091,7 +2104,11 @@ function RealForecastJournalComparisonSection({
     queryError,
     aggregationMetricsQuery,
     confidenceRiskQuery,
-    comparisonControlGroups
+    comparisonControlGroups,
+    renderColumnTitle,
+    termsLocale,
+    termsBlockTitle,
+    termsBlockSubtitle
 }: RealForecastJournalComparisonSectionProps) {
     const comparisonState = useMemo(() => {
         try {
@@ -2149,6 +2166,66 @@ function RealForecastJournalComparisonSection({
         confidenceRiskQuery.isLoading,
         dayList
     ])
+    const aggregationColumns = useMemo(
+        () => [
+            t('realForecastJournal.comparison.columns.metric', { defaultValue: 'Metric' }),
+            t('realForecastJournal.comparison.columns.live', { defaultValue: 'Live journal' }),
+            t('realForecastJournal.comparison.columns.history', {
+                defaultValue: 'Selected history'
+            }),
+            t('realForecastJournal.comparison.columns.delta', { defaultValue: 'Delta' })
+        ],
+        [t]
+    )
+    const aggregationTerms = useMemo(
+        () => buildRealForecastJournalTerms(aggregationColumns, termsLocale),
+        [aggregationColumns, termsLocale]
+    )
+    const confidenceRiskSummaryColumns = useMemo(
+        () => [
+            t('realForecastJournal.comparison.columns.metric', { defaultValue: 'Metric' }),
+            t('realForecastJournal.comparison.columns.live', { defaultValue: 'Live journal' }),
+            t('realForecastJournal.comparison.columns.history', {
+                defaultValue: 'Weighted history'
+            }),
+            t('realForecastJournal.comparison.columns.delta', { defaultValue: 'Delta' })
+        ],
+        [t]
+    )
+    const confidenceRiskSummaryTerms = useMemo(
+        () => buildRealForecastJournalTerms(confidenceRiskSummaryColumns, termsLocale),
+        [confidenceRiskSummaryColumns, termsLocale]
+    )
+    const confidenceRiskBucketColumns = useMemo(
+        () => [
+            t('realForecastJournal.comparison.confidenceRisk.columns.bucket', {
+                defaultValue: 'Bucket'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.range', {
+                defaultValue: 'Range'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.liveDays', {
+                defaultValue: 'Live days'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.liveWinRate', {
+                defaultValue: 'Live win rate'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.liveConfidence', {
+                defaultValue: 'Live avg confidence'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.historyWinRate', {
+                defaultValue: 'Historical win rate'
+            }),
+            t('realForecastJournal.comparison.confidenceRisk.columns.delta', {
+                defaultValue: 'Delta'
+            })
+        ],
+        [t]
+    )
+    const confidenceRiskBucketTerms = useMemo(
+        () => buildRealForecastJournalTerms(confidenceRiskBucketColumns, termsLocale),
+        [confidenceRiskBucketColumns, termsLocale]
+    )
 
     return (
         <section className={cls.comparisonSection}>
@@ -2229,21 +2306,21 @@ function RealForecastJournalComparisonSection({
                                 )}
                             />
                         </div>
+                        <ReportTableTermsBlock
+                            terms={aggregationTerms}
+                            enhanceDomainTerms
+                            title={termsBlockTitle}
+                            subtitle={termsBlockSubtitle}
+                        />
                         <ReportTableCard
                             title={t('realForecastJournal.comparison.aggregation.tableTitle', {
                                 defaultValue: 'Aggregation benchmark comparison'
                             })}
                             description={comparisonState.aggregation.benchmark.label}
-                            columns={[
-                                t('realForecastJournal.comparison.columns.metric', { defaultValue: 'Metric' }),
-                                t('realForecastJournal.comparison.columns.live', { defaultValue: 'Live journal' }),
-                                t('realForecastJournal.comparison.columns.history', {
-                                    defaultValue: 'Selected history'
-                                }),
-                                t('realForecastJournal.comparison.columns.delta', { defaultValue: 'Delta' })
-                            ]}
+                            columns={aggregationColumns}
                             rows={buildAggregationComparisonTable(comparisonState.aggregation, locale, t)}
                             domId='real-forecast-aggregation-comparison'
+                            renderColumnTitle={renderColumnTitle}
                         />
                     </div>
                 )}
@@ -2293,6 +2370,12 @@ function RealForecastJournalComparisonSection({
                                 }
                             />
                         </div>
+                        <ReportTableTermsBlock
+                            terms={confidenceRiskSummaryTerms}
+                            enhanceDomainTerms
+                            title={termsBlockTitle}
+                            subtitle={termsBlockSubtitle}
+                        />
                         <ReportTableCard
                             title={t('realForecastJournal.comparison.confidenceRisk.summaryTitle', {
                                 defaultValue: 'Confidence-risk summary'
@@ -2301,16 +2384,16 @@ function RealForecastJournalComparisonSection({
                                 defaultValue:
                                     'Weighted benchmark uses the same confidence buckets that the live journal days fell into.'
                             })}
-                            columns={[
-                                t('realForecastJournal.comparison.columns.metric', { defaultValue: 'Metric' }),
-                                t('realForecastJournal.comparison.columns.live', { defaultValue: 'Live journal' }),
-                                t('realForecastJournal.comparison.columns.history', {
-                                    defaultValue: 'Weighted history'
-                                }),
-                                t('realForecastJournal.comparison.columns.delta', { defaultValue: 'Delta' })
-                            ]}
+                            columns={confidenceRiskSummaryColumns}
                             rows={buildConfidenceRiskSummaryTable(comparisonState.confidenceRisk, locale, t)}
                             domId='real-forecast-confidence-risk-summary'
+                            renderColumnTitle={renderColumnTitle}
+                        />
+                        <ReportTableTermsBlock
+                            terms={confidenceRiskBucketTerms}
+                            enhanceDomainTerms
+                            title={termsBlockTitle}
+                            subtitle={termsBlockSubtitle}
                         />
                         <ReportTableCard
                             title={t('realForecastJournal.comparison.confidenceRisk.bucketTitle', {
@@ -2320,31 +2403,10 @@ function RealForecastJournalComparisonSection({
                                 defaultValue:
                                     'Only finalized live days are counted. Each row compares live win rate with the historical win rate of the same confidence bucket.'
                             })}
-                            columns={[
-                                t('realForecastJournal.comparison.confidenceRisk.columns.bucket', {
-                                    defaultValue: 'Bucket'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.range', {
-                                    defaultValue: 'Range'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.liveDays', {
-                                    defaultValue: 'Live days'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.liveWinRate', {
-                                    defaultValue: 'Live win rate'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.liveConfidence', {
-                                    defaultValue: 'Live avg confidence'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.historyWinRate', {
-                                    defaultValue: 'Historical win rate'
-                                }),
-                                t('realForecastJournal.comparison.confidenceRisk.columns.delta', {
-                                    defaultValue: 'Delta'
-                                })
-                            ]}
+                            columns={confidenceRiskBucketColumns}
                             rows={buildConfidenceRiskBucketTable(comparisonState.confidenceRisk, locale, t)}
                             domId='real-forecast-confidence-risk-buckets'
+                            renderColumnTitle={renderColumnTitle}
                         />
                     </div>
                 )}

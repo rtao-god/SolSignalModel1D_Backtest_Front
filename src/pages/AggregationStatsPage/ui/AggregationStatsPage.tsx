@@ -7,6 +7,8 @@ import classNames from '@/shared/lib/helpers/classNames'
 import cls from './AggregationStatsPage.module.scss'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { Text } from '@/shared/ui'
+import { BulletList } from '@/shared/ui/BulletList'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 
 function formatUtcDayKeyLabel(value: unknown): string {
     if (!value || typeof value !== 'object') {
@@ -51,12 +53,34 @@ export default function AggregationStatsPage({ className }: AggregationStatsPage
         metricsQuery.refetch()
     }
 
+    const headerBulletItems = [
+        {
+            key: 'overview',
+            content: renderTermTooltipRichText(t('aggregation.inner.header.points.overview'))
+        },
+        {
+            key: 'probs',
+            content: renderTermTooltipRichText(t('aggregation.inner.header.points.probs'))
+        },
+        {
+            key: 'metrics',
+            content: renderTermTooltipRichText(t('aggregation.inner.header.points.metrics'))
+        },
+        {
+            key: 'debug',
+            content: renderTermTooltipRichText(t('aggregation.inner.header.points.debug'))
+        }
+    ] as const
+
     return (
         <div className={rootClassName}>
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
                     <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
-                    <Text className={cls.subtitle}>{t('aggregation.inner.header.subtitle')}</Text>
+                    <Text className={cls.subtitle}>
+                        {renderTermTooltipRichText(t('aggregation.inner.header.subtitle'))}
+                    </Text>
+                    <BulletList className={cls.headerBulletList} items={headerBulletItems} />
                 </div>
 
                 {hasData && normalizedProbs && (

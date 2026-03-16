@@ -194,7 +194,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         layout: 'app',
         loadingTitle: 'Loading baseline backtest',
         nav: {
-            sidebar: true,
+            sidebar: false,
             label: 'Baseline backtest',
             section: 'backtest',
             order: 1
@@ -207,7 +207,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         layout: 'app',
         loadingTitle: 'Loading backtest summary',
         nav: {
-            sidebar: true,
+            sidebar: false,
             label: 'Backtest summary',
             section: 'backtest',
             order: 2

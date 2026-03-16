@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { AppDispatch } from '@/app/providers/StoreProvider/config/configureStore'
 import { api } from '@/shared/api'
-import type { CurrentPredictionIndexItemDto } from '@/shared/api/endpoints/reportEndpoints'
 import { prefetchAggregationStats } from '@/shared/api/tanstackQueries/aggregation'
 import {
     prefetchBacktestBaselineSnapshot,
@@ -14,8 +13,10 @@ import {
 } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { prefetchBacktestExecutionPipelineReport } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
 import {
+    DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE,
+    DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE,
     DEFAULT_BACKFILLED_HISTORY_SCOPE,
-    prefetchCurrentPredictionHistoryIndex,
+    prefetchCurrentPredictionHistoryPage,
     prefetchCurrentPredictionLatestReport
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import { prefetchRealForecastJournalDayList } from '@/shared/api/tanstackQueries/realForecastJournal'
@@ -37,14 +38,6 @@ interface RouteWarmupContext {
 }
 
 type RouteDataPrefetcher = (context: RouteWarmupContext) => Promise<void>
-
-const CURRENT_PREDICTION_HISTORY_DEFAULT_INDEX_QUERY_KEY = [
-    'current-prediction',
-    'dates',
-    'backfilled',
-    DEFAULT_BACKFILLED_HISTORY_SCOPE,
-    'all'
-] as const
 
 const DIAGNOSTICS_REPORT_PREFETCH_ROUTES: AppRoute[] = [
     AppRoute.BACKTEST_DIAGNOSTICS,
@@ -85,33 +78,12 @@ function dispatchWarmupThunk(dispatch: AppDispatch, thunk: unknown): void {
 
 const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
     [AppRoute.CURRENT_PREDICTION]: ({ queryClient }) => prefetchCurrentPredictionLatestReport(queryClient),
-    [AppRoute.CURRENT_PREDICTION_HISTORY]: async ({ queryClient, dispatch }) => {
-        await prefetchCurrentPredictionHistoryIndex(queryClient)
-
-        if (!dispatch) {
-            return
-        }
-
-        const defaultIndex = queryClient.getQueryData<CurrentPredictionIndexItemDto[]>(
-            CURRENT_PREDICTION_HISTORY_DEFAULT_INDEX_QUERY_KEY
-        )
-        const latestDateUtc = defaultIndex?.[0]?.predictionDateUtc
-        if (!latestDateUtc) {
-            return
-        }
-
-        dispatchWarmupThunk(
-            dispatch,
-            api.endpoints.getCurrentPredictionByDate.initiate(
-                {
-                    set: 'backfilled',
-                    scope: DEFAULT_BACKFILLED_HISTORY_SCOPE,
-                    dateUtc: latestDateUtc
-                },
-                { subscribe: false, forceRefetch: false }
-            )
-        )
-    },
+    [AppRoute.CURRENT_PREDICTION_HISTORY]: ({ queryClient }) =>
+        prefetchCurrentPredictionHistoryPage(queryClient, {
+            page: DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE,
+            pageSize: DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE,
+            scope: DEFAULT_BACKFILLED_HISTORY_SCOPE
+        }),
     [AppRoute.MODELS_STATS]: ({ queryClient }) => prefetchModelStatsReport(queryClient),
     [AppRoute.AGGREGATION_STATS]: ({ queryClient }) => prefetchAggregationStats(queryClient),
     [AppRoute.BACKTEST_BASELINE]: ({ queryClient }) => prefetchBacktestBaselineSnapshot(queryClient),
@@ -145,7 +117,8 @@ const ROUTE_DATA_PREFETCHERS: Partial<Record<AppRoute, RouteDataPrefetcher>> = {
         }),
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: ({ queryClient }) => prefetchBacktestConfidenceRiskReport(queryClient),
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: ({ queryClient }) => prefetchRealForecastJournalDayList(queryClient),
-    [AppRoute.BACKTEST_EXECUTION_PIPELINE]: ({ queryClient }) => prefetchBacktestExecutionPipelineReport(queryClient),
+    [AppRoute.BACKTEST_EXECUTION_PIPELINE]: ({ queryClient, diagnosticsArgs }) =>
+        prefetchBacktestExecutionPipelineReport(queryClient, diagnosticsArgs),
     [AppRoute.PFI_PER_MODEL]: ({ queryClient }) => prefetchPfiPerModelReport(queryClient),
     [AppRoute.EXPLAIN_FEATURES]: ({ queryClient }) => prefetchPfiPerModelReport(queryClient)
 }

@@ -1,4 +1,5 @@
 import type { BacktestSummaryDto } from '@/shared/types/backtest.types'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
@@ -6,6 +7,26 @@ import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/ut
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import { useTranslation } from 'react-i18next'
 import cls from './BacktestSummaryView.module.scss'
+
+function resolveEvaluationRowClass(evaluation: PolicyEvaluationDto | null): string | undefined {
+    if (!evaluation) {
+        return undefined
+    }
+
+    if (evaluation.status === 'good') return cls.rowGood
+    if (evaluation.status === 'caution') return cls.rowCaution
+    if (evaluation.status === 'bad') return cls.rowBad
+    return cls.rowUnknown
+}
+
+function resolveEvaluationRowTitle(evaluation: PolicyEvaluationDto | null): string | undefined {
+    const reasons = evaluation?.reasons?.map(reason => reason.message).filter(Boolean) ?? []
+    if (reasons.length === 0) {
+        return undefined
+    }
+
+    return reasons.join(' | ')
+}
 interface BacktestSummaryViewProps {
     summary: BacktestSummaryDto
     title: string
@@ -109,7 +130,10 @@ function SectionRenderer({ section, reportKind }: SectionRendererProps) {
                     </thead>
                     <tbody>
                         {tbl.rows!.map((row, rowIdx) => (
-                            <tr key={rowIdx}>
+                            <tr
+                                key={rowIdx}
+                                className={resolveEvaluationRowClass(tbl.rowEvaluations?.[rowIdx] ?? null)}
+                                title={resolveEvaluationRowTitle(tbl.rowEvaluations?.[rowIdx] ?? null)}>
                                 {row.map((cell, cellIdx) => (
                                     <td key={cellIdx}>{cell}</td>
                                 ))}

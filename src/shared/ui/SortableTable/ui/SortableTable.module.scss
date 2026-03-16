@@ -2,6 +2,11 @@
     @include table-scroll-shell($density: medium);
 }
 
+.tableScrollVirtualized {
+    max-height: var(--sortable-table-max-height, 72vh);
+    overscroll-behavior: contain;
+}
+
 .densitySimple {
     @include table-density(simple);
 }
@@ -34,6 +39,24 @@
 
 .table tbody tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.02);
+}
+
+.tableVirtualized th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(10px);
+}
+
+.spacerRow {
+    background: transparent !important;
+    pointer-events: none;
+}
+
+.spacerRow td {
+    padding: 0 !important;
+    border-bottom: 0 !important;
 }
 
 .thButton {

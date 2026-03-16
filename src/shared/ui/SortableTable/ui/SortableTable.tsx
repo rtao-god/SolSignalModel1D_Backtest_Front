@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react'
+import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './SortableTable.module.scss'
 import type { RowEntry, SortDir, SortKind, SortState, TableRow } from '../model/types'
@@ -24,8 +24,12 @@ interface SortableTableProps {
     className?: string
     tableClassName?: string
     density?: TableDensity
+    virtualizeRows?: boolean
+    maxBodyHeight?: CSSProperties['maxHeight']
     getRowClassName?: (row: TableRow, rowIndex: number) => string | undefined
+    getRowTitle?: (row: TableRow, rowIndex: number) => string | undefined
     getCellClassName?: (value: unknown, rowIndex: number, colIdx: number) => string | undefined
+    renderCell?: (value: unknown, rowIndex: number, colIdx: number) => ReactNode
     onSortedRowsChange?: (rows: TableRow[]) => void
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
@@ -33,6 +37,13 @@ interface SortableTableProps {
 const CHUNK_RENDER_THRESHOLD_ROWS = 250
 const INITIAL_RENDERED_ROWS = 120
 const CHUNK_RENDER_STEP_ROWS = 180
+const VIRTUALIZATION_THRESHOLD_ROWS = 180
+const VIRTUALIZATION_OVERSCAN_ROWS = 14
+const ROW_HEIGHT_BY_DENSITY: Record<TableDensity, number> = {
+    simple: 44,
+    medium: 38,
+    dense: 34
+}
 
 function ChevronUpIcon({ className }: { className: string }) {
     return (
@@ -127,14 +138,21 @@ export default function SortableTable({
     className,
     tableClassName,
     density = 'medium',
+    virtualizeRows = false,
+    maxBodyHeight,
     getRowClassName,
+    getRowTitle,
     getCellClassName,
+    renderCell,
     onSortedRowsChange,
     renderColumnTitle
 }: SortableTableProps) {
     const { t } = useTranslation('common')
     const [sort, setSort] = useState<SortState>({ colIdx: null, kind: 'none' })
     const [renderedRowCount, setRenderedRowCount] = useState(0)
+    const [virtualScrollTop, setVirtualScrollTop] = useState(0)
+    const [virtualViewportHeight, setVirtualViewportHeight] = useState(0)
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
     const resolvedVisibleIndexes = useMemo(() => {
         if (!columns || columns.length === 0) {
@@ -214,8 +232,74 @@ export default function SortableTable({
         return stableSortByCol(rowEntries, sort.colIdx, resolved)
     }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx])
 
-    // Для больших таблиц отдаем строки батчами через rAF, чтобы первый рендер не блокировал main thread.
+    const shouldVirtualize =
+        virtualizeRows &&
+        maxBodyHeight != null &&
+        displayEntries.length > VIRTUALIZATION_THRESHOLD_ROWS &&
+        typeof window !== 'undefined'
+
+    const estimatedRowHeight = ROW_HEIGHT_BY_DENSITY[density]
+
     useEffect(() => {
+        if (!shouldVirtualize) {
+            setVirtualScrollTop(0)
+            setVirtualViewportHeight(0)
+            return
+        }
+
+        const container = scrollContainerRef.current
+        if (!container) {
+            return
+        }
+
+        const syncViewportMetrics = () => {
+            setVirtualViewportHeight(container.clientHeight)
+            setVirtualScrollTop(container.scrollTop)
+        }
+
+        syncViewportMetrics()
+
+        const handleScroll = () => {
+            setVirtualScrollTop(container.scrollTop)
+        }
+
+        container.addEventListener('scroll', handleScroll, { passive: true })
+
+        const resizeObserver =
+            typeof ResizeObserver === 'function' ? new ResizeObserver(() => syncViewportMetrics()) : null
+
+        resizeObserver?.observe(container)
+        window.addEventListener('resize', syncViewportMetrics)
+
+        return () => {
+            container.removeEventListener('scroll', handleScroll)
+            resizeObserver?.disconnect()
+            window.removeEventListener('resize', syncViewportMetrics)
+        }
+    }, [shouldVirtualize])
+
+    useEffect(() => {
+        if (!shouldVirtualize) {
+            return
+        }
+
+        const container = scrollContainerRef.current
+        if (!container) {
+            return
+        }
+
+        container.scrollTop = 0
+        setVirtualScrollTop(0)
+    }, [displayEntries, shouldVirtualize])
+
+    // Для экранов без внутреннего viewport сохраняется постепенный рендер,
+    // чтобы не ухудшить первый paint обычных таблиц.
+    useEffect(() => {
+        if (shouldVirtualize) {
+            setRenderedRowCount(displayEntries.length)
+            return
+        }
+
         const totalRows = displayEntries.length
         if (totalRows === 0) {
             setRenderedRowCount(0)
@@ -254,9 +338,13 @@ export default function SortableTable({
                 window.cancelAnimationFrame(animationFrameId)
             }
         }
-    }, [displayEntries])
+    }, [displayEntries, shouldVirtualize])
 
     const effectiveRenderedRowCount = useMemo(() => {
+        if (shouldVirtualize) {
+            return displayEntries.length
+        }
+
         if (displayEntries.length === 0) {
             return 0
         }
@@ -270,12 +358,46 @@ export default function SortableTable({
         }
 
         return Math.min(INITIAL_RENDERED_ROWS, displayEntries.length)
-    }, [displayEntries.length, renderedRowCount])
+    }, [displayEntries.length, renderedRowCount, shouldVirtualize])
+
+    const virtualWindowState = useMemo(() => {
+        if (!shouldVirtualize) {
+            return {
+                startIndex: 0,
+                endIndex: effectiveRenderedRowCount,
+                topSpacerHeight: 0,
+                bottomSpacerHeight: 0
+            }
+        }
+
+        const safeViewportHeight = virtualViewportHeight > 0 ? virtualViewportHeight : estimatedRowHeight * 12
+        const viewportRowCount = Math.max(1, Math.ceil(safeViewportHeight / estimatedRowHeight))
+        const startIndex = Math.max(0, Math.floor(virtualScrollTop / estimatedRowHeight) - VIRTUALIZATION_OVERSCAN_ROWS)
+        const endIndex = Math.min(
+            displayEntries.length,
+            startIndex + viewportRowCount + VIRTUALIZATION_OVERSCAN_ROWS * 2
+        )
+
+        return {
+            startIndex,
+            endIndex,
+            topSpacerHeight: startIndex * estimatedRowHeight,
+            bottomSpacerHeight: Math.max(0, (displayEntries.length - endIndex) * estimatedRowHeight)
+        }
+    }, [
+        displayEntries.length,
+        effectiveRenderedRowCount,
+        estimatedRowHeight,
+        shouldVirtualize,
+        virtualScrollTop,
+        virtualViewportHeight
+    ])
 
     const visibleEntries = useMemo(
-        () => displayEntries.slice(0, effectiveRenderedRowCount),
-        [displayEntries, effectiveRenderedRowCount]
+        () => displayEntries.slice(virtualWindowState.startIndex, virtualWindowState.endIndex),
+        [displayEntries, virtualWindowState.endIndex, virtualWindowState.startIndex]
     )
+
     useEffect(() => {
         if (!onSortedRowsChange) {
             return
@@ -319,14 +441,17 @@ export default function SortableTable({
         {
             [cls.densitySimple]: density === 'simple',
             [cls.densityMedium]: density === 'medium',
-            [cls.densityDense]: density === 'dense'
+            [cls.densityDense]: density === 'dense',
+            [cls.tableScrollVirtualized]: shouldVirtualize
         },
         [className ?? '']
     )
-    const tableClass = classNames(cls.table, {}, [tableClassName ?? ''])
+    const tableClass = classNames(cls.table, { [cls.tableVirtualized]: shouldVirtualize }, [tableClassName ?? ''])
+    const tableRootStyle =
+        maxBodyHeight == null ? undefined : ({ '--sortable-table-max-height': maxBodyHeight } as CSSProperties)
 
     return (
-        <div className={tableRootClass}>
+        <div ref={scrollContainerRef} className={tableRootClass} style={tableRootStyle}>
             <table className={tableClass}>
                 <thead>
                     <tr>
@@ -394,24 +519,48 @@ export default function SortableTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {visibleEntries.map((entry, rowIndex) => {
+                    {shouldVirtualize && virtualWindowState.topSpacerHeight > 0 && (
+                        <tr aria-hidden='true' className={cls.spacerRow}>
+                            <td
+                                colSpan={resolvedVisibleIndexes.length}
+                                style={{ height: `${virtualWindowState.topSpacerHeight}px` }}
+                            />
+                        </tr>
+                    )}
+
+                    {visibleEntries.map(entry => {
+                        const rowIndex = entry.originalIndex
                         const rowClass = getRowClassName?.(entry.row, rowIndex)
+                        const rowTitle = getRowTitle?.(entry.row, rowIndex)
 
                         return (
-                            <tr key={entry.originalIndex} className={rowClass}>
+                            <tr key={entry.originalIndex} className={rowClass} title={rowTitle}>
                                 {resolvedVisibleIndexes.map(colIdx => {
                                     const value = getCellValue(entry.row, colIdx)
                                     const cellClass = getCellClassName?.(value, rowIndex, colIdx)
 
                                     return (
                                         <td key={colIdx} className={cellClass}>
-                                            {toExportCell(value) as any}
+                                            {
+                                                (renderCell ?
+                                                    renderCell(value, rowIndex, colIdx)
+                                                :   toExportCell(value)) as any
+                                            }
                                         </td>
                                     )
                                 })}
                             </tr>
                         )
                     })}
+
+                    {shouldVirtualize && virtualWindowState.bottomSpacerHeight > 0 && (
+                        <tr aria-hidden='true' className={cls.spacerRow}>
+                            <td
+                                colSpan={resolvedVisibleIndexes.length}
+                                style={{ height: `${virtualWindowState.bottomSpacerHeight}px` }}
+                            />
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

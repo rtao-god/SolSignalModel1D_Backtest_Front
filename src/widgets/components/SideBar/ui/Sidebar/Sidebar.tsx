@@ -135,7 +135,7 @@ const SECTION_COMPACT_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
 }
 
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const location = useLocation()
     const pathname = location.pathname
     const queryClient = useQueryClient()
@@ -283,16 +283,16 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         for (const groupId of groupIds) {
             const groupSections = getDiagnosticsGroupSections(diagnosticsSections, groupId)
             const groupRefs = toDiagnosticsSectionRefs(groupSections)
-            groupTabs.set(groupId, buildDiagnosticsTabsFromSections(groupRefs))
+            groupTabs.set(groupId, buildDiagnosticsTabsFromSections(groupRefs, i18n.resolvedLanguage ?? i18n.language))
         }
 
         return {
-            ratings: buildDiagnosticsTabsFromSections(ratingsRefs),
-            diagnostics: buildDiagnosticsTabsFromSections(diagnosticsRefs),
-            dayStats: buildDiagnosticsTabsFromSections(dayStatsRefs),
+            ratings: buildDiagnosticsTabsFromSections(ratingsRefs, i18n.resolvedLanguage ?? i18n.language),
+            diagnostics: buildDiagnosticsTabsFromSections(diagnosticsRefs, i18n.resolvedLanguage ?? i18n.language),
+            dayStats: buildDiagnosticsTabsFromSections(dayStatsRefs, i18n.resolvedLanguage ?? i18n.language),
             diagnosticsGroups: groupTabs
         }
-    }, [diagnosticsReport])
+    }, [diagnosticsReport, i18n.language, i18n.resolvedLanguage])
 
     const policyBranchMegaTabs = useMemo(() => {
         if (policyBranchMegaCapabilities?.availableParts && policyBranchMegaCapabilities.availableParts.length > 0) {

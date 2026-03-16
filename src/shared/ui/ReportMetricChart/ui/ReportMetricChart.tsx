@@ -42,6 +42,7 @@ export interface ReportMetricScatterDatum {
 interface BaseChartProps<TDatum> {
     data: readonly TDatum[]
     height?: number
+    maxHeight?: number
     className?: string
     selectedId?: string | null
     emptyTitle: string
@@ -55,6 +56,7 @@ interface ReportMetricBarChartProps<TDatum extends ReportMetricBarDatum> extends
     valueLabel: string
     referenceLineY?: number | null
     valueFormatter?: (value: number) => string
+    orientation?: 'vertical' | 'horizontal'
 }
 
 interface ReportMetricScatterChartProps<TDatum extends ReportMetricScatterDatum> extends BaseChartProps<TDatum> {
@@ -71,7 +73,7 @@ const CHART_AXIS_COLOR = 'rgba(226, 232, 240, 0.86)'
 const CHART_REFERENCE_COLOR = 'rgba(148, 163, 184, 0.34)'
 
 const CHART_TONE_FILL: Record<ReportMetricChartTone, string> = {
-    positive: '#34d399',
+    positive: 'var(--report-metric-chart-positive-fill, #34d399)',
     negative: '#f87171',
     neutral: '#38bdf8',
     warning: '#fbbf24',
@@ -79,7 +81,7 @@ const CHART_TONE_FILL: Record<ReportMetricChartTone, string> = {
 }
 
 const CHART_TONE_STROKE: Record<ReportMetricChartTone, string> = {
-    positive: '#6ee7b7',
+    positive: 'var(--report-metric-chart-positive-stroke, #6ee7b7)',
     negative: '#fca5a5',
     neutral: '#7dd3fc',
     warning: '#fde68a',
@@ -104,15 +106,46 @@ function truncateAxisLabel(label: string, maxLength: number = 22): string {
     return `${label.slice(0, maxLength - 1)}…`
 }
 
-function resolveToneStyle(tone: ReportMetricChartTone | undefined, isSelected: boolean) {
+function resolveToneStyle(tone: ReportMetricChartTone | undefined, isSelected: boolean, opacityScale: number = 1) {
     const safeTone = tone ?? 'neutral'
 
     return {
         fill: CHART_TONE_FILL[safeTone],
         stroke: isSelected ? '#f8fafc' : CHART_TONE_STROKE[safeTone],
         strokeWidth: isSelected ? 2.2 : 1.1,
-        opacity: isSelected ? 1 : 0.92
+        opacity: (isSelected ? 1 : 0.92) * opacityScale
     }
+}
+
+function resolveContainerHeight(height: number, maxHeight: number | undefined) {
+    const canvasHeight = Math.max(height, 220)
+    const containerHeight = maxHeight ? Math.min(canvasHeight, maxHeight) : canvasHeight
+
+    return {
+        canvasHeight,
+        containerHeight,
+        isScrollable: containerHeight < canvasHeight
+    }
+}
+
+function resolveScatterPointVisual(totalPoints: number, isSelected: boolean) {
+    if (isSelected) {
+        return { radius: 8, opacityScale: 1 }
+    }
+
+    if (totalPoints >= 80) {
+        return { radius: 3.8, opacityScale: 0.72 }
+    }
+
+    if (totalPoints >= 48) {
+        return { radius: 4.4, opacityScale: 0.8 }
+    }
+
+    if (totalPoints >= 24) {
+        return { radius: 5, opacityScale: 0.88 }
+    }
+
+    return { radius: 5.5, opacityScale: 0.92 }
 }
 
 function renderEmptyState(title: string, description: string) {
@@ -149,6 +182,7 @@ function ChartTooltip({ title, rows }: { title: string; rows: readonly ReportMet
 export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     data,
     height = 320,
+    maxHeight,
     className,
     selectedId = null,
     emptyTitle,
@@ -158,7 +192,8 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     getTooltipRows,
     valueLabel,
     referenceLineY = 0,
-    valueFormatter
+    valueFormatter,
+    orientation = 'vertical'
 }: ReportMetricBarChartProps<TDatum>) {
     const { formatNumber } = useLocale()
 
@@ -166,85 +201,142 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     const chartData = useMemo(() => [...data], [data])
     const formatValue = (value: number) =>
         valueFormatter ? valueFormatter(value) : resolveDefaultNumberFormatter(value, formatNumber)
+    const chartFrame = resolveContainerHeight(height, maxHeight)
 
     if (data.length === 0) {
         return renderEmptyState(emptyTitle, emptyDescription)
     }
 
     return (
-        <div className={classNames(cls.chartRoot, {}, [className ?? ''])} style={{ height }}>
-            <ResponsiveContainer width='100%' height='100%'>
-                <BarChart data={chartData} margin={{ top: 18, right: 14, left: 0, bottom: 48 }}>
-                    <CartesianGrid stroke={CHART_GRID_COLOR} vertical={false} />
-                    <XAxis
-                        dataKey='label'
-                        tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
-                        tickFormatter={value => truncateAxisLabel(String(value))}
-                        angle={-26}
-                        textAnchor='end'
-                        height={58}
-                        axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
-                        tickLine={false}
-                    />
-                    <YAxis
-                        tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
-                        tickFormatter={value => (typeof value === 'number' ? formatValue(value) : String(value))}
-                        width={76}
-                        axisLine={false}
-                        tickLine={false}
-                    />
-                    <Tooltip
-                        cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={({ active, payload }) => {
-                            const payloadItem = payload?.[0]?.payload as TDatum | undefined
-                            if (!active || !payloadItem) {
-                                return null
-                            }
-
-                            const datum = dataById.get(payloadItem.id)
-                            if (!datum) {
-                                return null
-                            }
-
-                            const tooltipRows = getTooltipRows?.(datum) ?? [
-                                { label: valueLabel, value: formatValue(datum.value) }
-                            ]
-
-                            return <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
-                        }}
-                    />
-
-                    {referenceLineY !== null && (
-                        <ReferenceLine y={referenceLineY} stroke={CHART_REFERENCE_COLOR} strokeDasharray='4 4' />
-                    )}
-
-                    <Bar
-                        dataKey='value'
-                        radius={[8, 8, 0, 0]}
-                        barSize={28}
-                        onClick={(_, index) => {
-                            const datum = data[index]
-                            if (datum) {
-                                onSelect?.(datum)
-                            }
-                        }}>
-                        {data.map(datum => {
-                            const toneStyle = resolveToneStyle(datum.tone, datum.id === selectedId)
-
-                            return (
-                                <Cell
-                                    key={datum.id}
-                                    fill={toneStyle.fill}
-                                    stroke={toneStyle.stroke}
-                                    strokeWidth={toneStyle.strokeWidth}
-                                    fillOpacity={toneStyle.opacity}
-                                    style={{ cursor: onSelect ? 'pointer' : 'default' }}
+        <div
+            className={classNames(cls.chartRoot, {}, [className ?? ''])}
+            style={{
+                height: chartFrame.containerHeight,
+                overflowY: chartFrame.isScrollable ? 'auto' : undefined
+            }}>
+            <div style={{ height: chartFrame.canvasHeight }}>
+                <ResponsiveContainer width='100%' height='100%'>
+                    <BarChart
+                        data={chartData}
+                        layout={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
+                        margin={
+                            orientation === 'horizontal' ?
+                                { top: 12, right: 20, left: 8, bottom: 12 }
+                            :   { top: 18, right: 14, left: 0, bottom: 48 }
+                        }>
+                        <CartesianGrid
+                            stroke={CHART_GRID_COLOR}
+                            vertical={orientation === 'horizontal'}
+                            horizontal={orientation !== 'horizontal'}
+                        />
+                        {orientation === 'horizontal' ?
+                            <>
+                                <XAxis
+                                    type='number'
+                                    tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                                    tickFormatter={value =>
+                                        typeof value === 'number' ? formatValue(value) : String(value)
+                                    }
+                                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                                    tickLine={false}
                                 />
-                            )
-                        })}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
+                                <YAxis
+                                    type='category'
+                                    dataKey='label'
+                                    tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                                    tickFormatter={value => truncateAxisLabel(String(value), 30)}
+                                    width={190}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    interval={0}
+                                />
+                            </>
+                        :   <>
+                                <XAxis
+                                    dataKey='label'
+                                    tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                                    tickFormatter={value => truncateAxisLabel(String(value))}
+                                    angle={-26}
+                                    textAnchor='end'
+                                    height={58}
+                                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                                    tickFormatter={value =>
+                                        typeof value === 'number' ? formatValue(value) : String(value)
+                                    }
+                                    width={76}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                            </>
+                        }
+                        <Tooltip
+                            cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                            content={({ active, payload }) => {
+                                const payloadItem = payload?.[0]?.payload as TDatum | undefined
+                                if (!active || !payloadItem) {
+                                    return null
+                                }
+
+                                const datum = dataById.get(payloadItem.id)
+                                if (!datum) {
+                                    return null
+                                }
+
+                                const tooltipRows = getTooltipRows?.(datum) ?? [
+                                    { label: valueLabel, value: formatValue(datum.value) }
+                                ]
+
+                                return (
+                                    <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
+                                )
+                            }}
+                        />
+
+                        {referenceLineY !== null &&
+                            (orientation === 'horizontal' ?
+                                <ReferenceLine
+                                    x={referenceLineY}
+                                    stroke={CHART_REFERENCE_COLOR}
+                                    strokeDasharray='4 4'
+                                />
+                            :   <ReferenceLine
+                                    y={referenceLineY}
+                                    stroke={CHART_REFERENCE_COLOR}
+                                    strokeDasharray='4 4'
+                                />)}
+
+                        <Bar
+                            dataKey='value'
+                            radius={[6, 6, 6, 6]}
+                            barSize={orientation === 'horizontal' ? 18 : 28}
+                            onClick={(_, index) => {
+                                const datum = data[index]
+                                if (datum) {
+                                    onSelect?.(datum)
+                                }
+                            }}>
+                            {data.map(datum => {
+                                const toneStyle = resolveToneStyle(datum.tone, datum.id === selectedId)
+
+                                return (
+                                    <Cell
+                                        key={datum.id}
+                                        fill={toneStyle.fill}
+                                        stroke={toneStyle.stroke}
+                                        strokeWidth={toneStyle.strokeWidth}
+                                        fillOpacity={toneStyle.opacity}
+                                        style={{ cursor: onSelect ? 'pointer' : 'default' }}
+                                    />
+                                )
+                            })}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     )
 }
@@ -257,6 +349,7 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
 export function ReportMetricScatterChart<TDatum extends ReportMetricScatterDatum>({
     data,
     height = 320,
+    maxHeight,
     className,
     selectedId = null,
     emptyTitle,
@@ -275,6 +368,7 @@ export function ReportMetricScatterChart<TDatum extends ReportMetricScatterDatum
 
     const dataById = useMemo(() => new Map(data.map(item => [item.id, item])), [data])
     const chartData = useMemo(() => [...data], [data])
+    const chartFrame = resolveContainerHeight(height, maxHeight)
     const formatX = (value: number) =>
         xValueFormatter ? xValueFormatter(value) : resolveDefaultNumberFormatter(value, formatNumber)
     const formatY = (value: number) =>
@@ -285,96 +379,106 @@ export function ReportMetricScatterChart<TDatum extends ReportMetricScatterDatum
     }
 
     return (
-        <div className={classNames(cls.chartRoot, {}, [className ?? ''])} style={{ height }}>
-            <ResponsiveContainer width='100%' height='100%'>
-                <ScatterChart margin={{ top: 18, right: 18, left: 8, bottom: 24 }}>
-                    <CartesianGrid stroke={CHART_GRID_COLOR} />
-                    <XAxis
-                        type='number'
-                        dataKey='x'
-                        name={xLabel}
-                        tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
-                        tickFormatter={value => (typeof value === 'number' ? formatX(value) : String(value))}
-                        axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
-                        tickLine={false}
-                    />
-                    <YAxis
-                        type='number'
-                        dataKey='y'
-                        name={yLabel}
-                        tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
-                        tickFormatter={value => (typeof value === 'number' ? formatY(value) : String(value))}
-                        width={76}
-                        axisLine={false}
-                        tickLine={false}
-                    />
-                    <Tooltip
-                        cursor={{ strokeDasharray: '4 4', stroke: 'rgba(148, 163, 184, 0.22)' }}
-                        content={({ active, payload }) => {
-                            const payloadItem = payload?.[0]?.payload as TDatum | undefined
-                            if (!active || !payloadItem) {
-                                return null
-                            }
+        <div
+            className={classNames(cls.chartRoot, {}, [className ?? ''])}
+            style={{ height: chartFrame.containerHeight }}>
+            <div style={{ height: chartFrame.canvasHeight }}>
+                <ResponsiveContainer width='100%' height='100%'>
+                    <ScatterChart margin={{ top: 18, right: 18, left: 8, bottom: 24 }}>
+                        <CartesianGrid stroke={CHART_GRID_COLOR} />
+                        <XAxis
+                            type='number'
+                            dataKey='x'
+                            name={xLabel}
+                            tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                            tickFormatter={value => (typeof value === 'number' ? formatX(value) : String(value))}
+                            axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            type='number'
+                            dataKey='y'
+                            name={yLabel}
+                            tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                            tickFormatter={value => (typeof value === 'number' ? formatY(value) : String(value))}
+                            width={76}
+                            axisLine={false}
+                            tickLine={false}
+                        />
+                        <Tooltip
+                            cursor={{ strokeDasharray: '4 4', stroke: 'rgba(148, 163, 184, 0.22)' }}
+                            content={({ active, payload }) => {
+                                const payloadItem = payload?.[0]?.payload as TDatum | undefined
+                                if (!active || !payloadItem) {
+                                    return null
+                                }
 
-                            const datum = dataById.get(payloadItem.id)
-                            if (!datum) {
-                                return null
-                            }
+                                const datum = dataById.get(payloadItem.id)
+                                if (!datum) {
+                                    return null
+                                }
 
-                            const tooltipRows = getTooltipRows?.(datum) ?? [
-                                { label: xLabel, value: formatX(datum.x) },
-                                { label: yLabel, value: formatY(datum.y) }
-                            ]
+                                const tooltipRows = getTooltipRows?.(datum) ?? [
+                                    { label: xLabel, value: formatX(datum.x) },
+                                    { label: yLabel, value: formatY(datum.y) }
+                                ]
 
-                            return <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
-                        }}
-                    />
+                                return (
+                                    <ChartTooltip title={getTooltipTitle?.(datum) ?? datum.label} rows={tooltipRows} />
+                                )
+                            }}
+                        />
 
-                    {referenceLineX !== null && (
-                        <ReferenceLine x={referenceLineX} stroke={CHART_REFERENCE_COLOR} strokeDasharray='4 4' />
-                    )}
-                    {referenceLineY !== null && (
-                        <ReferenceLine y={referenceLineY} stroke={CHART_REFERENCE_COLOR} strokeDasharray='4 4' />
-                    )}
+                        {referenceLineX !== null && (
+                            <ReferenceLine x={referenceLineX} stroke={CHART_REFERENCE_COLOR} strokeDasharray='4 4' />
+                        )}
+                        {referenceLineY !== null && (
+                            <ReferenceLine y={referenceLineY} stroke={CHART_REFERENCE_COLOR} strokeDasharray='4 4' />
+                        )}
 
-                    <Scatter
-                        data={chartData}
-                        onClick={payload => {
-                            const datum = payload?.payload as TDatum | undefined
-                            if (datum) {
-                                onSelect?.(datum)
-                            }
-                        }}
-                        shape={(shapeProps: unknown) => {
-                            const safeProps = shapeProps as {
-                                cx?: number
-                                cy?: number
-                                payload?: TDatum
-                            }
-                            const datum = safeProps.payload
-                            if (!datum || typeof safeProps.cx !== 'number' || typeof safeProps.cy !== 'number') {
-                                return <g />
-                            }
+                        <Scatter
+                            data={chartData}
+                            onClick={payload => {
+                                const datum = payload?.payload as TDatum | undefined
+                                if (datum) {
+                                    onSelect?.(datum)
+                                }
+                            }}
+                            shape={(shapeProps: unknown) => {
+                                const safeProps = shapeProps as {
+                                    cx?: number
+                                    cy?: number
+                                    payload?: TDatum
+                                }
+                                const datum = safeProps.payload
+                                if (!datum || typeof safeProps.cx !== 'number' || typeof safeProps.cy !== 'number') {
+                                    return <g />
+                                }
 
-                            const toneStyle = resolveToneStyle(datum.tone, datum.id === selectedId)
-                            const radius = datum.id === selectedId ? 8 : 5.5
+                                const pointVisual = resolveScatterPointVisual(data.length, datum.id === selectedId)
+                                const toneStyle = resolveToneStyle(
+                                    datum.tone,
+                                    datum.id === selectedId,
+                                    pointVisual.opacityScale
+                                )
 
-                            return (
-                                <circle
-                                    cx={safeProps.cx}
-                                    cy={safeProps.cy}
-                                    r={radius}
-                                    fill={toneStyle.fill}
-                                    stroke={toneStyle.stroke}
-                                    strokeWidth={toneStyle.strokeWidth}
-                                    fillOpacity={toneStyle.opacity}
-                                    style={{ cursor: onSelect ? 'pointer' : 'default' }}
-                                />
-                            )
-                        }}
-                    />
-                </ScatterChart>
-            </ResponsiveContainer>
+                                return (
+                                    <circle
+                                        cx={safeProps.cx}
+                                        cy={safeProps.cy}
+                                        r={pointVisual.radius}
+                                        fill={toneStyle.fill}
+                                        stroke={toneStyle.stroke}
+                                        strokeWidth={toneStyle.strokeWidth}
+                                        fillOpacity={toneStyle.opacity}
+                                        style={{ cursor: onSelect ? 'pointer' : 'default' }}
+                                    />
+                                )
+                            }}
+                        />
+                    </ScatterChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     )
 }

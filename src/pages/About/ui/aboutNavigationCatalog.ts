@@ -51,7 +51,7 @@ interface RouteTabLike {
 
 const PREDICTIONS_ROUTE_IDS = [AppRoute.CURRENT_PREDICTION, AppRoute.CURRENT_PREDICTION_HISTORY] as const
 const MODELS_ROUTE_IDS = [AppRoute.MODELS_STATS, AppRoute.AGGREGATION_STATS] as const
-const BACKTEST_ROUTE_IDS = [AppRoute.BACKTEST_BASELINE, AppRoute.BACKTEST_SUMMARY, AppRoute.BACKTEST_FULL] as const
+const BACKTEST_ROUTE_IDS = [AppRoute.BACKTEST_FULL] as const
 const ANALYSIS_ROUTE_IDS = ANALYSIS_HOME_CARDS.map(card => card.route)
 const DIAGNOSTICS_ROUTE_IDS = DIAGNOSTICS_HOME_CARDS.map(card => card.route)
 const FEATURES_ROUTE_IDS = [AppRoute.PFI_PER_MODEL] as const
@@ -242,16 +242,6 @@ const ABOUT_ROUTE_CATALOG_CONFIG: readonly AboutRouteCatalogEntry[] = [
         routeId: AppRoute.AGGREGATION_STATS,
         group: 'models',
         blocks: createTabBlocks(AppRoute.AGGREGATION_STATS, AGGREGATION_TABS)
-    },
-    {
-        routeId: AppRoute.BACKTEST_BASELINE,
-        group: 'backtest',
-        blocks: createCuratedBlocks(AppRoute.BACKTEST_BASELINE, ['snapshotHeader', 'globalParams', 'policyTable'])
-    },
-    {
-        routeId: AppRoute.BACKTEST_SUMMARY,
-        group: 'backtest',
-        blocks: createCuratedBlocks(AppRoute.BACKTEST_SUMMARY, ['reportHeader', 'reportStatus', 'reportTables'])
     },
     {
         routeId: AppRoute.BACKTEST_FULL,

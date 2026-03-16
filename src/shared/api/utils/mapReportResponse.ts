@@ -1,4 +1,8 @@
 import type {
+    BacktestBaselineSnapshotDto,
+    BacktestPolicySummaryDto
+} from '@/shared/types/backtest.types'
+import type {
     CapturedMegaBucketDto,
     CapturedMegaMetricVariantDto,
     CapturedMegaModeDto,
@@ -9,12 +13,12 @@ import type {
     ReportDocumentDto,
     ReportSectionDto
 } from '@/shared/types/report.types'
-
-type PolicyBranchMegaMetadataMode = 'strict' | 'report-agnostic'
-
-export interface MapReportResponseOptions {
-    policyBranchMegaMetadataMode?: PolicyBranchMegaMetadataMode
-}
+import type {
+    PolicyEvaluationDto,
+    PolicyEvaluationMetricsDto,
+    PolicyEvaluationReasonDto,
+    PolicyEvaluationThresholdsDto
+} from '@/shared/types/policyEvaluation.types'
 
 function toString(value: unknown, label: string): string {
     if (value === null || typeof value === 'undefined') {
@@ -40,6 +44,124 @@ function toObject(value: unknown, label: string): Record<string, unknown> {
     return value as Record<string, unknown>
 }
 
+function toNullableNumber(value: unknown, label: string): number | null {
+    if (value === null || typeof value === 'undefined') {
+        return null
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value
+    }
+
+    throw new Error(`[ui] ${label} must be a finite number or null.`)
+}
+
+function toRequiredNumber(value: unknown, label: string): number {
+    const parsed = toNullableNumber(value, label)
+    if (parsed === null) {
+        throw new Error(`[ui] ${label} must be a finite number.`)
+    }
+
+    return parsed
+}
+
+function toNullableInteger(value: unknown, label: string): number | null {
+    const parsed = toNullableNumber(value, label)
+    if (parsed === null) {
+        return null
+    }
+
+    if (!Number.isInteger(parsed)) {
+        throw new Error(`[ui] ${label} must be an integer or null.`)
+    }
+
+    return parsed
+}
+
+function toNullableBoolean(value: unknown, label: string): boolean | null {
+    if (value === null || typeof value === 'undefined') {
+        return null
+    }
+
+    if (typeof value === 'boolean') {
+        return value
+    }
+
+    throw new Error(`[ui] ${label} must be a boolean or null.`)
+}
+
+function toRequiredBoolean(value: unknown, label: string): boolean {
+    const parsed = toNullableBoolean(value, label)
+    if (parsed === null) {
+        throw new Error(`[ui] ${label} must be a boolean.`)
+    }
+
+    return parsed
+}
+
+function mapPolicyEvaluationReasonResponse(raw: unknown, label: string): PolicyEvaluationReasonDto {
+    const payload = toObject(raw, label)
+
+    return {
+        code: toString(payload.code, `${label}.code`),
+        message: toString(payload.message, `${label}.message`)
+    }
+}
+
+function mapPolicyEvaluationThresholdsResponse(raw: unknown, label: string): PolicyEvaluationThresholdsDto {
+    const payload = toObject(raw, label)
+
+    return {
+        maxDrawdownPct: toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
+        minTradesCount: parsePositiveInt(payload.minTradesCount, `${label}.minTradesCount`),
+        minCalmar: toRequiredNumber(payload.minCalmar, `${label}.minCalmar`),
+        minSortino: toRequiredNumber(payload.minSortino, `${label}.minSortino`)
+    }
+}
+
+function mapPolicyEvaluationMetricsResponse(raw: unknown, label: string): PolicyEvaluationMetricsDto {
+    const payload = toObject(raw, label)
+
+    return {
+        marginMode: toOptionalStringOrUndefined(payload.marginMode) ?? null,
+        totalPnlPct: toNullableNumber(payload.totalPnlPct, `${label}.totalPnlPct`),
+        maxDdPct: toNullableNumber(payload.maxDdPct, `${label}.maxDdPct`),
+        maxDdNoLiqPct: toNullableNumber(payload.maxDdNoLiqPct, `${label}.maxDdNoLiqPct`),
+        effectiveMaxDdPct: toNullableNumber(payload.effectiveMaxDdPct, `${label}.effectiveMaxDdPct`),
+        hadLiquidation: toNullableBoolean(payload.hadLiquidation, `${label}.hadLiquidation`),
+        realLiquidationCount: toNullableInteger(payload.realLiquidationCount, `${label}.realLiquidationCount`),
+        accountRuinCount: toNullableInteger(payload.accountRuinCount, `${label}.accountRuinCount`),
+        balanceDead: toNullableBoolean(payload.balanceDead, `${label}.balanceDead`),
+        tradesCount: toNullableInteger(payload.tradesCount, `${label}.tradesCount`),
+        calmar: toNullableNumber(payload.calmar, `${label}.calmar`),
+        sortino: toNullableNumber(payload.sortino, `${label}.sortino`)
+    }
+}
+
+function mapPolicyEvaluationResponse(raw: unknown, label: string): PolicyEvaluationDto | null {
+    if (raw === null || typeof raw === 'undefined') {
+        return null
+    }
+
+    const payload = toObject(raw, label)
+
+    return {
+        profileId: toString(payload.profileId, `${label}.profileId`),
+        status: toString(payload.status, `${label}.status`) as PolicyEvaluationDto['status'],
+        reasons:
+            Array.isArray(payload.reasons) ?
+                payload.reasons.map((item: unknown, index: number) =>
+                    mapPolicyEvaluationReasonResponse(item, `${label}.reasons[${index}]`)
+                )
+            :   [],
+        thresholds:
+            payload.thresholds === null || typeof payload.thresholds === 'undefined' ?
+                null
+            :   mapPolicyEvaluationThresholdsResponse(payload.thresholds, `${label}.thresholds`),
+        metrics: mapPolicyEvaluationMetricsResponse(payload.metrics ?? {}, `${label}.metrics`)
+    }
+}
+
 function parseTableKind(raw: unknown, label: string): CapturedTableKindDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'unknown'
@@ -50,9 +172,8 @@ function parseTableKind(raw: unknown, label: string): CapturedTableKindDto {
     if (typeof raw === 'string') {
         const normalized = raw.trim().toLowerCase()
         if (normalized === 'unknown') return 'unknown'
-        if (normalized === 'policybranchmega' || normalized === 'policy_branch_mega') return 'policy-branch-mega'
-        if (normalized === 'toptrades' || normalized === 'top_trades' || normalized === 'top-trades')
-            return 'top-trades'
+        if (normalized === 'policy-branch-mega') return 'policy-branch-mega'
+        if (normalized === 'top-trades') return 'top-trades'
     }
 
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
@@ -68,8 +189,8 @@ function parseMegaMode(raw: unknown, label: string): CapturedMegaModeDto {
     if (typeof raw === 'string') {
         const normalized = raw.trim().toLowerCase()
         if (normalized === 'all') return 'all'
-        if (normalized === 'withsl' || normalized === 'with_sl' || normalized === 'with-sl') return 'with-sl'
-        if (normalized === 'nosl' || normalized === 'no_sl' || normalized === 'no-sl') return 'no-sl'
+        if (normalized === 'with-sl') return 'with-sl'
+        if (normalized === 'no-sl') return 'no-sl'
     }
 
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
@@ -100,10 +221,10 @@ function parseMegaZonalMode(raw: unknown, label: string): CapturedMegaZonalModeD
 
     if (typeof raw === 'string') {
         const normalized = raw.trim().toLowerCase()
-        if (normalized === 'withzonal' || normalized === 'with_zonal' || normalized === 'with-zonal') {
+        if (normalized === 'with-zonal') {
             return 'with-zonal'
         }
-        if (normalized === 'withoutzonal' || normalized === 'without_zonal' || normalized === 'without-zonal') {
+        if (normalized === 'without-zonal') {
             return 'without-zonal'
         }
     }
@@ -120,11 +241,7 @@ function parseMegaMetricVariant(raw: unknown, label: string): CapturedMegaMetric
     if (typeof raw === 'string') {
         const normalized = raw.trim().toLowerCase()
         if (normalized === 'real') return 'real'
-        if (
-            normalized === 'nobiggestliqloss' ||
-            normalized === 'no_biggest_liq_loss' ||
-            normalized === 'no-biggest-liq-loss'
-        ) {
+        if (normalized === 'no-biggest-liq-loss') {
             return 'no-biggest-liq-loss'
         }
     }
@@ -146,11 +263,8 @@ function parseMegaBucket(raw: unknown, label: string): CapturedMegaBucketDto {
         if (normalized === 'daily') return 'daily'
         if (normalized === 'intraday') return 'intraday'
         if (normalized === 'delayed') return 'delayed'
-        if (normalized === 'totalcombined' || normalized === 'total_combined' || normalized === 'total-combined') {
-            return 'total'
-        }
         if (normalized === 'total') return 'total'
-        if (normalized === 'totalaggregate' || normalized === 'total_aggregate' || normalized === 'total-aggregate') {
+        if (normalized === 'total-aggregate') {
             return 'total-aggregate'
         }
     }
@@ -176,83 +290,134 @@ function parsePositiveInt(raw: unknown, label: string): number {
     throw new Error(`[ui] ${label} must be a positive integer. value=${String(raw)}.`)
 }
 
-function resolvePolicyBranchMegaMetadataMode(options?: MapReportResponseOptions): PolicyBranchMegaMetadataMode {
-    return options?.policyBranchMegaMetadataMode ?? 'report-agnostic'
+function parseNonNegativeInt(raw: unknown, label: string): number {
+    if (typeof raw === 'number' && Number.isFinite(raw) && Number.isInteger(raw) && raw >= 0) {
+        return raw
+    }
+
+    if (typeof raw === 'string') {
+        const normalized = raw.trim()
+        if (normalized.length > 0) {
+            const parsed = Number(normalized)
+            if (Number.isFinite(parsed) && Number.isInteger(parsed) && parsed >= 0) {
+                return parsed
+            }
+        }
+    }
+
+    throw new Error(`[ui] ${label} must be a non-negative integer. value=${String(raw)}.`)
 }
 
-function mapTableMetadata(
+function mapBacktestPolicySummaryResponse(raw: unknown, label: string): BacktestPolicySummaryDto {
+    const payload = toObject(raw, label)
+
+    return {
+        policyName: toString(payload.policyName, `${label}.policyName`),
+        marginMode: toString(payload.marginMode, `${label}.marginMode`),
+        useAntiDirectionOverlay: toRequiredBoolean(
+            payload.useAntiDirectionOverlay,
+            `${label}.useAntiDirectionOverlay`
+        ),
+        totalPnlPct: toRequiredNumber(payload.totalPnlPct, `${label}.totalPnlPct`),
+        maxDrawdownPct: toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
+        hadLiquidation: toRequiredBoolean(payload.hadLiquidation, `${label}.hadLiquidation`),
+        withdrawnTotal: toRequiredNumber(payload.withdrawnTotal, `${label}.withdrawnTotal`),
+        tradesCount: parseNonNegativeInt(payload.tradesCount, `${label}.tradesCount`),
+        evaluation: mapPolicyEvaluationResponse(payload.evaluation, `${label}.evaluation`)
+    }
+}
+
+export function mapBacktestBaselineSnapshotResponse(raw: unknown): BacktestBaselineSnapshotDto {
+    const payload = toObject(raw, 'BacktestBaselineSnapshot')
+
+    if (!Array.isArray(payload.policies)) {
+        throw new Error('[ui] BacktestBaselineSnapshot.policies must be an array.')
+    }
+
+    return {
+        id: toString(payload.id, 'BacktestBaselineSnapshot.id'),
+        generatedAtUtc: toString(payload.generatedAtUtc, 'BacktestBaselineSnapshot.generatedAtUtc'),
+        configName: toString(payload.configName, 'BacktestBaselineSnapshot.configName'),
+        dailyStopPct: toRequiredNumber(payload.dailyStopPct, 'BacktestBaselineSnapshot.dailyStopPct'),
+        dailyTpPct: toRequiredNumber(payload.dailyTpPct, 'BacktestBaselineSnapshot.dailyTpPct'),
+        policies: payload.policies.map((policy, index) =>
+            mapBacktestPolicySummaryResponse(policy, `BacktestBaselineSnapshot.policies[${index}]`)
+        )
+    }
+}
+
+function mapSectionMetadata(
     raw: unknown,
-    tableTitle: string,
-    options?: MapReportResponseOptions
+    sectionTitle: string
 ): CapturedTableMetadataDto | undefined {
     if (raw === null || typeof raw === 'undefined') {
         return undefined
     }
 
-    const policyMegaMetadataMode = resolvePolicyBranchMegaMetadataMode(options)
-    const payload = toObject(raw, `TableSection.metadata (${tableTitle})`)
-    const kind = parseTableKind(payload.kind, `TableSection.metadata.kind (${tableTitle})`)
+    const payload = toObject(raw, `ReportSection.metadata (${sectionTitle})`)
+    const kind = parseTableKind(payload.kind, `ReportSection.metadata.kind (${sectionTitle})`)
 
     const metadata: CapturedTableMetadataDto = {
         kind
     }
 
-    const isStrict = policyMegaMetadataMode === 'strict'
-    const modeLabel = `TableSection.metadata.mode (${tableTitle})`
-    const tpSlModeLabel = `TableSection.metadata.tpSlMode (${tableTitle})`
-    const zonalModeLabel = `TableSection.metadata.zonalMode (${tableTitle})`
-    const metricVariantLabel = `TableSection.metadata.metricVariant (${tableTitle})`
-    const bucketLabel = `TableSection.metadata.bucket (${tableTitle})`
-    const partLabel = `TableSection.metadata.part (${tableTitle})`
+    const modeLabel = `ReportSection.metadata.mode (${sectionTitle})`
+    const tpSlModeLabel = `ReportSection.metadata.tpSlMode (${sectionTitle})`
+    const zonalModeLabel = `ReportSection.metadata.zonalMode (${sectionTitle})`
+    const metricVariantLabel = `ReportSection.metadata.metricVariant (${sectionTitle})`
+    const bucketLabel = `ReportSection.metadata.bucket (${sectionTitle})`
+    const partLabel = `ReportSection.metadata.part (${sectionTitle})`
 
     if (payload.mode !== null && typeof payload.mode !== 'undefined') {
         metadata.mode = parseMegaMode(payload.mode, modeLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${modeLabel} is missing.`)
     }
 
     if (payload.tpSlMode !== null && typeof payload.tpSlMode !== 'undefined') {
         metadata.tpSlMode = parseMegaTpSlMode(payload.tpSlMode, tpSlModeLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${tpSlModeLabel} is missing.`)
     }
 
     if (payload.zonalMode !== null && typeof payload.zonalMode !== 'undefined') {
         metadata.zonalMode = parseMegaZonalMode(payload.zonalMode, zonalModeLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${zonalModeLabel} is missing.`)
     }
 
     if (payload.metricVariant !== null && typeof payload.metricVariant !== 'undefined') {
         metadata.metricVariant = parseMegaMetricVariant(payload.metricVariant, metricVariantLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${metricVariantLabel} is missing.`)
     }
 
     if (payload.bucket !== null && typeof payload.bucket !== 'undefined') {
         metadata.bucket = parseMegaBucket(payload.bucket, bucketLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${bucketLabel} is missing.`)
     }
 
     if (payload.part !== null && typeof payload.part !== 'undefined') {
         metadata.part = parsePositiveInt(payload.part, partLabel)
-    } else if (isStrict && kind === 'policy-branch-mega') {
+    } else if (kind === 'policy-branch-mega') {
         throw new Error(`[ui] ${partLabel} is missing.`)
     }
 
     return metadata
 }
 
-export function mapReportResponseWithOptions(response: unknown, options?: MapReportResponseOptions): ReportDocumentDto {
+export function mapReportResponse(response: unknown): ReportDocumentDto {
     const raw: any = response
     const sections: ReportSectionDto[] = []
 
     if (Array.isArray(raw?.keyValueSections)) {
         for (const kv of raw.keyValueSections) {
+            const title = toString(kv?.title, 'KeyValueSection.title')
             sections.push({
                 sectionKey: toOptionalStringOrUndefined(kv?.sectionKey),
-                title: toString(kv?.title, 'KeyValueSection.title'),
+                title,
+                metadata: mapSectionMetadata(kv?.metadata, title),
                 items:
                     Array.isArray(kv?.items) ?
                         kv.items.map((it: any) => ({
@@ -288,7 +453,13 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
                             :   []
                         )
                     :   [],
-                metadata: mapTableMetadata(tbl?.metadata, title, options)
+                rowEvaluations:
+                    Array.isArray(tbl?.rowEvaluations) ?
+                        tbl.rowEvaluations.map((item: unknown, index: number) =>
+                            mapPolicyEvaluationResponse(item, `TableSection.rowEvaluations[${index}]`)
+                        )
+                    :   [],
+                metadata: mapSectionMetadata(tbl?.metadata, title)
             })
         }
     }
@@ -302,8 +473,4 @@ export function mapReportResponseWithOptions(response: unknown, options?: MapRep
         generatedAtUtc: toString(raw?.generatedAtUtc, 'Report.generatedAtUtc'),
         sections
     }
-}
-
-export function mapReportResponse(response: unknown): ReportDocumentDto {
-    return mapReportResponseWithOptions(response, { policyBranchMegaMetadataMode: 'report-agnostic' })
 }

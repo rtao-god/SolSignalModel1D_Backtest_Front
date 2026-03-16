@@ -6,13 +6,13 @@ const TP_SL_SPLIT_REQUIRED_COLUMNS = [
     'Branch',
     'Days',
     'Tr',
-    'TotalPnl%',
-    'DynTP/SL Days',
-    'DynTP/SL Tr',
-    'DynTP/SL PnL%',
-    'StatTP/SL Days',
-    'StatTP/SL Tr',
-    'StatTP/SL PnL%'
+    'Wealth%',
+    'DynTP / SL Days',
+    'DynTP / SL Tr',
+    'DynTP / SL PnL%',
+    'StatTP / SL Days',
+    'StatTP / SL Tr',
+    'StatTP / SL PnL%'
 ]
 
 interface TpSlColumnIndexes {
@@ -20,7 +20,7 @@ interface TpSlColumnIndexes {
     branchIdx: number
     daysIdx: number
     tradesIdx: number
-    totalPnlIdx: number
+    resultPctIdx: number
     dynDaysIdx: number
     dynTradesIdx: number
     dynPnlIdx: number
@@ -54,13 +54,13 @@ function resolvePart1Indexes(columns: string[]): TpSlColumnIndexes | null {
         branchIdx: columns.indexOf('Branch'),
         daysIdx: columns.indexOf('Days'),
         tradesIdx: columns.indexOf('Tr'),
-        totalPnlIdx: columns.indexOf('TotalPnl%'),
-        dynDaysIdx: columns.indexOf('DynTP/SL Days'),
-        dynTradesIdx: columns.indexOf('DynTP/SL Tr'),
-        dynPnlIdx: columns.indexOf('DynTP/SL PnL%'),
-        statDaysIdx: columns.indexOf('StatTP/SL Days'),
-        statTradesIdx: columns.indexOf('StatTP/SL Tr'),
-        statPnlIdx: columns.indexOf('StatTP/SL PnL%')
+        resultPctIdx: columns.indexOf('Wealth%'),
+        dynDaysIdx: columns.indexOf('DynTP / SL Days'),
+        dynTradesIdx: columns.indexOf('DynTP / SL Tr'),
+        dynPnlIdx: columns.indexOf('DynTP / SL PnL%'),
+        statDaysIdx: columns.indexOf('StatTP / SL Days'),
+        statTradesIdx: columns.indexOf('StatTP / SL Tr'),
+        statPnlIdx: columns.indexOf('StatTP / SL PnL%')
     }
 }
 
@@ -95,7 +95,7 @@ function ensureRowShape(
 
 /**
  * Применяет TP/SL-срез к таблицам отчёта.
- * Для PART 1 переставляет Days/Tr/TotalPnl% на dynamic/static слой и
+ * Для PART 1 переставляет Days/Tr/Wealth% на dynamic/static слой и
  * оставляет только строки с >0 сделок в выбранном слое.
  * Для остальных PART дополнительно отфильтровывает строки по Policy+Branch,
  * чтобы разрез оставался согласован между всеми секциями группы.
@@ -137,7 +137,7 @@ export function applyReportTpSlModeToSections(
                 indexes.branchIdx,
                 indexes.daysIdx,
                 indexes.tradesIdx,
-                indexes.totalPnlIdx,
+                indexes.resultPctIdx,
                 selectedTradesIdx,
                 selectedDaysIdx,
                 selectedPnlIdx
@@ -152,7 +152,7 @@ export function applyReportTpSlModeToSections(
             const nextRow = [...row]
             nextRow[indexes.daysIdx] = row[selectedDaysIdx] ?? ''
             nextRow[indexes.tradesIdx] = row[selectedTradesIdx] ?? ''
-            nextRow[indexes.totalPnlIdx] = row[selectedPnlIdx] ?? ''
+            nextRow[indexes.resultPctIdx] = row[selectedPnlIdx] ?? ''
 
             selectedRows.push(nextRow)
             selectedKeys.add(

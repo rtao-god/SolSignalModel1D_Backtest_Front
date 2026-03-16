@@ -298,6 +298,12 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
     createLocalizedReportTooltipRule('landing-day-up', 'main.tooltipRules.dayUp', 'Рост'),
     createLocalizedReportTooltipRule('landing-day-down', 'main.tooltipRules.dayDown', 'Падение'),
     createLocalizedReportTooltipRule('landing-day-flat', 'main.tooltipRules.dayFlat', 'Боковик'),
+    createLocalizedReportTooltipRule('landing-spot-policy', 'main.tooltipRules.spotPolicy', 'Spot strategy'),
+    createLocalizedReportTooltipRule(
+        'landing-real-forecast-journal',
+        'main.tooltipRules.realForecastJournal',
+        'Real forecast journal'
+    ),
     createLocalizedReportTooltipRule('landing-reinvestment', 'main.tooltipRules.reinvestment', 'Реинвестирование'),
     createLocalizedReportOwnerTooltipRule('landing-early-preview', 'main.tooltipRules.earlyPreview', 'Early preview', [
         'Early preview',
@@ -359,10 +365,34 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         'Prediction aggregation',
         ['Prediction aggregation']
     ),
-    createLocalizedReportOwnerTooltipRule('landing-all-history', 'main.tooltipRules.allHistory', 'ALL HISTORY', [
+    createLocalizedReportOwnerTooltipRule('landing-all-history', 'main.tooltipRules.allHistory', 'All history', [
         'ALL HISTORY',
-        'All history'
+        'All history',
+        'all history',
+        'Full history',
+        'full history',
+        'Вся история',
+        'вся история',
+        'Полная история',
+        'полная история'
     ]),
+    createLocalizedReportOwnerTooltipRule(
+        'landing-recent-tail-history',
+        'main.tooltipRules.recentTailHistory',
+        'Recent tail',
+        [
+            'Recent tail',
+            'recent tail',
+            'Latest tail',
+            'latest tail',
+            'Хвост истории',
+            'хвост истории',
+            'Свежий хвост',
+            'свежий хвост',
+            'Свежий хвост истории',
+            'свежий хвост истории'
+        ]
+    ),
     createLocalizedReportOwnerTooltipRule(
         'landing-baseline-backtest',
         'main.tooltipRules.baselineBacktest',
@@ -386,6 +416,12 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
         'main.tooltipRules.liquidationBuffer',
         'Liquidation buffer',
         ['Liquidation buffer']
+    ),
+    createLocalizedReportOwnerTooltipRule(
+        'landing-liq-unreachable-bucket',
+        'main.tooltipRules.liqUnreachableBucket',
+        'Liquidation is unreachable',
+        ['Liquidation is unreachable', 'Ликвидация недостижима']
     ),
     ...COMMON_TERM_TOOLTIP_REGISTRY,
     {

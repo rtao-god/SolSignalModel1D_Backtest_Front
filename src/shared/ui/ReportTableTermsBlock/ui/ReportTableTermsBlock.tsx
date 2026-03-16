@@ -1,34 +1,41 @@
-import { Text, TermTooltip } from '@/shared/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Btn, Text, TermTooltip } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { resolveMatchingTermTooltipRuleIds } from '@/shared/ui/TermTooltip/ui/renderTermTooltipRichText'
-import { resolveReportColumnTooltip, resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
-import { localizeReportColumnTitle } from '@/shared/utils/reportPresentationLocalization'
-import i18n from '@/shared/configs/i18n/i18n'
+import { resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
+import { buildReportTermsFromSections } from '@/shared/utils/reportTerms'
+import { logError } from '@/shared/lib/logging/logError'
 import cls from './ReportTableTermsBlock.module.scss'
 
-interface ReportTableTermsBlockProps {
-    reportKind?: string
-    sectionTitle?: string
-    columns?: string[]
-    terms?: ReportTableTermItem[]
-    enhanceDomainTerms?: boolean
-    showTermTitleTooltip?: boolean
-    displayMode?: 'inline' | 'tooltipOnly'
-    title?: string
-    subtitle?: string
-    className?: string
-}
-
 type ReportTableTermTextResolver = () => string
-
-export interface ReportTableTermItem {
+type PreparedReportTableTermItem = {
     key: string
     title: string
     description?: string
     tooltip?: string
     resolveDescription?: ReportTableTermTextResolver
     resolveTooltip?: ReportTableTermTextResolver
+    selfAliases?: string[]
 }
+type ProvidedReportTableTermItem = PreparedReportTableTermItem
+
+interface ReportTableTermsBlockProps {
+    reportKind?: string
+    sectionTitle?: string
+    columns?: string[]
+    terms?: ProvidedReportTableTermItem[]
+    enhanceDomainTerms?: boolean
+    showTermTitleTooltip?: boolean
+    displayMode?: 'inline' | 'tooltipOnly'
+    title?: string
+    subtitle?: string
+    className?: string
+    collapsible?: boolean
+    collapseStorageKey?: string
+}
+
+const TERMS_BLOCK_COLLAPSE_STORAGE_PREFIX = 'report-terms-block:collapsed:'
 
 function normalizeNonEmptyAliases(values: string[]): string[] {
     return Array.from(new Set(values.map(value => value.trim()).filter(value => value.length > 0)))
@@ -43,6 +50,31 @@ export function buildSelfTooltipExclusions(termKey: string, termTitle: string, s
         excludeRuleIds,
         excludeRuleTitles: allAliases
     }
+}
+
+function normalizeStorageKeyPart(value: string | undefined): string {
+    return (value ?? '').trim().replace(/\s+/g, ' ')
+}
+
+export function buildReportTableTermsCollapseStorageKey(params: {
+    reportKind?: string
+    sectionTitle?: string
+    title?: string
+    termKeys: string[]
+}): string | null {
+    const normalizedTermKeys = normalizeNonEmptyAliases(params.termKeys)
+    const parts = [
+        normalizeStorageKeyPart(params.reportKind),
+        normalizeStorageKeyPart(params.sectionTitle),
+        normalizeStorageKeyPart(params.title),
+        normalizeStorageKeyPart(normalizedTermKeys.join('|'))
+    ].filter(value => value.length > 0)
+
+    if (parts.length === 0) {
+        return null
+    }
+
+    return `${TERMS_BLOCK_COLLAPSE_STORAGE_PREFIX}${parts.join('::')}`
 }
 
 function ensureNonEmptyValue(value: string | undefined, label: string): string {
@@ -74,53 +106,21 @@ function resolveLazyText(
     return resolved.trim()
 }
 
-function shouldSkipReportTermItem(reportKind: string, columnTitle: string): boolean {
-    if (!reportKind.startsWith('current_prediction')) {
-        return false
-    }
-
-    const normalized = columnTitle.trim().toLowerCase()
-    return normalized === 'description' || normalized === 'описание'
-}
-
-function buildTermsFromColumns(reportKind: string, sectionTitle: string, columns: string[]): ReportTableTermItem[] {
-    if (!reportKind || reportKind.trim().length === 0) {
-        throw new Error('[report-terms] reportKind is empty.')
-    }
-
-    if (!sectionTitle || sectionTitle.trim().length === 0) {
-        throw new Error('[report-terms] sectionTitle is empty.')
-    }
-
-    if (!columns || columns.length === 0) {
-        throw new Error('[report-terms] columns are empty.')
-    }
-
-    const resolvedTerms: ReportTableTermItem[] = []
-
-    columns.forEach(column => {
-        const key = ensureNonEmptyValue(column, 'column title')
-        if (shouldSkipReportTermItem(reportKind, key)) {
-            return
-        }
-
-        const tooltip = resolveReportColumnTooltip(reportKind, sectionTitle, key)
-        if (!tooltip || tooltip.trim().length === 0) {
-            throw new Error(`[report-terms] tooltip is missing for column=${key}, reportKind=${reportKind}.`)
-        }
-
-        resolvedTerms.push({
-            key,
-            title: localizeReportColumnTitle(reportKind, key, i18n.resolvedLanguage ?? i18n.language),
-            description: tooltip,
-            tooltip
-        })
+function buildTermsFromColumns(
+    reportKind: string,
+    sectionTitle: string,
+    columns: string[],
+    locale: string
+): PreparedReportTableTermItem[] {
+    return buildReportTermsFromSections({
+        sections: [{ title: sectionTitle, columns }],
+        reportKind,
+        contextTag: 'report-table-terms-block',
+        locale
     })
-
-    return resolvedTerms
 }
 
-function buildProvidedTerms(terms: ReportTableTermItem[]): ReportTableTermItem[] {
+function buildProvidedTerms(terms: ProvidedReportTableTermItem[]): PreparedReportTableTermItem[] {
     if (!terms || terms.length === 0) {
         throw new Error('[report-terms] provided terms are empty.')
     }
@@ -134,8 +134,64 @@ function buildProvidedTerms(terms: ReportTableTermItem[]): ReportTableTermItem[]
             :   undefined,
         tooltip: typeof term.tooltip === 'string' && term.tooltip.trim().length > 0 ? term.tooltip.trim() : undefined,
         resolveDescription: term.resolveDescription,
-        resolveTooltip: term.resolveTooltip
+        resolveTooltip: term.resolveTooltip,
+        selfAliases: normalizeNonEmptyAliases(term.selfAliases ?? [])
     }))
+}
+
+function safeLoadCollapsedState(key: string): boolean | null {
+    if (typeof window === 'undefined') {
+        return null
+    }
+
+    try {
+        const raw = window.localStorage.getItem(key)
+        if (raw === '1') {
+            return true
+        }
+        if (raw === '0') {
+            return false
+        }
+
+        return null
+    } catch (error) {
+        const normalizedError =
+            error instanceof Error ? error : new Error(String(error ?? 'Unknown report terms collapse load error.'))
+        logError(normalizedError, undefined, {
+            source: 'report-table-terms-collapse-load',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { key }
+        })
+        return null
+    }
+}
+
+function safeSaveCollapsedState(key: string, isCollapsed: boolean) {
+    if (typeof window === 'undefined') {
+        return
+    }
+
+    try {
+        window.localStorage.setItem(key, isCollapsed ? '1' : '0')
+    } catch (error) {
+        const normalizedError =
+            error instanceof Error ? error : new Error(String(error ?? 'Unknown report terms collapse save error.'))
+        logError(normalizedError, undefined, {
+            source: 'report-table-terms-collapse-save',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { key }
+        })
+    }
+}
+
+function resolveCollapseToggleLabel(language: string, isCollapsed: boolean): string {
+    if (language.startsWith('ru')) {
+        return isCollapsed ? 'Показать блок' : 'Скрыть блок'
+    }
+
+    return isCollapsed ? 'Show block' : 'Hide block'
 }
 
 export default function ReportTableTermsBlock({
@@ -148,34 +204,93 @@ export default function ReportTableTermsBlock({
     displayMode = 'inline',
     title = 'Термины таблицы',
     subtitle = 'Подробные определения всех колонок, которые используются в таблице ниже.',
-    className
+    className,
+    collapsible = true,
+    collapseStorageKey
 }: ReportTableTermsBlockProps) {
-    const resolvedTerms =
+    const { i18n } = useTranslation()
+    const resolvedLocale = i18n.resolvedLanguage ?? i18n.language ?? 'en'
+    const resolvedLanguage = resolvedLocale.trim().toLowerCase()
+    const resolvedTerms = useMemo<PreparedReportTableTermItem[]>(
+        () =>
         terms ?
             buildProvidedTerms(terms)
         :   buildTermsFromColumns(
                 ensureNonEmptyValue(reportKind, 'reportKind'),
                 ensureNonEmptyValue(sectionTitle, 'sectionTitle'),
-                columns ?? []
-            )
+                columns ?? [],
+                resolvedLocale
+            ),
+        [columns, reportKind, resolvedLocale, sectionTitle, terms]
+    )
+    const effectiveCollapseStorageKey = useMemo(
+        () =>
+            collapseStorageKey ??
+            buildReportTableTermsCollapseStorageKey({
+                reportKind,
+                sectionTitle,
+                title,
+                termKeys: resolvedTerms.map(term => term.key)
+            }),
+        [collapseStorageKey, reportKind, resolvedTerms, sectionTitle, title]
+    )
+    const canCollapse = collapsible && resolvedTerms.length > 0
+    const [isCollapsed, setIsCollapsed] = useState(() =>
+        canCollapse && effectiveCollapseStorageKey ? (safeLoadCollapsedState(effectiveCollapseStorageKey) ?? false) : false
+    )
+
+    useEffect(() => {
+        if (!canCollapse || !effectiveCollapseStorageKey) {
+            setIsCollapsed(false)
+            return
+        }
+
+        setIsCollapsed(safeLoadCollapsedState(effectiveCollapseStorageKey) ?? false)
+    }, [canCollapse, effectiveCollapseStorageKey])
+
+    useEffect(() => {
+        if (!canCollapse || !effectiveCollapseStorageKey) {
+            return
+        }
+
+        safeSaveCollapsedState(effectiveCollapseStorageKey, isCollapsed)
+    }, [canCollapse, effectiveCollapseStorageKey, isCollapsed])
 
     return (
         <div className={`${cls.root}${className ? ` ${className}` : ''}`} data-tooltip-boundary>
             <div className={cls.header}>
-                <Text type='h3' className={cls.title}>
-                    {title}
-                </Text>
+                <div className={cls.headerTop}>
+                    <Text type='h3' className={cls.title}>
+                        {title}
+                    </Text>
+                    {canCollapse && (
+                        <Btn
+                            className={cls.toggleButton}
+                            variant='ghost'
+                            colorScheme='neutral'
+                            size='sm'
+                            aria-expanded={!isCollapsed}
+                            onClick={() => setIsCollapsed(current => !current)}>
+                            {resolveCollapseToggleLabel(resolvedLanguage, isCollapsed)}
+                        </Btn>
+                    )}
+                </div>
                 <Text className={cls.subtitle}>{subtitle}</Text>
             </div>
 
-            <div className={cls.grid}>
+            {!isCollapsed && <div className={cls.grid}>
                 {resolvedTerms.map(term => {
                     const itemClassName = displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
                     const shouldRenderTitleTooltip = displayMode === 'tooltipOnly' && showTermTitleTooltip
-                    const selfAliases = resolveReportTooltipSelfAliases(reportKind, term.key)
+                    const selfAliases = normalizeNonEmptyAliases([
+                        ...resolveReportTooltipSelfAliases(reportKind, term.key),
+                        ...(term.selfAliases ?? [])
+                    ])
 
                     return (
-                        <div key={`${sectionTitle}:${term.key}`} className={itemClassName}>
+                        <div
+                            key={`${sectionTitle ?? title ?? reportKind ?? 'report-terms'}:${term.key}`}
+                            className={itemClassName}>
                             {shouldRenderTitleTooltip ?
                                 <TermTooltip
                                     term={term.title}
@@ -218,7 +333,7 @@ export default function ReportTableTermsBlock({
                         </div>
                     )
                 })}
-            </div>
+            </div>}
         </div>
     )
 }

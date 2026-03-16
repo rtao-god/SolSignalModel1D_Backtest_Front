@@ -28,6 +28,14 @@ import {
     MODEL_STATS_COLUMNS_EN,
     PFI_COLUMNS_EN
 } from './reportTooltips.en'
+import {
+    BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS,
+    BACKTEST_EXECUTION_PIPELINE_KEY_KEYS,
+    resolveExecutionPipelineColumnTooltip,
+    resolveExecutionPipelineKeyTooltip
+} from './reportTooltips.executionPipeline'
+
+export { BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS, BACKTEST_EXECUTION_PIPELINE_KEY_KEYS }
 
 type ReportTooltipLocale = 'ru' | 'en'
 
@@ -102,7 +110,7 @@ export function resolveReportTooltipSelfAliases(reportKind: string | undefined, 
 }
 
 const BACKTEST_SUMMARY_COLUMNS: Record<string, string> = {
-    Name: 'Name — системное название торговой конфигурации в активном наборе политик.\n\nЧто показывает поле:\nэто не маркетинговое имя и не оценка качества, а идентификатор конкретной комбинации правил входа, выхода и риска, с которой строка попала в сводку.\n\nКак читать:\nпо одному Name нельзя делать вывод о доходности. Название нужно использовать как ключ для сопоставления этой строки с [[policy|Policy]], [[branch|Branch]] и итоговыми метриками риска ниже в таблице.',
+    Name: 'Name — системное название торговой конфигурации в активном наборе политик.\n\nЧто показывает поле:\nэто идентификатор конкретной комбинации правил входа, выхода и риска, с которой строка попала в сводку.\n\nКак читать:\nпо одному Name нельзя делать вывод о доходности. Название нужно использовать как ключ для сопоставления этой строки с [[policy|Policy]], [[branch|Branch]] и итоговыми метриками риска ниже в таблице.',
     Type: 'Type — класс торговой логики, к которому относится текущая политика.\n\nЧто показывает поле:\nоно отделяет один стиль работы стратегии от другого: где-то правила опираются на фиксированный риск, где-то на более адаптивное поведение.\n\nКак читать:\nType удобен для группировки похожих политик перед сравнением. Сам по себе он не отвечает, какая стратегия лучше; итог всё равно нужно проверять по [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]] и [[liquidation|HadLiq]].',
     Leverage: LEVERAGE_DESCRIPTION,
     MarginMode:
@@ -192,6 +200,9 @@ const CURRENT_PREDICTION_CURRENT_PRICE_DESCRIPTION =
 const CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION =
     'Итоговый ответ моделей — финальный сценарий дня после объединения [[current-prediction-daily-layer|Daily]], [[landing-micro-model|Micro]] и [[sl-model|SL-модели]].\n\nИменно это поле дальше читает слой торговых правил и таблица [[policy|Policy]].\n\nКак читать:\nесли нужен один короткий ответ, что система решила по этому дню, смотреть нужно прежде всего сюда.'
 
+const CURRENT_PREDICTION_MODEL_TRAINING_WINDOW_DESCRIPTION =
+    'Обучение моделей (диапазон) — на какой истории были собраны [[current-prediction-model-stack|модели текущего прогноза]].\n\nЧто показывает:\nздесь видно, на каком отрезке истории модель училась: какой режим выбран, какие даты покрыты и сколько наблюдений вошло в расчёт.\n\nКак читать:\nэто поле отвечает на вопрос, насколько длинная и какого типа история стоит за текущим прогнозом. Если сравниваются [[landing-all-history|полная история]], [[train-segment|Train]], [[landing-oos|OOS]] или [[landing-recent-tail-history|хвост истории]], различие между ними начинается именно здесь.'
+
 const CURRENT_PREDICTION_MODEL_COMMENT_DESCRIPTION =
     'Комментарий модели — короткое пояснение к текущему расчёту, если системе нужно явно показать особый режим дня или причину, по которой стандартный дневной прогноз пока не собран.\n\nЧто показывает:\nздесь обычно появляется человекочитаемая причина вроде незакрытого дня, отсутствия дневного слоя данных или другого режима, который влияет на чтение карточки.\n\nКак читать:\nэто пояснение к текущему прогнозу, а не отдельная метрика. Оно помогает понять, почему карточка выглядит именно так, но не заменяет вероятности, итоговый сценарий и риск-поля.'
 
@@ -217,9 +228,6 @@ const CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION =
 
 const CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION =
     'Имя — точное название [[factor|фактора]], который попал в верхнюю часть списка [[landing-explain|слоя пояснений]] или [[landing-pfi|PFI]] для этого прогноза.\n\nИменно имя связывает строку с конкретной [[current-prediction-model-stack|моделью текущего прогноза]], признаком или правилом системы.\n\nЧитать поле нужно вместе с пояснением [[factor|фактора]] и рангом: сначала понять, что это за сигнал, а затем посмотреть, насколько высоко он поднялся в списке влияния.'
-
-const CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION =
-    'Описание — человекочитаемое объяснение того, что означает этот [[factor|фактор]] в текущей карточке.\n\nПоле переводит сырое имя в смысл: не просто как называется строка, а какую роль этот [[factor|фактор]] играет в прогнозе сегодня.\n\nКак читать:\nсначала смотреть описание, чтобы понять смысл самого [[factor|фактора]], а затем ранг, чтобы оценить, насколько высоко он поднялся в текущем списке влияния.'
 
 const CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION =
     'Значение — текущее состояние [[factor|фактора]] в момент построения прогноза.\n\nЗдесь может быть число, категория или пустое поле, если [[factor|фактор]] описывает правило без отдельного числового значения.\n\nЭто поле не равно силе влияния: сначала смотреть само значение, затем ранг, чтобы понять, насколько важен [[factor|фактор]] сегодня.'
@@ -285,7 +293,6 @@ const CURRENT_PREDICTION_COLUMNS: Record<string, string> = {
     Withdrawn$: CURRENT_PREDICTION_WITHDRAWN_DESCRIPTION,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION,
-    Описание: CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION,
     Значение: CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION,
     Ранг: CURRENT_PREDICTION_FACTOR_RANK_DESCRIPTION
 }
@@ -332,7 +339,6 @@ Object.assign(CURRENT_PREDICTION_COLUMNS, {
     HadLiq: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION,
-    Описание: CURRENT_PREDICTION_FACTOR_DESCRIPTION_DESCRIPTION,
     Значение: CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION,
     Ранг: CURRENT_PREDICTION_FACTOR_RANK_DESCRIPTION
 })
@@ -424,8 +430,7 @@ const CURRENT_PREDICTION_KEYS: Record<string, string> = {
         'Микро-модель — дополнительная модель, которая включается только после [[current-prediction-daily-layer|Daily]], если дневной слой дал [[landing-day-flat|боковик]].\n\nЧто делает:\n- не трогает дни, где Daily уже выбрал [[landing-day-up|рост]] или [[landing-day-down|падение]];\n- внутри боковика ищет слабый уклон вверх или вниз;\n- передаёт своё уточнение дальше в слой Day + Micro, а затем в Total.\n\nКак читать:\nмикро-модель не заменяет [[current-prediction-daily-layer|Daily]]. Она нужна, чтобы не терять слабые directional-сигналы в тех днях, которые базовый дневной слой сам по себе оставил бы нейтральными.',
     'Общий ответ (интерпретация моделей)': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION,
     'Итоговый ответ моделей': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION,
-    'Обучение моделей (диапазон)':
-        'Обучение моделей (диапазон) — на какой истории были собраны [[current-prediction-model-stack|модели текущего прогноза]].\n\nЧто показывает:\nздесь видно, на каком отрезке истории модель училась: какой режим выбран, какие даты покрыты и сколько наблюдений вошло в расчёт.\n\nКак читать:\nэто поле отвечает на вопрос, насколько длинная и какого типа история стоит за текущим прогнозом. Если сравниваются режимы Full, Train, OOS или Recent, различие между ними начинается именно здесь.',
+    'Обучение моделей (диапазон)': CURRENT_PREDICTION_MODEL_TRAINING_WINDOW_DESCRIPTION,
     'Режим рынка': CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION,
     'Вероятность срабатывания стоп-лосса': CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION,
     'Сигнал SL-модели': 'Интерпретация SL-сигнала (нормальный риск / высокий риск).',
@@ -449,6 +454,10 @@ const CURRENT_PREDICTION_KEYS: Record<string, string> = {
     'Ключевой фактор слоя пояснений / PFI':
         'Топ-[[factor|фактор]] из [[landing-explain|слоя пояснений]] или [[landing-pfi|PFI]], который сильнее всего связан с выбранным моделью сценарием.',
     'Доходность к закрытию, %': 'Изменение цены от входа до закрытия окна 24ч: (Close24 / Entry - 1) * 100.',
+    'Максимальная цена за торговый день (факт)':
+        'Максимальная цена за торговый день (факт) — наивысшая цена внутри фактического окна 24ч после входа.\n\nПоле показывает, насколько высоко рынок успел дойти в этот день, даже если позже цена вернулась ниже.\n\nКак читать:\nдля [[position|LONG]] это верхний предел доступного роста, для [[position|SHORT]] — максимальный откат против позиции.',
+    'Минимальная цена за торговый день (факт)':
+        'Минимальная цена за торговый день (факт) — самая низкая цена внутри фактического окна 24ч после входа.\n\nПоле показывает, насколько глубоко рынок опускался в этот день, даже если позже цена восстановилась.\n\nКак читать:\nдля [[position|LONG]] это максимальное движение против позиции, для [[position|SHORT]] — максимально доступное снижение.',
     'Максимум за 24ч от входа, %': 'Максимальное движение вверх относительно цены входа за окно 24ч.',
     'Минимум за 24ч от входа, %': 'Максимальное движение вниз относительно цены входа за окно 24ч.',
     'Диапазон high-low за 24ч, %': 'Ширина диапазона MaxHigh24 - MinLow24 относительно цены входа, в процентах.',
@@ -490,8 +499,7 @@ Object.assign(CURRENT_PREDICTION_KEYS, {
         'Микро-модель — дополнительная модель, которая включается только после [[current-prediction-daily-layer|Daily]], если дневной слой дал [[landing-day-flat|боковик]].\n\nЧто делает:\n- не трогает дни, где Daily уже выбрал [[landing-day-up|рост]] или [[landing-day-down|падение]];\n- внутри боковика ищет слабый уклон вверх или вниз;\n- передаёт своё уточнение дальше в слой Day + Micro, а затем в Total.\n\nКак читать:\nмикро-модель не заменяет [[current-prediction-daily-layer|Daily]]. Она нужна, чтобы не терять слабые directional-сигналы в тех днях, которые базовый дневной слой сам по себе оставил бы нейтральными.',
     'Общий ответ (интерпретация моделей)': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION,
     'Итоговый ответ моделей': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION,
-    'Обучение моделей (диапазон)':
-        'Обучение моделей (диапазон) — на какой истории были собраны [[current-prediction-model-stack|модели текущего прогноза]].\n\nЧто показывает:\nздесь видно, на каком отрезке истории модель училась: какой режим выбран, какие даты покрыты и сколько наблюдений вошло в расчёт.\n\nКак читать:\nэто поле отвечает на вопрос, насколько длинная и какого типа история стоит за текущим прогнозом. Если сравниваются режимы Full, Train, OOS или Recent, различие между ними начинается именно здесь.',
+    'Обучение моделей (диапазон)': CURRENT_PREDICTION_MODEL_TRAINING_WINDOW_DESCRIPTION,
     'Режим рынка': CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION,
     'Вероятность срабатывания стоп-лосса': CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION,
     'Сигнал SL-модели':
@@ -603,6 +611,8 @@ Object.assign(CURRENT_PREDICTION_KEYS, {
     'Why it differs': CURRENT_PREDICTION_KEYS['Почему отличается'],
     'Key explain/PFI factor': CURRENT_PREDICTION_KEYS['Ключевой фактор слоя пояснений / PFI'],
     'Return to close, %': CURRENT_PREDICTION_KEYS['Доходность к закрытию, %'],
+    'Actual 24h max price': CURRENT_PREDICTION_KEYS['Максимальная цена за торговый день (факт)'],
+    'Actual 24h min price': CURRENT_PREDICTION_KEYS['Минимальная цена за торговый день (факт)'],
     '24h max from entry, %': CURRENT_PREDICTION_KEYS['Максимум за 24ч от входа, %'],
     '24h min from entry, %': CURRENT_PREDICTION_KEYS['Минимум за 24ч от входа, %'],
     '24h high-low range, %': CURRENT_PREDICTION_KEYS['Диапазон high-low за 24ч, %'],
@@ -624,11 +634,15 @@ function buildPfiColumnDescriptionRu(key: string): string | null {
         case 'FeatureName':
             return 'Фича — конкретный признак, который подавался в модель и потом попал в PFI-таблицу.\n\nЧто показывает поле:\nэто имя входного сигнала, по которому дальше оцениваются важность, средние значения и корреляции.\n\nКак читать:\nсначала определяется, что именно измеряет признак, а уже затем его сила влияния читается по ΔAUC, корреляциям и разнице средних.\n\nПример:\nесли вверху таблицы стабильно стоит один и тот же признак, именно он сильнее остальных двигает качество модели.'
         case 'Важность (ΔAUC)':
+        case 'Importance (ΔAUC, p.p.)':
         case 'ImportanceAuc (abs ΔAUC)':
-            return 'Важность (ΔAUC) — насколько падает качество модели по AUC, если перемешать только этот признак.\n\nЧто показывает поле:\nчем сильнее просадка AUC после permutation, тем больше модель реально опирается на этот сигнал.\n\nКак читать:\nвысокое значение означает, что признак несёт заметную полезную информацию; значение около нуля означает слабый вклад.\n\nПример:\nесли у двух признаков ΔAUC = 0.041 и 0.003, первый влияет на качество модели намного сильнее второго.'
+        case 'ImportanceAuc (abs ΔAUC, p.p.)':
+            return 'Важность (ΔAUC) — насколько падает качество модели по AUC, если перемешать только этот признак.\n\nЧто показывает поле:\nсервер хранит сырую разницу AUC в шкале 0..1, а в таблице это значение показано в процентных пунктах, то есть умножено на 100. Поэтому 28.01 означает падение не на 28 единиц AUC, а на 28.01 процентного пункта.\n\nКак читать:\nчем сильнее просадка AUC после перемешивания признака, тем больше модель реально опирается на этот сигнал.\n\nПример:\nесли у двух признаков значения 4.10 и 0.30, первый ухудшает AUC примерно на 0.041, а второй только на 0.003.'
         case 'ΔAUC (сырое)':
+        case 'ΔAUC (p.p.)':
         case 'DeltaAuc (baseline - perm)':
-            return 'ΔAUC — сырая разница между базовым AUC и AUC после перемешивания одного признака.\n\nЧто показывает поле:\nэто прямой эффект удаления полезной структуры именно из этого сигнала, без ранжирования и без нормализации.\n\nКак читать:\nположительное и более крупное ΔAUC означает более важный признак; около нуля — слабый или почти нейтральный вклад.\n\nФормула:\nΔAUC = baseline AUC - permuted AUC.'
+        case 'DeltaAuc (baseline - perm, p.p.)':
+            return 'ΔAUC — знаковая разница между базовым AUC и AUC после перемешивания одного признака.\n\nЧто показывает поле:\nэто прямой эффект удаления полезной структуры именно из этого сигнала. В таблице значение тоже показано в процентных пунктах, то есть умножено на 100.\n\nКак читать:\nположительное и более крупное ΔAUC означает более важный признак; около нуля — слабый или почти нейтральный вклад; отрицательное значение означает, что после перемешивания метрика неожиданно улучшилась.\n\nФормула:\nΔAUC = baseline AUC - permuted AUC.'
         case 'ΔMean (1-0)':
         case 'MeanPos - MeanNeg':
             return 'ΔMean (1-0) — разница средних значений признака между положительным и отрицательным классом.\n\nЧто показывает поле:\nоно отвечает на вопрос, насколько по этому признаку расходятся два класса ещё до уровня модели.\n\nКак читать:\nбольшой по модулю разрыв означает, что признак сам по себе уже отделяет один класс от другого заметнее среднего.\n\nФормула:\nMeanPos - MeanNeg.'
@@ -645,8 +659,10 @@ function buildPfiColumnDescriptionRu(key: string): string | null {
         case 'CorrLabel (Pearson)':
             return 'Corr(label) — корреляция Пирсона между признаком и целевой меткой.\n\nЧто показывает поле:\nэто более прямой сигнал связи признака с таргетом, без промежуточного влияния модельного score.\n\nКак читать:\nчем дальше значение от нуля, тем заметнее признак связан с самим target. Знак показывает направление этой связи.\n\nПример:\nкорреляция -0.31 означает, что рост признака чаще сопровождает отрицательный класс.'
         case 'Support (pos/neg)':
+        case 'Eval support (pos/neg)':
         case 'CountPos / CountNeg':
-            return 'Support — сколько наблюдений положительного и отрицательного класса лежит под статистикой строки.\n\nЧто показывает поле:\nэто объём фактической выборки, на которой посчитаны средние, корреляции и importance.\n\nКак читать:\nмаленький support означает более хрупкие выводы. Чем больше наблюдений в обоих классах, тем устойчивее интерпретация остальных полей.\n\nПример:\nSupport 18/14 намного слабее по надёжности, чем 480/510.'
+        case 'Binary eval support (CountPos / CountNeg)':
+            return 'Eval support — сколько наблюдений положительного и отрицательного класса лежит под статистикой текущей бинарной модели.\n\nЧто показывает поле:\nэто не общий размер сегмента Train или OOS, а размер именно того набора оценки, на котором посчитаны средние, корреляции и важность.\n\nКак читать:\nдля move это все строки сегмента, для dir-моделей это только directional-подвыборка, а для micro-flat только flat-дни с micro-truth. Поэтому support не обязан совпадать с общим числом дней сегмента.\n\nПример:\nесли OOS-сегмент содержит 81 день, support строки dir-модели должен отражать размер её бинарного набора оценки, а не общий размер сегмента.'
         default:
             return null
     }
@@ -658,6 +674,7 @@ function buildModelStatsColumnDescriptionRu(key: string): string | null {
         case 'TRUE':
         case 'Тип дня':
         case 'True trend':
+        case 'Day type':
         case 'day type':
             return 'Class — фактический класс дня или строки, относительно которого построена эта часть отчёта.\n\nЧто показывает поле:\nэто реальный исход, а не прогноз модели. Именно он задаёт строку confusion-матрицы или статистического блока.\n\nКак читать:\nвсе соседние счётчики и проценты в строке относятся именно к этому фактическому классу.\n\nПример:\nесли строка помечена как DOWN, значения справа показывают, как модель вела себя на реально нисходящих днях.'
         case 'Summary':
@@ -673,6 +690,7 @@ function buildModelStatsColumnDescriptionRu(key: string): string | null {
             return 'Pred-* — сколько раз модель выдала конкретный прогноз внутри этой строки статистики.\n\nЧто показывает поле:\nэто счётчик прогнозов выбранного класса при фиксированном фактическом исходе или при фиксированном пороге.\n\nКак читать:\nрост счётчика сам по себе не означает хорошее качество. Его нужно читать относительно true-класса строки и общего числа наблюдений.\n\nПример:\nесли в строке TRUE=DOWN резко доминирует Pred UP, модель системно ошибается на нисходящих днях.'
         case 'Hit %':
         case 'Точность, %':
+        case 'Accuracy, %':
             return 'Hit % — доля правильных прогнозов внутри текущей строки или среза.\n\nЧто показывает поле:\nэто локальная accuracy по конкретному классу, дню или порогу, а не глобальное качество всей модели.\n\nКак читать:\nчем выше значение, тем чаще модель попадала в нужный ответ именно в этой подгруппе.\n\nПример:\nHit %=82 означает, что примерно 82 из 100 наблюдений в этом срезе были угаданы правильно.'
         case 'correct':
             return 'correct — сколько наблюдений в текущей строке модель классифицировала правильно.\n\nЧто показывает поле:\nэто абсолютный числитель для accuracy и смежных долей, а не процент.\n\nКак читать:\nсмысл числа появляется только вместе с total. Большой correct на маленьком total может быть статистически слабее, чем умеренный correct на большой выборке.\n\nПример:\ncorrect=18 при total=20 сильнее, чем correct=4 при total=4.'
@@ -683,12 +701,15 @@ function buildModelStatsColumnDescriptionRu(key: string): string | null {
         case 'value':
             return 'value — численное значение метрики из соседнего столбца metric.\n\nЧто показывает поле:\nэто конкретное число для текущей статистической меры: процент, счётчик или порог.\n\nКак читать:\nинтерпретация зависит от metric. Одно и то же value может означать accuracy, частоту HIGH или размер порога.\n\nПример:\nvalue=0.74 при metric=TPR(SL) означает 74% правильно пойманных SL-дней.'
         case 'Порог':
+        case 'Threshold':
             return 'Порог — значение threshold, по которому SL-модель делит дни на LOW и HIGH риск.\n\nЧто показывает поле:\nэто рабочая граница решения: выше неё день уходит в HIGH, ниже неё остаётся в LOW.\n\nКак читать:\nизменение порога меняет баланс между чувствительностью и количеством ложных тревог.\n\nПример:\nболее низкий порог обычно повышает TPR(SL), но часто вместе с этим растёт и FPR(TP).'
         case 'TPR(SL), %':
+        case 'Stop-loss day recall, %':
             return 'TPR(SL), % — доля SL-дней, которые модель правильно пометила как HIGH риск.\n\nЧто показывает поле:\nэто чувствительность SL-модели именно на вредных днях.\n\nКак читать:\nчем выше TPR(SL), тем лучше модель заранее ловит дни, которые потом заканчиваются стоп-лоссом.\n\nФормула:\nTP / (TP + FN).'
         case 'FPR(TP), %':
             return 'FPR(TP), % — доля TP-дней, которые модель ошибочно пометила как HIGH риск.\n\nЧто показывает поле:\nэто цена излишней осторожности на хороших днях.\n\nКак читать:\nчем ниже FPR(TP), тем меньше profitable-дней было ошибочно испорчено защитным режимом.\n\nФормула:\nFP / (FP + TN).'
         case 'pred HIGH, %':
+        case 'High-risk prediction rate, %':
             return 'pred HIGH, % — доля случаев, где модель выдала HIGH риск при текущем пороге.\n\nЧто показывает поле:\nэто общая агрессивность флага HIGH по всей рассматриваемой выборке.\n\nКак читать:\nслишком высокое значение означает, что модель начинает видеть опасность почти везде; слишком низкое — что HIGH остаётся редким и может пропускать реальные проблемы.\n\nПример:\nесли pred HIGH, % = 80, модель помечает как риск почти каждый второй день и сильнее.'
         default:
             return null
@@ -701,9 +722,13 @@ const PFI_COLUMNS: Record<string, string> = {
     Фича: 'Имя признака (feature), который подаётся в модель.',
     FeatureName: 'Имя признака (feature), техническое название.',
     'Важность (ΔAUC)': 'Насколько падает AUC при перемешивании признака (Permutation). Чем выше, тем важнее фича.',
+    'Importance (ΔAUC, p.p.)': 'Абсолютное падение AUC после permutation, показанное в процентных пунктах.',
     'ImportanceAuc (abs ΔAUC)': 'Абсолютное падение AUC при перемешивании признака.',
+    'ImportanceAuc (abs ΔAUC, p.p.)': 'Абсолютное падение AUC при перемешивании признака, показанное в процентных пунктах.',
     'ΔAUC (сырое)': 'Сырой ΔAUC = baseline AUC − permuted AUC.',
+    'ΔAUC (p.p.)': 'Разница baseline AUC − permuted AUC, показанная в процентных пунктах.',
     'DeltaAuc (baseline - perm)': 'Сырой ΔAUC (baseline − permuted).',
+    'DeltaAuc (baseline - perm, p.p.)': 'ΔAUC (baseline − permuted), показанный в процентных пунктах.',
     'ΔMean (1-0)': 'Разница средних значений признака между классами 1 и 0 (MeanPos − MeanNeg).',
     'MeanPos - MeanNeg': 'Разница средних значений признака между классами 1 и 0.',
     'MeanPos (Label=1)': 'Среднее значение признака по положительному классу.',
@@ -715,7 +740,9 @@ const PFI_COLUMNS: Record<string, string> = {
     'Corr(label)': 'Корреляция признака с целевой меткой (Pearson).',
     'CorrLabel (Pearson)': 'Корреляция признака с целевой меткой (Pearson).',
     'Support (pos/neg)': 'Сколько примеров в каждом классе: pos/neg.',
-    'CountPos / CountNeg': 'Количество примеров класса 1 и класса 0.'
+    'Eval support (pos/neg)': 'Размер бинарного eval-набора текущей модели: pos/neg.',
+    'CountPos / CountNeg': 'Количество примеров класса 1 и класса 0.',
+    'Binary eval support (CountPos / CountNeg)': 'Размер бинарного eval-набора текущей модели: количество примеров класса 1 и класса 0.'
 }
 
 export const PFI_COLUMN_KEYS = Object.freeze(Object.keys(PFI_COLUMNS))
@@ -730,20 +757,25 @@ const MODEL_STATS_COLUMNS: Record<string, string> = {
     'Hit %': 'Доля правильных предсказаний для строки (accuracy).',
     'Тип дня': 'Истинное направление тренда (UP/DOWN) для строки.',
     'True trend': 'Истинное направление тренда (UP/DOWN).',
+    'Day type': 'Тип дня по исходу: TP-day или SL-day.',
     'pred DOWN': 'Количество предсказаний DOWN.',
     'pred UP': 'Количество предсказаний UP.',
     correct: 'Количество правильных предсказаний.',
     total: 'Всего примеров в строке.',
     'Точность, %': 'Accuracy: доля правильных предсказаний, в процентах.',
+    'Accuracy, %': 'Accuracy: доля правильных предсказаний, в процентах.',
     'day type': 'Тип дня по исходу: TP-day или SL-day.',
     'pred LOW': 'Сколько раз модель предсказала низкий риск (LOW).',
     'pred HIGH': 'Сколько раз модель предсказала высокий риск (HIGH).',
     metric: 'Название метрики.',
     value: 'Значение метрики.',
     Порог: 'Порог SL-модели (threshold), по которому считаются метрики.',
+    Threshold: 'Порог SL-модели (threshold), по которому считаются метрики.',
     'TPR(SL), %': 'True Positive Rate для SL-дней: доля правильных HIGH на SL-днях.',
+    'Stop-loss day recall, %': 'True Positive Rate для SL-дней: доля правильных HIGH на SL-днях.',
     'FPR(TP), %': 'False Positive Rate для TP-дней: доля ошибочных HIGH на TP-днях.',
     'pred HIGH, %': 'Доля предсказаний HIGH при данном пороге.',
+    'High-risk prediction rate, %': 'Доля предсказаний HIGH при данном пороге.',
     'high / total': 'Сколько HIGH предсказаний от общего числа дней.'
 }
 
@@ -768,7 +800,7 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
         'StartDay — первая UTC-дата, которая реально вошла в расчёт этой строки.\n\nПоле задаёт левую границу окна, по которому считались дни, сделки и итоговые доли.\n\nКак читать:\nStartDay имеет смысл только вместе с EndDay. Сравнивать две строки по процентам корректно тогда, когда их окно дат совпадает или когда различие периода осознанно вынесено в анализ.',
     EndDay: 'EndDay — последняя UTC-дата, которая реально вошла в расчёт этой строки.\n\nЕсли серия завершилась раньше общего окна отчёта, здесь фиксируется фактическая дата остановки, а не теоретический конец полного диапазона.\n\nКак читать:\nEndDay вместе с StartDay показывает, на каком именно периоде построена текущая диагностика.',
     StopReason:
-        'StopReason — почему текущая серия закончилась именно на этой дате.\n\nЧто показывает поле:\n- До конца периода — строка дошла до последнего дня окна; это нормальное завершение без ранней остановки.\n- Early stop — серия закончилась раньше полного окна.\n- Liquidation — внутри этой серии были [[liquidation|ликвидации]].\n- Ruin — бакет потерял рабочий капитал и сработал сценарий [[account-ruin|AccRuin]].\n\nКак читать:\nесли в тексте есть early stop, серия оборвалась раньше полного периода.\n\nЕсли в тексте есть liquidation, остановка сопровождалась аварийными закрытиями биржей.\n\nЕсли в тексте есть ruin, причина уже не в одной сделке, а в разрушении рабочего капитала бакета.\n\nДля агрегатной строки нескольких независимых бакетов единый StopReason может быть неприменим, потому что у каждого бакета своя собственная точка остановки.',
+        'StopReason — почему текущая серия закончилась именно на этой дате.\n\nЧто показывает поле:\n- До конца периода — серия дошла до последнего дня окна; это нормальное завершение без ранней остановки.\n- Early stop — серия закончилась раньше полного окна.\n- Liquidation — внутри этой серии были [[liquidation|ликвидации]].\n- Ruin — бакет потерял рабочий капитал и сработал сценарий [[account-ruin|AccRuin]].\n\nКак читать:\nесли в тексте есть early stop, серия оборвалась раньше полного периода.\n\nЕсли в тексте есть liquidation, остановка сопровождалась аварийными закрытиями биржей.\n\nЕсли в тексте есть ruin, причина уже не в одной сделке, а в разрушении рабочего капитала бакета.\n\nДля агрегата нескольких независимых бакетов единый StopReason может быть неприменим, потому что у каждого бакета своя собственная точка остановки.',
     MissingDays:
         'MissingDays — сколько календарных дней отсутствует внутри интервала от StartDay до EndDay.\n\nЭто не доля no-trade и не осознанный пропуск стратегии. Метрика показывает именно разрывы покрытия данных или дневного журнала решений.\n\nКак читать:\nдля будних дней нормальное значение обычно должно быть около нуля. Рост MissingDays означает, что часть периода не была доступна для полноценного расчёта и строку нужно читать осторожнее.',
     'TradeDays%':
@@ -809,7 +841,7 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     LiqBacktest:
         'LiqBacktest — консервативная backtest-цена [[liquidation|ликвидации]].\n\nОна ставится ближе к входу, чем более мягкий theoretical-уровень, чтобы симуляция не выглядела оптимистичнее реального риска.\n\nКак читать:\nэто основной ориентир для diagnostics-полей [[real-liquidation|RealLiq]], MinDistPct и распределений дистанции до ликвидации.',
     RealLiq:
-        'RealLiq — флаг, что цена в сделке действительно дошла до backtest-уровня [[liquidation|ликвидации]].\n\nЭто строгий сигнал именно аварийного касания liquidation-level, а не просто тяжёлого убытка.\n\nКак читать:\nесли значение true, сделка в модели реально дошла до критической границы liquidation-path.\n\nДля isolated-режима это особенно важно, потому что такая строка означает фактический сценарий потери всего залога сделки.',
+        'RealLiq — флаг, что цена в сделке действительно дошла до backtest-уровня [[liquidation|ликвидации]].\n\nЭто строгий сигнал именно аварийного касания liquidation-level, а не просто тяжёлого убытка.\n\nКак читать:\nесли значение true, сделка в модели реально дошла до критической границы liquidation-path.\n\nЭто ещё не отдельная денежная формула потери: экономический эффект нужно дочитывать по [[pnl|PnL]], [[drawdown|просадке]] и остальным balance-метрикам строки.',
     IsLiq:
         'IsLiq — общий флаг ликвидационного исхода в модели.\n\nОн шире, чем [[real-liquidation|RealLiq]]: строка может считаться ликвидационной не только при строгом касании backtest-уровня, но и при сценарии, где бакет фактически умер на этой сделке.\n\nКак читать:\nесли нужен именно строгий backtest-level факт, смотреть надо на [[real-liquidation|IsRealLiq]] или RealLiq.\n\nЕсли нужен общий аварийный исход по строке, читать нужно именно IsLiq.',
     IsRealLiq:
@@ -904,6 +936,11 @@ type DiagnosticsSectionFamily =
     | 'specificity-global-thresholds'
     | 'specificity-rolling-guardrail'
     | 'specificity-rolling-guardrail-causal'
+    | 'policy-no-trade-hotspots'
+    | 'policy-opposite-hotspots'
+    | 'policy-low-coverage-hotspots'
+    | 'top-decision-days-opposite-harm'
+    | 'top-decision-days-missed-opportunity'
     | null
 
 const DIAGNOSTICS_GUARDRAIL_KEYS = new Set([
@@ -997,7 +1034,106 @@ function resolveDiagnosticsSectionFamily(sectionTitle: string | undefined): Diag
         return 'specificity-rolling-guardrail'
     }
 
+    if (/^Policy NoTrade Hotspots/i.test(normalizedTitle)) {
+        return 'policy-no-trade-hotspots'
+    }
+
+    if (/^Policy Opposite Hotspots/i.test(normalizedTitle)) {
+        return 'policy-opposite-hotspots'
+    }
+
+    if (/^Policy Low-Coverage Hotspots/i.test(normalizedTitle)) {
+        return 'policy-low-coverage-hotspots'
+    }
+
+    if (/^Top Decision Days \(Opposite Harm/i.test(normalizedTitle)) {
+        return 'top-decision-days-opposite-harm'
+    }
+
+    if (/^Top Decision Days \(Missed Opportunity/i.test(normalizedTitle)) {
+        return 'top-decision-days-missed-opportunity'
+    }
+
     return null
+}
+
+function isDiagnosticsHotspotFamily(sectionFamily: DiagnosticsSectionFamily): boolean {
+    return (
+        sectionFamily === 'policy-no-trade-hotspots' ||
+        sectionFamily === 'policy-opposite-hotspots' ||
+        sectionFamily === 'policy-low-coverage-hotspots'
+    )
+}
+
+function isDiagnosticsDecisionTopDaysFamily(sectionFamily: DiagnosticsSectionFamily): boolean {
+    return (
+        sectionFamily === 'top-decision-days-opposite-harm' ||
+        sectionFamily === 'top-decision-days-missed-opportunity'
+    )
+}
+
+function buildDiagnosticsHotspotDescription(
+    key: string,
+    locale: ReportTooltipLocale,
+    sectionTitle?: string
+): string | null {
+    const sectionFamily = resolveDiagnosticsSectionFamily(sectionTitle)
+
+    if (!isDiagnosticsHotspotFamily(sectionFamily) && !isDiagnosticsDecisionTopDaysFamily(sectionFamily)) {
+        return null
+    }
+
+    if (locale === 'en') {
+        switch (key) {
+            case 'Type':
+                return 'Type is the factual market day type of the current hotspot or decision day.\n\nWhat it shows:\nthis is the realized regime of that date: UP, DOWN, or FLAT. It is not the diagnostics row category and not the model forecast.\n\nHow to read it:\nread Type together with MarketReturn% and the harm columns to see whether damage clusters in trend days or in sideways days.\n\nExample:\nif hotspots keep concentrating in FLAT, the strategy is structurally weaker in sideways market conditions.'
+            case 'MarketReturn%':
+                return 'MarketReturn% is the factual market return of the highlighted day, in percent.\n\nWhat it shows:\nthis is the realized move of the market day itself, not the strategy return of the policy group.\n\nHow to read it:\n1) the sign shows the final market direction of that day;\n2) the absolute size shows how strong the day was;\n3) together with Type it explains whether the hotspot came from a strong directional day or from a weaker regime.\n\nExample:\nMarketReturn% = -3.4 means the market day ended with a 3.4% decline. If the row still shows many LONG-side mistakes, the damage came from trading against a clearly bearish day.'
+            case 'IsSpecificityDay':
+                return 'IsSpecificityDay is the flag showing whether this day was classified as a specific day by the specificity layer.\n\nWhat it shows:\n`yes` means the day crossed at least one active causal threshold such as absolute return or [[min-move|MinMove]]. `no` means the day stayed in the normal regime. `n/a` means the threshold was still undefined for that date.\n\nHow to read it:\n1) `yes` marks an unusually strong or difficult day;\n2) `no` means the hotspot happened in an ordinary regime;\n3) `n/a` means the row belongs to the warm-up period and should not be overinterpreted as a true normal/specific label.\n\nExample:\nif repeated opposite-direction hotspots happen on `yes` days, the strategy is breaking mainly on unusual high-intensity days rather than in the baseline regime.'
+            case 'Policies':
+                return 'Policies is how many alive [[policy|Policy]] variants contributed to the current hotspot or decision-day aggregate.\n\nWhat it shows:\nit is the breadth of the policy sample behind the day, not the number of trades.\n\nHow to read it:\nsmall values mean the row may be driven by a narrow subset of policies, while large values mean the weakness is shared more broadly across the policy family.\n\nExample:\nif Opp% is high with Policies = 2, the hotspot may still be local. If the same harm appears with Policies = 28, the weakness is much more structural.'
+            case 'Opp%':
+                return 'Opp% is the share of policies that ended up on the wrong side of the factual market day.\n\nWhat it shows:\nit counts how often the final decision direction conflicted with the realized day direction among the policies alive on that date.\n\nHow to read it:\n1) high Opp% means wrong-side decisions are broad across the policy set;\n2) low Opp% means the day may still be difficult, but the directional conflict is not the main source of damage;\n3) the metric should be judged together with OppHarmSum% or OppHarmAvg% to see whether wrong-side decisions were only frequent or also expensive.\n\nExample:\nOpp% = 60 means about 60% of active policies traded against the realized day direction on that date.'
+            case 'OppHarmSum%':
+                return 'OppHarmSum% is the total harm created by opposite-direction decisions on that day, in percent.\n\nWhat it shows:\nit accumulates the directional damage across all policies that traded against the factual day direction.\n\nHow to read it:\n1) the metric grows when wrong-side decisions are both frequent and costly;\n2) compare it with Opp% to separate many small mistakes from a few very expensive ones.\n\nExample:\nif Opp% is moderate but OppHarmSum% is very large, only part of the policy set was wrong, but those mistakes were extremely expensive.'
+            case 'OppHarmAvg%':
+                return 'OppHarmAvg% is the average harm per opposite-direction decision on that day, in percent.\n\nWhat it shows:\nit normalizes wrong-side damage by the number of opposite decisions.\n\nHow to read it:\nthis metric answers how expensive one typical wrong-side decision was, while OppHarmSum% answers how much total damage the whole day created.\n\nExample:\nOppHarmAvg% = 2.1 means each opposite-direction decision cost about 2.1% on average.'
+            case 'NoTradeOppSum%':
+                return 'NoTradeOppSum% is the total missed opportunity across no-trade policies on that day, in percent.\n\nWhat it shows:\nit accumulates the favorable move left on the table because policies stayed out instead of entering.\n\nHow to read it:\nhigh values mean the main problem of the day was inactivity rather than wrong-side trading.\n\nExample:\nif NoTradeOppSum% is high while Opp% is low, the day hurt mostly because the strategy failed to participate, not because it traded in the wrong direction.'
+            case 'NoTradeOppAvg%':
+                return 'NoTradeOppAvg% is the average missed opportunity per no-trade policy on that day, in percent.\n\nWhat it shows:\nit normalizes missed opportunity by the number of policies that stayed out.\n\nHow to read it:\nthis metric answers whether each skipped policy left behind a meaningful move or only a minor one.\n\nExample:\nNoTradeOppAvg% = 1.7 means each skipped policy missed about 1.7% of favorable move on average.'
+            case 'Trade%':
+                return 'Trade% is the share of active policies that actually reached execution on that day.\n\nWhat it shows:\nit is the participation rate of the policy set for the highlighted day.\n\nHow to read it:\nuse it together with NoTrade% and Opp% to separate three different failure modes: not trading, trading in the wrong direction, or trading with acceptable direction but weak economics.\n\nExample:\nTrade% = 25 means only one quarter of alive policies actually entered the market on that date.'
+            default:
+                return null
+        }
+    }
+
+    switch (key) {
+        case 'Type':
+            return 'Type — фактический тип рынка у текущего hotspot-дня или decision-day строки.\n\nЧто показывает:\nэто уже состоявшийся режим дня: UP, DOWN или FLAT. Поле не показывает категорию diagnostics-строки и не является прогнозом модели.\n\nКак читать:\nType нужно смотреть вместе с MarketReturn% и столбцами вреда, чтобы понять, копится ли проблема на направленных днях или внутри боковика.\n\nПример:\nесли hotspots системно сидят в FLAT, значит стратегия структурно слабее именно в боковом рынке.'
+        case 'MarketReturn%':
+            return 'MarketReturn% — фактическая доходность самого рыночного дня, в процентах.\n\nЧто показывает:\nэто реальный итог движения рынка в этот день, а не доходность группы политик.\n\nКак читать:\n1) знак показывает итоговое направление дня;\n2) модуль показывает силу движения;\n3) вместе с Type поле помогает понять, связан ли hotspot с сильным трендовым днём или с более тихим режимом.\n\nПример:\nMarketReturn% = -3.4 означает, что день закрылся падением примерно на 3.4%. Если в такой строке много LONG-ошибок, вред пришёл из торговли против явно нисходящего дня.'
+        case 'IsSpecificityDay':
+            return 'IsSpecificityDay — флаг, показывающий, признала ли specificity-логика этот день специфичным.\n\nЧто показывает:\n`yes` означает, что день превысил хотя бы один активный [[causal-term|казуальный]] порог: по абсолютной доходности рынка или по [[min-move|MinMove]]. `no` означает обычный режим. `n/a` означает, что на эту дату порог ещё не был определён.\n\nКак читать:\n1) `yes` помечает необычно сильный или тяжёлый день;\n2) `no` означает, что проблема возникла в обычном режиме, а не на экстремуме;\n3) `n/a` указывает на фазу прогрева, где строку нельзя читать как честный normal/specific split.\n\nПример:\nесли opposite-hotspots повторяются именно на `yes` днях, стратегия ломается в первую очередь на необычных high-intensity режимах, а не на базовом рынке.'
+        case 'Policies':
+            return 'Policies — сколько активных [[policy|Policy]] попало в текущий агрегат дня.\n\nЧто показывает:\nэто ширина policy-набора за строкой, а не число сделок.\n\nКак читать:\nмалое значение означает локальную проблему нескольких политик. Большое значение означает, что слабость разделяет уже значимая часть policy-семейства.\n\nПример:\nесли Opp% высокий при Policies = 2, проблема может быть локальной. Если те же числа держатся при Policies = 28, это уже системная слабость набора.'
+        case 'Opp%':
+            return 'Opp% — доля политик, которые в этот день приняли решение против фактического направления рынка.\n\nЧто показывает:\nполе считает, насколько часто итоговое направление сделки конфликтовало с уже состоявшимся типом дня среди всех активных политик этой даты.\n\nКак читать:\n1) высокий Opp% означает, что wrong-side решения были широкими по policy-набору;\n2) низкий Opp% означает, что даже плохой день мог ломаться не из-за направления, а из-за другого механизма;\n3) метрику нужно читать вместе с OppHarmSum% или OppHarmAvg%, чтобы отделять частые ошибки от дорогих ошибок.\n\nПример:\nOpp% = 60 означает, что примерно 60% активных политик в этот день торговали против фактического направления рынка.'
+        case 'OppHarmSum%':
+            return 'OppHarmSum% — суммарный вред от решений против направления дня, в процентах.\n\nЧто показывает:\nполе накапливает весь ущерб по политикам, которые торговали против фактического движения рынка.\n\nКак читать:\n1) рост метрики означает, что wrong-side решения стали либо более частыми, либо более дорогими;\n2) сравнение с Opp% помогает понять, где источник боли: в масштабе ошибки или в цене каждой ошибки.\n\nПример:\nесли Opp% умеренный, а OppHarmSum% очень высокий, значит ошибались не все, но те, кто ошибся, теряли особенно много.'
+        case 'OppHarmAvg%':
+            return 'OppHarmAvg% — средний вред одной сделки против направления дня, в процентах.\n\nЧто показывает:\nэто нормализованная цена одной wrong-side ошибки.\n\nКак читать:\nполе отвечает на вопрос, насколько дорогой была типичная противоположная сделка, тогда как OppHarmSum% показывает общий ущерб всего дня.\n\nПример:\nOppHarmAvg% = 2.1 означает, что одна противоположная сделка стоила примерно 2.1% в среднем.'
+        case 'NoTradeOppSum%':
+            return 'NoTradeOppSum% — суммарная упущенная возможность по политикам, которые не вошли в рынок, в процентах.\n\nЧто показывает:\nполе накапливает движение, которое стратегия оставила на рынке из-за no-trade решений.\n\nКак читать:\nвысокое значение означает, что основной вред дня пришёл не из wrong-side входов, а из бездействия.\n\nПример:\nесли NoTradeOppSum% высокий, а Opp% низкий, день был плохим прежде всего потому, что стратегия не участвовала в движении.'
+        case 'NoTradeOppAvg%':
+            return 'NoTradeOppAvg% — средняя упущенная возможность на одну no-trade политику, в процентах.\n\nЧто показывает:\nэто нормализованная цена одного пропуска.\n\nКак читать:\nметрика показывает, насколько дорогим был типичный отказ от входа, а не только общий масштаб потери по дню.\n\nПример:\nNoTradeOppAvg% = 1.7 означает, что каждый пропуск оставлял на рынке примерно 1.7% движения в среднем.'
+        case 'Trade%':
+            return 'Trade% — доля активных политик, которые в этот день реально дошли до сделки.\n\nЧто показывает:\nэто уровень участия policy-набора в конкретном дне.\n\nКак читать:\nTrade% нужно сопоставлять с NoTrade% и Opp%, чтобы разделять три режима: стратегия не торгует, стратегия торгует не туда, или стратегия торгует, но экономика дня всё равно слабая.\n\nПример:\nTrade% = 25 означает, что только четверть активных политик действительно вошла в рынок в этот день.'
+        default:
+            return null
+    }
 }
 
 function isDiagnosticsSpecificitySectionKey(key: string, sectionFamily: DiagnosticsSectionFamily): boolean {
@@ -1045,8 +1181,8 @@ function isDiagnosticsSpecificitySectionKey(key: string, sectionFamily: Diagnost
     }
 }
 
-// Категориальные builders удерживают полный diagnostics-текст в одном owner-маршруте,
-// чтобы local exact-map больше не возвращал короткие формальные подписи для этих групп.
+// Категориальные builders держат полные diagnostics-описания в одном owner-маршруте,
+// а локальная exact-map остаётся только для точечных diagnostics-ключей.
 function buildDiagnosticsDataAnomalyDescription(key: string, locale: ReportTooltipLocale): string | null {
     if (!DIAGNOSTICS_DATA_ANOMALY_KEYS.has(key)) {
         return null
@@ -1537,7 +1673,54 @@ function buildDayTypeDescription(prefix: string, metric: string, locale: ReportT
     const prefixLabel = resolvedPrefixMap[prefix]
     const metricLabel = resolvedMetricMap[metric]
     if (!prefixLabel || !metricLabel) return null
-    return `${metricLabel} ${prefixLabel}.`
+
+    if (locale === 'en') {
+        switch (metric) {
+            case 'Trades':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the raw number of executed trades inside that factual market regime.\n\nHow to read it:\nthis count answers where the strategy is active most often, but activity alone does not mean quality.\n\nExample:\nif trade count is high on FLAT days while PnL% stays weak there, the strategy is active in sideways regime but not effective.`
+            case 'Win%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of profitable trades inside that factual day regime.\n\nHow to read it:\nread Win% together with PnL% because a high hit rate with weak PnL can still describe small wins and expensive losses.\n\nExample:\nif Win% is decent on DOWN days but PnL% is still negative, the losses on bad trades are dominating the small winners.`
+            case 'PnL%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the total strategy return inside that factual market regime, not the market return of the day itself.\n\nHow to read it:\nthis is the clean answer to whether the strategy actually earns in that regime. It should be read together with Trades and Win%.\n\nExample:\nif PnL% is negative on FLAT days while other regimes stay positive, sideways market is a structural weak zone of the strategy.`
+            case 'NoTrade%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of days in that regime where the strategy stayed out of the market.\n\nHow to read it:\nhigher values mean the strategy is more defensive or less capable of finding entries in that regime.\n\nExample:\nif NoTrade% spikes on UP days, the system is missing too many profitable trend days.`
+            case 'Opp%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of decisions that went against the factual day direction inside this market regime.\n\nHow to read it:\nhigher values mean the strategy more often trades on the wrong side exactly in that regime. Read it together with OppAvg% or OppSum% to see whether the damage is only frequent or also expensive.\n\nExample:\nif Opp% is high on DOWN days, the strategy is still trying to go long too often in bearish conditions.`
+            case 'OppAvg%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the average harm created by one opposite-direction decision inside that regime.\n\nHow to read it:\nthis field answers how expensive each wrong-side decision was on average, while OppSum% answers the total damage.\n\nExample:\nif OppAvg% is high on UP days, each short trade against rising market is costly even when such mistakes are not extremely frequent.`
+            case 'OppSum%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the total harm accumulated by opposite-direction decisions inside that regime.\n\nHow to read it:\nthis metric grows when wrong-side trades are either frequent, expensive, or both.\n\nExample:\nif OppSum% dominates only on FLAT days, the main directional damage of the strategy is concentrated in sideways market.`
+            case 'OppDir%':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of executed trades that directly opposed the factual day direction inside that regime.\n\nHow to read it:\nthis is a clean directional-mistake rate and should be judged together with OppDirDays to avoid overreading small samples.\n\nExample:\nif OppDir% is high on UP days with many OppDirDays, the strategy repeatedly shorts rising market.`
+            case 'OppDirDays':
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the raw day count behind opposite-direction trading in that regime.\n\nHow to read it:\nuse it as the scale check for OppDir%. A high share on only one or two days is much weaker than the same share over many days.\n\nExample:\nOppDirDays = 14 on DOWN days means there were 14 bearish days where the strategy still traded against the realized move.`
+            default:
+                return null
+        }
+    }
+
+    switch (metric) {
+        case 'Trades':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто сырой счётчик исполненных сделок внутри данного фактического режима рынка.\n\nКак читать:\nметрика отвечает на вопрос, где стратегия чаще всего активна, но сама по себе активность ещё не означает качество.\n\nПример:\nесли сделок много в боковике, а PnL% там слабый, стратегия активна в этом режиме, но зарабатывает плохо.`
+        case 'Win%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля прибыльных сделок внутри данного фактического режима дня.\n\nКак читать:\nWin% нужно смотреть вместе с PnL%, потому что высокая доля побед не спасает, если редкие убытки оказываются слишком тяжёлыми.\n\nПример:\nесли Win% на DOWN-днях нормальный, а PnL% всё равно отрицательный, редкие ошибки в этом режиме стоят слишком дорого.`
+        case 'PnL%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто суммарная доходность стратегии в данном фактическом режиме рынка, а не доходность самого рынка.\n\nКак читать:\nполе даёт прямой ответ, зарабатывает ли стратегия в этом режиме. Его нужно сопоставлять с Trades и Win%.\n\nПример:\nесли PnL% стабильно отрицателен в боковике, именно боковой рынок является структурной слабой зоной стратегии.`
+        case 'NoTrade%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля дней данного режима, где стратегия вообще не вошла в рынок.\n\nКак читать:\nвысокое значение означает, что стратегия в этом режиме чаще уходит в защиту или хуже находит входы.\n\nПример:\nесли NoTrade% резко растёт на UP-днях, система пропускает слишком много прибыльных трендовых дней.`
+        case 'Opp%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля решений, которые пошли против фактического направления дня внутри этого режима.\n\nКак читать:\nвысокое значение означает, что стратегия чаще торгует не в ту сторону именно в этом режиме. Поле нужно смотреть вместе с OppAvg% или OppSum%, чтобы понять, ошибки только частые или ещё и дорогие.\n\nПример:\nесли Opp% высокий на DOWN-днях, стратегия слишком часто идёт в LONG там, где рынок фактически падал.`
+        case 'OppAvg%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто средний вред одной сделки против направления дня внутри этого режима.\n\nКак читать:\nполе отвечает на вопрос, насколько дорогой была одна типичная wrong-side ошибка, тогда как OppSum% показывает общий ущерб.\n\nПример:\nесли OppAvg% высокий на UP-днях, каждый SHORT против растущего рынка обходится особенно дорого.`
+        case 'OppSum%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто суммарный вред от всех решений против направления дня внутри данного режима.\n\nКак читать:\nметрика растёт, когда ошибочных сделок становится больше, они становятся дороже или происходит и то и другое сразу.\n\nПример:\nесли OppSum% концентрируется в боковике, основной directional-вред стратегии сидит именно в нейтральном рынке.`
+        case 'OppDir%':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля исполненных сделок, которые прямо шли против фактического направления дня внутри режима.\n\nКак читать:\nэто чистая доля directional-ошибок, которую нужно оценивать вместе с OppDirDays, чтобы не переоценивать тонкую выборку.\n\nПример:\nесли OppDir% высок на UP-днях и OppDirDays тоже заметен, стратегия регулярно шортит растущий рынок.`
+        case 'OppDirDays':
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто сырой счётчик дней, на которых стратегия торговала против фактического движения рынка.\n\nКак читать:\nполе нужно как масштаб для OppDir%. Высокая доля на двух днях слабее, чем та же доля на большом числе дней.\n\nПример:\nOppDirDays = 14 на DOWN-днях означает, что было 14 нисходящих дней, где стратегия всё равно шла против рынка.`
+        default:
+            return null
+    }
 }
 
 function buildDiagnosticsGenericFallbackDescription(key: string, locale: ReportTooltipLocale): string {
@@ -1567,6 +1750,7 @@ function resolveDiagnosticsColumnTooltip(
         buildDiagnosticsDataAnomalyDescription(key, locale) ??
         buildDiagnosticsSpecificityDescription(key, locale, sectionTitle) ??
         buildDiagnosticsGuardrailDescription(key, locale) ??
+        buildDiagnosticsHotspotDescription(key, locale, sectionTitle) ??
         buildDiagnosticsAttributionDescription(key, locale)
 
     if (groupedDiagnosticsTooltip) {
@@ -1745,11 +1929,6 @@ function resolveDiagnosticsColumnTooltip(
     return buildDiagnosticsGenericFallbackDescription(key, locale)
 }
 
-function isCurrentPredictionObviousDescriptionColumn(columnTitle: string): boolean {
-    const normalized = normalizeKey(columnTitle).toLowerCase()
-    return normalized === 'description' || normalized === 'описание'
-}
-
 function normalizeTooltipRuntimeError(error: unknown): Error {
     return error instanceof Error ? error : new Error(String(error ?? 'Unknown report tooltip runtime error.'))
 }
@@ -1772,6 +1951,10 @@ function resolveReportColumnTooltipUnsafe(
         )
     }
 
+    if (reportKind === 'backtest_execution_pipeline') {
+        return resolveExecutionPipelineColumnTooltip(col, resolvedLocale) ?? commonTooltip
+    }
+
     if (reportKind === 'pfi_per_model') {
         return resolveLocalizedTooltip(PFI_COLUMNS, PFI_COLUMNS_EN, col, resolvedLocale)
     }
@@ -1781,10 +1964,6 @@ function resolveReportColumnTooltipUnsafe(
     }
 
     if (reportKind?.startsWith('current_prediction')) {
-        if (isCurrentPredictionObviousDescriptionColumn(col)) {
-            return null
-        }
-
         const localized = resolveLocalizedTooltip(
             CURRENT_PREDICTION_COLUMNS,
             CURRENT_PREDICTION_COLUMNS_EN,
@@ -1822,6 +2001,10 @@ function resolveReportKeyTooltipUnsafe(
 
     if (reportKind === 'backtest_summary') {
         return resolveLocalizedTooltip(BACKTEST_SUMMARY_KEYS, BACKTEST_SUMMARY_KEYS_EN, normalized, resolvedLocale)
+    }
+
+    if (reportKind === 'backtest_execution_pipeline') {
+        return resolveExecutionPipelineKeyTooltip(normalized, resolvedLocale)
     }
 
     if (reportKind?.startsWith('current_prediction')) {
