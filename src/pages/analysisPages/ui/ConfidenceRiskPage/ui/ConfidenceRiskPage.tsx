@@ -21,6 +21,12 @@ import {
     resolveBacktestConfidenceRiskScope,
     useBacktestConfidenceRiskReportQuery
 } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
+import {
+    buildPublishedReportVariantCompatibleOptions,
+    resolvePublishedReportVariantSelection,
+    usePublishedReportVariantCatalogQuery,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from '@/shared/api/tanstackQueries/reportVariants'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import cls from './ConfidenceRiskPage.module.scss'
@@ -85,13 +91,6 @@ const TERMS_CONFIG_TEMPLATES: readonly ConfidenceRiskTermTemplate[] = [
     { key: 'ExcludedDays', title: 'ExcludedDays' },
     { key: 'RecentDays', title: 'RecentDays' }
 ]
-
-const CONFIDENCE_SCOPE_TO_SPLIT: Record<CurrentPredictionTrainingScope, string> = {
-    full: 'FULL',
-    train: 'TRAIN',
-    oos: 'OOS',
-    recent: 'RECENT'
-}
 
 const DEFAULT_CONFIDENCE_SCOPE: CurrentPredictionTrainingScope = 'full'
 const DEFAULT_CONFIDENCE_BUCKET = 'all'
@@ -279,94 +278,6 @@ function resolveConfidenceRiskConfigTermDescription(key: string, locale: Confide
     }
 }
 
-function findColumnIndexByTitle(columns: string[], title: string): number {
-    const index = columns.findIndex(column => column.trim().toLowerCase() === title.trim().toLowerCase())
-    if (index < 0) {
-        throw new Error(`[confidence-risk] required column is missing: ${title}.`)
-    }
-
-    return index
-}
-
-function compareConfidenceBucketNames(left: string, right: string): number {
-    if (left === right) return 0
-    if (left === 'OUT_OF_RANGE') return 1
-    if (right === 'OUT_OF_RANGE') return -1
-
-    const leftMatch = /^B(\d{2})$/i.exec(left)
-    const rightMatch = /^B(\d{2})$/i.exec(right)
-
-    if (leftMatch && rightMatch) {
-        const leftValue = Number(leftMatch[1])
-        const rightValue = Number(rightMatch[1])
-        return leftValue - rightValue
-    }
-
-    return left.localeCompare(right, 'en-US', { sensitivity: 'base' })
-}
-
-function buildConfidenceBucketOptions(
-    sections: TableSectionDto[],
-    scope: CurrentPredictionTrainingScope,
-    allBucketsLabel: string
-): ConfidenceBucketOption[] {
-    if (!Array.isArray(sections) || sections.length === 0) {
-        throw new Error('[confidence-risk] table sections are missing for bucket options.')
-    }
-
-    const splitLabel = CONFIDENCE_SCOPE_TO_SPLIT[scope]
-    const uniqueBucketNames = new Set<string>()
-
-    sections.forEach(section => {
-        if (!Array.isArray(section.columns) || !Array.isArray(section.rows)) {
-            throw new Error('[confidence-risk] invalid table section while reading confidence buckets.')
-        }
-
-        const splitIndex = findColumnIndexByTitle(section.columns, 'Split')
-        const bucketIndex = findColumnIndexByTitle(section.columns, 'Bucket')
-
-        section.rows.forEach((row, rowIndex) => {
-            if (!Array.isArray(row)) {
-                throw new Error(
-                    `[confidence-risk] row is not an array while reading confidence buckets. rowIndex=${rowIndex}.`
-                )
-            }
-
-            const splitValue = row[splitIndex]?.trim().toUpperCase()
-            const bucketValue = row[bucketIndex]?.trim()
-
-            if (splitValue === splitLabel && bucketValue) {
-                uniqueBucketNames.add(bucketValue)
-            }
-        })
-    })
-
-    if (uniqueBucketNames.size === 0) {
-        throw new Error(`[confidence-risk] no rows found for selected scope: ${scope}.`)
-    }
-
-    const orderedBuckets = Array.from(uniqueBucketNames).sort(compareConfidenceBucketNames)
-
-    return [
-        { value: DEFAULT_CONFIDENCE_BUCKET, label: allBucketsLabel },
-        ...orderedBuckets.map(bucket => ({ value: bucket, label: bucket }))
-    ]
-}
-
-function resolveConfidenceBucketFromQuery(raw: string | null, options: ConfidenceBucketOption[]): string {
-    if (!raw) {
-        return DEFAULT_CONFIDENCE_BUCKET
-    }
-
-    const normalized = raw.trim()
-    const supported = options.some(option => option.value === normalized)
-    if (!supported) {
-        throw new Error(`[confidence-risk] invalid confidence bucket query value: ${raw}.`)
-    }
-
-    return normalized
-}
-
 function getTableTerm(title: string, tableTermMap: ReadonlyMap<string, ConfidenceRiskTerm>): ConfidenceRiskTerm {
     if (!title) {
         throw new Error('[confidence-risk] column title is empty.')
@@ -411,6 +322,9 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const [searchParams, setSearchParams] = useSearchParams()
     const rawScopeQuery = searchParams.get('scope')
     const rawConfidenceBucketQuery = searchParams.get('confBucket')
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(
+        PUBLISHED_REPORT_VARIANT_FAMILIES.backtestConfidenceRisk
+    )
     const scopeState = useMemo(() => {
         try {
             return {
@@ -425,25 +339,38 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         }
     }, [rawScopeQuery])
-    const canLoadConfidenceRiskReport = !scopeState.error
+    const variantResolutionState = useMemo(() => {
+        if (!variantCatalogQuery.data || scopeState.error) {
+            return {
+                value: null,
+                error: scopeState.error
+            }
+        }
+
+        try {
+            return {
+                value: resolvePublishedReportVariantSelection(variantCatalogQuery.data, {
+                    scope: rawScopeQuery,
+                    confBucket: rawConfidenceBucketQuery
+                }),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError =
+                err instanceof Error ? err : new Error('Failed to resolve confidence-risk report variant.')
+            return {
+                value: null,
+                error: safeError
+            }
+        }
+    }, [rawConfidenceBucketQuery, rawScopeQuery, scopeState.error, variantCatalogQuery.data])
+    const canLoadConfidenceRiskReport =
+        Boolean(variantCatalogQuery.data) && !variantCatalogQuery.isError && !variantResolutionState.error
     const { data, isLoading, isError, error, refetch } = useBacktestConfidenceRiskReportQuery(
         {
-            scope: canLoadConfidenceRiskReport ? scopeState.value : null,
-            confidenceBucket: rawConfidenceBucketQuery
-        },
-        {
-            enabled: canLoadConfidenceRiskReport
-        }
-    )
-    const {
-        data: optionsData,
-        isLoading: isOptionsLoading,
-        isError: isOptionsError,
-        error: optionsError
-    } = useBacktestConfidenceRiskReportQuery(
-        {
-            scope: canLoadConfidenceRiskReport ? scopeState.value : null,
-            confidenceBucket: null
+            scope: canLoadConfidenceRiskReport ? variantResolutionState.value?.selection.scope ?? null : null,
+            confidenceBucket:
+                canLoadConfidenceRiskReport ? variantResolutionState.value?.selection.confBucket ?? null : null
         },
         {
             enabled: canLoadConfidenceRiskReport
@@ -479,12 +406,18 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     )
 
     const tableSections = useMemo(() => buildTableSections(data?.sections ?? []), [data])
-    const optionsTableSections = useMemo(() => buildTableSections(optionsData?.sections ?? []), [optionsData])
     const keyValueSections = useMemo(() => buildKeyValueSections(data?.sections ?? []), [data])
+    const effectiveScope = useMemo(
+        () =>
+            variantResolutionState.value ?
+                resolveBacktestConfidenceRiskScope(variantResolutionState.value.selection.scope)
+            :   scopeState.value,
+        [scopeState.value, variantResolutionState.value]
+    )
     const scopeMetaState = useMemo(() => {
         try {
             return {
-                value: resolveCurrentPredictionTrainingScopeMeta(scopeState.value),
+                value: resolveCurrentPredictionTrainingScopeMeta(effectiveScope),
                 error: null as Error | null
             }
         } catch (err) {
@@ -495,7 +428,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: safeError
             }
         }
-    }, [scopeState.value])
+    }, [effectiveScope])
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -520,32 +453,44 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         }
 
-        // Bucket options строятся только после загрузки базового отчёта для выбранного scope.
-        if (!optionsData) {
+        if (variantCatalogQuery.isError) {
             return {
                 options: [] as ConfidenceBucketOption[],
-                error: null as Error | null
+                error: variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.')
+            }
+        }
+
+        if (!variantCatalogQuery.data || !variantResolutionState.value) {
+            return {
+                options: [] as ConfidenceBucketOption[],
+                error: variantResolutionState.error
             }
         }
 
         try {
             return {
-                options: buildConfidenceBucketOptions(
-                    optionsTableSections,
-                    scopeState.value,
-                    t('confidenceRisk.filters.allBuckets')
-                ),
+                options: buildPublishedReportVariantCompatibleOptions(
+                    variantCatalogQuery.data,
+                    variantResolutionState.value.selection,
+                    'confBucket'
+                ).map(option => ({
+                    value: option.value,
+                    label:
+                        option.value === DEFAULT_CONFIDENCE_BUCKET ? t('confidenceRisk.filters.allBuckets') : option.label
+                })),
                 error: null as Error | null
             }
         } catch (err) {
             const safeError =
-                err instanceof Error ? err : new Error('Failed to build confidence bucket options for selected scope.')
+                err instanceof Error ?
+                    err
+                :   new Error('Failed to build confidence bucket options for selected scope.')
             return {
                 options: [] as ConfidenceBucketOption[],
                 error: safeError
             }
         }
-    }, [optionsData, optionsTableSections, scopeState.error, scopeState.value, t])
+    }, [scopeState.error, t, variantCatalogQuery.data, variantCatalogQuery.error, variantCatalogQuery.isError, variantResolutionState.error, variantResolutionState.value])
 
     const confidenceBucketState = useMemo(() => {
         if (confidenceBucketOptionsState.error) {
@@ -555,19 +500,18 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             }
         }
 
-        try {
-            return {
-                value: resolveConfidenceBucketFromQuery(rawConfidenceBucketQuery, confidenceBucketOptionsState.options),
-                error: null as Error | null
-            }
-        } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence bucket query.')
+        if (!variantResolutionState.value) {
             return {
                 value: DEFAULT_CONFIDENCE_BUCKET,
-                error: safeError
+                error: variantResolutionState.error
             }
         }
-    }, [confidenceBucketOptionsState.error, confidenceBucketOptionsState.options, rawConfidenceBucketQuery])
+
+        return {
+            value: variantResolutionState.value.selection.confBucket,
+            error: null as Error | null
+        }
+    }, [confidenceBucketOptionsState.error, variantResolutionState.error, variantResolutionState.value])
 
     const configState = useMemo(() => {
         if (!data) {
@@ -622,13 +566,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
     const handleScopeChange = useCallback(
         (next: CurrentPredictionTrainingScope) => {
-            if (next === scopeState.value) return
+            if (next === effectiveScope) return
             const nextParams = new URLSearchParams(searchParams)
             nextParams.set('scope', next)
             nextParams.set('confBucket', DEFAULT_CONFIDENCE_BUCKET)
             setSearchParams(nextParams, { replace: true })
         },
-        [scopeState.value, searchParams, setSearchParams]
+        [effectiveScope, searchParams, setSearchParams]
     )
 
     const handleConfidenceBucketChange = useCallback(
@@ -640,6 +584,10 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         },
         [confidenceBucketState.value, searchParams, setSearchParams]
     )
+    const handleRetry = useCallback(() => {
+        void variantCatalogQuery.refetch()
+        void refetch()
+    }, [refetch, variantCatalogQuery])
 
     const controlGroups = useMemo(() => {
         if (scopeMetaState.error || !scopeMetaState.value || confidenceBucketOptionsState.error) {
@@ -648,7 +596,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
         return [
             buildTrainingScopeControlGroup({
-                value: scopeState.value,
+                value: effectiveScope,
                 onChange: handleScopeChange
             }),
             buildConfidenceBucketControlGroup({
@@ -662,19 +610,25 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         confidenceBucketOptionsState.options,
         confidenceBucketState.value,
         handleConfidenceBucketChange,
+        effectiveScope,
         handleScopeChange,
         scopeMetaState.error,
         scopeMetaState.value,
-        scopeState.value
     ])
     const controlsError =
         scopeState.error ??
+        variantResolutionState.error ??
         scopeMetaState.error ??
         confidenceBucketOptionsState.error ??
         confidenceBucketState.error ??
         null
-    const reportStateError = error ?? optionsError ?? generatedAtState.error ?? sourceEndpointState.error ?? null
-    const hasReadyReport = Boolean(data && optionsData && generatedAtState.value && sourceEndpointState.value)
+    const reportStateError =
+        error ??
+        (variantCatalogQuery.isError ? variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.') : null) ??
+        generatedAtState.error ??
+        sourceEndpointState.error ??
+        null
+    const hasReadyReport = Boolean(data && generatedAtState.value && sourceEndpointState.value)
 
     return (
         <div className={rootClassName}>
@@ -717,7 +671,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
                 {hasReadyReport && data && sourceEndpointState.value && (
                     <ReportActualStatusCard
-                        statusMode='debug'
+                        statusMode='actual'
                         statusTitle={t('confidenceRisk.page.status.title')}
                         statusMessage={t('confidenceRisk.page.status.message')}
                         dataSource={sourceEndpointState.value}
@@ -740,11 +694,11 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
             {!controlsError && (
                 <SectionDataState
-                    isLoading={isLoading || isOptionsLoading}
-                    isError={Boolean(isError || isOptionsError || reportStateError)}
+                    isLoading={variantCatalogQuery.isPending || isLoading}
+                    isError={Boolean(isError || reportStateError)}
                     error={reportStateError}
                     hasData={hasReadyReport}
-                    onRetry={refetch}
+                    onRetry={handleRetry}
                     title={
                         generatedAtState.error ? t('confidenceRisk.page.errors.invalidGeneratedAt.title')
                         : sourceEndpointState.error ?
@@ -760,15 +714,15 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                     loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                     logContext={{
                         source: 'confidence-risk-report',
-                        extra: { scope: scopeState.value, confBucket: rawConfidenceBucketQuery }
+                        extra: { scope: effectiveScope, confBucket: rawConfidenceBucketQuery }
                     }}>
-                    {data && optionsData && (
+                    {data && (
                         <>
                             <SectionDataState
                                 isError={Boolean(configState.error)}
                                 error={configState.error}
                                 hasData={!configState.error}
-                                onRetry={refetch}
+                                onRetry={handleRetry}
                                 title={t('confidenceRisk.page.errors.config.title')}
                                 description={t('confidenceRisk.page.errors.config.message')}
                                 logContext={{ source: 'confidence-risk-config' }}>

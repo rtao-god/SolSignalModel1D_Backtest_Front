@@ -12,6 +12,10 @@ import {
 } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
+import {
+    buildPublishedReportVariantCompatibleOptions,
+    resolvePublishedReportVariantSelection
+} from '@/shared/api/tanstackQueries/reportVariants'
 import cls from './ModelStatsPage.module.scss'
 import { ModelStatsTableCard } from './ModelStatsTableCard'
 import type {
@@ -34,10 +38,10 @@ function resolveModelStatsSegmentFromQuery(raw: string | null): SegmentKey {
     if (!raw) return DEFAULT_MODEL_STATS_SEGMENT
 
     const normalized = raw.trim().toLowerCase()
-    if (normalized === 'oos' || normalized === 'out_of_sample' || normalized === 'out-of-sample') return 'OOS'
+    if (normalized === 'oos') return 'OOS'
     if (normalized === 'recent') return 'RECENT'
     if (normalized === 'train') return 'TRAIN'
-    if (normalized === 'full' || normalized === 'full_history' || normalized === 'full-history') return 'FULL'
+    if (normalized === 'full') return 'FULL'
 
     throw new Error(`[model-stats] invalid segment query: ${raw}.`)
 }
@@ -67,10 +71,25 @@ function mapSegmentToApiValue(segment: SegmentKey): string {
     }
 }
 
+function mapApiSegmentToUiValue(segment: string): SegmentKey {
+    switch (segment.trim().toLowerCase()) {
+        case 'oos':
+            return 'OOS'
+        case 'recent':
+            return 'RECENT'
+        case 'train':
+            return 'TRAIN'
+        case 'full':
+            return 'FULL'
+        default:
+            throw new Error(`[model-stats] invalid catalog segment value: ${segment}.`)
+    }
+}
+
 export function ModelStatsPageInner({
     className,
     data,
-    freshness,
+    variantCatalog,
     isLoading,
     error,
     onRetry
@@ -96,7 +115,7 @@ export function ModelStatsPageInner({
     }, [allSections])
     const globalMeta = globalMetaState.value
 
-    const segmentState = useMemo(() => {
+    const rawSegmentState = useMemo(() => {
         try {
             return {
                 value: resolveModelStatsSegmentFromQuery(searchParams.get('segment')),
@@ -111,7 +130,7 @@ export function ModelStatsPageInner({
         }
     }, [searchParams])
 
-    const viewState = useMemo(() => {
+    const rawViewState = useMemo(() => {
         try {
             return {
                 value: resolveModelStatsViewFromQuery(searchParams.get('view')),
@@ -125,6 +144,51 @@ export function ModelStatsPageInner({
             }
         }
     }, [searchParams])
+
+    const variantSelectionState = useMemo(() => {
+        if (!variantCatalog || rawSegmentState.error || rawViewState.error) {
+            return {
+                segment: rawSegmentState.value,
+                view: rawViewState.value,
+                error: rawSegmentState.error ?? rawViewState.error
+            }
+        }
+
+        try {
+            const resolution = resolvePublishedReportVariantSelection(variantCatalog, {
+                segment: searchParams.get('segment'),
+                view: searchParams.get('view')
+            })
+
+            return {
+                segment: mapApiSegmentToUiValue(resolution.selection.segment),
+                view: resolveModelStatsViewFromQuery(resolution.selection.view),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to resolve model-stats variant.')
+            return {
+                segment: rawSegmentState.value,
+                view: rawViewState.value,
+                error: safeError
+            }
+        }
+    }, [rawSegmentState.error, rawSegmentState.value, rawViewState.error, rawViewState.value, searchParams, variantCatalog])
+
+    const segmentState = useMemo(
+        () => ({
+            value: variantSelectionState.segment,
+            error: rawSegmentState.error ?? variantSelectionState.error
+        }),
+        [rawSegmentState.error, variantSelectionState.error, variantSelectionState.segment]
+    )
+    const viewState = useMemo(
+        () => ({
+            value: variantSelectionState.view,
+            error: rawViewState.error ?? variantSelectionState.error
+        }),
+        [rawViewState.error, variantSelectionState.error, variantSelectionState.view]
+    )
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -142,6 +206,11 @@ export function ModelStatsPageInner({
     }, [])
 
     const tableSections = useMemo(() => allSections.filter(isTableSection), [allSections]) as TableSection[]
+    const keyValueSectionCount = useMemo(
+        () =>
+            allSections.filter(section => Array.isArray((section as { items?: unknown[] }).items)).length,
+        [allSections]
+    )
 
     const tableTermsState = useMemo(() => {
         try {
@@ -189,27 +258,58 @@ export function ModelStatsPageInner({
     )
 
     const controlGroups = useMemo(() => {
+        const compatibleSegments =
+            variantCatalog ?
+                buildPublishedReportVariantCompatibleOptions(
+                    variantCatalog,
+                    {
+                        segment: mapSegmentToApiValue(segmentState.value),
+                        view: viewState.value
+                    },
+                    'segment'
+                ).map(option => mapApiSegmentToUiValue(option.value))
+            :   null
+        const compatibleViews =
+            variantCatalog ?
+                buildPublishedReportVariantCompatibleOptions(
+                    variantCatalog,
+                    {
+                        segment: mapSegmentToApiValue(segmentState.value),
+                        view: viewState.value
+                    },
+                    'view'
+                ).map(option => option.value)
+            :   null
+
+        const segmentGroup = buildModelStatsSegmentControlGroup({
+            value: segmentState.value,
+            onChange: next => {
+                if (next === segmentState.value) return
+                const nextParams = new URLSearchParams(searchParams)
+                nextParams.set('segment', mapSegmentToApiValue(next))
+                setSearchParams(nextParams, { replace: true })
+            }
+        })
+        segmentGroup.options =
+            compatibleSegments ? segmentGroup.options.filter(option => compatibleSegments.includes(option.value)) : segmentGroup.options
+
+        const viewGroup = buildModelStatsViewControlGroup({
+            value: viewState.value,
+            onChange: next => {
+                if (next === viewState.value) return
+                const nextParams = new URLSearchParams(searchParams)
+                nextParams.set('view', next)
+                setSearchParams(nextParams, { replace: true })
+            }
+        })
+        viewGroup.options =
+            compatibleViews ? viewGroup.options.filter(option => compatibleViews.includes(option.value)) : viewGroup.options
+
         return [
-            buildModelStatsSegmentControlGroup({
-                value: segmentState.value,
-                onChange: next => {
-                    if (next === segmentState.value) return
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('segment', mapSegmentToApiValue(next))
-                    setSearchParams(nextParams, { replace: true })
-                }
-            }),
-            buildModelStatsViewControlGroup({
-                value: viewState.value,
-                onChange: next => {
-                    if (next === viewState.value) return
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('view', next)
-                    setSearchParams(nextParams, { replace: true })
-                }
-            })
+            segmentGroup,
+            viewGroup
         ]
-    }, [searchParams, segmentState.value, setSearchParams, viewState.value])
+    }, [searchParams, segmentState.value, setSearchParams, variantCatalog, viewState.value])
 
     const segmentDescription = currentSegmentMeta?.description ?? ''
 
@@ -269,13 +369,9 @@ export function ModelStatsPageInner({
 
                 {data && sourceEndpointState.value && (
                     <ReportActualStatusCard
-                        statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
-                        statusTitle={
-                            freshness?.sourceMode === 'actual' ?
-                                t('modelStats.inner.status.actualTitle')
-                            :   t('modelStats.inner.status.debugTitle')
-                        }
-                        statusMessage={freshness?.message ?? t('modelStats.inner.status.unavailableMessage')}
+                        statusMode='actual'
+                        statusTitle={t('modelStats.inner.status.publishedTitle')}
+                        statusMessage={t('modelStats.inner.status.publishedMessage')}
                         dataSource={sourceEndpointState.value}
                         reportTitle={data.title}
                         reportId={data.id}
@@ -305,47 +401,15 @@ export function ModelStatsPageInner({
                                         value: `${globalMeta.trainRecordsCount} / ${globalMeta.recentRecordsCount} (${globalMeta.recentDays} d)`
                                     }
                                 ]
-                            :   []
-                            )
-                                .concat(
-                                    (
-                                        freshness?.canonicalSegmentCount !== null &&
-                                            freshness?.canonicalSegmentCount !== undefined
-                                    ) ?
-                                        [
-                                            {
-                                                label: t('modelStats.inner.statusLines.canonicalSegments'),
-                                                value: String(freshness.canonicalSegmentCount)
-                                            }
-                                        ]
-                                    :   []
-                                )
-                                .concat(
-                                    (
-                                        freshness?.keyValueSectionCount !== null &&
-                                            freshness?.keyValueSectionCount !== undefined
-                                    ) ?
-                                        [
-                                            {
-                                                label: t('modelStats.inner.statusLines.keyValueSections'),
-                                                value: String(freshness.keyValueSectionCount)
-                                            }
-                                        ]
-                                    :   []
-                                )
-                                .concat(
-                                    (
-                                        freshness?.tableSectionCount !== null &&
-                                            freshness?.tableSectionCount !== undefined
-                                    ) ?
-                                        [
-                                            {
-                                                label: t('modelStats.inner.statusLines.tableSections'),
-                                                value: String(freshness.tableSectionCount)
-                                            }
-                                        ]
-                                    :   []
-                                )
+                            :   []),
+                            {
+                                label: t('modelStats.inner.statusLines.keyValueSections'),
+                                value: String(keyValueSectionCount)
+                            },
+                            {
+                                label: t('modelStats.inner.statusLines.tableSections'),
+                                value: String(tableSections.length)
+                            }
                         ]}
                     />
                 )}

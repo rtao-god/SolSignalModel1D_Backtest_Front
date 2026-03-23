@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
@@ -31,13 +31,19 @@ import {
 } from '@/shared/ui/TermTooltip'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import {
-    buildPolicyBranchMegaEvaluationQueryKey,
+    DEFAULT_POLICY_BRANCH_MEGA_BUCKET_MODE,
+    DEFAULT_POLICY_BRANCH_MEGA_METRIC_MODE,
+    DEFAULT_POLICY_BRANCH_MEGA_SL_MODE,
+    DEFAULT_POLICY_BRANCH_MEGA_TOTAL_BUCKET_VIEW,
+    DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE,
+    DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE,
     buildPolicyBranchMegaQueryKey,
-    fetchPolicyBranchMegaEvaluationMap,
     fetchPolicyBranchMegaReport,
+    POLICY_BRANCH_MEGA_CANONICAL_PARTS,
     POLICY_BRANCH_MEGA_GC_TIME_MS,
     POLICY_BRANCH_MEGA_STALE_TIME_MS,
-    usePolicyBranchMegaReportWithFreshnessQuery
+    usePolicyBranchMegaReportQuery,
+    usePolicyBranchMegaValidationQuery
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     buildPolicyBranchMegaTermReferencesForColumns,
@@ -72,17 +78,13 @@ import {
     type PolicyBranchMegaTpSlMode,
     type PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
-import {
-    DEFAULT_REPORT_BUCKET_MODE,
-    DEFAULT_REPORT_TOTAL_BUCKET_VIEW,
-    DEFAULT_REPORT_METRIC_MODE,
-    DEFAULT_REPORT_SL_MODE,
-    DEFAULT_REPORT_TP_SL_MODE,
-    DEFAULT_REPORT_ZONAL_MODE
-} from '@/shared/utils/reportViewCapabilities'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
-import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/ui/ReportTableTermsBlock'
+import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/model/reportTableTermsBlock'
 import { buildBacktestDiagnosticsSearchFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
+import {
+    normalizePolicyBranchMegaProfitColumns,
+    resolvePolicyBranchMegaPrimaryProfitColumn
+} from '@/shared/utils/policyBranchMegaProfitColumns'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
 import PolicyBranchMegaChartExplorer from './PolicyBranchMegaChartExplorer'
@@ -160,6 +162,7 @@ const MEGA_CANONICAL_COLUMNS_BY_PART = new Map<number, readonly string[]>([
         [
             'Policy',
             'Branch',
+            'TotalPnl%',
             'Wealth%',
             'OnExch%',
             'TotalPnl$',
@@ -170,6 +173,7 @@ const MEGA_CANONICAL_COLUMNS_BY_PART = new Map<number, readonly string[]>([
             'MaxDD%',
             'MaxDD_NoLiq%',
             'MaxDD_Active% / Days',
+            'MaxDD_Ratio%',
             'Sharpe',
             'Sortino',
             'Calmar',
@@ -220,6 +224,7 @@ const MEGA_CANONICAL_COLUMNS_BY_PART = new Map<number, readonly string[]>([
             'Policy',
             'Branch',
             'HadLiq',
+            'RealLiq',
             'RealLiq#',
             'RealLiqLoss$',
             'RealLiqLoss%',
@@ -365,6 +370,75 @@ function buildMegaRowKey(policy: string, branch: string, slModeLabel: string | n
     }
 
     return `${policy}${MEGA_ROW_KEY_SEPARATOR}${branch}${MEGA_ROW_KEY_SEPARATOR}${slModeLabel}`
+}
+
+function buildPolicySetupDetailPath(setupId: string): string {
+    return `${ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUPS]}/${encodeURIComponent(setupId)}`
+}
+
+type PolicySetupCellIssueCode =
+    | 'row-key-missing'
+    | 'evaluation-map-error'
+    | 'row-evaluation-missing'
+    | 'setup-id-missing'
+
+function resolvePolicySetupCellIssueTranslationKey(issueCode: PolicySetupCellIssueCode): string {
+    switch (issueCode) {
+        case 'row-key-missing':
+            return 'policyBranchMega.page.table.policySetupLinkErrors.rowKeyMissing'
+        case 'evaluation-map-error':
+            return 'policyBranchMega.page.table.policySetupLinkErrors.evaluationMapError'
+        case 'row-evaluation-missing':
+            return 'policyBranchMega.page.table.policySetupLinkErrors.rowEvaluationMissing'
+        case 'setup-id-missing':
+            return 'policyBranchMega.page.table.policySetupLinkErrors.setupIdMissing'
+        default:
+            throw new Error(`[policy-branch-mega] unsupported policy setup issue code: ${issueCode satisfies never}`)
+    }
+}
+
+interface PolicySetupCellState {
+    detailPath: string | null
+    issueCode: PolicySetupCellIssueCode | null
+}
+
+function resolvePolicySetupCellStateForMegaRow(args: {
+    row: readonly unknown[] | null | undefined
+    columns: readonly string[]
+    rowEvaluationMap: PolicyRowEvaluationMapDto['rows'] | undefined
+    evaluationMapReady: boolean
+}): PolicySetupCellState {
+    const { row, columns, rowEvaluationMap } = args
+    if (!row || columns.length === 0) {
+        return { detailPath: null, issueCode: 'row-key-missing' }
+    }
+
+    // Owner-id приходит из backend row-evaluation для той же строки mega-таблицы,
+    // поэтому UI не восстанавливает setup по display-колонкам и отдельному catalog query.
+    const rowKey = resolveMegaRenderedRowKey(row, columns)
+    if (!rowKey) {
+        return { detailPath: null, issueCode: 'row-key-missing' }
+    }
+
+    if (!args.evaluationMapReady) {
+        return { detailPath: null, issueCode: null }
+    }
+
+    if (!rowEvaluationMap) {
+        return { detailPath: null, issueCode: 'evaluation-map-error' }
+    }
+
+    const evaluation = rowEvaluationMap[rowKey]
+    if (!evaluation) {
+        return { detailPath: null, issueCode: 'row-evaluation-missing' }
+    }
+
+    const setupId = evaluation.policySetupId ?? null
+    if (!setupId) {
+        return { detailPath: null, issueCode: 'setup-id-missing' }
+    }
+
+    return { detailPath: buildPolicySetupDetailPath(setupId), issueCode: null }
 }
 
 function resolveMegaRenderedRowKey(
@@ -836,7 +910,8 @@ function applyNoDataMarkersToMegaSections(sections: TableSectionDto[], noDataLab
         const policyIdx = columns.indexOf('Policy')
         const branchIdx = columns.indexOf('Branch')
         const totalTradesIdx = columns.indexOf('Tr')
-        const resultPctIdx = columns.indexOf('Wealth%')
+        const primaryProfitColumn = resolvePolicyBranchMegaPrimaryProfitColumn(columns)
+        const resultPctIdx = primaryProfitColumn ? columns.indexOf(primaryProfitColumn) : -1
         const dynTradesIdx = columns.indexOf('DynTP / SL Tr')
         const dynPnlIdx = columns.indexOf('DynTP / SL PnL%')
         const statTradesIdx = columns.indexOf('StatTP / SL Tr')
@@ -871,7 +946,7 @@ function applyNoDataMarkersToMegaSections(sections: TableSectionDto[], noDataLab
                     nextRow[resultPctIdx] = noDataLabel
                 } else {
                     throw new Error(
-                        `[policy-branch-mega] wealth result must be zero/empty when trades are absent. section=${section.title ?? 'n/a'}, row=${rowIndex}, policy=${policy}, branch=${branch}, value=${nextRow[resultPctIdx]}.`
+                        `[policy-branch-mega] primary profit result must be zero/empty when trades are absent. section=${section.title ?? 'n/a'}, row=${rowIndex}, policy=${policy}, branch=${branch}, column=${primaryProfitColumn}, value=${nextRow[resultPctIdx]}.`
                     )
                 }
             }
@@ -999,7 +1074,8 @@ function buildPreparedPolicyBranchMegaSectionEntries(
 ): PolicyBranchMegaPreparedSectionEntry[] {
     const tableSections = buildTableSections(sectionsSource)
     const orderedSections = orderPolicyBranchMegaSections(tableSections)
-    const noDataAwareSections = applyNoDataMarkersToMegaSections(orderedSections, noDataLabel)
+    const profitNormalizedSections = normalizePolicyBranchMegaProfitColumns(orderedSections)
+    const noDataAwareSections = applyNoDataMarkersToMegaSections(profitNormalizedSections, noDataLabel)
     const mergedSections =
         isSeparateAllBucketsSelection ?
             mergePolicyBranchMegaSectionsByBucketAndPart(noDataAwareSections, slMode)
@@ -1023,21 +1099,20 @@ function buildPreparedPolicyBranchMegaSectionEntries(
 export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
     const { t, i18n } = useTranslation('reports')
     const location = useLocation()
-    const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
-    const [requestedTableMaxPart, setRequestedTableMaxPart] = useState(1)
+    const [dismissedValidationKey, setDismissedValidationKey] = useState<string | null>(null)
 
     const bucketState = useMemo(() => {
         try {
             const bucket = resolvePolicyBranchMegaBucketFromQuery(
                 searchParams.get('bucket'),
-                DEFAULT_REPORT_BUCKET_MODE
+                DEFAULT_POLICY_BRANCH_MEGA_BUCKET_MODE
             )
             return { value: bucket, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega bucket query.')
-            return { value: DEFAULT_REPORT_BUCKET_MODE, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_BUCKET_MODE, error: safeError }
         }
     }, [searchParams])
 
@@ -1045,13 +1120,13 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         try {
             const bucketView = resolvePolicyBranchMegaTotalBucketViewFromQuery(
                 searchParams.get('bucketview'),
-                DEFAULT_REPORT_TOTAL_BUCKET_VIEW
+                DEFAULT_POLICY_BRANCH_MEGA_TOTAL_BUCKET_VIEW
             )
             return { value: bucketView, error: null as Error | null }
         } catch (err) {
             const safeError =
                 err instanceof Error ? err : new Error('Failed to parse policy branch mega bucketview query.')
-            return { value: DEFAULT_REPORT_TOTAL_BUCKET_VIEW, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_TOTAL_BUCKET_VIEW, error: safeError }
         }
     }, [searchParams])
 
@@ -1059,42 +1134,51 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         try {
             const metric = resolvePolicyBranchMegaMetricFromQuery(
                 searchParams.get('metric'),
-                DEFAULT_REPORT_METRIC_MODE
+                DEFAULT_POLICY_BRANCH_MEGA_METRIC_MODE
             )
             return { value: metric, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega metric query.')
-            return { value: DEFAULT_REPORT_METRIC_MODE, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_METRIC_MODE, error: safeError }
         }
     }, [searchParams])
 
     const tpSlState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(searchParams.get('tpsl'), DEFAULT_REPORT_TP_SL_MODE)
+            const mode = resolvePolicyBranchMegaTpSlModeFromQuery(
+                searchParams.get('tpsl'),
+                DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE
+            )
             return { value: mode, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega tpsl query.')
-            return { value: DEFAULT_REPORT_TP_SL_MODE, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE, error: safeError }
         }
     }, [searchParams])
 
     const slModeState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaSlModeFromQuery(searchParams.get('slmode'), DEFAULT_REPORT_SL_MODE)
+            const mode = resolvePolicyBranchMegaSlModeFromQuery(
+                searchParams.get('slmode'),
+                DEFAULT_POLICY_BRANCH_MEGA_SL_MODE
+            )
             return { value: mode, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega slmode query.')
-            return { value: DEFAULT_REPORT_SL_MODE, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_SL_MODE, error: safeError }
         }
     }, [searchParams])
 
     const zonalState = useMemo(() => {
         try {
-            const mode = resolvePolicyBranchMegaZonalModeFromQuery(searchParams.get('zonal'), DEFAULT_REPORT_ZONAL_MODE)
+            const mode = resolvePolicyBranchMegaZonalModeFromQuery(
+                searchParams.get('zonal'),
+                DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE
+            )
             return { value: mode, error: null as Error | null }
         } catch (err) {
             const safeError = err instanceof Error ? err : new Error('Failed to parse policy branch mega zonal query.')
-            return { value: DEFAULT_REPORT_ZONAL_MODE, error: safeError }
+            return { value: DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE, error: safeError }
         }
     }, [searchParams])
 
@@ -1116,17 +1200,18 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             zonalState.value
         ]
     )
-    const initialPolicyBranchMegaArgs = useMemo(
+    const requestedAnchorTarget = useMemo(() => resolvePolicyBranchMegaAnchorTarget(location.hash), [location.hash])
+    const activePartRequest = requestedAnchorTarget?.part ?? 1
+    const activePolicyBranchMegaArgs = useMemo(
         () => ({
             ...policyBranchMegaBaseArgs,
-            part: 1
+            part: activePartRequest
         }),
-        [policyBranchMegaBaseArgs]
+        [activePartRequest, policyBranchMegaBaseArgs]
     )
-    const { data, isLoading, isError, error, refetch } =
-        usePolicyBranchMegaReportWithFreshnessQuery(initialPolicyBranchMegaArgs)
+    const { data, isLoading, isError, error, refetch } = usePolicyBranchMegaReportQuery(activePolicyBranchMegaArgs)
     const primaryReport = data?.report ?? null
-    const freshness = data?.freshness ?? null
+    const primaryEvaluationRows = data?.evaluation?.rows ?? null
     const reportCapabilities = data?.capabilities ?? null
     const resolvedQuery = data?.resolvedQuery ?? null
     const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
@@ -1157,7 +1242,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     const effectiveDisplayMode = isChartSupported ? displayMode : 'table'
     const normalizedAvailableParts = useMemo(
         () =>
-            Array.from(new Set(reportCapabilities?.availableParts ?? []))
+            Array.from(new Set(reportCapabilities?.availableParts ?? [...POLICY_BRANCH_MEGA_CANONICAL_PARTS]))
                 .filter(part => Number.isInteger(part) && part > 0)
                 .sort((a, b) => a - b),
         [reportCapabilities?.availableParts]
@@ -1199,19 +1284,60 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             effectiveSelection.zonalMode
         ]
     )
-    const requestedAnchorTarget = useMemo(() => resolvePolicyBranchMegaAnchorTarget(location.hash), [location.hash])
     const activePart = useMemo(() => {
-        if (normalizedAvailableParts.length === 0) {
-            return 1
+        if (typeof resolvedQuery?.part === 'number' && resolvedQuery.part > 0) {
+            return resolvedQuery.part
         }
 
-        const requestedPart = requestedAnchorTarget?.part
-        if (requestedPart && normalizedAvailableParts.includes(requestedPart)) {
-            return requestedPart
+        if (normalizedAvailableParts.length === 0) {
+            return activePartRequest
         }
 
         return normalizedAvailableParts[0]
-    }, [normalizedAvailableParts, requestedAnchorTarget])
+    }, [activePartRequest, normalizedAvailableParts, resolvedQuery?.part])
+    const validationQueryArgs = useMemo(
+        () => ({
+            ...effectiveQueryArgsBase,
+            // Фоновая сверка проверяет только реально открытую часть, а не всю комбинацию целиком.
+            part: activePart
+        }),
+        [activePart, effectiveQueryArgsBase]
+    )
+    const { data: validationStatus } = usePolicyBranchMegaValidationQuery(validationQueryArgs, {
+        enabled: Boolean(primaryReport)
+    })
+    const validationAlertState = useMemo(() => {
+        if (!validationStatus) {
+            return null
+        }
+
+        if (validationStatus.state !== 'mismatch' && validationStatus.state !== 'error') {
+            return null
+        }
+
+        const alertKey = [
+            validationStatus.state,
+            validationStatus.selectionKey,
+            validationStatus.policyBranchMegaId ?? '',
+            validationStatus.diagnosticsId ?? '',
+            validationStatus.message
+        ].join('|')
+
+        return {
+            key: alertKey,
+            title:
+                validationStatus.state === 'mismatch' ?
+                    t('policyBranchMega.page.validation.mismatchTitle')
+                :   t('policyBranchMega.page.validation.errorTitle'),
+            description:
+                validationStatus.state === 'mismatch' ?
+                    t('policyBranchMega.page.validation.mismatchMessage')
+                :   t('policyBranchMega.page.validation.errorMessage'),
+            detail: validationStatus.state === 'error' ? validationStatus.message : null
+        }
+    }, [t, validationStatus])
+    const isValidationAlertDismissed =
+        validationAlertState !== null && dismissedValidationKey === validationAlertState.key
     const activeBucketForSection = useMemo(() => {
         if (!isSeparateAllBucketsSelection) {
             return null
@@ -1233,35 +1359,21 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         [activeBucketForSection, activePart, activeSectionKind]
     )
 
-    useEffect(() => {
-        setRequestedTableMaxPart(1)
-    }, [effectiveSelectionKey])
-
-    useEffect(() => {
-        if (effectiveDisplayMode !== 'table' || normalizedAvailableParts.length === 0) {
-            return
-        }
-
-        if (!normalizedAvailableParts.includes(activePart)) {
-            return
-        }
-
-        setRequestedTableMaxPart(prev => (prev >= activePart ? prev : activePart))
-    }, [activePart, effectiveDisplayMode, normalizedAvailableParts])
-
     const requestedPartNumbers = useMemo(() => {
         if (normalizedAvailableParts.length === 0) {
-            return [1]
+            return [activePart]
         }
 
         if (effectiveDisplayMode === 'chart') {
             return normalizedAvailableParts
         }
 
-        const requestedPrefix = normalizedAvailableParts.filter(part => part <= requestedTableMaxPart)
-        return requestedPrefix.length > 0 ? requestedPrefix : [normalizedAvailableParts[0]!]
-    }, [effectiveDisplayMode, normalizedAvailableParts, requestedTableMaxPart])
-    const extraPartNumbers = useMemo(() => requestedPartNumbers.filter(part => part !== 1), [requestedPartNumbers])
+        return normalizedAvailableParts.includes(activePart) ? [activePart] : [normalizedAvailableParts[0]!]
+    }, [activePart, effectiveDisplayMode, normalizedAvailableParts])
+    const extraPartNumbers = useMemo(
+        () => requestedPartNumbers.filter(part => part !== activePart),
+        [activePart, requestedPartNumbers]
+    )
     const extraPartQueries = useQueries({
         queries: extraPartNumbers.map(part => {
             const nextArgs = {
@@ -1272,7 +1384,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             return {
                 queryKey: buildPolicyBranchMegaQueryKey(nextArgs),
                 queryFn: () => fetchPolicyBranchMegaReport(nextArgs),
-                enabled: normalizedAvailableParts.includes(part),
+                enabled: effectiveDisplayMode === 'chart' && normalizedAvailableParts.includes(part),
                 retry: false,
                 staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
                 gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
@@ -1285,11 +1397,11 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         const reports: Array<{ part: number; report: typeof primaryReport }> = []
         const partStates = new Map<number, { isLoading: boolean; error: Error | null }>()
 
-        partStates.set(1, { isLoading: isLoading && !primaryReport, error: null })
+        partStates.set(activePart, { isLoading: isLoading && !primaryReport, error: null })
 
         if (primaryReport) {
-            reports.push({ part: 1, report: primaryReport })
-            partStates.set(1, { isLoading: false, error: null })
+            reports.push({ part: activePart, report: primaryReport })
+            partStates.set(activePart, { isLoading: false, error: null })
         }
 
         extraPartNumbers.forEach((part, index) => {
@@ -1314,41 +1426,28 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 effectiveDisplayMode === 'chart' &&
                 (isLoading || extraPartQueries.some(query => query.isLoading || query.isFetching))
         }
-    }, [effectiveDisplayMode, extraPartNumbers, extraPartQueries, isLoading, primaryReport])
-
-    const evaluationQueries = useQueries({
-        queries: requestedPartNumbers.map(part => {
-            const nextArgs = {
-                ...effectiveQueryArgsBase,
-                part
-            }
-
-            return {
-                queryKey: buildPolicyBranchMegaEvaluationQueryKey(nextArgs),
-                queryFn: () => fetchPolicyBranchMegaEvaluationMap(nextArgs),
-                enabled:
-                    effectiveDisplayMode === 'table' &&
-                    loadedPartReportsState.reports.some(item => item.part === part),
-                retry: false,
-                staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
-                gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
-                refetchOnWindowFocus: false
-            }
-        })
-    })
+    }, [activePart, effectiveDisplayMode, extraPartNumbers, extraPartQueries, isLoading, primaryReport])
 
     const rowEvaluationMapsByPart = useMemo(() => {
         const maps = new Map<number, PolicyRowEvaluationMapDto['rows']>()
-
-        requestedPartNumbers.forEach((part, index) => {
-            const rows = evaluationQueries[index]?.data?.rows
-            if (rows) {
-                maps.set(part, rows)
-            }
-        })
+        if (primaryEvaluationRows) {
+            maps.set(activePart, primaryEvaluationRows)
+        }
 
         return maps
-    }, [evaluationQueries, requestedPartNumbers])
+    }, [activePart, primaryEvaluationRows])
+    const rowEvaluationStatesByPart = useMemo(() => {
+        const states = new Map<number, { ready: boolean; error: Error | null }>()
+        states.set(activePart, {
+            ready: Boolean(primaryEvaluationRows),
+            error:
+                primaryReport && !isLoading && !primaryEvaluationRows ?
+                    new Error('[policy-branch-mega] published evaluation map is missing for the active part.')
+                :   null
+        })
+
+        return states
+    }, [activePart, isLoading, primaryEvaluationRows, primaryReport])
 
     useEffect(() => {
         if (!resolvedQuery) {
@@ -1647,40 +1746,6 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         return buildPolicyBranchMegaSectionTermsStateMap(tableRenderedSectionsState.entries)
     }, [tableRenderedSectionsState.entries])
 
-    const isActivePartReadyForNextPrefetch = useMemo(() => {
-        if (effectiveDisplayMode !== 'table') {
-            return false
-        }
-
-        const activeEntries = tableRenderedSectionsState.entries.filter(entry => entry.part === activePart)
-        if (activeEntries.length === 0) {
-            return false
-        }
-
-        return activeEntries.every(entry => {
-            const termsState = sectionTermsStateByKey.get(entry.key)
-
-            return Boolean(entry.section) && !entry.isLoading && !entry.error && !termsState?.error
-        })
-    }, [activePart, effectiveDisplayMode, sectionTermsStateByKey, tableRenderedSectionsState.entries])
-
-    useEffect(() => {
-        if (
-            effectiveDisplayMode !== 'table' ||
-            !isActivePartReadyForNextPrefetch ||
-            normalizedAvailableParts.length === 0
-        ) {
-            return
-        }
-
-        const nextPart = normalizedAvailableParts.find(part => part > activePart)
-        if (!nextPart) {
-            return
-        }
-
-        setRequestedTableMaxPart(prev => (prev >= nextPart ? prev : nextPart))
-    }, [activePart, effectiveDisplayMode, isActivePartReadyForNextPrefetch, normalizedAvailableParts])
-
     const pageTabs = useMemo(() => {
         if (effectiveDisplayMode !== 'table') {
             return []
@@ -1688,7 +1753,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
         if (normalizedAvailableParts.length > 0) {
             return buildPolicyBranchMegaTabsFromAvailableParts(
-                requestedPartNumbers,
+                normalizedAvailableParts,
                 effectiveSelection.bucket,
                 effectiveSelection.bucketView
             )
@@ -1702,33 +1767,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         effectiveSelection.bucket,
         effectiveSelection.bucketView,
         normalizedAvailableParts.length,
-        requestedPartNumbers,
+        normalizedAvailableParts,
         tableRenderedSectionsState.entries
     ])
 
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: pageTabs,
-        syncHash: true
+        syncHash: true,
+        canonicalAnchor: requestedAnchorTarget ? activeAnchor : null
     })
-
-    useEffect(() => {
-        const currentHash = location.hash.replace('#', '')
-        if (!currentHash || !requestedAnchorTarget || currentHash === activeAnchor) {
-            return
-        }
-
-        navigate(
-            {
-                pathname: location.pathname,
-                search: location.search,
-                hash: `#${activeAnchor}`
-            },
-            {
-                replace: true,
-                preventScrollReset: true
-            }
-        )
-    }, [activeAnchor, location.hash, location.pathname, location.search, navigate, requestedAnchorTarget])
 
     const generatedAtState = useMemo(() => {
         if (!primaryReport) return { value: null as Date | null, error: null as Error | null }
@@ -1817,6 +1864,8 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 searchParams,
                 isSeparateAllBucketsSelection ? sectionBucket : null
             )
+            const rowEvaluationMap = rowEvaluationMapsByPart.get(entry.part)
+            const rowEvaluationState = rowEvaluationStatesByPart.get(entry.part)
             const diagnosticsTitle =
                 isSeparateAllBucketsSelection && sectionBucketLabel ?
                     `${t('policyBranchMega.page.part2Diagnostics.title')} · ${sectionBucketLabel}`
@@ -1924,8 +1973,56 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                     rows={section.rows ?? []}
                                     domId={`${tableDomId}-table`}
                                     renderColumnTitle={renderColumnTitle}
-                                    rowEvaluationMap={rowEvaluationMapsByPart.get(entry.part)}
+                                    rowEvaluationMap={rowEvaluationMap}
                                     getRowKey={row => resolveMegaRenderedRowKey(row, section.columns ?? [])}
+                                    renderCellOverride={(value, rowIndex, _colIdx, columnTitle) => {
+                                        if (columnTitle !== 'Policy' || typeof value !== 'string') {
+                                            return null
+                                        }
+
+                                        const cellState = resolvePolicySetupCellStateForMegaRow({
+                                            row: section.rows?.[rowIndex],
+                                            columns: section.columns ?? [],
+                                            rowEvaluationMap,
+                                            evaluationMapReady: rowEvaluationState?.ready ?? false
+                                        })
+
+                                        if (cellState.detailPath) {
+                                            // Переход идёт по setupId из backend row-evaluation,
+                                            // а не по фронтовому восстановлению identity из витринных колонок.
+                                            return (
+                                                <Link to={cellState.detailPath} className={cls.policySetupLink}>
+                                                    {value}
+                                                </Link>
+                                            )
+                                        }
+
+                                        const issueCode =
+                                            rowEvaluationState?.error ? 'evaluation-map-error' : cellState.issueCode
+                                        if (!issueCode) {
+                                            return null
+                                        }
+
+                                        const issueLabel = t(resolvePolicySetupCellIssueTranslationKey(issueCode))
+                                        const issueDetails =
+                                            issueCode === 'evaluation-map-error' ?
+                                                rowEvaluationState?.error?.message ?? issueLabel
+                                            :   issueLabel
+
+                                        return (
+                                            <span
+                                                className={cls.policySetupUnavailable}
+                                                title={`${t('policyBranchMega.page.table.policySetupUnavailable')}: ${issueDetails}`}>
+                                                <span>{value}</span>
+                                                <span className={cls.policySetupUnavailableBadge}>
+                                                    {t('policyBranchMega.page.table.policySetupUnavailable')}
+                                                </span>
+                                                <span className={cls.policySetupUnavailableReason}>
+                                                    {issueDetails}
+                                                </span>
+                                            </span>
+                                        )
+                                    }}
                                     virtualizeRows
                                     tableMaxHeight='min(72vh, 960px)'
                                 />}
@@ -1980,6 +2077,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             refetch,
             renderColumnTitle,
             rowEvaluationMapsByPart,
+            rowEvaluationStatesByPart,
             searchParams,
             sectionTermsStateByKey,
             t,
@@ -1993,7 +2091,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             const nextParams = new URLSearchParams(searchParams)
             nextParams.set('bucket', next)
             if (next === 'total') {
-                nextParams.set('bucketview', DEFAULT_REPORT_TOTAL_BUCKET_VIEW)
+                nextParams.set('bucketview', DEFAULT_POLICY_BRANCH_MEGA_TOTAL_BUCKET_VIEW)
             } else {
                 nextParams.delete('bucketview')
             }
@@ -2327,55 +2425,14 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
             {primaryReport && sourceEndpointState.value && generatedAtState.value && (
                 <ReportActualStatusCard
-                    statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
-                    statusTitle={
-                        freshness?.sourceMode === 'actual' ?
-                            t('policyBranchMega.page.status.actualTitle')
-                        :   t('policyBranchMega.page.status.debugTitle')
-                    }
-                    statusMessage={freshness?.message}
-                    statusLagMinutes={
-                        freshness?.lagSeconds && freshness.lagSeconds > 0 ? freshness.lagSeconds / 60 : null
-                    }
+                    statusMode='actual'
+                    statusTitle={t('policyBranchMega.page.status.publishedTitle')}
+                    statusMessage={t('policyBranchMega.page.status.publishedMessage')}
                     dataSource={sourceEndpointState.value}
                     reportTitle={primaryReport.title}
                     reportId={primaryReport.id}
                     reportKind={primaryReport.kind}
                     generatedAtUtc={primaryReport.generatedAtUtc}
-                    statusLines={[
-                        ...(freshness?.policyBranchMegaId ?
-                            [
-                                {
-                                    label: t('policyBranchMega.page.statusLines.policyBranchMegaId'),
-                                    value: freshness.policyBranchMegaId
-                                }
-                            ]
-                        :   []),
-                        ...(freshness?.diagnosticsId ?
-                            [
-                                {
-                                    label: t('policyBranchMega.page.statusLines.diagnosticsId'),
-                                    value: freshness.diagnosticsId
-                                }
-                            ]
-                        :   []),
-                        ...(freshness?.policyBranchMegaGeneratedAtUtc ?
-                            [
-                                {
-                                    label: t('policyBranchMega.page.statusLines.policyBranchMegaGeneratedAt'),
-                                    value: freshness.policyBranchMegaGeneratedAtUtc
-                                }
-                            ]
-                        :   []),
-                        ...(freshness?.diagnosticsGeneratedAtUtc ?
-                            [
-                                {
-                                    label: t('policyBranchMega.page.statusLines.diagnosticsGeneratedAt'),
-                                    value: freshness.diagnosticsGeneratedAtUtc
-                                }
-                            ]
-                        :   [])
-                    ]}
                 />
             )}
         </header>
@@ -2384,6 +2441,26 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     return (
         <div className={rootClassName}>
             {renderHeader()}
+
+            {validationAlertState && !isValidationAlertDismissed && (
+                <section className={cls.validationAlert} role='alert' aria-live='polite'>
+                    <div className={cls.validationAlertHeader}>
+                        <Text type='h4' className={cls.validationAlertTitle}>
+                            {validationAlertState.title}
+                        </Text>
+                        <button
+                            type='button'
+                            className={cls.validationAlertDismiss}
+                            onClick={() => setDismissedValidationKey(validationAlertState.key)}>
+                            {t('policyBranchMega.page.validation.dismiss')}
+                        </button>
+                    </div>
+                    <Text className={cls.validationAlertText}>{validationAlertState.description}</Text>
+                    {validationAlertState.detail && (
+                        <Text className={cls.validationAlertDetail}>{validationAlertState.detail}</Text>
+                    )}
+                </section>
+            )}
 
             {controlsErrorState && (
                 <SectionDataState

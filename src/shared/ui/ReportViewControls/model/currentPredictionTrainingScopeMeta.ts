@@ -24,28 +24,28 @@ const CURRENT_PREDICTION_TRAINING_SCOPE_OPTION_DEFS: readonly CurrentPredictionT
         labelKey: 'currentPrediction.scope.options.full.label',
         hintKey: 'currentPrediction.scope.options.full.hint',
         defaultLabel: 'Full history',
-        defaultHint: 'Train + OOS (main production mode)'
+        defaultHint: 'The model is trained on the whole completed history where each day already has a known outcome'
     },
     {
         value: 'train',
         labelKey: 'currentPrediction.scope.options.train.label',
         hintKey: 'currentPrediction.scope.options.train.hint',
-        defaultLabel: 'Train-only',
-        defaultHint: 'Train days only (baseline-exit <= split)'
+        defaultLabel: 'Train diagnostics',
+        defaultHint: 'The training split used for error review, not regular prediction history'
     },
     {
         value: 'oos',
         labelKey: 'currentPrediction.scope.options.oos.label',
         hintKey: 'currentPrediction.scope.options.oos.hint',
-        defaultLabel: 'OOS-only',
-        defaultHint: 'OOS days only (baseline-exit > split)'
+        defaultLabel: 'OOS evaluation',
+        defaultHint: 'Only OOS days; the model was trained on the train slice'
     },
     {
         value: 'recent',
         labelKey: 'currentPrediction.scope.options.recent.label',
         hintKey: 'currentPrediction.scope.options.recent.hint',
-        defaultLabel: 'Recent tail',
-        defaultHint: 'Latest 240-day rolling window'
+        defaultLabel: 'Recent OOS tail',
+        defaultHint: 'The latest scored OOS slice, not a separate training mode'
     }
 ]
 

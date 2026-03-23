@@ -2,6 +2,10 @@ import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 import { mapReportResponse } from '../utils/mapReportResponse'
+import {
+    normalizeUtcDayKey as normalizeDomainUtcDayKey,
+    normalizeUtcInstant as normalizeDomainUtcInstant
+} from '../utils/normalizeDomainTime'
 import type { CurrentPredictionTrainingScope } from '../endpoints/reportEndpoints'
 import type {
     RealForecastJournalActualDayDto,
@@ -26,7 +30,7 @@ import type {
 
 const REAL_FORECAST_JOURNAL_QUERY_KEY = ['real-forecast-journal'] as const
 const { dayList, byDate, liveStatus, opsStatus } = API_ROUTES.realForecastJournal
-const DOTNET_TICKS_AT_UNIX_EPOCH = 621355968000000000n
+const REAL_FORECAST_JOURNAL_TIME_SCOPE = { scope: 'real-forecast-journal' } as const
 
 export interface RealForecastJournalDayListQueryArgs {
     days?: number
@@ -164,92 +168,11 @@ function toOptionalBooleanOrNull(value: unknown): boolean | null {
 }
 
 function normalizeUtcDayKey(value: unknown, label: string): string {
-    if (typeof value === 'string') {
-        const normalized = value.trim()
-        if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-            return normalized
-        }
-    }
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const raw = value as Record<string, unknown>
-        const iso = readOptionalField(raw, 'isoDate', 'IsoDate', 'value', 'Value')
-        if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso.trim())) {
-            return iso.trim()
-        }
-
-        const year = readOptionalField(raw, 'year', 'Year')
-        const month = readOptionalField(raw, 'month', 'Month')
-        const day = readOptionalField(raw, 'day', 'Day')
-
-        if (
-            typeof year === 'number' &&
-            typeof month === 'number' &&
-            typeof day === 'number' &&
-            Number.isInteger(year) &&
-            Number.isInteger(month) &&
-            Number.isInteger(day)
-        ) {
-            return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day
-                .toString()
-                .padStart(2, '0')}`
-        }
-    }
-
-    throw new Error(`[real-forecast-journal] ${label} must be a UTC day key.`)
+    return normalizeDomainUtcDayKey(value, label, REAL_FORECAST_JOURNAL_TIME_SCOPE)
 }
 
 function normalizeUtcInstant(value: unknown, label: string): string {
-    if (typeof value === 'string') {
-        const parsed = new Date(value)
-        if (!Number.isNaN(parsed.getTime())) {
-            return parsed.toISOString()
-        }
-    }
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const raw = value as Record<string, unknown>
-        const asString = readOptionalField(raw, 'value', 'Value', 'iso', 'Iso')
-        if (typeof asString === 'string') {
-            const parsed = new Date(asString)
-            if (!Number.isNaN(parsed.getTime())) {
-                return parsed.toISOString()
-            }
-        }
-
-        const ticks = readOptionalField(raw, 'ticks', 'Ticks')
-        if ((typeof ticks === 'number' && Number.isFinite(ticks)) || typeof ticks === 'string') {
-            const tickValue = BigInt(String(ticks))
-            const unixMs = Number((tickValue - DOTNET_TICKS_AT_UNIX_EPOCH) / 10000n)
-            const parsed = new Date(unixMs)
-            if (!Number.isNaN(parsed.getTime())) {
-                return parsed.toISOString()
-            }
-        }
-
-        const year = readOptionalField(raw, 'year', 'Year')
-        const month = readOptionalField(raw, 'month', 'Month')
-        const day = readOptionalField(raw, 'day', 'Day')
-        const hour = readOptionalField(raw, 'hour', 'Hour')
-        const minute = readOptionalField(raw, 'minute', 'Minute')
-        const second = readOptionalField(raw, 'second', 'Second')
-        const millisecond = readOptionalField(raw, 'millisecond', 'Millisecond')
-
-        if (
-            typeof year === 'number' &&
-            typeof month === 'number' &&
-            typeof day === 'number' &&
-            typeof hour === 'number' &&
-            typeof minute === 'number' &&
-            typeof second === 'number'
-        ) {
-            return new Date(
-                Date.UTC(year, month - 1, day, hour, minute, second, typeof millisecond === 'number' ? millisecond : 0)
-            ).toISOString()
-        }
-    }
-
-    throw new Error(`[real-forecast-journal] ${label} must be a UTC instant.`)
+    return normalizeDomainUtcInstant(value, label, REAL_FORECAST_JOURNAL_TIME_SCOPE)
 }
 
 function resolveTrainingScope(value: unknown): CurrentPredictionTrainingScope {
@@ -273,14 +196,20 @@ function resolveTrainingScope(value: unknown): CurrentPredictionTrainingScope {
 
 function resolveStatus(value: unknown): RealForecastJournalDayStatus {
     if (typeof value === 'number') {
-        if (value === 0) return 'captured'
-        if (value === 1) return 'finalized'
+        if (value === 0) return 'scheduled'
+        if (value === 1) return 'captured'
+        if (value === 2) return 'finalized'
+        if (value === 3) return 'missed_capture'
+        if (value === 4) return 'recovered_exception'
     }
 
     if (typeof value === 'string') {
         const normalized = value.trim().toLowerCase()
+        if (normalized === 'scheduled') return 'scheduled'
         if (normalized === 'captured') return 'captured'
         if (normalized === 'finalized') return 'finalized'
+        if (normalized === 'missed_capture') return 'missed_capture'
+        if (normalized === 'recovered_exception') return 'recovered_exception'
     }
 
     throw new Error(`[real-forecast-journal] unsupported journal status: ${String(value)}.`)
@@ -558,6 +487,7 @@ function mapFinalizeRecordOrNull(value: unknown): RealForecastJournalFinalizeRec
 
 function mapDayListItem(value: unknown, index: number): RealForecastJournalDayListItemDto {
     const raw = toObject(value, `dayList[${index}]`)
+    const status = resolveStatus(readRequiredField(raw, 'status', 'status', 'Status'))
 
     return {
         id: toNonEmptyString(readRequiredField(raw, 'id', 'id', 'Id'), 'id'),
@@ -565,12 +495,14 @@ function mapDayListItem(value: unknown, index: number): RealForecastJournalDayLi
             readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
             'predictionDateUtc'
         ),
-        status: resolveStatus(readRequiredField(raw, 'status', 'status', 'Status')),
+        status,
         trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope', 'TrainingScope')),
-        capturedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc'),
-            'capturedAtUtc'
-        ),
+        capturedAtUtc: (() => {
+            const rawValue = readOptionalField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : normalizeUtcInstant(rawValue, 'capturedAtUtc')
+        })(),
         entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc', 'EntryUtc'), 'entryUtc'),
         exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc', 'ExitUtc'), 'exitUtc'),
         finalizedAtUtc: (() => {
@@ -579,33 +511,32 @@ function mapDayListItem(value: unknown, index: number): RealForecastJournalDayLi
                     null
                 :   normalizeUtcInstant(rawValue, 'finalizedAtUtc')
         })(),
-        predLabelDisplay: toNonEmptyString(
-            readRequiredField(raw, 'predLabelDisplay', 'predLabelDisplay', 'PredLabelDisplay'),
-            'predLabelDisplay'
+        predLabelDisplay: (() => {
+            const rawValue = readOptionalField(raw, 'predLabelDisplay', 'predLabelDisplay', 'PredLabelDisplay')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : toNonEmptyString(rawValue, 'predLabelDisplay')
+        })(),
+        microDisplay: (() => {
+            const rawValue = readOptionalField(raw, 'microDisplay', 'microDisplay', 'MicroDisplay')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : toNonEmptyString(rawValue, 'microDisplay')
+        })(),
+        totalUpProbability: toOptionalFiniteNumberOrNull(
+            readOptionalField(raw, 'totalUpProbability', 'totalUpProbability', 'TotalUpProbability')
         ),
-        microDisplay: toNonEmptyString(
-            readRequiredField(raw, 'microDisplay', 'microDisplay', 'MicroDisplay'),
-            'microDisplay'
+        totalFlatProbability: toOptionalFiniteNumberOrNull(
+            readOptionalField(raw, 'totalFlatProbability', 'totalFlatProbability', 'TotalFlatProbability')
         ),
-        totalUpProbability: toFiniteNumber(
-            readRequiredField(raw, 'totalUpProbability', 'totalUpProbability', 'TotalUpProbability'),
-            'totalUpProbability'
+        totalDownProbability: toOptionalFiniteNumberOrNull(
+            readOptionalField(raw, 'totalDownProbability', 'totalDownProbability', 'TotalDownProbability')
         ),
-        totalFlatProbability: toFiniteNumber(
-            readRequiredField(raw, 'totalFlatProbability', 'totalFlatProbability', 'TotalFlatProbability'),
-            'totalFlatProbability'
+        dayConfidence: toOptionalFiniteNumberOrNull(
+            readOptionalField(raw, 'dayConfidence', 'dayConfidence', 'DayConfidence')
         ),
-        totalDownProbability: toFiniteNumber(
-            readRequiredField(raw, 'totalDownProbability', 'totalDownProbability', 'TotalDownProbability'),
-            'totalDownProbability'
-        ),
-        dayConfidence: toFiniteNumber(
-            readRequiredField(raw, 'dayConfidence', 'dayConfidence', 'DayConfidence'),
-            'dayConfidence'
-        ),
-        microConfidence: toFiniteNumber(
-            readRequiredField(raw, 'microConfidence', 'microConfidence', 'MicroConfidence'),
-            'microConfidence'
+        microConfidence: toOptionalFiniteNumberOrNull(
+            readOptionalField(raw, 'microConfidence', 'microConfidence', 'MicroConfidence')
         ),
         actualDirection: (() => {
             const rawValue = readOptionalField(raw, 'actualDirection', 'ActualDirection')
@@ -619,6 +550,7 @@ function mapDayListItem(value: unknown, index: number): RealForecastJournalDayLi
 
 function mapDayRecord(value: unknown): RealForecastJournalDayRecordDto {
     const raw = toObject(value, 'realForecastJournalDay')
+    const status = resolveStatus(readRequiredField(raw, 'status', 'status', 'Status'))
 
     return {
         id: toNonEmptyString(readRequiredField(raw, 'id', 'id', 'Id'), 'id'),
@@ -627,25 +559,34 @@ function mapDayRecord(value: unknown): RealForecastJournalDayRecordDto {
             readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
             'predictionDateUtc'
         ),
-        capturedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc'),
-            'capturedAtUtc'
-        ),
+        capturedAtUtc: (() => {
+            const rawValue = readOptionalField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : normalizeUtcInstant(rawValue, 'capturedAtUtc')
+        })(),
         entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc', 'EntryUtc'), 'entryUtc'),
         exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc', 'ExitUtc'), 'exitUtc'),
-        forecastHash: toNonEmptyString(
-            readRequiredField(raw, 'forecastHash', 'forecastHash', 'ForecastHash'),
-            'forecastHash'
-        ),
-        forecastSnapshot: mapSnapshot(
-            readRequiredField(raw, 'forecastSnapshot', 'forecastSnapshot', 'ForecastSnapshot'),
-            'forecastSnapshot'
-        ),
-        forecastReport: mapReportResponse(readRequiredField(raw, 'forecastReport', 'forecastReport', 'ForecastReport')),
-        sessionOpenIndicators: mapIndicatorSnapshot(
-            readRequiredField(raw, 'sessionOpenIndicators', 'sessionOpenIndicators', 'SessionOpenIndicators'),
-            'sessionOpenIndicators'
-        ),
+        forecastHash: (() => {
+            const rawValue = readOptionalField(raw, 'forecastHash', 'forecastHash', 'ForecastHash')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : toNonEmptyString(rawValue, 'forecastHash')
+        })(),
+        forecastSnapshot: (() => {
+            const rawValue = readOptionalField(raw, 'forecastSnapshot', 'forecastSnapshot', 'ForecastSnapshot')
+            return rawValue === null || typeof rawValue === 'undefined'
+                ? null
+                : mapSnapshot(rawValue, 'forecastSnapshot')
+        })(),
+        forecastReport: (() => {
+            const rawValue = readOptionalField(raw, 'forecastReport', 'forecastReport', 'ForecastReport')
+            return rawValue === null || typeof rawValue === 'undefined' ? null : mapReportResponse(rawValue)
+        })(),
+        sessionOpenIndicators: (() => {
+            const rawValue = readOptionalField(raw, 'sessionOpenIndicators', 'sessionOpenIndicators', 'SessionOpenIndicators')
+            return rawValue === null || typeof rawValue === 'undefined' ? null : mapIndicatorSnapshot(rawValue, 'sessionOpenIndicators')
+        })(),
         finalize: mapFinalizeRecordOrNull(readOptionalField(raw, 'finalize', 'Finalize'))
     }
 }
@@ -728,6 +669,10 @@ function mapOpsStatus(value: unknown): RealForecastJournalOpsStatusDto {
         ),
         expectedCaptureDayUtc: mapOptionalUtcDay('expectedCaptureDayUtc', 'ExpectedCaptureDayUtc'),
         expectedCaptureEntryUtc: mapOptionalUtcInstant('expectedCaptureEntryUtc', 'ExpectedCaptureEntryUtc'),
+        expectedCaptureDayStatus: (() => {
+            const rawValue = readOptionalField(raw, 'expectedCaptureDayStatus', 'ExpectedCaptureDayStatus')
+            return rawValue === null || typeof rawValue === 'undefined' ? null : resolveStatus(rawValue)
+        })(),
         nextCaptureDayUtc: mapOptionalUtcDay('nextCaptureDayUtc', 'NextCaptureDayUtc'),
         nextCaptureEntryUtc: mapOptionalUtcInstant('nextCaptureEntryUtc', 'NextCaptureEntryUtc'),
         captureWindowClosed: toBoolean(
@@ -871,7 +816,7 @@ async function fetchRealForecastJournalDayList(
 
     const query = params.toString()
     const url = `${API_BASE_URL}${dayList.path}${query ? `?${query}` : ''}`
-    const response = await fetch(url, { cache: 'no-store' })
+    const response = await fetch(url)
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
@@ -886,7 +831,7 @@ async function fetchRealForecastJournalDay(
 ): Promise<RealForecastJournalDayRecordDto> {
     const params = new URLSearchParams({ dateUtc: normalizeUtcDayKey(args.dateUtc, 'dateUtc') })
     const url = `${API_BASE_URL}${byDate.path}?${params.toString()}`
-    const response = await fetch(url, { cache: 'no-store' })
+    const response = await fetch(url)
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')

@@ -1,49 +1,64 @@
-import type { TableSectionDto } from '@/shared/types/report.types'
+import type { PfiReportSectionDto, PfiScoreScopeKeyDto } from '@/shared/types/pfi.types'
 
 export interface PfiTabConfig {
     id: string
     label: string
     anchor: string
+    routePath?: string
 }
 
-const PFI_TITLE_REGEX = /^PFI по фичам:\s*(.+?)(?:\s+thr=.*?)?(?:\s*\(AUC=.*?)?$/i
-
-function extractModelLabelFromSectionTitle(title: string | null | undefined, index: number): string {
-    if (!title) {
-        return `Модель ${index + 1}`
-    }
-
-    const match = title.match(PFI_TITLE_REGEX)
-    if (match && match[1]) {
-        const normalized = match[1].trim()
-        if (normalized.length > 0) {
-            return normalized
-        }
-    }
-
-    let working = title.replace(/^PFI по фичам:\s*/i, '').trim()
-    const parenIdx = working.indexOf('(')
-    if (parenIdx >= 0) {
-        working = working.slice(0, parenIdx).trim()
-    }
-
-    if (!working) {
-        return `Модель ${index + 1}`
-    }
-
-    return working
+const PFI_SCOPE_LABELS: Record<PfiScoreScopeKeyDto, string> = {
+    train_oof: 'Train OOF',
+    oos: 'OOS',
+    train: 'Train',
+    full_history: 'Full history'
 }
 
-export function buildPfiTabsFromSections(sections: TableSectionDto[]): PfiTabConfig[] {
+function normalizeAnchorToken(value: string): string {
+    const normalized = value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+
+    return normalized.length > 0 ? normalized : 'section'
+}
+
+function resolveScopeLabel(scopeKey: PfiScoreScopeKeyDto): string {
+    return PFI_SCOPE_LABELS[scopeKey] ?? scopeKey
+}
+
+/**
+ * Табы PFI строятся только по typed metadata секции.
+ * Display title остаётся текстом карточки и не участвует в идентичности маршрута.
+ */
+export function buildPfiTabsFromSections(sections: PfiReportSectionDto[]): PfiTabConfig[] {
+    const sectionCountByModelKey = sections.reduce(
+        (acc, section) => acc.set(section.modelKey, (acc.get(section.modelKey) ?? 0) + 1),
+        new Map<string, number>()
+    )
+    const sectionCountByModelScopeKey = sections.reduce((acc, section) => {
+        const modelScopeKey = `${section.modelKey}::${section.scoreScopeKey}`
+        acc.set(modelScopeKey, (acc.get(modelScopeKey) ?? 0) + 1)
+        return acc
+    }, new Map<string, number>())
+
     return sections.map((section, index) => {
-        const id = `pfi-model-${index + 1}`
-        const anchor = id
-        const label = extractModelLabelFromSectionTitle(section.title, index)
+        const modelScopeKey = `${section.modelKey}::${section.scoreScopeKey}`
+        const labelParts = [section.modelDisplayName?.trim() || `Модель ${index + 1}`]
+
+        if ((sectionCountByModelKey.get(section.modelKey) ?? 0) > 1) {
+            labelParts.push(resolveScopeLabel(section.scoreScopeKey))
+        }
+
+        if (section.thresholdLabel && (sectionCountByModelScopeKey.get(modelScopeKey) ?? 0) > 1) {
+            labelParts.push(section.thresholdLabel)
+        }
 
         return {
-            id,
-            label,
-            anchor
+            id: section.sectionKey,
+            label: labelParts.join(' · '),
+            anchor: `pfi-${normalizeAnchorToken(section.sectionKey)}`
         }
     })
 }

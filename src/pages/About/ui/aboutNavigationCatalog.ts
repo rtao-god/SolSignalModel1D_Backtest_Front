@@ -54,7 +54,7 @@ const MODELS_ROUTE_IDS = [AppRoute.MODELS_STATS, AppRoute.AGGREGATION_STATS] as 
 const BACKTEST_ROUTE_IDS = [AppRoute.BACKTEST_FULL] as const
 const ANALYSIS_ROUTE_IDS = ANALYSIS_HOME_CARDS.map(card => card.route)
 const DIAGNOSTICS_ROUTE_IDS = DIAGNOSTICS_HOME_CARDS.map(card => card.route)
-const FEATURES_ROUTE_IDS = [AppRoute.PFI_PER_MODEL] as const
+const FEATURES_ROUTE_IDS = [AppRoute.PFI_PER_MODEL, AppRoute.PFI_SL_MODEL] as const
 const GUIDE_ROUTE_IDS = GUIDE_HOME_CARDS.map(card => card.route)
 const DEVELOPER_ROUTE_IDS = DEVELOPER_HOME_CARDS.map(card => card.route)
 const SYSTEM_ROUTE_IDS = [AppRoute.PROFILE, AppRoute.ABOUT, AppRoute.CONTACT] as const
@@ -368,6 +368,11 @@ const ABOUT_ROUTE_CATALOG_CONFIG: readonly AboutRouteCatalogEntry[] = [
         routeId: AppRoute.PFI_PER_MODEL,
         group: 'features',
         blocks: createCuratedBlocks(AppRoute.PFI_PER_MODEL, ['reportStatus', 'terms', 'modelTables'])
+    },
+    {
+        routeId: AppRoute.PFI_SL_MODEL,
+        group: 'features',
+        blocks: createCuratedBlocks(AppRoute.PFI_SL_MODEL, ['reportStatus', 'terms', 'modelTables'])
     },
     {
         routeId: AppRoute.GUIDE,

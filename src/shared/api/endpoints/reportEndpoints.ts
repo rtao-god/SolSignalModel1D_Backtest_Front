@@ -9,6 +9,49 @@ export interface CurrentPredictionIndexItemDto {
     id: string
     predictionDateUtc: string
 }
+export interface CurrentPredictionPublishedCatalogDto {
+    set: CurrentPredictionSet
+    scope: CurrentPredictionTrainingScope
+    publishedAtUtc: string
+    totalBuiltReports: number
+    earliestBuiltPredictionDateUtc: string
+    latestBuiltPredictionDateUtc: string
+    missingBuiltWeekdays: number
+    expectedBuiltWeekdays: number
+    missingBuiltFromDateUtc: string
+    missingBuiltToDateUtc: string
+    items: CurrentPredictionIndexItemDto[]
+}
+export interface CurrentPredictionHistoryItemDto {
+    id: string
+    predictionDateUtc: string
+    report: ReportDocumentDto
+}
+export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
+    fullStartDateUtc: string
+    fullEndDateUtc: string
+    fullDays: number
+    trainStartDateUtc: string
+    trainEndDateUtc: string
+    trainDays: number
+    oosStartDateUtc: string
+    oosEndDateUtc: string
+    oosDays: number
+    recentStartDateUtc: string
+    recentEndDateUtc: string
+    recentDays: number
+    recentTailRowsLimit: number
+    recentMatchesOos: boolean
+    totalDays: number
+    trainShare: number
+    oosShare: number
+    lastTrainDateUtc: string
+    firstOosDateUtc: string
+}
+export interface CurrentPredictionLivePayloadDto {
+    report: ReportDocumentDto
+    trainingScopeStats?: CurrentPredictionBackfilledTrainingScopeStatsDto | null
+}
 export interface CurrentPredictionHistoryPageItemDto {
     id: string
     predictionDateUtc: string
@@ -29,25 +72,18 @@ export interface CurrentPredictionHistoryPageDto {
     missingBuiltFromDateUtc: string
     missingBuiltToDateUtc: string
     items: CurrentPredictionHistoryPageItemDto[]
+    trainingScopeStats?: CurrentPredictionBackfilledTrainingScopeStatsDto | null
 }
 export type CurrentPredictionSet = 'live' | 'backfilled'
 export type CurrentPredictionTrainingScope = 'train' | 'full' | 'oos' | 'recent'
 
-export interface CurrentPredictionLatestDto {
-    live: ReportDocumentDto | null
-    backfilled: ReportDocumentDto | null
-}
-
 export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
-    const { latestReport, datesIndex, byDateReport } = API_ROUTES.currentPrediction
+    const { liveReport, datesIndex, byDateReport } = API_ROUTES.currentPrediction
 
     const { baselineSummaryGet, baselineSnapshotGet, diagnosticsGet } = API_ROUTES.backtest
 
     return {
-        getCurrentPrediction: builder.query<
-            CurrentPredictionLatestDto,
-            { scope?: CurrentPredictionTrainingScope } | void
-        >({
+        getCurrentPrediction: builder.query<ReportDocumentDto, { scope?: CurrentPredictionTrainingScope } | void>({
             query: args => {
                 const params: { scope?: CurrentPredictionTrainingScope } = {}
 
@@ -56,19 +92,12 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
                 }
 
                 return {
-                    url: latestReport.path,
-                    method: latestReport.method,
+                    url: liveReport.path,
+                    method: liveReport.method,
                     params: Object.keys(params).length > 0 ? params : undefined
                 }
             },
-            transformResponse: raw => {
-                const payload = raw as { live?: unknown; backfilled?: unknown }
-
-                return {
-                    live: payload.live ? mapReportResponse(payload.live) : null,
-                    backfilled: payload.backfilled ? mapReportResponse(payload.backfilled) : null
-                }
-            }
+            transformResponse: mapReportResponse
         }),
         getCurrentPredictionIndex: builder.query<
             CurrentPredictionIndexItemDto[],

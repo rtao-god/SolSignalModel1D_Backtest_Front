@@ -11,24 +11,29 @@
     --picker-range-fill: #203750;
     --picker-range-hover-fill: rgba(88, 166, 255, 0.16);
     --picker-shadow: 0 18px 56px rgba(0, 0, 0, 0.45);
+    --picker-input-gap: 10px;
+    --picker-separator-width: 20px;
+    --picker-max-width: 400px;
 
     position: relative;
     display: inline-flex;
     flex-direction: column;
     gap: 8px;
     min-width: 0;
-    width: min(100%, 360px);
+    width: min(100%, var(--picker-max-width));
 }
 
 .inputGroup {
     display: flex;
     align-items: center;
-    gap: 10px;
+    width: 100%;
+    gap: var(--picker-input-gap);
     min-width: 0;
 }
 
 .inputButton {
-    min-width: 180px;
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 44px;
     padding: 12px 16px;
     border: 1px solid var(--picker-border);
@@ -71,7 +76,8 @@
 }
 
 .separator {
-    width: 20px;
+    width: var(--picker-separator-width);
+    flex: 0 0 var(--picker-separator-width);
     display: inline-flex;
     justify-content: center;
     align-items: center;
@@ -122,12 +128,13 @@
 
     .inputGroup {
         width: 100%;
-        gap: 8px 10px;
+        gap: 8px var(--picker-input-gap);
         flex-wrap: wrap;
     }
 
     .inputButton {
         min-width: calc(50% - 10px);
+        flex-basis: calc(50% - 10px);
     }
 
     .separator {

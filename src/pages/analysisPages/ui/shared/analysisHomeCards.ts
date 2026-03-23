@@ -16,6 +16,10 @@ export const ANALYSIS_HOME_CARDS: readonly AnalysisHomeCardConfig[] = [
         route: AppRoute.BACKTEST_POLICY_BRANCH_MEGA
     },
     {
+        id: 'policySetups',
+        route: AppRoute.BACKTEST_POLICY_SETUPS
+    },
+    {
         id: 'dayStats',
         route: AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS
     },

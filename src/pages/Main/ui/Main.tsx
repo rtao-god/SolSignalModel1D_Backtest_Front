@@ -9,7 +9,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
-import { prefetchPolicyBranchMegaReportWithFreshness } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     DEFAULT_BACKFILLED_HISTORY_SCOPE,
     useCurrentPredictionIndexQuery
@@ -23,11 +22,9 @@ import { useTranslation } from 'react-i18next'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { BulletList } from '@/shared/ui/BulletList'
 import { formatDateWithLocale } from '@/shared/utils/dateFormat'
-import { logError } from '@/shared/lib/logging/logError'
 import cls from './Main.module.scss'
 import MainProps from './types'
 import { readMainStringList } from './mainLandingI18n'
-import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
 const HERO_BULLETS_KEY = 'main.hero.bullets'
 const HERO_SUBTITLE_PARAGRAPHS_KEY = 'main.hero.subtitleParagraphs'
@@ -131,19 +128,6 @@ function scheduleAfterFirstPaint(callback: () => void): () => void {
             window.clearTimeout(timeoutHandle)
         }
     }
-}
-
-function logMainWarmupError(error: unknown): void {
-    if (!import.meta.env.DEV) {
-        return
-    }
-
-    const safeError = error instanceof Error ? error : new Error(String(error ?? 'Unknown warmup error.'))
-    logError(safeError, undefined, {
-        source: 'main-policy-branch-mega-warmup',
-        domain: 'api_transport',
-        severity: 'warning'
-    })
 }
 
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
@@ -437,14 +421,9 @@ export default function Main({ className }: MainProps) {
             // Полная таблица Policy Branch Mega остаётся deferred-слоем, чтобы hero и proof-карточки были приоритетом первого экрана.
             prefetchRouteChunk(AppRoute.BACKTEST_POLICY_BRANCH_MEGA)
             void importMainBestPolicySection()
-
-            void prefetchPolicyBranchMegaReportWithFreshness(queryClient, MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY)
-                .catch(logMainWarmupError)
-                .finally(() => {
-                    if (!isCancelled) {
-                        setIsBestPolicyReady(true)
-                    }
-                })
+            if (!isCancelled) {
+                setIsBestPolicyReady(true)
+            }
         })
 
         return () => {

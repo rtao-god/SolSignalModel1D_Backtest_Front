@@ -9,6 +9,7 @@ import cls from './BacktestPolicyRatiosSection.module.scss'
 import { resolveAppError } from '@/shared/lib/errors/resolveAppError'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { useLocale } from '@/shared/lib/i18n'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
@@ -71,9 +72,21 @@ const RATIO_COLUMN_DEFINITIONS: readonly RatioColumnDefinition[] = [
     { id: 'trades', defaultLabel: 'Trades', defaultTooltip: 'Number of trades in selected bucket.' },
     { id: 'pnl', defaultLabel: 'PnL %', defaultTooltip: 'Total policy return in selected bucket, %.' },
     { id: 'maxDd', defaultLabel: 'MaxDD %', defaultTooltip: 'Maximum equity drawdown, %.' },
-    { id: 'sharpe', defaultLabel: 'Sharpe', defaultTooltip: 'Return normalized by total volatility.' },
-    { id: 'sortino', defaultLabel: 'Sortino', defaultTooltip: 'Return normalized by downside volatility.' },
-    { id: 'calmar', defaultLabel: 'Calmar', defaultTooltip: 'Return-to-drawdown ratio.' },
+    {
+        id: 'sharpe',
+        defaultLabel: 'Sharpe',
+        defaultTooltip: 'Sharpe checks how smoothly the strategy earns relative to the full daily noise in results.'
+    },
+    {
+        id: 'sortino',
+        defaultLabel: 'Sortino',
+        defaultTooltip: 'Sortino checks how well the strategy pays for bad days rather than for the whole daily noise.'
+    },
+    {
+        id: 'calmar',
+        defaultLabel: 'Calmar',
+        defaultTooltip: 'Calmar checks how much annual growth the strategy gets per unit of the deepest drawdown.'
+    },
     { id: 'winRate', defaultLabel: 'WinRate %', defaultTooltip: 'Share of profitable trades, %.' },
     { id: 'withdrawn', defaultLabel: 'Withdrawn $', defaultTooltip: 'Withdrawn profit amount, USD.' },
     { id: 'liq', defaultLabel: 'Liq?', defaultTooltip: 'Liquidation occurred in selected bucket.' }
@@ -177,7 +190,8 @@ export function BacktestPolicyRatiosSection({
         data: fetchedReport,
         isLoading: isFetchedLoading,
         isError: isFetchedError,
-        error: fetchedError
+        error: fetchedError,
+        refetch: refetchFetchedReport
     } = useGetBacktestPolicyRatiosQuery(profileId, { skip: shouldUseExternal })
 
     const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
@@ -192,6 +206,10 @@ export function BacktestPolicyRatiosSection({
     const currentMetric = metricOptions.find(m => m.key === metricKey) ?? metricOptions[0]
     const currentMetricLabel = t(currentMetric.labelKey, { defaultValue: currentMetric.defaultLabel })
     const isPercentMetric = Boolean(currentMetric.isPercent)
+    const defaultSubtitle = t('backtestFull.policyRatios.subtitle', {
+        defaultValue:
+            'Policy comparison inside selected capital bucket. Full coverage requires checking daily/intraday/delayed.'
+    })
 
     const bucketOptions = useMemo(() => {
         if (!activeReport) return []
@@ -238,55 +256,9 @@ export function BacktestPolicyRatiosSection({
         [filteredPolicies, metricKey]
     ) as PolicyRatioChartDatum[]
 
-    if (isLoading) {
-        return (
-            <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{resolvedTitle}</Text>
-                <Text>{t('backtestFull.policyRatios.loading', { defaultValue: 'Loading policy metrics...' })}</Text>
-            </section>
-        )
-    }
-
-    if (isError) {
-        return (
-            <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{resolvedTitle}</Text>
-                <ErrorBlock
-                    code='DATA'
-                    title={t('backtestFull.policyRatios.errors.dataTitle', {
-                        defaultValue: 'Failed to load policy ratios'
-                    })}
-                    description={t('backtestFull.policyRatios.errors.dataDescription', {
-                        defaultValue: 'Policy metrics section is unavailable due to data error.'
-                    })}
-                    details={resolvedError ?? 'Unknown policy-ratios error.'}
-                    compact
-                />
-            </section>
-        )
-    }
-
-    if (!activeReport || !activeReport.policies || activeReport.policies.length === 0) {
-        return (
-            <section className={cls.PolicyRatiosSection}>
-                <Text type='h3'>{resolvedTitle}</Text>
-                <Text>
-                    {t('backtestFull.policyRatios.empty', {
-                        defaultValue: 'No saved policy-ratios report yet.'
-                    })}
-                </Text>
-            </section>
-        )
-    }
-
-    if (filteredPolicies.length === 0) {
+    if (activeReport && activeReport.policies && activeReport.policies.length > 0 && filteredPolicies.length === 0) {
         throw new Error(`No policy-ratios rows found for bucket '${selectedBucket}'.`)
     }
-
-    const defaultSubtitle = t('backtestFull.policyRatios.subtitle', {
-        defaultValue:
-            'Policy comparison inside selected capital bucket. Full coverage requires checking daily/intraday/delayed.'
-    })
 
     const handleMetricChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
         setMetricKey(e.target.value as MetricKey)
@@ -302,7 +274,7 @@ export function BacktestPolicyRatiosSection({
                 <div className={cls.headerText}>
                     <Text type='h3'>{resolvedTitle}</Text>
                     <Text className={cls.headerSubtitle}>{subtitle ?? defaultSubtitle}</Text>
-                    {activeReport.fromDateUtc && activeReport.toDateUtc && (
+                    {activeReport?.fromDateUtc && activeReport?.toDateUtc && (
                         <Text>
                             {t('backtestFull.policyRatios.windowLabel', {
                                 defaultValue: 'Backtest window'
@@ -354,127 +326,152 @@ export function BacktestPolicyRatiosSection({
                 </div>
             </div>
 
-            <SectionErrorBoundary
-                name='BacktestPolicyRatiosContent'
-                fallback={({ error: sectionError, reset }) => (
-                    <ErrorBlock
-                        code='CLIENT'
-                        title={t('backtestFull.policyRatios.errors.clientTitle', {
-                            defaultValue: 'Policy metrics section failed'
+            <SectionDataState
+                isLoading={isLoading}
+                isError={isError}
+                error={isError ? new Error(resolvedError ?? 'Unknown policy-ratios error.') : null}
+                hasData={Boolean(activeReport)}
+                title={t('backtestFull.policyRatios.errors.dataTitle', {
+                    defaultValue: 'Failed to load policy ratios'
+                })}
+                description={t('backtestFull.policyRatios.errors.dataDescription', {
+                    defaultValue: 'Policy metrics section is unavailable due to data error.'
+                })}
+                loadingText={t('backtestFull.policyRatios.loading', {
+                    defaultValue: 'Loading policy metrics...'
+                })}
+                compact
+                onRetry={shouldUseExternal ? undefined : () => void refetchFetchedReport()}
+                logContext={{ source: 'backtest-policy-ratios-section' }}>
+                {!activeReport || !activeReport.policies || activeReport.policies.length === 0 ?
+                    <Text>
+                        {t('backtestFull.policyRatios.empty', {
+                            defaultValue: 'No saved policy-ratios report yet.'
                         })}
-                        description={t('backtestFull.policyRatios.errors.clientDescription', {
-                            defaultValue: 'Client-side error while rendering policy metrics block.'
-                        })}
-                        details={sectionError.message}
-                        onRetry={reset}
-                        compact
-                    />
-                )}>
-                {viewMode === 'chart' ?
-                    <div className={cls.chartContainer}>
-                        <ReportMetricBarChart
-                            data={chartData}
-                            height={300}
-                            valueLabel={currentMetricLabel}
-                            emptyTitle={t('backtestFull.policyRatios.chart.emptyTitle', {
-                                defaultValue: 'Нет строк для графика'
-                            })}
-                            emptyDescription={t('backtestFull.policyRatios.chart.emptyDescription', {
-                                defaultValue: 'Для выбранного бакета не удалось построить chart dataset.'
-                            })}
-                            valueFormatter={value => (isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3))}
-                            getTooltipTitle={datum =>
-                                t('backtestFull.policyRatios.chart.policyLabel', {
-                                    label: datum.label,
-                                    defaultValue: 'Policy: {{label}}'
-                                })
-                            }
-                            getTooltipRows={datum => [
-                                {
-                                    label: currentMetricLabel,
-                                    value: isPercentMetric ? `${datum.value.toFixed(2)} %` : datum.value.toFixed(3)
-                                },
-                                {
-                                    label: t('backtestFull.policyRatios.controls.bucket', { defaultValue: 'Bucket' }),
-                                    value: datum.bucket
-                                },
-                                {
-                                    label: t('backtestFull.policyRatios.columns.trades.label', {
-                                        defaultValue: 'Trades'
-                                    }),
-                                    value: String(datum.tradesCount)
-                                },
-                                {
-                                    label: t('backtestFull.policyRatios.columns.maxDd.label', {
-                                        defaultValue: 'MaxDD %'
-                                    }),
-                                    value: `${datum.maxDdPct.toFixed(2)}`
-                                },
-                                {
-                                    label: t('backtestFull.policyRatios.columns.winRate.label', {
-                                        defaultValue: 'WinRate %'
-                                    }),
-                                    value: `${datum.winRatePct.toFixed(1)}`
-                                },
-                                {
-                                    label: t('backtestFull.policyRatios.columns.liq.label', { defaultValue: 'Liq?' }),
-                                    value:
-                                        datum.hadLiquidation ?
-                                            t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
-                                        :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })
-                                }
-                            ]}
-                        />
-                    </div>
-                :   <div className={cls.tableWrapper}>
-                        <table className={cls.table}>
-                            <thead>
-                                <tr>
-                                    {RATIO_COLUMN_DEFINITIONS.map(column => {
-                                        const label = t(`backtestFull.policyRatios.columns.${column.id}.label`, {
-                                            defaultValue: column.defaultLabel
-                                        })
-                                        const tooltip = t(`backtestFull.policyRatios.columns.${column.id}.tooltip`, {
-                                            defaultValue: column.defaultTooltip
-                                        })
-                                        const resolvedTooltip =
-                                            resolveCommonReportColumnTooltipOrNull(label, tooltipLocale)
-                                            ?? (column.id === 'policy' ? resolveSharedReportTooltip('Policy')
-                                            : column.id === 'bucket' ? resolveSharedReportTooltip('Bucket')
-                                            : tooltip)
-
-                                        return <th key={column.id}>{renderTermTooltipTitle(label, resolvedTooltip)}</th>
+                    </Text>
+                :   <SectionErrorBoundary
+                        name='BacktestPolicyRatiosContent'
+                        fallback={({ error: sectionError, reset }) => (
+                            <ErrorBlock
+                                code='CLIENT'
+                                title={t('backtestFull.policyRatios.errors.clientTitle', {
+                                    defaultValue: 'Policy metrics section failed'
+                                })}
+                                description={t('backtestFull.policyRatios.errors.clientDescription', {
+                                    defaultValue: 'Client-side error while rendering policy metrics block.'
+                                })}
+                                details={sectionError.message}
+                                onRetry={reset}
+                                compact
+                            />
+                        )}>
+                        {viewMode === 'chart' ?
+                            <div className={cls.chartContainer}>
+                                <ReportMetricBarChart
+                                    data={chartData}
+                                    height={300}
+                                    valueLabel={currentMetricLabel}
+                                    emptyTitle={t('backtestFull.policyRatios.chart.emptyTitle', {
+                                        defaultValue: 'Нет строк для графика'
                                     })}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredPolicies.map(row => (
-                                    <tr
-                                        key={`${row.policyName}::${row.bucket}`}
-                                        className={resolvePolicyEvaluationRowClass(row)}
-                                        title={resolvePolicyEvaluationRowTitle(row)}>
-                                        <td>{row.policyName}</td>
-                                        <td>{row.bucket}</td>
-                                        <td>{row.tradesCount}</td>
-                                        <td>{row.totalPnlPct.toFixed(2)}</td>
-                                        <td>{row.maxDdPct.toFixed(2)}</td>
-                                        <td>{row.sharpe.toFixed(2)}</td>
-                                        <td>{row.sortino.toFixed(2)}</td>
-                                        <td>{row.calmar.toFixed(2)}</td>
-                                        <td>{row.winRatePct.toFixed(1)}</td>
-                                        <td>{row.withdrawnUsd.toFixed(0)}</td>
-                                        <td className={row.hadLiquidation ? cls.badLiq : undefined}>
-                                            {row.hadLiquidation ?
-                                                t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
-                                            :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                    emptyDescription={t('backtestFull.policyRatios.chart.emptyDescription', {
+                                        defaultValue: 'Для выбранного бакета не удалось построить chart dataset.'
+                                    })}
+                                    valueFormatter={value => (isPercentMetric ? `${value.toFixed(2)} %` : value.toFixed(3))}
+                                    getTooltipTitle={datum =>
+                                        t('backtestFull.policyRatios.chart.policyLabel', {
+                                            label: datum.label,
+                                            defaultValue: 'Policy: {{label}}'
+                                        })
+                                    }
+                                    getTooltipRows={datum => [
+                                        {
+                                            label: currentMetricLabel,
+                                            value: isPercentMetric ? `${datum.value.toFixed(2)} %` : datum.value.toFixed(3)
+                                        },
+                                        {
+                                            label: t('backtestFull.policyRatios.controls.bucket', { defaultValue: 'Bucket' }),
+                                            value: datum.bucket
+                                        },
+                                        {
+                                            label: t('backtestFull.policyRatios.columns.trades.label', {
+                                                defaultValue: 'Trades'
+                                            }),
+                                            value: String(datum.tradesCount)
+                                        },
+                                        {
+                                            label: t('backtestFull.policyRatios.columns.maxDd.label', {
+                                                defaultValue: 'MaxDD %'
+                                            }),
+                                            value: `${datum.maxDdPct.toFixed(2)}`
+                                        },
+                                        {
+                                            label: t('backtestFull.policyRatios.columns.winRate.label', {
+                                                defaultValue: 'WinRate %'
+                                            }),
+                                            value: `${datum.winRatePct.toFixed(1)}`
+                                        },
+                                        {
+                                            label: t('backtestFull.policyRatios.columns.liq.label', { defaultValue: 'Liq?' }),
+                                            value:
+                                                datum.hadLiquidation ?
+                                                    t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
+                                                :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })
+                                        }
+                                    ]}
+                                />
+                            </div>
+                        :   <div className={cls.tableWrapper}>
+                                <table className={cls.table}>
+                                    <thead>
+                                        <tr>
+                                            {RATIO_COLUMN_DEFINITIONS.map(column => {
+                                                const label = t(`backtestFull.policyRatios.columns.${column.id}.label`, {
+                                                    defaultValue: column.defaultLabel
+                                                })
+                                                const tooltip = t(`backtestFull.policyRatios.columns.${column.id}.tooltip`, {
+                                                    defaultValue: column.defaultTooltip
+                                                })
+                                                const resolvedTooltip =
+                                                    resolveCommonReportColumnTooltipOrNull(label, tooltipLocale)
+                                                    ?? (column.id === 'policy' ? resolveSharedReportTooltip('Policy')
+                                                    : column.id === 'bucket' ? resolveSharedReportTooltip('Bucket')
+                                                    : tooltip)
+
+                                                return <th key={column.id}>{renderTermTooltipTitle(label, resolvedTooltip)}</th>
+                                            })}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredPolicies.map(row => (
+                                            <tr
+                                                key={`${row.policyName}::${row.bucket}`}
+                                                className={resolvePolicyEvaluationRowClass(row)}
+                                                title={resolvePolicyEvaluationRowTitle(row)}>
+                                                <td>{row.policyName}</td>
+                                                <td>{row.bucket}</td>
+                                                <td>{row.tradesCount}</td>
+                                                <td>{row.totalPnlPct.toFixed(2)}</td>
+                                                <td>{row.maxDdPct.toFixed(2)}</td>
+                                                <td>{row.sharpe.toFixed(2)}</td>
+                                                <td>{row.sortino.toFixed(2)}</td>
+                                                <td>{row.calmar.toFixed(2)}</td>
+                                                <td>{row.winRatePct.toFixed(1)}</td>
+                                                <td>{row.withdrawnUsd.toFixed(0)}</td>
+                                                <td className={row.hadLiquidation ? cls.badLiq : undefined}>
+                                                    {row.hadLiquidation ?
+                                                        t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
+                                                    :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </SectionErrorBoundary>
                 }
-            </SectionErrorBoundary>
+            </SectionDataState>
         </section>
     )
 }

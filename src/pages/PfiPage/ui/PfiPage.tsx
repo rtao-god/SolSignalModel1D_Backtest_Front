@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import type { TableSectionDto } from '@/shared/types/report.types'
+import { usePfiReportReadQuery, type PfiQueryFamily } from '@/shared/api/tanstackQueries/pfi'
+import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
+import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
+import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
-import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
-import cls from './PfiPage.module.scss'
-import { usePfiPerModelReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/pfi'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import {
     ReportActualStatusCard,
     ReportTableTermsBlock,
@@ -16,18 +22,42 @@ import {
     buildBusinessTechnicalViewControlGroup,
     type BusinessTechnicalViewControlValue
 } from '@/shared/ui'
-import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
-import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
-import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
-import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
-import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
+import cls from './PfiPage.module.scss'
 import type { PfiPageProps, PfiTableCardProps } from './types'
-import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+
 const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
 
-function PfiTableCard({ section, domId }: PfiTableCardProps) {
+interface PfiPageViewConfig {
+    family: PfiQueryFamily
+    routeReportKind: 'pfi_per_model' | 'pfi_sl_model'
+    titleFallbackKey: string
+    titleFallbackDefault: string
+    subtitleKey: string
+    subtitleDefault: string
+}
+
+const PFI_PAGE_VIEW_CONFIGS: Record<PfiQueryFamily, PfiPageViewConfig> = {
+    daily: {
+        family: 'daily',
+        routeReportKind: 'pfi_per_model',
+        titleFallbackKey: 'pfi.page.header.titleFallback',
+        titleFallbackDefault: 'PFI по дневным моделям',
+        subtitleKey: 'pfi.page.header.subtitle',
+        subtitleDefault:
+            'Отчет показывает важность признаков для дневных моделей move / dir / micro. На странице собраны только дневные модели, а SL вынесена в отдельный экран.'
+    },
+    sl: {
+        family: 'sl',
+        routeReportKind: 'pfi_sl_model',
+        titleFallbackKey: 'pfi.page.header.slTitleFallback',
+        titleFallbackDefault: 'PFI по SL-модели',
+        subtitleKey: 'pfi.page.header.slSubtitle',
+        subtitleDefault:
+            'Отчет показывает важность признаков для SL-модели и ее порогов. Здесь собраны только SL-секции без смешения с дневными моделями.'
+    }
+}
+
+function PfiTableCard({ section, domId, reportKind }: PfiTableCardProps) {
     const { t } = useTranslation(['reports', 'common'])
     const [mode, setMode] = useState<BusinessTechnicalViewControlValue>('business')
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
@@ -47,51 +77,44 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
         [mode, t]
     )
 
-    const columns: string[] = section.columns ?? []
+    const columns = section.columns ?? []
     const normalizedRows = useMemo<TableRow[]>(
         () =>
             (section.rows ?? []).map(row =>
-                Array.isArray(row) ?
-                    row.map(cell => (typeof cell === 'string' ? normalizeZeroLikeNumericText(cell) : cell))
-                :   row
+                row.map(cell => (typeof cell === 'string' ? normalizeZeroLikeNumericText(cell) : cell))
             ),
         [section.rows]
     )
 
     const visibleColumnIndexes = useMemo<number[]>(() => {
         if (columns.length === 0) {
-            return [] as number[]
+            return []
         }
 
         if (mode === 'technical') {
-            return columns.map((_value: string, idx: number) => idx)
+            return columns.map((_value, index) => index)
         }
 
-        return BUSINESS_COLUMN_INDEXES.filter(idx => idx < columns.length)
-    }, [mode, columns])
-
-    if (!section.columns || section.columns.length === 0) {
-        return null
-    }
+        return BUSINESS_COLUMN_INDEXES.filter(index => index < columns.length)
+    }, [columns, mode])
 
     useEffect(() => {
         setSortedRows(normalizedRows)
     }, [normalizedRows])
 
-    const exportColumns = visibleColumnIndexes.map((colIdx: number) => columns[colIdx] ?? `col_${colIdx}`)
-    const rowsForExport: TableRow[] = sortedRows.length > 0 ? sortedRows : normalizedRows
-    const exportRows = useMemo(
-        () =>
-            rowsForExport.map((row: TableRow) =>
-                visibleColumnIndexes.map((colIdx: number) => toExportCell(getCellValue(row, colIdx)))
-            ),
-        [rowsForExport, visibleColumnIndexes]
-    )
+    if (columns.length === 0) {
+        return null
+    }
 
+    const rowsForExport = sortedRows.length > 0 ? sortedRows : normalizedRows
+    const exportColumns = visibleColumnIndexes.map(colIdx => columns[colIdx] ?? `col_${colIdx}`)
+    const exportRows = rowsForExport.map(row =>
+        visibleColumnIndexes.map(colIdx => toExportCell(getCellValue(row, colIdx)))
+    )
     const fileBaseName = section.title || domId
-    const description = resolveReportSectionDescription('pfi_per_model', section.title)
+    const description = resolveReportSectionDescription(reportKind, section.title)
     const renderColumnTitle = (title: string) =>
-        renderTermTooltipTitle(title, resolveReportColumnTooltip('pfi_per_model', section.title, title))
+        renderTermTooltipTitle(title, resolveReportColumnTooltip(reportKind, section.title, title))
 
     return (
         <section id={domId} className={cls.tableCard}>
@@ -124,22 +147,16 @@ function PfiTableCard({ section, domId }: PfiTableCardProps) {
     )
 }
 
-export default function PfiPage({ className }: PfiPageProps) {
+export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
     const { t } = useTranslation('reports')
-    const { data, isLoading, isError, error, refetch } = usePfiPerModelReportWithFreshnessQuery()
-    const report = data?.report ?? null
-    const freshness = data?.freshness ?? null
-    const reportTitle = report?.title || t('pfi.page.header.titleFallback')
-
-    const tableSections = useMemo(
-        () =>
-            (report?.sections ?? []).filter(
-                (section): section is TableSectionDto =>
-                    Array.isArray((section as TableSectionDto).columns) &&
-                    (section as TableSectionDto).columns!.length > 0
-            ),
-        [report]
-    )
+    const viewConfig = PFI_PAGE_VIEW_CONFIGS[family]
+    const { data: report, isLoading, error, refetch } = usePfiReportReadQuery(family)
+    const reportTitle =
+        report?.title ||
+        t(viewConfig.titleFallbackKey, {
+            defaultValue: viewConfig.titleFallbackDefault
+        })
+    const tableSections = useMemo(() => (report?.sections ?? []).filter(section => section.columns.length > 0), [report])
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -161,7 +178,7 @@ export default function PfiPage({ className }: PfiPageProps) {
             return {
                 terms: buildReportTermsFromSections({
                     sections: tableSections,
-                    reportKind: 'pfi_per_model',
+                    reportKind: viewConfig.routeReportKind,
                     contextTag: 'pfi'
                 }),
                 error: null as Error | null
@@ -173,58 +190,40 @@ export default function PfiPage({ className }: PfiPageProps) {
                 error: safeError
             }
         }
-    }, [tableSections])
+    }, [tableSections, viewConfig.routeReportKind])
 
     const tabs = useMemo(() => buildPfiTabsFromSections(tableSections), [tableSections])
-
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
         syncHash: true
     })
 
-    const rootClassName = classNames(cls.PfiPage, {}, [className ?? ''])
-
     return (
-        <div className={rootClassName}>
+        <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
             <header className={cls.headerRow}>
                 <div>
                     <Text type='h2'>{reportTitle}</Text>
-                    <Text className={cls.subtitle}>{t('pfi.page.header.subtitle')}</Text>
+                    <Text className={cls.subtitle}>
+                        {t(viewConfig.subtitleKey, {
+                            defaultValue: viewConfig.subtitleDefault
+                        })}
+                    </Text>
                 </div>
                 {report && sourceEndpointState.value && (
                     <ReportActualStatusCard
-                        statusMode={freshness?.sourceMode === 'actual' ? 'actual' : 'debug'}
-                        statusTitle={
-                            freshness?.sourceMode === 'actual' ?
-                                t('pfi.page.status.actualTitle')
-                            :   t('pfi.page.status.debugTitle')
-                        }
-                        statusMessage={freshness?.message ?? t('pfi.page.status.unavailableMessage')}
+                        statusMode='actual'
+                        statusTitle={t('pfi.page.status.publishedTitle')}
+                        statusMessage={t('pfi.page.status.publishedMessage')}
                         dataSource={sourceEndpointState.value}
                         reportTitle={reportTitle}
                         reportId={report.id}
                         reportKind={report.kind}
                         generatedAtUtc={report.generatedAtUtc}
                         statusLines={[
-                            ...((
-                                freshness?.canonicalSnapshotCount !== null &&
-                                freshness?.canonicalSnapshotCount !== undefined
-                            ) ?
-                                [
-                                    {
-                                        label: t('pfi.page.statusLines.canonicalSnapshotCount'),
-                                        value: String(freshness.canonicalSnapshotCount)
-                                    }
-                                ]
-                            :   []),
-                            ...(freshness?.tableSectionCount !== null && freshness?.tableSectionCount !== undefined ?
-                                [
-                                    {
-                                        label: t('pfi.page.statusLines.tableSectionCount'),
-                                        value: String(freshness.tableSectionCount)
-                                    }
-                                ]
-                            :   [])
+                            {
+                                label: t('pfi.page.statusLines.tableSectionCount'),
+                                value: String(tableSections.length)
+                            }
                         ]}
                     />
                 )}
@@ -265,7 +264,14 @@ export default function PfiPage({ className }: PfiPageProps) {
                                     const tab = tabs[index]
                                     const domId = tab?.anchor ?? `pfi-model-${index + 1}`
 
-                                    return <PfiTableCard key={section.title ?? domId} section={section} domId={domId} />
+                                    return (
+                                        <PfiTableCard
+                                            key={section.sectionKey}
+                                            section={section}
+                                            domId={domId}
+                                            reportKind={viewConfig.routeReportKind}
+                                        />
+                                    )
                                 })}
                             </div>
 

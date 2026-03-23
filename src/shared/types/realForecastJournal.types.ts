@@ -1,7 +1,12 @@
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 
-export type RealForecastJournalDayStatus = 'captured' | 'finalized'
+export type RealForecastJournalDayStatus =
+    | 'scheduled'
+    | 'captured'
+    | 'finalized'
+    | 'missed_capture'
+    | 'recovered_exception'
 export type RealForecastJournalDirection = 'UP' | 'FLAT' | 'DOWN'
 export type RealForecastJournalPolicyBucket = 'daily' | 'intraday' | 'delayed'
 export type RealForecastJournalMarginMode = 'cross' | 'isolated'
@@ -112,13 +117,13 @@ export interface RealForecastJournalDayRecordDto {
     id: string
     trainingScope: CurrentPredictionTrainingScope
     predictionDateUtc: string
-    capturedAtUtc: string
+    capturedAtUtc: string | null
     entryUtc: string
     exitUtc: string
-    forecastHash: string
-    forecastSnapshot: RealForecastJournalSnapshotDto
-    forecastReport: ReportDocumentDto
-    sessionOpenIndicators: RealForecastJournalIndicatorSnapshotDto
+    forecastHash: string | null
+    forecastSnapshot: RealForecastJournalSnapshotDto | null
+    forecastReport: ReportDocumentDto | null
+    sessionOpenIndicators: RealForecastJournalIndicatorSnapshotDto | null
     finalize: RealForecastJournalFinalizeRecordDto | null
 }
 
@@ -150,17 +155,17 @@ export interface RealForecastJournalDayListItemDto {
     predictionDateUtc: string
     status: RealForecastJournalDayStatus
     trainingScope: CurrentPredictionTrainingScope
-    capturedAtUtc: string
+    capturedAtUtc: string | null
     entryUtc: string
     exitUtc: string
     finalizedAtUtc: string | null
-    predLabelDisplay: string
-    microDisplay: string
-    totalUpProbability: number
-    totalFlatProbability: number
-    totalDownProbability: number
-    dayConfidence: number
-    microConfidence: number
+    predLabelDisplay: string | null
+    microDisplay: string | null
+    totalUpProbability: number | null
+    totalFlatProbability: number | null
+    totalDownProbability: number | null
+    dayConfidence: number | null
+    microConfidence: number | null
     actualDirection: RealForecastJournalDirection | null
     directionMatched: boolean | null
 }
@@ -193,6 +198,7 @@ export interface RealForecastJournalOpsStatusDto {
     archiveRecordCount: number
     expectedCaptureDayUtc: string | null
     expectedCaptureEntryUtc: string | null
+    expectedCaptureDayStatus: RealForecastJournalDayStatus | null
     nextCaptureDayUtc: string | null
     nextCaptureEntryUtc: string | null
     captureWindowClosed: boolean

@@ -7,7 +7,7 @@ import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import { GUIDE_FEATURES_TABS } from '@/shared/utils/guideTabs'
 import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
-import type { ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
+import type { PfiReportSectionDto } from '@/shared/types/pfi.types'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
@@ -58,22 +58,16 @@ function parseNumber(value?: string): number | null {
     return Number.isFinite(parsed) ? parsed : null
 }
 
-function isTableSection(section: ReportSectionDto): section is TableSectionDto {
-    return Array.isArray((section as TableSectionDto).columns) && Array.isArray((section as TableSectionDto).rows)
-}
-
 function formatMaybe(value: number | null, digits: number): string {
     if (value === null || !Number.isFinite(value)) return 'n/a'
     return value.toFixed(digits)
 }
 
-function buildPfiStats(sections: ReportSectionDto[] | undefined): Map<string, PfiStat> {
+function buildPfiStats(sections: PfiReportSectionDto[] | undefined): Map<string, PfiStat> {
     const stats = new Map<string, PfiStat>()
     if (!sections) return stats
 
     sections.forEach(section => {
-        if (!isTableSection(section)) return
-
         const columns = section.columns ?? []
         const rows = section.rows ?? []
 

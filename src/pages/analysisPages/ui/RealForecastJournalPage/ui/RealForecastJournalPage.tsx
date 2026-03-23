@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
-import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 import {
     Btn,
     Input,
@@ -322,10 +321,16 @@ type TranslateFn = ReturnType<typeof useTranslation>['t']
 
 function resolveDayStatusBadge(status: RealForecastJournalDayStatus, t: TranslateFn): string {
     switch (status) {
+        case 'scheduled':
+            return t('realForecastJournal.days.badges.scheduled', { defaultValue: 'Scheduled' })
         case 'captured':
             return t('realForecastJournal.days.badges.captured', { defaultValue: 'Captured' })
         case 'finalized':
             return t('realForecastJournal.days.badges.finalized', { defaultValue: 'Finalized' })
+        case 'missed_capture':
+            return t('realForecastJournal.days.badges.missed', { defaultValue: 'Missed capture' })
+        case 'recovered_exception':
+            return t('realForecastJournal.days.badges.recovered', { defaultValue: 'Recovered (manual)' })
         default:
             throw new Error(`[real-forecast-journal] unsupported day status badge value: ${String(status)}.`)
     }
@@ -365,14 +370,16 @@ function resolveTradeDirectionLabel(direction: string, t: TranslateFn): string {
     return direction
 }
 
-function localizeForecastDisplay(display: string, t: TranslateFn): string {
+function localizeForecastDisplay(display: string | null, t: TranslateFn): string {
     const upLabel = resolveDayDirectionLabel('UP', t).toLowerCase()
     const flatLabel = resolveDayDirectionLabel('FLAT', t).toLowerCase()
     const downLabel = resolveDayDirectionLabel('DOWN', t).toLowerCase()
     const skippedLabel = t('realForecastJournal.placeholders.skipped', { defaultValue: 'skipped' })
     const notAvailableLabel = t('realForecastJournal.common.notAvailable', { defaultValue: 'n/a' })
 
-    return display
+    const rawDisplay = display ?? notAvailableLabel
+
+    return rawDisplay
         .replace(/\bup\b/gi, upLabel)
         .replace(/\bflat\b/gi, flatLabel)
         .replace(/\bdown\b/gi, downLabel)
@@ -1091,22 +1098,41 @@ function buildNextCaptureRows(
     locale: string,
     t: TranslateFn
 ): Array<{ label: string; value: string }> {
-    if (!status.nextCaptureDayUtc || !status.nextCaptureEntryUtc) {
+    const expectedPending =
+        Boolean(status.expectedCaptureDayUtc) &&
+        status.captureWindowClosed === false &&
+        (!status.lastSuccessfulCapture ||
+            status.lastSuccessfulCapture.predictionDateUtc !== status.expectedCaptureDayUtc)
+
+    const dayUtc = expectedPending ? status.expectedCaptureDayUtc : status.nextCaptureDayUtc
+    const entryUtc = expectedPending ? status.expectedCaptureEntryUtc : status.nextCaptureEntryUtc
+
+    if (!dayUtc || !entryUtc) {
         throw new Error('[real-forecast-journal] next capture timing is missing in ops status payload.')
     }
 
     return [
         {
             label: t('realForecastJournal.timing.nextCapture.rows.day', { defaultValue: 'Trading day' }),
-            value: status.nextCaptureDayUtc
+            value: dayUtc
         },
         {
             label: t('realForecastJournal.timing.nextCapture.rows.exactTime', {
                 defaultValue: 'Scheduled capture'
             }),
-            value: formatTimingExactUtc(status.nextCaptureEntryUtc, locale)
+            value: formatTimingExactUtc(entryUtc, locale)
         }
     ]
+}
+
+function resolveNextCaptureTargetUtc(status: RealForecastJournalOpsStatusDto): string | null {
+    const expectedPending =
+        Boolean(status.expectedCaptureDayUtc) &&
+        status.captureWindowClosed === false &&
+        (!status.lastSuccessfulCapture ||
+            status.lastSuccessfulCapture.predictionDateUtc !== status.expectedCaptureDayUtc)
+
+    return expectedPending ? status.expectedCaptureEntryUtc : status.nextCaptureEntryUtc
 }
 
 function buildActiveFinalizeRows(
@@ -1170,6 +1196,19 @@ function RealForecastJournalTimingSection({
 }) {
     const { t } = useTranslation('reports')
     const isRu = locale.startsWith('ru')
+    const timingTitle = t('realForecastJournal.timing.title', { defaultValue: 'Upcoming journal timing' })
+    const timingSubtitle = t('realForecastJournal.timing.subtitle', {
+        defaultValue:
+            'This block shows when the next immutable trading day will be captured and, when a live day is still open, how long remains until the post-close factual data is written into the journal.'
+    })
+    const timingSectionHeader = (
+        <div className={cls.sectionHeader}>
+            <Text type='h2' className={cls.sectionTitle}>
+                {timingTitle}
+            </Text>
+            <Text className={cls.sectionSubtitle}>{timingSubtitle}</Text>
+        </div>
+    )
     const activeWindowCards =
         opsStatusQuery.data?.activePendingFinalizeDueUtc &&
         opsStatusQuery.data.activePendingDayUtc &&
@@ -1220,7 +1259,7 @@ function RealForecastJournalTimingSection({
                     label: t('realForecastJournal.timing.nextCapture.title', {
                         defaultValue: 'Next journal capture'
                     }),
-                    targetUtc: opsStatusQuery.data.nextCaptureEntryUtc,
+                    targetUtc: resolveNextCaptureTargetUtc(opsStatusQuery.data),
                     rows: buildNextCaptureRows(opsStatusQuery.data, locale, t)
                 },
                 ...activeWindowCards
@@ -1229,26 +1268,10 @@ function RealForecastJournalTimingSection({
 
     return (
         <section className={cls.timingSection}>
-            {opsStatusQuery.isLoading && !opsStatusQuery.data && (
-                <Text className={cls.loadingText}>
-                    {t('realForecastJournal.timing.loading', { defaultValue: 'Loading journal timing...' })}
-                </Text>
-            )}
-            {!opsStatusQuery.isLoading && opsStatusQuery.error && (
-                <div className={cls.sectionError}>
-                    <Text type='h3'>
-                        {t('realForecastJournal.timing.errorTitle', { defaultValue: 'Timing block is unavailable' })}
-                    </Text>
-                    <Text>{opsStatusQuery.error.message}</Text>
-                </div>
-            )}
             {opsStatusQuery.data && (
                 <ReportTimingSection
-                    title={t('realForecastJournal.timing.title', { defaultValue: 'Upcoming journal timing' })}
-                    subtitle={t('realForecastJournal.timing.subtitle', {
-                        defaultValue:
-                            'This block shows when the next immutable trading day will be captured and, when a live day is still open, how long remains until the post-close factual data is written into the journal.'
-                    })}
+                    title={timingTitle}
+                    subtitle={timingSubtitle}
                     statusText={resolveOpsStatusReasonText(opsStatusQuery.data, t)}
                     statusTone={
                         opsStatusQuery.data.health === 'healthy' ? 'healthy'
@@ -1260,6 +1283,25 @@ function RealForecastJournalTimingSection({
                     remainingLabel={isRu ? 'осталось' : 'remaining'}
                     overdueLabel={isRu ? 'после срока' : 'overdue'}
                 />
+            )}
+            {!opsStatusQuery.data && !opsStatusQuery.error && (
+                <>
+                    {timingSectionHeader}
+                    <Text className={cls.loadingText}>
+                        {t('realForecastJournal.timing.loading', { defaultValue: 'Loading journal timing...' })}
+                    </Text>
+                </>
+            )}
+            {opsStatusQuery.error && (
+                <>
+                    {timingSectionHeader}
+                    <div className={cls.sectionError}>
+                        <Text type='h3'>
+                            {t('realForecastJournal.timing.errorTitle', { defaultValue: 'Timing block is unavailable' })}
+                        </Text>
+                        <Text>{opsStatusQuery.error.message}</Text>
+                    </div>
+                </>
             )}
         </section>
     )
@@ -1578,6 +1620,9 @@ function RealForecastJournalPageContent({
         :   null)
 
     const isFinalized = selectedDay?.status === 'finalized'
+    const pendingFinalizeLabel = t('realForecastJournal.placeholders.pendingFinalize', {
+        defaultValue: 'Pending NY close and indicator sync'
+    })
     const policyColumns = useMemo(() => buildPolicyTableColumns(t, isSelectedDayActive), [isSelectedDayActive, t])
     const policyTerms = useMemo(
         () => buildRealForecastJournalTerms(policyColumns, termsLocale),
@@ -1789,7 +1834,13 @@ function RealForecastJournalPageContent({
                                         defaultValue: 'Morning forecast'
                                     })}
                                     value={localizeForecastDisplay(selectedDay.predLabelDisplay, t)}
-                                    hint={`${formatPercent(selectedDay.totalUpProbability, locale)} / ${formatPercent(selectedDay.totalFlatProbability, locale)} / ${formatPercent(selectedDay.totalDownProbability, locale)}`}
+                                    hint={
+                                        selectedDay.totalUpProbability !== null &&
+                                        selectedDay.totalFlatProbability !== null &&
+                                        selectedDay.totalDownProbability !== null ?
+                                            `${formatPercent(selectedDay.totalUpProbability, locale)} / ${formatPercent(selectedDay.totalFlatProbability, locale)} / ${formatPercent(selectedDay.totalDownProbability, locale)}`
+                                        :   pendingFinalizeLabel
+                                    }
                                 />
                                 <DaySummaryCard
                                     label={t('realForecastJournal.summary.cards.actual', {
@@ -1798,9 +1849,7 @@ function RealForecastJournalPageContent({
                                     value={
                                         selectedDay.actualDirection ?
                                             resolveDayDirectionLabel(selectedDay.actualDirection, t)
-                                        :   t('realForecastJournal.placeholders.pendingFinalize', {
-                                                defaultValue: 'Pending NY close and indicator sync'
-                                            })
+                                        :   pendingFinalizeLabel
                                     }
                                     hint={
                                         isFinalized ?
@@ -1814,9 +1863,7 @@ function RealForecastJournalPageContent({
                                     })}
                                     value={
                                         selectedDay.directionMatched === null ?
-                                            t('realForecastJournal.placeholders.pendingFinalize', {
-                                                defaultValue: 'Pending NY close and indicator sync'
-                                            })
+                                            pendingFinalizeLabel
                                         : selectedDay.directionMatched ?
                                             t('realForecastJournal.summary.match.yes', { defaultValue: 'Matched' })
                                         :   t('realForecastJournal.summary.match.no', { defaultValue: 'Did not match' })
@@ -1826,14 +1873,22 @@ function RealForecastJournalPageContent({
                                     label={t('realForecastJournal.summary.cards.capture', {
                                         defaultValue: 'Capture timestamp (UTC)'
                                     })}
-                                    value={formatUtc(selectedDay.capturedAtUtc, locale)}
+                                    value={
+                                        selectedDay.capturedAtUtc ?
+                                            formatUtc(selectedDay.capturedAtUtc, locale)
+                                        :   pendingFinalizeLabel
+                                    }
                                     hint={`${formatUtc(selectedDay.entryUtc, locale)} → ${formatUtc(selectedDay.exitUtc, locale)}`}
                                 />
                                 <DaySummaryCard
                                     label={t('realForecastJournal.summary.cards.entry', {
                                         defaultValue: 'Reference entry price'
                                     })}
-                                    value={formatPrice(selectedRecord.forecastSnapshot.entry, locale)}
+                                    value={
+                                        selectedRecord.forecastSnapshot ?
+                                            formatPrice(selectedRecord.forecastSnapshot.entry, locale)
+                                        :   pendingFinalizeLabel
+                                    }
                                 />
                                 <DaySummaryCard
                                     label={t('realForecastJournal.summary.cards.actualClose', {
@@ -1842,9 +1897,7 @@ function RealForecastJournalPageContent({
                                     value={
                                         selectedRecord.finalize?.snapshot.actualDay ?
                                             formatPrice(selectedRecord.finalize.snapshot.actualDay.close24, locale)
-                                        :   t('realForecastJournal.placeholders.pendingFinalize', {
-                                                defaultValue: 'Pending NY close and indicator sync'
-                                            })
+                                        :   pendingFinalizeLabel
                                     }
                                 />
                             </div>
@@ -1855,9 +1908,11 @@ function RealForecastJournalPageContent({
                                             defaultValue: 'Morning model comment'
                                         })}
                                     </Text>
-                                    <Text className={cls.metaValue}>{selectedRecord.forecastSnapshot.reason}</Text>
+                                    <Text className={cls.metaValue}>
+                                        {selectedRecord.forecastSnapshot?.reason ?? pendingFinalizeLabel}
+                                    </Text>
                                 </div>
-                                {selectedRecord.forecastSnapshot.previewNote && (
+                                {selectedRecord.forecastSnapshot?.previewNote && (
                                     <div className={cls.metaPanelItem}>
                                         <Text className={cls.metaLabel}>
                                             {t('realForecastJournal.summary.previewLabel', {
@@ -2415,12 +2470,5 @@ function RealForecastJournalComparisonSection({
 }
 
 export default function RealForecastJournalPage(props: RealForecastJournalPageProps) {
-    const { t } = useTranslation('reports')
-
-    return (
-        <PageSuspense
-            title={t('realForecastJournal.page.loadingTitle', { defaultValue: 'Loading real forecast journal' })}>
-            <RealForecastJournalPageInner {...props} />
-        </PageSuspense>
-    )
+    return <RealForecastJournalPageInner {...props} />
 }

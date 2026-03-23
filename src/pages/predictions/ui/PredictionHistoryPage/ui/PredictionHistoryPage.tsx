@@ -1,5 +1,4 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
@@ -21,14 +20,10 @@ import DatePicker from '@/features/datePicker/ui/DatePicker/DatePicker'
 import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import {
-    DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE,
     DEFAULT_BACKFILLED_HISTORY_SCOPE,
-    prefetchCurrentPredictionHistoryPage,
-    useCurrentPredictionBackfilledSplitStats,
     useCurrentPredictionHistoryPageQuery
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
-import PageSuspense from '@/shared/ui/loaders/PageSuspense/ui/PageSuspense'
 import type {
     CurrentPredictionHistoryPageDto,
     CurrentPredictionSet,
@@ -55,6 +50,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
+import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 import {
     resolveCurrentPredictionTimingSnapshot,
@@ -63,6 +59,11 @@ import {
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = 1
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
+
+function isTrainDiagnosticsScope(scope: CurrentPredictionTrainingScope): boolean {
+    return scope === 'train'
+}
+
 type PredictionHistoryWindow = '365' | '730' | 'all'
 
 interface HistoryWindowOptionDef {
@@ -269,6 +270,16 @@ function formatMoney(value: number, locale: string): string {
 function formatPercent(value: number, locale: string): string {
     if (!Number.isFinite(value)) {
         throw new Error(`[ui] Invalid percent value for formatting: ${value}.`)
+    }
+    return value.toLocaleString(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })
+}
+
+function formatLeverage(value: number, locale: string): string {
+    if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`[ui] Invalid leverage value for formatting: ${value}.`)
     }
     return value.toLocaleString(locale, {
         minimumFractionDigits: 2,
@@ -533,7 +544,6 @@ function PredictionHistoryPageInner({
     onHistoryWindowChange
 }: PredictionHistoryPageInnerProps) {
     const { t, i18n } = useTranslation('reports')
-    const queryClient = useQueryClient()
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
 
@@ -541,8 +551,13 @@ function PredictionHistoryPageInner({
     const toDate = arrival?.value ?? null
 
     const [cardsAnimating, setCardsAnimating] = useState(false)
+    const isTrainDiagnosticsMode = isTrainDiagnosticsScope(trainingScope)
     const introBullets = useMemo(
         () => readPredictionPageStringList(i18n, 'predictionHistory.page.intro.bullets'),
+        [i18n]
+    )
+    const trainDiagnosticsIntroBullets = useMemo(
+        () => readPredictionPageStringList(i18n, 'predictionHistory.page.trainDiagnosticsIntro.bullets'),
         [i18n]
     )
     const renderIntroText = useCallback((text: string) => renderTermTooltipRichText(text), [])
@@ -569,7 +584,10 @@ function PredictionHistoryPageInner({
         return parsedEarliestBuiltDate
     }, [historyPage?.earliestBuiltPredictionDateUtc])
     const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
-    const trainingSplitStatsState = useCurrentPredictionBackfilledSplitStats()
+    const trainingScopeDescription = useMemo(
+        () => buildCurrentPredictionHistoryTrainingScopeDescription(historyPage?.trainingScopeStats ?? null),
+        [historyPage?.trainingScopeStats]
+    )
     const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
         throw new Error(`[ui] Unsupported prediction history window option: ${historyWindow}.`)
@@ -581,8 +599,7 @@ function PredictionHistoryPageInner({
                 onChange: onTrainingScopeChange,
                 label: t('predictionHistory.filters.scope.label'),
                 ariaLabel: t('predictionHistory.filters.scope.ariaLabel'),
-                infoTooltip: buildCurrentPredictionHistoryTrainingScopeDescription(trainingSplitStatsState.data),
-                splitStats: trainingSplitStatsState.data
+                infoTooltip: trainingScopeDescription
             }),
             buildPredictionHistoryWindowControlGroup({
                 value: historyWindow,
@@ -605,7 +622,7 @@ function PredictionHistoryPageInner({
             onTrainingScopeChange,
             t,
             trainingScope,
-            trainingSplitStatsState.data
+            trainingScopeDescription
         ]
     )
     const totalPages = historyPage?.totalPages ?? 0
@@ -695,39 +712,15 @@ function PredictionHistoryPageInner({
     const handlePagePrev = () => onPageIndexChange(Math.max(pageIndex - 1, 0))
     const handlePageNext = () => onPageIndexChange(Math.min(pageIndex + 1, Math.max(totalPages - 1, 0)))
 
-    useEffect(() => {
-        if (!historyPage || historyPage.filteredReports === 0) {
-            return
-        }
-
-        const pagesToPrefetch = [historyPage.page + 1, historyPage.page + 2].filter(
-            nextPage => nextPage <= historyPage.totalPages
-        )
-        if (pagesToPrefetch.length === 0) {
-            return
-        }
-
-        // Сначала прогреваем ближайшую страницу, затем следующую, чтобы первый переход был мгновенным.
-        void (async () => {
-            for (const nextPage of pagesToPrefetch) {
-                await prefetchCurrentPredictionHistoryPage(queryClient, {
-                    set: HISTORY_SET,
-                    scope: trainingScope,
-                    page: nextPage,
-                    pageSize: DEFAULT_CURRENT_PREDICTION_HISTORY_PAGE_SIZE,
-                    days: resolveHistoryWindowDays(historyWindow),
-                    fromDateUtc: fromDate ?? undefined,
-                    toDateUtc: toDate ?? undefined
-                })
-            }
-        })()
-    }, [historyPage, historyWindow, fromDate, queryClient, toDate, trainingScope])
-
     return (
         <div className={rootClassName}>
             <header className={cls.header}>
                 <div className={cls.headerMain}>
-                    <Text type='h1'>{t('predictionHistory.page.title')}</Text>
+                    <Text type='h1'>
+                        {isTrainDiagnosticsMode ?
+                            t('predictionHistory.page.trainDiagnosticsTitle')
+                        :   t('predictionHistory.page.title')}
+                    </Text>
                     <span className={cls.headerTag}>{historyTag}</span>
                 </div>
 
@@ -749,11 +742,21 @@ function PredictionHistoryPageInner({
 
             {/* История должна сначала объяснять, зачем нужен этот архив, а уже потом открывать фильтры, даты и карточки отчётов. */}
             <PredictionPageIntro
-                title={t('predictionHistory.page.intro.title')}
-                lead={t('predictionHistory.page.intro.lead')}
-                bullets={introBullets}
+                title={
+                    isTrainDiagnosticsMode ?
+                        t('predictionHistory.page.trainDiagnosticsIntro.title')
+                    :   t('predictionHistory.page.intro.title')
+                }
+                lead={
+                    isTrainDiagnosticsMode ?
+                        t('predictionHistory.page.trainDiagnosticsIntro.lead')
+                    :   t('predictionHistory.page.intro.lead')
+                }
+                bullets={isTrainDiagnosticsMode ? trainDiagnosticsIntroBullets : introBullets}
                 renderText={renderIntroText}
             />
+
+            <PredictionTrainingScopeDescriptionBlock variant='history' description={trainingScopeDescription} />
 
             <section className={cls.filters}>
                 <div className={cls.controlsPanel}>
@@ -938,6 +941,12 @@ function resolveLiqFallbackLabel(
     const normalized = row.liqPriceLabel?.trim().toLowerCase() ?? ''
 
     if (normalized === 'no liquidation (1x leverage)') {
+        // Защита от неверного источника: этот текст допустим только при фактическом плече 1x.
+        if (row.leverage > 1.0 + 1e-6) {
+            throw new Error(
+                `[ui] Liquidation 1x label mismatch. leverage=${row.leverage}, policy=${row.policyName}, branch=${row.branch}, bucket=${row.bucket}.`
+            )
+        }
         return translate('predictionHistory.tradesTable.liqFallback.leverage1x')
     }
     if (normalized === 'no liquidation (bucket balance >= position notional)') {
@@ -953,11 +962,16 @@ function resolveLiqFallbackLabel(
         return translate('predictionHistory.tradesTable.liqFallback.missing')
     }
 
-    if (row.side === 'LONG' && row.leverage <= 1.0) {
-        return translate('predictionHistory.tradesTable.liqFallback.leverage1x')
-    }
-
     return translate('predictionHistory.tradesTable.liqFallback.missing')
+}
+
+function resolveColumnLabel(
+    translate: (key: string, options?: Record<string, unknown>) => string,
+    key: string,
+    fallback: string
+): string {
+    const resolved = translate(key)
+    return resolved === key ? fallback : resolved
 }
 
 function summarizeSkipReasons(
@@ -1008,8 +1022,9 @@ function PredictionPolicyTradesTable({
     executedTrades,
     skippedDirectionalSignals
 }: PredictionPolicyTradesTableProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const { intlLocale } = useLocale()
+    const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
     const [bucketFilter, setBucketFilter] = useState<PolicyBranchMegaBucketMode>('daily')
     const translate = (key: string, options?: Record<string, unknown>) => t(key, options)
     const bucketControlGroups = useMemo(
@@ -1033,10 +1048,17 @@ function PredictionPolicyTradesTable({
 
     const noExecutedTradesInDay = executedTrades.length === 0
 
+    const leverageColumnLabel = resolveColumnLabel(
+        translate,
+        'predictionHistory.tradesTable.columns.leverage',
+        isRu ? 'Плечо' : 'Leverage'
+    )
+
     const columns = [
         t('predictionHistory.tradesTable.columns.policy'),
         t('predictionHistory.tradesTable.columns.branch'),
         t('predictionHistory.tradesTable.columns.side'),
+        leverageColumnLabel,
         t('predictionHistory.tradesTable.columns.entry'),
         t('predictionHistory.tradesTable.columns.exit'),
         t('predictionHistory.tradesTable.columns.exitReason'),
@@ -1055,6 +1077,7 @@ function PredictionPolicyTradesTable({
         row.policyName,
         row.branch,
         row.side,
+        formatLeverage(row.leverage, intlLocale),
         formatPrice(row.entryPrice, intlLocale),
         formatPrice(row.exitPrice, intlLocale),
         row.exitReason,
@@ -1075,14 +1098,14 @@ function PredictionPolicyTradesTable({
         t('predictionHistory.tradesTable.skippedColumns.policy'),
         t('predictionHistory.tradesTable.skippedColumns.branch'),
         t('predictionHistory.tradesTable.skippedColumns.side'),
-        t('predictionHistory.tradesTable.skippedColumns.leverage'),
+        leverageColumnLabel,
         t('predictionHistory.tradesTable.skippedColumns.reason')
     ]
     const skippedRowsTable: TableRow[] = filteredSkippedSignals.map(row => [
         row.policyName,
         row.branch,
         row.side,
-        formatPercent(row.leverage, intlLocale),
+        formatLeverage(row.leverage, intlLocale),
         row.skipReason
     ])
 
@@ -1261,8 +1284,16 @@ function PredictionHistoryReportCard({ dateUtc, report, domId, trainingScope }: 
     const { t, i18n } = useTranslation('reports')
     const trainingScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
     const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
+    const showsPolicyTradeTables = !isTrainDiagnosticsScope(trainingScope)
 
     const parsedPolicyTradesState = useMemo(() => {
+        if (!showsPolicyTradeTables) {
+            return {
+                value: null as ParsedPolicyTradeRows | null,
+                error: null as string | null
+            }
+        }
+
         try {
             return {
                 value: parsePolicyTradeRows(report),
@@ -1274,7 +1305,7 @@ function PredictionHistoryReportCard({ dateUtc, report, domId, trainingScope }: 
                 error: error instanceof Error ? error.message : String(error)
             }
         }
-    }, [report])
+    }, [report, showsPolicyTradeTables])
     const timingSnapshot = useMemo(() => resolveCurrentPredictionTimingSnapshot(report, dateUtc), [dateUtc, report])
     const reportForView = useMemo(() => {
         const sanitizedSections = sanitizeHistoryReportSectionsForView(report.sections)
@@ -1329,42 +1360,44 @@ function PredictionHistoryReportCard({ dateUtc, report, domId, trainingScope }: 
                 />
             </SectionErrorBoundary>
 
-            <SectionErrorBoundary
-                name={`PredictionHistoryPolicyTrades_${dateUtc}`}
-                fallback={({ error: sectionError, reset }) => (
-                    <ErrorBlock
-                        code='CLIENT'
-                        title={t('predictionHistory.reportCard.tradesBuildErrorTitle', { dateUtc })}
-                        description={t('predictionHistory.reportCard.tradesBuildErrorDescription')}
-                        details={sectionError.message}
-                        onRetry={reset}
-                        compact
-                    />
-                )}>
-                {parsedPolicyTradesState.error ?
-                    <ErrorBlock
-                        code='DATA'
-                        title={t('predictionHistory.reportCard.tradesSchemaErrorTitle', { dateUtc })}
-                        description={t('predictionHistory.reportCard.tradesSchemaErrorDescription')}
-                        details={parsedPolicyTradesState.error}
-                        compact
-                    />
-                : parsedPolicyTradesState.value ?
-                    <PredictionPolicyTradesTable
-                        report={report}
-                        dateUtc={dateUtc}
-                        executedTrades={parsedPolicyTradesState.value.executedTrades}
-                        skippedDirectionalSignals={parsedPolicyTradesState.value.skippedDirectionalSignals}
-                    />
-                :   <ErrorBlock
-                        code='DATA'
-                        title={t('predictionHistory.reportCard.tradesNotInitializedTitle', { dateUtc })}
-                        description={t('predictionHistory.reportCard.tradesNotInitializedDescription')}
-                        details='[ui] Policy trade rows were not resolved.'
-                        compact
-                    />
-                }
-            </SectionErrorBoundary>
+            {showsPolicyTradeTables && (
+                <SectionErrorBoundary
+                    name={`PredictionHistoryPolicyTrades_${dateUtc}`}
+                    fallback={({ error: sectionError, reset }) => (
+                        <ErrorBlock
+                            code='CLIENT'
+                            title={t('predictionHistory.reportCard.tradesBuildErrorTitle', { dateUtc })}
+                            description={t('predictionHistory.reportCard.tradesBuildErrorDescription')}
+                            details={sectionError.message}
+                            onRetry={reset}
+                            compact
+                        />
+                    )}>
+                    {parsedPolicyTradesState.error ?
+                        <ErrorBlock
+                            code='DATA'
+                            title={t('predictionHistory.reportCard.tradesSchemaErrorTitle', { dateUtc })}
+                            description={t('predictionHistory.reportCard.tradesSchemaErrorDescription')}
+                            details={parsedPolicyTradesState.error}
+                            compact
+                        />
+                    : parsedPolicyTradesState.value ?
+                        <PredictionPolicyTradesTable
+                            report={report}
+                            dateUtc={dateUtc}
+                            executedTrades={parsedPolicyTradesState.value.executedTrades}
+                            skippedDirectionalSignals={parsedPolicyTradesState.value.skippedDirectionalSignals}
+                        />
+                    :   <ErrorBlock
+                            code='DATA'
+                            title={t('predictionHistory.reportCard.tradesNotInitializedTitle', { dateUtc })}
+                            description={t('predictionHistory.reportCard.tradesNotInitializedDescription')}
+                            details='[ui] Policy trade rows were not resolved.'
+                            compact
+                        />
+                    }
+                </SectionErrorBoundary>
+            )}
         </div>
     )
 }
@@ -1379,6 +1412,7 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     const historyDays = resolveHistoryWindowDays(historyWindow)
     const [pageIndex, setPageIndex] = useState(0)
 
+    // История читает только открытую страницу с выбранным окном и не запускает скрытую подзагрузку соседних страниц.
     const { data, isLoading, isError, error, refetch } = useCurrentPredictionHistoryPageQuery({
         set: HISTORY_SET,
         scope: trainingScope,
@@ -1411,11 +1445,5 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
 }
 
 export default function PredictionHistoryPage(props: PredictionHistoryPageProps) {
-    const { t } = useTranslation('reports')
-
-    return (
-        <PageSuspense title={t('predictionHistory.page.loadingTitle')}>
-            <PredictionHistoryPageWithBoundary {...props} />
-        </PageSuspense>
-    )
+    return <PredictionHistoryPageWithBoundary {...props} />
 }

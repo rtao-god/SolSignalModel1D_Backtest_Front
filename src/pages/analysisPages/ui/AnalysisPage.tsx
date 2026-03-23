@@ -6,7 +6,6 @@ import classNames from '@/shared/lib/helpers/classNames'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
 import { DomainOverview, Link, Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
-import { DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS } from '@/shared/api/tanstackQueries/policyBranchMega'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { warmupRouteNavigation } from '@/app/providers/router/config/utils/warmupRouteNavigation'
@@ -37,16 +36,14 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
         () => buildBacktestDiagnosticsQueryArgsFromSearchParams(currentSearchParams),
         [currentSearchParams]
     )
-    const policyBranchMegaArgs = DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS
 
     const handleRouteWarmup = useCallback(
         (routeId: AppRoute) => {
             warmupRouteNavigation(routeId, queryClient, dispatch, {
-                diagnosticsArgs,
-                policyBranchMegaArgs
+                diagnosticsArgs
             })
         },
-        [diagnosticsArgs, dispatch, policyBranchMegaArgs, queryClient]
+        [diagnosticsArgs, dispatch, queryClient]
     )
 
     // Analysis-хаб рендерит и hero, и overview, и карточки через один rich-text pipeline,

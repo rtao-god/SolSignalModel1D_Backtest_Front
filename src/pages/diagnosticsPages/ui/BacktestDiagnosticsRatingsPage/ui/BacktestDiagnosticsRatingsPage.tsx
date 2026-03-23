@@ -1,14 +1,10 @@
 import { useMemo } from 'react'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
-import {
-    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
-    useBacktestDiagnosticsReportQuery
-} from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import { BACKTEST_DIAGNOSTICS_QUERY_SCOPES } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import { splitBacktestDiagnosticsSections } from '@/shared/utils/backtestDiagnosticsSections'
-import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
 import { BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPages/shared/useBacktestDiagnosticsPublishedPageQuery'
 
 /*
     BacktestDiagnosticsRatingsPage — рейтинги и топы по бэктесту.
@@ -19,12 +15,8 @@ import { useSearchParams } from 'react-router-dom'
 */
 export default function BacktestDiagnosticsRatingsPage() {
     const { t } = useTranslation('reports')
-    const [searchParams] = useSearchParams()
-    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
-        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams),
-        {
-            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.ratingsPage
-        }
+    const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        BACKTEST_DIAGNOSTICS_QUERY_SCOPES.ratingsPage
     )
 
     const tableSections = useMemo(
@@ -41,6 +33,7 @@ export default function BacktestDiagnosticsRatingsPage() {
             report={data ?? null}
             sections={split.ratings}
             availableAxes={BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES}
+            variantCatalog={variantCatalog}
             pageTitle={t('diagnosticsReport.pages.ratings.title')}
             pageSubtitle={t('diagnosticsReport.pages.ratings.subtitle')}
             emptyMessage={t('diagnosticsReport.pages.ratings.empty')}

@@ -44,6 +44,10 @@
     gap: 14px;
 }
 
+.gridSingleColumn {
+    grid-template-columns: 1fr;
+}
+
 .item {
     border-radius: 12px;
     padding: 12px 14px;

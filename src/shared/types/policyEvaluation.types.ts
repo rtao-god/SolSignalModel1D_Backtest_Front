@@ -29,6 +29,7 @@ export interface PolicyEvaluationMetricsDto {
 
 export interface PolicyEvaluationDto {
     profileId: string
+    policySetupId: string | null
     status: PolicyEvaluationStatus
     reasons: PolicyEvaluationReasonDto[]
     thresholds: PolicyEvaluationThresholdsDto | null

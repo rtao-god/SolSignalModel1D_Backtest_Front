@@ -105,7 +105,12 @@ import {
     ZONAL_MODE_DESCRIPTION,
     BUCKET_DEAD_AFTER_LIQ_DESCRIPTION
 } from './risk'
-import { COMMON_CAGR_DESCRIPTION_EN, COMMON_CALMAR_DESCRIPTION_EN } from './reportColumns.en'
+import {
+    COMMON_CAGR_DESCRIPTION_EN,
+    COMMON_CALMAR_DESCRIPTION_EN,
+    COMMON_SHARPE_DESCRIPTION_EN,
+    COMMON_SORTINO_DESCRIPTION_EN
+} from './reportColumns.en'
 import {
     ATR_INDICATOR_DESCRIPTION,
     EMA_200_BTC_SOL_DESCRIPTION,
@@ -143,6 +148,16 @@ function resolveLocalizedLeakageDescription(): string {
 function resolveLocalizedCalmarDescription(): string {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
     return isEnglish ? COMMON_CALMAR_DESCRIPTION_EN : CALMAR_DESCRIPTION
+}
+
+function resolveLocalizedSharpeDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? COMMON_SHARPE_DESCRIPTION_EN : SHARPE_DESCRIPTION
+}
+
+function resolveLocalizedSortinoDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? COMMON_SORTINO_DESCRIPTION_EN : SORTINO_DESCRIPTION
 }
 
 function resolveLocalizedCagrDescription(): string {
@@ -592,7 +607,7 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         id: 'sharpe-ratio',
         pattern: /\bSharpe\b|коэффиц(?:иент)?\s+шарпа/i,
         title: 'Sharpe',
-        description: SHARPE_DESCRIPTION,
+        description: () => resolveLocalizedSharpeDescription(),
         aliases: ['Sharpe', 'коэффициент Шарпа'],
         priority: 176,
         scope: 'common'
@@ -601,7 +616,7 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         id: 'sortino-ratio',
         pattern: /\bSortino\b|коэффиц(?:иент)?\s+сортино/i,
         title: 'Sortino',
-        description: SORTINO_DESCRIPTION,
+        description: () => resolveLocalizedSortinoDescription(),
         aliases: ['Sortino', 'коэффициент Сортино'],
         priority: 176,
         scope: 'common'

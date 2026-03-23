@@ -6,48 +6,54 @@ import {
     ReportDocumentView,
     type ReportDocumentFreshnessInfo
 } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
-import { useBacktestBaselineSummaryReportWithFreshnessQuery } from '@/shared/api/tanstackQueries/backtest'
+import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { useTranslation } from 'react-i18next'
 import { useMemo } from 'react'
+import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.types'
 
 export default function BacktestSummaryReportPage({ className }: BacktestSummaryReportProps) {
     const { t } = useTranslation(['reports', 'nav'])
-    const { data, isLoading, isError, error, refetch } = useBacktestBaselineSummaryReportWithFreshnessQuery()
-    const report = data?.report ?? null
-    const freshness = data?.freshness ?? null
+    const { data: report, isLoading, isError, error, refetch } = useBacktestBaselineSummaryReportQuery()
     // Route-level title stays visible without report payload, so local fetch failures do not erase the page shell.
     const pageTitle = report?.title ?? t('route.backtest_summary', { ns: 'nav', defaultValue: 'Backtest summary' })
 
     const rootClassName = classNames(cls.BacktestSummaryPage, {}, [className ?? ''])
     const documentFreshness = useMemo<ReportDocumentFreshnessInfo>(
         () => ({
-            statusMode: freshness?.sourceMode === 'actual' ? 'actual' : 'debug',
-            statusTitle:
-                freshness?.sourceMode === 'actual' ?
-                    t('backtestSummary.page.status.actualTitle')
-                :   t('backtestSummary.page.status.debugTitle'),
-            statusMessage: freshness?.message ?? t('backtestSummary.page.status.unavailableMessage'),
+            statusMode: 'actual',
+            statusTitle: t('backtestSummary.page.status.publishedTitle'),
+            statusMessage: t('backtestSummary.page.status.publishedMessage'),
             statusLines: [
-                ...(freshness?.keyValueSectionCount !== null && freshness?.keyValueSectionCount !== undefined ?
+                ...(report ?
                     [
                         {
                             label: t('backtestSummary.page.statusLines.keyValueSections'),
-                            value: String(freshness.keyValueSectionCount)
+                            value: String(
+                                report.sections.filter(
+                                    (section): section is KeyValueSectionDto => Array.isArray((section as KeyValueSectionDto).items)
+                                ).length
+                            )
                         }
                     ]
                 :   []),
-                ...(freshness?.tableSectionCount !== null && freshness?.tableSectionCount !== undefined ?
+                ...(report ?
                     [
                         {
                             label: t('backtestSummary.page.statusLines.tableSections'),
-                            value: String(freshness.tableSectionCount)
+                            value: String(
+                                report.sections.filter(
+                                    (section): section is TableSectionDto =>
+                                        Array.isArray((section as TableSectionDto).columns) &&
+                                        Array.isArray((section as TableSectionDto).rows)
+                                ).length
+                            )
                         }
                     ]
                 :   [])
             ]
         }),
-        [freshness, t]
+        [report, t]
     )
 
     return (

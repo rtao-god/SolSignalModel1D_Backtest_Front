@@ -1,10 +1,13 @@
-import type { TableSectionDto } from '@/shared/types/report.types'
+import type { PfiQueryFamily } from '@/shared/api/tanstackQueries/pfi'
+import type { PfiReportSectionDto } from '@/shared/types/pfi.types'
 
 export interface PfiTableCardProps {
-    section: TableSectionDto
+    section: PfiReportSectionDto
     domId: string
+    reportKind: 'pfi_per_model' | 'pfi_sl_model'
 }
 
 export interface PfiPageProps {
     className?: string
+    family?: PfiQueryFamily
 }

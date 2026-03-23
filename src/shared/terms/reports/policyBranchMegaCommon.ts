@@ -1,13 +1,16 @@
 import {
     ACCOUNT_RUIN_DESCRIPTION,
     BRANCH_DESCRIPTION,
+    CALMAR_DESCRIPTION,
     POLICY_DESCRIPTION,
     RECOVERED_DESCRIPTION,
     RECOV_DAYS_DESCRIPTION,
     REQ_GAIN_DESCRIPTION,
+    SHARPE_DESCRIPTION,
     SL_MODE_TERM_DESCRIPTION,
     START_CAP_DESCRIPTION,
     ON_EXCHANGE_PCT_DESCRIPTION,
+    SORTINO_DESCRIPTION,
     TOTAL_PNL_DESCRIPTION,
     WEALTH_PCT_DESCRIPTION
 } from '@/shared/terms/common'
@@ -48,6 +51,21 @@ export const POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS: Record<string, PolicyBranchM
         key: 'OnExch%',
         title: 'OnExch%',
         description: ON_EXCHANGE_PCT_DESCRIPTION
+    },
+    Sharpe: {
+        key: 'Sharpe',
+        title: 'Sharpe',
+        description: SHARPE_DESCRIPTION
+    },
+    Sortino: {
+        key: 'Sortino',
+        title: 'Sortino',
+        description: SORTINO_DESCRIPTION
+    },
+    Calmar: {
+        key: 'Calmar',
+        title: 'Calmar',
+        description: CALMAR_DESCRIPTION
     },
     StartCap$: {
         key: 'StartCap$',

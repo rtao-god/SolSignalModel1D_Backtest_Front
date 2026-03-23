@@ -6,7 +6,7 @@ import type CalendarProps from '../Calendar/types'
 import Month from '../Month/Month'
 import { toStartOfDay } from '@/shared/consts/date'
 
-const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2022, 3, 13))
+const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2021, 9, 11))
 
 /**
  * Позиция видимого календаря на уровне года и месяца без привязки к конкретному дню.

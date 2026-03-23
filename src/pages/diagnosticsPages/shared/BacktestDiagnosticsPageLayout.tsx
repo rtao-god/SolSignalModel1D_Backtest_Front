@@ -25,6 +25,10 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
+import {
+    buildPublishedReportVariantCompatibleOptions,
+    type PublishedReportVariantCatalogDto
+} from '@/shared/api/tanstackQueries/reportVariants'
 import cls from './BacktestDiagnosticsPageLayout.module.scss'
 
 interface BacktestDiagnosticsPageLayoutProps {
@@ -36,6 +40,7 @@ interface BacktestDiagnosticsPageLayoutProps {
     errorTitle: string
     className?: string
     availableAxes?: readonly BacktestDiagnosticsControlAxis[]
+    variantCatalog?: PublishedReportVariantCatalogDto | null
     isLoading?: boolean
     error?: unknown
     onRetry?: () => void
@@ -75,6 +80,7 @@ export default function BacktestDiagnosticsPageLayout({
     errorTitle,
     className,
     availableAxes,
+    variantCatalog,
     isLoading,
     error,
     onRetry
@@ -129,7 +135,7 @@ export default function BacktestDiagnosticsPageLayout({
     const diagnosticsSelectionState = useMemo(() => {
         try {
             return {
-                value: resolveBacktestDiagnosticsSearchSelection(searchParams),
+                value: resolveBacktestDiagnosticsSearchSelection(searchParams, variantCatalog ?? undefined),
                 error: null as Error | null
             }
         } catch (err) {
@@ -139,19 +145,64 @@ export default function BacktestDiagnosticsPageLayout({
                 error: safeError
             }
         }
-    }, [searchParams])
+    }, [searchParams, variantCatalog])
+
+    const diagnosticsVariantSelection = useMemo(
+        () =>
+            diagnosticsSelectionState.value ?
+                {
+                    bucket: diagnosticsSelectionState.value.bucket,
+                    tpsl: diagnosticsSelectionState.value.tpSlMode,
+                    slmode: diagnosticsSelectionState.value.slMode,
+                    zonal: diagnosticsSelectionState.value.zonalMode
+                }
+            :   null,
+        [diagnosticsSelectionState.value]
+    )
 
     const sharedSections = useMemo(() => sections.filter(section => !isVariantDiagnosticsSection(section)), [sections])
     const variantSections = useMemo(() => sections.filter(isVariantDiagnosticsSection), [sections])
     const sectionsForView = useMemo(() => [...variantSections, ...sharedSections], [sharedSections, variantSections])
     const effectiveAxisVisibility = useMemo(
         () => ({
-            tpSlMode: availableAxes?.includes('tpSlMode') === true || hasDiagnosticsAxis(variantSections, 'tpSlMode'),
-            mode: availableAxes?.includes('mode') === true || hasDiagnosticsAxis(variantSections, 'mode'),
-            bucket: availableAxes?.includes('bucket') === true || hasDiagnosticsAxis(variantSections, 'bucket'),
-            zonalMode: availableAxes?.includes('zonalMode') === true || hasDiagnosticsAxis(variantSections, 'zonalMode')
+            tpSlMode:
+                availableAxes?.includes('tpSlMode') === true ||
+                (variantCatalog && diagnosticsVariantSelection ?
+                    buildPublishedReportVariantCompatibleOptions(
+                        variantCatalog,
+                        diagnosticsVariantSelection,
+                        'tpsl'
+                    ).length > 1
+                :   hasDiagnosticsAxis(variantSections, 'tpSlMode')),
+            mode:
+                availableAxes?.includes('mode') === true ||
+                (variantCatalog && diagnosticsVariantSelection ?
+                    buildPublishedReportVariantCompatibleOptions(
+                        variantCatalog,
+                        diagnosticsVariantSelection,
+                        'slmode'
+                    ).length > 1
+                :   hasDiagnosticsAxis(variantSections, 'mode')),
+            bucket:
+                availableAxes?.includes('bucket') === true ||
+                (variantCatalog && diagnosticsVariantSelection ?
+                    buildPublishedReportVariantCompatibleOptions(
+                        variantCatalog,
+                        diagnosticsVariantSelection,
+                        'bucket'
+                    ).length > 1
+                :   hasDiagnosticsAxis(variantSections, 'bucket')),
+            zonalMode:
+                availableAxes?.includes('zonalMode') === true ||
+                (variantCatalog && diagnosticsVariantSelection ?
+                    buildPublishedReportVariantCompatibleOptions(
+                        variantCatalog,
+                        diagnosticsVariantSelection,
+                        'zonal'
+                    ).length > 1
+                :   hasDiagnosticsAxis(variantSections, 'zonalMode'))
         }),
-        [availableAxes, variantSections]
+        [availableAxes, diagnosticsVariantSelection, variantCatalog, variantSections]
     )
 
     const termsState = useMemo(() => {
@@ -210,10 +261,37 @@ export default function BacktestDiagnosticsPageLayout({
         }
 
         const controlGroups = []
+        const compatibleBuckets =
+            variantCatalog && diagnosticsVariantSelection ?
+                buildPublishedReportVariantCompatibleOptions(variantCatalog, diagnosticsVariantSelection, 'bucket').map(
+                    option => option.value
+                )
+            :   null
+        const compatibleTpSlModes =
+            variantCatalog && diagnosticsVariantSelection ?
+                buildPublishedReportVariantCompatibleOptions(variantCatalog, diagnosticsVariantSelection, 'tpsl').map(
+                    option => option.value
+                )
+            :   null
+        const compatibleSlModes =
+            variantCatalog && diagnosticsVariantSelection ?
+                buildPublishedReportVariantCompatibleOptions(
+                    variantCatalog,
+                    diagnosticsVariantSelection,
+                    'slmode'
+                ).map(option => option.value)
+            :   null
+        const compatibleZonalModes =
+            variantCatalog && diagnosticsVariantSelection ?
+                buildPublishedReportVariantCompatibleOptions(
+                    variantCatalog,
+                    diagnosticsVariantSelection,
+                    'zonal'
+                ).map(option => option.value)
+            :   null
 
         if (effectiveAxisVisibility.tpSlMode) {
-            controlGroups.push(
-                buildMegaTpSlControlGroup({
+            const group = buildMegaTpSlControlGroup({
                     value: diagnosticsSelectionState.value.tpSlMode,
                     onChange: next => {
                         if (next === diagnosticsSelectionState.value?.tpSlMode) return
@@ -222,12 +300,15 @@ export default function BacktestDiagnosticsPageLayout({
                         setSearchParams(nextParams, { replace: true })
                     }
                 })
-            )
+            group.options =
+                compatibleTpSlModes ?
+                    group.options.filter(option => compatibleTpSlModes.includes(option.value))
+                :   group.options
+            controlGroups.push(group)
         }
 
         if (effectiveAxisVisibility.mode) {
-            controlGroups.push(
-                buildMegaSlModeControlGroup({
+            const group = buildMegaSlModeControlGroup({
                     value: diagnosticsSelectionState.value.slMode,
                     onChange: next => {
                         if (next === diagnosticsSelectionState.value?.slMode) return
@@ -236,12 +317,15 @@ export default function BacktestDiagnosticsPageLayout({
                         setSearchParams(nextParams, { replace: true })
                     }
                 })
-            )
+            group.options =
+                compatibleSlModes ?
+                    group.options.filter(option => compatibleSlModes.includes(option.value))
+                :   group.options
+            controlGroups.push(group)
         }
 
         if (effectiveAxisVisibility.bucket) {
-            controlGroups.push(
-                buildPredictionPolicyBucketControlGroup({
+            const group = buildPredictionPolicyBucketControlGroup({
                     value: diagnosticsSelectionState.value.bucket,
                     onChange: next => {
                         if (next === diagnosticsSelectionState.value?.bucket) return
@@ -251,12 +335,15 @@ export default function BacktestDiagnosticsPageLayout({
                     },
                     label: 'Бакет сделок'
                 })
-            )
+            group.options =
+                compatibleBuckets ?
+                    group.options.filter(option => compatibleBuckets.includes(option.value))
+                :   group.options
+            controlGroups.push(group)
         }
 
         if (effectiveAxisVisibility.zonalMode) {
-            controlGroups.push(
-                buildMegaZonalControlGroup({
+            const group = buildMegaZonalControlGroup({
                     value: diagnosticsSelectionState.value.zonalMode,
                     onChange: next => {
                         if (next === diagnosticsSelectionState.value?.zonalMode) return
@@ -265,16 +352,22 @@ export default function BacktestDiagnosticsPageLayout({
                         setSearchParams(nextParams, { replace: true })
                     }
                 })
-            )
+            group.options =
+                compatibleZonalModes ?
+                    group.options.filter(option => compatibleZonalModes.includes(option.value))
+                :   group.options
+            controlGroups.push(group)
         }
 
         return controlGroups
     }, [
         diagnosticsSelectionState.value,
+        diagnosticsVariantSelection,
         effectiveAxisVisibility,
         searchParams,
         sectionsForView.length,
-        setSearchParams
+        setSearchParams,
+        variantCatalog
     ])
 
     const reportStateError =
@@ -304,7 +397,7 @@ export default function BacktestDiagnosticsPageLayout({
 
                 {hasReadyReport && report && sourceEndpointState.value && (
                     <ReportActualStatusCard
-                        statusMode='debug'
+                        statusMode='actual'
                         statusTitle={t('diagnosticsReport.layout.status.title')}
                         statusMessage={t('diagnosticsReport.layout.status.message')}
                         dataSource={sourceEndpointState.value}
@@ -403,7 +496,7 @@ export default function BacktestDiagnosticsPageLayout({
                                     Общие таблицы
                                 </Text>
                                 <Text className={cls.sharedSubtitle}>
-                                    Эти секции не зависят от выбранных server-side фильтров diagnostics.
+                                    Эти таблицы остаются общими для всех выбранных фильтров диагностики.
                                 </Text>
 
                                 <div className={cls.tableGrid}>

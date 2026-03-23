@@ -89,23 +89,21 @@
 }
 
 .filtersRow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px 24px;
+    display: grid;
+    grid-template-columns: minmax(360px, 400px) minmax(0, 1fr);
+    column-gap: 24px;
+    row-gap: 16px;
     align-items: flex-start;
 }
 
 .datePicker {
-    flex: 0 1 360px;
     width: 100%;
-    min-width: 320px;
-    max-width: 360px;
+    min-width: 0;
+    max-width: 400px;
 }
 
 .filtersInfo {
-    flex: 1 1 260px;
-    min-width: 260px;
-    margin-left: 8px;
+    min-width: 0;
     font-size: 13px;
     opacity: 0.9;
 }
@@ -441,17 +439,15 @@
     }
 
     .filtersRow {
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .datePicker {
-        flex-basis: 100%;
         max-width: none;
     }
 
     .filtersInfo {
         min-width: 0;
-        margin-left: 0;
     }
 
     .reportCard {

@@ -279,7 +279,7 @@ export function showRuntimeErrorBanner(error: Error, source: string): void {
 
         const description = document.createElement('p')
         description.textContent =
-            'Приложение продолжает работать, но один из runtime-блоков завершился ошибкой. Можно перейти на другую страницу или повторить действие позже.'
+            'Приложение продолжает работать, но один из разделов открылся с ошибкой. Остальные страницы и действия остаются доступны.'
         description.style.margin = '0 0 14px'
         description.style.color = 'rgba(226, 232, 240, 0.86)'
         description.style.fontSize = '14px'

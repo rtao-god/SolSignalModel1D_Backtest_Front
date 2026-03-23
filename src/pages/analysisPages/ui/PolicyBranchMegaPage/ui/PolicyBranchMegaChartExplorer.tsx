@@ -21,6 +21,7 @@ import type {
     PolicyBranchMegaChartRiskState,
     PolicyBranchMegaChartRow
 } from '../model/policyBranchMegaChartModel'
+import { POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS } from '@/shared/utils/policyBranchMegaProfitColumns'
 import {
     formatPolicyBranchMegaChartMetricValue,
     resolvePolicyBranchMegaChartMetric,
@@ -32,6 +33,7 @@ import cls from './PolicyBranchMegaChartExplorer.module.scss'
 type ChartFilterValue = 'all'
 type RankingSortMode = 'metric-desc' | 'metric-asc' | 'policy-asc'
 type RankingLimitMode = '8' | '12' | '20' | 'all'
+type RankingLayoutMode = 'left-to-right' | 'top-to-bottom'
 type ChartPresetKey =
     | 'pnl-vs-drawdown'
     | 'trade-vs-return'
@@ -79,6 +81,7 @@ interface PolicyBranchMegaChartPresetDescriptor {
 
 const DEFAULT_CHART_PRESET_KEY: Exclude<ChartPresetKey, 'custom'> = 'pnl-vs-drawdown'
 const DEFAULT_RANKING_LIMIT_MODE: RankingLimitMode = 'all'
+const DEFAULT_RANKING_LAYOUT_MODE: RankingLayoutMode = 'left-to-right'
 const RANKING_BAR_MAX_HEIGHT_PX = 860
 const POLICY_COMPARE_MAX_HEIGHT_PX = 420
 // Preset синхронно настраивает левый рейтинг и правый scatter,
@@ -87,20 +90,20 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
     {
         key: 'pnl-vs-drawdown',
         part: 1,
-        rankingMetricKey: 'Wealth%',
+        rankingMetricKey: 'TotalPnl%',
         scatterXMetricKey: 'MaxDD%',
-        scatterYMetricKey: 'Wealth%',
+        scatterYMetricKey: 'TotalPnl%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.pnlVsDrawdown',
-        defaultLabel: 'Wealth vs MaxDD'
+        defaultLabel: 'TotalPnl vs MaxDD'
     },
     {
         key: 'trade-vs-return',
         part: 1,
         rankingMetricKey: 'Trade%',
         scatterXMetricKey: 'Trade%',
-        scatterYMetricKey: 'Wealth%',
+        scatterYMetricKey: 'TotalPnl%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.tradeVsReturn',
-        defaultLabel: 'Trade rate vs Wealth'
+        defaultLabel: 'Trade rate vs TotalPnl'
     },
     {
         key: 'recovery-vs-drawdown',
@@ -143,9 +146,9 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
         part: 3,
         rankingMetricKey: 'AvgDay%',
         scatterXMetricKey: 'AvgDay%',
-        scatterYMetricKey: 'Wealth%',
+        scatterYMetricKey: 'TotalPnl%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.avgDayVsTotalPnl',
-        defaultLabel: 'Average day vs Wealth'
+        defaultLabel: 'Average day vs TotalPnl'
     },
     {
         key: 'long-vs-short-cash',
@@ -161,18 +164,18 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
         part: 3,
         rankingMetricKey: 'Long $',
         scatterXMetricKey: 'Long $',
-        scatterYMetricKey: 'Wealth%',
+        scatterYMetricKey: 'TotalPnl%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.longVsTotalPnl',
-        defaultLabel: 'Long cash vs Wealth'
+        defaultLabel: 'Long cash vs TotalPnl'
     },
     {
         key: 'short-vs-total-pnl',
         part: 3,
         rankingMetricKey: 'Short $',
         scatterXMetricKey: 'Short $',
-        scatterYMetricKey: 'Wealth%',
+        scatterYMetricKey: 'TotalPnl%',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.shortVsTotalPnl',
-        defaultLabel: 'Short cash vs Wealth'
+        defaultLabel: 'Short cash vs TotalPnl'
     },
     {
         key: 'eod-vs-trade-rate',
@@ -288,6 +291,12 @@ function resolveHorizontalBarChartHeight(
     return Math.max(minHeight, itemCount * rowHeight + chromeHeight)
 }
 
+function resolveVerticalBarChartHeight(itemCount: number) {
+    if (itemCount >= 48) return 460
+    if (itemCount >= 24) return 420
+    return 380
+}
+
 function resolveScatterChartHeight(pointCount: number) {
     if (pointCount >= 80) return 560
     if (pointCount >= 48) return 520
@@ -357,6 +366,7 @@ export default function PolicyBranchMegaChartExplorer({
     const [rowSlModeFilter, setRowSlModeFilter] = useState<string | ChartFilterValue>('all')
     const [sortMode, setSortMode] = useState<RankingSortMode>('metric-desc')
     const [limitMode, setLimitMode] = useState<RankingLimitMode>(DEFAULT_RANKING_LIMIT_MODE)
+    const [rankingLayoutMode, setRankingLayoutMode] = useState<RankingLayoutMode>(DEFAULT_RANKING_LAYOUT_MODE)
     const [policySearch, setPolicySearch] = useState('')
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
     const [rankingMetricKey, setRankingMetricKey] = useState<string>(
@@ -370,7 +380,7 @@ export default function PolicyBranchMegaChartExplorer({
     const [scatterYMetricKey, setScatterYMetricKey] = useState<string>(
         () =>
             CHART_PRESETS[0]?.scatterYMetricKey ??
-            pickInitialScatterMetricKey(model, ['Wealth%', 'OnExch%', 'AvgDay%'], 1)
+            pickInitialScatterMetricKey(model, [...POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS, 'OnExch%', 'AvgDay%'], 1)
     )
 
     const deferredSearch = useDeferredValue(policySearch.trim().toLowerCase())
@@ -451,7 +461,9 @@ export default function PolicyBranchMegaChartExplorer({
 
     useEffect(() => {
         if (model.metrics.some(metric => metric.key === scatterYMetricKey)) return
-        setScatterYMetricKey(pickInitialScatterMetricKey(model, ['Wealth%', 'OnExch%', 'AvgDay%'], 1))
+        setScatterYMetricKey(
+            pickInitialScatterMetricKey(model, [...POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS, 'OnExch%', 'AvgDay%'], 1)
+        )
     }, [model, scatterYMetricKey])
 
     const filteredRows = useMemo(
@@ -563,9 +575,13 @@ export default function PolicyBranchMegaChartExplorer({
         [rankingMetric.key, selectedPolicyRows]
     )
     const rankingChartHeight = useMemo(
-        () => resolveHorizontalBarChartHeight(rankingData.length, 360, 28, 96),
-        [rankingData.length]
+        () =>
+            rankingLayoutMode === 'top-to-bottom' ?
+                resolveHorizontalBarChartHeight(rankingData.length, 360, 28, 96)
+            :   resolveVerticalBarChartHeight(rankingData.length),
+        [rankingData.length, rankingLayoutMode]
     )
+    const rankingChartOrientation = rankingLayoutMode === 'top-to-bottom' ? 'horizontal' : 'vertical'
     const selectedPolicyChartHeight = useMemo(
         () => resolveHorizontalBarChartHeight(selectedPolicyMetricData.length, 240, 40, 84),
         [selectedPolicyMetricData.length]
@@ -681,6 +697,32 @@ export default function PolicyBranchMegaChartExplorer({
                     { value: '20', label: '20' }
                 ],
                 onChange: (next: RankingLimitMode) => setLimitMode(next)
+            },
+            {
+                key: 'mega-chart-ranking-layout',
+                label: translate('policyBranchMega.page.chart.controls.rankingLayoutLabel', {
+                    defaultValue: 'Вид рейтинга'
+                }),
+                infoTooltip: translate('policyBranchMega.page.chart.controls.rankingLayoutTooltip', {
+                    defaultValue:
+                        'Слева направо оставляет классические столбцы по оси X. Сверху вниз превращает рейтинг в плотный список, если нужен компактный обзор.'
+                }),
+                value: rankingLayoutMode,
+                options: [
+                    {
+                        value: 'left-to-right',
+                        label: translate('policyBranchMega.page.chart.controls.rankingLayout.leftToRight', {
+                            defaultValue: 'Слева направо'
+                        })
+                    },
+                    {
+                        value: 'top-to-bottom',
+                        label: translate('policyBranchMega.page.chart.controls.rankingLayout.topToBottom', {
+                            defaultValue: 'Сверху вниз'
+                        })
+                    }
+                ],
+                onChange: (next: RankingLayoutMode) => setRankingLayoutMode(next)
             }
         ],
         [
@@ -692,6 +734,7 @@ export default function PolicyBranchMegaChartExplorer({
             model.slModeOptions,
             partsCount,
             policyTooltip,
+            rankingLayoutMode,
             rowSlModeFilter,
             selectedPart,
             slModeTooltip,
@@ -933,9 +976,11 @@ export default function PolicyBranchMegaChartExplorer({
 
                     <ReportMetricBarChart
                         data={rankingData}
-                        orientation='horizontal'
+                        orientation={rankingChartOrientation}
                         height={rankingChartHeight}
-                        maxHeight={RANKING_BAR_MAX_HEIGHT_PX}
+                        maxHeight={
+                            rankingLayoutMode === 'top-to-bottom' ? RANKING_BAR_MAX_HEIGHT_PX : undefined
+                        }
                         selectedId={selectedRowId}
                         onSelect={datum => setSelectedRowId(datum.row.id)}
                         valueLabel={rankingMetric.title}

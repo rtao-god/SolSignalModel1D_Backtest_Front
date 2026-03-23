@@ -496,11 +496,16 @@ function localizeBacktestDiagnosticsSectionTitleForRuWithVariant(
 
 const CURRENT_PREDICTION_SECTION_TITLE_RU: Record<string, string> = {
     'Prediction summary': 'Общие параметры прогноза',
+    'Train diagnostics summary': 'Сводка диагностики train',
+    'Train diagnostics metrics': 'Метрики диагностики train',
     'Prediction probabilities (%)': 'Вероятности прогноза (%)',
     '24h price range (historical baseline)': 'Диапазон цены за 24 часа (исторический ориентир)',
     'Actual day outcome vs forecast': 'Факт дня и сравнение с прогнозом',
     'Why the model produced this forecast (top factors)': 'Почему модель дала такой прогноз (топ факторов)',
-    'Leverage policies (BASE vs ANTI-D)': 'Policy по веткам BASE и ANTI-D'
+    'Leverage policies (BASE vs ANTI-D)': 'Policy по веткам BASE и ANTI-D',
+    'Worst mistakes (in-sample)': 'Худшие ошибки train (in-sample)',
+    'Confident mistakes (in-sample)': 'Уверенные ошибки train (in-sample)',
+    'Borderline days (lowest margin)': 'Пограничные дни train (минимальный margin)'
 }
 
 const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
@@ -545,7 +550,23 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Primary model (Daily)': 'Основная модель (Daily)',
     'Micro model': 'Микро-модель',
     'Combined response (model interpretation)': 'Итоговый ответ моделей',
-    'Model training window': 'Обучение моделей (диапазон)',
+    'Prediction scope range': 'Диапазон режима прогноза',
+    'Training recipe': 'Рецепт обучения',
+    'Prediction semantics': 'Семантика прогноза',
+    'View mode': 'Режим показа',
+    'Display slice mode': 'Режим среза показа',
+    'User-facing history': 'Пользовательская история',
+    'Snapshot max labeled day (UTC)': 'Последний день с известным итогом (UTC)',
+    'Fit window start (UTC)': 'Начало окна обучения (UTC)',
+    'Fit window end (UTC)': 'Конец окна обучения (UTC)',
+    'Train window start (UTC)': 'Начало train-окна (UTC)',
+    'Train window end (UTC)': 'Конец train-окна (UTC)',
+    'Score window start (UTC)': 'Начало окна прогноза (UTC)',
+    'Score window end (UTC)': 'Конец окна прогноза (UTC)',
+    'Uses train/OOS split': 'Использует split train/OOS',
+    'Score rows presence in train': 'Пересечение окна прогноза с обучением',
+    'Recent tail rows limit': 'Лимит строк свежего хвоста',
+    'Recent tail rows returned': 'Строк свежего хвоста в отчёте',
     'Market regime': 'Режим рынка',
     'Stop-loss trigger probability': 'Вероятность срабатывания стоп-лосса',
     'SL model signal': 'Сигнал SL-модели',
@@ -573,6 +594,20 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Forecast MinMove (causal)': 'Прогнозный MinMove (казуальный)',
     'Delta MinMove (actual - forecast)': 'Δ MinMove (факт - прогноз)',
     'Probability of actual outcome (Total)': 'Вероятность фактического исхода (Total)',
+    'Total rows': 'Всего строк',
+    'Correct rows': 'Верных строк',
+    'Wrong rows': 'Ошибочных строк',
+    'Accuracy, %': 'Accuracy, %',
+    'Average confidence, %': 'Средняя уверенность, %',
+    'Average actual-outcome probability, %': 'Средняя вероятность фактического исхода, %',
+    'Predicted outcome': 'Прогноз модели',
+    'Actual outcome': 'Фактический исход',
+    Correct: 'Верно',
+    'Confidence, %': 'Уверенность, %',
+    'Actual outcome probability, %': 'Вероятность фактического исхода, %',
+    'Error score, %': 'Сила ошибки, %',
+    'Decision margin, %': 'Запас решения, %',
+    Reason: 'Причина',
     Type: 'Тип',
     Name: 'Имя',
     Description: 'Описание',
@@ -642,6 +677,18 @@ function localizeMissingReason(reason: string): string {
 function localizeTrainingWindowScope(scope: string): string {
     const normalized = normalizeValue(scope).toLowerCase()
 
+    if (normalized.startsWith('train diagnostics')) {
+        return 'Диагностика train'
+    }
+
+    if (normalized.startsWith('oos evaluation')) {
+        return 'Честная OOS-оценка'
+    }
+
+    if (normalized.startsWith('recent oos tail')) {
+        return 'Свежий OOS-хвост'
+    }
+
     switch (normalized) {
         case 'full':
             return 'Полная история'
@@ -653,6 +700,81 @@ function localizeTrainingWindowScope(scope: string): string {
             return 'Свежий рабочий отрезок'
         default:
             return scope
+    }
+}
+
+function localizeTrainingRecipeValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue).toLowerCase()
+
+    switch (normalized) {
+        case 'full_history_retrospective_refit':
+            return 'Полное переобучение на всей завершённой истории'
+        case 'split_train_oos':
+            return 'Split train/OOS: модель обучена на train и считает только OOS'
+        default:
+            return rawValue
+    }
+}
+
+function localizePredictionSemanticsValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue).toLowerCase()
+
+    switch (normalized) {
+        case 'mutable_retrospective_full':
+            return 'Ретроспективный полный режим: прошлые прогнозы могут меняться после пересчёта'
+        case 'full_history_snapshot_forecast':
+            return 'Прогноз на новый день после полного обучения на завершённой истории'
+        case 'oos_scored_by_train':
+            return 'Честная OOS-оценка: показаны только OOS-дни, модель обучена на train'
+        case 'oos_scored_by_train_recent_tail':
+            return 'Свежий OOS-хвост: показаны только последние scored OOS-строки'
+        case 'train_diagnostics_in_sample':
+            return 'Диагностика train: in-sample разбор ошибок и уверенности'
+        default:
+            return rawValue
+    }
+}
+
+function localizeViewModeValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue).toLowerCase()
+
+    switch (normalized) {
+        case 'full_history':
+            return 'Полная история'
+        case 'oos_evaluation':
+            return 'Честная OOS-оценка'
+        case 'train_diagnostics':
+            return 'Диагностика train'
+        default:
+            return rawValue
+    }
+}
+
+function localizeDisplaySliceModeValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue).toLowerCase()
+
+    switch (normalized) {
+        case 'all':
+            return 'Весь доступный диапазон'
+        case 'recent_tail':
+            return 'Свежий хвост scored rows'
+        default:
+            return rawValue
+    }
+}
+
+function localizeScoreRowsPresenceInTrainValue(rawValue: string): string {
+    const normalized = normalizeValue(rawValue).toLowerCase()
+
+    switch (normalized) {
+        case 'all_in_train':
+            return 'Все дни окна прогноза уже входят в обучение'
+        case 'some_outside':
+            return 'Часть дней окна прогноза лежит вне обучающего окна'
+        case 'none_in_train':
+            return 'Дни окна прогноза не входят в обучение'
+        default:
+            return rawValue
     }
 }
 
@@ -854,8 +976,25 @@ function localizeCurrentPredictionKeyValueForRu(rawKey: string, rawValue: string
             return localizeModelCommentValue(rawValue)
         case 'Combined response (model interpretation)':
             return localizeCombinedResponseValue(rawValue)
-        case 'Model training window':
+        case 'Prediction scope range':
             return localizeTrainingWindowValue(rawValue)
+        case 'Training recipe':
+            return localizeTrainingRecipeValue(rawValue)
+        case 'Prediction semantics':
+            return localizePredictionSemanticsValue(rawValue)
+        case 'View mode':
+            return localizeViewModeValue(rawValue)
+        case 'Display slice mode':
+            return localizeDisplaySliceModeValue(rawValue)
+        case 'User-facing history':
+        case 'Uses train/OOS split':
+            return localizeCommonCurrentPredictionValue(rawValue)
+        case 'Score rows presence in train':
+            return localizeScoreRowsPresenceInTrainValue(rawValue)
+        case 'Predicted outcome':
+        case 'Actual outcome':
+        case 'Correct':
+            return localizeCommonCurrentPredictionValue(rawValue)
         case 'Daily (primary model)':
         case 'Day + Micro':
         case 'Total (Day + Micro + SL)':

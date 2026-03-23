@@ -4,6 +4,10 @@ import { ComponentType, SVGProps, useEffect, useState } from 'react'
 import IconProps from './types'
 import { logError } from '@/shared/lib/logging/logError'
 
+const ICON_MODULES = import.meta.glob<{ default: ComponentType<SVGProps<SVGSVGElement>> }>(
+    '../../../../assets/icons/*.svg'
+)
+
 export default function Icon({
     name,
     width = '24px',
@@ -18,7 +22,14 @@ export default function Icon({
     useEffect(() => {
         const loadIcon = async () => {
             try {
-                const { default: ImportedIcon } = await import(`@/shared/assets/icons/${name}.svg`)
+                // Иконки грузятся из каноничного build-time реестра,
+                // чтобы production build не зависел от динамического alias import.
+                const iconModuleLoader = ICON_MODULES[`../../../../assets/icons/${name}.svg`]
+                if (!iconModuleLoader) {
+                    throw new Error(`Icon "${name}" is not registered in ICON_MODULES.`)
+                }
+
+                const { default: ImportedIcon } = await iconModuleLoader()
                 setSvgIcon(() => ImportedIcon)
             } catch (error) {
                 logError(new Error(`Icon "${name}" could not be loaded.`), undefined, {

@@ -55,6 +55,8 @@ const importBacktestDiagnosticsDayStatsPage = () =>
 const BacktestDiagnosticsDayStatsPage = lazyPage(importBacktestDiagnosticsDayStatsPage)
 const importPolicyBranchMegaPage = () => import('@/pages/analysisPages/ui/PolicyBranchMegaPage')
 const PolicyBranchMegaPage = lazyPage(importPolicyBranchMegaPage)
+const importPolicySetupsPage = () => import('@/pages/analysisPages/ui/PolicySetupsPage')
+const PolicySetupsPage = lazyPage(importPolicySetupsPage)
 const importConfidenceRiskPage = () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
 const ConfidenceRiskPage = lazyPage(importConfidenceRiskPage)
 const importRealForecastJournalPage = () => import('@/pages/analysisPages/ui/RealForecastJournalPage')
@@ -331,6 +333,26 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
     {
+        id: AppRoute.BACKTEST_POLICY_SETUPS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUPS],
+        element: <PolicySetupsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading policy setup history',
+        nav: {
+            sidebar: true,
+            label: 'Policy setup history',
+            section: 'analysis',
+            order: 6
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_POLICY_SETUP_DETAIL,
+        path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUP_DETAIL],
+        element: <PolicySetupsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading policy setup'
+    },
+    {
         id: AppRoute.BACKTEST_CONFIDENCE_RISK,
         path: ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK],
         element: <ConfidenceRiskPage />,
@@ -366,20 +388,33 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             sidebar: true,
             label: 'Execution pipeline',
             section: 'analysis',
-            order: 6
+            order: 7
         }
     },
     {
         id: AppRoute.PFI_PER_MODEL,
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
-        element: <PfiPage />,
+        element: <PfiPage family='daily' />,
         layout: 'app',
-        loadingTitle: 'Loading PFI report',
+        loadingTitle: 'Loading daily-model PFI report',
         nav: {
             sidebar: true,
-            label: 'PFI by models',
+            label: 'PFI',
             section: 'features',
             order: 2
+        }
+    },
+    {
+        id: AppRoute.PFI_SL_MODEL,
+        path: ROUTE_PATH[AppRoute.PFI_SL_MODEL],
+        element: <PfiPage family='sl' />,
+        layout: 'app',
+        loadingTitle: 'Loading SL-model PFI report',
+        nav: {
+            sidebar: false,
+            label: 'PFI SL model',
+            section: 'features',
+            order: 3
         }
     },
     {
@@ -737,10 +772,13 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]: importBacktestDiagnosticsRatingsPage,
     [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: importBacktestDiagnosticsDayStatsPage,
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: importPolicyBranchMegaPage,
+    [AppRoute.BACKTEST_POLICY_SETUPS]: importPolicySetupsPage,
+    [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: importPolicySetupsPage,
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: importConfidenceRiskPage,
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: importRealForecastJournalPage,
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: importExecutionPipelinePage,
     [AppRoute.PFI_PER_MODEL]: importPfiPage,
+    [AppRoute.PFI_SL_MODEL]: importPfiPage,
     [AppRoute.MODELS_STATS]: importModelStatsPage,
     [AppRoute.AGGREGATION_STATS]: importAggregationStatsPage,
     [AppRoute.GUIDE]: importGuidePage,

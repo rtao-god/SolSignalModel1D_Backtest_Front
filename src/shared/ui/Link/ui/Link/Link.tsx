@@ -1,9 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useResolvedPath } from 'react-router-dom'
 import type { MouseEvent } from 'react'
 import cls from './Link.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import AppLinkProps from './types'
 import { scrollToAnchor } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
+import {
+    buildInternalRouteTransitionIntent,
+    dispatchInternalRouteTransition
+} from '@/shared/lib/navigation/internalRouteTransition'
 
 function extractAnchorFromTo(to: AppLinkProps['to']): string | null {
     if (typeof to === 'string') {
@@ -60,6 +64,9 @@ function scheduleAnchorScroll(anchor: string): void {
 }
 
 export default function AppLink({ to, className, children, onClick, ...rest }: AppLinkProps) {
+    const location = useLocation()
+    const resolvedTarget = useResolvedPath(to)
+
     const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
         const anchor = extractAnchorFromTo(to)
 
@@ -67,14 +74,26 @@ export default function AppLink({ to, className, children, onClick, ...rest }: A
             onClick(event)
         }
 
+        const isPlainPrimaryClick =
+            event.button === 0 && !event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey
+        const keepsCurrentDocument =
+            Boolean(event.currentTarget.target && event.currentTarget.target !== '_self')
+            || event.currentTarget.hasAttribute('download')
+
+        if (!event.defaultPrevented && isPlainPrimaryClick && !keepsCurrentDocument) {
+            dispatchInternalRouteTransition(
+                buildInternalRouteTransitionIntent(location, {
+                    pathname: resolvedTarget.pathname,
+                    search: resolvedTarget.search,
+                    hash: resolvedTarget.hash
+                })
+            )
+        }
+
         if (
             anchor &&
             !event.defaultPrevented &&
-            event.button === 0 &&
-            !event.metaKey &&
-            !event.altKey &&
-            !event.ctrlKey &&
-            !event.shiftKey
+            isPlainPrimaryClick
         ) {
             scheduleAnchorScroll(anchor)
         }

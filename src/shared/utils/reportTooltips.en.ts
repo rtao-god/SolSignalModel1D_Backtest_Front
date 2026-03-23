@@ -173,7 +173,7 @@ const CURRENT_PREDICTION_MICRO_MODEL_DESCRIPTION_EN =
     'Micro model is an additional model that activates only after [[current-prediction-daily-layer|Daily]] has classified the day as flat.\n\nWhat it does:\n- it does not touch days where Daily already chose an up or down scenario;\n- it searches for a weak directional tilt inside a sideways day;\n- it passes that refinement into Day + Micro and then into Total.\n\nHow to read it:\nMicro does not replace [[current-prediction-daily-layer|Daily]]. It exists to recover weak directional signals that would otherwise stay inside a flat-looking day.'
 
 const CURRENT_PREDICTION_MODEL_TRAINING_WINDOW_DESCRIPTION_EN =
-    'Model training window shows which slice of history was used to build the current prediction stack.\n\nWhat it shows:\nit makes visible the training mode, the covered date range, and the number of observations behind the active forecast.\n\nHow to read it:\nthis field answers how much and what type of history stands behind the forecast. When [[landing-all-history|full history]], [[train-segment|Train]], [[landing-oos|OOS]], and [[landing-recent-tail-history|recent tail]] differ, the explanation starts here.'
+    'Prediction scope range shows which current-prediction mode is on screen, which dates that mode covers, and how many scored rows belong to it.\n\nWhat it shows:\nit separates full refit, OOS evaluation, recent OOS tail, and train diagnostics without mixing training recipe with display semantics.\n\nHow to read it:\nstart here when you need to understand whether the card is user-facing history or diagnostics-only train analysis.'
 
 const CURRENT_PREDICTION_MODEL_COMMENT_DESCRIPTION_EN =
     'Model comment is the short note attached to the current calculation when the system needs to explain a special forecast mode or why the standard daily result is not ready yet.\n\nWhat it shows:\nit usually carries a human-readable reason such as an unclosed day, a missing daily layer, or another calculation mode that affects the card.\n\nHow to read it:\nit is supporting context for the forecast, not a standalone metric. It explains why the card looks this way, but it does not replace probabilities, the final scenario, or the risk fields.'
@@ -340,7 +340,40 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Микро-модель': CURRENT_PREDICTION_MICRO_MODEL_DESCRIPTION_EN,
     'Общий ответ (интерпретация моделей)': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
     'Итоговый ответ моделей': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
-    'Обучение моделей (диапазон)': 'Training data scope used for this prediction (scope + range + records).',
+    'Обучение моделей (диапазон)': 'Prediction scope range (mode + range + scored rows).',
+    'Диапазон режима прогноза': 'Prediction scope range (mode + range + scored rows).',
+    'Training recipe':
+        'Training recipe is the rule used to assemble the model-fitting path for this current prediction card.\n\nWhat it shows:\nit separates full refit on the whole completed history, where the outcome of each day is already known, from split train/OOS, where the model is trained on train and evaluated only on OOS.\n\nHow to read it:\nthis field explains model preparation rather than market state. It is the first place to look when full, OOS, recent, and train diagnostics behave differently.',
+    'Prediction semantics':
+        'Prediction semantics is the honest reading mode of this current prediction report.\n\nWhat it shows:\nit separates retrospective full, honest OOS evaluation, recent OOS tail, and train diagnostics.\n\nHow to read it:\nthis field tells whether the report is user-facing history on new days, only the freshest OOS tail, or a dev-only diagnostics pass on train.',
+    'View mode':
+        'View mode is the high-level presentation mode for current prediction.\n\nWhat it shows:\nit separates full history, honest OOS evaluation, and diagnostics-only train mode.\n\nHow to read it:\nif the value is train diagnostics, the report must not be read as regular prediction history. If it is OOS evaluation, only scored OOS days should be visible.',
+    'Display slice mode':
+        'Display slice mode is the rule that defines which part of already scored rows is shown.\n\nWhat it shows:\nit separates the whole scored range from the recent OOS tail.\n\nHow to read it:\nrecent tail is only a post-filter over scored rows, not a separate training mode.',
+    'User-facing history':
+        'User-facing history tells whether this report belongs to the user-facing prediction archive.\n\nWhat it shows:\na No value means diagnostics-only developer output rather than regular archived forecast history.\n\nHow to read it:\nreports with No must not be interpreted as the same user-facing history artifact as full or OOS cards.',
+    'Snapshot max labeled day (UTC)':
+        'Snapshot max labeled day (UTC) is the latest trading day in this slice whose outcome is already known and can be used for training.\n\nWhat it shows:\nit is the right edge of the training history, after which the full pipeline must not pretend that the day outcome is already known.\n\nHow to read it:\ncompare this field with the score-window end. If score goes further, the card is forecasting a new day after full training on completed history rather than rescoring only historical days.',
+    'Fit window start (UTC)':
+        'Fit window start (UTC) is the first day that entered full-model training in this run.\n\nWhat it shows:\nit marks the left edge of the historical window used to refit the current full model.\n\nHow to read it:\nread it together with fit-window end to understand how much completed history the current weights were allowed to learn from.',
+    'Fit window end (UTC)':
+        'Fit window end (UTC) is the last day that actually entered full-model training.\n\nWhat it shows:\nit is the right edge of the fit window, not just the card date or report generation time.\n\nHow to read it:\nif fit end matches the latest day whose outcome is already known, the model was truly trained on the whole completed history available in this run.',
+    'Train window start (UTC)':
+        'Train window start (UTC) is the first day in the split train window.\n\nWhat it shows:\nit marks the left edge of the history used to fit the split model before OOS evaluation or train diagnostics.\n\nHow to read it:\nread it together with train-window end to understand where the familiar training history begins.',
+    'Train window end (UTC)':
+        'Train window end (UTC) is the last day in the split train window.\n\nWhat it shows:\nit is the right edge of split-model fitting.\n\nHow to read it:\nanything to the right of this boundary must belong only to OOS evaluation rather than to train.',
+    'Score window start (UTC)':
+        'Score window start (UTC) is the first day that the current full model is asked to score.\n\nWhat it shows:\nit is the left edge of the scoring window, which is separate from the fit window.\n\nHow to read it:\ncompare it with the fit window to see whether the model is rescoring already trained historical days or scoring a new day after the snapshot.',
+    'Score window end (UTC)':
+        'Score window end (UTC) is the last day that the current full run is asked to score.\n\nWhat it shows:\nit closes the scoring window and helps distinguish retrospective full from forecast-after-snapshot mode.\n\nHow to read it:\nif score end moves past the latest labeled day, the card is already in live/full forecast semantics rather than pure retrospective rescoring.',
+    'Uses train/OOS split':
+        'Uses train/OOS split tells whether the classic train/OOS split participates in this card.\n\nWhat it shows:\nfor the new full pipeline this field should explicitly confirm that train/OOS split is not the controlling training scaffold.\n\nHow to read it:\nif the value is No, full should be interpreted as its own whole-snapshot refit path rather than as a stitched train-plus-OOS mode.',
+    'Score rows presence in train':
+        'Score rows presence in train describes how the scoring window intersects with the training window in this full run.\n\nWhat it shows:\nit tells whether scored days are fully inside the training snapshot, partly outside it, or completely outside it.\n\nHow to read it:\nthis is the key marker for interpreting full correctly because it separates retrospective rescoring of old days from forecasting a new day after the training snapshot.',
+    'Recent tail rows limit':
+        'Recent tail rows limit is the maximum number of scored OOS rows allowed in the fresh tail.\n\nWhat it shows:\nit fixes the display-slice contract for recent and does not change model training.\n\nHow to read it:\nif recent returns fewer rows than this limit, the archive simply has fewer scored OOS days available.',
+    'Recent tail rows returned':
+        'Recent tail rows returned is the actual number of scored rows shown in the fresh OOS tail.\n\nWhat it shows:\nit tells how many last scored OOS days really entered the current recent report.\n\nHow to read it:\nthe value must stay less than or equal to the tail limit and must not be interpreted as train-window size.',
     'Режим рынка': CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION_EN,
     'Вероятность срабатывания стоп-лосса': CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION_EN,
     'Сигнал SL-модели': 'Interpreted SL signal (normal risk / high risk).',
@@ -394,7 +427,7 @@ Object.assign(CURRENT_PREDICTION_KEYS_EN, {
     'Primary model (Daily)': CURRENT_PREDICTION_KEYS_EN['Основная модель (Daily)'],
     'Micro model': CURRENT_PREDICTION_KEYS_EN['Микро-модель'],
     'Combined response (model interpretation)': CURRENT_PREDICTION_KEYS_EN['Итоговый ответ моделей'],
-    'Model training window': CURRENT_PREDICTION_KEYS_EN['Обучение моделей (диапазон)'],
+    'Prediction scope range': CURRENT_PREDICTION_KEYS_EN['Диапазон режима прогноза'],
     'Market regime': CURRENT_PREDICTION_KEYS_EN['Режим рынка'],
     'Stop-loss trigger probability': CURRENT_PREDICTION_KEYS_EN['Вероятность срабатывания стоп-лосса'],
     'SL model signal': CURRENT_PREDICTION_KEYS_EN['Сигнал SL-модели'],

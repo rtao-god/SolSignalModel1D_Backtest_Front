@@ -21,7 +21,7 @@ import {
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
 import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import type { TableSectionDto } from '@/shared/types/report.types'
-import { buildPfiTabsFromSections, PfiTabConfig } from '@/shared/utils/pfiTabs'
+import type { PfiTabConfig } from '@/shared/utils/pfiTabs'
 import { scrollToTop } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import { DOCS_MODELS_TABS, DOCS_TESTS_TABS, DOCS_TRUTHFULNESS_TABS } from '@/shared/utils/docsTabs'
 import {
@@ -45,10 +45,10 @@ import {
     EXPLAIN_SPLITS_TABS,
     EXPLAIN_TIME_TABS
 } from '@/shared/utils/explainTabs'
-import { usePfiPerModelReportNavQuery } from '@/shared/api/tanstackQueries/pfi'
 import {
     buildPolicyBranchMegaTabsFromAvailableParts,
-    buildPolicyBranchMegaTabsFromSections,
+    resolvePolicyBranchMegaBucketFromQuery,
+    resolvePolicyBranchMegaTotalBucketViewFromQuery,
     type PolicyBranchMegaBucketMode,
     type PolicyBranchMegaTotalBucketView
 } from '@/shared/utils/policyBranchMegaTabs'
@@ -65,9 +65,7 @@ import {
     useBacktestDiagnosticsReportNavQuery
 } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import {
-    DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS,
-    resolvePolicyBranchMegaReportQueryArgs,
-    usePolicyBranchMegaReportWithFreshnessQuery
+    POLICY_BRANCH_MEGA_CANONICAL_PARTS,
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     buildBacktestDiagnosticsQueryArgsFromSearchParams,
@@ -97,6 +95,32 @@ interface SidebarProps {
 
     onItemClick?: () => void
 }
+
+interface SidebarLocationSnapshot {
+    pathname: string
+    search: string
+    hash: string
+}
+
+// Автоскролл к началу допустим только внутри того же документа:
+// при смене pathname/search сброс hash означает уже новую страницу, а не возврат к началу текущей.
+export function shouldScrollToTopAfterHashReset(
+    previousLocation: SidebarLocationSnapshot | null,
+    nextLocation: SidebarLocationSnapshot
+): boolean {
+    if (!previousLocation) {
+        return false
+    }
+
+    const previousHash = previousLocation.hash.trim()
+    const nextHash = nextLocation.hash.trim()
+    if (!previousHash || nextHash) {
+        return false
+    }
+
+    return previousLocation.pathname === nextLocation.pathname && previousLocation.search === nextLocation.search
+}
+
 const SECTION_ORDER: RouteSection[] = [
     'predictions',
     'models',
@@ -133,6 +157,20 @@ const SECTION_COMPACT_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     docs: 'Docs',
     explain: 'Explain'
 }
+const PFI_ROUTE_TABS: PfiTabConfig[] = [
+    {
+        id: 'daily-models',
+        label: 'Daily models',
+        anchor: '',
+        routePath: ROUTE_PATH[AppRoute.PFI_PER_MODEL]
+    },
+    {
+        id: 'sl-model',
+        label: 'SL model',
+        anchor: '',
+        routePath: ROUTE_PATH[AppRoute.PFI_SL_MODEL]
+    }
+]
 
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t, i18n } = useTranslation()
@@ -150,37 +188,36 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const isExplainRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.EXPLAIN])
     const isDiagnosticsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME])
     const isAnalysisRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.ANALYSIS_HOME])
-    // Если hash в URL пропал (например, после перехода между пунктами), уводим страницу к началу.
-    const prevHashRef = useRef<string | null>(null)
+    const previousLocationRef = useRef<SidebarLocationSnapshot | null>(null)
 
     useEffect(() => {
-        const prevHash = prevHashRef.current ?? ''
-        const currentHash = location.hash ?? ''
-        if (prevHash && !currentHash) {
+        const nextLocation: SidebarLocationSnapshot = {
+            pathname: location.pathname,
+            search: location.search ?? '',
+            hash: location.hash ?? ''
+        }
+
+        if (shouldScrollToTopAfterHashReset(previousLocationRef.current, nextLocation)) {
             scrollToTop({
                 behavior: 'smooth',
                 withTransitionPulse: true
             })
         }
 
-        prevHashRef.current = currentHash
-    }, [location.hash])
-    const pfiRoutePath = useMemo(
-        () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.PFI_PER_MODEL)?.path ?? null,
-        []
-    )
+        previousLocationRef.current = nextLocation
+    }, [location.hash, location.pathname, location.search])
+    const dailyPfiRoutePath = ROUTE_PATH[AppRoute.PFI_PER_MODEL]
+    const slPfiRoutePath = ROUTE_PATH[AppRoute.PFI_SL_MODEL]
     const policyBranchMegaRoutePath = useMemo(
         () => SIDEBAR_NAV_ITEMS.find(item => item.id === AppRoute.BACKTEST_POLICY_BRANCH_MEGA)?.path ?? null,
         []
     )
 
-    const isOnPfiPage = pfiRoutePath ? isRouteBranchMatch(pathname, pfiRoutePath) : false
+    const isOnDailyPfiPage = dailyPfiRoutePath ? isRouteBranchMatch(pathname, dailyPfiRoutePath) : false
+    const isOnSlPfiPage = slPfiRoutePath ? isRouteBranchMatch(pathname, slPfiRoutePath) : false
+    const isOnPfiRouteGroup = isOnDailyPfiPage || isOnSlPfiPage
     const isOnPolicyBranchMegaPage =
         policyBranchMegaRoutePath ? isRouteBranchMatch(pathname, policyBranchMegaRoutePath) : false
-    // PFI-данные нужны только внутри PFI-раздела, чтобы не делать лишний сетевой шум.
-    const { data: pfiReport } = usePfiPerModelReportNavQuery({
-        enabled: !isCompact && isOnPfiPage
-    })
     const currentSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
 
     const diagnosticsNavArgs = useMemo(
@@ -202,60 +239,14 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         diagnosticsNavArgs
     )
 
-    const policyBranchMegaArgsState = useMemo(() => {
-        try {
-            return {
-                value: resolvePolicyBranchMegaReportQueryArgs({
-                    bucket: currentSearchParams.get('bucket'),
-                    bucketView: currentSearchParams.get('bucketview'),
-                    metric: currentSearchParams.get('metric'),
-                    part: 1,
-                    tpSlMode: currentSearchParams.get('tpsl'),
-                    slMode: currentSearchParams.get('slmode'),
-                    zonalMode: currentSearchParams.get('zonal')
-                }),
-                error: null as Error | null
-            }
-        } catch (err) {
-            return {
-                value: DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS,
-                error: err instanceof Error ? err : new Error('Failed to resolve policy branch mega query args.')
-            }
-        }
-    }, [currentSearchParams])
-
-    const shouldLoadPolicyBranchMegaNav =
-        !isCompact && isOnPolicyBranchMegaPage && policyBranchMegaArgsState.error === null
-    const { data: policyBranchMegaPayload } = usePolicyBranchMegaReportWithFreshnessQuery(
-        policyBranchMegaArgsState.value,
-        {
-            enabled: shouldLoadPolicyBranchMegaNav
-        }
-    )
-    const policyBranchMegaReport = policyBranchMegaPayload?.report ?? null
-    const policyBranchMegaCapabilities = policyBranchMegaPayload?.capabilities ?? null
-
     const handleRouteWarmup = useCallback(
         (routeId: AppRoute) => {
             warmupRouteNavigation(routeId, queryClient, dispatch, {
-                diagnosticsArgs: diagnosticsNavArgs,
-                policyBranchMegaArgs: policyBranchMegaArgsState.error ? undefined : policyBranchMegaArgsState.value
+                diagnosticsArgs: diagnosticsNavArgs
             })
         },
-        [diagnosticsNavArgs, dispatch, policyBranchMegaArgsState.error, policyBranchMegaArgsState.value, queryClient]
+        [diagnosticsNavArgs, dispatch, queryClient]
     )
-
-    const pfiTabs: PfiTabConfig[] = useMemo(() => {
-        if (!pfiReport) return []
-
-        // Защита от "шумных" секций: в навигацию попадают только реальные таблицы.
-        const tableSections = (pfiReport.sections ?? []).filter(
-            (section): section is TableSectionDto =>
-                Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
-        )
-
-        return buildPfiTabsFromSections(tableSections)
-    }, [pfiReport])
 
     const diagnosticsTabs = useMemo(() => {
         if (!diagnosticsReport) {
@@ -295,31 +286,21 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     }, [diagnosticsReport, i18n.language, i18n.resolvedLanguage])
 
     const policyBranchMegaTabs = useMemo(() => {
-        if (policyBranchMegaCapabilities?.availableParts && policyBranchMegaCapabilities.availableParts.length > 0) {
-            const selectedBucket = policyBranchMegaArgsState.value.bucket as PolicyBranchMegaBucketMode
-            const selectedBucketView = policyBranchMegaArgsState.value.bucketView as PolicyBranchMegaTotalBucketView
+        const selectedBucket = resolvePolicyBranchMegaBucketFromQuery(
+            currentSearchParams.get('bucket'),
+            'daily'
+        ) as PolicyBranchMegaBucketMode
+        const selectedBucketView = resolvePolicyBranchMegaTotalBucketViewFromQuery(
+            currentSearchParams.get('bucketview'),
+            'aggregate'
+        ) as PolicyBranchMegaTotalBucketView
 
-            return buildPolicyBranchMegaTabsFromAvailableParts(
-                policyBranchMegaCapabilities.availableParts,
-                selectedBucket,
-                selectedBucketView
-            )
-        }
-
-        if (!policyBranchMegaReport) return []
-
-        const tableSections = (policyBranchMegaReport.sections ?? []).filter(
-            (section): section is TableSectionDto =>
-                Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
+        return buildPolicyBranchMegaTabsFromAvailableParts(
+            [...POLICY_BRANCH_MEGA_CANONICAL_PARTS],
+            selectedBucket,
+            selectedBucketView
         )
-
-        return buildPolicyBranchMegaTabsFromSections(tableSections)
-    }, [
-        policyBranchMegaArgsState.value.bucket,
-        policyBranchMegaArgsState.value.bucketView,
-        policyBranchMegaCapabilities,
-        policyBranchMegaReport
-    ])
+    }, [currentSearchParams])
 
     // На специализированных страницах оставляем только профильную секцию в сайдбаре.
     const grouped = useMemo(() => {
@@ -476,7 +457,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
                             {items.map(item => {
                                 const isBacktestFull = item.id === AppRoute.BACKTEST_FULL
-                                const isPfiPerModel = item.id === AppRoute.PFI_PER_MODEL
+                                const isPfiRoute = item.id === AppRoute.PFI_PER_MODEL
                                 const isDocsModels = item.id === AppRoute.DOCS_MODELS
                                 const isDocsTests = item.id === AppRoute.DOCS_TESTS
                                 const isDocsTruthfulness = item.id === AppRoute.DOCS_TRUTHFULNESS
@@ -509,7 +490,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
                                 const hasSubNav =
                                     isBacktestFull ||
-                                    isPfiPerModel ||
+                                    isPfiRoute ||
                                     isGuideModels ||
                                     isGuideBranches ||
                                     isGuideSplits ||
@@ -538,7 +519,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                     isBacktestDiagnosticsOther ||
                                     isPolicyBranchMega
 
-                                const isRouteActiveBase = isRouteExactMatch(pathname, item.path)
+                                const isRouteActiveBase = isPfiRoute ? isOnPfiRouteGroup : isRouteExactMatch(pathname, item.path)
                                 const isPolicyBranchMegaRouteActive = isPolicyBranchMega && isRouteActiveBase
                                 const isAnalysisFamilyItem =
                                     item.section === 'analysis' || item.section === 'diagnostics'
@@ -559,7 +540,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                 // Источник подвкладок зависит от текущего раздела и доступных секций отчёта.
                                 const tabs =
                                     isBacktestFull ? BACKTEST_FULL_TABS
-                                    : isPfiPerModel ? pfiTabs
+                                    : isPfiRoute ? PFI_ROUTE_TABS
                                     : isGuideModels ? GUIDE_MODELS_TABS
                                     : isGuideBranches ? GUIDE_BRANCHES_TABS
                                     : isGuideSplits ? GUIDE_SPLITS_TABS
@@ -595,7 +576,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
 
                                 const subNavAriaDefaultLabel =
                                     isBacktestFull ? 'Backtest sections'
-                                    : isPfiPerModel ? 'PFI models'
+                                    : isPfiRoute ? 'PFI sections'
                                     : isGuideModels ? 'Guide model sections'
                                     : isGuideBranches ? 'Guide branch sections'
                                     : isGuideSplits ? 'Guide split sections'
@@ -656,19 +637,33 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                                                 <div className={cls.subNavLine} />
                                                 <div className={cls.subNavList}>
                                                     {tabs.map(tab => {
+                                                        const routePath =
+                                                            'routePath' in tab &&
+                                                            typeof tab.routePath === 'string' &&
+                                                            tab.routePath.length > 0 ?
+                                                                tab.routePath
+                                                            :   null
+                                                        const isRouteTab = routePath !== null
                                                         const isActiveTab =
-                                                            isRouteActiveBase && currentHash === tab.anchor
+                                                            isRouteTab ? isRouteExactMatch(pathname, routePath)
+                                                            : isRouteActiveBase && currentHash === tab.anchor
 
                                                         // Для Policy Branch Mega сохраняем весь query-контекст фильтров при кликах по якорям.
                                                         const linkBase = `${item.path}${routeSearch}`
+                                                        const href =
+                                                            isRouteTab ? routePath
+                                                            : `${linkBase}#${tab.anchor}`
+                                                        const warmupRouteId =
+                                                            isRouteTab && routePath === ROUTE_PATH[AppRoute.PFI_SL_MODEL] ? AppRoute.PFI_SL_MODEL
+                                                            : item.id
 
                                                         return (
                                                             <Link
                                                                 key={tab.id}
-                                                                to={`${linkBase}#${tab.anchor}`}
+                                                                to={href}
                                                                 onClick={onItemClick}
-                                                                onMouseEnter={() => handleRouteWarmup(item.id)}
-                                                                onFocus={() => handleRouteWarmup(item.id)}
+                                                                onMouseEnter={() => handleRouteWarmup(warmupRouteId)}
+                                                                onFocus={() => handleRouteWarmup(warmupRouteId)}
                                                                 className={classNames(cls.subLink, {
                                                                     [cls.subLinkActive]: isActiveTab
                                                                 })}>

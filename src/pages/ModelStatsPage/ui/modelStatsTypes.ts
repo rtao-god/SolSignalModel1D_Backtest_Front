@@ -4,7 +4,7 @@ import type {
     ReportSectionDto,
     TableSectionDto
 } from '@/shared/types/report.types'
-import type { ModelStatsFreshnessInfoDto } from '@/shared/api/tanstackQueries/modelStats'
+import type { PublishedReportVariantCatalogDto } from '@/shared/api/tanstackQueries/reportVariants'
 export interface ModelStatsPageProps {
     className?: string
 }
@@ -52,7 +52,7 @@ export interface SegmentToggleProps {
 export interface ModelStatsPageInnerProps {
     className?: string
     data: ReportDocumentDto | null
-    freshness: ModelStatsFreshnessInfoDto | null
+    variantCatalog: PublishedReportVariantCatalogDto | null
     isLoading: boolean
     error: unknown
     onRetry: () => void

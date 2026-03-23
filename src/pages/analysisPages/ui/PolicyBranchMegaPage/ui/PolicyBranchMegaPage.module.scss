@@ -27,107 +27,68 @@
     max-width: 720px;
 }
 
-.bucketControls {
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
+.validationAlert {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(140deg, rgba(67, 20, 7, 0.9), rgba(30, 41, 59, 0.92)),
+        $border: rgba(249, 115, 22, 0.4),
+        $shadow: var(--surface-shadow-sm)
+    );
     gap: 8px;
 }
 
-.bucketLabel {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #94a3b8;
-}
-
-.bucketButtons {
-    display: inline-flex;
+.validationAlertHeader {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 999px;
-    background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.75));
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    box-shadow:
-        0 10px 40px rgba(15, 23, 42, 0.7),
-        0 0 0 1px rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(12px);
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.bucketButton {
-    border-radius: 999px;
-    padding-inline: 12px;
-    min-width: 92px;
+.validationAlertTitle {
+    color: #ffedd5;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.validationAlertDismiss {
+    appearance: none;
+    border: 1px solid rgba(251, 146, 60, 0.45);
+    background: rgba(15, 23, 42, 0.36);
+    color: #fed7aa;
+    border-radius: 10px;
+    padding: 6px 10px;
     font-size: 12px;
     font-weight: 600;
-    line-height: 1.1;
-    white-space: nowrap;
-    background: transparent;
-    border: none;
-    opacity: 0.82;
+    line-height: 1;
+    cursor: pointer;
     transition:
         background-color 150ms ease,
-        color 150ms ease,
-        opacity 150ms ease,
-        box-shadow 150ms ease,
-        transform 120ms ease;
+        border-color 150ms ease,
+        color 150ms ease;
 
     &:hover {
-        opacity: 0.95;
-        background: rgba(30, 64, 175, 0.25);
+        background: rgba(249, 115, 22, 0.18);
+        border-color: rgba(251, 146, 60, 0.7);
+        color: #fff7ed;
     }
 
     &:focus-visible {
-        outline: 2px solid rgba(94, 234, 212, 0.9);
+        outline: 2px solid rgba(251, 146, 60, 0.92);
         outline-offset: 2px;
     }
 }
 
-.bucketButtonActive {
-    opacity: 1;
-    background: linear-gradient(135deg, #22c55e, #0ea5e9);
-    color: #020617;
-    box-shadow:
-        0 8px 24px rgba(34, 197, 94, 0.55),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-    transform: translateY(-1px);
+.validationAlertText {
+    color: #ffedd5;
+    font-size: 13px;
+    line-height: 1.6;
 }
 
-.meta {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.validationAlertDetail {
+    color: #fdba74;
     font-size: 12px;
-    color: #cbd5f5;
-    @include subtle-surface(12px 14px);
-    min-width: 220px;
-}
-
-.freshnessBadge {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    border: 1px solid transparent;
-}
-
-.freshnessActual {
-    color: #064e3b;
-    background: rgba(34, 197, 94, 0.85);
-    border-color: rgba(16, 185, 129, 0.9);
-}
-
-.freshnessDebug {
-    color: #7c2d12;
-    background: rgba(251, 191, 36, 0.88);
-    border-color: rgba(245, 158, 11, 0.92);
+    line-height: 1.5;
 }
 
 .sectionsGrid {
@@ -259,6 +220,47 @@
         outline-offset: 3px;
         border-radius: 6px;
     }
+}
+
+.policySetupLink {
+    font-weight: 700;
+    color: #93c5fd;
+    text-decoration: underline;
+    text-decoration-color: rgba(147, 197, 253, 0.42);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #dbeafe;
+        text-decoration-color: rgba(219, 234, 254, 0.92);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(147, 197, 253, 0.92);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+}
+
+.policySetupUnavailable {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.policySetupUnavailableBadge {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #fca5a5;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.policySetupUnavailableReason {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #fecaca;
 }
 
 .termsBlock {

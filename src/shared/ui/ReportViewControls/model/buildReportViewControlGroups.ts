@@ -1,5 +1,5 @@
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
-import type { CurrentPredictionBackfilledSplitStats } from '@/shared/api/tanstackQueries/currentPrediction'
+import type { CurrentPredictionBackfilledTrainingScopeStats } from '@/shared/api/tanstackQueries/currentPrediction'
 import {
     BUCKET_DESCRIPTION,
     CONF_BUCKET_DESCRIPTION,
@@ -19,6 +19,12 @@ import type {
     PolicyBranchMegaTpSlMode,
     PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
+import type { ReportDocumentDto } from '@/shared/types/report.types'
+import {
+    CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS,
+    resolveCurrentPredictionStructuredTrainingFacts,
+    type CurrentPredictionStructuredTrainingFacts
+} from '@/shared/utils/currentPredictionTrainingFacts'
 import { resolveCurrentPredictionTrainingScopeMeta } from './currentPredictionTrainingScopeMeta'
 import type { ReportViewControlGroup } from '../ui/ReportViewControls'
 
@@ -89,7 +95,14 @@ interface BuildTrainingScopeControlGroupArgs {
     label?: string
     ariaLabel?: string
     infoTooltip?: string
-    splitStats?: CurrentPredictionBackfilledSplitStats | null
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
+    scopes?: readonly CurrentPredictionTrainingScope[]
+}
+
+interface BuildCurrentPredictionLiveTrainingScopeDescriptionArgs {
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
+    fullReport?: ReportDocumentDto | null
+    oosReport?: ReportDocumentDto | null
 }
 
 interface BuildConfidenceBucketControlGroupArgs {
@@ -121,61 +134,511 @@ const PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION =
 
 const PREDICTION_HISTORY_BUCKET_FILTER_DESCRIPTION = `${BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_CONTEXT_DESCRIPTION}\n\n${DAILY_BUCKET_DESCRIPTION}\n\n${INTRADAY_BUCKET_DESCRIPTION}\n\n${DELAYED_BUCKET_DESCRIPTION}\n\n${PREDICTION_HISTORY_BUCKET_TOTAL_DESCRIPTION}\n\nКак читать:\nесли строка есть только в одном bucket, значит именно этот механизм исполнения реально довёл сигнал до сделки.`
 
-const TRAINING_SCOPE_FULL_DESCRIPTION =
-    'Полная история — самый широкий срез данных для этой версии модели.\n\nВ него попадают и обучающая часть истории, и более новые дни после train-границы.\n\nЭтот режим нужен, когда важно увидеть общую историческую устойчивость модели на длинной дистанции, а не только качество на одном участке.\n\nКак читать:\nхороший результат здесь полезен как общий фон, но его нельзя оценивать отдельно от OOS и от свежего хвоста, потому что старые режимы могут сглаживать текущие проблемы.'
+const GENERIC_TRAINING_SCOPE_FULL_DESCRIPTION =
+    `[[landing-all-history|Full]]
 
-const TRAINING_SCOPE_RECENT_DESCRIPTION =
-    'Хвост истории — только самый свежий участок истории, который считается актуальным для текущего рынка. В текущем контракте это последние 240 торговых дней рабочего ряда модели.\n\nСюда попадает не весь OOS-период, а только его последняя часть, максимально близкая к сегодняшнему режиму рынка.\n\nЭтот режим нужен, когда важнее понять, как модель работает сейчас, а не как она выглядела в среднем по всему новому периоду.\n\nКак читать:\nесли Full и OOS выглядят терпимо, а хвост истории резко хуже, это ранний сигнал, что модель уже начала терять актуальность.'
+[[landing-all-history|Full]] — это режим, где модель забирает всю завершённую историю страницы и обучается сразу на всём этом диапазоне. В обучение попадают только те дни, по которым уже известен итог [[landing-time-horizon|торгового дня]]. После этого эта же обученная версия модели заново проходит по всей истории и строит прогнозы для тех же дней без разделения на [[train-segment|Train]] и [[landing-oos|OOS]].
+
+Технически здесь важны два шага. Сначала завершённые дни нужны только для обучения: по ним модель один раз подстраивает [[landing-model-weights|веса модели]]. Потом начинается сам пересчёт истории. В этот момент модель уже не получает готовый итог конкретного дня в лоб: она видит только те рыночные данные, которые доступны на момент расчёта, считает вероятности и лишь потом отчёт приклеивает реальный итог дня. Поэтому full-режим меняет старые прогнозы через новые [[landing-model-weights|веса модели]], а не через прямое запоминание дня.
+
+Что показывает
+1) Самую дообученную версию модели.
+2) Историю, где один и тот же день может войти и в обучение, и в повторный прогноз.
+3) Полный пересчёт без честного разделения на новые и обучающие дни.
+
+Когда смотреть
+1) Когда нужна модель в её самой дообученной версии.
+2) Когда важно понять, что покажет версия модели, которой дали весь завершённый прошлый опыт.
+3) На live-странице именно этот режим ближе всего к варианту "дать модели максимум прошлого перед прогнозом следующего дня".
+
+Что важно
+1) [[landing-all-history|Full]] нужен не для честной проверки качества на новых днях, а для просмотра самой обученной версии модели.
+2) Здесь нельзя делать вывод "модель честно прошла новые дни", потому что эти же дни могли участвовать в обучении.
+3) Старые full-прогнозы могут меняться после нового пересчёта, потому что модель получила больше завершённой истории и иначе подстроила [[landing-model-weights|веса модели]].
+4) Для честной проверки качества на новых днях [[landing-all-history|Full]] всегда сравнивается с [[landing-oos|OOS]].
+
+Пример
+1) Если старый full-прогноз за ту же дату изменился после нового пересчёта, это не значит, что система просто подставила готовый ответ за этот день.
+2) Это значит, что модель получила больше завершённой истории, по-другому подстроила [[landing-model-weights|веса модели]] и заново пересчитала тот же день уже новой обученной версией.`
+
+const GENERIC_TRAINING_SCOPE_TRAIN_DESCRIPTION =
+    `[[train-segment|Train]]
+
+[[train-segment|Train]] — это обучающие дни, на которых строится версия модели с разделением истории перед проверкой на [[landing-oos|OOS]]. Сначала модель подстраивает на них [[landing-model-weights|веса модели]], а потом эта же версия может отдельно прогоняться по тем же дням. Поэтому [[train-segment|Train]] показывает не честную проверку новых дат, а поведение модели на знакомой истории.
+
+Во время этого прогона готовый итог дня тоже не подаётся в модель напрямую. Сначала считаются вероятности по данным дня, потом отчёт отдельным шагом добавляет реальный итог. Но сами дни уже участвовали в обучении, поэтому это всё равно диагностика на знакомой истории.
+
+Что показывает
+1) Обучающий участок модели в режиме с разделением истории.
+2) Ошибки и спорные места, которые удобно разобрать до просмотра [[landing-oos|OOS]].
+3) Где модель слишком уверена и где её решение оказывается пограничным.
+
+Когда смотреть
+Этот режим нужен для разбора ошибок на знакомой истории.
+
+Что важно
+1) Сильный [[train-segment|Train]] сам по себе не означает хорошее качество на новых днях.
+2) Главный вывод по качеству всё равно читается через [[landing-oos|OOS]].
+3) Большой разрыв между [[train-segment|Train]] и [[landing-oos|OOS]] — сигнал слабой переносимости или риска [[leakage|утечки]].
+
+Пример
+Если на [[train-segment|Train]] метрики выглядят ровно, а на [[landing-oos|OOS]] качество резко падает, модель хорошо подстроилась под знакомую историю, но хуже работает на новых датах.`
+
+const GENERIC_TRAINING_SCOPE_OOS_DESCRIPTION =
+    `[[landing-oos|OOS]]
+
+[[landing-oos|OOS]] — это дни, которых модель не видела при обучении. Сначала модель обучается на [[train-segment|Train]], после этого обучение останавливается, и уже эта же версия модели идёт на новые дни [[landing-oos|OOS]]. Поэтому [[landing-oos|OOS]] ближе всего к ответу на вопрос, как модель держится на новых датах.
+
+Технически режим работает без смешения дней. Сначала модель учится только на [[train-segment|Train]]. Потом эта же версия без дообучения проходит только по дням [[landing-oos|OOS]]. Во время самого прогноза фактический исход OOS-дня в модель не передаётся: сначала считаются вероятности по данным дня, а реальный итог добавляется к отчёту уже после этого.
+
+Что показывает
+1) Самую честную проверку на новых днях внутри текущего разделения истории.
+2) То, как модель переносится на более позднюю часть истории.
+3) Качество на днях, которых не было в обучении.
+
+Когда смотреть
+Это главный режим, когда нужен практический ответ на вопрос: держится ли модель на новых днях или хорошо выглядит только на знакомой истории.
+
+Что важно
+1) Если [[train-segment|Train]] заметно сильнее, чем [[landing-oos|OOS]], модель хуже переносится на новые даты.
+2) Один из первых рисков в таком разрыве — [[leakage|утечка]] или слишком слабая работа на новой части истории.
+3) Именно поэтому [[landing-oos|OOS]] считается главным честным режимом чтения качества.
+
+Пример
+Если на [[train-segment|Train]] метрики ровные, а на [[landing-oos|OOS]] резко падают, модель плохо работает на новых днях или нужно проверить риск [[leakage|утечки]].`
+
+const GENERIC_TRAINING_SCOPE_RECENT_DESCRIPTION =
+    `[[landing-recent-tail-history|Recent]]
+
+[[landing-recent-tail-history|Recent]] — это не отдельное обучение, а свежий хвост уже готового [[landing-oos|OOS]]. Система сначала строит обычный [[landing-oos|OOS]], а потом оставляет из него только последние записи.
+
+[[landing-recent-tail-history|Recent]] отбирается по уже посчитанным OOS-записям, а не по новому календарному правилу. Новая модель здесь не обучается и новый прогнозный проход не строится.
+
+Что показывает
+1) Только самый свежий конец [[landing-oos|OOS]].
+2) То, что происходит с качеством именно в последние дни, а не в среднем по всей OOS-истории.
+
+Когда смотреть
+Этот режим нужен, когда важнее всего понять, не портится ли модель именно на последнем участке истории.
+
+Что важно
+1) [[landing-recent-tail-history|Recent]] всегда нужно читать рядом с [[landing-oos|OOS]], потому что это его хвост, а не отдельная проверка.
+2) Если весь [[landing-oos|OOS]] короче лимита, [[landing-recent-tail-history|Recent]] полностью совпадает с ним.
+3) Если общий [[landing-oos|OOS]] ещё выглядит нормально, а [[landing-recent-tail-history|Recent]] уже слабее, ухудшение начинается именно на последних днях.
+
+Пример
+Если за весь [[landing-oos|OOS]] метрики ещё держатся, а в [[landing-recent-tail-history|Recent]] уже заметна просадка, проблема сидит в самом свежем участке истории.`
 
 function formatTrainingScopeDayCount(value: number): string {
-    if (!Number.isInteger(value) || value <= 0) {
-        throw new Error(`[training-scope] day count must be a positive integer. value=${value}.`)
+    if (!Number.isInteger(value) || value < 0) {
+        throw new Error(`[training-scope] day count must be a non-negative integer. value=${value}.`)
     }
 
     return new Intl.NumberFormat('ru-RU').format(value)
 }
 
-function formatTrainingScopeShare(value: number): string {
-    if (!Number.isFinite(value) || value <= 0 || value >= 1) {
-        throw new Error(`[training-scope] share must be within (0, 1). value=${value}.`)
+function extractTrainingScopeYear(dayKeyUtc: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKeyUtc)) {
+        throw new Error(`[training-scope] invalid day key. value=${dayKeyUtc}.`)
     }
 
-    return new Intl.NumberFormat('ru-RU', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
-    }).format(value * 100)
+    return dayKeyUtc.slice(0, 4)
 }
 
-function buildTrainingScopeSplitSummary(splitStats: CurrentPredictionBackfilledSplitStats): string {
-    return `Фактическая split-структура текущего архива: Train = ${formatTrainingScopeDayCount(splitStats.trainDays)} из ${formatTrainingScopeDayCount(splitStats.totalDays)} дней (${formatTrainingScopeShare(splitStats.trainShare)}%), OOS = ${formatTrainingScopeDayCount(splitStats.oosDays)} из ${formatTrainingScopeDayCount(splitStats.totalDays)} дней (${formatTrainingScopeShare(splitStats.oosShare)}%).\n\nТекущая [[split-boundaries|split-граница]] проходит так: Train <= ${splitStats.lastTrainDateUtc}, OOS >= ${splitStats.firstOosDateUtc}.`
+function formatTrainingScopeYearRange(startDateUtc: string, endDateUtc: string): string {
+    const startYear = extractTrainingScopeYear(startDateUtc)
+    const endYear = extractTrainingScopeYear(endDateUtc)
+
+    return startYear === endYear ? startYear : `${startYear} — ${endYear}`
 }
 
-function buildTrainingScopeTrainDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
-    const splitSummary = splitStats ? `\n\n${buildTrainingScopeSplitSummary(splitStats)}` : ''
-
-    return `Train-only — только дни до [[split-boundaries|split-границы]], то есть до начала [[oos-segment|OOS]]-участка.\n\nЭтот режим использует только train-дни, на которых модель и обучалась. Поэтому такой срез полезен как внутренний ориентир качества обучения, но не как честная проверка на новых днях: для каждого train-дня причина «модель уже видела этот день на обучении» здесь не снята.\n\nЭто не доказывает автоматически любую возможную утечку, но именно самый прямой источник самооценки на знакомых примерах в Train-only остаётся.${splitSummary}\n\nКак читать:\nTrain-only нужен для контроля того, собрала ли модель рабочий паттерн на знакомой истории. Главная проверка всегда идёт через сравнение с OOS-only.`
-}
-
-function buildTrainingScopeOosDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
-    const splitSummary = splitStats ? `\n\n${buildTrainingScopeSplitSummary(splitStats)}` : ''
-
-    return `OOS-only — только дни после [[split-boundaries|split-границы]].\n\nЗдесь модель не обучалась на самих этих днях внутри выбранного scope, поэтому причина «модель уже видела именно этот день на обучении» убрана.\n\nЭто не гарантирует отсутствие других утечек или идеальную переносимость, но именно эта самая грубая причина завышенной самооценки здесь снимается.${splitSummary}\n\nКак читать:\nэто основной срез для сравнения с Train-only. Если OOS-only заметно слабее, модель выглядит лучше на знакомой истории, чем на новых днях.`
-}
-
-function buildTrainingScopeOverviewDescription(splitStats?: CurrentPredictionBackfilledSplitStats | null): string {
-    return `Режим обучения — выбор того, на каком историческом срезе собрана текущая версия модели и какой участок истории сейчас показывается на странице.\n\n${TRAINING_SCOPE_FULL_DESCRIPTION}\n\n${buildTrainingScopeTrainDescription(splitStats)}\n\n${buildTrainingScopeOosDescription(splitStats)}\n\n${TRAINING_SCOPE_RECENT_DESCRIPTION}`
-}
-
-export function buildCurrentPredictionLiveTrainingScopeDescription(
-    splitStats?: CurrentPredictionBackfilledSplitStats | null
+function resolveRussianCountWord(
+    value: number,
+    singular: string,
+    dual: string,
+    plural: string
 ): string {
-    return `${buildTrainingScopeOverviewDescription(splitStats)}\n\nНа этой странице:\nпри переключении загружается другая версия live-отчёта, поэтому меняются направление, вероятности, уверенность модели, статус и торговые блоки по политикам.`
+    const absValue = Math.abs(value) % 100
+    const lastDigit = absValue % 10
+
+    if (absValue >= 11 && absValue <= 19) {
+        return plural
+    }
+
+    if (lastDigit === 1) {
+        return singular
+    }
+
+    if (lastDigit >= 2 && lastDigit <= 4) {
+        return dual
+    }
+
+    return plural
+}
+
+function formatTrainingScopeCount(
+    value: number,
+    singular: string,
+    dual: string,
+    plural: string
+): string {
+    return `${formatTrainingScopeDayCount(value)} ${resolveRussianCountWord(value, singular, dual, plural)}`
+}
+
+function parseTrainingScopeDayKeyUtc(dayKeyUtc: string): Date {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKeyUtc)
+    if (!match) {
+        throw new Error(`[training-scope] invalid day key. value=${dayKeyUtc}.`)
+    }
+
+    return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+}
+
+function countTrainingScopeCalendarDays(startDateUtc: string, endDateUtc: string): number {
+    // Live training facts приходят только границами окна, поэтому размер окна восстанавливается по day-key диапазону.
+    const startDate = parseTrainingScopeDayKeyUtc(startDateUtc)
+    const endDate = parseTrainingScopeDayKeyUtc(endDateUtc)
+    const daySpan = Math.floor((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1
+
+    if (!Number.isInteger(daySpan) || daySpan <= 0) {
+        throw new Error(`[training-scope] invalid calendar day span. start=${startDateUtc}; end=${endDateUtc}.`)
+    }
+
+    return daySpan
+}
+
+function countTrainingScopeWeekdaysWithoutWeekends(startDateUtc: string, endDateUtc: string): number {
+    const startDate = parseTrainingScopeDayKeyUtc(startDateUtc)
+    const calendarDays = countTrainingScopeCalendarDays(startDateUtc, endDateUtc)
+    let weekdayCount = 0
+
+    // Диапазоны current prediction приходят только как day-key границы, поэтому число рабочих дней
+    // считается здесь же по календарю без субботы и воскресенья.
+    for (let offset = 0; offset < calendarDays; offset += 1) {
+        const currentDay = new Date(startDate.getTime() + offset * 24 * 60 * 60 * 1000)
+        const dayOfWeekUtc = currentDay.getUTCDay()
+
+        if (dayOfWeekUtc !== 0 && dayOfWeekUtc !== 6) {
+            weekdayCount += 1
+        }
+    }
+
+    if (weekdayCount < 0) {
+        throw new Error(
+            `[training-scope] weekday count must stay non-negative. start=${startDateUtc}; end=${endDateUtc}.`
+        )
+    }
+
+    return weekdayCount
+}
+
+function formatTrainingScopeTradingDayCount(value: number): string {
+    return `${formatTrainingScopeDayCount(value)} [[landing-time-horizon|${resolveRussianCountWord(
+        value,
+        'торговый день',
+        'торговых дня',
+        'торговых дней'
+    )}]]`
+}
+
+function buildTrainingScopeRangeFact(startDateUtc: string, endDateUtc: string): string {
+    const calendarDays = countTrainingScopeCalendarDays(startDateUtc, endDateUtc)
+    const tradingDaysWithoutWeekends = countTrainingScopeWeekdaysWithoutWeekends(startDateUtc, endDateUtc)
+
+    if (calendarDays === tradingDaysWithoutWeekends) {
+        return `${formatTrainingScopeYearRange(startDateUtc, endDateUtc)} (${formatTrainingScopeTradingDayCount(tradingDaysWithoutWeekends)})`
+    }
+
+    return `${formatTrainingScopeYearRange(startDateUtc, endDateUtc)} (${formatTrainingScopeCount(calendarDays, 'календарный день', 'календарных дня', 'календарных дней')}; в расчёт без выходных попадает ${formatTrainingScopeTradingDayCount(tradingDaysWithoutWeekends)}. [[why-weekends|Почему?]])`
+}
+
+function buildTrainingScopeCalendarFact(startDateUtc: string, endDateUtc: string): string {
+    return buildTrainingScopeRangeFact(startDateUtc, endDateUtc)
+}
+
+function buildTrainingScopeSplitRuleFact(): string {
+    return `[[split-boundaries|Граница между Train и OOS]] считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]]. Система берёт последний доступный такой день, отступает назад на ${CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS} календарных дней и так делит историю на более ранний [[train-segment|Train]] и более новые дни [[landing-oos|OOS]].`
+}
+
+function buildGenericTrainingScopeOverviewDescription(): string {
+    return `Что такое режимы и зачем они нужны
+
+На страницах прогноза одна и та же модель открывается в нескольких режимах, потому что сайт умеет показывать её в разных состояниях:
+1) [[landing-all-history|Full]] — модель обучили на всей завершённой истории и этой же версией заново пересчитали всю историю.
+2) [[landing-oos|OOS]] — модель обучили только на [[train-segment|Train]], а потом проверили на более новых днях.
+3) [[landing-recent-tail-history|Recent]] — из уже готового [[landing-oos|OOS]] оставили только самый свежий конец.
+4) [[train-segment|Train]] — после обучения ту же версию модели с разделением истории отдельно прогнали по обучающим дням, чтобы разобрать ошибки.
+
+У всех режимов одна техническая схема. Сначала выбранные прошлые дни разрешено использовать для обучения: по ним модель один раз подстраивает [[landing-model-weights|веса модели]]. Потом начинается сам прогноз: модель видит только данные дня на момент расчёта, считает вероятности и не получает готовый итог этого дня в лоб. Реальный итог приклеивается к записи позже, уже на уровне отчёта. Поэтому режим меняет не оформление страницы, а две вещи: какой прошлый опыт разрешён для обучения и какие дни потом показываются как история или проверка.`
+}
+
+function buildCurrentPredictionHistoryFullDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats
+): string {
+    return `[[landing-all-history|Full]]
+
+[[landing-all-history|Full]] — это режим, где модель берёт всю завершённую историю страницы: ${buildTrainingScopeRangeFact(splitStats.fullStartDateUtc, splitStats.fullEndDateUtc)}. Под "завершённой" здесь понимаются только те дни, по которым уже известен итог [[landing-time-horizon|торгового дня]]. На этом же диапазоне модель один раз обучается, подстраивает [[landing-model-weights|веса модели]] и потом этой же обученной версией заново проходит по всей истории. Поэтому здесь вместе видны и более ранние дни, и более новые дни, а один и тот же день может участвовать и как прошлый опыт для обучения, и как день повторного прогноза.
+
+Технически [[landing-all-history|Full]] работает в два шага. Сначала завершённые дни нужны только для обучения: по ним модель один раз подстраивает [[landing-model-weights|веса модели]]. Потом начинается сам пересчёт истории. В этот момент готовый итог конкретного дня в модель уже не подаётся: движок видит только те рыночные данные, которые были доступны на момент расчёта, считает вероятности этой же обученной версией модели и лишь после этого отчёт отдельным шагом приклеивает реальный итог дня.
+
+Что показывает
+1) Самую дообученную версию модели на всей завершённой истории.
+2) Исторический пересчёт без разделения на [[train-segment|Train]] и [[landing-oos|OOS]].
+3) Полную историю прогнозов, где один и тот же день может входить и в обучение, и в повторный прогноз.
+
+Когда смотреть
+1) Когда нужна модель в её самой дообученной версии.
+2) Когда важно понять, что покажет версия модели, которой дали весь завершённый прошлый опыт.
+3) На live-странице именно этот режим ближе всего к варианту "дать модели максимум прошлого перед прогнозом следующего дня".
+
+Что важно
+1) [[landing-all-history|Full]] нужен не для честной проверки качества на новых днях, а для просмотра самой обученной версии модели.
+2) Здесь нельзя делать вывод "модель честно прошла новые дни", потому что эти же дни могли участвовать в обучении.
+3) Старые дни в [[landing-all-history|Full]] могут меняться после нового пересчёта, потому что модель получила больше завершённой истории и по-новому подстроила [[landing-model-weights|веса модели]].
+4) Для честной проверки на новых днях ориентиром остаётся [[landing-oos|OOS]].
+
+Пример
+1) После расширения завершённой истории старый прогноз за 2024 год может стать другим.
+2) Это не значит, что система просто подставила в прогноз готовый ответ за 2024 год.
+3) Это значит, что модель получила больше завершённой истории, по-другому подстроила [[landing-model-weights|веса модели]] и заново пересчитала тот же 2024 год уже новой обученной версией.`
+}
+
+function buildCurrentPredictionHistoryOosDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats
+): string {
+    return `[[landing-oos|OOS]]
+
+[[landing-oos|OOS]] — это новые дни: ${buildTrainingScopeRangeFact(splitStats.oosStartDateUtc, splitStats.oosEndDateUtc)}. Перед ними идёт более ранний [[train-segment|Train]]: ${buildTrainingScopeRangeFact(splitStats.trainStartDateUtc, splitStats.trainEndDateUtc)}. Сначала модель обучается только на [[train-segment|Train]], потом обучение останавливается, и уже эта же версия модели идёт на дни [[landing-oos|OOS]]. Граница между ними считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]]: система берёт последний доступный такой день, отступает назад на ${CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS} календарных дней и всё, что новее этой границы, относит к [[landing-oos|OOS]].
+
+Технически режим работает отдельно от [[landing-all-history|Full]]. Сначала модель учится только на [[train-segment|Train]]. Потом эта же версия без дообучения проходит только по дням [[landing-oos|OOS]]. Во время самого прогноза фактический исход OOS-дня в модель не передаётся: сначала считаются вероятности по данным дня, а реальный итог добавляется к отчёту уже после этого.
+
+Что показывает
+1) Только дни [[landing-oos|OOS]] без обучающих дней [[train-segment|Train]].
+2) То, насколько модель переносится на новые даты после обучения на более ранней истории.
+3) Самую честную проверку качества внутри текущего разделения истории.
+
+Когда смотреть
+Это главный режим, когда нужен прямой ответ на вопрос: держится ли модель на новых днях или хорошо выглядит только на знакомой истории.
+
+Что важно
+1) При появлении новых завершённых дней граница между [[train-segment|Train]] и [[landing-oos|OOS]] двигается автоматически.
+2) Если [[train-segment|Train]] заметно сильнее, чем [[landing-oos|OOS]], модель хуже переносится на новые даты.
+3) Один из первых рисков в таком разрыве — [[leakage|утечка]] или слишком слабая работа на более новой части истории.
+
+Пример
+Если на [[train-segment|Train]] точность, уверенность и другие метрики выглядят ровно, а на [[landing-oos|OOS]] они резко падают, значит модель плохо прогнозирует новые даты или нужно проверить риск [[leakage|утечки]].`
+}
+
+function buildCurrentPredictionHistoryRecentDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats
+): string {
+    const recentCoverageLine =
+        splitStats.recentMatchesOos ?
+            `Сейчас весь [[landing-oos|OOS]] короче лимита, поэтому [[landing-recent-tail-history|Recent]] и [[landing-oos|OOS]] совпадают.`
+        :   `Сейчас [[landing-recent-tail-history|Recent]] короче полного [[landing-oos|OOS]] и показывает только его самый свежий конец.`
+
+    return `[[landing-recent-tail-history|Recent]]
+
+[[landing-recent-tail-history|Recent]] — это не отдельное обучение, а свежий хвост уже готового [[landing-oos|OOS]]. Сейчас он покрывает ${buildTrainingScopeRangeFact(splitStats.recentStartDateUtc, splitStats.recentEndDateUtc)}. Лимит режима — последние ${formatTrainingScopeCount(splitStats.recentTailRowsLimit, 'запись', 'записи', 'записей')} [[landing-oos|OOS]]. ${recentCoverageLine}
+
+[[landing-recent-tail-history|Recent]] отбирается по уже готовым OOS-записям, а не по новому календарному правилу. Система сначала полностью строит обычный [[landing-oos|OOS]], и только потом отрезает у него свежий конец. Новая модель здесь не обучается и новый прогнозный проход не строится.
+
+Что показывает
+1) Не весь [[landing-oos|OOS]], а только его самый свежий конец.
+2) То, что происходит с качеством именно в последние дни, а не в среднем по всей OOS-истории.
+
+Когда смотреть
+Этот режим нужен, когда важнее всего понять, не портится ли модель именно на последнем участке истории.
+
+Что важно
+1) [[landing-recent-tail-history|Recent]] всегда нужно читать рядом с [[landing-oos|OOS]], потому что это его хвост, а не отдельная проверка.
+2) Если весь [[landing-oos|OOS]] короче лимита, [[landing-recent-tail-history|Recent]] полностью совпадает с ним.
+3) Если общий [[landing-oos|OOS]] ещё выглядит нормально, а [[landing-recent-tail-history|Recent]] уже слабее, ухудшение начинается именно на последних днях.
+
+Пример
+Если за весь [[landing-oos|OOS]] метрики ещё держатся, а в [[landing-recent-tail-history|Recent]] уже заметна просадка, проблема сидит в самом свежем участке истории.`
+}
+
+function buildCurrentPredictionHistoryTrainDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats
+): string {
+    return `[[train-segment|Train]]
+
+[[train-segment|Train]] — это обучающие дни: ${buildTrainingScopeRangeFact(splitStats.trainStartDateUtc, splitStats.trainEndDateUtc)}. Именно этот участок используется для обучения версии модели с разделением истории перед проверкой на [[landing-oos|OOS]]. После обучения эта же версия модели отдельным прогоном считается по тем же дням, поэтому [[train-segment|Train]] показывает не честную проверку на новых датах, а поведение модели на уже знакомой истории.
+
+Во время этого прогона готовый итог дня тоже не подаётся в модель напрямую. Сначала считаются вероятности по данным дня, потом отчёт отдельным шагом добавляет реальный итог. Но сами дни уже участвовали в обучении, поэтому это всё равно диагностика на знакомой истории.
+
+Что показывает
+1) Тот же обучающий участок, который используется в режиме с разделением истории.
+2) Реальные диагностические блоки страницы: Train diagnostics metrics, Worst mistakes (in-sample), Confident mistakes (in-sample), Borderline days (lowest margin).
+3) Где модель ошибается, где она слишком уверена и где решение оказывается пограничным.
+
+Когда смотреть
+Этот режим нужен для внутреннего разбора модели: какие ошибки она делает на знакомой истории и в каких местах проблема видна ещё до выхода на новые даты.
+
+Что важно
+1) Сильный [[train-segment|Train]] сам по себе не означает хорошее качество на новых днях.
+2) Если нужен главный вывод по качеству, ориентиром остаётся [[landing-oos|OOS]].
+3) Большой разрыв между [[train-segment|Train]] и [[landing-oos|OOS]] — сигнал слабой переносимости или риска [[leakage|утечки]].
+
+Пример
+Если на [[train-segment|Train]] ошибки редкие, а на [[landing-oos|OOS]] качество резко падает, модель хорошо подстроилась под знакомую историю, но хуже работает на новых датах.`
+}
+
+function buildCurrentPredictionLiveFullDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats | null | undefined,
+    fullFacts: CurrentPredictionStructuredTrainingFacts | null
+): string {
+    const fitFact =
+        fullFacts?.fitWindowStartDayKeyUtc && fullFacts?.fitWindowEndDayKeyUtc ?
+            buildTrainingScopeCalendarFact(fullFacts.fitWindowStartDayKeyUtc, fullFacts.fitWindowEndDayKeyUtc)
+        : splitStats ? buildTrainingScopeRangeFact(splitStats.fullStartDateUtc, splitStats.fullEndDateUtc)
+        : null
+    const scoreFact =
+        fullFacts?.scoreWindowStartDayKeyUtc && fullFacts?.scoreWindowEndDayKeyUtc ?
+            buildTrainingScopeCalendarFact(fullFacts.scoreWindowStartDayKeyUtc, fullFacts.scoreWindowEndDayKeyUtc)
+        : null
+
+    return `[[landing-all-history|Full]]
+
+[[landing-all-history|Full]] на live-странице — это текущий прогноз модели, которая обучена на всей завершённой истории: ${fitFact ?? 'доступный диапазон пока не прочитан'}. Здесь в обучение попадает весь доступный диапазон до последнего завершённого дня, а потом эта же обученная версия считает текущую карточку${scoreFact ? ` за ${scoreFact}` : ''}. Разделения на [[train-segment|Train]] и [[landing-oos|OOS]] в этом режиме нет.
+
+Во время live-расчёта факт текущего дня ещё неизвестен, поэтому в модель попадают только данные текущего дня на момент расчёта. Смысл сравнения с [[landing-oos|OOS]] здесь в другом: посмотреть, насколько текущий прогноз меняется от того, дали модели весь доступный прошлый опыт или остановили обучение раньше.
+
+Что показывает
+1) Самую дообученную live-версию модели.
+2) Текущий день, посчитанный после обучения на всей завершённой истории.
+3) Режим без разделения истории на [[train-segment|Train]] и [[landing-oos|OOS]].
+
+Когда смотреть
+Этот режим нужен, когда важна максимально дообученная версия текущей модели и хочется сравнить её с более строгой [[landing-oos|OOS]]-версией.
+
+Что важно
+1) Верх обучения всегда упирается в последний завершённый день доступной истории.
+2) [[landing-all-history|Full]] даёт максимум прошлого опыта, но не является главным честным режимом проверки переноса на новые дни.
+3) Для такого сравнения ориентиром остаётся [[landing-oos|OOS]].
+
+Пример
+Если [[landing-all-history|Full]] даёт по текущему дню заметно более сильный сигнал, чем [[landing-oos|OOS]], полный прошлый опыт делает текущий прогноз увереннее, чем более строгая версия с разделением истории.`
+}
+
+function buildCurrentPredictionLiveOosDescription(
+    splitStats: CurrentPredictionBackfilledTrainingScopeStats | null | undefined,
+    oosFacts: CurrentPredictionStructuredTrainingFacts | null
+): string {
+    const trainFact =
+        oosFacts?.trainWindowStartDayKeyUtc && oosFacts?.trainWindowEndDayKeyUtc ?
+            buildTrainingScopeCalendarFact(oosFacts.trainWindowStartDayKeyUtc, oosFacts.trainWindowEndDayKeyUtc)
+        : splitStats ? buildTrainingScopeRangeFact(splitStats.trainStartDateUtc, splitStats.trainEndDateUtc)
+        : null
+    const scoreFact =
+        oosFacts?.scoreWindowStartDayKeyUtc && oosFacts?.scoreWindowEndDayKeyUtc ?
+            buildTrainingScopeCalendarFact(oosFacts.scoreWindowStartDayKeyUtc, oosFacts.scoreWindowEndDayKeyUtc)
+        : null
+
+    return `[[landing-oos|OOS]]
+
+[[landing-oos|OOS]] на live-странице — это текущий прогноз модели, которая сначала обучилась только на [[train-segment|Train]]${trainFact ? `: ${trainFact}` : ''}, а потом без дообучения считает текущий день${scoreFact ? ` за ${scoreFact}` : ''}. Более новая часть истории после границы [[train-segment|Train]] / [[landing-oos|OOS]] в её обучение не входит.
+
+Во время live-расчёта модель, как и в [[landing-all-history|Full]], не видит факт текущего дня. Разница только в объёме прошлого опыта: здесь текущий день считает версия, которая остановилась на [[train-segment|Train]] и не училась на более новых днях.
+
+Что показывает
+1) Более строгую live-версию текущего прогноза после разделения истории.
+2) То, как текущий день выглядит у модели без обучения на более новой части истории.
+3) ${buildTrainingScopeSplitRuleFact()}
+
+Когда смотреть
+Это главный live-режим, когда нужен ответ на вопрос: держится ли текущий прогноз у более строгой версии модели или красиво выглядит только у максимально дообученного [[landing-all-history|Full]].
+
+Что важно
+1) При появлении новых завершённых дней граница [[train-segment|Train]] / [[landing-oos|OOS]] двигается автоматически.
+2) Если [[landing-oos|OOS]] заметно слабее [[landing-all-history|Full]], текущий прогноз сильно зависит от более новой истории, которой не было у строгой версии модели.
+3) Именно поэтому [[landing-oos|OOS]] остаётся главным live-режимом для проверки переноса на новые даты.
+
+Пример
+Если [[landing-all-history|Full]] даёт уверенный прогноз по текущему дню, а [[landing-oos|OOS]] по тому же дню заметно слабее, строгая версия модели переносит свой сигнал хуже, чем максимально дообученная версия.`
+}
+
+function buildTrainingScopeOverviewDescription(): string {
+    return buildGenericTrainingScopeOverviewDescription()
+}
+
+// Этот owner-текст одновременно используется в tooltip переключателя и в верхнем explain-блоке prediction-страниц.
+export function buildCurrentPredictionLiveTrainingScopeDescription(
+    args: BuildCurrentPredictionLiveTrainingScopeDescriptionArgs = {}
+): string {
+    const { splitStats, fullReport, oosReport } = args
+    const fullFacts = resolveCurrentPredictionStructuredTrainingFacts(fullReport)
+    const oosFacts = resolveCurrentPredictionStructuredTrainingFacts(oosReport)
+
+    return `Что такое режимы и зачем они нужны
+
+На live-странице режим меняет не набор карточек, а историю обучения текущей модели.
+
+1) [[landing-all-history|Full]] даёт текущий прогноз версии, которая обучена на всей завершённой истории.
+2) [[landing-oos|OOS]] даёт текущий прогноз версии, которая обучалась только на [[train-segment|Train]] и не использовала более новые дни.
+
+Оба режима считают один и тот же текущий день. Разница между ними не в факте текущего дня и не в другом наборе рыночных данных, а только в том, какой прошлый опыт получила модель до этого расчёта.
+
+${buildCurrentPredictionLiveFullDescription(splitStats, fullFacts)}
+
+${buildCurrentPredictionLiveOosDescription(splitStats, oosFacts)}
+
+Что на этой странице не показывается
+Live-страница не раскрывает всю историю по дням, поэтому здесь остаются только два режима.
+1) [[train-segment|Train]] не выводится отдельно, потому что страница не показывает обучающую историю по датам.
+2) [[landing-recent-tail-history|Recent]] не выводится отдельно, потому что страница показывает одну текущую карточку, а не ленту [[landing-oos|OOS]].
+
+Что меняется на этой странице при переключении режима
+1) Меняются вероятности, итоговое направление и уверенность.
+2) Меняются временные поля и статус публикации.
+3) Меняются блоки live-отчёта и блоки по политикам внутри карточки.`
 }
 
 export function buildCurrentPredictionHistoryTrainingScopeDescription(
-    splitStats?: CurrentPredictionBackfilledSplitStats | null
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
 ): string {
-    return `${buildTrainingScopeOverviewDescription(splitStats)}\n\nНа этой странице:\nпри переключении меняются доступные даты, подпись обучающего окна, карточки прогнозов за день и торговые блоки внутри них.`
+    if (!splitStats) {
+        return `${buildTrainingScopeOverviewDescription()}
+
+${GENERIC_TRAINING_SCOPE_FULL_DESCRIPTION}
+
+${GENERIC_TRAINING_SCOPE_OOS_DESCRIPTION}
+
+${GENERIC_TRAINING_SCOPE_RECENT_DESCRIPTION}
+
+${GENERIC_TRAINING_SCOPE_TRAIN_DESCRIPTION}
+
+Что меняется на этой странице при переключении режима
+1) Меняются доступные даты и число карточек.
+2) Меняется служебный блок про обучение.
+3) Меняются сами карточки прогноза и блоки по политикам внутри них.
+4) В [[train-segment|Train]] страница переключает вводный текст на диагностический режим и скрывает таблицы сделок по политикам.`
+    }
+
+    return `Что такое режимы и зачем они нужны
+
+На этой странице режим меняет две вещи: на каких днях модель обучалась и какие дни потом попадают в историю.
+1) [[landing-all-history|Full]] — модель обучили на всей завершённой истории и этой же версией заново пересчитали всю историю.
+2) [[landing-oos|OOS]] — модель обучили только на [[train-segment|Train]], а потом проверили на более новых днях.
+3) [[landing-recent-tail-history|Recent]] — из уже готового [[landing-oos|OOS]] оставили только самый свежий конец.
+4) [[train-segment|Train]] — после обучения ту же версию модели с разделением истории отдельно прогнали по обучающим дням, чтобы разобрать ошибки.
+
+Технически у всех режимов схема одна. Сначала выбранные прошлые дни разрешено использовать для обучения: по ним модель один раз подстраивает [[landing-model-weights|веса модели]]. Потом начинается сам прогноз: модель видит только данные дня на момент расчёта, считает вероятности и не получает готовый итог этого дня в лоб. Реальный итог приклеивается к записи позже, уже на уровне отчёта. Поэтому режим меняет не оформление страницы, а то, какой прошлый опыт разрешён для обучения и какие дни потом показываются как история или проверка.
+
+${buildCurrentPredictionHistoryFullDescription(splitStats)}
+
+${buildCurrentPredictionHistoryOosDescription(splitStats)}
+
+${buildCurrentPredictionHistoryRecentDescription(splitStats)}
+
+${buildCurrentPredictionHistoryTrainDescription(splitStats)}
+
+Что меняется на этой странице при переключении режима
+1) Меняются диапазон дат и число карточек.
+2) Меняются описание режима обучения и поле Рабочий контур обучения.
+3) Меняется сама история прогнозов, потому что страница показывает другой режим.
+4) В [[train-segment|Train]] страница переключает вводный текст на диагностический режим и скрывает таблицы сделок по политикам.`
 }
 
 export const CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION = buildCurrentPredictionLiveTrainingScopeDescription()
@@ -183,28 +646,33 @@ export const CURRENT_PREDICTION_LIVE_TRAINING_SCOPE_DESCRIPTION = buildCurrentPr
 export const CURRENT_PREDICTION_HISTORY_TRAINING_SCOPE_DESCRIPTION =
     buildCurrentPredictionHistoryTrainingScopeDescription()
 
-function buildTrainingScopeTooltipByValue(
-    splitStats?: CurrentPredictionBackfilledSplitStats | null
-): Record<CurrentPredictionTrainingScope, string> {
+function buildTrainingScopeTooltipByValue(): Record<CurrentPredictionTrainingScope, string> {
     return {
-        full: TRAINING_SCOPE_FULL_DESCRIPTION,
-        train: buildTrainingScopeTrainDescription(splitStats),
-        oos: buildTrainingScopeOosDescription(splitStats),
-        recent: TRAINING_SCOPE_RECENT_DESCRIPTION
+        full: GENERIC_TRAINING_SCOPE_FULL_DESCRIPTION,
+        train: GENERIC_TRAINING_SCOPE_TRAIN_DESCRIPTION,
+        oos: GENERIC_TRAINING_SCOPE_OOS_DESCRIPTION,
+        recent: GENERIC_TRAINING_SCOPE_RECENT_DESCRIPTION
     }
 }
 
+const DEFAULT_CURRENT_PREDICTION_SCOPE_ORDER: readonly CurrentPredictionTrainingScope[] = [
+    'full',
+    'train',
+    'oos',
+    'recent'
+]
+
 const MEGA_TOTAL_BUCKET_VIEW_DESCRIPTION =
-    'Режим показа всех бакетов — выбор того, как читать набор daily, intraday и delayed при `Σ Все бакеты`.\n\nС агрегацией: backend возвращает отдельный total-aggregate срез, где числа уже пересчитаны как общий результат по всем бакетам.\n\nБез агрегации: страница показывает реальные daily, intraday и delayed секции рядом друг с другом без пересчёта в новый synthetic bucket.\n\nКак читать:\nагрегация нужна для общего итога, раздельный режим — для сравнения, какой бакет дал результат сам по себе.'
+    'Показ всех бакетов — выбор того, как читать `Σ Все бакеты`.\n\nС агрегацией:\nстраница показывает один общий итог по daily, intraday и delayed.\n\nБез агрегации:\nстраница показывает эти же бакеты отдельно, чтобы был виден вклад каждого.\n\nКак читать:\nагрегация нужна для общего результата, раздельный режим — для сравнения, какой бакет дал прибыль, просадку или пропуск сделки.'
 
 const PREDICTION_HISTORY_WINDOW_ONE_YEAR_DESCRIPTION =
-    '1 год — показывает только последний год history-ленты.\n\nЭтот режим нужен, когда важнее быстро проверить самое свежее поведение прогнозов, а не читать весь архив целиком.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
+    '1 год — показывает только последний год ленты прогнозов.\n\nЭтот режим нужен, когда важнее быстро проверить самое свежее поведение модели, а не читать всю историю сразу.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
 
 const PREDICTION_HISTORY_WINDOW_TWO_YEARS_DESCRIPTION =
-    '2 года — показывает последние два года history-ленты.\n\nЭто компромисс между свежестью и глубиной: уже видно смену рыночных режимов, но экран ещё не перегружается всей историей.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
+    '2 года — показывает последние два года ленты прогнозов.\n\nЭто компромисс между свежестью и глубиной: уже видно смену рыночных режимов, но экран ещё не перегружается всей историей.\n\nЧисла выше по странице не пересчитываются: меняется только видимый диапазон дат и карточек.'
 
 const PREDICTION_HISTORY_WINDOW_ALL_DESCRIPTION =
-    'Вся история — показывает весь доступный history-архив по выбранному training-scope.\n\nЭтот режим нужен, когда важно увидеть полную хронологию решений без обрезания по свежему хвосту.\n\nЧисла выше по странице не пересчитываются: страница просто перестаёт скрывать более старые даты.'
+    'Вся история — показывает всю доступную историю прогнозов по выбранному режиму обучения.\n\nЭтот режим нужен, когда важно увидеть полную хронологию карточек без обрезания по более старым датам.\n\nЧисла выше по странице не пересчитываются: страница просто перестаёт скрывать более ранние дни.'
 
 export function buildMegaBucketControlGroup({
     value,
@@ -331,7 +799,7 @@ export function buildModelStatsSegmentControlGroup({
         key: 'model-stats-segment',
         label: 'Сегмент данных',
         infoTooltip:
-            'Что это: выбор server-side сегмента отчёта по истории модели. Как работает в движке: backend возвращает только один сегмент OOS, RECENT, TRAIN или FULL. Какие числа меняются: состав моделей, sample counts и метрики внутри таблиц. Зачем сравнивать: видно, где качество держится на новых данных, а где остаётся только на обучении.',
+            'Сегмент данных — выбор участка истории модели для сравнения.\n\nOOS показывает новые дни после обучения.\n\nRECENT оставляет только свежий конец OOS.\n\nTRAIN показывает обучающий участок.\n\nFULL показывает всю завершённую историю.\n\nКак читать:\nсравнение сегментов помогает увидеть, где качество держится на новых днях, а где остаётся только на знакомой истории.',
         value,
         options: [
             { value: 'OOS', label: 'OOS' },
@@ -352,7 +820,7 @@ export function buildModelStatsViewControlGroup({
         onChange,
         label: 'Режим представления',
         infoTooltip:
-            'Что это: уровень детализации model-stats. Как работает в движке: backend возвращает либо business, либо technical набор секций. Какие числа меняются: состав таблиц и колонок в документе, а не только их видимость. Зачем сравнивать: business режим нужен для чтения результата, technical режим для разбора диагностических деталей модели.',
+            'Режим представления — выбор глубины отчёта model-stats.\n\nBUSINESS оставляет основные таблицы и ключевые метрики.\n\nTECHNICAL добавляет более подробные таблицы и служебные детали модели.\n\nКак читать:\nBUSINESS нужен для быстрого вывода по качеству, TECHNICAL — для разбора причин и различий между моделями.',
         labels: {
             business: 'BUSINESS',
             technical: 'TECHNICAL'
@@ -391,10 +859,14 @@ export function buildTrainingScopeControlGroup({
     label = 'Срез данных',
     ariaLabel,
     infoTooltip,
-    splitStats
+    scopes = DEFAULT_CURRENT_PREDICTION_SCOPE_ORDER
 }: BuildTrainingScopeControlGroupArgs): ReportViewControlGroup<CurrentPredictionTrainingScope> {
-    const trainingScopeOverviewDescription = infoTooltip ?? buildTrainingScopeOverviewDescription(splitStats)
-    const tooltipByValue = buildTrainingScopeTooltipByValue(splitStats)
+    const trainingScopeOverviewDescription = infoTooltip ?? buildTrainingScopeOverviewDescription()
+    const tooltipByValue = buildTrainingScopeTooltipByValue()
+    const uniqueScopes = Array.from(new Set(scopes))
+    if (uniqueScopes.length === 0) {
+        throw new Error('[training-scope] At least one scope option must be provided.')
+    }
 
     return {
         key: 'training-scope',
@@ -402,28 +874,11 @@ export function buildTrainingScopeControlGroup({
         ariaLabel,
         infoTooltip: trainingScopeOverviewDescription,
         value,
-        options: [
-            {
-                value: 'full',
-                label: resolveCurrentPredictionTrainingScopeMeta('full').label,
-                tooltip: tooltipByValue.full
-            },
-            {
-                value: 'train',
-                label: resolveCurrentPredictionTrainingScopeMeta('train').label,
-                tooltip: tooltipByValue.train
-            },
-            {
-                value: 'oos',
-                label: resolveCurrentPredictionTrainingScopeMeta('oos').label,
-                tooltip: tooltipByValue.oos
-            },
-            {
-                value: 'recent',
-                label: resolveCurrentPredictionTrainingScopeMeta('recent').label,
-                tooltip: tooltipByValue.recent
-            }
-        ],
+        options: uniqueScopes.map(scope => ({
+            value: scope,
+            label: resolveCurrentPredictionTrainingScopeMeta(scope).label,
+            tooltip: tooltipByValue[scope]
+        })),
         onChange
     }
 }

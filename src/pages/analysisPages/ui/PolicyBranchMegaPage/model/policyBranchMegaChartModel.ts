@@ -1,5 +1,6 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { normalizePolicyBranchMegaTitle } from '@/shared/utils/policyBranchMegaTabs'
+import { POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS } from '@/shared/utils/policyBranchMegaProfitColumns'
 
 export type PolicyBranchMegaChartMetricKind = 'percent' | 'money' | 'count' | 'number' | 'flag'
 export type PolicyBranchMegaChartRiskState = 'safe' | 'negative' | 'liquidation' | 'ruin'
@@ -67,7 +68,7 @@ const PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
 const ROW_KEY_SEPARATOR = '\u001e'
 
 const DEFAULT_PREFERRED_METRICS_BY_PART = new Map<number, readonly string[]>([
-    [1, ['Wealth%', 'OnExch%', 'MaxDD%', 'Trade%']],
+    [1, ['TotalPnl%', 'Wealth%', 'OnExch%', 'MaxDD%', 'Trade%']],
     [2, ['HadLiq', 'BalMin%', 'AccRuin', 'ReqGain%']],
     [3, ['AvgDay%', 'Long $', 'Short $', 'EODExit%']]
 ])
@@ -301,6 +302,7 @@ function resolveMetricKind(key: string): PolicyBranchMegaChartMetricKind {
     if (
         normalized === 'HadLiq' ||
         normalized === 'AccRuin' ||
+        normalized === 'RealLiq' ||
         normalized === 'Recovered' ||
         normalized === 'BalDead'
     ) {
@@ -380,9 +382,11 @@ function resolveRiskState(row: Pick<PolicyBranchMegaChartRow, 'numericValues'>):
         return 'liquidation'
     }
 
-    const wealthPct = row.numericValues['Wealth%']
-    if (typeof wealthPct === 'number' && wealthPct < 0) {
-        return 'negative'
+    for (const metricKey of POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS) {
+        const totalReturn = row.numericValues[metricKey]
+        if (typeof totalReturn === 'number') {
+            return totalReturn < 0 ? 'negative' : 'safe'
+        }
     }
 
     return 'safe'

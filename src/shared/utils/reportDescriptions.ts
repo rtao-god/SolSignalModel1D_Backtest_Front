@@ -161,7 +161,7 @@ export function resolveReportSectionDescription(
         }
     }
 
-    if (reportKind === 'pfi_per_model') {
+    if (reportKind === 'pfi_per_model' || reportKind === 'pfi_sl_model') {
         return PFI_DESCRIPTION[resolvedLocale]
     }
 

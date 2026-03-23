@@ -305,24 +305,6 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'MaxDD_Active% / Days — глубина и длительность одного худшего эпизода просадки по кривой [[active-equity|active equity]].\n\nПервое число показывает, насколько далеко капитал ушёл вниз от пика. Второе число показывает, сколько календарных дней капитал жил ниже этого пика до восстановления или до конца периода.\n\nКак читать:\nметрика нужна, когда важно видеть не только глубину провала, но и то, как долго капитал оставался под давлением.\n\nПример:\n42.7 / 181 означает просадку 42.7% и жизнь ниже старого пика в течение 181 дня.',
     },
-    Sharpe: {
-        key: 'Sharpe',
-        title: 'Sharpe',
-        description:
-            'Коэффициент Sharpe по дневным доходностям: средняя дневная доходность / стандартное отклонение * √252. Дневные доходности агрегируются из сделок с весом позиции относительно общего капитала.',
-    },
-    Sortino: {
-        key: 'Sortino',
-        title: 'Sortino',
-        description:
-            'Коэффициент Sortino: средняя дневная доходность / down‑std * √252. Down‑std считается только по отрицательным дневным доходностям, что делает метрику чувствительной именно к падениям.',
-    },
-    Calmar: {
-        key: 'Calmar',
-        title: 'Calmar',
-        description:
-            'Calmar = CAGR / MaxDD (по дневной кривой из ratio‑метрик). Показывает доходность на единицу глубины просадки. Если MaxDD почти нулевая, выводится "—".',
-    },
     'CAGR%': {
         key: 'CAGR%',
         title: 'CAGR%',
@@ -387,13 +369,13 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'BestDay%',
         title: 'BestDay%',
         description:
-            'Лучшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nМетрика показывает самый сильный положительный день в выбранном срезе без введения второй альтернативной серии.',
+            'Лучшая дневная доходность по той же дневной серии.\n\nМетрика показывает самый сильный положительный день в выбранном срезе без введения второй альтернативной серии.',
     },
     'WorstDay%': {
         key: 'WorstDay%',
         title: 'WorstDay%',
         description:
-            'Худшая дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR.\n\nЭто самый глубокий однодневный провал в выбранном срезе.',
+            'Худшая дневная доходность по той же дневной серии.\n\nЭто самый глубокий однодневный провал в выбранном срезе.',
     },
     RetSkew: {
         key: 'RetSkew',
@@ -423,7 +405,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'MeanRet%',
         title: 'MeanRet%',
         description:
-            'Средняя дневная доходность той же дневной серии, по которой считаются Sharpe, Sortino, Calmar и CAGR. Сначала все сделки одного дня сворачиваются в один дневной итог, после чего берётся среднее по дням. Выводится в процентах.',
+            'Средняя дневная доходность по той же дневной серии. Сначала все сделки одного дня сворачиваются в один дневной итог, после чего берётся среднее по дням. Выводится в процентах.',
     },
     'StdRet%': {
         key: 'StdRet%',
@@ -460,6 +442,12 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         title: 'HadLiq',
         description:
             'Были ли [[liquidation|ликвидации]]. Значение Yes означает аварийный риск в истории: у стратегии хотя бы раз было биржевое принудительное закрытие позиции. Это флаг риска, а не прямой ответ, почему остановился весь прогон.',
+    },
+    RealLiq: {
+        key: 'RealLiq',
+        title: 'RealLiq',
+        description:
+            'RealLiq — строгий флаг [[liquidation|ликвидации]]: true, если цена хотя бы одной сделки дошла до backtest-уровня ликвидации.\n\nЭто событие касания критической цены, а не просто крупный убыток. Денежный эффект читается по [[real-liq-loss-usd|RealLiqLoss$]] и [[real-liq-loss-pct|RealLiqLoss%]].',
     },
     'RealLiq#': {
         key: 'RealLiq#',
@@ -955,9 +943,6 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'TotalPnl$') {
         return 'чем выше, тем лучше по доходности, но финальное решение только вместе с MaxDD%, HadLiq и AccRuin.'
     }
-    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
-        return 'чем выше, тем лучше соотношение доходности и риска, но сравнение корректно только внутри одного bucket и одного режима метрик.'
-    }
     if (
         key === 'ProfitFactor' ||
         key === 'PayoffRatio' ||
@@ -983,8 +968,15 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'совместная интерпретация обязательна: высокая средняя доходность без контроля разброса и просадки часто даёт нестабильный профиль риска.'
     }
-    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$' || key === 'OnExch%' || key === 'Wealth%') {
-        return 'интерпретация идёт связкой: Wealth% показывает полный итог, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а BucketNow$ подчёркивает локальный баланс выбранного бакета.'
+    if (
+        key === 'TotalPnl%' ||
+        key === 'BucketNow$' ||
+        key === 'OnExch$' ||
+        key === 'Withdrawn$' ||
+        key === 'OnExch%' ||
+        key === 'Wealth%'
+    ) {
+        return 'интерпретация идёт связкой: TotalPnl% — это главный итог прибыли, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а Wealth% имеет отдельный смысл только там, где рабочий баланс реально растёт внутри периода.'
     }
     if (key === 'StartCap$') {
         return 'это база масштаба; проценты корректно сравнивать между стратегиями, а доллары — только при одинаковом стартовом капитале.'
@@ -992,7 +984,7 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (DRAW_DOWN_KEYS.has(key)) {
         return 'для просадки правило простое: чем ниже глубина и реже глубокие эпизоды, тем стратегия устойчивее.'
     }
-    if (key === 'HadLiq') {
+    if (key === 'HadLiq' || key === 'RealLiq') {
         return 'лучший сценарий — false/0. Даже единичная ликвидация — повод смотреть хвостовой риск.'
     }
     if (key === 'AccRuin') {
@@ -1098,9 +1090,6 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'TotalPnl$') {
         return 'Higher is better for return, but the final decision must always be made together with MaxDD%, HadLiq, and AccRuin.'
     }
-    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
-        return 'Higher is better for risk-adjusted return, but comparison is valid only inside the same bucket and the same metric mode.'
-    }
     if (
         key === 'ProfitFactor' ||
         key === 'PayoffRatio' ||
@@ -1126,8 +1115,15 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'CAGR%' || key === 'MeanRet%' || key === 'StdRet%' || key === 'DownStd%' || key === 'WinRate%') {
         return 'These must be interpreted together: high average return without control over dispersion and drawdown usually means unstable risk profile.'
     }
-    if (key === 'BucketNow$' || key === 'OnExch$' || key === 'Withdrawn$' || key === 'OnExch%' || key === 'Wealth%') {
-        return 'Interpret them together: Wealth% is the full outcome, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and BucketNow$ emphasizes the local balance of the selected bucket.'
+    if (
+        key === 'TotalPnl%' ||
+        key === 'BucketNow$' ||
+        key === 'OnExch$' ||
+        key === 'Withdrawn$' ||
+        key === 'OnExch%' ||
+        key === 'Wealth%'
+    ) {
+        return 'Interpret them together: TotalPnl% is the main profit result, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and Wealth% becomes separately useful only where the working balance can really grow inside the period.'
     }
     if (key === 'StartCap$') {
         return 'This is the scale baseline: percentages can be compared between strategies, but dollar amounts only when start capital is the same.'
@@ -1135,7 +1131,7 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (DRAW_DOWN_KEYS.has(key)) {
         return 'For drawdown, the rule is simple: the shallower the decline and the rarer the deep episodes, the more robust the strategy.'
     }
-    if (key === 'HadLiq') {
+    if (key === 'HadLiq' || key === 'RealLiq') {
         return 'Best case is false/0. Even a single liquidation is a reason to inspect tail risk.'
     }
     if (key === 'AccRuin') {
@@ -1188,7 +1184,7 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
 
 function resolveFallbackExampleHint(key: string): string {
     if (key === 'StartDay' || key === 'EndDay') {
-        return 'StartDay=2022-01-01 и EndDay=2025-12-31 означают, что сравнение выполнено на одном и том же историческом окне.'
+        return 'StartDay=2021-01-01 и EndDay=2025-12-31 означают, что сравнение выполнено на одном и том же историческом окне.'
     }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%') {
         return `${key}=28 означает, что в худшей точке капитал был на 28% ниже локального пика.`
@@ -1222,7 +1218,7 @@ function resolveFallbackExampleHint(key: string): string {
 
 function resolveEnglishFallbackExampleHint(key: string): string {
     if (key === 'StartDay' || key === 'EndDay') {
-        return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the comparison was run on the same historical window.'
+        return 'StartDay=2021-01-01 and EndDay=2025-12-31 mean the comparison was run on the same historical window.'
     }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%') {
         return `${key}=28 means capital was 28% below its local peak at the worst point.`
@@ -1262,7 +1258,7 @@ function resolveTermExampleHintOrNull(key: string): string | null {
         return null
     }
     if (key === 'StartDay' || key === 'EndDay') {
-        return 'StartDay=2022-01-01 и EndDay=2025-12-31 означает, что симуляция читалась по этому окну дат.'
+        return 'StartDay=2021-01-01 и EndDay=2025-12-31 означает, что симуляция читалась по этому окну дат.'
     }
     if (key === 'Trade%') {
         return '35% означает, что в 35 из 100 дней были сделки.'
@@ -1309,9 +1305,6 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% означает, что в худшей точке капитал падал на 41% от локального максимума.'
     }
-    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
-        return 'Sharpe=1.2 лучше, чем Sharpe=0.6, если сравнение идёт в одном и том же срезе.'
-    }
     if (key === 'CAGR%' || key === 'AvgYear%') {
         return 'CAGR%=24 означает средний годовой темп около 24% на выбранном горизонте.'
     }
@@ -1357,8 +1350,17 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
         return 'Для отдельного бакета StartCap$ обычно 20 000, для total aggregate обычно 60 000; вместе с Withdrawn$ и OnExch$ это показывает структуру результата в деньгах.'
     }
-    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq#') {
+    if (key === 'HadLiq') {
         return 'HadLiq=1 означает, что хотя бы одна позиция была принудительно закрыта биржей.'
+    }
+    if (key === 'RealLiq') {
+        return 'RealLiq=true означает, что хотя бы одна сделка дошла до backtest-уровня ликвидации.'
+    }
+    if (key === 'RealLiq#') {
+        return 'RealLiq#=4 означает четыре строгие ликвидации в этом срезе.'
+    }
+    if (key === 'AccRuin') {
+        return 'AccRuin=1 означает, что рабочий капитал бакета был разрушен.'
     }
     if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
         return 'RealLiqLoss%>0 означает, что strict liquidation уже съела измеримую часть стартового капитала.'
@@ -1420,7 +1422,7 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
         return null
     }
     if (key === 'StartDay' || key === 'EndDay') {
-        return 'StartDay=2022-01-01 and EndDay=2025-12-31 mean the simulation was read on exactly that date window.'
+        return 'StartDay=2021-01-01 and EndDay=2025-12-31 mean the simulation was read on exactly that date window.'
     }
     if (key === 'Trade%') {
         return '35% means there were trades on 35 out of 100 days.'
@@ -1467,9 +1469,6 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% means capital fell 41% from the local peak at the worst point.'
     }
-    if (key === 'Sharpe' || key === 'Sortino' || key === 'Calmar') {
-        return 'Sharpe=1.2 is better than Sharpe=0.6 when the comparison is made inside the same slice.'
-    }
     if (key === 'CAGR%' || key === 'AvgYear%') {
         return 'CAGR%=24 means the average annualized growth rate is about 24% on the selected horizon.'
     }
@@ -1515,8 +1514,17 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'Withdrawn$' || key === 'OnExch$' || key === 'StartCap$') {
         return 'For a single bucket StartCap$ is usually 20,000, while total aggregate is usually 60,000; together with Withdrawn$ and OnExch$ this shows the money structure of the result.'
     }
-    if (key === 'HadLiq' || key === 'AccRuin' || key === 'RealLiq#') {
+    if (key === 'HadLiq') {
         return 'HadLiq=1 means at least one position was force-closed by the exchange.'
+    }
+    if (key === 'RealLiq') {
+        return 'RealLiq=true means at least one trade reached the backtest liquidation price.'
+    }
+    if (key === 'RealLiq#') {
+        return 'RealLiq#=4 means there were four strict liquidation-touch events in this slice.'
+    }
+    if (key === 'AccRuin') {
+        return 'AccRuin=1 means the bucket working capital was exhausted.'
     }
     if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
         return 'RealLiqLoss%>0 means strict liquidation already consumed a measurable share of start capital.'
@@ -1709,15 +1717,6 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description:
             'MaxDD_Active% / Days is a two-part metric for the single worst drawdown episode of the [[active-equity|active equity]] curve.\n\nWhat it shows:\nthe first value is drawdown depth: how far active equity fell from the prior local peak to the trough. The second value is the duration of that same episode in calendar days: from that peak to recovery of the old peak, or to the last point of the selected period if recovery never happened.\n\nHow to read it:\nthis metric answers both how deep the worst active drawdown was and how long capital stayed below its old high-water mark. It can differ from [[drawdown|MaxDD%]] because it is computed on the sum of live bucket balances after trade exits, not on the wealth curve used by the PnL engine.\n\nExample:\n42.7 / 181 means the worst active-equity drawdown was 42.7%, and that same worst episode lasted 181 calendar days.',
     },
-    Sharpe: {
-        description: 'Sharpe ratio for this Policy.',
-    },
-    Sortino: {
-        description: 'Sortino ratio for this Policy.',
-    },
-    Calmar: {
-        description: 'Calmar ratio for this Policy.',
-    },
     'CAGR%': {
         description: 'Compound annual growth rate, in %.',
     },
@@ -1792,6 +1791,10 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     HadLiq: {
         description:
             'HadLiq tracks liquidation events in this Policy.\n\nFor one bucket-specific Policy it is rendered as "No" or "Yes". "Yes" means at least one position was force-closed by the exchange.\n\nFor total aggregate it can represent how many buckets among daily / intraday / delayed suffered liquidation.\n\nThis is an аварийный risk metric: even one liquidation can erase the profit of many normal days.',
+    },
+    RealLiq: {
+        description:
+            'RealLiq is the strict liquidation-touch flag: true when at least one trade reached the backtest liquidation price.\n\nThis is a strict price-touch event, not just a large loss. Read the money impact via RealLiqLoss$ and RealLiqLoss%.',
     },
     AccRuin: {
         description:

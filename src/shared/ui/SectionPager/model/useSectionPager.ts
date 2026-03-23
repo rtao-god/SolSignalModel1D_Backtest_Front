@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { scrollToAnchor } from '../lib/scrollToAnchor'
 import { logError } from '@/shared/lib/logging/logError'
+import {
+    INTERNAL_ROUTE_TRANSITION_EVENT,
+    type InternalRouteTransitionIntent
+} from '@/shared/lib/navigation/internalRouteTransition'
 
 export interface SectionConfig {
     id: string
@@ -17,6 +21,8 @@ interface UseSectionPagerOptions {
     step?: number
 
     offsetTop?: number
+
+    canonicalAnchor?: string | null
 }
 
 interface UseSectionPagerResult {
@@ -26,6 +32,14 @@ interface UseSectionPagerResult {
     handlePrev: () => void
     handleNext: () => void
 }
+
+interface PendingDocumentTransition {
+    pathname: string
+    search: string
+    expiresAt: number
+}
+
+const PENDING_DOCUMENT_TRANSITION_TTL_MS = 3000
 
 function resolveAnchorOffsetForScroll(offsetTop?: number): number {
     if (typeof offsetTop === 'number') {
@@ -82,7 +96,8 @@ export function useSectionPager({
     syncHash = true,
     trackScroll,
     step,
-    offsetTop
+    offsetTop,
+    canonicalAnchor = null
 }: UseSectionPagerOptions): UseSectionPagerResult {
     const location = useLocation()
     const navigate = useNavigate()
@@ -95,10 +110,60 @@ export function useSectionPager({
     const lastHandledHashRef = useRef<string | null>(null)
     const scrollSyncedHashRef = useRef<string | null>(null)
     const currentHashRef = useRef<string>('')
+    const pendingDocumentTransitionRef = useRef<PendingDocumentTransition | null>(null)
+
+    const isHashSyncPaused = useCallback(() => {
+        const pendingTransition = pendingDocumentTransitionRef.current
+        if (!pendingTransition) {
+            return false
+        }
+
+        if (Date.now() > pendingTransition.expiresAt) {
+            pendingDocumentTransitionRef.current = null
+            return false
+        }
+
+        return true
+    }, [])
 
     useEffect(() => {
         currentHashRef.current = location.hash.replace('#', '')
     }, [location.hash])
+
+    useEffect(() => {
+        const pendingTransition = pendingDocumentTransitionRef.current
+        if (!pendingTransition) {
+            return
+        }
+
+        if (pendingTransition.pathname === location.pathname && pendingTransition.search === location.search) {
+            pendingDocumentTransitionRef.current = null
+        }
+    }, [location.pathname, location.search])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return
+        }
+
+        const handleDocumentTransition = (event: Event) => {
+            const detail = (event as CustomEvent<InternalRouteTransitionIntent>).detail
+            if (!detail || detail.sameDocument) {
+                return
+            }
+
+            pendingDocumentTransitionRef.current = {
+                pathname: detail.pathname,
+                search: detail.search,
+                expiresAt: Date.now() + PENDING_DOCUMENT_TRANSITION_TTL_MS
+            }
+        }
+
+        window.addEventListener(INTERNAL_ROUTE_TRANSITION_EVENT, handleDocumentTransition as EventListener)
+        return () => {
+            window.removeEventListener(INTERNAL_ROUTE_TRANSITION_EVENT, handleDocumentTransition as EventListener)
+        }
+    }, [])
 
     useEffect(() => {
         if (sections.length === 0) {
@@ -118,6 +183,7 @@ export function useSectionPager({
 
     useEffect(() => {
         if (!syncHash || sections.length === 0) return
+        if (isHashSyncPaused()) return
 
         const hash = location.hash.replace('#', '')
         if (!hash) {
@@ -148,7 +214,39 @@ export function useSectionPager({
             offsetTop,
             withTransitionPulse: true
         })
-    }, [location.hash, sections, syncHash, offsetTop])
+    }, [isHashSyncPaused, location.hash, sections, syncHash, offsetTop])
+
+    useEffect(() => {
+        if (!syncHash || !canonicalAnchor) {
+            return
+        }
+
+        if (isHashSyncPaused()) {
+            return
+        }
+
+        const currentHash = location.hash.replace('#', '')
+        if (!currentHash || currentHash === canonicalAnchor) {
+            return
+        }
+
+        // Канонизация hash остаётся внутри pager-owner и не должна запускать второй scroll-pass.
+        currentHashRef.current = canonicalAnchor
+        lastHandledHashRef.current = canonicalAnchor
+        scrollSyncedHashRef.current = null
+
+        navigate(
+            {
+                pathname: location.pathname,
+                search: location.search,
+                hash: `#${canonicalAnchor}`
+            },
+            {
+                replace: true,
+                preventScrollReset: true
+            }
+        )
+    }, [canonicalAnchor, isHashSyncPaused, location.hash, location.pathname, location.search, navigate, syncHash])
 
     useEffect(() => {
         if (!trackScrollEffective || sections.length === 0) {
@@ -205,6 +303,10 @@ export function useSectionPager({
                 return
             }
 
+            if (isHashSyncPaused()) {
+                return
+            }
+
             if (currentHashRef.current === bestAnchor) {
                 return
             }
@@ -227,7 +329,7 @@ export function useSectionPager({
         return () => {
             scrollRoot.removeEventListener('scroll', handleScroll)
         }
-    }, [sections, trackScrollEffective, offsetTop, syncHash, navigate, location.pathname, location.search])
+    }, [isHashSyncPaused, sections, trackScrollEffective, offsetTop, syncHash, navigate, location.pathname, location.search])
 
     useEffect(() => {
         const target = programmaticTargetIndexRef.current
@@ -248,7 +350,17 @@ export function useSectionPager({
             programmaticTargetIndexRef.current = nextIndex
 
             if (syncHash) {
-                navigate(`#${section.anchor}`)
+                // In-page навигация не должна терять текущий query-контекст фильтров.
+                navigate(
+                    {
+                        pathname: location.pathname,
+                        search: location.search,
+                        hash: `#${section.anchor}`
+                    },
+                    {
+                        preventScrollReset: true
+                    }
+                )
                 scrollToAnchor(section.anchor, {
                     behavior: 'smooth',
                     offsetTop,
@@ -262,7 +374,7 @@ export function useSectionPager({
                 })
             }
         },
-        [sections, syncHash, offsetTop, navigate]
+        [location.pathname, location.search, sections, syncHash, offsetTop, navigate]
     )
 
     const handlePrev = useCallback(() => {

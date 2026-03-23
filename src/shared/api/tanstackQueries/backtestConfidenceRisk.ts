@@ -5,6 +5,10 @@ import type { QueryClient, UseQueryResult } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
 import type { CurrentPredictionTrainingScope } from '../endpoints/reportEndpoints'
+import {
+    prefetchPublishedReportVariantCatalog,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from './reportVariants'
 
 const BACKTEST_CONFIDENCE_RISK_QUERY_KEY = ['backtest', 'confidence-risk'] as const
 const { path } = API_ROUTES.backtest.confidenceRiskGet
@@ -33,32 +37,14 @@ export function resolveBacktestConfidenceRiskScope(raw: string | null | undefine
 
     const normalized = raw.trim().toLowerCase()
 
-    if (
-        normalized === 'full' ||
-        normalized === 'full history' ||
-        normalized === 'full-history' ||
-        normalized === 'full_history'
-    ) {
+    if (normalized === 'full') {
         return 'full'
     }
-    if (normalized === 'train' || normalized === 'train only' || normalized === 'train-only') return 'train'
-    if (
-        normalized === 'oos' ||
-        normalized === 'out-of-sample' ||
-        normalized === 'out of sample' ||
-        normalized === 'out_of_sample' ||
-        normalized === 'oos only' ||
-        normalized === 'oos-only' ||
-        normalized === 'oos_only'
-    ) {
+    if (normalized === 'train') return 'train'
+    if (normalized === 'oos') {
         return 'oos'
     }
-    if (
-        normalized === 'recent' ||
-        normalized === 'recent tail' ||
-        normalized === 'recent-tail' ||
-        normalized === 'recent_tail'
-    ) {
+    if (normalized === 'recent') {
         return 'recent'
     }
 
@@ -120,8 +106,11 @@ export async function prefetchBacktestConfidenceRiskReport(
     queryClient: QueryClient,
     args?: BacktestConfidenceRiskQueryArgs
 ): Promise<void> {
-    await queryClient.prefetchQuery({
-        queryKey: buildBacktestConfidenceRiskQueryKey(args),
-        queryFn: () => fetchBacktestConfidenceRiskReport(args)
-    })
+    await Promise.all([
+        prefetchPublishedReportVariantCatalog(queryClient, PUBLISHED_REPORT_VARIANT_FAMILIES.backtestConfidenceRisk),
+        queryClient.prefetchQuery({
+            queryKey: buildBacktestConfidenceRiskQueryKey(args),
+            queryFn: () => fetchBacktestConfidenceRiskReport(args)
+        })
+    ])
 }

@@ -30,6 +30,36 @@ const renderTooltip = (term: string, description?: string) => {
     return <TermTooltip term={term} description={enrichTermTooltipDescription(description, { term })} type='span' />
 }
 
+function renderSegmentTitle(label: string) {
+    const normalized = label.trim().toLowerCase()
+    if (!normalized) return label
+
+    // Сегменты приходят как plain-text и должны подсвечивать доменные срезы (Train/OOS/Full/Recent).
+    if (normalized === 'oos') return renderTermTooltipRichText('[[oos-segment|OOS]]')
+    if (normalized === 'train') return renderTermTooltipRichText('[[train-segment|Train]]')
+    if (
+        normalized === 'full' ||
+        normalized === 'all history' ||
+        normalized === 'full history' ||
+        normalized === 'вся история' ||
+        normalized === 'полная история'
+    ) {
+        return renderTermTooltipRichText(`[[landing-all-history|${label}]]`)
+    }
+    if (
+        normalized === 'recent' ||
+        normalized === 'recent tail' ||
+        normalized.includes('recent') ||
+        normalized === 'хвост' ||
+        normalized.includes('хвост') ||
+        normalized.includes('свеж')
+    ) {
+        return renderTermTooltipRichText(`[[landing-recent-tail-history|${label}]]`)
+    }
+
+    return label
+}
+
 export function AggregationStatsPageInner({
     className,
     probs,
@@ -133,9 +163,6 @@ export function AggregationStatsPageInner({
                 {probs.DebugLastDays.length === 0 ?
                     <Text>{renderTermTooltipRichText(t('aggregation.inner.debug.empty'))}</Text>
                 :   <>
-                        <Text className={cls.tableHint}>
-                            {renderTermTooltipRichText(t('aggregation.inner.debug.tableHint'))}
-                        </Text>
                         <div className={cls.tableScroll}>
                             <table className={cls.table}>
                                 <thead>
@@ -248,11 +275,12 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
     const slRatio = `${formatCount(segment.RecordsWithSlScore)}/${formatCount(segment.RecordsCount)}`
+    const segmentTitle = segment.SegmentLabel || segment.SegmentName
 
     return (
         <div className={cls.segmentCard}>
             <div className={cls.segmentHeader}>
-                <Text className={cls.segmentTitle}>{segment.SegmentLabel || segment.SegmentName}</Text>
+                <Text className={cls.segmentTitle}>{renderSegmentTitle(segmentTitle)}</Text>
                 <Text className={cls.segmentMeta}>
                     {t('aggregation.inner.segment.rangePrefix')} {rangeText}
                 </Text>
@@ -284,8 +312,6 @@ function ProbSegmentCard({ segment }: { segment: AggregationProbsSegmentSnapshot
                     : {slRatio}
                 </span>
             </div>
-
-            <Text className={cls.segmentHint}>{renderTermTooltipRichText(t('aggregation.inner.segment.hint'))}</Text>
 
             <div className={cls.tableScroll}>
                 <table className={cls.table}>
@@ -336,11 +362,12 @@ function MetricsSegmentCard({ segment }: { segment: AggregationMetricsSegmentSna
     const { t } = useTranslation('reports')
     const rangeText = formatRange(segment.FromDateUtc, segment.ToDateUtc)
     const recordsText = formatCount(segment.RecordsCount)
+    const segmentTitle = segment.SegmentLabel || segment.SegmentName
 
     return (
         <div className={cls.segmentCard}>
             <div className={cls.segmentHeader}>
-                <Text className={cls.segmentTitle}>{segment.SegmentLabel || segment.SegmentName}</Text>
+                <Text className={cls.segmentTitle}>{renderSegmentTitle(segmentTitle)}</Text>
                 <Text className={cls.segmentMeta}>
                     {t('aggregation.inner.segment.rangePrefix')} {rangeText}
                 </Text>
@@ -368,32 +395,40 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
         <div className={cls.layerCard}>
             <Text className={cls.layerTitle}>{layer.LayerName}</Text>
 
-            <Text className={cls.metricsHint}>
-                {renderTermTooltipRichText(t('aggregation.inner.metrics.layerHint'))}
-            </Text>
-
             <div className={cls.metricsList}>
                 <span className={cls.metricsLabel}>
-                    {renderTooltip('Accuracy', t('aggregation.inner.tooltips.metrics.accuracy'))}
+                    {renderTooltip(
+                        t('aggregation.inner.metrics.labels.accuracy'),
+                        t('aggregation.inner.tooltips.metrics.accuracy')
+                    )}
                 </span>
                 <span>{accuracy}</span>
                 <span className={cls.metricsLabel}>
-                    {renderTooltip('Micro-F1', t('aggregation.inner.tooltips.metrics.microF1'))}
+                    {renderTooltip(
+                        t('aggregation.inner.metrics.labels.microF1'),
+                        t('aggregation.inner.tooltips.metrics.microF1')
+                    )}
                 </span>
                 <span>{microF1}</span>
                 <span className={cls.metricsLabel}>
-                    {renderTooltip('LogLoss', t('aggregation.inner.tooltips.metrics.logLoss'))}
+                    {renderTooltip(
+                        t('aggregation.inner.metrics.labels.logLoss'),
+                        t('aggregation.inner.tooltips.metrics.logLoss')
+                    )}
                 </span>
                 <span>{logLoss}</span>
                 <span className={cls.metricsLabel}>
-                    {renderTooltip('N / Correct', t('aggregation.inner.tooltips.metrics.nCorrect'))}
+                    {renderTooltip(
+                        t('aggregation.inner.metrics.labels.nCorrect'),
+                        t('aggregation.inner.tooltips.metrics.nCorrect')
+                    )}
                 </span>
                 <span>
                     {formatCount(layer.N)} / {formatCount(layer.Correct)}
                 </span>
                 <span className={cls.metricsLabel}>
                     {renderTooltip(
-                        'Valid / Invalid log-loss',
+                        t('aggregation.inner.metrics.labels.validInvalidLogLoss'),
                         t('aggregation.inner.tooltips.metrics.validInvalidLogLoss')
                     )}
                 </span>
@@ -402,9 +437,7 @@ function LayerMetricsCard({ layer }: { layer: LayerMetricsSnapshotDto }) {
                 </span>
             </div>
 
-            <Text className={cls.confusionHint}>
-                {renderTermTooltipRichText(t('aggregation.inner.metrics.confusionHint'))}
-            </Text>
+            <Text className={cls.matrixTitle}>{t('aggregation.inner.metrics.confusionTitle')}</Text>
 
             <ConfusionMatrixTable layer={layer} />
         </div>

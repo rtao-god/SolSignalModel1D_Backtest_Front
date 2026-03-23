@@ -6,8 +6,7 @@ import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocu
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
 import {
-    useCurrentPredictionBackfilledSplitStats,
-    useCurrentPredictionReportQuery
+    useCurrentPredictionLivePayloadQuery
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import {
     ReportViewControls,
@@ -19,7 +18,7 @@ import {
     buildTrainingScopeControlGroup,
     resolveCurrentPredictionTrainingScopeMeta
 } from '@/shared/ui'
-import type { CurrentPredictionSet, CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
+import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveTrainingLabel } from '@/shared/utils/reportTraining'
 import { localizeReportKeyValue } from '@/shared/utils/reportPresentationLocalization'
 import type {
@@ -32,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
+import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 import { CURRENT_PREDICTION_POLICY_COLUMN_KEYS } from '@/shared/utils/reportCanonicalKeys'
 import {
@@ -138,12 +138,12 @@ function sanitizeCurrentPredictionReport(report: ReportDocumentDto): ReportDocum
 
 export default function CurrentMLModelPredictionPage({ className }: CurrentMLModelPredictionProps) {
     const { t, i18n } = useTranslation('reports')
-    const reportSet: CurrentPredictionSet = 'live'
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
     const nowMs = useReportTimingNowMs()
 
-    const { data, isLoading, isError, error, refetch } = useCurrentPredictionReportQuery(reportSet, trainingScope)
-    const trainingSplitStatsState = useCurrentPredictionBackfilledSplitStats()
+    const { data: payload, isLoading, isError, error, refetch } = useCurrentPredictionLivePayloadQuery(trainingScope)
+    const data = payload?.report ?? null
+    const trainingScopeStats = payload?.trainingScopeStats ?? null
 
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
     const trainingLabel = resolveTrainingLabel(data)
@@ -153,7 +153,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
         [i18n]
     )
     const renderIntroText = useCallback((text: string) => renderTermTooltipRichText(text), [])
-    const predictionStatus = resolveCurrentPredictionStatusMeta(data)
+    const predictionStatus = resolveCurrentPredictionStatusMeta(data ?? undefined)
     const sanitizedReport = useMemo(() => (data ? sanitizeCurrentPredictionReport(data) : null), [data])
     const timingSnapshot = useMemo(() => (data ? resolveCurrentPredictionTimingSnapshot(data) : null), [data])
     const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
@@ -175,6 +175,17 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
         }),
         [currentScopeMeta.label, t]
     )
+    // Explain-блок live-страницы читает диапазоны всех history scope из лёгкого index API,
+    // чтобы Full и OOS всегда показывали реальные окна даже если открыт только один live-report.
+    const trainingScopeDescription = useMemo(
+        () =>
+            buildCurrentPredictionLiveTrainingScopeDescription({
+                splitStats: trainingScopeStats,
+                fullReport: trainingScope === 'full' ? data ?? null : null,
+                oosReport: trainingScope === 'oos' ? data ?? null : null
+            }),
+        [data, trainingScope, trainingScopeStats]
+    )
     const controlGroups = useMemo(
         () => [
             buildTrainingScopeControlGroup({
@@ -182,11 +193,11 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                 onChange: setTrainingScope,
                 label: t('currentPrediction.page.scopeLabel'),
                 ariaLabel: t('currentPrediction.scope.ariaLabel'),
-                infoTooltip: buildCurrentPredictionLiveTrainingScopeDescription(trainingSplitStatsState.data),
-                splitStats: trainingSplitStatsState.data
+                infoTooltip: trainingScopeDescription,
+                scopes: ['full', 'oos']
             })
         ],
-        [setTrainingScope, t, trainingScope, trainingSplitStatsState.data]
+        [setTrainingScope, t, trainingScopeDescription, trainingScope]
     )
     const timingStatus = useMemo(
         () =>
@@ -283,6 +294,8 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                 renderText={renderIntroText}
             />
 
+            <PredictionTrainingScopeDescriptionBlock variant='live' description={trainingScopeDescription} />
+
             <div className={cls.scopePanel}>
                 <ReportViewControls groups={controlGroups} className={cls.scopeControls} />
                 <Text type='p' className={cls.scopeHint}>
@@ -300,7 +313,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                 logContext={{
                     source: 'current-prediction-page',
-                    extra: { reportSet, trainingScope }
+                    extra: { reportSet: 'live', trainingScope }
                 }}>
                 {data && (
                     <>
@@ -338,7 +351,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
 
                         <div className={cls.metaPanel}>
                             <Text type='p' className={cls.metaLine}>
-                                {t('currentPrediction.page.meta.currentReport', { reportSet })}
+                                {t('currentPrediction.page.meta.currentReport', { reportSet: 'live' })}
                             </Text>
                             <Text type='p' className={cls.metaLine}>
                                 {t('currentPrediction.page.meta.selectedMode', { mode: currentScopeMeta.label })}

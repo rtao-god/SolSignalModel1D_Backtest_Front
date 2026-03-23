@@ -1,5 +1,9 @@
 import type { BacktestDiagnosticsReportQueryArgs } from '@/shared/api/tanstackQueries/backtestDiagnostics'
 import {
+    resolvePublishedReportVariantSelection,
+    type PublishedReportVariantCatalogDto
+} from '@/shared/api/tanstackQueries/reportVariants'
+import {
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaSlModeFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery,
@@ -32,10 +36,39 @@ export const DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION: BacktestDiagnosticsSearchSe
 }
 
 export function resolveBacktestDiagnosticsSearchSelection(
-    searchParams: URLSearchParams
+    searchParams: URLSearchParams,
+    catalog?: PublishedReportVariantCatalogDto
 ): BacktestDiagnosticsSearchSelection {
     if (!(searchParams instanceof URLSearchParams)) {
         throw new Error('[backtest-diagnostics] searchParams must be URLSearchParams.')
+    }
+
+    if (catalog) {
+        const resolution = resolvePublishedReportVariantSelection(catalog, {
+            bucket: searchParams.get('bucket'),
+            tpsl: searchParams.get('tpsl'),
+            slmode: searchParams.get('slmode'),
+            zonal: searchParams.get('zonal')
+        })
+
+        return {
+            bucket: resolvePolicyBranchMegaBucketFromQuery(
+                resolution.selection.bucket,
+                DEFAULT_DIAGNOSTICS_BUCKET_MODE
+            ),
+            tpSlMode: resolvePolicyBranchMegaTpSlModeFromQuery(
+                resolution.selection.tpsl,
+                DEFAULT_DIAGNOSTICS_TP_SL_MODE
+            ),
+            slMode: resolvePolicyBranchMegaSlModeFromQuery(
+                resolution.selection.slmode,
+                DEFAULT_DIAGNOSTICS_SL_MODE
+            ),
+            zonalMode: resolvePolicyBranchMegaZonalModeFromQuery(
+                resolution.selection.zonal,
+                DEFAULT_DIAGNOSTICS_ZONAL_MODE
+            )
+        }
     }
 
     return {
@@ -49,7 +82,25 @@ export function resolveBacktestDiagnosticsSearchSelection(
 export function buildBacktestDiagnosticsQueryArgsFromSearchParams(
     searchParams: URLSearchParams
 ): BacktestDiagnosticsReportQueryArgs {
-    return buildBacktestDiagnosticsQueryArgs(resolveBacktestDiagnosticsSearchSelection(searchParams))
+    if (!(searchParams instanceof URLSearchParams)) {
+        throw new Error('[backtest-diagnostics] searchParams must be URLSearchParams.')
+    }
+
+    const normalize = (raw: string | null): string | null => {
+        if (!raw) {
+            return null
+        }
+
+        const normalized = raw.trim()
+        return normalized.length > 0 ? normalized : null
+    }
+
+    return {
+        bucket: normalize(searchParams.get('bucket')),
+        tpSlMode: normalize(searchParams.get('tpsl')),
+        slMode: normalize(searchParams.get('slmode')),
+        zonalMode: normalize(searchParams.get('zonal'))
+    }
 }
 
 export function buildBacktestDiagnosticsQueryArgs(

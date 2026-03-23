@@ -11,16 +11,28 @@ export const API_ROUTES = {
     },
 
     currentPrediction: {
-        latestReport: {
+        liveReport: {
             path: '/current-prediction',
+            method: 'GET' as const
+        },
+        livePayload: {
+            path: '/current-prediction/payload',
             method: 'GET' as const
         },
         datesIndex: {
             path: '/current-prediction/dates',
             method: 'GET' as const
         },
+        historyCatalog: {
+            path: '/current-prediction/history/catalog',
+            method: 'GET' as const
+        },
         historyPage: {
             path: '/current-prediction/history/page',
+            method: 'GET' as const
+        },
+        historyItems: {
+            path: '/current-prediction/history/items',
             method: 'GET' as const
         },
         byDateReport: {
@@ -48,6 +60,13 @@ export const API_ROUTES = {
         }
     },
 
+    reportVariants: {
+        catalogGet: {
+            path: '/report-variants',
+            method: 'GET' as const
+        }
+    },
+
     backtest: {
         configGet: {
             path: '/backtest/config',
@@ -55,10 +74,6 @@ export const API_ROUTES = {
         },
         baselineSummaryGet: {
             path: '/backtest/summary',
-            method: 'GET' as const
-        },
-        baselineSummaryStatusGet: {
-            path: '/backtest/summary/status',
             method: 'GET' as const
         },
         baselineSnapshotGet: {
@@ -73,12 +88,16 @@ export const API_ROUTES = {
             path: '/backtest/policy-branch-mega',
             method: 'GET' as const
         },
+        policyBranchMegaPayloadGet: {
+            path: '/backtest/policy-branch-mega/payload',
+            method: 'GET' as const
+        },
         policyBranchMegaEvaluationGet: {
             path: '/backtest/policy-branch-mega/evaluation',
             method: 'GET' as const
         },
-        policyBranchMegaStatusGet: {
-            path: '/backtest/policy-branch-mega/status',
+        policyBranchMegaValidationGet: {
+            path: '/backtest/policy-branch-mega/validation',
             method: 'GET' as const
         },
         confidenceRiskGet: {
@@ -128,6 +147,26 @@ export const API_ROUTES = {
         aggregationMetrics: {
             path: '/backtest/aggregation/metrics',
             method: 'GET' as const
+        },
+        policySetupsCatalogGet: {
+            path: '/backtest/policy-setups',
+            method: 'GET' as const
+        },
+        policySetupStatusGet: {
+            path: '/backtest/policy-setups/status',
+            method: 'GET' as const
+        },
+        policySetupRebuildPost: {
+            path: '/backtest/policy-setups/rebuild',
+            method: 'POST' as const
+        },
+        policySetupLedgerGet: {
+            path: '/backtest/policy-setups',
+            method: 'GET' as const
+        },
+        policySetupCandlesGet: {
+            path: '/backtest/policy-setups',
+            method: 'GET' as const
         }
     },
 
@@ -136,16 +175,12 @@ export const API_ROUTES = {
             path: '/ml/pfi/per-model',
             method: 'GET' as const
         },
-        pfiPerModelStatus: {
-            path: '/ml/pfi/per-model/status',
+        pfiSlModel: {
+            path: '/ml/pfi/sl-model',
             method: 'GET' as const
         },
         modelStatsPerModel: {
             path: '/ml/stats/per-model',
-            method: 'GET' as const
-        },
-        modelStatsPerModelStatus: {
-            path: '/ml/stats/per-model/status',
             method: 'GET' as const
         }
     }

@@ -4,6 +4,10 @@ import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSliceReportQueryArgs } from './backtestDiagnostics'
 import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
+import {
+    prefetchPublishedReportVariantCatalog,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from './reportVariants'
 
 const BACKTEST_EXECUTION_PIPELINE_QUERY_KEY = ['backtest', 'execution-pipeline'] as const
 const { path } = API_ROUTES.backtest.executionPipelineGet
@@ -71,9 +75,12 @@ export async function prefetchBacktestExecutionPipelineReport(
     queryClient: QueryClient,
     args?: BacktestSliceReportQueryArgs
 ): Promise<void> {
-    await queryClient.prefetchQuery({
-        queryKey: buildBacktestExecutionPipelineQueryKey(args),
-        queryFn: () => fetchBacktestExecutionPipelineReport(args),
-        retry: false
-    })
+    await Promise.all([
+        prefetchPublishedReportVariantCatalog(queryClient, PUBLISHED_REPORT_VARIANT_FAMILIES.backtestExecutionPipeline),
+        queryClient.prefetchQuery({
+            queryKey: buildBacktestExecutionPipelineQueryKey(args),
+            queryFn: () => fetchBacktestExecutionPipelineReport(args),
+            retry: false
+        })
+    ])
 }

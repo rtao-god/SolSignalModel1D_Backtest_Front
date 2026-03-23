@@ -1,17 +1,13 @@
 import { useMemo } from 'react'
 import BacktestDiagnosticsPageLayout from '@/pages/diagnosticsPages/shared/BacktestDiagnosticsPageLayout'
 import {
-    BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
-    useBacktestDiagnosticsReportQuery
-} from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import {
     getDiagnosticsGroupSections,
     splitBacktestDiagnosticsSections
 } from '@/shared/utils/backtestDiagnosticsSections'
-import { buildBacktestDiagnosticsQueryArgsFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
 import { BACKTEST_DIAGNOSTICS_NO_BUCKET_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { BACKTEST_DIAGNOSTICS_QUERY_SCOPES } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPages/shared/useBacktestDiagnosticsPublishedPageQuery'
 
 /*
     BacktestDiagnosticsDecisionsPage — решения/attribution аналитика.
@@ -22,12 +18,8 @@ import { useSearchParams } from 'react-router-dom'
 */
 export default function BacktestDiagnosticsDecisionsPage() {
     const { t } = useTranslation('reports')
-    const [searchParams] = useSearchParams()
-    const { data, isPending, isError, error, refetch } = useBacktestDiagnosticsReportQuery(
-        buildBacktestDiagnosticsQueryArgsFromSearchParams(searchParams),
-        {
-            scope: BACKTEST_DIAGNOSTICS_QUERY_SCOPES.decisionsPage
-        }
+    const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        BACKTEST_DIAGNOSTICS_QUERY_SCOPES.decisionsPage
     )
 
     const tableSections = useMemo(
@@ -48,6 +40,7 @@ export default function BacktestDiagnosticsDecisionsPage() {
             report={data ?? null}
             sections={decisionSections}
             availableAxes={BACKTEST_DIAGNOSTICS_NO_BUCKET_CONTROL_AXES}
+            variantCatalog={variantCatalog}
             pageTitle={t('diagnosticsReport.pages.decisions.title')}
             pageSubtitle={t('diagnosticsReport.pages.decisions.subtitle')}
             emptyMessage={t('diagnosticsReport.pages.decisions.empty')}

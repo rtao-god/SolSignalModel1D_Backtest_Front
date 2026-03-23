@@ -3,6 +3,10 @@ import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
+import {
+    prefetchPublishedReportVariantCatalog,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from './reportVariants'
 
 const BACKTEST_DIAGNOSTICS_QUERY_KEY = ['backtest', 'diagnostics'] as const
 const { path } = API_ROUTES.backtest.diagnosticsGet
@@ -161,9 +165,12 @@ export async function prefetchBacktestDiagnosticsReport(
     options?: BacktestDiagnosticsQueryOptions
 ): Promise<void> {
     const queryOptions = buildBacktestDiagnosticsQueryOptions(args, options)
-    await queryClient.prefetchQuery({
-        queryKey: queryOptions.queryKey,
-        queryFn: queryOptions.queryFn,
-        retry: queryOptions.retry
-    })
+    await Promise.all([
+        prefetchPublishedReportVariantCatalog(queryClient, PUBLISHED_REPORT_VARIANT_FAMILIES.backtestDiagnostics),
+        queryClient.prefetchQuery({
+            queryKey: queryOptions.queryKey,
+            queryFn: queryOptions.queryFn,
+            retry: queryOptions.retry
+        })
+    ])
 }

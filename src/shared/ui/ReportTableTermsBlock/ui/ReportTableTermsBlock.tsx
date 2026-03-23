@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Btn, Text, TermTooltip } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
-import { resolveMatchingTermTooltipRuleIds } from '@/shared/ui/TermTooltip/ui/renderTermTooltipRichText'
 import { resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
 import { buildReportTermsFromSections } from '@/shared/utils/reportTerms'
 import { logError } from '@/shared/lib/logging/logError'
+import {
+    buildReportTableTermsCollapseStorageKey,
+    buildSelfTooltipExclusions
+} from '../model/reportTableTermsBlock'
 import cls from './ReportTableTermsBlock.module.scss'
 
 type ReportTableTermTextResolver = () => string
@@ -35,46 +38,8 @@ interface ReportTableTermsBlockProps {
     collapseStorageKey?: string
 }
 
-const TERMS_BLOCK_COLLAPSE_STORAGE_PREFIX = 'report-terms-block:collapsed:'
-
 function normalizeNonEmptyAliases(values: string[]): string[] {
     return Array.from(new Set(values.map(value => value.trim()).filter(value => value.length > 0)))
-}
-
-export function buildSelfTooltipExclusions(termKey: string, termTitle: string, selfAliases: string[] = []) {
-    const allAliases = normalizeNonEmptyAliases([termTitle, termKey, ...selfAliases])
-    const excludeRuleIds = Array.from(new Set(allAliases.flatMap(alias => resolveMatchingTermTooltipRuleIds(alias))))
-
-    return {
-        excludeTerms: allAliases,
-        excludeRuleIds,
-        excludeRuleTitles: allAliases
-    }
-}
-
-function normalizeStorageKeyPart(value: string | undefined): string {
-    return (value ?? '').trim().replace(/\s+/g, ' ')
-}
-
-export function buildReportTableTermsCollapseStorageKey(params: {
-    reportKind?: string
-    sectionTitle?: string
-    title?: string
-    termKeys: string[]
-}): string | null {
-    const normalizedTermKeys = normalizeNonEmptyAliases(params.termKeys)
-    const parts = [
-        normalizeStorageKeyPart(params.reportKind),
-        normalizeStorageKeyPart(params.sectionTitle),
-        normalizeStorageKeyPart(params.title),
-        normalizeStorageKeyPart(normalizedTermKeys.join('|'))
-    ].filter(value => value.length > 0)
-
-    if (parts.length === 0) {
-        return null
-    }
-
-    return `${TERMS_BLOCK_COLLAPSE_STORAGE_PREFIX}${parts.join('::')}`
 }
 
 function ensureNonEmptyValue(value: string | undefined, label: string): string {
@@ -235,6 +200,7 @@ export default function ReportTableTermsBlock({
         [collapseStorageKey, reportKind, resolvedTerms, sectionTitle, title]
     )
     const canCollapse = collapsible && resolvedTerms.length > 0
+    const gridClassName = resolvedTerms.length === 1 ? `${cls.grid} ${cls.gridSingleColumn}` : cls.grid
     const [isCollapsed, setIsCollapsed] = useState(() =>
         canCollapse && effectiveCollapseStorageKey ? (safeLoadCollapsedState(effectiveCollapseStorageKey) ?? false) : false
     )
@@ -278,7 +244,7 @@ export default function ReportTableTermsBlock({
                 <Text className={cls.subtitle}>{subtitle}</Text>
             </div>
 
-            {!isCollapsed && <div className={cls.grid}>
+            {!isCollapsed && <div className={gridClassName}>
                 {resolvedTerms.map(term => {
                     const itemClassName = displayMode === 'tooltipOnly' ? `${cls.item} ${cls.itemCompact}` : cls.item
                     const shouldRenderTitleTooltip = displayMode === 'tooltipOnly' && showTermTitleTooltip

@@ -480,6 +480,34 @@
     color: #dbe4f0;
 }
 
+.demoVerdictDivider {
+    height: 1px;
+    width: 100%;
+    margin: -2px 0 2px;
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.15), rgba(251, 146, 60, 0.7), rgba(251, 146, 60, 0.15));
+}
+
+.demoVerdictBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.demoVerdictTitle {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #f8fafc;
+}
+
+.demoVerdictSubTitle {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #fdba74;
+}
+
 .demoMetricGrid {
     display: flex;
     flex-wrap: wrap;

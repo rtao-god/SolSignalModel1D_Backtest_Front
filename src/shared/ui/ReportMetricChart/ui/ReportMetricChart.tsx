@@ -128,6 +128,14 @@ function resolveContainerHeight(height: number, maxHeight: number | undefined) {
     }
 }
 
+function resolveVerticalCanvasWidth(itemCount: number): number | null {
+    if (itemCount <= 12) {
+        return null
+    }
+
+    return Math.max(760, itemCount * 58)
+}
+
 function resolveScatterPointVisual(totalPoints: number, isSelected: boolean) {
     if (isSelected) {
         return { radius: 8, opacityScale: 1 }
@@ -202,6 +210,7 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     const formatValue = (value: number) =>
         valueFormatter ? valueFormatter(value) : resolveDefaultNumberFormatter(value, formatNumber)
     const chartFrame = resolveContainerHeight(height, maxHeight)
+    const chartCanvasWidth = orientation === 'vertical' ? resolveVerticalCanvasWidth(data.length) : null
 
     if (data.length === 0) {
         return renderEmptyState(emptyTitle, emptyDescription)
@@ -212,9 +221,14 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
             className={classNames(cls.chartRoot, {}, [className ?? ''])}
             style={{
                 height: chartFrame.containerHeight,
-                overflowY: chartFrame.isScrollable ? 'auto' : undefined
+                overflowY: chartFrame.isScrollable ? 'auto' : undefined,
+                overflowX: chartCanvasWidth ? 'auto' : undefined
             }}>
-            <div style={{ height: chartFrame.canvasHeight }}>
+            <div
+                style={{
+                    height: chartFrame.canvasHeight,
+                    minWidth: chartCanvasWidth ?? undefined
+                }}>
                 <ResponsiveContainer width='100%' height='100%'>
                     <BarChart
                         data={chartData}

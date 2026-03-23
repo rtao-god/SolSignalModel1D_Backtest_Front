@@ -232,9 +232,16 @@ function directionToProbability(
     direction: RealForecastJournalDirection,
     day: RealForecastJournalDayListItemDto
 ): number {
-    if (direction === 'UP') return day.totalUpProbability
-    if (direction === 'FLAT') return day.totalFlatProbability
-    return day.totalDownProbability
+    const probability =
+        direction === 'UP' ? day.totalUpProbability
+        : direction === 'FLAT' ? day.totalFlatProbability
+        : day.totalDownProbability
+
+    if (probability === null) {
+        throw new Error(`[real-forecast-journal] probability is missing for direction=${direction}.`)
+    }
+
+    return probability
 }
 
 function buildPolicyRowKey(row: RealForecastJournalPolicyRowDto): string {
@@ -345,7 +352,8 @@ function compareDirectionBucketNames(left: string, right: string): number {
 export function buildCombinedPolicyRows(
     record: RealForecastJournalDayRecordDto
 ): RealForecastJournalCombinedPolicyRow[] {
-    const sessionOpenRows = record.forecastSnapshot.policyRows
+    // Источник morning snapshot может отсутствовать у частично восстановленной записи, поэтому page-model держит graceful merge через доступные срезы.
+    const sessionOpenRows = record.forecastSnapshot?.policyRows ?? []
     const forecastEvaluations = buildPolicyEvaluationMap(record.forecastReport)
     const finalizedEvaluations = buildPolicyEvaluationMap(record.finalize?.report)
     const uniqueRows = new Map<string, RealForecastJournalPolicyRowDto>()
@@ -461,7 +469,7 @@ export function buildPolicyBranchOptions(rows: RealForecastJournalCombinedPolicy
 
 export function buildIndicatorGroupOptions(record: RealForecastJournalDayRecordDto): string[] {
     const groups = new Set<string>()
-    for (const item of record.sessionOpenIndicators.items) {
+    for (const item of record.sessionOpenIndicators?.items ?? []) {
         groups.add(item.group)
     }
     for (const item of record.finalize?.endOfDayIndicators.items ?? []) {
@@ -506,7 +514,10 @@ export function buildIndicatorComparisonRows(
     selectedGroup: RealForecastJournalIndicatorGroupFilter
 ): RealForecastJournalIndicatorComparisonRow[] {
     const closeIndicators = record.finalize?.endOfDayIndicators ?? null
-    const sessionOpenLookup = buildIndicatorLookup(record.sessionOpenIndicators)
+    const sessionOpenLookup =
+        record.sessionOpenIndicators ?
+            buildIndicatorLookup(record.sessionOpenIndicators)
+        :   new Map<string, RealForecastJournalIndicatorValueDto>()
     const closeLookup =
         closeIndicators ?
             buildIndicatorLookup(closeIndicators)
@@ -550,7 +561,20 @@ function collectFinalizedDays(dayList: RealForecastJournalDayListItemDto[]): Liv
             ): item is RealForecastJournalDayListItemDto & {
                 actualDirection: RealForecastJournalDirection
                 directionMatched: boolean
-            } => item.status === 'finalized' && item.actualDirection !== null && item.directionMatched !== null
+                predLabelDisplay: string
+                totalUpProbability: number
+                totalFlatProbability: number
+                totalDownProbability: number
+                dayConfidence: number
+            } =>
+                item.status === 'finalized' &&
+                item.actualDirection !== null &&
+                item.directionMatched !== null &&
+                item.predLabelDisplay !== null &&
+                item.totalUpProbability !== null &&
+                item.totalFlatProbability !== null &&
+                item.totalDownProbability !== null &&
+                item.dayConfidence !== null
         )
         .map(item => {
             const predictedDirection = resolveDirection(item.predLabelDisplay)

@@ -11,7 +11,7 @@ import Calendar from '../Calendar/Calendar'
 import type { DateRangeField } from '../../model/types'
 import resolveDateRangeSelection from '../../model/lib/resolveDateRangeSelection'
 
-const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2022, 3, 13))
+const DEFAULT_MIN_SELECTABLE_DATE = toStartOfDay(new Date(2021, 9, 11))
 
 /*
 	DatePicker — owner-компонент диапазона дат на фронте.

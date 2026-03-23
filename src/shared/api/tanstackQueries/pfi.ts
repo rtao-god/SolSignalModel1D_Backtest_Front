@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
-import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import type { PfiReportDocumentDto, PfiReportFamilyKeyDto, PfiReportKindDto } from '@/shared/types/pfi.types'
+import { mapPfiReportResponse } from '../utils/mapPfiReportResponse'
 import { API_ROUTES } from '../routes'
 import { API_BASE_URL } from '../../configs/config'
 import {
@@ -9,256 +9,141 @@ import {
     type SuspenseReportQueryConfig
 } from './utils/createSuspenseReportHook'
 
-const PFI_PER_MODEL_QUERY_KEY = ['ml', 'pfi', 'per-model'] as const
-const PFI_PER_MODEL_WITH_FRESHNESS_QUERY_KEY = ['ml', 'pfi', 'per-model', 'with-freshness'] as const
-const { path } = API_ROUTES.ml.pfiPerModel
-const { path: statusPath } = API_ROUTES.ml.pfiPerModelStatus
+export type PfiQueryFamily = 'daily' | 'sl'
 
-const PFI_PER_MODEL_REPORT_CONFIG: SuspenseReportQueryConfig<ReportDocumentDto> = {
-    queryKey: PFI_PER_MODEL_QUERY_KEY,
-    path,
-    mapResponse: mapReportResponse
-}
-
-const PFI_PER_MODEL_STALE_TIME_MS = 2 * 60 * 1000
-const PFI_PER_MODEL_GC_TIME_MS = 15 * 60 * 1000
-
-export const usePfiPerModelReportQuery = createSuspenseReportHook<ReportDocumentDto>(PFI_PER_MODEL_REPORT_CONFIG)
-
-interface UsePfiPerModelNavOptions {
+interface UsePfiReportNavOptions {
     enabled: boolean
 }
 
-interface UsePfiPerModelWithFreshnessOptions {
-    enabled?: boolean
+interface PfiQueryConfig {
+    queryKey: readonly string[]
+    path: string
+    expectedKind: PfiReportKindDto
+    expectedFamilyKey: PfiReportFamilyKeyDto
 }
 
-export type PfiPerModelFreshnessState = 'fresh' | 'missing' | 'unknown'
-export type PfiPerModelSourceMode = 'actual' | 'debug'
+const PFI_STALE_TIME_MS = 2 * 60 * 1000
+const PFI_GC_TIME_MS = 15 * 60 * 1000
 
-interface PfiPerModelStatusDto {
-    state: PfiPerModelFreshnessState
-    message: string
-    pfiReportId: string | null
-    pfiReportGeneratedAtUtc: string | null
-    canonicalSnapshotCount: number | null
-    tableSectionCount: number | null
+const PFI_QUERY_CONFIGS: Record<PfiQueryFamily, PfiQueryConfig> = {
+    daily: {
+        queryKey: ['ml', 'pfi', 'per-model'],
+        path: API_ROUTES.ml.pfiPerModel.path,
+        expectedKind: 'pfi_per_model',
+        expectedFamilyKey: 'daily_model'
+    },
+    sl: {
+        queryKey: ['ml', 'pfi', 'sl-model'],
+        path: API_ROUTES.ml.pfiSlModel.path,
+        expectedKind: 'pfi_sl_model',
+        expectedFamilyKey: 'sl_model'
+    }
 }
 
-export interface PfiPerModelFreshnessInfoDto {
-    sourceMode: PfiPerModelSourceMode
-    state: PfiPerModelFreshnessState
-    message: string | null
-    pfiReportId: string | null
-    pfiReportGeneratedAtUtc: string | null
-    canonicalSnapshotCount: number | null
-    tableSectionCount: number | null
-}
+function mapAndValidatePfiReportResponse(family: PfiQueryFamily, raw: unknown): PfiReportDocumentDto {
+    const report = mapPfiReportResponse(raw)
+    const expected = PFI_QUERY_CONFIGS[family]
 
-export interface PfiPerModelReportWithFreshnessDto {
-    report: ReportDocumentDto
-    freshness: PfiPerModelFreshnessInfoDto
-}
-
-function buildPfiPerModelWithFreshnessQueryKey() {
-    return PFI_PER_MODEL_WITH_FRESHNESS_QUERY_KEY
-}
-
-function toObject(raw: unknown): Record<string, unknown> {
-    if (!raw || typeof raw !== 'object') {
-        throw new Error('[pfi] status payload is not an object.')
+    if (report.kind !== expected.expectedKind) {
+        throw new Error(
+            `[ui:pfi] report kind mismatch for family=${family}. expected=${expected.expectedKind}, actual=${report.kind}.`
+        )
     }
 
-    return raw as Record<string, unknown>
-}
-
-function toState(raw: unknown): PfiPerModelFreshnessState {
-    if (raw === 'fresh' || raw === 'missing' || raw === 'unknown') {
-        return raw
+    if (report.familyKey !== expected.expectedFamilyKey) {
+        throw new Error(
+            `[ui:pfi] report family mismatch for family=${family}. expected=${expected.expectedFamilyKey}, actual=${report.familyKey}.`
+        )
     }
 
-    throw new Error(`[pfi] invalid status.state: ${String(raw)}`)
+    return report
 }
 
-function toOptionalString(raw: unknown): string | null {
-    if (typeof raw !== 'string') return null
-    const trimmed = raw.trim()
-    return trimmed.length > 0 ? trimmed : null
-}
-
-function toOptionalInteger(raw: unknown, fieldName: string): number | null {
-    if (raw == null) return null
-    if (typeof raw !== 'number' || Number.isNaN(raw) || !Number.isFinite(raw) || !Number.isInteger(raw) || raw < 0) {
-        throw new Error(`[pfi] status field '${fieldName}' must be a non-negative integer.`)
-    }
-
-    return raw
-}
-
-function mapPfiPerModelStatus(raw: unknown): PfiPerModelStatusDto {
-    const payload = toObject(raw)
-    const state = toState(payload.state)
-    const message =
-        typeof payload.message === 'string' && payload.message.trim().length > 0 ?
-            payload.message.trim()
-        :   `pfi_per_model status: ${state}`
+function getSuspenseReportConfig(family: PfiQueryFamily): SuspenseReportQueryConfig<PfiReportDocumentDto> {
+    const config = PFI_QUERY_CONFIGS[family]
 
     return {
-        state,
-        message,
-        pfiReportId: toOptionalString(payload.pfiReportId),
-        pfiReportGeneratedAtUtc: toOptionalString(payload.pfiReportGeneratedAtUtc),
-        canonicalSnapshotCount: toOptionalInteger(payload.canonicalSnapshotCount, 'canonicalSnapshotCount'),
-        tableSectionCount: toOptionalInteger(payload.tableSectionCount, 'tableSectionCount')
+        queryKey: config.queryKey,
+        path: config.path,
+        mapResponse: raw => mapAndValidatePfiReportResponse(family, raw)
     }
 }
 
-function toFreshnessInfo(status: PfiPerModelStatusDto | null): PfiPerModelFreshnessInfoDto {
-    if (!status) {
-        return {
-            sourceMode: 'debug',
-            state: 'unknown',
-            message: null,
-            pfiReportId: null,
-            pfiReportGeneratedAtUtc: null,
-            canonicalSnapshotCount: null,
-            tableSectionCount: null
-        }
-    }
-
-    return {
-        sourceMode: status.state === 'fresh' ? 'actual' : 'debug',
-        state: status.state,
-        message: status.message,
-        pfiReportId: status.pfiReportId,
-        pfiReportGeneratedAtUtc: status.pfiReportGeneratedAtUtc,
-        canonicalSnapshotCount: status.canonicalSnapshotCount,
-        tableSectionCount: status.tableSectionCount
-    }
-}
-
-async function fetchPfiPerModelStatusOrNull(): Promise<PfiPerModelStatusDto | null> {
-    const resp = await fetch(`${API_BASE_URL}${statusPath}`, { cache: 'no-store' })
-    if (!resp.ok) {
-        return null
-    }
-
-    const raw = await resp.json()
-    return mapPfiPerModelStatus(raw)
-}
-
-async function fetchPfiPerModelReport(): Promise<ReportDocumentDto> {
-    const resp = await fetch(`${API_BASE_URL}${path}`, { cache: 'no-store' })
+async function fetchPfiReport(family: PfiQueryFamily): Promise<PfiReportDocumentDto> {
+    const config = PFI_QUERY_CONFIGS[family]
+    const resp = await fetch(`${API_BASE_URL}${config.path}`)
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load PFI report: ${resp.status} ${text}`)
+        throw new Error(`Failed to load PFI report (${family}): ${resp.status} ${text}`)
     }
 
-    const raw = await resp.json()
-    return mapReportResponse(raw)
+    return mapAndValidatePfiReportResponse(family, await resp.json())
 }
 
-async function fetchPfiPerModelReportWithFreshness(): Promise<PfiPerModelReportWithFreshnessDto> {
-    let status: PfiPerModelStatusDto | null = null
+export const usePfiPerModelReportQuery = createSuspenseReportHook<PfiReportDocumentDto>(getSuspenseReportConfig('daily'))
+export const usePfiSlModelReportQuery = createSuspenseReportHook<PfiReportDocumentDto>(getSuspenseReportConfig('sl'))
 
-    try {
-        status = await fetchPfiPerModelStatusOrNull()
-    } catch {
-        status = null
-    }
-
-    if (status?.state === 'missing') {
-        throw new Error('[pfi] Latest pfi_per_model report is missing. Regenerate PFI reports first.')
-    }
-
-    const report = await fetchPfiPerModelReport()
-    const freshness = toFreshnessInfo(status)
-
-    if (status?.state === 'fresh' && status.pfiReportId) {
-        const expectedId = status.pfiReportId.trim()
-        const loadedId = report.id.trim()
-
-        if (loadedId.length === 0) {
-            throw new Error('[pfi] Loaded report id is empty.')
-        }
-
-        if (loadedId !== expectedId) {
-            throw new Error(`[pfi] Loaded report id (${loadedId}) does not match latest verified id (${expectedId}).`)
-        }
-    }
-
-    return {
-        report,
-        freshness
-    }
-}
-
-async function loadPfiPerModelReportWithFreshnessAndCache(
-    queryClient: QueryClient
-): Promise<PfiPerModelReportWithFreshnessDto> {
-    const payload = await fetchPfiPerModelReportWithFreshness()
-    queryClient.setQueryData(PFI_PER_MODEL_QUERY_KEY, payload.report)
-    queryClient.setQueryData(buildPfiPerModelWithFreshnessQueryKey(), payload)
-    return payload
-}
-
-export function usePfiPerModelReportWithFreshnessQuery(
-    options?: UsePfiPerModelWithFreshnessOptions
-): UseQueryResult<PfiPerModelReportWithFreshnessDto, Error> {
-    const queryClient = useQueryClient()
+export function usePfiReportReadQuery(family: PfiQueryFamily): UseQueryResult<PfiReportDocumentDto, Error> {
+    const config = PFI_QUERY_CONFIGS[family]
 
     return useQuery({
-        queryKey: buildPfiPerModelWithFreshnessQueryKey(),
-        queryFn: () => loadPfiPerModelReportWithFreshnessAndCache(queryClient),
-        enabled: options?.enabled ?? true,
+        queryKey: config.queryKey,
+        queryFn: () => fetchPfiReport(family),
         retry: false,
-        staleTime: PFI_PER_MODEL_STALE_TIME_MS,
-        gcTime: PFI_PER_MODEL_GC_TIME_MS,
+        staleTime: PFI_STALE_TIME_MS,
+        gcTime: PFI_GC_TIME_MS,
+        refetchOnWindowFocus: false
+    })
+}
+
+export function usePfiPerModelReportReadQuery(): UseQueryResult<PfiReportDocumentDto, Error> {
+    return usePfiReportReadQuery('daily')
+}
+
+export function usePfiSlModelReportReadQuery(): UseQueryResult<PfiReportDocumentDto, Error> {
+    return usePfiReportReadQuery('sl')
+}
+
+export function usePfiReportNavQuery(
+    family: PfiQueryFamily,
+    options: UsePfiReportNavOptions
+): UseQueryResult<PfiReportDocumentDto, Error> {
+    const queryClient = useQueryClient()
+    const config = PFI_QUERY_CONFIGS[family]
+
+    return useQuery({
+        queryKey: config.queryKey,
+        queryFn: () => fetchPfiReport(family),
+        initialData: () => queryClient.getQueryData<PfiReportDocumentDto>(config.queryKey),
+        enabled: options.enabled,
+        retry: false,
+        staleTime: PFI_STALE_TIME_MS,
+        gcTime: PFI_GC_TIME_MS,
         refetchOnWindowFocus: false
     })
 }
 
 export function usePfiPerModelReportNavQuery(
-    options: UsePfiPerModelNavOptions
-): UseQueryResult<ReportDocumentDto, Error> {
-    const queryClient = useQueryClient()
+    options: UsePfiReportNavOptions
+): UseQueryResult<PfiReportDocumentDto, Error> {
+    return usePfiReportNavQuery('daily', options)
+}
 
-    return useQuery({
-        queryKey: PFI_PER_MODEL_QUERY_KEY,
-        queryFn: async () => {
-            const cachedPayload = queryClient.getQueryData<PfiPerModelReportWithFreshnessDto>(
-                buildPfiPerModelWithFreshnessQueryKey()
-            )
-            if (cachedPayload?.report) {
-                return cachedPayload.report
-            }
+export function usePfiSlModelReportNavQuery(
+    options: UsePfiReportNavOptions
+): UseQueryResult<PfiReportDocumentDto, Error> {
+    return usePfiReportNavQuery('sl', options)
+}
 
-            return fetchPfiPerModelReport()
-        },
-        initialData: () => {
-            const cachedPayload = queryClient.getQueryData<PfiPerModelReportWithFreshnessDto>(
-                buildPfiPerModelWithFreshnessQueryKey()
-            )
-            return cachedPayload?.report
-        },
-        enabled: options.enabled,
-        retry: false,
-        staleTime: PFI_PER_MODEL_STALE_TIME_MS,
-        gcTime: PFI_PER_MODEL_GC_TIME_MS,
-        refetchOnWindowFocus: false
-    })
+export async function prefetchPfiReport(queryClient: QueryClient, family: PfiQueryFamily): Promise<void> {
+    await prefetchSuspenseReport(queryClient, getSuspenseReportConfig(family))
 }
 
 export async function prefetchPfiPerModelReport(queryClient: QueryClient): Promise<void> {
-    await prefetchSuspenseReport(queryClient, PFI_PER_MODEL_REPORT_CONFIG)
+    await prefetchPfiReport(queryClient, 'daily')
 }
 
-export async function prefetchPfiPerModelReportWithFreshness(queryClient: QueryClient): Promise<void> {
-    await queryClient.prefetchQuery({
-        queryKey: buildPfiPerModelWithFreshnessQueryKey(),
-        queryFn: () => loadPfiPerModelReportWithFreshnessAndCache(queryClient),
-        staleTime: PFI_PER_MODEL_STALE_TIME_MS,
-        gcTime: PFI_PER_MODEL_GC_TIME_MS
-    })
+export async function prefetchPfiSlModelReport(queryClient: QueryClient): Promise<void> {
+    await prefetchPfiReport(queryClient, 'sl')
 }

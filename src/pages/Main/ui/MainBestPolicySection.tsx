@@ -1,30 +1,27 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQueries } from '@tanstack/react-query'
 import { TermTooltip, Text } from '@/shared/ui'
 import { BulletList } from '@/shared/ui/BulletList'
-import { usePolicyBranchMegaReportNavQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
-import type { TableSectionDto } from '@/shared/types/report.types'
+import {
+    fetchPolicyBranchMegaReport,
+    usePolicyBranchMegaReportQuery
+} from '@/shared/api/tanstackQueries/policyBranchMega'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import {
     getPolicyBranchMegaTerm,
-    orderPolicyBranchMegaSections,
     resolvePolicyBranchMegaTermLocale,
     type PolicyBranchMegaTermLocale
 } from '@/shared/utils/policyBranchMegaTerms'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
+import {
+    buildMainDemoPolicyBranchMegaSections,
+    resolveMainDemoBestPolicyRows,
+    type MainBestPolicyRowBundle
+} from './mainBestPolicySectionModel'
 import cls from './Main.module.scss'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
-
-interface BestPolicyRowBundle {
-    policy: string
-    branch: string
-    totalPnlPct: number
-    sectionRows: Array<{
-        section: TableSectionDto
-        row: string[]
-    }>
-}
 
 interface DemoMetricDefinition {
     labelKey: string
@@ -39,6 +36,8 @@ interface DemoMetaItem {
 
 interface DemoNarrativeSummary {
     items: string[]
+    verdictProsItems: string[]
+    verdictConsItems: string[]
 }
 
 type MainDemoHeadingKey = 'main.demo.headings.spot' | 'main.demo.headings.generic'
@@ -128,30 +127,6 @@ function parseCompositeAverageValue(rawValue: string, metricTitle: string): numb
     return parsed
 }
 
-function buildTableSections(sections: unknown[]): TableSectionDto[] {
-    return (sections ?? []).filter(
-        (section): section is TableSectionDto =>
-            Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
-    )
-}
-
-function columnIndex(columns: string[] | undefined, title: string, tag: string): number {
-    if (!columns || columns.length === 0) {
-        throw new Error(`[main.demo] ${tag} columns are empty.`)
-    }
-
-    const idx = columns.indexOf(title)
-    if (idx < 0) {
-        throw new Error(`[main.demo] ${tag} column not found: ${title}.`)
-    }
-
-    return idx
-}
-
-function buildPolicyBranchKey(policy: string, branch: string): string {
-    return `${policy}::${branch}`
-}
-
 function resolveMainDemoHeadingKey(policyName: string): MainDemoHeadingKey {
     return policyName.trim().toLowerCase().startsWith('spot_') ?
             'main.demo.headings.spot'
@@ -164,104 +139,7 @@ function resolveMainDemoPolicySummaryKey(policyName: string): MainDemoPolicySumm
         :   'main.demo.summary.policyTypeGeneric'
 }
 
-function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string): string[] {
-    const columns = section.columns ?? []
-    const rows = section.rows ?? []
-    const policyIdx = columnIndex(columns, 'Policy', tag)
-    const branchIdx = columnIndex(columns, 'Branch', tag)
-    const rowsByKey = new Map<string, string[]>()
-
-    for (const row of rows) {
-        if (!row || row.length <= Math.max(policyIdx, branchIdx)) {
-            throw new Error(`[main.demo] ${tag} Policy entry is malformed.`)
-        }
-
-        const policy = row[policyIdx] ?? ''
-        const branch = row[branchIdx] ?? ''
-        if (!policy || !branch) {
-            throw new Error(`[main.demo] ${tag} Policy entry is missing Policy or Branch.`)
-        }
-
-        const rowKey = buildPolicyBranchKey(policy, branch)
-        if (rowsByKey.has(rowKey)) {
-            throw new Error(`[main.demo] ${tag} has duplicate Policy entry for ${rowKey}.`)
-        }
-
-        rowsByKey.set(rowKey, row)
-    }
-
-    const resolved = rowsByKey.get(key)
-    if (!resolved) {
-        throw new Error(`[main.demo] ${tag} Policy entry was not found for ${key}.`)
-    }
-
-    return resolved
-}
-
-function resolveBestPolicyRows(sections: TableSectionDto[]): BestPolicyRowBundle {
-    if (!sections || sections.length === 0) {
-        throw new Error('[main.demo] policy branch mega sections are empty.')
-    }
-
-    const anchorSection = sections.find(section => (section.columns ?? []).includes('TotalPnl%'))
-    if (!anchorSection) {
-        throw new Error('[main.demo] Policy Branch Mega anchor section with TotalPnl% is missing.')
-    }
-
-    const anchorColumns = anchorSection.columns ?? []
-    const anchorRows = anchorSection.rows ?? []
-    if (anchorRows.length === 0) {
-        throw new Error('[main.demo] Policy Branch Mega anchor section has no rows.')
-    }
-
-    const policyIdx = columnIndex(anchorColumns, 'Policy', 'anchor')
-    const branchIdx = columnIndex(anchorColumns, 'Branch', 'anchor')
-    const totalPnlIdx = columnIndex(anchorColumns, 'TotalPnl%', 'anchor')
-
-    let bestRow: string[] | null = null
-    let bestTotal = -Infinity
-
-    for (const row of anchorRows) {
-        if (!row || row.length <= totalPnlIdx) {
-            throw new Error('[main.demo] Policy Branch Mega anchor Policy entry is malformed.')
-        }
-
-        const totalRaw = row[totalPnlIdx]
-        const totalParsed = typeof totalRaw === 'string' ? tryParseNumberFromString(totalRaw) : null
-        if (totalParsed === null) {
-            throw new Error(`[main.demo] TotalPnl% is not a number: ${totalRaw}.`)
-        }
-
-        if (bestRow === null || totalParsed > bestTotal) {
-            bestRow = row
-            bestTotal = totalParsed
-        }
-    }
-
-    if (!bestRow) {
-        throw new Error('[main.demo] Failed to resolve best Policy.')
-    }
-
-    const policyName = bestRow[policyIdx] ?? ''
-    const branchName = bestRow[branchIdx] ?? ''
-    if (!policyName || !branchName) {
-        throw new Error('[main.demo] Best Policy is missing Policy or Branch.')
-    }
-
-    const key = buildPolicyBranchKey(policyName, branchName)
-
-    return {
-        policy: policyName,
-        branch: branchName,
-        totalPnlPct: bestTotal,
-        sectionRows: sections.map((section, index) => ({
-            section,
-            row: section === anchorSection ? bestRow : resolveRowByPolicy(section, key, `section-${index + 1}`)
-        }))
-    }
-}
-
-function resolveMetricValue(bundle: BestPolicyRowBundle, title: string): string {
+function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): string {
     const candidates = bundle.sectionRows.map(item => ({
         columns: item.section.columns ?? [],
         row: item.row
@@ -316,30 +194,81 @@ function DemoErrorCard({ title, description, details }: { title: string; descrip
 export default function MainBestPolicySection() {
     const { t, i18n } = useTranslation('reports')
     const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
-    const { data, isError, error, isLoading } = usePolicyBranchMegaReportNavQuery(
-        { enabled: true },
-        MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY
+    const primaryQueryArgs = useMemo(
+        () => ({
+            ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
+            part: 1
+        }),
+        []
     )
+    const {
+        data: primaryPayload,
+        isError: isPrimaryError,
+        error: primaryError,
+        isLoading: isPrimaryLoading
+    } = usePolicyBranchMegaReportQuery(primaryQueryArgs, { enabled: true })
+    const remainingPartQueries = useQueries({
+        queries:
+            primaryPayload?.capabilities.availableParts
+                .filter(part => part !== 1)
+                .map(part => ({
+                    queryKey: ['main', 'demo', 'policy-branch-mega', part] as const,
+                    queryFn: () =>
+                        fetchPolicyBranchMegaReport({
+                            ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
+                            part
+                        }),
+                    staleTime: 2 * 60 * 1000,
+                    gcTime: 15 * 60 * 1000
+                })) ?? []
+    })
+
+    const reports = useMemo(() => {
+        if (!primaryPayload) {
+            return []
+        }
+
+        const resolvedReports = [primaryPayload.report]
+        for (const query of remainingPartQueries) {
+            if (!query.data) {
+                return []
+            }
+
+            resolvedReports.push(query.data)
+        }
+
+        return resolvedReports
+    }, [primaryPayload, remainingPartQueries])
 
     const bestPolicyState = useMemo(() => {
-        if (!data) {
-            return { best: null as BestPolicyRowBundle | null, error: null as Error | null }
+        if (reports.length === 0) {
+            return { best: null as MainBestPolicyRowBundle | null, error: null as Error | null }
         }
 
         try {
-            const sections = orderPolicyBranchMegaSections(buildTableSections(data.sections ?? []))
+            // Demo-карточка читает все опубликованные mega-part секции для выбранной комбинации,
+            // потому что метаданные лучшей политики распределены по нескольким частям.
+            const sections = buildMainDemoPolicyBranchMegaSections(
+                reports.flatMap(report => report.sections ?? [])
+            )
 
             return {
-                best: resolveBestPolicyRows(sections),
+                best: resolveMainDemoBestPolicyRows(sections),
                 error: null as Error | null
             }
         } catch (err) {
             return {
-                best: null as BestPolicyRowBundle | null,
+                best: null as MainBestPolicyRowBundle | null,
                 error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
             }
         }
-    }, [data])
+    }, [reports])
+
+    const isError = isPrimaryError || remainingPartQueries.some(query => query.isError)
+    const error = primaryError ?? remainingPartQueries.find(query => query.error)?.error ?? null
+    const isLoading =
+        isPrimaryLoading ||
+        remainingPartQueries.some(query => query.isLoading || query.isFetching)
 
     const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
@@ -446,6 +375,7 @@ export default function MainBestPolicySection() {
             const noTradePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'NoTrade%'), 'NoTrade%')
             const winRatePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'WinRate%'), 'WinRate%')
             const maxDdPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'MaxDD%'), 'MaxDD%')
+            const capitalAfterDrawdownUsd = startCapitalUsd * (1 - maxDdPct / 100)
             const avgStakePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake%'), 'AvgStake%')
             const avgStakeUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake$'), 'AvgStake$')
             const dailyTpAvg = parseCompositeAverageValue(
@@ -495,6 +425,7 @@ export default function MainBestPolicySection() {
             return {
                 data: {
                     items: [
+                        t('main.demo.summary.executionCadence'),
                         t('main.demo.summary.performance', {
                             periodStart,
                             periodEnd,
@@ -541,17 +472,22 @@ export default function MainBestPolicySection() {
                             winRatePct: formatLocalizedPercent(winRatePct, i18n.language, 1)
                         }),
                         t(drawdownSentenceKey, {
-                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
+                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2),
+                            capitalAfterDrawdownUsd: formatLocalizedCompactUsd(capitalAfterDrawdownUsd, i18n.language)
                         }),
                         t(liquidationSentenceKey, {
                             maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
-                        }),
+                        })
+                    ],
+                    verdictProsItems: [
                         t('main.demo.summary.verdictStrength', {
                             totalPnlPct: formatLocalizedPercent(totalPnlPct, i18n.language, 2)
                         }),
                         t('main.demo.summary.verdictRisk', {
                             maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
-                        }),
+                        })
+                    ],
+                    verdictConsItems: [
                         t('main.demo.summary.verdictActivity', {
                             noTradePct: formatLocalizedPercent(noTradePct, i18n.language, 1),
                             tradesPerDay: formatLocalizedNumber(tradesPerDay, i18n.language, {
@@ -677,15 +613,43 @@ export default function MainBestPolicySection() {
                     details={demoSummaryState.error.message}
                 />
             : demoSummaryState.data ?
-                <BulletList
-                    className={cls.demoSummary}
-                    markerTone='primary'
-                    contentClassName={cls.demoSummaryText}
-                    items={demoSummaryState.data.items.map((item, index) => ({
-                        key: `main-demo-summary-${index}`,
-                        content: renderTermTooltipRichText(item)
-                    }))}
-                />
+                <>
+                    <BulletList
+                        className={cls.demoSummary}
+                        markerTone='primary'
+                        contentClassName={cls.demoSummaryText}
+                        items={demoSummaryState.data.items.map((item, index) => ({
+                            key: `main-demo-summary-${index}`,
+                            content: renderTermTooltipRichText(item)
+                        }))}
+                    />
+                    <div className={cls.demoVerdictDivider} />
+                    <div className={cls.demoVerdictBlock}>
+                        <Text type='h4' className={cls.demoVerdictTitle}>
+                            {t('main.demo.summary.verdictTitle')}
+                        </Text>
+                        <Text className={cls.demoVerdictSubTitle}>{t('main.demo.summary.verdictProsTitle')}</Text>
+                        <BulletList
+                            className={cls.demoSummary}
+                            markerTone='primary'
+                            contentClassName={cls.demoSummaryText}
+                            items={demoSummaryState.data.verdictProsItems.map((item, index) => ({
+                                key: `main-demo-verdict-pros-${index}`,
+                                content: renderTermTooltipRichText(item)
+                            }))}
+                        />
+                        <Text className={cls.demoVerdictSubTitle}>{t('main.demo.summary.verdictConsTitle')}</Text>
+                        <BulletList
+                            className={cls.demoSummary}
+                            markerTone='primary'
+                            contentClassName={cls.demoSummaryText}
+                            items={demoSummaryState.data.verdictConsItems.map((item, index) => ({
+                                key: `main-demo-verdict-cons-${index}`,
+                                content: renderTermTooltipRichText(item)
+                            }))}
+                        />
+                    </div>
+                </>
             :   null}
 
             {demoMetricsState.error ?

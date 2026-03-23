@@ -19,11 +19,14 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]: '/analysis/ratings',
     [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: '/analysis/day-stats',
     [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: '/analysis/policy-branch-mega',
+    [AppRoute.BACKTEST_POLICY_SETUPS]: '/analysis/policy-setups',
+    [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: '/analysis/policy-setups/:setupId',
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: '/analysis/confidence-risk',
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: '/analysis/real-forecast-journal',
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: '/analysis/execution-pipeline',
 
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
+    [AppRoute.PFI_SL_MODEL]: '/features/pfi-sl',
 
     [AppRoute.MODELS_STATS]: '/models/stats',
     [AppRoute.AGGREGATION_STATS]: '/models/aggregation',

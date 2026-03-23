@@ -73,7 +73,7 @@ export default function ReportActualStatusCard({
 
     const resolvedTitle =
         statusTitle ??
-        (statusMode === 'actual' ? 'ACTUAL: latest verified (for current API source)' : 'DEBUG: freshness not verified')
+        (statusMode === 'actual' ? 'PUBLISHED: latest available report' : 'READ-ONLY: saved report')
 
     const validatedStatusLines = (statusLines ?? []).map(line => ({
         label: ensureNonEmpty(line.label, 'statusLine.label'),

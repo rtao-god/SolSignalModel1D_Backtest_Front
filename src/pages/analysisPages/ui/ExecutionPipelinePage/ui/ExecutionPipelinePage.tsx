@@ -16,6 +16,11 @@ import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import type { KeyValueSectionDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
 import { useBacktestExecutionPipelineReportQuery } from '@/shared/api/tanstackQueries/backtestExecutionPipeline'
 import {
+    buildPublishedReportVariantCompatibleOptions,
+    usePublishedReportVariantCatalogQuery,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from '@/shared/api/tanstackQueries/reportVariants'
+import {
     buildBacktestDiagnosticsQueryArgs,
     DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION,
     resolveBacktestDiagnosticsSearchSelection
@@ -191,11 +196,21 @@ function buildExecutionPipelineKeyTerms(reportKind: string, sectionTitle: string
 export default function ExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(
+        PUBLISHED_REPORT_VARIANT_FAMILIES.backtestExecutionPipeline
+    )
 
     const sliceSelectionState = useMemo(() => {
+        if (!variantCatalogQuery.data) {
+            return {
+                value: null,
+                error: null as Error | null
+            }
+        }
+
         try {
             return {
-                value: resolveBacktestDiagnosticsSearchSelection(searchParams),
+                value: resolveBacktestDiagnosticsSearchSelection(searchParams, variantCatalogQuery.data),
                 error: null as Error | null
             }
         } catch (err) {
@@ -205,15 +220,52 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                 error: safeError
             }
         }
-    }, [searchParams])
+    }, [searchParams, variantCatalogQuery.data])
     const effectiveSliceSelection = sliceSelectionState.value ?? DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION
     const sliceQueryArgs = useMemo(
-        () => buildBacktestDiagnosticsQueryArgs(effectiveSliceSelection),
-        [effectiveSliceSelection]
+        () => (sliceSelectionState.value ? buildBacktestDiagnosticsQueryArgs(sliceSelectionState.value) : undefined),
+        [sliceSelectionState.value]
+    )
+    const pipelineVariantSelection = useMemo(
+        () =>
+            sliceSelectionState.value ?
+                {
+                    bucket: sliceSelectionState.value.bucket,
+                    tpsl: sliceSelectionState.value.tpSlMode,
+                    slmode: sliceSelectionState.value.slMode,
+                    zonal: sliceSelectionState.value.zonalMode
+                }
+            :   null,
+        [sliceSelectionState.value]
     )
     const controlGroups = useMemo(
-        () => [
-            buildMegaTpSlControlGroup({
+        () => {
+            if (!variantCatalogQuery.data || !pipelineVariantSelection) {
+                return []
+            }
+
+            const compatibleBuckets = buildPublishedReportVariantCompatibleOptions(
+                variantCatalogQuery.data,
+                pipelineVariantSelection,
+                'bucket'
+            ).map(option => option.value)
+            const compatibleTpSlModes = buildPublishedReportVariantCompatibleOptions(
+                variantCatalogQuery.data,
+                pipelineVariantSelection,
+                'tpsl'
+            ).map(option => option.value)
+            const compatibleSlModes = buildPublishedReportVariantCompatibleOptions(
+                variantCatalogQuery.data,
+                pipelineVariantSelection,
+                'slmode'
+            ).map(option => option.value)
+            const compatibleZonalModes = buildPublishedReportVariantCompatibleOptions(
+                variantCatalogQuery.data,
+                pipelineVariantSelection,
+                'zonal'
+            ).map(option => option.value)
+
+            const tpSlGroup = buildMegaTpSlControlGroup({
                 value: effectiveSliceSelection.tpSlMode,
                 onChange: next => {
                     if (next === effectiveSliceSelection.tpSlMode) return
@@ -221,8 +273,10 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     nextParams.set('tpsl', next)
                     setSearchParams(nextParams, { replace: true })
                 }
-            }),
-            buildMegaSlModeControlGroup({
+            })
+            tpSlGroup.options = tpSlGroup.options.filter(option => compatibleTpSlModes.includes(option.value))
+
+            const slModeGroup = buildMegaSlModeControlGroup({
                 value: effectiveSliceSelection.slMode,
                 onChange: next => {
                     if (next === effectiveSliceSelection.slMode) return
@@ -230,8 +284,10 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     nextParams.set('slmode', next)
                     setSearchParams(nextParams, { replace: true })
                 }
-            }),
-            buildPredictionPolicyBucketControlGroup({
+            })
+            slModeGroup.options = slModeGroup.options.filter(option => compatibleSlModes.includes(option.value))
+
+            const bucketGroup = buildPredictionPolicyBucketControlGroup({
                 value: effectiveSliceSelection.bucket,
                 onChange: next => {
                     if (next === effectiveSliceSelection.bucket) return
@@ -240,8 +296,10 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     setSearchParams(nextParams, { replace: true })
                 },
                 label: 'Бакет сделок'
-            }),
-            buildMegaZonalControlGroup({
+            })
+            bucketGroup.options = bucketGroup.options.filter(option => compatibleBuckets.includes(option.value))
+
+            const zonalGroup = buildMegaZonalControlGroup({
                 value: effectiveSliceSelection.zonalMode,
                 onChange: next => {
                     if (next === effectiveSliceSelection.zonalMode) return
@@ -250,11 +308,14 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                     setSearchParams(nextParams, { replace: true })
                 }
             })
-        ],
-        [effectiveSliceSelection, searchParams, setSearchParams]
+            zonalGroup.options = zonalGroup.options.filter(option => compatibleZonalModes.includes(option.value))
+
+            return [tpSlGroup, slModeGroup, bucketGroup, zonalGroup]
+        },
+        [effectiveSliceSelection, pipelineVariantSelection, searchParams, setSearchParams, variantCatalogQuery.data]
     )
     const { data, isLoading, isError, error, refetch } = useBacktestExecutionPipelineReportQuery(sliceQueryArgs, {
-        enabled: !sliceSelectionState.error
+        enabled: Boolean(variantCatalogQuery.data) && !variantCatalogQuery.isError && !sliceSelectionState.error
     })
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
     const reportTooltipLocale = reportUiLanguage.toLowerCase().startsWith('ru') ? 'ru' : 'en'
@@ -316,7 +377,14 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
     const reportStateError =
-        sliceSelectionState.error ?? error ?? generatedAtState.error ?? sourceEndpointState.error ?? null
+        sliceSelectionState.error ??
+        (variantCatalogQuery.isError ?
+            (variantCatalogQuery.error ?? new Error('Failed to load execution pipeline catalog.'))
+        :   null) ??
+        error ??
+        generatedAtState.error ??
+        sourceEndpointState.error ??
+        null
     const hasReadyReport = Boolean(data && generatedAtState.value && sourceEndpointState.value)
     // Execution pipeline собирает одни и те же термины из backend report-contract,
     // поэтому key-value и table headers должны читать shared glossary, а не локальные page aliases.
@@ -333,6 +401,10 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
             ),
         [data?.kind, reportTooltipLocale]
     )
+    const handleRetry = useCallback(() => {
+        void variantCatalogQuery.refetch()
+        void refetch()
+    }, [refetch, variantCatalogQuery])
 
     return (
         <div className={rootClassName}>
@@ -347,7 +419,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
                 {hasReadyReport && data && sourceEndpointState.value && (
                     <ReportActualStatusCard
-                        statusMode='debug'
+                        statusMode='actual'
                         statusTitle={t('executionPipeline.page.status.title')}
                         statusMessage={t('executionPipeline.page.status.description')}
                         dataSource={sourceEndpointState.value}
@@ -360,11 +432,11 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
             </header>
 
             <SectionDataState
-                isLoading={isLoading}
+                isLoading={variantCatalogQuery.isPending || isLoading}
                 isError={Boolean(isError || reportStateError)}
                 error={reportStateError}
                 hasData={hasReadyReport}
-                onRetry={refetch}
+                onRetry={handleRetry}
                 title={
                     generatedAtState.error ? t('executionPipeline.page.errors.invalidGeneratedAt.title')
                     : sourceEndpointState.error ?
@@ -384,7 +456,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                         isError={Boolean(parsedSectionsState.error)}
                         error={parsedSectionsState.error}
                         hasData={Boolean(parsedSectionsState.value)}
-                        onRetry={refetch}
+                        onRetry={handleRetry}
                         title={t('executionPipeline.page.errors.invalidSections.title')}
                         description={t('executionPipeline.page.errors.invalidSections.description')}
                         logContext={{ source: 'execution-pipeline-sections' }}>

@@ -1,0 +1,74 @@
+.root {
+    display: block;
+}
+
+.compositeShell {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(132, 168, 196, 0.16);
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at top left, rgba(64, 139, 216, 0.16), transparent 44%),
+        linear-gradient(180deg, rgba(8, 24, 38, 0.98) 0%, rgba(7, 14, 24, 1) 100%);
+    box-shadow: 0 28px 56px rgba(4, 10, 18, 0.34);
+}
+
+.priceShell,
+.balanceShell {
+    position: relative;
+}
+
+.priceShellWithBalance {
+    border-bottom: 1px solid rgba(132, 168, 196, 0.14);
+}
+
+.balanceShellHidden {
+    display: none;
+}
+
+.chartCanvas {
+    width: 100%;
+    min-height: 220px;
+}
+
+.globalCrosshairLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.globalCrosshairLine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    opacity: 0;
+    background: rgba(186, 199, 214, 0.78);
+    box-shadow: 0 0 0 1px rgba(5, 12, 20, 0.28);
+}
+
+.globalCrosshairTimeLabel {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    border: 1px solid rgba(132, 168, 196, 0.22);
+    border-radius: 999px;
+    opacity: 0;
+    color: rgba(232, 240, 247, 0.96);
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    background: rgba(7, 18, 30, 0.94);
+    box-shadow: 0 12px 24px rgba(4, 10, 18, 0.24);
+}
+
+.emptyState {
+    padding: 24px;
+    border: 1px dashed rgba(132, 168, 196, 0.22);
+    border-radius: 18px;
+    color: rgba(225, 236, 247, 0.92);
+    background: rgba(8, 18, 30, 0.74);
+}

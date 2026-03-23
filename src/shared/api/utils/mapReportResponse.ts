@@ -147,6 +147,7 @@ function mapPolicyEvaluationResponse(raw: unknown, label: string): PolicyEvaluat
 
     return {
         profileId: toString(payload.profileId, `${label}.profileId`),
+        policySetupId: toOptionalStringOrUndefined(payload.policySetupId) ?? null,
         status: toString(payload.status, `${label}.status`) as PolicyEvaluationDto['status'],
         reasons:
             Array.isArray(payload.reasons) ?
