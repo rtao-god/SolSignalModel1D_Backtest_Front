@@ -1,9 +1,8 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
 import i18nForTests from '@/shared/configs/i18n/i18nForTests'
-import ReportTableTermsBlock, {
-    buildReportTableTermsCollapseStorageKey
-} from './ReportTableTermsBlock'
+import { buildReportTableTermsCollapseStorageKey } from '../model/reportTableTermsBlock'
+import ReportTableTermsBlock from './ReportTableTermsBlock'
 
 describe('ReportTableTermsBlock', () => {
     beforeEach(async () => {

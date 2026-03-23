@@ -4,12 +4,12 @@ import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 import BacktestSummaryReportPage from './BacktestSummaryReportPage'
 import { logError } from '@/shared/lib/logging/logError'
 
-const { useBacktestBaselineSummaryReportWithFreshnessQuery } = vi.hoisted(() => ({
-    useBacktestBaselineSummaryReportWithFreshnessQuery: vi.fn()
+const { useBacktestBaselineSummaryReportQuery } = vi.hoisted(() => ({
+    useBacktestBaselineSummaryReportQuery: vi.fn()
 }))
 
 vi.mock('@/shared/api/tanstackQueries/backtest', () => ({
-    useBacktestBaselineSummaryReportWithFreshnessQuery
+    useBacktestBaselineSummaryReportQuery
 }))
 
 vi.mock('@/shared/lib/logging/logError', () => ({
@@ -30,8 +30,8 @@ describe('BacktestSummaryReportPage', () => {
         clearLoggedSectionKeys()
         vi.clearAllMocks()
 
-        useBacktestBaselineSummaryReportWithFreshnessQuery.mockReturnValue({
-            data: undefined,
+        useBacktestBaselineSummaryReportQuery.mockReturnValue({
+            data: null,
             isLoading: false,
             isError: true,
             error: new Error('Failed to load backtest summary report: 500'),

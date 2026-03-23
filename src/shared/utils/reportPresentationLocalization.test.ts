@@ -1,6 +1,7 @@
 import {
     localizeReportKeyValue,
     localizeReportDocumentTitle,
+    localizeReportKeyLabel,
     localizeReportSectionCompactTitle,
     localizeReportSectionTitle
 } from './reportPresentationLocalization'
@@ -78,6 +79,59 @@ describe('reportPresentationLocalization', () => {
 
         expect(localized).toBe(
             'Предварительный прогноз построен до начала основного торгового окна на частично закрытых текущих свечах, поэтому точность может быть ниже, чем у стандартного дневного расчёта.'
+        )
+    })
+
+    test('localizes full current prediction metadata labels and values in RU', () => {
+        expect(localizeReportKeyLabel('current_prediction', 'Training recipe', 'ru')).toBe('Рецепт обучения')
+        expect(localizeReportKeyLabel('current_prediction', 'Score rows presence in train', 'ru')).toBe(
+            'Пересечение окна прогноза с обучением'
+        )
+        expect(localizeReportKeyLabel('current_prediction', 'View mode', 'ru')).toBe('Режим показа')
+        expect(localizeReportKeyLabel('current_prediction', 'Train window end (UTC)', 'ru')).toBe(
+            'Конец train-окна (UTC)'
+        )
+
+        expect(
+            localizeReportKeyValue('current_prediction', 'Training recipe', 'full_history_retrospective_refit', 'ru')
+        ).toBe('Полное переобучение на всей завершённой истории')
+        expect(localizeReportKeyValue('current_prediction', 'Training recipe', 'split_train_oos', 'ru')).toBe(
+            'Split train/OOS: модель обучена на train и считает только OOS'
+        )
+
+        expect(
+            localizeReportKeyValue('current_prediction', 'Prediction semantics', 'mutable_retrospective_full', 'ru')
+        ).toBe('Ретроспективный полный режим: прошлые прогнозы могут меняться после пересчёта')
+
+        expect(
+            localizeReportKeyValue('current_prediction', 'Prediction semantics', 'full_history_snapshot_forecast', 'ru')
+        ).toBe('Прогноз на новый день после полного обучения на завершённой истории')
+        expect(
+            localizeReportKeyValue('current_prediction', 'Prediction semantics', 'oos_scored_by_train_recent_tail', 'ru')
+        ).toBe('Свежий OOS-хвост: показаны только последние scored OOS-строки')
+        expect(
+            localizeReportKeyValue('current_prediction', 'Prediction semantics', 'train_diagnostics_in_sample', 'ru')
+        ).toBe('Диагностика train: in-sample разбор ошибок и уверенности')
+        expect(localizeReportKeyValue('current_prediction', 'View mode', 'train_diagnostics', 'ru')).toBe(
+            'Диагностика train'
+        )
+        expect(localizeReportKeyValue('current_prediction', 'Display slice mode', 'recent_tail', 'ru')).toBe(
+            'Свежий хвост scored rows'
+        )
+
+        expect(
+            localizeReportKeyValue('current_prediction', 'Score rows presence in train', 'some_outside', 'ru')
+        ).toBe('Часть дней окна прогноза лежит вне обучающего окна')
+
+        expect(localizeReportKeyValue('current_prediction', 'Uses train/OOS split', 'no', 'ru')).toBe('Нет')
+    })
+
+    test('localizes current prediction train diagnostics section titles in RU', () => {
+        expect(localizeReportSectionTitle('current_prediction_train', 'Train diagnostics summary', 'ru')).toBe(
+            'Сводка диагностики train'
+        )
+        expect(localizeReportSectionTitle('current_prediction_train', 'Worst mistakes (in-sample)', 'ru')).toBe(
+            'Худшие ошибки train (in-sample)'
         )
     })
 })

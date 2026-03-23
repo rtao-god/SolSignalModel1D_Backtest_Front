@@ -4,11 +4,12 @@ import type { PropsWithChildren, ReactElement } from 'react'
 import {
     buildPolicyBranchMegaQueryKey,
     fetchPolicyBranchMegaReport,
-    prefetchPolicyBranchMegaReportParts,
-    prefetchPolicyBranchMegaReportWithFreshness,
+    fetchPolicyBranchMegaValidation,
     POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS,
+    prefetchPolicyBranchMegaReportParts,
+    prefetchPolicyBranchMegaReportPayload,
     resolvePolicyBranchMegaReportQueryArgs,
-    usePolicyBranchMegaReportWithFreshnessQuery
+    usePolicyBranchMegaReportQuery
 } from './policyBranchMega'
 
 function createQueryClient(): QueryClient {
@@ -45,28 +46,6 @@ function textResponse(body: string, status: number): Response {
     })
 }
 
-function createPolicyBranchMegaStatus(state: 'fresh' | 'stale' | 'missing' | 'unknown') {
-    return {
-        state,
-        message:
-            state === 'stale' ?
-                'policy_branch_mega is older than backtest_diagnostics.'
-            :   `policy_branch_mega status: ${state}`,
-        lagSeconds: state === 'stale' ? 6060 : null,
-        policyBranchMegaId: 'policy-branch-mega-test',
-        policyBranchMegaGeneratedAtUtc: '2026-03-12T07:00:00.000Z',
-        diagnosticsId: 'diag-test',
-        diagnosticsGeneratedAtUtc: '2026-03-12T08:41:00.000Z',
-        availableBuckets: ['daily', 'total'],
-        availableParts: [1, 2, 3, 4],
-        availableTotalBucketViews: ['aggregate', 'separate'],
-        availableMetrics: ['real', 'no-biggest-liq-loss'],
-        availableTpSlModes: ['all', 'dynamic', 'static'],
-        availableSlModes: ['with-sl', 'no-sl'],
-        availableZonalModes: ['with-zonal', 'without-zonal']
-    }
-}
-
 function createPolicyBranchMegaReport() {
     return {
         schemaVersion: 2,
@@ -84,7 +63,7 @@ function createPolicyBranchMegaReport() {
                 columnKeys: ['policy_name', 'branch', 'total_pnl_pct'],
                 rows: [['const_2x', 'BASE', '1.00']],
                 metadata: {
-                    kind: 'policy_branch_mega',
+                    kind: 'policy-branch-mega',
                     mode: 'with-sl',
                     isStopLossEnabled: true,
                     tpSlMode: 'all',
@@ -98,23 +77,23 @@ function createPolicyBranchMegaReport() {
     }
 }
 
-describe('policyBranchMega freshness query', () => {
+describe('policyBranchMega report queries', () => {
     afterEach(() => {
         vi.useRealTimers()
         vi.restoreAllMocks()
     })
 
-    test('fetches the report even when freshness status is stale', async () => {
+    test('prefetches the first report payload without status endpoint requests', async () => {
         const queryClient = createQueryClient()
         const resolvedArgs = resolvePolicyBranchMegaReportQueryArgs({ part: 1 })
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input)
 
             if (url.includes('/api/backtest/policy-branch-mega/status')) {
-                return jsonResponse(createPolicyBranchMegaStatus('stale'))
+                throw new Error('status endpoint must not be used in report payload flow')
             }
 
-            if (url.includes('/api/backtest/policy-branch-mega')) {
+            if (url.includes('/api/backtest/policy-branch-mega?')) {
                 return jsonResponse(createPolicyBranchMegaReport())
             }
 
@@ -123,21 +102,21 @@ describe('policyBranchMega freshness query', () => {
 
         vi.stubGlobal('fetch', fetchMock)
 
-        await prefetchPolicyBranchMegaReportWithFreshness(queryClient, { part: 1 })
+        await prefetchPolicyBranchMegaReportPayload(queryClient, { part: 1 })
 
-        expect(fetchMock).toHaveBeenCalledTimes(2)
+        expect(fetchMock).toHaveBeenCalledTimes(1)
         expect(queryClient.getQueryData(buildPolicyBranchMegaQueryKey(resolvedArgs))).toMatchObject({
             id: 'policy-branch-mega-test'
         })
     })
 
-    test('prefetches all known part slices for current mega selection', async () => {
+    test('prefetches all canonical part slices for current mega selection', async () => {
         const queryClient = createQueryClient()
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input)
 
             if (url.includes('/api/backtest/policy-branch-mega/status')) {
-                return jsonResponse(createPolicyBranchMegaStatus('fresh'))
+                throw new Error('status endpoint must not be used in part prefetch flow')
             }
 
             if (url.includes('/api/backtest/policy-branch-mega?')) {
@@ -151,27 +130,23 @@ describe('policyBranchMega freshness query', () => {
 
         await prefetchPolicyBranchMegaReportParts(queryClient, { part: 1 })
 
-        expect(fetchMock).toHaveBeenCalledTimes(5)
+        expect(fetchMock).toHaveBeenCalledTimes(4)
         const requestedUrls = fetchMock.mock.calls.map(call => String(call[0]))
 
-        expect(requestedUrls[0]).toContain('/api/backtest/policy-branch-mega/status')
-        expect(requestedUrls.slice(1)).toHaveLength(4)
-        expect(requestedUrls.slice(1).every(url => url.includes('/api/backtest/policy-branch-mega?'))).toBe(true)
-        expect(requestedUrls.slice(1).some(url => url.includes('part=1'))).toBe(true)
-        expect(requestedUrls.slice(1).some(url => url.includes('part=2'))).toBe(true)
-        expect(requestedUrls.slice(1).some(url => url.includes('part=3'))).toBe(true)
-        expect(requestedUrls.slice(1).some(url => url.includes('part=4'))).toBe(true)
+        expect(requestedUrls.every(url => url.includes('/api/backtest/policy-branch-mega?'))).toBe(true)
+        expect(requestedUrls.some(url => url.includes('part=1'))).toBe(true)
+        expect(requestedUrls.some(url => url.includes('part=2'))).toBe(true)
+        expect(requestedUrls.some(url => url.includes('part=3'))).toBe(true)
+        expect(requestedUrls.some(url => url.includes('part=4'))).toBe(true)
     })
 
-    test('surfaces the real report endpoint error when status endpoint is unavailable', async () => {
+    test('surfaces the real report endpoint error without status fallback noise', async () => {
         const queryClient = createQueryClient()
-        // Status endpoint only enriches freshness metadata and must not replace
-        // the real transport/report error from the blocking report request.
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input)
 
             if (url.includes('/api/backtest/policy-branch-mega/status')) {
-                throw new Error('status endpoint is unavailable')
+                throw new Error('status endpoint must not be used in report error flow')
             }
 
             if (url.includes('/api/backtest/policy-branch-mega')) {
@@ -183,7 +158,7 @@ describe('policyBranchMega freshness query', () => {
 
         vi.stubGlobal('fetch', fetchMock)
 
-        const { result } = renderHook(() => usePolicyBranchMegaReportWithFreshnessQuery({ part: 1 }), {
+        const { result } = renderHook(() => usePolicyBranchMegaReportQuery({ part: 1 }), {
             wrapper: createWrapper(queryClient)
         })
 
@@ -192,10 +167,42 @@ describe('policyBranchMega freshness query', () => {
         })
 
         expect(result.current.error?.message).toContain('Failed to load policy branch mega report: 500 server exploded')
-        expect(result.current.error?.message).not.toContain(
-            'policy_branch_mega is stale relative to backtest_diagnostics'
-        )
-        expect(result.current.error?.message).not.toContain('Latest policy_branch_mega report is missing')
+    })
+
+    test('loads validation payload for the current selection', async () => {
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input)
+
+            if (url.includes('/api/backtest/policy-branch-mega/validation?')) {
+                return jsonResponse({
+                    state: 'mismatch',
+                    message: 'The current policy_branch_mega selection does not match backtest_diagnostics.',
+                    selectionKey:
+                        'bucket=daily|bucketview=aggregate|metric=real|tpsl=all|slmode=all|zonal=with-zonal|part=all',
+                    policyBranchMegaId: 'policy-branch-mega-test',
+                    diagnosticsId: 'diag-test',
+                    requestedAtUtc: '2026-03-12T08:41:00.000Z',
+                    checkedAtUtc: '2026-03-12T08:41:02.000Z'
+                })
+            }
+
+            throw new Error(`Unexpected url: ${url}`)
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        const validation = await fetchPolicyBranchMegaValidation({
+            bucket: 'daily',
+            bucketView: 'aggregate',
+            metric: 'real',
+            tpSlMode: 'all',
+            slMode: 'all',
+            zonalMode: 'with-zonal'
+        })
+
+        expect(validation.state).toBe('mismatch')
+        expect(validation.policyBranchMegaId).toBe('policy-branch-mega-test')
+        expect(validation.selectionKey).toContain('bucket=daily')
     })
 
     test('fails with timeout when report request hangs indefinitely', async () => {

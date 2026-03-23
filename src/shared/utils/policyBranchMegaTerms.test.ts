@@ -1,5 +1,5 @@
 import { getPolicyBranchMegaTerm, POLICY_BRANCH_MEGA_TERM_KEYS } from './policyBranchMegaTerms'
-import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/ui/ReportTableTermsBlock'
+import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/model/reportTableTermsBlock'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
 const SENTINEL_KEYS = [
@@ -19,6 +19,9 @@ const SHARED_MEGA_TERM_KEYS = [
     'TotalPnl%',
     'Wealth%',
     'OnExch%',
+    'Sharpe',
+    'Sortino',
+    'Calmar',
     'StartCap$',
     'AccRuin',
     'Recovered',

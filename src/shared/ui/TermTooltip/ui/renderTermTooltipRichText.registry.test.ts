@@ -49,6 +49,7 @@ const REPORT_OWNER_TOOLTIP_KEYS = [
     'attribution',
     'featureImportance',
     'predictionAggregation',
+    'modelWeights',
     'allHistory',
     'recentTailHistory',
     'baselineBacktest',
@@ -172,6 +173,21 @@ describe('renderTermTooltipRichText registry coverage', () => {
         expect(reportPresentationLocalization).toContain("'24h close price': 'Цена закрытия через 24 часа'")
     })
 
+    test('keeps full-history and recent-tail owner terms aligned with current prediction scope rules', () => {
+        const ruReports = readProjectFile('public/locales/ru/reports.json')
+        const enReports = readProjectFile('public/locales/en/reports.json')
+
+        expect(ruReports).toContain('модель берёт всю завершённую историю')
+        expect(ruReports).toContain('[[landing-model-weights|веса модели]]')
+        expect(ruReports).toContain('до 240 последних OOS-записей')
+        expect(ruReports).not.toContain('последние 240 торговых дней рабочего ряда модели')
+
+        expect(enReports).toContain('model takes the whole completed history')
+        expect(enReports).toContain('[[landing-model-weights|model weights]]')
+        expect(enReports).toContain('up to the latest 240 OOS records')
+        expect(enReports).not.toContain('last 240 trading days of the active model row')
+    })
+
     test('registers every shared owner-term id used in locale content', () => {
         const localeFiles = [
             'public/locales/ru/reports.json',
@@ -209,6 +225,8 @@ describe('renderTermTooltipRichText registry coverage', () => {
             { text: 'Current prediction', expectedRuleId: 'landing-current-prediction' },
             { text: 'Prediction history', expectedRuleId: 'landing-prediction-history' },
             { text: 'Backtest summary', expectedRuleId: 'landing-backtest-summary' },
+            { text: 'веса модели', expectedRuleId: 'landing-model-weights' },
+            { text: 'Model weights', expectedRuleId: 'landing-model-weights' },
             { text: 'Полная история', expectedRuleId: 'landing-all-history' },
             { text: 'Full history', expectedRuleId: 'landing-all-history' },
             { text: 'Хвост истории', expectedRuleId: 'landing-recent-tail-history' },

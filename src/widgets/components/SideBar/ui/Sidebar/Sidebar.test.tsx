@@ -8,7 +8,7 @@ import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import cls from './Sidebar.module.scss'
-import Sidebar from './Sidebar'
+import Sidebar, { shouldScrollToTopAfterHashReset } from './Sidebar'
 
 function renderSidebar(route: string) {
     const queryClient = new QueryClient({
@@ -80,5 +80,58 @@ describe('Sidebar route matching', () => {
         expect(screen.getByText('For developers')).toBeInTheDocument()
         expect(screen.queryByText('Predictions')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: activeTabLabel })).toHaveClass(cls.subLinkActive)
+    })
+})
+
+describe('Sidebar hash reset scroll guard', () => {
+    test('scrolls to top only when hash disappears inside the same page context', () => {
+        expect(
+            shouldScrollToTopAfterHashReset(
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+                    search: '?bucket=daily',
+                    hash: '#section-3'
+                },
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+                    search: '?bucket=daily',
+                    hash: ''
+                }
+            )
+        ).toBe(true)
+    })
+
+    test('does not scroll to top when hash disappears because pathname changed', () => {
+        expect(
+            shouldScrollToTopAfterHashReset(
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+                    search: '?bucket=daily',
+                    hash: '#section-3'
+                },
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUP_DETAIL].replace(':setupId', 'ps-1'),
+                    search: '',
+                    hash: ''
+                }
+            )
+        ).toBe(false)
+    })
+
+    test('does not scroll to top when hash disappears because page query changed', () => {
+        expect(
+            shouldScrollToTopAfterHashReset(
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+                    search: '?bucket=daily',
+                    hash: '#section-3'
+                },
+                {
+                    pathname: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
+                    search: '?bucket=hourly',
+                    hash: ''
+                }
+            )
+        ).toBe(false)
     })
 })

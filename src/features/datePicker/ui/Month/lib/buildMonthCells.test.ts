@@ -31,7 +31,7 @@ describe('buildMonthCells', () => {
             monthDates: getMonthGridDates(2024, 11),
             departureDate: createUiDate('2024-11-10'),
             arrivalDate: createUiDate('2024-11-13'),
-            minSelectableDate: getDate('2022-04-13'),
+            minSelectableDate: getDate('2021-10-11'),
             maxSelectableDate: getDate('2026-03-10')
         })
 
@@ -49,7 +49,7 @@ describe('buildMonthCells', () => {
             monthDates: getMonthGridDates(2024, 11),
             departureDate: createUiDate('2024-10-30'),
             arrivalDate: createUiDate('2024-11-03'),
-            minSelectableDate: getDate('2022-04-13'),
+            minSelectableDate: getDate('2021-10-11'),
             maxSelectableDate: getDate('2026-03-10')
         })
 

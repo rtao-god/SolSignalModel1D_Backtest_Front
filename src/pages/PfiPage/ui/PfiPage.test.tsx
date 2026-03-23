@@ -3,8 +3,8 @@ import { render, screen, waitFor } from '@/shared/lib/tests/ComponentRender/Comp
 import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 import PfiPage from './PfiPage'
 
-const { usePfiPerModelReportWithFreshnessQuery } = vi.hoisted(() => ({
-    usePfiPerModelReportWithFreshnessQuery: vi.fn()
+const { usePfiReportReadQuery } = vi.hoisted(() => ({
+    usePfiReportReadQuery: vi.fn()
 }))
 
 const { resolveReportSourceEndpoint } = vi.hoisted(() => ({
@@ -12,7 +12,7 @@ const { resolveReportSourceEndpoint } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/shared/api/tanstackQueries/pfi', () => ({
-    usePfiPerModelReportWithFreshnessQuery
+    usePfiReportReadQuery
 }))
 
 vi.mock('@/shared/utils/reportSourceEndpoint', () => ({
@@ -32,29 +32,26 @@ function createQueryResult<T>(overrides: Record<string, unknown> = {}) {
 
 function createPfiPayload() {
     return {
-        report: {
-            schemaVersion: 2,
-            id: 'pfi-per-model-test',
-            kind: 'pfi_per_model',
-            title: 'PFI by model (binary)',
-            generatedAtUtc: '2026-03-15T11:17:38.086081Z',
-            sections: [
-                {
-                    title: 'train: move (AUC=0.9985)',
-                    columns: ['Index', 'FeatureName', 'ImportanceAuc (abs ΔAUC)'],
-                    rows: [['3', 'SolRet1', '5.41']]
-                }
-            ]
-        },
-        freshness: {
-            sourceMode: 'actual' as const,
-            state: 'fresh' as const,
-            message: 'PFI report is fresh.',
-            pfiReportId: 'pfi-per-model-test',
-            pfiReportGeneratedAtUtc: '2026-03-15T11:17:38.086081Z',
-            canonicalSnapshotCount: 9,
-            tableSectionCount: 1
-        }
+        id: 'pfi-per-model-test',
+        kind: 'pfi_per_model',
+        familyKey: 'daily_model',
+        title: 'PFI by model (binary)',
+        generatedAtUtc: '2026-03-15T11:17:38.086081Z',
+        sections: [
+            {
+                sectionKey: 'train_oof_move',
+                title: 'train: move (AUC=0.9985)',
+                familyKey: 'daily_model',
+                modelKey: 'move',
+                modelDisplayName: 'Move',
+                scoreScopeKey: 'train_oof',
+                featureSchemaKey: 'daily',
+                baselineAuc: 0.9985,
+                columns: ['Index', 'FeatureName', 'ImportanceAuc (abs ΔAUC)'],
+                columnKeys: ['index', 'feature_name', 'importance_auc'],
+                rows: [['3', 'SolRet1', '5.41']]
+            }
+        ]
     }
 }
 
@@ -63,7 +60,7 @@ describe('PfiPage', () => {
         await i18nForTests.changeLanguage('en')
         vi.clearAllMocks()
         resolveReportSourceEndpoint.mockReturnValue('http://127.0.0.1:10000')
-        usePfiPerModelReportWithFreshnessQuery.mockReturnValue(
+        usePfiReportReadQuery.mockReturnValue(
             createQueryResult({
                 data: createPfiPayload()
             })

@@ -33,6 +33,14 @@ describe('pages shell-first contract', () => {
         expect(offenders).toEqual([])
     })
 
+    test('page files do not use root PageSuspense anymore', () => {
+        const offenders = collectPageSourceFiles(pagesRoot)
+            .filter(filePath => !filePath.endsWith(`${path.sep}Layout${path.sep}ui${path.sep}Layout.tsx`))
+            .filter(filePath => fs.readFileSync(filePath, 'utf-8').includes('PageSuspense'))
+
+        expect(offenders).toEqual([])
+    })
+
     test('page files do not render PageError directly outside layout fallback', () => {
         const offenders = collectPageSourceFiles(pagesRoot)
             .filter(filePath => !filePath.endsWith(`${path.sep}Layout${path.sep}ui${path.sep}Layout.tsx`))
