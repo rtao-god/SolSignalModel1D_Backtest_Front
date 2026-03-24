@@ -36,6 +36,27 @@ function UseSectionPagerHarness() {
     )
 }
 
+function UseSectionPagerNoScrollHarness() {
+    const location = useLocation()
+
+    useSectionPager({
+        sections: [
+            { id: 'section-1', anchor: 'section-1' },
+            { id: 'section-2', anchor: 'section-2' }
+        ],
+        syncHash: true,
+        trackScroll: false
+    })
+
+    return (
+        <div className='app' data-testid='scroll-root'>
+            <div data-testid='location-state'>{`${location.pathname}${location.search}${location.hash}`}</div>
+            <div id='section-1' style={{ height: 2000 }} />
+            <div id='section-2' style={{ height: 2000 }} />
+        </div>
+    )
+}
+
 function UseSectionPagerCanonicalHarness() {
     const location = useLocation()
     const [canonicalAnchor, setCanonicalAnchor] = useState<string | null>(null)
@@ -85,6 +106,18 @@ describe('useSectionPager', () => {
                 withTransitionPulse: true
             })
         )
+    })
+
+    test('does not sync hash on scroll when trackScroll is disabled', async () => {
+        render(<UseSectionPagerNoScrollHarness />, {
+            route: '/analysis/policy-branch-mega'
+        })
+
+        fireEvent.scroll(screen.getByTestId('scroll-root'))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('location-state')).toHaveTextContent('/analysis/policy-branch-mega')
+        })
     })
 
     test('normalizes hash through canonical anchor inside the same document owner', async () => {

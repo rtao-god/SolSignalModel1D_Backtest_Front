@@ -16,6 +16,7 @@ import GlobalErrorFallback from './providers/ErrorBoundary/ui/GlobalErrorFallbac
 import { logError } from '@/shared/lib/logging/logError'
 import { ErrorBoundary } from './providers/ErrorBoundary/ErrorBoundary'
 import App from './App'
+import { restorePathFrom404 } from './lib/deepLinkFrom404'
 
 declare global {
     interface Window {
@@ -76,6 +77,11 @@ if (!rootElement) {
         domain: 'app_runtime'
     })
 } else {
+    const restoredPath = restorePathFrom404(window.location.search)
+    if (restoredPath) {
+        window.history.replaceState({}, '', restoredPath)
+    }
+
     const root = ReactDOM.createRoot(rootElement)
 
     try {

@@ -38,6 +38,8 @@ import {
     DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE,
     DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE,
     buildPolicyBranchMegaQueryKey,
+    buildPolicyBranchMegaEvaluationQueryKey,
+    fetchPolicyBranchMegaEvaluationMap,
     fetchPolicyBranchMegaReport,
     POLICY_BRANCH_MEGA_CANONICAL_PARTS,
     POLICY_BRANCH_MEGA_GC_TIME_MS,
@@ -90,6 +92,10 @@ import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
 import PolicyBranchMegaChartExplorer from './PolicyBranchMegaChartExplorer'
 import { buildPolicyBranchMegaChartModel } from '../model/policyBranchMegaChartModel'
+import {
+    resolveMegaRenderedRowKey,
+    resolvePolicySetupCellStateForMegaRow
+} from '../model/policyBranchMegaPolicySetupLink'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
@@ -371,99 +377,6 @@ function buildMegaRowKey(policy: string, branch: string, slModeLabel: string | n
     }
 
     return `${policy}${MEGA_ROW_KEY_SEPARATOR}${branch}${MEGA_ROW_KEY_SEPARATOR}${slModeLabel}`
-}
-
-function buildPolicySetupDetailPath(setupId: string): string {
-    return `${ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUPS]}/${encodeURIComponent(setupId)}`
-}
-
-type PolicySetupCellIssueCode =
-    | 'row-key-missing'
-    | 'evaluation-map-error'
-    | 'row-evaluation-missing'
-
-function resolvePolicySetupCellIssueTranslationKey(issueCode: PolicySetupCellIssueCode): string {
-    switch (issueCode) {
-        case 'row-key-missing':
-            return 'policyBranchMega.page.table.policySetupLinkErrors.rowKeyMissing'
-        case 'evaluation-map-error':
-            return 'policyBranchMega.page.table.policySetupLinkErrors.evaluationMapError'
-        case 'row-evaluation-missing':
-            return 'policyBranchMega.page.table.policySetupLinkErrors.rowEvaluationMissing'
-        default:
-            throw new Error(`[policy-branch-mega] unsupported policy setup issue code: ${issueCode satisfies never}`)
-    }
-}
-
-interface PolicySetupCellState {
-    detailPath: string | null
-    issueCode: PolicySetupCellIssueCode | null
-}
-
-function resolvePolicySetupCellStateForMegaRow(args: {
-    row: readonly unknown[] | null | undefined
-    columns: readonly string[]
-    rowEvaluationMap: PolicyRowEvaluationMapDto['rows'] | undefined
-    evaluationMapReady: boolean
-}): PolicySetupCellState {
-    const { row, columns, rowEvaluationMap } = args
-    if (!row || columns.length === 0) {
-        return { detailPath: null, issueCode: 'row-key-missing' }
-    }
-
-    // Owner-id приходит из backend row-evaluation для той же строки mega-таблицы,
-    // поэтому UI не восстанавливает setup по display-колонкам и отдельному catalog query.
-    const rowKey = resolveMegaRenderedRowKey(row, columns)
-    if (!rowKey) {
-        return { detailPath: null, issueCode: 'row-key-missing' }
-    }
-
-    if (!args.evaluationMapReady) {
-        return { detailPath: null, issueCode: null }
-    }
-
-    if (!rowEvaluationMap) {
-        return { detailPath: null, issueCode: 'evaluation-map-error' }
-    }
-
-    const evaluation = rowEvaluationMap[rowKey]
-    if (!evaluation) {
-        return { detailPath: null, issueCode: 'row-evaluation-missing' }
-    }
-
-    const setupId = evaluation.policySetupId ?? null
-    if (!setupId) {
-        // setupId может отсутствовать в published evaluation для части строк.
-        // В таком случае строка остаётся читаемой, но без detail-ссылки.
-        return { detailPath: null, issueCode: null }
-    }
-
-    return { detailPath: buildPolicySetupDetailPath(setupId), issueCode: null }
-}
-
-function resolveMegaRenderedRowKey(
-    row: readonly unknown[] | null | undefined,
-    columns: readonly string[]
-): string | null {
-    if (!row || !columns || columns.length === 0) {
-        return null
-    }
-
-    const policyIdx = columns.indexOf('Policy')
-    const branchIdx = columns.indexOf('Branch')
-    if (policyIdx < 0 || branchIdx < 0) {
-        return null
-    }
-
-    const policy = String(row[policyIdx] ?? '').trim()
-    const branch = String(row[branchIdx] ?? '').trim()
-    if (!policy || !branch) {
-        return null
-    }
-
-    const slModeIdx = columns.indexOf(MEGA_SL_MODE_COLUMN_NAME)
-    const slModeLabel = slModeIdx >= 0 ? String(row[slModeIdx] ?? '').trim() || null : null
-    return buildMegaRowKey(policy, branch, slModeLabel)
 }
 
 function resolveMegaPartNumberFromTitle(title: string | undefined): number {
@@ -1400,6 +1313,32 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         error: Error | null
     }>
 
+    // Для ссылок на policy setup нужны published row-evaluation данные по каждой видимой части.
+    // Если грузить только активную часть, то часть 2/3/4 остаётся без link-path даже при готовом отчёте.
+    const extraPartEvaluationQueries = useQueries({
+        queries: extraPartNumbers.map(part => {
+            const nextArgs = {
+                ...effectiveQueryArgsBase,
+                part
+            }
+
+            return {
+                queryKey: buildPolicyBranchMegaEvaluationQueryKey(nextArgs),
+                queryFn: () => fetchPolicyBranchMegaEvaluationMap(nextArgs),
+                enabled: normalizedAvailableParts.includes(part),
+                retry: false,
+                staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+                gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+                refetchOnWindowFocus: false
+            }
+        })
+    }) as Array<{
+        data: PolicyRowEvaluationMapDto | undefined
+        isLoading: boolean
+        isFetching: boolean
+        error: Error | null
+    }>
+
     const loadedPartReportsState = useMemo(() => {
         const reports: Array<{ part: number; report: typeof primaryReport }> = []
         const partStates = new Map<number, { isLoading: boolean; error: Error | null }>()
@@ -1441,8 +1380,15 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             maps.set(activePart, primaryEvaluationRows)
         }
 
+        extraPartNumbers.forEach((part, index) => {
+            const query = extraPartEvaluationQueries[index]
+            if (query?.data?.rows) {
+                maps.set(part, query.data.rows)
+            }
+        })
+
         return maps
-    }, [activePart, primaryEvaluationRows])
+    }, [activePart, extraPartEvaluationQueries, extraPartNumbers, primaryEvaluationRows])
     const rowEvaluationStatesByPart = useMemo(() => {
         const states = new Map<number, { ready: boolean; error: Error | null }>()
         states.set(activePart, {
@@ -1453,8 +1399,22 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 :   null
         })
 
+        extraPartNumbers.forEach((part, index) => {
+            const query = extraPartEvaluationQueries[index]
+            states.set(part, {
+                ready: Boolean(query?.data?.rows),
+                error:
+                    query?.error instanceof Error ? query.error
+                    : query && !query.isLoading && !query.isFetching && !query.data ?
+                        new Error(
+                            `[policy-branch-mega] published evaluation map is missing for part=${part}.`
+                        )
+                    :   null
+            })
+        })
+
         return states
-    }, [activePart, isLoading, primaryEvaluationRows, primaryReport])
+    }, [activePart, extraPartEvaluationQueries, extraPartNumbers, isLoading, primaryEvaluationRows, primaryReport])
 
     useEffect(() => {
         if (!resolvedQuery) {
@@ -1773,7 +1733,6 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         effectiveDisplayMode,
         effectiveSelection.bucket,
         effectiveSelection.bucketView,
-        normalizedAvailableParts.length,
         normalizedAvailableParts,
         tableRenderedSectionsState.entries
     ])
@@ -1781,6 +1740,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: pageTabs,
         syncHash: true,
+        // Для mega-таблицы скролл не должен менять hash и не должен перескакивать между частями.
+        // Видимые части подгружаются фоном, а переключение страниц остаётся только по явному действию пользователя.
+        trackScroll: false,
         canonicalAnchor: requestedAnchorTarget ? activeAnchor : null
     })
 
@@ -2004,30 +1966,8 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                             )
                                         }
 
-                                        const issueCode =
-                                            rowEvaluationState?.error ? 'evaluation-map-error' : cellState.issueCode
-                                        if (!issueCode) {
-                                            return null
-                                        }
-
-                                        const issueLabel = t(resolvePolicySetupCellIssueTranslationKey(issueCode))
-                                        const issueDetails =
-                                            issueCode === 'evaluation-map-error' ?
-                                                rowEvaluationState?.error?.message ?? issueLabel
-                                            :   issueLabel
-
                                         return (
-                                            <span
-                                                className={cls.policySetupUnavailable}
-                                                title={`${t('policyBranchMega.page.table.policySetupUnavailable')}: ${issueDetails}`}>
-                                                <span>{value}</span>
-                                                <span className={cls.policySetupUnavailableBadge}>
-                                                    {t('policyBranchMega.page.table.policySetupUnavailable')}
-                                                </span>
-                                                <span className={cls.policySetupUnavailableReason}>
-                                                    {issueDetails}
-                                                </span>
-                                            </span>
+                                            <span>{value}</span>
                                         )
                                     }}
                                     virtualizeRows
