@@ -23,6 +23,7 @@ import { logError } from '@/shared/lib/logging/logError'
 import { describeUnexpectedValue } from '@/shared/lib/errors/describeUnexpectedValue'
 import {
     PolicySetupDayOverlayPrimitive,
+    buildPolicySetupVisibleCandlePriceRange,
     type PolicySetupDayOverlayPrimitiveData,
     type PolicySetupPrimitiveDay,
     type PolicySetupVisibleTimeRange
@@ -199,19 +200,6 @@ function buildSharedTimeDomainSeconds(
     }
 
     return [...timestamps].sort((left, right) => left - right)
-}
-
-function buildTimeAnchorSeriesData(
-    timeDomainSeconds: number[],
-    referenceValue: number
-): LineData<Time>[] {
-    if (timeDomainSeconds.length === 0) return []
-    if (!Number.isFinite(referenceValue) || referenceValue <= 0) return []
-
-    return timeDomainSeconds.map(timestamp => ({
-        time: timestamp as Time,
-        value: referenceValue
-    }))
 }
 
 function buildChartCandleData(
@@ -468,8 +456,6 @@ export default function PolicySetupsChart({
     const priceChartRef = useRef<IChartApi | null>(null)
     const balanceChartRef = useRef<IChartApi | null>(null)
     const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-    const priceTimeAnchorSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
-    const balanceTimeAnchorSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
     const overlayPrimitiveRef = useRef<PolicySetupDayOverlayPrimitive | null>(null)
     const overlayTotalCapitalBaseSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
     const overlayTotalCapitalProfitSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
@@ -515,13 +501,9 @@ export default function PolicySetupsChart({
             ledger.capitalTimeline.workingCapitalGapSeries
         ]
     )
-    const priceTimeAnchorData = useMemo(
-        () => buildTimeAnchorSeriesData(sharedTimeDomainSeconds, candleData[candleData.length - 1]?.close ?? visibleCandles[0]?.close ?? 0),
-        [candleData, sharedTimeDomainSeconds, visibleCandles]
-    )
-    const balanceTimeAnchorData = useMemo(
-        () => buildTimeAnchorSeriesData(sharedTimeDomainSeconds, ledger.startCapitalUsd),
-        [ledger.startCapitalUsd, sharedTimeDomainSeconds]
+    const visibleCandlePriceRange = useMemo(
+        () => buildPolicySetupVisibleCandlePriceRange(visibleCandles),
+        [visibleCandles]
     )
     const primitiveDays = useMemo(
         () =>
@@ -566,11 +548,12 @@ export default function PolicySetupsChart({
             hoveredTimestamp: hoveredTimestampRef.current,
             showDayBoundaries,
             lineVisibilityMode,
-            visibleTimeRange: visibleTimeRangeRef.current
+            visibleTimeRange: visibleTimeRangeRef.current,
+            visibleCandlePriceRange
         }
 
         primitive.setData(next)
-    }, [lineVisibilityMode, primitiveDays, showDayBoundaries])
+    }, [lineVisibilityMode, primitiveDays, showDayBoundaries, visibleCandlePriceRange])
 
     useEffect(() => {
         syncOverlayRef.current = syncOverlay
@@ -585,18 +568,14 @@ export default function PolicySetupsChart({
 
     const resolveBalanceCrosshairSeries = useCallback((): ISeriesApi<'Line'> | null => {
         return (
-            balanceTimeAnchorSeriesRef.current
-            ?? balanceTotalCapitalBaseSeriesRef.current
+            balanceTotalCapitalBaseSeriesRef.current
             ?? balanceTotalCapitalProfitSeriesRef.current
             ?? balanceWorkingGapSeriesRef.current
         )
     }, [])
 
     const resolvePriceCrosshairSeries = useCallback((): ISeriesApi<'Line' | 'Candlestick'> | null => {
-        return (
-            priceTimeAnchorSeriesRef.current
-            ?? candleSeriesRef.current
-        )
+        return candleSeriesRef.current
     }, [])
 
     const hideGlobalCrosshairOverlay = useCallback(() => {
@@ -949,13 +928,6 @@ export default function PolicySetupsChart({
         })
 
         const candleSeries = priceChart.addCandlestickSeries(resolveVisibleCandleOptions(true))
-        const priceTimeAnchorSeries = priceChart.addLineSeries({
-            color: TRANSPARENT,
-            lineVisible: false,
-            crosshairMarkerVisible: false,
-            priceLineVisible: false,
-            lastValueVisible: false
-        })
         const overlayPrimitive = new PolicySetupDayOverlayPrimitive()
         candleSeries.attachPrimitive(overlayPrimitive)
 
@@ -1042,19 +1014,10 @@ export default function PolicySetupsChart({
             priceLineVisible: false,
             lastValueVisible: false
         })
-        const balanceTimeAnchorSeries = balanceChart.addLineSeries({
-            color: TRANSPARENT,
-            lineVisible: false,
-            crosshairMarkerVisible: false,
-            priceLineVisible: false,
-            lastValueVisible: false
-        })
 
         priceChartRef.current = priceChart
         balanceChartRef.current = balanceChart
         candleSeriesRef.current = candleSeries
-        priceTimeAnchorSeriesRef.current = priceTimeAnchorSeries
-        balanceTimeAnchorSeriesRef.current = balanceTimeAnchorSeries
         overlayPrimitiveRef.current = overlayPrimitive
         overlayTotalCapitalBaseSeriesRef.current = overlayTotalCapitalBaseSeries
         overlayTotalCapitalProfitSeriesRef.current = overlayTotalCapitalProfitSeries
@@ -1134,8 +1097,6 @@ export default function PolicySetupsChart({
             priceChartRef.current = null
             balanceChartRef.current = null
             candleSeriesRef.current = null
-            priceTimeAnchorSeriesRef.current = null
-            balanceTimeAnchorSeriesRef.current = null
             overlayPrimitiveRef.current = null
             overlayTotalCapitalBaseSeriesRef.current = null
             overlayTotalCapitalProfitSeriesRef.current = null
@@ -1177,7 +1138,8 @@ export default function PolicySetupsChart({
                 hoveredTimestamp: null,
                 showDayBoundaries,
                 lineVisibilityMode,
-                visibleTimeRange: null
+                visibleTimeRange: null,
+                visibleCandlePriceRange: null
             })
             return
         }
@@ -1185,8 +1147,6 @@ export default function PolicySetupsChart({
         if (
             !candleSeriesRef.current
             || !priceChartRef.current
-            || !priceTimeAnchorSeriesRef.current
-            || !balanceTimeAnchorSeriesRef.current
         ) return
         if (
             !overlayTotalCapitalBaseSeriesRef.current
@@ -1203,8 +1163,6 @@ export default function PolicySetupsChart({
         try {
             candleSeriesRef.current.setData(candleData)
             candleSeriesRef.current.applyOptions(resolveVisibleCandleOptions(showCandles))
-            priceTimeAnchorSeriesRef.current.setData(priceTimeAnchorData)
-            balanceTimeAnchorSeriesRef.current.setData(balanceTimeAnchorData)
 
             overlayTotalCapitalBaseSeriesRef.current.setData(totalCapitalBaseData)
             overlayTotalCapitalBaseSeriesRef.current.applyOptions({ visible: balanceView === 'overlay' })
@@ -1240,17 +1198,16 @@ export default function PolicySetupsChart({
     }, [
         applyInitialViewport,
         balanceView,
-        balanceTimeAnchorData,
         candleData,
         hasVisibleData,
         ledger.setup.setupId,
         lineVisibilityMode,
-        priceTimeAnchorData,
         sharedTimeDomainSeconds.length,
         showCandles,
         showDayBoundaries,
         totalCapitalBaseData,
         totalCapitalProfitData,
+        visibleCandlePriceRange,
         workingCapitalGapData
     ])
 

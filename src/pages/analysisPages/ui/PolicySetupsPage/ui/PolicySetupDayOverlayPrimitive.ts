@@ -8,11 +8,17 @@ import type {
     SeriesAttachedParameter,
     Time
 } from 'lightweight-charts'
+import type { PolicySetupHistoryCandleDto } from '@/shared/types/policySetupHistory'
 import type { LineVisibilityMode } from './types'
 
 export interface PolicySetupVisibleTimeRange {
     from: number
     to: number
+}
+
+export interface PolicySetupPriceRange {
+    minValue: number
+    maxValue: number
 }
 
 interface PolicySetupPrimitiveMarker {
@@ -50,6 +56,88 @@ export interface PolicySetupDayOverlayPrimitiveData {
     showDayBoundaries: boolean
     lineVisibilityMode: LineVisibilityMode
     visibleTimeRange: PolicySetupVisibleTimeRange | null
+    visibleCandlePriceRange: PolicySetupPriceRange | null
+}
+
+function normalizePriceRange(range: PolicySetupPriceRange | null): PolicySetupPriceRange | null {
+    if (!range) return null
+    if (!Number.isFinite(range.minValue) || !Number.isFinite(range.maxValue)) return null
+
+    if (range.minValue === range.maxValue) {
+        const padding = Math.max(0.01, Math.abs(range.minValue) * 0.0025)
+        return {
+            minValue: range.minValue - padding,
+            maxValue: range.maxValue + padding
+        }
+    }
+
+    return range
+}
+
+function mergePriceRange(
+    currentRange: PolicySetupPriceRange | null,
+    nextRange: PolicySetupPriceRange | null
+): PolicySetupPriceRange | null {
+    if (!currentRange) return nextRange
+    if (!nextRange) return currentRange
+
+    return {
+        minValue: Math.min(currentRange.minValue, nextRange.minValue),
+        maxValue: Math.max(currentRange.maxValue, nextRange.maxValue)
+    }
+}
+
+function dayIntersectsVisibleRange(
+    day: PolicySetupPrimitiveDay,
+    visibleRange: PolicySetupVisibleTimeRange
+): boolean {
+    return day.endUnixSeconds >= visibleRange.from && day.startUnixSeconds <= visibleRange.to
+}
+
+/**
+ * Сводит visible candle range и day-level overlay range в один autoscale-контракт.
+ * Цена свечей остаётся главным источником масштаба, а уровни только расширяют его,
+ * чтобы оверлей не мог сплющить график до одной линии.
+ */
+export function buildPolicySetupOverlayAutoscaleRange(
+    data: PolicySetupDayOverlayPrimitiveData
+): PolicySetupPriceRange | null {
+    let resolvedRange = normalizePriceRange(data.visibleCandlePriceRange)
+
+    for (const day of data.days) {
+        if (data.visibleTimeRange && !dayIntersectsVisibleRange(day, data.visibleTimeRange)) {
+            continue
+        }
+
+        for (const level of day.levels) {
+            resolvedRange = mergePriceRange(resolvedRange, normalizePriceRange({
+                minValue: level.price,
+                maxValue: level.price
+            }))
+        }
+    }
+
+    return resolvedRange
+}
+
+/**
+ * Канонический диапазон цен свечей, который нужен примитиву для корректного autoscale.
+ * Берём low/high, а не open/close, чтобы в шкалу попадал весь реальный ход свечи.
+ */
+export function buildPolicySetupVisibleCandlePriceRange(
+    candles: readonly PolicySetupHistoryCandleDto[]
+): PolicySetupPriceRange | null {
+    if (candles.length === 0) return null
+
+    let minValue = Number.POSITIVE_INFINITY
+    let maxValue = Number.NEGATIVE_INFINITY
+
+    for (const candle of candles) {
+        minValue = Math.min(minValue, candle.low)
+        maxValue = Math.max(maxValue, candle.high)
+    }
+
+    return normalizePriceRange({ minValue, maxValue })
 }
 
 const DAY_SHADE_IDLE = 'rgba(120, 146, 167, 0.035)'
@@ -85,7 +173,8 @@ export class PolicySetupDayOverlayPrimitive
         hoveredTimestamp: null,
         showDayBoundaries: true,
         lineVisibilityMode: 'strong',
-        visibleTimeRange: null
+        visibleTimeRange: null,
+        visibleCandlePriceRange: null
     }
 
     public attached(params: SeriesAttachedParameter<Time>): void {
@@ -151,32 +240,15 @@ export class PolicySetupDayOverlayPrimitive
         const params = this.attachedParams
         if (!params) return null
 
-        let minValue = Number.POSITIVE_INFINITY
-        let maxValue = Number.NEGATIVE_INFINITY
-
-        for (const day of this.data.days) {
-            if (!this.intersectsVisibleRange(day)) continue
-
-            for (const level of day.levels) {
-                minValue = Math.min(minValue, level.price)
-                maxValue = Math.max(maxValue, level.price)
-            }
-        }
-
-        if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+        const priceRange = buildPolicySetupOverlayAutoscaleRange(this.data)
+        if (!priceRange) {
             return null
-        }
-
-        if (minValue === maxValue) {
-            const padding = Math.max(0.01, minValue * 0.0025)
-            minValue -= padding
-            maxValue += padding
         }
 
         return {
             priceRange: {
-                minValue,
-                maxValue
+                minValue: priceRange.minValue,
+                maxValue: priceRange.maxValue
             }
         }
     }
@@ -379,11 +451,6 @@ export class PolicySetupDayOverlayPrimitive
         context.stroke()
     }
 
-    private intersectsVisibleRange(day: PolicySetupPrimitiveDay): boolean {
-        const visibleRange = this.data.visibleTimeRange
-        if (!visibleRange) return true
-        return day.endUnixSeconds >= visibleRange.from && day.startUnixSeconds <= visibleRange.to
-    }
 }
 
 function resolveLevelColor(accent: PolicySetupPrimitiveLevel['accent']): string {
