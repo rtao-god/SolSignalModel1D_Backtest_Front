@@ -38,7 +38,7 @@ describe('resolveInitialVisibleRange', () => {
         const range = resolveInitialVisibleRange(days, 1600, '1m')
 
         expect(range).not.toBeNull()
-        expect(toIsoDay(range!.from as number)).toBe('2026-03-14')
+        expect(toIsoDay(range!.from as number)).toBe('2026-03-17')
         expect(toIsoDay(range!.to as number)).toBe('2026-03-21')
     })
 

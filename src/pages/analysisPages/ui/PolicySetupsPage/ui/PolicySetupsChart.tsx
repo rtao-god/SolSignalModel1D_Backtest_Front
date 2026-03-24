@@ -340,7 +340,7 @@ function resolveInitialVisibleDayCount(
     const widthDrivenDays = Math.floor(safeWidth / TARGET_DAY_WIDTH_PX)
 
     const [minDays, maxDays] =
-        resolution === '1m' ? [3, 7]
+        resolution === '1m' ? [2, 4]
         : resolution === '3h' ? [8, 18]
         : [12, 24]
 

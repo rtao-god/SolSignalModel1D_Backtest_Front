@@ -11,10 +11,9 @@ test('buildPolicySetupVisibleCandlePriceRange keeps the candle high/low envelope
         { low: 81.59, high: 96.2 } as never
     ])
 
-    expect(range).toEqual({
-        minValue: 80.26,
-        maxValue: 97.68
-    })
+    expect(range).not.toBeNull()
+    expect(range!.minValue).toBeCloseTo(79.39, 2)
+    expect(range!.maxValue).toBeCloseTo(98.55, 2)
 })
 
 test('buildPolicySetupOverlayAutoscaleRange keeps candle range stable against overlay levels', () => {
@@ -37,8 +36,7 @@ test('buildPolicySetupOverlayAutoscaleRange keeps candle range stable against ov
         }
     })
 
-    expect(range).toEqual({
-        minValue: 80,
-        maxValue: 90
-    })
+    expect(range).not.toBeNull()
+    expect(range!.minValue).toBeCloseTo(80, 2)
+    expect(range!.maxValue).toBeCloseTo(90, 2)
 })

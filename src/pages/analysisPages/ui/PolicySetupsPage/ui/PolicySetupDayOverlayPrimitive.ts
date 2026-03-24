@@ -87,6 +87,7 @@ export function buildPolicySetupOverlayAutoscaleRange(
 /**
  * Канонический диапазон цен свечей, который нужен примитиву для корректного autoscale.
  * Берём low/high, а не open/close, чтобы в шкалу попадал весь реальный ход свечи.
+ * Небольшой запас по краям нужен, чтобы плотные 1m-участки не превращались в визуально плоскую линию.
  */
 export function buildPolicySetupVisibleCandlePriceRange(
     candles: readonly PolicySetupHistoryCandleDto[]
@@ -101,7 +102,13 @@ export function buildPolicySetupVisibleCandlePriceRange(
         maxValue = Math.max(maxValue, candle.high)
     }
 
-    return normalizePriceRange({ minValue, maxValue })
+    const span = maxValue - minValue
+    const padding = Math.max(span * 0.05, Math.abs(maxValue) * 0.0025, 0.01)
+
+    return normalizePriceRange({
+        minValue: minValue - padding,
+        maxValue: maxValue + padding
+    })
 }
 
 const DAY_SHADE_IDLE = 'rgba(120, 146, 167, 0.035)'

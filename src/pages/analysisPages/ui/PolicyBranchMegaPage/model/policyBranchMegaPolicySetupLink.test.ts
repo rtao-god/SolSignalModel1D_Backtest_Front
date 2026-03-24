@@ -126,6 +126,8 @@ describe('resolvePolicySetupCellStateForMegaRow', () => {
             rowEvaluationError: null
         })
 
+        expect(result?.expectedLinkCount).toBe(2)
+        expect(result?.resolvedLinkCount).toBe(1)
         expect(result?.missingLinkCount).toBe(1)
         expect(result?.sampleLabels).toEqual(['trend_1x · ALT · WITH SL'])
         expect(result?.error).toBeNull()
@@ -141,6 +143,8 @@ describe('resolvePolicySetupCellStateForMegaRow', () => {
         })
 
         expect(result?.error?.message).toContain('policy setup evaluation map is missing')
+        expect(result?.expectedLinkCount).toBe(0)
+        expect(result?.resolvedLinkCount).toBe(0)
         expect(result?.missingLinkCount).toBe(0)
     })
 })

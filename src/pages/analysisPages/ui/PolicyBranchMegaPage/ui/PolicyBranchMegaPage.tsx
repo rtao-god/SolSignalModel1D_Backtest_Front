@@ -1271,8 +1271,23 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         }),
         [activePart, effectiveQueryArgsBase, effectiveDisplayMode, tableWindowCenterPart]
     )
+    const [isValidationQueryDeferredReady, setIsValidationQueryDeferredReady] = useState(false)
+    useEffect(() => {
+        setIsValidationQueryDeferredReady(false)
+
+        if (!primaryReport || !primaryEvaluationRows) {
+            return
+        }
+
+        // Сначала показываем опубликованный срез, а background-check запускаем уже после первого paint.
+        const timeoutId = window.setTimeout(() => {
+            setIsValidationQueryDeferredReady(true)
+        }, 0)
+
+        return () => window.clearTimeout(timeoutId)
+    }, [primaryEvaluationRows, primaryReport])
     const { data: validationStatus, error: validationError } = usePolicyBranchMegaValidationQuery(validationQueryArgs, {
-        enabled: Boolean(primaryReport && primaryEvaluationRows)
+        enabled: Boolean(primaryReport && primaryEvaluationRows && isValidationQueryDeferredReady)
     })
     const validationAlertState = useMemo(() => {
         if (validationError) {
@@ -2120,12 +2135,17 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                                     </div>
                                                     <Text className={cls.validationAlertText}>
                                                         {rowEvaluationAlertSummary.error ?
-                                                            'Ссылки на графики политики пока не опубликованы.'
-                                                        :   `В таблице отсутствуют переходы на график setup. Примеры: ${rowEvaluationAlertSummary.sampleLabels.join(' · ')}.`}
+                                                            `Ожидалось: опубликованная карта оценок строк для ${rowEvaluationAlertSummary.expectedLinkCount} строк текущей части. Получено: ${rowEvaluationAlertSummary.error.message}.`
+                                                        :   `Ожидалось: переходы на график setup для всех ${rowEvaluationAlertSummary.expectedLinkCount} строк текущей части. Получено: ${rowEvaluationAlertSummary.resolvedLinkCount} ссылок и ${rowEvaluationAlertSummary.missingLinkCount} строк без setupId.`}
                                                     </Text>
+                                                    {!rowEvaluationAlertSummary.error && rowEvaluationAlertSummary.sampleLabels.length > 0 && (
+                                                        <Text className={cls.validationAlertDetail}>
+                                                            {`Примеры: ${rowEvaluationAlertSummary.sampleLabels.join(' · ')}.`}
+                                                        </Text>
+                                                    )}
                                                     {rowEvaluationAlertSummary.error && (
                                                         <Text className={cls.validationAlertDetail}>
-                                                            {rowEvaluationAlertSummary.error.message}
+                                                            {`Причина: ${rowEvaluationAlertSummary.error.message}`}
                                                         </Text>
                                                     )}
                                                 </section>

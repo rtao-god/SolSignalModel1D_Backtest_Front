@@ -7,6 +7,8 @@ export interface PolicySetupCellState {
 }
 
 export interface PolicySetupLinkAlertSummary {
+    expectedLinkCount: number
+    resolvedLinkCount: number
     missingLinkCount: number
     sampleLabels: string[]
     error: Error | null
@@ -79,10 +81,13 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
     rowEvaluationError: Error | null
 }): PolicySetupLinkAlertSummary | null {
     const { rows, columns, rowEvaluationMap, evaluationMapReady, rowEvaluationError } = args
+    const expectedLinkCount = rows?.length ?? 0
 
     if (rowEvaluationError) {
         return {
-            missingLinkCount: 0,
+            expectedLinkCount,
+            resolvedLinkCount: 0,
+            missingLinkCount: expectedLinkCount,
             sampleLabels: [],
             error: rowEvaluationError
         }
@@ -114,6 +119,8 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
     }
 
     return {
+        expectedLinkCount,
+        resolvedLinkCount: expectedLinkCount - missingLabels.length,
         missingLinkCount: missingLabels.length,
         sampleLabels: missingLabels.slice(0, 3),
         error: null
