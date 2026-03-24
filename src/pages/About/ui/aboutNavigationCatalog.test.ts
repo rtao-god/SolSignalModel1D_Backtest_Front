@@ -52,4 +52,8 @@ describe('aboutNavigationCatalog', () => {
             expect(entry.blocks.length).toBeGreaterThan(0)
         })
     })
+
+    test('does not expose hidden feature routes in about atlas', () => {
+        expect(ABOUT_NAVIGATION_ENTRIES.map(entry => entry.routeId)).not.toContain(AppRoute.PFI_SL_MODEL)
+    })
 })

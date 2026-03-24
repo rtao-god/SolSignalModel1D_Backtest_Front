@@ -130,6 +130,9 @@ describe('resolvePolicySetupCellStateForMegaRow', () => {
         expect(result?.resolvedLinkCount).toBe(1)
         expect(result?.missingLinkCount).toBe(1)
         expect(result?.sampleLabels).toEqual(['trend_1x · ALT · WITH SL'])
+        expect(result?.sampleDetails).toEqual([
+            'trend_1x · ALT · WITH SL — policySetupId=null; isolated; список причин пуст'
+        ])
         expect(result?.error).toBeNull()
     })
 
@@ -146,5 +149,6 @@ describe('resolvePolicySetupCellStateForMegaRow', () => {
         expect(result?.expectedLinkCount).toBe(0)
         expect(result?.resolvedLinkCount).toBe(0)
         expect(result?.missingLinkCount).toBe(0)
+        expect(result?.sampleDetails).toEqual([])
     })
 })
