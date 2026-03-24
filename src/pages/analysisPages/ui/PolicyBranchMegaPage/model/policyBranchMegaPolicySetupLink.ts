@@ -11,6 +11,7 @@ export interface PolicySetupLinkAlertSummary {
     resolvedLinkCount: number
     missingLinkCount: number
     sampleLabels: string[]
+    sampleDetails: string[]
     error: Error | null
 }
 
@@ -89,6 +90,7 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
             resolvedLinkCount: 0,
             missingLinkCount: expectedLinkCount,
             sampleLabels: [],
+            sampleDetails: [],
             error: rowEvaluationError
         }
     }
@@ -98,6 +100,7 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
     }
 
     const missingLabels: string[] = []
+    const missingDetails: string[] = []
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
         const row = rows[rowIndex]
         const cellState = resolvePolicySetupCellStateForMegaRow({
@@ -112,6 +115,9 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
         }
 
         missingLabels.push(buildMegaRowAlertLabel(row, columns, rowIndex))
+        missingDetails.push(
+            buildMegaRowAlertDetail(row, columns, rowIndex, rowEvaluationMap, evaluationMapReady)
+        )
     }
 
     if (missingLabels.length === 0) {
@@ -123,6 +129,7 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
         resolvedLinkCount: expectedLinkCount - missingLabels.length,
         missingLinkCount: missingLabels.length,
         sampleLabels: missingLabels.slice(0, 3),
+        sampleDetails: missingDetails.slice(0, 3),
         error: null
     }
 }
@@ -158,4 +165,40 @@ function buildMegaRowAlertLabel(
     }
 
     return parts.join(' · ')
+}
+
+function buildMegaRowAlertDetail(
+    row: readonly unknown[] | null | undefined,
+    columns: readonly string[],
+    rowIndex: number,
+    rowEvaluationMap: PolicyRowEvaluationMapDto['rows'] | undefined,
+    evaluationMapReady: boolean
+): string {
+    const label = buildMegaRowAlertLabel(row, columns, rowIndex)
+    if (!evaluationMapReady || !rowEvaluationMap) {
+        return `${label} — опубликованная карта оценок строк ещё не готова`
+    }
+
+    const rowKey = resolveMegaRenderedRowKey(row, columns)
+    if (!rowKey) {
+        return `${label} — ключ строки не удалось восстановить`
+    }
+
+    const evaluation = rowEvaluationMap[rowKey]
+    if (!evaluation) {
+        return `${label} — опубликованная оценка строки отсутствует`
+    }
+
+    const reasonText =
+        evaluation.reasons.length > 0 ?
+            evaluation.reasons
+                .slice(0, 3)
+                .map(reason => `${reason.code}: ${reason.message}`)
+                .join(' · ')
+        :   'список причин пуст'
+
+    const marginModeText = evaluation.metrics.marginMode ?? 'marginMode=null'
+    const setupIdText = evaluation.policySetupId ?? 'policySetupId=null'
+
+    return `${label} — ${setupIdText}; ${marginModeText}; ${reasonText}`
 }

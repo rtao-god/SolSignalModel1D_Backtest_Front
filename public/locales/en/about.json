@@ -332,6 +332,27 @@
                 }
             }
         },
+        "backtest_policy_setups": {
+            "description": "Policy setup history shows the full chart, the day ledger, and the published candles for one policy setup.",
+            "blocks": {
+                "publishedStatus": {
+                    "title": "Publication status",
+                    "description": "State of the published setup report and the rebuild flow."
+                },
+                "controls": {
+                    "title": "Viewing controls",
+                    "description": "Range, resolution, and balance-view controls that shape the chart window."
+                },
+                "chartExplorer": {
+                    "title": "Chart and candles",
+                    "description": "The main price chart with the setup overlay and the capital timeline."
+                },
+                "detailView": {
+                    "title": "Setup detail",
+                    "description": "Ledger rows and the current setup identity opened from the table."
+                }
+            }
+        },
         "backtest_confidence_risk": {
             "description": "Confidence statistics links confidence with accuracy, TP/SL reach, and price behavior.",
             "blocks": {

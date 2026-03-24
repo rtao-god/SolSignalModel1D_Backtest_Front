@@ -2143,6 +2143,11 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                                             {`Примеры: ${rowEvaluationAlertSummary.sampleLabels.join(' · ')}.`}
                                                         </Text>
                                                     )}
+                                                    {!rowEvaluationAlertSummary.error && rowEvaluationAlertSummary.sampleDetails.length > 0 && (
+                                                        <Text className={cls.validationAlertDetail}>
+                                                            {`Причина: ${rowEvaluationAlertSummary.sampleDetails.join(' | ')}.`}
+                                                        </Text>
+                                                    )}
                                                     {rowEvaluationAlertSummary.error && (
                                                         <Text className={cls.validationAlertDetail}>
                                                             {`Причина: ${rowEvaluationAlertSummary.error.message}`}

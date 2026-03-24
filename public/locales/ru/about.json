@@ -332,6 +332,27 @@
                 }
             }
         },
+        "backtest_policy_setups": {
+            "description": "Журнал policy setup показывает полный график, дневной ledger и опубликованные свечи для одной policy setup.",
+            "blocks": {
+                "publishedStatus": {
+                    "title": "Статус публикации",
+                    "description": "Состояние опубликованного отчёта setup и поток его пересборки."
+                },
+                "controls": {
+                    "title": "Панель просмотра",
+                    "description": "Контролы диапазона, resolution и режима баланса, которые задают окно графика."
+                },
+                "chartExplorer": {
+                    "title": "График и свечи",
+                    "description": "Основной ценовой график с overlay setup и временной линией капитала."
+                },
+                "detailView": {
+                    "title": "Детальная карточка setup",
+                    "description": "Строки ledger и текущий setupId, открываемый из таблицы."
+                }
+            }
+        },
         "backtest_confidence_risk": {
             "description": "Статистика уверенности связывает confidence с точностью, TP/SL и характером движения цены.",
             "blocks": {
