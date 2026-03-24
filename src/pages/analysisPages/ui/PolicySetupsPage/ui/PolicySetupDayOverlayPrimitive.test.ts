@@ -17,7 +17,7 @@ test('buildPolicySetupVisibleCandlePriceRange keeps the candle high/low envelope
     })
 })
 
-test('buildPolicySetupOverlayAutoscaleRange merges candle range with overlay levels', () => {
+test('buildPolicySetupOverlayAutoscaleRange keeps candle range stable against overlay levels', () => {
     const range = buildPolicySetupOverlayAutoscaleRange({
         days: [
             {
@@ -39,6 +39,6 @@ test('buildPolicySetupOverlayAutoscaleRange merges candle range with overlay lev
 
     expect(range).toEqual({
         minValue: 80,
-        maxValue: 120.3
+        maxValue: 90
     })
 })

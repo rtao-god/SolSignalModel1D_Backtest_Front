@@ -74,50 +74,14 @@ function normalizePriceRange(range: PolicySetupPriceRange | null): PolicySetupPr
     return range
 }
 
-function mergePriceRange(
-    currentRange: PolicySetupPriceRange | null,
-    nextRange: PolicySetupPriceRange | null
-): PolicySetupPriceRange | null {
-    if (!currentRange) return nextRange
-    if (!nextRange) return currentRange
-
-    return {
-        minValue: Math.min(currentRange.minValue, nextRange.minValue),
-        maxValue: Math.max(currentRange.maxValue, nextRange.maxValue)
-    }
-}
-
-function dayIntersectsVisibleRange(
-    day: PolicySetupPrimitiveDay,
-    visibleRange: PolicySetupVisibleTimeRange
-): boolean {
-    return day.endUnixSeconds >= visibleRange.from && day.startUnixSeconds <= visibleRange.to
-}
-
 /**
- * Сводит visible candle range и day-level overlay range в один autoscale-контракт.
- * Цена свечей остаётся главным источником масштаба, а уровни только расширяют его,
- * чтобы оверлей не мог сплющить график до одной линии.
+ * Берёт только candle range как источник масштаба.
+ * Day-level overlay рисуется поверх свечей и не должен раздвигать шкалу до плоской линии.
  */
 export function buildPolicySetupOverlayAutoscaleRange(
     data: PolicySetupDayOverlayPrimitiveData
 ): PolicySetupPriceRange | null {
-    let resolvedRange = normalizePriceRange(data.visibleCandlePriceRange)
-
-    for (const day of data.days) {
-        if (data.visibleTimeRange && !dayIntersectsVisibleRange(day, data.visibleTimeRange)) {
-            continue
-        }
-
-        for (const level of day.levels) {
-            resolvedRange = mergePriceRange(resolvedRange, normalizePriceRange({
-                minValue: level.price,
-                maxValue: level.price
-            }))
-        }
-    }
-
-    return resolvedRange
+    return normalizePriceRange(data.visibleCandlePriceRange)
 }
 
 /**

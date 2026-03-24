@@ -39,8 +39,6 @@ interface PolicySetupDayWindow {
     dayBlockEndTs: number
 }
 const TARGET_DAY_WIDTH_PX = 56
-const MIN_INITIAL_VISIBLE_DAYS = 12
-const MAX_INITIAL_VISIBLE_DAYS = 32
 const PRICE_CHART_HEIGHT_PX = 560
 const BALANCE_CHART_HEIGHT_PX = 232
 const TRANSPARENT = 'rgba(0, 0, 0, 0)'
@@ -333,20 +331,30 @@ function buildCapitalSeriesData(
     )
 }
 
-function resolveInitialVisibleRange(
+function resolveInitialVisibleDayCount(
+    resolution: PolicySetupHistoryResolution,
+    containerWidth: number,
+    totalDays: number
+): number {
+    const safeWidth = Number.isFinite(containerWidth) && containerWidth > 0 ? containerWidth : 1200
+    const widthDrivenDays = Math.floor(safeWidth / TARGET_DAY_WIDTH_PX)
+
+    const [minDays, maxDays] =
+        resolution === '1m' ? [3, 7]
+        : resolution === '3h' ? [8, 18]
+        : [12, 24]
+
+    return Math.min(totalDays, clamp(widthDrivenDays, minDays, maxDays))
+}
+
+export function resolveInitialVisibleRange(
     days: PolicySetupHistoryDayDto[],
-    containerWidth: number
+    containerWidth: number,
+    resolution: PolicySetupHistoryResolution
 ): { from: Time; to: Time } | null {
     if (days.length === 0) return null
 
-    const safeWidth = Number.isFinite(containerWidth) && containerWidth > 0 ? containerWidth : 1200
-    const targetDays = Math.min(
-        days.length,
-        Math.max(
-            MIN_INITIAL_VISIBLE_DAYS,
-            Math.min(MAX_INITIAL_VISIBLE_DAYS, Math.floor(safeWidth / TARGET_DAY_WIDTH_PX))
-        )
-    )
+    const targetDays = resolveInitialVisibleDayCount(resolution, containerWidth, days.length)
     const startIndex = Math.max(0, days.length - targetDays)
 
     return {
@@ -860,7 +868,11 @@ export default function PolicySetupsChart({
             return
         }
 
-        const visibleRange = resolveInitialVisibleRange(visibleDays, container.clientWidth)
+        const visibleRange = resolveInitialVisibleRange(
+            visibleDays,
+            container.clientWidth,
+            candlesResponse.appliedRange.resolution
+        )
         if (!visibleRange) return
 
         try {
@@ -884,7 +896,8 @@ export default function PolicySetupsChart({
         ledger.setup.setupId,
         updateVisibleTimeRange,
         viewportResetKey,
-        visibleDays
+        visibleDays,
+        candlesResponse.appliedRange.resolution
     ])
 
     useEffect(() => {
