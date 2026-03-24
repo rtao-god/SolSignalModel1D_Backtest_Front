@@ -117,33 +117,56 @@ function DemoErrorCard({ title, description, details }: { title: string; descrip
 
 /**
  * Компактная карточка лучшей Policy для главной страницы.
- * Карточка читает один опубликованный report snapshot и не собирает mega payload,
- * части или графики. Полная таблица остаётся на отдельной странице.
+ * Карточка читает только два опубликованных part-среза: лидерство берётся из part 1,
+ * а хвостовой риск HadLiq добирается из соседнего part 2. Полная таблица и графики
+ * остаются на отдельной странице.
  */
 export default function MainBestPolicySection() {
     const { t, i18n } = useTranslation('reports')
     const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
-    const reportQueryArgs = useMemo(
+    const primaryReportQueryArgs = useMemo(
         () => ({
             ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
             part: 1
         }),
         []
     )
+    const secondaryReportQueryArgs = useMemo(
+        () => ({
+            ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
+            part: 2
+        }),
+        []
+    )
     const {
-        data: report,
-        isError,
-        error,
-        isLoading
-    } = usePolicyBranchMegaReportDocumentQuery(reportQueryArgs, { enabled: true })
+        data: primaryReport,
+        isError: isPrimaryError,
+        error: primaryError,
+        isLoading: isPrimaryLoading
+    } = usePolicyBranchMegaReportDocumentQuery(primaryReportQueryArgs, { enabled: true })
+    const {
+        data: secondaryReport,
+        isError: isSecondaryError,
+        error: secondaryError,
+        isLoading: isSecondaryLoading
+    } = usePolicyBranchMegaReportDocumentQuery(secondaryReportQueryArgs, { enabled: true })
+
+    const reportLoadError = primaryError ?? secondaryError ?? null
+    const isLoading = isPrimaryLoading || isSecondaryLoading
+    const isError = isPrimaryError || isSecondaryError
 
     const bestPolicyState = useMemo(() => {
-        if (!report) {
+        if (!primaryReport || !secondaryReport) {
             return { best: null as MainBestPolicyRowBundle | null, error: null as Error | null }
         }
 
         try {
-            const sections = buildMainDemoPolicyBranchMegaSections(report.sections ?? [])
+            // Мини-демо читает только два опубликованных part-среза:
+            // первый отвечает за лидерство, второй приносит хвостовой риск HadLiq.
+            const sections = buildMainDemoPolicyBranchMegaSections([
+                ...(primaryReport.sections ?? []),
+                ...(secondaryReport.sections ?? [])
+            ])
             return {
                 best: resolveMainDemoBestPolicyRows(sections),
                 error: null as Error | null
@@ -154,7 +177,7 @@ export default function MainBestPolicySection() {
                 error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
             }
         }
-    }, [report])
+    }, [primaryReport, secondaryReport])
 
     const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
@@ -261,7 +284,7 @@ export default function MainBestPolicySection() {
             <DemoErrorCard
                 title={t('main.demo.errors.loadTitle')}
                 description={t('main.demo.errors.loadDescription')}
-                details={error instanceof Error ? error.message : String(error ?? '')}
+                details={reportLoadError instanceof Error ? reportLoadError.message : String(reportLoadError ?? '')}
             />
         )
     }

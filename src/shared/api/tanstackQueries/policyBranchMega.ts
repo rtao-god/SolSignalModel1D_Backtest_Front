@@ -181,6 +181,38 @@ function buildPolicyBranchMegaPartPrefetchOptions(
     }
 }
 
+/**
+ * Возвращает окно из активной части и соседних частей слева/справа.
+ * Нужно для table-view: пользователь должен видеть текущую часть,
+ * а соседние части должны подгружаться фоном до перехода по скроллу.
+ */
+export function resolvePolicyBranchMegaNeighborParts(
+    availableParts: readonly number[],
+    activePart: number
+): number[] {
+    const orderedParts = Array.from(
+        new Set(
+            availableParts.filter(part => Number.isInteger(part) && part > 0)
+        )
+    ).sort((left, right) => left - right)
+
+    if (orderedParts.length === 0) {
+        return [activePart]
+    }
+
+    const activeIndex = orderedParts.indexOf(activePart)
+    if (activeIndex < 0) {
+        const insertionIndex = orderedParts.findIndex(part => part > activePart)
+        const resolvedIndex = insertionIndex >= 0 ? insertionIndex : orderedParts.length - 1
+
+        const fallbackWindow = orderedParts.slice(Math.max(0, resolvedIndex - 1), Math.min(orderedParts.length, resolvedIndex + 2))
+        return Array.from(new Set(fallbackWindow))
+    }
+
+    const windowParts = orderedParts.slice(Math.max(0, activeIndex - 1), Math.min(orderedParts.length, activeIndex + 2))
+    return Array.from(new Set(windowParts))
+}
+
 function buildPolicyBranchMegaPayloadQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_PAYLOAD_QUERY_KEY_BASE,
@@ -807,6 +839,8 @@ export async function prefetchPolicyBranchMegaReportParts(
     const availableParts = payload.capabilities.availableParts
     const prefetchTasks: Array<Promise<void>> = []
 
+    // В navigation warmup держим все части доступными, чтобы hash-переходы
+    // и быстрый просмотр страницы не зависели от повторного on-demand fetch.
     for (const part of availableParts) {
         if (part === entryArgs.part) {
             continue

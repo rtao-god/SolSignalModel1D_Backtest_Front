@@ -33,4 +33,31 @@ describe('mainBestPolicySectionModel', () => {
         expect(bestPolicy.branch).toBe('BASE')
         expect(bestPolicy.totalPnlPct).toBe(25)
     })
+
+    test('keeps the merged policy row readable across neighboring parts', () => {
+        const sections: TableSectionDto[] = [
+            {
+                title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
+                rows: [
+                    ['const_2x', 'BASE', '12.50', '4'],
+                    ['const_3x', 'BASE', '25.00', '7']
+                ]
+            },
+            {
+                title: 'Policy Branch Mega [Daily] WITH SL [PART 2/4]',
+                columns: ['Policy', 'Branch', 'HadLiq', 'StartCap$'],
+                rows: [
+                    ['const_2x', 'BASE', 'No', '20000'],
+                    ['const_3x', 'BASE', 'Yes', '20000']
+                ]
+            }
+        ]
+
+        const normalizedSections = buildMainDemoPolicyBranchMegaSections(sections)
+        const bestPolicy = resolveMainDemoBestPolicyRows(normalizedSections)
+        const riskSection = bestPolicy.sectionRows.find(item => (item.section.columns ?? []).includes('HadLiq'))
+
+        expect(riskSection?.row[riskSection.section.columns!.indexOf('HadLiq')]).toBe('Yes')
+    })
 })

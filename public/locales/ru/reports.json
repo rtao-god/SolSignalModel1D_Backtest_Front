@@ -2280,8 +2280,7 @@
                 "policySetupLinkErrors": {
                     "rowKeyMissing": "Не удалось собрать ключ строки",
                     "evaluationMapError": "Не загрузилась карта оценок строк",
-                    "rowEvaluationMissing": "Для строки нет оценки policy setup",
-                    "setupIdMissing": "Для строки нет идентификатора policy setup"
+                    "rowEvaluationMissing": "Для строки нет оценки policy setup"
                 }
             }
         }

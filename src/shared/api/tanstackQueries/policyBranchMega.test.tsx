@@ -9,6 +9,7 @@ import {
     prefetchPolicyBranchMegaReportParts,
     prefetchPolicyBranchMegaReportPayload,
     resolvePolicyBranchMegaReportQueryArgs,
+    resolvePolicyBranchMegaNeighborParts,
     usePolicyBranchMegaReportDocumentQuery,
     usePolicyBranchMegaReportQuery
 } from './policyBranchMega'
@@ -213,6 +214,12 @@ describe('policyBranchMega report queries', () => {
         expect(requestedUrls.some(url => url.includes('part=2'))).toBe(true)
         expect(requestedUrls.some(url => url.includes('part=3'))).toBe(true)
         expect(requestedUrls.some(url => url.includes('part=4'))).toBe(true)
+    })
+
+    test('keeps a one-part neighbor window around the active mega part', () => {
+        expect(resolvePolicyBranchMegaNeighborParts([1, 2, 3, 4], 1)).toEqual([1, 2])
+        expect(resolvePolicyBranchMegaNeighborParts([1, 2, 3, 4], 2)).toEqual([1, 2, 3])
+        expect(resolvePolicyBranchMegaNeighborParts([1, 2, 3, 4], 4)).toEqual([3, 4])
     })
 
     test('surfaces the real report endpoint error without status fallback noise', async () => {

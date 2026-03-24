@@ -2280,8 +2280,7 @@
                 "policySetupLinkErrors": {
                     "rowKeyMissing": "Failed to build row key",
                     "evaluationMapError": "Row evaluation map failed to load",
-                    "rowEvaluationMissing": "No policy setup evaluation for this row",
-                    "setupIdMissing": "No policy setup identifier for this row"
+                    "rowEvaluationMissing": "No policy setup evaluation for this row"
                 }
             }
         }

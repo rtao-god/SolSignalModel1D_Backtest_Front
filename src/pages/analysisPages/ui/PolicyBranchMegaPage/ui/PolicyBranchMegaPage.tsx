@@ -21,7 +21,7 @@ import {
 } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
-import type { TableSectionDto } from '@/shared/types/report.types'
+import type { ReportDocumentDto, TableSectionDto } from '@/shared/types/report.types'
 import type { PolicyRowEvaluationMapDto } from '@/shared/types/policyEvaluation.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import {
@@ -42,6 +42,7 @@ import {
     POLICY_BRANCH_MEGA_CANONICAL_PARTS,
     POLICY_BRANCH_MEGA_GC_TIME_MS,
     POLICY_BRANCH_MEGA_STALE_TIME_MS,
+    resolvePolicyBranchMegaNeighborParts,
     usePolicyBranchMegaReportQuery,
     usePolicyBranchMegaValidationQuery
 } from '@/shared/api/tanstackQueries/policyBranchMega'
@@ -380,7 +381,6 @@ type PolicySetupCellIssueCode =
     | 'row-key-missing'
     | 'evaluation-map-error'
     | 'row-evaluation-missing'
-    | 'setup-id-missing'
 
 function resolvePolicySetupCellIssueTranslationKey(issueCode: PolicySetupCellIssueCode): string {
     switch (issueCode) {
@@ -390,8 +390,6 @@ function resolvePolicySetupCellIssueTranslationKey(issueCode: PolicySetupCellIss
             return 'policyBranchMega.page.table.policySetupLinkErrors.evaluationMapError'
         case 'row-evaluation-missing':
             return 'policyBranchMega.page.table.policySetupLinkErrors.rowEvaluationMissing'
-        case 'setup-id-missing':
-            return 'policyBranchMega.page.table.policySetupLinkErrors.setupIdMissing'
         default:
             throw new Error(`[policy-branch-mega] unsupported policy setup issue code: ${issueCode satisfies never}`)
     }
@@ -435,7 +433,9 @@ function resolvePolicySetupCellStateForMegaRow(args: {
 
     const setupId = evaluation.policySetupId ?? null
     if (!setupId) {
-        return { detailPath: null, issueCode: 'setup-id-missing' }
+        // setupId может отсутствовать в published evaluation для части строк.
+        // В таком случае строка остаётся читаемой, но без detail-ссылки.
+        return { detailPath: null, issueCode: null }
     }
 
     return { detailPath: buildPolicySetupDetailPath(setupId), issueCode: null }
@@ -1368,7 +1368,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             return normalizedAvailableParts
         }
 
-        return normalizedAvailableParts.includes(activePart) ? [activePart] : [normalizedAvailableParts[0]!]
+        // Table view держит активную часть и её соседей.
+        // Это оставляет текущий экран лёгким и заранее подготавливает следующую часть под scroll.
+        return resolvePolicyBranchMegaNeighborParts(normalizedAvailableParts, activePart)
     }, [activePart, effectiveDisplayMode, normalizedAvailableParts])
     const extraPartNumbers = useMemo(
         () => requestedPartNumbers.filter(part => part !== activePart),
@@ -1384,14 +1386,19 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             return {
                 queryKey: buildPolicyBranchMegaQueryKey(nextArgs),
                 queryFn: () => fetchPolicyBranchMegaReport(nextArgs),
-                enabled: effectiveDisplayMode === 'chart' && normalizedAvailableParts.includes(part),
+                enabled: normalizedAvailableParts.includes(part),
                 retry: false,
                 staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
                 gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
                 refetchOnWindowFocus: false
             }
         })
-    })
+    }) as Array<{
+        data: ReportDocumentDto | undefined
+        isLoading: boolean
+        isFetching: boolean
+        error: Error | null
+    }>
 
     const loadedPartReportsState = useMemo(() => {
         const reports: Array<{ part: number; report: typeof primaryReport }> = []
