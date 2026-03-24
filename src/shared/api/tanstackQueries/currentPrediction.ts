@@ -4,6 +4,7 @@ import type {
     CurrentPredictionHistoryItemDto,
     CurrentPredictionHistoryPageDto,
     CurrentPredictionIndexItemDto,
+    CurrentPredictionLivePublicationInfoDto,
     CurrentPredictionLivePayloadDto,
     CurrentPredictionSet,
     CurrentPredictionTrainingScope
@@ -121,6 +122,34 @@ function mapCurrentPredictionTrainingScopeStats(
     }
 }
 
+function mapCurrentPredictionLivePublicationInfo(raw: unknown): CurrentPredictionLivePublicationInfoDto | null {
+    if (raw === null || typeof raw === 'undefined') {
+        return null
+    }
+
+    if (!raw || typeof raw !== 'object') {
+        throw new Error('[current-prediction] publication payload must be an object.')
+    }
+
+    const publication = raw as Record<string, unknown>
+
+    return {
+        targetPredictionDateUtc: readRequiredDateString(
+            publication.targetPredictionDateUtc,
+            'publication.targetPredictionDateUtc'
+        ),
+        publishedPredictionDateUtc: readRequiredDateString(
+            publication.publishedPredictionDateUtc,
+            'publication.publishedPredictionDateUtc'
+        ),
+        isTargetPredictionDatePublished: readRequiredBoolean(
+            publication.isTargetPredictionDatePublished,
+            'publication.isTargetPredictionDatePublished'
+        ),
+        expectedPreview: readRequiredBoolean(publication.expectedPreview, 'publication.expectedPreview')
+    }
+}
+
 function mapCurrentPredictionHistoryItem(raw: unknown, index: number): CurrentPredictionHistoryItemDto {
     if (!raw || typeof raw !== 'object') {
         throw new Error(`[current-prediction] history item must be an object. index=${index}.`)
@@ -194,6 +223,9 @@ function mapCurrentPredictionLivePayloadResponse(raw: unknown): CurrentPredictio
 
     return {
         report: mapReportResponse(payload.report),
+        // Поле publication читается мягко, чтобы rolling deploy не ломал страницу,
+        // если frontend уже обновлён, а backend ещё отдаёт старый payload без metadata.
+        publication: mapCurrentPredictionLivePublicationInfo(payload.publication),
         trainingScopeStats: mapCurrentPredictionTrainingScopeStats(payload.trainingScopeStats)
     }
 }

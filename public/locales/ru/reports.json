@@ -673,13 +673,16 @@
             "statusLabel": "Статус прогноза:",
             "reportStatus": {
                 "title": "ACTUAL: опубликованный текущий прогноз",
-                "message": "Показывается сохранённый текущий прогноз для режима {{mode}}."
+                "message": "Показывается сохранённый текущий прогноз для режима {{mode}}.",
+                "latestPublishedTitle": "ACTUAL: последний опубликованный текущий прогноз",
+                "latestPublishedMessage": "Показывается последний опубликованный прогноз для режима {{mode}}. Опубликованный день {{publishedDateUtc}}, целевой день {{targetDateUtc}} ещё не собран."
             },
             "meta": {
                 "currentReport": "Источник карточки: опубликованный текущий прогноз",
                 "selectedMode": "Активный режим обучения: {{mode}}",
                 "trainingModel": "Рабочий контур обучения: {{model}}",
-                "trainingModelFallback": "нет данных (проверь секцию обучения в отчёте)"
+                "trainingModelFallback": "нет данных (проверь секцию обучения в отчёте)",
+                "publishedPredictionDay": "День опубликованного прогноза: {{dateUtc}}"
             },
             "clientError": {
                 "title": "Ошибка при отображении отчёта",

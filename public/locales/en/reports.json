@@ -673,13 +673,16 @@
             "statusLabel": "Prediction status:",
             "reportStatus": {
                 "title": "ACTUAL: published current prediction",
-                "message": "Showing the saved current prediction for mode {{mode}}."
+                "message": "Showing the saved current prediction for mode {{mode}}.",
+                "latestPublishedTitle": "ACTUAL: latest published current prediction",
+                "latestPublishedMessage": "Showing the latest published prediction for mode {{mode}}. Published day: {{publishedDateUtc}}; target day {{targetDateUtc}} is not published yet."
             },
             "meta": {
                 "currentReport": "Current report: {{reportSet}}",
                 "selectedMode": "Selected mode: {{mode}}",
                 "trainingModel": "Training model: {{model}}",
-                "trainingModelFallback": "no data (check training section in the report)"
+                "trainingModelFallback": "no data (check training section in the report)",
+                "publishedPredictionDay": "Published prediction day: {{dateUtc}}"
             },
             "clientError": {
                 "title": "Report rendering error",

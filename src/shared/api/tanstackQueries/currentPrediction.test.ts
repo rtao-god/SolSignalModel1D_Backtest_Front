@@ -28,6 +28,12 @@ describe('currentPrediction published payload queries', () => {
                         generatedAtUtc: '2026-03-23T09:00:00Z',
                         sections: []
                     },
+                    publication: {
+                        targetPredictionDateUtc: '2026-03-24',
+                        publishedPredictionDateUtc: '2026-03-23',
+                        isTargetPredictionDatePublished: false,
+                        expectedPreview: true
+                    },
                     trainingScopeStats: {
                         fullStartDateUtc: '2021-10-11',
                         fullEndDateUtc: '2026-03-21',
@@ -61,8 +67,38 @@ describe('currentPrediction published payload queries', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1)
         expect(payload.report.id).toBe('current-live')
+        expect(payload.publication?.publishedPredictionDateUtc).toBe('2026-03-23')
+        expect(payload.publication?.isTargetPredictionDatePublished).toBe(false)
         expect(payload.trainingScopeStats?.recentTailRowsLimit).toBe(240)
         expect(payload.trainingScopeStats?.firstOosDateUtc).toBe('2025-11-21')
+    })
+
+    test('accepts live payload without publication metadata during rolling deploy', async () => {
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input)
+
+            if (url.includes('/api/current-prediction/payload?scope=full')) {
+                return jsonResponse({
+                    report: {
+                        schemaVersion: 1,
+                        id: 'current-live-legacy',
+                        kind: 'current_prediction',
+                        title: 'Current prediction legacy payload',
+                        generatedAtUtc: '2026-03-23T09:00:00Z',
+                        sections: []
+                    }
+                })
+            }
+
+            throw new Error(`Unexpected url: ${url}`)
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        const payload = await fetchCurrentPredictionLivePayload('full')
+
+        expect(payload.report.id).toBe('current-live-legacy')
+        expect(payload.publication).toBeNull()
     })
 
     test('loads history page from one page endpoint without catalog and item subrequests', async () => {

@@ -143,6 +143,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
 
     const { data: payload, isLoading, isError, error, refetch } = useCurrentPredictionLivePayloadQuery(trainingScope)
     const data = payload?.report ?? null
+    const livePublication = payload?.publication ?? null
     const trainingScopeStats = payload?.trainingScopeStats ?? null
 
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
@@ -170,10 +171,20 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
     const documentFreshness = useMemo(
         () => ({
             statusMode: 'actual' as const,
-            statusTitle: t('currentPrediction.page.reportStatus.title'),
-            statusMessage: t('currentPrediction.page.reportStatus.message', { mode: currentScopeMeta.label })
+            statusTitle:
+                livePublication && !livePublication.isTargetPredictionDatePublished ?
+                    t('currentPrediction.page.reportStatus.latestPublishedTitle')
+                :   t('currentPrediction.page.reportStatus.title'),
+            statusMessage:
+                livePublication && !livePublication.isTargetPredictionDatePublished ?
+                    t('currentPrediction.page.reportStatus.latestPublishedMessage', {
+                        mode: currentScopeMeta.label,
+                        publishedDateUtc: livePublication.publishedPredictionDateUtc,
+                        targetDateUtc: livePublication.targetPredictionDateUtc
+                    })
+                :   t('currentPrediction.page.reportStatus.message', { mode: currentScopeMeta.label })
         }),
-        [currentScopeMeta.label, t]
+        [currentScopeMeta.label, livePublication, t]
     )
     // Explain-блок live-страницы читает диапазоны всех history scope из лёгкого index API,
     // чтобы Full и OOS всегда показывали реальные окна даже если открыт только один live-report.
@@ -361,6 +372,13 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                                     model: trainingLabel ?? t('currentPrediction.page.meta.trainingModelFallback')
                                 })}
                             </Text>
+                            {livePublication && (
+                                <Text type='p' className={cls.metaLine}>
+                                    {t('currentPrediction.page.meta.publishedPredictionDay', {
+                                        dateUtc: livePublication.publishedPredictionDateUtc
+                                    })}
+                                </Text>
+                            )}
                         </div>
 
                         <SectionErrorBoundary

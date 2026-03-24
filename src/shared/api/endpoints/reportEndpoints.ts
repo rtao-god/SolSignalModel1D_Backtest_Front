@@ -48,8 +48,28 @@ export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
     lastTrainDateUtc: string
     firstOosDateUtc: string
 }
+/**
+ * Published-read metadata для live current prediction.
+ * Поле отделяет факт наличия последнего опубликованного снимка от вопроса,
+ * совпадает ли он уже с целевым торговым днём.
+ */
+export interface CurrentPredictionLivePublicationInfoDto {
+    /** Целевой торговый день, для которого live sync ожидает актуальную публикацию. */
+    targetPredictionDateUtc: string
+    /** День прогноза внутри фактически отданного published live-отчёта. */
+    publishedPredictionDateUtc: string
+    /** Признак, что опубликованный live-снимок уже совпадает с целевым днём. */
+    isTargetPredictionDatePublished: boolean
+    /** Признак preview-режима для целевого торгового дня на стороне backend. */
+    expectedPreview: boolean
+}
+/**
+ * Единый payload live current prediction.
+ * Хранит сам опубликованный отчёт, опубликованную дату этого снимка и лёгкую split-статистику.
+ */
 export interface CurrentPredictionLivePayloadDto {
     report: ReportDocumentDto
+    publication?: CurrentPredictionLivePublicationInfoDto | null
     trainingScopeStats?: CurrentPredictionBackfilledTrainingScopeStatsDto | null
 }
 export interface CurrentPredictionHistoryPageItemDto {
