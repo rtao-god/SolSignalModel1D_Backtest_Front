@@ -21,6 +21,7 @@ import {
 } from '@/shared/ui'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
 import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
+import { scrollToAnchor } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import type { ReportDocumentDto, TableSectionDto } from '@/shared/types/report.types'
 import type { PolicyRowEvaluationMapDto } from '@/shared/types/policyEvaluation.types'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
@@ -1208,13 +1209,24 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
         return normalizedAvailableParts[0]
     }, [activePartRequest, normalizedAvailableParts, resolvedQuery?.part])
+
+    // Окно подгрузки table-view держим вокруг реально видимой части.
+    // Первый показ привязан к route-anchor, а последующие смещения происходят только по scroll.
+    const [tableWindowCenterPart, setTableWindowCenterPart] = useState(activePart)
+    const tablePagerSyncReadyRef = useRef(false)
+
+    useEffect(() => {
+        tablePagerSyncReadyRef.current = false
+        setTableWindowCenterPart(activePart)
+    }, [activePart, effectiveSelectionKey])
+
     const validationQueryArgs = useMemo(
         () => ({
             ...effectiveQueryArgsBase,
             // Фоновая сверка проверяет только реально открытую часть, а не всю комбинацию целиком.
-            part: activePart
+            part: effectiveDisplayMode === 'table' ? tableWindowCenterPart : activePart
         }),
-        [activePart, effectiveQueryArgsBase]
+        [activePart, effectiveQueryArgsBase, effectiveDisplayMode, tableWindowCenterPart]
     )
     const { data: validationStatus } = usePolicyBranchMegaValidationQuery(validationQueryArgs, {
         enabled: Boolean(primaryReport)
@@ -1274,17 +1286,17 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
     const requestedPartNumbers = useMemo(() => {
         if (normalizedAvailableParts.length === 0) {
-            return [activePart]
+            return [effectiveDisplayMode === 'table' ? tableWindowCenterPart : activePart]
         }
 
         if (effectiveDisplayMode === 'chart') {
             return normalizedAvailableParts
         }
 
-        // Table view держит активную часть и её соседей.
-        // Это оставляет текущий экран лёгким и заранее подготавливает следующую часть под scroll.
-        return resolvePolicyBranchMegaNeighborParts(normalizedAvailableParts, activePart)
-    }, [activePart, effectiveDisplayMode, normalizedAvailableParts])
+        // Table view держит окно вокруг реально видимой части.
+        // Пока часть 2 читается, часть 3 догружается фоном и уже ждёт следующий scroll.
+        return resolvePolicyBranchMegaNeighborParts(normalizedAvailableParts, tableWindowCenterPart)
+    }, [activePart, effectiveDisplayMode, normalizedAvailableParts, tableWindowCenterPart])
     const extraPartNumbers = useMemo(
         () => requestedPartNumbers.filter(part => part !== activePart),
         [activePart, requestedPartNumbers]
@@ -1737,14 +1749,66 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         tableRenderedSectionsState.entries
     ])
 
+    const activePagerIndex = useMemo(() => {
+        if (effectiveDisplayMode !== 'table' || pageTabs.length === 0) {
+            return 0
+        }
+
+        const matchedIndex = pageTabs.findIndex(tab => tab.anchor === activeAnchor)
+        return matchedIndex >= 0 ? matchedIndex : 0
+    }, [activeAnchor, effectiveDisplayMode, pageTabs])
+
+    useEffect(() => {
+        if (effectiveDisplayMode !== 'table') {
+            return
+        }
+
+        if (!activeAnchor) {
+            return
+        }
+
+        // Без этой синхронизации deep-link открывает не ту часть,
+        // а window подгрузки остаётся привязанным к верхнему экрану.
+        scrollToAnchor(activeAnchor, {
+            behavior: 'auto',
+            withTransitionPulse: false
+        })
+    }, [activeAnchor, effectiveDisplayMode])
+
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: pageTabs,
-        syncHash: true,
-        // Для mega-таблицы скролл не должен менять hash и не должен перескакивать между частями.
-        // Видимые части подгружаются фоном, а переключение страниц остаётся только по явному действию пользователя.
-        trackScroll: false,
-        canonicalAnchor: requestedAnchorTarget ? activeAnchor : null
+        syncHash: false,
+        // Для mega-таблицы scroll должен только смещать окно подгрузки.
+        // Hash и route остаются статичными, чтобы пользователь не прыгал назад к первой части.
+        trackScroll: true
     })
+
+    useEffect(() => {
+        if (effectiveDisplayMode !== 'table' || pageTabs.length === 0) {
+            return
+        }
+
+        const currentAnchor = pageTabs[currentIndex]?.anchor
+        if (!currentAnchor) {
+            return
+        }
+
+        const currentPart = resolvePolicyBranchMegaAnchorTarget(currentAnchor)?.part ?? null
+        if (currentPart == null) {
+            return
+        }
+
+        if (!tablePagerSyncReadyRef.current) {
+            if (currentIndex === activePagerIndex) {
+                tablePagerSyncReadyRef.current = true
+                setTableWindowCenterPart(currentPart)
+            }
+
+            return
+        }
+
+        setTableWindowCenterPart(currentPart)
+    }, [activePagerIndex, currentIndex, effectiveDisplayMode, pageTabs])
 
     const generatedAtState = useMemo(() => {
         if (!primaryReport) return { value: null as Date | null, error: null as Error | null }
