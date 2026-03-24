@@ -57,6 +57,7 @@ interface ReportMetricBarChartProps<TDatum extends ReportMetricBarDatum> extends
     referenceLineY?: number | null
     valueFormatter?: (value: number) => string
     orientation?: 'vertical' | 'horizontal'
+    fitWidthToContainer?: boolean
 }
 
 interface ReportMetricScatterChartProps<TDatum extends ReportMetricScatterDatum> extends BaseChartProps<TDatum> {
@@ -201,7 +202,8 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     valueLabel,
     referenceLineY = 0,
     valueFormatter,
-    orientation = 'vertical'
+    orientation = 'vertical',
+    fitWidthToContainer = false
 }: ReportMetricBarChartProps<TDatum>) {
     const { formatNumber } = useLocale()
 
@@ -210,7 +212,8 @@ export function ReportMetricBarChart<TDatum extends ReportMetricBarDatum>({
     const formatValue = (value: number) =>
         valueFormatter ? valueFormatter(value) : resolveDefaultNumberFormatter(value, formatNumber)
     const chartFrame = resolveContainerHeight(height, maxHeight)
-    const chartCanvasWidth = orientation === 'vertical' ? resolveVerticalCanvasWidth(data.length) : null
+    const chartCanvasWidth =
+        orientation === 'vertical' && !fitWidthToContainer ? resolveVerticalCanvasWidth(data.length) : null
 
     if (data.length === 0) {
         return renderEmptyState(emptyTitle, emptyDescription)

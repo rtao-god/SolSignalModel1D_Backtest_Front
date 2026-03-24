@@ -978,6 +978,8 @@ export default function PolicyBranchMegaChartExplorer({
                         data={rankingData}
                         orientation={rankingChartOrientation}
                         height={rankingChartHeight}
+                        // Рейтинг должен ужиматься в пределах карточки, а не уводить страницу в горизонтальный скролл.
+                        fitWidthToContainer
                         maxHeight={
                             rankingLayoutMode === 'top-to-bottom' ? RANKING_BAR_MAX_HEIGHT_PX : undefined
                         }
