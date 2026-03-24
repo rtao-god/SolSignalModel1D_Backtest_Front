@@ -264,7 +264,7 @@
         "demo": {
             "eyebrow": "Top strategy on history",
             "title": "Top strategy by return",
-            "subtitle": "This block shows a compact published preview of the strategy with the highest return ([[total-pnl|TotalPnl%]]) from the [[landing-policy-branch-mega|main strategy table]]. It reads one published snapshot and keeps the full table on the dedicated page.",
+            "subtitle": "This block shows the published result for the strategy with the highest return ([[total-pnl|TotalPnl%]]) from the [[landing-policy-branch-mega|main strategy table]]. The key figures and a short interpretation are shown below.",
             "openMega": "Main strategy table",
             "loading": "Loading mini demo...",
             "bestResult": "Maximum return in the published snapshot: {{value}}.",
@@ -272,7 +272,6 @@
                 "spot": "Spot strategy",
                 "generic": "Leader of the main table"
             },
-            "compactNote": "Only one published report snapshot is loaded here. The full table and all charts stay on the dedicated page.",
             "summary": {
                 "executionCadence": "The current leader works in a day-level mode: no more than one trade entry per [[landing-time-horizon|trading day]]. The project also includes other [[policy|strategies]] that can open multiple trade entries within the same trading day.",
                 "performance": "From {{periodStart}} to {{periodEnd}} the strategy earned {{totalPnlPct}}, which is {{totalPnlUsd}} on top of the [[start-cap|starting capital]] of {{startCapitalUsd}}.",
