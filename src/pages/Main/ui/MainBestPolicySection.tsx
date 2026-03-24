@@ -7,7 +7,8 @@ import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import {
     fetchPolicyBranchMegaReport,
-    usePolicyBranchMegaReportQuery
+    POLICY_BRANCH_MEGA_CANONICAL_PARTS,
+    usePolicyBranchMegaReportDocumentQuery
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     getPolicyBranchMegaTerm,
@@ -206,14 +207,16 @@ export default function MainBestPolicySection() {
         []
     )
     const {
-        data: primaryPayload,
+        data: primaryReport,
         isError: isPrimaryError,
         error: primaryError,
         isLoading: isPrimaryLoading
-    } = usePolicyBranchMegaReportQuery(primaryQueryArgs, { enabled: true })
+    } = usePolicyBranchMegaReportDocumentQuery(primaryQueryArgs, { enabled: true })
+    // Мини-демо на главной опирается на канонический набор частей 1..4.
+    // Этот блок не должен вытягивать payload-контракт только ради списка частей.
     const remainingPartQueries = useQueries({
         queries:
-            primaryPayload?.capabilities.availableParts
+            POLICY_BRANCH_MEGA_CANONICAL_PARTS
                 .filter(part => part !== 1)
                 .map(part => ({
                     queryKey: ['main', 'demo', 'policy-branch-mega', part] as const,
@@ -228,11 +231,11 @@ export default function MainBestPolicySection() {
     })
 
     const reports = useMemo(() => {
-        if (!primaryPayload) {
+        if (!primaryReport) {
             return []
         }
 
-        const resolvedReports = [primaryPayload.report]
+        const resolvedReports = [primaryReport]
         for (const query of remainingPartQueries) {
             if (!query.data) {
                 return []
@@ -242,7 +245,7 @@ export default function MainBestPolicySection() {
         }
 
         return resolvedReports
-    }, [primaryPayload, remainingPartQueries])
+    }, [primaryReport, remainingPartQueries])
 
     const isError = isPrimaryError || remainingPartQueries.some(query => query.isError)
     const error = primaryError ?? remainingPartQueries.find(query => query.error)?.error ?? null

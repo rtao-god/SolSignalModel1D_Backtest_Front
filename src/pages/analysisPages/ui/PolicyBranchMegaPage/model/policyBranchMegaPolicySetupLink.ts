@@ -6,6 +6,12 @@ export interface PolicySetupCellState {
     detailPath: string | null
 }
 
+export interface PolicySetupLinkAlertSummary {
+    missingLinkCount: number
+    sampleLabels: string[]
+    error: Error | null
+}
+
 export function resolveMegaRenderedRowKey(
     row: readonly unknown[] | null | undefined,
     columns: readonly string[]
@@ -60,10 +66,89 @@ export function resolvePolicySetupCellStateForMegaRow(args: {
     return { detailPath: `${ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUPS]}/${encodeURIComponent(setupId)}` }
 }
 
+/**
+ * Собирает одно верхнее предупреждение для таблицы policy_branch_mega.
+ * Либо карта оценок строки не опубликована/упала, либо часть строк не получила setupId.
+ * В обоих случаях предупреждение должно жить над таблицей, а не в каждой ячейке.
+ */
+export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
+    rows: readonly unknown[][] | null | undefined
+    columns: readonly string[]
+    rowEvaluationMap: PolicyRowEvaluationMapDto['rows'] | undefined
+    evaluationMapReady: boolean
+    rowEvaluationError: Error | null
+}): PolicySetupLinkAlertSummary | null {
+    const { rows, columns, rowEvaluationMap, evaluationMapReady, rowEvaluationError } = args
+
+    if (rowEvaluationError) {
+        return {
+            missingLinkCount: 0,
+            sampleLabels: [],
+            error: rowEvaluationError
+        }
+    }
+
+    if (!evaluationMapReady || !rowEvaluationMap || !rows || rows.length === 0) {
+        return null
+    }
+
+    const missingLabels: string[] = []
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        const row = rows[rowIndex]
+        const cellState = resolvePolicySetupCellStateForMegaRow({
+            row,
+            columns,
+            rowEvaluationMap,
+            evaluationMapReady
+        })
+
+        if (cellState.detailPath) {
+            continue
+        }
+
+        missingLabels.push(buildMegaRowAlertLabel(row, columns, rowIndex))
+    }
+
+    if (missingLabels.length === 0) {
+        return null
+    }
+
+    return {
+        missingLinkCount: missingLabels.length,
+        sampleLabels: missingLabels.slice(0, 3),
+        error: null
+    }
+}
+
 function buildMegaRowKey(policy: string, branch: string, slModeLabel: string | null): string {
     if (slModeLabel === null) {
         return `${policy}\u001e${branch}`
     }
 
     return `${policy}\u001e${branch}\u001e${slModeLabel}`
+}
+
+function buildMegaRowAlertLabel(
+    row: readonly unknown[] | null | undefined,
+    columns: readonly string[],
+    rowIndex: number
+): string {
+    if (!row || columns.length === 0) {
+        return `строка ${rowIndex + 1}`
+    }
+
+    const policyIdx = columns.indexOf('Policy')
+    const branchIdx = columns.indexOf('Branch')
+    const slModeIdx = columns.indexOf('SL Mode')
+
+    const policy = policyIdx >= 0 ? String(row[policyIdx] ?? '').trim() : ''
+    const branch = branchIdx >= 0 ? String(row[branchIdx] ?? '').trim() : ''
+    const slMode = slModeIdx >= 0 ? String(row[slModeIdx] ?? '').trim() : ''
+
+    const parts = [policy, branch, slMode].filter(Boolean)
+    if (parts.length === 0) {
+        return `строка ${rowIndex + 1}`
+    }
+
+    return parts.join(' · ')
 }
