@@ -1,12 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQueries } from '@tanstack/react-query'
 import { TermTooltip, Text } from '@/shared/ui'
-import { BulletList } from '@/shared/ui/BulletList'
-import {
-    fetchPolicyBranchMegaReport,
-    usePolicyBranchMegaReportQuery
-} from '@/shared/api/tanstackQueries/policyBranchMega'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import {
@@ -15,6 +9,7 @@ import {
     type PolicyBranchMegaTermLocale
 } from '@/shared/utils/policyBranchMegaTerms'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
+import { usePolicyBranchMegaReportDocumentQuery } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     buildMainDemoPolicyBranchMegaSections,
     resolveMainDemoBestPolicyRows,
@@ -24,7 +19,7 @@ import cls from './Main.module.scss'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
 interface DemoMetricDefinition {
-    labelKey: string
+    labelKey: 'totalPnl' | 'maxDd' | 'winRate' | 'trades' | 'liquidations'
     termKey: string
     termTitle: string
 }
@@ -34,28 +29,12 @@ interface DemoMetaItem {
     value: string
 }
 
-interface DemoNarrativeSummary {
-    items: string[]
-    verdictProsItems: string[]
-    verdictConsItems: string[]
-}
-
-type MainDemoHeadingKey = 'main.demo.headings.spot' | 'main.demo.headings.generic'
-type MainDemoPolicySummaryKey = 'main.demo.summary.policyTypeSpot' | 'main.demo.summary.policyTypeGeneric'
-
 const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
-    { labelKey: 'bucketNow', termKey: 'BucketNow$', termTitle: 'BucketNow$' },
     { labelKey: 'maxDd', termKey: 'MaxDD%', termTitle: 'MaxDD%' },
-    { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' },
-    { labelKey: 'accountRuin', termKey: 'AccRuin', termTitle: 'AccRuin' },
-    { labelKey: 'recovery', termKey: 'RecovDays', termTitle: 'RecovDays' },
     { labelKey: 'winRate', termKey: 'WinRate%', termTitle: 'WinRate%' },
-    { labelKey: 'meanRet', termKey: 'MeanRet%', termTitle: 'MeanRet%' },
-    { labelKey: 'sharpe', termKey: 'Sharpe', termTitle: 'Sharpe' },
     { labelKey: 'trades', termKey: 'Tr', termTitle: 'Tr' },
-    { labelKey: 'tradeShare', termKey: 'Trade%', termTitle: 'Trade%' },
-    { labelKey: 'noTrade', termKey: 'NoTrade%', termTitle: 'NoTrade%' }
+    { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' }
 ]
 
 function parseRequiredNumber(rawValue: string, metricTitle: string): number {
@@ -82,88 +61,37 @@ function formatLocalizedPercent(value: number, locale: string, maximumFractionDi
     })}%`
 }
 
-function formatLocalizedCompactUsd(value: number, locale: string): string {
-    const absValue = Math.abs(value)
-    if (absValue >= 1_000_000) {
-        return `≈ $${formatLocalizedNumber(value / 1_000_000, locale, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        })}M`
-    }
-
-    if (absValue >= 1_000) {
-        return `≈ $${formatLocalizedNumber(value / 1_000, locale, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        })}k`
-    }
-
-    return `$${formatLocalizedNumber(value, locale, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    })}`
-}
-
-function parseCompositeAverageValue(rawValue: string, metricTitle: string): number | null {
-    const normalized = rawValue.trim()
-    if (!normalized || normalized === '—' || normalized === 'нет данных' || normalized === 'no data') {
-        return null
-    }
-
-    const [firstToken] = normalized
-        .split('/')
-        .map(token => token.trim())
-        .filter(token => token.length > 0)
-
-    if (!firstToken) {
-        return null
-    }
-
-    const parsed = tryParseNumberFromString(firstToken)
-    if (parsed === null) {
-        throw new Error(`[main.demo] ${metricTitle} avg token is not numeric: ${rawValue}.`)
-    }
-
-    return parsed
-}
-
-function resolveMainDemoHeadingKey(policyName: string): MainDemoHeadingKey {
+function resolveMainDemoHeadingKey(policyName: string): 'main.demo.headings.spot' | 'main.demo.headings.generic' {
     return policyName.trim().toLowerCase().startsWith('spot_') ?
             'main.demo.headings.spot'
         :   'main.demo.headings.generic'
 }
 
-function resolveMainDemoPolicySummaryKey(policyName: string): MainDemoPolicySummaryKey {
+function resolveMainDemoPolicySummaryKey(
+    policyName: string
+): 'main.demo.summary.policyTypeSpot' | 'main.demo.summary.policyTypeGeneric' {
     return policyName.trim().toLowerCase().startsWith('spot_') ?
             'main.demo.summary.policyTypeSpot'
         :   'main.demo.summary.policyTypeGeneric'
 }
 
 function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): string {
-    const candidates = bundle.sectionRows.map(item => ({
-        columns: item.section.columns ?? [],
-        row: item.row
-    }))
-
-    for (const candidate of candidates) {
-        const idx = candidate.columns.indexOf(title)
-        if (idx < 0) {
+    for (const item of bundle.sectionRows) {
+        const columns = item.section.columns ?? []
+        const index = columns.indexOf(title)
+        if (index < 0) {
             continue
         }
 
-        if (candidate.row.length <= idx) {
-            throw new Error(`[main.demo] metric value is missing for ${title}.`)
-        }
-
-        const value = candidate.row[idx]
-        if (value === undefined || value === null || value === '') {
+        const value = item.row[index]
+        if (typeof value !== 'string' || value.trim().length === 0) {
             throw new Error(`[main.demo] metric value is empty for ${title}.`)
         }
 
         return value
     }
 
-    throw new Error(`[main.demo] metric not found in policy branch mega parts: ${title}.`)
+    throw new Error(`[main.demo] metric not found in policy branch mega report: ${title}.`)
 }
 
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
@@ -188,13 +116,14 @@ function DemoErrorCard({ title, description, details }: { title: string; descrip
 }
 
 /**
- * Компактная карточка по лучшей Policy из Policy Branch Mega для главной страницы.
- * Источник данных остаётся тем же, но витрина не тянет таблицы и терм-блоки в первый экран.
+ * Компактная карточка лучшей Policy для главной страницы.
+ * Карточка читает один опубликованный report snapshot и не собирает mega payload,
+ * части или графики. Полная таблица остаётся на отдельной странице.
  */
 export default function MainBestPolicySection() {
     const { t, i18n } = useTranslation('reports')
     const termsLocale = useMemo(() => resolvePolicyBranchMegaTermLocale(i18n.language), [i18n.language])
-    const primaryQueryArgs = useMemo(
+    const reportQueryArgs = useMemo(
         () => ({
             ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
             part: 1
@@ -202,56 +131,19 @@ export default function MainBestPolicySection() {
         []
     )
     const {
-        data: primaryPayload,
-        isError: isPrimaryError,
-        error: primaryError,
-        isLoading: isPrimaryLoading
-    } = usePolicyBranchMegaReportQuery(primaryQueryArgs, { enabled: true })
-    const remainingPartQueries = useQueries({
-        queries:
-            primaryPayload?.capabilities.availableParts
-                .filter(part => part !== 1)
-                .map(part => ({
-                    queryKey: ['main', 'demo', 'policy-branch-mega', part] as const,
-                    queryFn: () =>
-                        fetchPolicyBranchMegaReport({
-                            ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
-                            part
-                        }),
-                    staleTime: 2 * 60 * 1000,
-                    gcTime: 15 * 60 * 1000
-                })) ?? []
-    })
-
-    const reports = useMemo(() => {
-        if (!primaryPayload) {
-            return []
-        }
-
-        const resolvedReports = [primaryPayload.report]
-        for (const query of remainingPartQueries) {
-            if (!query.data) {
-                return []
-            }
-
-            resolvedReports.push(query.data)
-        }
-
-        return resolvedReports
-    }, [primaryPayload, remainingPartQueries])
+        data: report,
+        isError,
+        error,
+        isLoading
+    } = usePolicyBranchMegaReportDocumentQuery(reportQueryArgs, { enabled: true })
 
     const bestPolicyState = useMemo(() => {
-        if (reports.length === 0) {
+        if (!report) {
             return { best: null as MainBestPolicyRowBundle | null, error: null as Error | null }
         }
 
         try {
-            // Demo-карточка читает все опубликованные mega-part секции для выбранной комбинации,
-            // потому что метаданные лучшей политики распределены по нескольким частям.
-            const sections = buildMainDemoPolicyBranchMegaSections(
-                reports.flatMap(report => report.sections ?? [])
-            )
-
+            const sections = buildMainDemoPolicyBranchMegaSections(report.sections ?? [])
             return {
                 best: resolveMainDemoBestPolicyRows(sections),
                 error: null as Error | null
@@ -262,13 +154,7 @@ export default function MainBestPolicySection() {
                 error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
             }
         }
-    }, [reports])
-
-    const isError = isPrimaryError || remainingPartQueries.some(query => query.isError)
-    const error = primaryError ?? remainingPartQueries.find(query => query.error)?.error ?? null
-    const isLoading =
-        isPrimaryLoading ||
-        remainingPartQueries.some(query => query.isLoading || query.isFetching)
+    }, [report])
 
     const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
@@ -276,69 +162,33 @@ export default function MainBestPolicySection() {
         }
 
         try {
-            const startCapital = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'StartCap$'), 'StartCap$'),
+            const startDay = localizeReportCellValue(
+                'StartDay',
+                resolveMetricValue(bestPolicyState.best, 'StartDay'),
                 i18n.language
             )
-            const finalBalance = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'BucketNow$'), 'BucketNow$'),
+            const endDay = localizeReportCellValue(
+                'EndDay',
+                resolveMetricValue(bestPolicyState.best, 'EndDay'),
                 i18n.language
             )
-            const withdrawnProfit = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Withdrawn$'), 'Withdrawn$'),
-                i18n.language
+            const days = formatLocalizedNumber(
+                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Days'), 'Days'),
+                i18n.language,
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
             )
-            const totalTrades = formatLocalizedNumber(
+            const trades = formatLocalizedNumber(
                 parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr'),
                 i18n.language,
-                {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
             )
 
             return {
                 items: [
-                    {
-                        label: t('main.demo.meta.periodStart'),
-                        value: localizeReportCellValue(
-                            'StartDay',
-                            resolveMetricValue(bestPolicyState.best, 'StartDay'),
-                            i18n.language
-                        )
-                    },
-                    {
-                        label: t('main.demo.meta.periodEnd'),
-                        value: localizeReportCellValue(
-                            'EndDay',
-                            resolveMetricValue(bestPolicyState.best, 'EndDay'),
-                            i18n.language
-                        )
-                    },
-                    {
-                        label: t('main.demo.meta.days'),
-                        value: localizeReportCellValue(
-                            'Days',
-                            resolveMetricValue(bestPolicyState.best, 'Days'),
-                            i18n.language
-                        )
-                    },
-                    {
-                        label: t('main.demo.meta.startCapital'),
-                        value: startCapital
-                    },
-                    {
-                        label: t('main.demo.meta.finalBalance'),
-                        value: finalBalance
-                    },
-                    {
-                        label: t('main.demo.meta.withdrawnProfit'),
-                        value: withdrawnProfit
-                    },
-                    {
-                        label: t('main.demo.meta.trades'),
-                        value: totalTrades
-                    }
+                    { label: t('main.demo.meta.periodStart'), value: startDay },
+                    { label: t('main.demo.meta.periodEnd'), value: endDay },
+                    { label: t('main.demo.meta.days'), value: days },
+                    { label: t('main.demo.meta.trades'), value: trades }
                 ],
                 error: null as Error | null
             }
@@ -350,168 +200,9 @@ export default function MainBestPolicySection() {
         }
     }, [bestPolicyState.best, i18n.language, t])
 
-    const demoSummaryState = useMemo(() => {
-        if (!bestPolicyState.best) {
-            return { data: null as DemoNarrativeSummary | null, error: null as Error | null }
-        }
-
-        try {
-            const totalPnlPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl%'), 'TotalPnl%')
-            const totalPnlUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl$'), 'TotalPnl$')
-            const bucketNowUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'BucketNow$'),
-                'BucketNow$'
-            )
-            const withdrawnUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'Withdrawn$'),
-                'Withdrawn$'
-            )
-            const startCapitalUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'StartCap$'),
-                'StartCap$'
-            )
-            const days = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Days'), 'Days')
-            const trades = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr')
-            const noTradePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'NoTrade%'), 'NoTrade%')
-            const winRatePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'WinRate%'), 'WinRate%')
-            const maxDdPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'MaxDD%'), 'MaxDD%')
-            const capitalAfterDrawdownUsd = startCapitalUsd * (1 - maxDdPct / 100)
-            const avgStakePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake%'), 'AvgStake%')
-            const avgStakeUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake$'), 'AvgStake$')
-            const dailyTpAvg = parseCompositeAverageValue(
-                resolveMetricValue(bestPolicyState.best, 'DailyTP%'),
-                'DailyTP%'
-            )
-            const dailySlAvg = parseCompositeAverageValue(
-                resolveMetricValue(bestPolicyState.best, 'DailySL%'),
-                'DailySL%'
-            )
-            const hadLiqValue = resolveMetricValue(bestPolicyState.best, 'HadLiq').trim().toLowerCase()
-            const policySummaryKey = resolveMainDemoPolicySummaryKey(bestPolicyState.best.policy)
-            const periodStart = localizeReportCellValue(
-                'StartDay',
-                resolveMetricValue(bestPolicyState.best, 'StartDay'),
-                i18n.language
-            )
-            const periodEnd = localizeReportCellValue(
-                'EndDay',
-                resolveMetricValue(bestPolicyState.best, 'EndDay'),
-                i18n.language
-            )
-
-            let liquidationSentenceKey: 'main.demo.summary.liquidationsNo' | 'main.demo.summary.liquidationsYes'
-            if (hadLiqValue === 'no') {
-                liquidationSentenceKey = 'main.demo.summary.liquidationsNo'
-            } else if (hadLiqValue === 'yes') {
-                liquidationSentenceKey = 'main.demo.summary.liquidationsYes'
-            } else {
-                throw new Error(`[main.demo] HadLiq must be "yes" or "no". value=${hadLiqValue}.`)
-            }
-
-            const tradesPerDay = trades / days
-            let drawdownSentenceKey:
-                | 'main.demo.summary.drawdownLow'
-                | 'main.demo.summary.drawdownModerate'
-                | 'main.demo.summary.drawdownHigh'
-
-            if (maxDdPct < 5) {
-                drawdownSentenceKey = 'main.demo.summary.drawdownLow'
-            } else if (maxDdPct < 10) {
-                drawdownSentenceKey = 'main.demo.summary.drawdownModerate'
-            } else {
-                drawdownSentenceKey = 'main.demo.summary.drawdownHigh'
-            }
-
-            return {
-                data: {
-                    items: [
-                        t('main.demo.summary.executionCadence'),
-                        t('main.demo.summary.performance', {
-                            periodStart,
-                            periodEnd,
-                            totalPnlPct: formatLocalizedPercent(totalPnlPct, i18n.language, 2),
-                            totalPnlUsd: formatLocalizedCompactUsd(totalPnlUsd, i18n.language),
-                            startCapitalUsd: formatLocalizedCompactUsd(startCapitalUsd, i18n.language)
-                        }),
-                        t(policySummaryKey),
-                        t('main.demo.summary.capitalFlow', {
-                            withdrawnUsd: formatLocalizedCompactUsd(withdrawnUsd, i18n.language),
-                            bucketNowUsd: formatLocalizedCompactUsd(bucketNowUsd, i18n.language)
-                        }),
-                        t('main.demo.summary.activity', {
-                            days: formatLocalizedNumber(days, i18n.language, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }),
-                            trades: formatLocalizedNumber(trades, i18n.language, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }),
-                            tradesPerDay: formatLocalizedNumber(tradesPerDay, i18n.language, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 2
-                            })
-                        }),
-                        t('main.demo.summary.noTrade', {
-                            noTradePct: formatLocalizedPercent(noTradePct, i18n.language, 1)
-                        }),
-                        t('main.demo.summary.avgStake', {
-                            avgStakeUsd: formatLocalizedCompactUsd(avgStakeUsd, i18n.language),
-                            avgStakePct: formatLocalizedPercent(avgStakePct, i18n.language, 1)
-                        }),
-                        dailyTpAvg !== null && dailySlAvg !== null ?
-                            t('main.demo.summary.avgTargets', {
-                                dailyTpAvg: formatLocalizedPercent(dailyTpAvg, i18n.language, 2),
-                                dailySlAvg: formatLocalizedPercent(dailySlAvg, i18n.language, 2)
-                            })
-                        :   t('main.demo.summary.avgTargetsNoSl', {
-                                dailyTpAvg:
-                                    dailyTpAvg === null ? '—' : formatLocalizedPercent(dailyTpAvg, i18n.language, 2)
-                            }),
-                        t('main.demo.summary.winRate', {
-                            winRatePct: formatLocalizedPercent(winRatePct, i18n.language, 1)
-                        }),
-                        t(drawdownSentenceKey, {
-                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2),
-                            capitalAfterDrawdownUsd: formatLocalizedCompactUsd(capitalAfterDrawdownUsd, i18n.language)
-                        }),
-                        t(liquidationSentenceKey, {
-                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
-                        })
-                    ],
-                    verdictProsItems: [
-                        t('main.demo.summary.verdictStrength', {
-                            totalPnlPct: formatLocalizedPercent(totalPnlPct, i18n.language, 2)
-                        }),
-                        t('main.demo.summary.verdictRisk', {
-                            maxDdPct: formatLocalizedPercent(maxDdPct, i18n.language, 2)
-                        })
-                    ],
-                    verdictConsItems: [
-                        t('main.demo.summary.verdictActivity', {
-                            noTradePct: formatLocalizedPercent(noTradePct, i18n.language, 1),
-                            tradesPerDay: formatLocalizedNumber(tradesPerDay, i18n.language, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 2
-                            })
-                        }),
-                        t('main.demo.summary.verdictEdge', {
-                            winRatePct: formatLocalizedPercent(winRatePct, i18n.language, 1)
-                        })
-                    ]
-                },
-                error: null as Error | null
-            }
-        } catch (err) {
-            return {
-                data: null as DemoNarrativeSummary | null,
-                error: err instanceof Error ? err : new Error('Failed to build demo summary.')
-            }
-        }
-    }, [bestPolicyState.best, i18n.language, t])
-
-    const demoMetricsState = useMemo(() => {
-        if (!bestPolicyState.best) {
+    const demoMetricState = useMemo(() => {
+        const bestPolicy = bestPolicyState.best
+        if (!bestPolicy) {
             return {
                 items: [] as Array<{ label: string; termKey: string; termTitle: string; value: string }>,
                 error: null as Error | null
@@ -519,22 +210,38 @@ export default function MainBestPolicySection() {
         }
 
         try {
-            const bestPolicy = bestPolicyState.best
-            if (!bestPolicy) {
-                throw new Error('[main.demo] Best policy is missing while building demo metrics.')
-            }
-
             return {
-                items: DEMO_METRIC_DEFINITIONS.map(definition => ({
-                    label: t(`main.demo.metrics.${definition.labelKey}`),
-                    termKey: definition.termKey,
-                    termTitle: definition.termTitle,
-                    value: localizeReportCellValue(
-                        definition.termKey,
-                        resolveMetricValue(bestPolicy, definition.termKey),
-                        i18n.language
-                    )
-                })),
+                items: DEMO_METRIC_DEFINITIONS.map(definition => {
+                    const rawValue = resolveMetricValue(bestPolicy, definition.termKey)
+                    const normalizedRawValue = rawValue.trim().toLowerCase()
+                    const value =
+                        definition.termKey === 'HadLiq' ?
+                            t(
+                                `main.demo.values.${
+                                    normalizedRawValue === 'yes' || normalizedRawValue === 'true' || normalizedRawValue === '1' ?
+                                        'yes'
+                                    :   'no'
+                                }`
+                            )
+                        :   definition.termKey === 'Tr' ?
+                            formatLocalizedNumber(
+                                parseRequiredNumber(rawValue, definition.termKey),
+                                i18n.language,
+                                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                            )
+                        :   formatLocalizedPercent(
+                                parseRequiredNumber(rawValue, definition.termKey),
+                                i18n.language,
+                                definition.termKey === 'WinRate%' ? 1 : 2
+                            )
+
+                    return {
+                        label: t(`main.demo.metrics.${definition.labelKey}`),
+                        termKey: definition.termKey,
+                        termTitle: definition.termTitle,
+                        value
+                    }
+                }),
                 error: null as Error | null
             }
         } catch (err) {
@@ -587,6 +294,9 @@ export default function MainBestPolicySection() {
                             })
                         )}
                     </Text>
+                    <Text className={cls.demoNote}>
+                        {renderTermTooltipRichText(t(resolveMainDemoPolicySummaryKey(bestPolicyState.best.policy)))}
+                    </Text>
                 </div>
 
                 {demoMetaState.error ?
@@ -606,60 +316,14 @@ export default function MainBestPolicySection() {
                 }
             </div>
 
-            {demoSummaryState.error ?
-                <DemoErrorCard
-                    title={t('main.demo.errors.summaryTitle')}
-                    description={t('main.demo.errors.summaryDescription')}
-                    details={demoSummaryState.error.message}
-                />
-            : demoSummaryState.data ?
-                <>
-                    <BulletList
-                        className={cls.demoSummary}
-                        markerTone='primary'
-                        contentClassName={cls.demoSummaryText}
-                        items={demoSummaryState.data.items.map((item, index) => ({
-                            key: `main-demo-summary-${index}`,
-                            content: renderTermTooltipRichText(item)
-                        }))}
-                    />
-                    <div className={cls.demoVerdictDivider} />
-                    <div className={cls.demoVerdictBlock}>
-                        <Text type='h4' className={cls.demoVerdictTitle}>
-                            {t('main.demo.summary.verdictTitle')}
-                        </Text>
-                        <Text className={cls.demoVerdictSubTitle}>{t('main.demo.summary.verdictProsTitle')}</Text>
-                        <BulletList
-                            className={cls.demoSummary}
-                            markerTone='primary'
-                            contentClassName={cls.demoSummaryText}
-                            items={demoSummaryState.data.verdictProsItems.map((item, index) => ({
-                                key: `main-demo-verdict-pros-${index}`,
-                                content: renderTermTooltipRichText(item)
-                            }))}
-                        />
-                        <Text className={cls.demoVerdictSubTitle}>{t('main.demo.summary.verdictConsTitle')}</Text>
-                        <BulletList
-                            className={cls.demoSummary}
-                            markerTone='primary'
-                            contentClassName={cls.demoSummaryText}
-                            items={demoSummaryState.data.verdictConsItems.map((item, index) => ({
-                                key: `main-demo-verdict-cons-${index}`,
-                                content: renderTermTooltipRichText(item)
-                            }))}
-                        />
-                    </div>
-                </>
-            :   null}
-
-            {demoMetricsState.error ?
+            {demoMetricState.error ?
                 <DemoErrorCard
                     title={t('main.demo.errors.metricsTitle')}
                     description={t('main.demo.errors.metricsDescription')}
-                    details={demoMetricsState.error.message}
+                    details={demoMetricState.error.message}
                 />
             :   <div className={cls.demoMetricGrid}>
-                    {demoMetricsState.items.map(item => (
+                    {demoMetricState.items.map(item => (
                         <div key={item.termKey} className={cls.demoMetricCard}>
                             <TermTooltip
                                 term={item.label}
@@ -674,7 +338,7 @@ export default function MainBestPolicySection() {
                 </div>
             }
 
-            <Text className={cls.demoNote}>{renderTermTooltipRichText(t('main.demo.note'))}</Text>
+            <Text className={cls.demoNote}>{t('main.demo.compactNote')}</Text>
         </div>
     )
 }

@@ -8,6 +8,10 @@ const BACKTEST_BASELINE_SNAPSHOT_URL = '/backtest/baseline'
 const BACKTEST_BASELINE_SUMMARY_QUERY_KEY = ['backtest', 'summary', 'baseline'] as const
 const BACKTEST_BASELINE_SNAPSHOT_QUERY_KEY = ['backtest', 'baseline', 'snapshot'] as const
 
+interface BacktestBaselineSummaryQueryOptions {
+    enabled?: boolean
+}
+
 function buildBacktestBaselineSummaryQueryOptions() {
     return {
         queryKey: BACKTEST_BASELINE_SUMMARY_QUERY_KEY,
@@ -38,8 +42,13 @@ async function fetchBacktestBaselineSnapshot(): Promise<BacktestBaselineSnapshot
     return mapBacktestBaselineSnapshotResponse(raw)
 }
 
-export function useBacktestBaselineSummaryReportQuery(): UseQueryResult<BacktestSummaryDto, Error> {
-    return useQuery(buildBacktestBaselineSummaryQueryOptions())
+export function useBacktestBaselineSummaryReportQuery(
+    options?: BacktestBaselineSummaryQueryOptions
+): UseQueryResult<BacktestSummaryDto, Error> {
+    return useQuery({
+        ...buildBacktestBaselineSummaryQueryOptions(),
+        enabled: options?.enabled ?? true
+    })
 }
 
 export function useBacktestBaselineSnapshotQuery(): UseQueryResult<BacktestBaselineSnapshotDto, Error> {

@@ -40,6 +40,10 @@ export interface RealForecastJournalDayQueryArgs {
     dateUtc: string
 }
 
+interface RealForecastJournalDayListQueryOptions {
+    enabled?: boolean
+}
+
 interface RealForecastJournalDayQueryOptions {
     enabled?: boolean
 }
@@ -884,11 +888,13 @@ function requireDayQueryArgs(
 }
 
 export function useRealForecastJournalDayListQuery(
-    args?: RealForecastJournalDayListQueryArgs
+    args?: RealForecastJournalDayListQueryArgs,
+    options?: RealForecastJournalDayListQueryOptions
 ): UseQueryResult<RealForecastJournalDayListItemDto[], Error> {
     return useQuery({
         queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'index', args?.days ?? 'all'] as const,
         queryFn: () => fetchRealForecastJournalDayList(args),
+        enabled: options?.enabled ?? true,
         retry: false,
         // Journal page должна обновляться без ручного refresh, когда worker записывает новый capture/finalize.
         refetchInterval: 15000

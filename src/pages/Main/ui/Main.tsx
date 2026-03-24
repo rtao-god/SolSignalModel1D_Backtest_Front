@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Link, Text } from '@/shared/ui'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
@@ -404,6 +404,10 @@ export default function Main({ className }: MainProps) {
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
     const [isBestPolicyReady, setIsBestPolicyReady] = useState(false)
+    const proofSectionRef = useRef<HTMLElement | null>(null)
+    const realJournalSectionRef = useRef<HTMLElement | null>(null)
+    const [isProofSectionVisible, setIsProofSectionVisible] = useState(false)
+    const [isRealJournalSectionVisible, setIsRealJournalSectionVisible] = useState(false)
 
     const locale = i18n.resolvedLanguage ?? i18n.language
     const handleRouteWarmup = useCallback(
@@ -413,6 +417,58 @@ export default function Main({ className }: MainProps) {
         [dispatch, queryClient]
     )
     const rootClassName = classNames(cls.MainPage, {}, [className ?? ''])
+
+    // Нижние proof-секции читают данные только после появления в viewport.
+    // Это держит первый экран лёгким и не запускает лишние read-only запросы до действия пользователя.
+    useEffect(() => {
+        const target = proofSectionRef.current
+        if (!target) {
+            return
+        }
+
+        if (typeof IntersectionObserver === 'undefined') {
+            setIsProofSectionVisible(true)
+            return
+        }
+
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries.some(entry => entry.isIntersecting)) {
+                    setIsProofSectionVisible(true)
+                    observer.disconnect()
+                }
+            },
+            { rootMargin: '240px 0px' }
+        )
+
+        observer.observe(target)
+        return () => observer.disconnect()
+    }, [])
+
+    useEffect(() => {
+        const target = realJournalSectionRef.current
+        if (!target) {
+            return
+        }
+
+        if (typeof IntersectionObserver === 'undefined') {
+            setIsRealJournalSectionVisible(true)
+            return
+        }
+
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries.some(entry => entry.isIntersecting)) {
+                    setIsRealJournalSectionVisible(true)
+                    observer.disconnect()
+                }
+            },
+            { rootMargin: '240px 0px' }
+        )
+
+        observer.observe(target)
+        return () => observer.disconnect()
+    }, [])
 
     useEffect(() => {
         let isCancelled = false
@@ -436,17 +492,19 @@ export default function Main({ className }: MainProps) {
         data: archiveIndex,
         isLoading: isArchiveLoading,
         error: archiveError
-    } = useCurrentPredictionIndexQuery('backfilled', undefined, DEFAULT_BACKFILLED_HISTORY_SCOPE)
+    } = useCurrentPredictionIndexQuery('backfilled', undefined, DEFAULT_BACKFILLED_HISTORY_SCOPE, {
+        enabled: isProofSectionVisible
+    })
     const {
         data: backtestSummaryReport,
         isLoading: isBacktestProofLoading,
         error: backtestProofError
-    } = useBacktestBaselineSummaryReportQuery()
+    } = useBacktestBaselineSummaryReportQuery({ enabled: isProofSectionVisible })
     const {
         data: realJournalDayList,
         isLoading: isRealJournalLoading,
         error: realJournalError
-    } = useRealForecastJournalDayListQuery()
+    } = useRealForecastJournalDayListQuery(undefined, { enabled: isRealJournalSectionVisible })
 
     const workflowSteps = useMemo(
         () =>
@@ -523,6 +581,10 @@ export default function Main({ className }: MainProps) {
     const megaTableBullets = useMemo(() => readMainStringList(i18n, MEGA_TABLE_BULLETS_KEY), [i18n])
     const sandboxBullets = useMemo(() => readMainStringList(i18n, SANDBOX_BULLETS_KEY), [i18n])
     const archiveProofCardError = useMemo(() => {
+        if (!isProofSectionVisible) {
+            return null
+        }
+
         if (archiveError) {
             return archiveError
         }
@@ -536,8 +598,12 @@ export default function Main({ className }: MainProps) {
         }
 
         return null
-    }, [archiveError, archiveProofState.data, archiveProofState.error, isArchiveLoading])
+    }, [archiveError, archiveProofState.data, archiveProofState.error, isArchiveLoading, isProofSectionVisible])
     const backtestProofCardError = useMemo(() => {
+        if (!isProofSectionVisible) {
+            return null
+        }
+
         if (backtestProofError) {
             return backtestProofError
         }
@@ -551,8 +617,12 @@ export default function Main({ className }: MainProps) {
         }
 
         return null
-    }, [backtestProofError, backtestProofState.data, backtestProofState.error, isBacktestProofLoading])
+    }, [backtestProofError, backtestProofState.data, backtestProofState.error, isBacktestProofLoading, isProofSectionVisible])
     const realJournalCardError = useMemo(() => {
+        if (!isRealJournalSectionVisible) {
+            return null
+        }
+
         if (realJournalError) {
             return realJournalError
         }
@@ -566,7 +636,7 @@ export default function Main({ className }: MainProps) {
         }
 
         return null
-    }, [isRealJournalLoading, realJournalError, realJournalProofState.data, realJournalProofState.error])
+    }, [isRealJournalLoading, isRealJournalSectionVisible, realJournalError, realJournalProofState.data, realJournalProofState.error])
     const resolveMainExplicitTermLink = useCallback(
         (termId: string) => {
             const resolveRouteLink = (routeId: AppRoute) => ({
@@ -776,7 +846,7 @@ export default function Main({ className }: MainProps) {
                 </div>
             </section>
 
-            <section id={PROOF_SECTION_DOM_ID} className={cls.sectionSurface}>
+            <section id={PROOF_SECTION_DOM_ID} ref={proofSectionRef} className={cls.sectionSurface}>
                 <MainSectionHeader
                     eyebrow={t('main.proof.eyebrow')}
                     title={t('main.proof.title')}
@@ -792,7 +862,7 @@ export default function Main({ className }: MainProps) {
                             {renderMainRichText(t('main.proof.cards.archive.description'))}
                         </Text>
 
-                        {isArchiveLoading ?
+                        {!isProofSectionVisible || isArchiveLoading ?
                             <Text className={cls.cardStatus}>{t('main.proof.cards.archive.loading')}</Text>
                         : archiveProofCardError ?
                             <MainCardError
@@ -837,7 +907,7 @@ export default function Main({ className }: MainProps) {
                             {renderMainRichText(t('main.proof.cards.backtest.description'))}
                         </Text>
 
-                        {isBacktestProofLoading ?
+                        {!isProofSectionVisible || isBacktestProofLoading ?
                             <Text className={cls.cardStatus}>{t('main.proof.cards.backtest.loading')}</Text>
                         : backtestProofCardError ?
                             <MainCardError
@@ -900,7 +970,7 @@ export default function Main({ className }: MainProps) {
                 </div>
             </section>
 
-            <section className={cls.sectionSurface}>
+            <section ref={realJournalSectionRef} className={cls.sectionSurface}>
                 <MainSectionHeader
                     eyebrow={t('main.realJournal.eyebrow')}
                     title={t('main.realJournal.title')}
@@ -923,7 +993,7 @@ export default function Main({ className }: MainProps) {
                         }))}
                     />
 
-                    {isRealJournalLoading ?
+                    {!isRealJournalSectionVisible || isRealJournalLoading ?
                         <Text className={cls.cardStatus}>{t('main.realJournal.loading')}</Text>
                     : realJournalCardError ?
                         <MainCardError

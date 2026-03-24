@@ -25,6 +25,7 @@ import {
 } from '@/shared/utils/policyBranchMegaTabs'
 
 const POLICY_BRANCH_MEGA_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega'] as const
+const POLICY_BRANCH_MEGA_REPORT_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'report'] as const
 const POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'evaluation'] as const
 const POLICY_BRANCH_MEGA_PAYLOAD_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'payload'] as const
 const POLICY_BRANCH_MEGA_VALIDATION_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'validation'] as const
@@ -146,6 +147,19 @@ export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQuery
 export function buildPolicyBranchMegaEvaluationQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE,
+        args?.bucket ?? null,
+        args?.bucketView ?? null,
+        args?.metric ?? null,
+        args?.part ?? null,
+        args?.tpSlMode ?? null,
+        args?.slMode ?? null,
+        args?.zonalMode ?? null
+    ] as const
+}
+
+function buildPolicyBranchMegaReportDocumentQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
+    return [
+        ...POLICY_BRANCH_MEGA_REPORT_QUERY_KEY_BASE,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -684,6 +698,8 @@ async function loadPolicyBranchMegaReportPayloadAndCache(
     const payload = await fetchPolicyBranchMegaReportPayload(requestedArgs)
     const canonicalArgs = toReportQueryArgs(payload.resolvedQuery)
 
+    queryClient.setQueryData(buildPolicyBranchMegaReportDocumentQueryKey(canonicalArgs), payload.report)
+    queryClient.setQueryData(buildPolicyBranchMegaReportDocumentQueryKey(requestedArgs), payload.report)
     queryClient.setQueryData(buildPolicyBranchMegaQueryKey(canonicalArgs), payload.report)
     queryClient.setQueryData(buildPolicyBranchMegaPayloadQueryKey(canonicalArgs), payload)
     queryClient.setQueryData(buildPolicyBranchMegaQueryKey(requestedArgs), payload.report)
@@ -706,6 +722,33 @@ export function usePolicyBranchMegaReportQuery(
     return useQuery({
         queryKey: payloadKey,
         queryFn: () => loadPolicyBranchMegaReportPayloadAndCache(queryClient, requestedArgs),
+        enabled: options?.enabled ?? true,
+        retry: false,
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        refetchOnWindowFocus: false
+    })
+}
+
+export function usePolicyBranchMegaReportDocumentQuery(
+    args: PolicyBranchMegaReportQueryArgs,
+    options?: UsePolicyBranchMegaQueryOptions
+): UseQueryResult<ReportDocumentDto, Error> {
+    const queryClient = useQueryClient()
+    const requestedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
+
+    return useQuery({
+        queryKey: buildPolicyBranchMegaReportDocumentQueryKey(requestedArgs),
+        queryFn: async () => {
+            const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportPayloadDto>(
+                buildPolicyBranchMegaPayloadQueryKey(requestedArgs)
+            )
+            if (cachedPayload?.report) {
+                return cachedPayload.report
+            }
+
+            return fetchPolicyBranchMegaReport(requestedArgs)
+        },
         enabled: options?.enabled ?? true,
         retry: false,
         staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,

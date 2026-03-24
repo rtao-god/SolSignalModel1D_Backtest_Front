@@ -22,6 +22,10 @@ const CURRENT_PREDICTION_HISTORY_PAGE_CACHE_TTL_MS = 10 * 60 * 1000
 export const DEFAULT_BACKFILLED_HISTORY_SCOPE: CurrentPredictionTrainingScope = 'full'
 export type CurrentPredictionBackfilledTrainingScopeStats = CurrentPredictionBackfilledTrainingScopeStatsDto
 
+interface CurrentPredictionIndexQueryOptions {
+    enabled?: boolean
+}
+
 export interface CurrentPredictionHistoryPageQueryArgs {
     set: CurrentPredictionSet
     scope: CurrentPredictionTrainingScope
@@ -338,13 +342,15 @@ export function useCurrentPredictionLivePayloadQuery(
 export function useCurrentPredictionIndexQuery(
     set: CurrentPredictionSet = 'backfilled',
     days?: number,
-    scope?: CurrentPredictionTrainingScope
+    scope?: CurrentPredictionTrainingScope,
+    options?: CurrentPredictionIndexQueryOptions
 ): UseQueryResult<CurrentPredictionIndexItemDto[], Error> {
     const resolvedScope = resolveCurrentPredictionIndexScope(set, scope)
 
     return useQuery({
         queryKey: ['current-prediction', 'dates', set, resolvedScope, days ?? 'all'] as const,
         queryFn: () => fetchCurrentPredictionIndex(set, days, resolvedScope),
+        enabled: options?.enabled ?? true,
         retry: false,
         staleTime: CURRENT_PREDICTION_INDEX_CACHE_TTL_MS,
         gcTime: CURRENT_PREDICTION_INDEX_CACHE_TTL_MS,

@@ -264,14 +264,15 @@
         "demo": {
             "eyebrow": "Top strategy on history",
             "title": "Top strategy by return",
-            "subtitle": "This block shows the strategy with the highest return ([[total-pnl|TotalPnl%]]) from the [[landing-policy-branch-mega|main strategy table]]. It shows how much it earned over the period, how many trading days and trades were needed to build that result, how much profit was already withdrawn from trading, and how much money still remains in the active trading balance.",
+            "subtitle": "This block shows a compact published preview of the strategy with the highest return ([[total-pnl|TotalPnl%]]) from the [[landing-policy-branch-mega|main strategy table]]. It reads one published snapshot and keeps the full table on the dedicated page.",
             "openMega": "Main strategy table",
             "loading": "Loading mini demo...",
-            "bestResult": "Maximum return across the full history since 2021: {{value}}.",
+            "bestResult": "Maximum return in the published snapshot: {{value}}.",
             "headings": {
                 "spot": "Spot strategy",
                 "generic": "Leader of the main table"
             },
+            "compactNote": "Only one published report snapshot is loaded here. The full table and all charts stay on the dedicated page.",
             "summary": {
                 "executionCadence": "The current leader works in a day-level mode: no more than one trade entry per [[landing-time-horizon|trading day]]. The project also includes other [[policy|strategies]] that can open multiple trade entries within the same trading day.",
                 "performance": "From {{periodStart}} to {{periodEnd}} the strategy earned {{totalPnlPct}}, which is {{totalPnlUsd}} on top of the [[start-cap|starting capital]] of {{startCapitalUsd}}.",
@@ -323,15 +324,19 @@
             },
             "errors": {
                 "loadTitle": "Mini demo is unavailable",
-                "loadDescription": "The main strategy table could not be loaded for the top-strategy card.",
+                "loadDescription": "The published snapshot for the top-strategy card could not be loaded.",
                 "structureTitle": "Mini demo structure could not be resolved",
                 "structureDescription": "The received report could not be transformed into the compact configuration card.",
                 "metaTitle": "Top-strategy facts are unavailable",
-                "metaDescription": "The period, capital, and trade counts could not be extracted from the selected Policy.",
+                "metaDescription": "The period and trade counts could not be extracted from the selected Policy.",
                 "summaryTitle": "Top-strategy summary is unavailable",
                 "summaryDescription": "The narrative summary for return, trading activity, and risk could not be assembled from the selected Policy.",
                 "metricsTitle": "Configuration headline metrics are unavailable",
                 "metricsDescription": "The metric set required for the compact card could not be extracted."
+            },
+            "values": {
+                "yes": "Yes",
+                "no": "No"
             },
             "empty": "No data is currently available for the mini demo."
         }
