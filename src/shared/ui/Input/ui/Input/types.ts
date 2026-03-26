@@ -1,5 +1,4 @@
 import { InputHTMLAttributes } from 'react'
-
 export interface CustomInputProps {
     width?: string
     height?: string

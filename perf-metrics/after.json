@@ -1,0 +1,101 @@
+{
+  "timestampUtc": "2026-03-04T20:33:39.8952965Z",
+  "buildDurationSec": 25.17,
+  "entryJs": "index-DrbZFZUo.js",
+  "entryJsKb": 287.83,
+  "entryCss": "index-CuqQfyyN.css",
+  "entryCssKb": 38.1,
+  "jsCount": 71,
+  "jsTotalKb": 2185.54,
+  "cssCount": 46,
+  "cssTotalKb": 152.73,
+  "imageCount": 3,
+  "imageTotalKb": 53.66,
+  "topJs": [
+    {
+      "name": "vendor-export-Mu_dMF94.js",
+      "kb": 610.73
+    },
+    {
+      "name": "index-D7KHZtcK.js",
+      "kb": 338.95
+    },
+    {
+      "name": "index-DrbZFZUo.js",
+      "kb": 287.83
+    },
+    {
+      "name": "vendor-react-C5wkYPp-.js",
+      "kb": 216.56
+    },
+    {
+      "name": "index.es-NgEU5zfS.js",
+      "kb": 155.7
+    },
+    {
+      "name": "policyBranchMegaTerms-CwgHnHq1.js",
+      "kb": 65.2
+    },
+    {
+      "name": "vendor-state-CBX14ycS.js",
+      "kb": 58.14
+    },
+    {
+      "name": "reportTooltips-DOc2Zw7U.js",
+      "kb": 40.05
+    },
+    {
+      "name": "index-DnBe9yuG.js",
+      "kb": 27.02
+    },
+    {
+      "name": "index-CYiVrVMX.js",
+      "kb": 26.13
+    },
+    {
+      "name": "index-fG0D-kz1.js",
+      "kb": 24.31
+    },
+    {
+      "name": "index-Dg87592S.js",
+      "kb": 23.42
+    }
+  ],
+  "topCss": [
+    {
+      "name": "index-CuqQfyyN.css",
+      "kb": 38.1
+    },
+    {
+      "name": "index-9_dcqoaT.css",
+      "kb": 14.49
+    },
+    {
+      "name": "index-ChusgybY.css",
+      "kb": 7.25
+    },
+    {
+      "name": "index-tj8_EZnL.css",
+      "kb": 5.91
+    },
+    {
+      "name": "DatePicker-78yaFpDG.css",
+      "kb": 5.52
+    },
+    {
+      "name": "index-DhFSuYfz.css",
+      "kb": 4.81
+    },
+    {
+      "name": "index-DHT8ITzl.css",
+      "kb": 4.68
+    },
+    {
+      "name": "index-BdlOwjbB.css",
+      "kb": 4.67
+    }
+  ],
+  "notes": [
+    "Lighthouse CLI в этой среде ранее падал с NO_FCP; after сравнивается по reproducible build-метрикам."
+  ]
+}

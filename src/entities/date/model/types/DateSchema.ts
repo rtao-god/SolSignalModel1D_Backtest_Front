@@ -1,5 +1,12 @@
+export interface DateRangeValue {
+    value: string
+    dateObj: Date
+}
+
+export type UiDate = DateRangeValue | null
+export type StoredDateValue = string | null
+
 export default interface DateSchema {
-    departureDate: { value: string; dateObj: Date } | null
-    arrivalDate: { value: string; dateObj: Date } | null
-    isSelectingDepartureDate: boolean
+    departureDate: StoredDateValue
+    arrivalDate: StoredDateValue
 }

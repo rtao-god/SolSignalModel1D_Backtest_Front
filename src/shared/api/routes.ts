@@ -1,12 +1,5 @@
-// Централизованный реестр API-роутов.
-// Здесь храним только path + метод, без query-параметров и динамических id.
-// Для путей с id (профиль, policy-ratios и т.п.) id подставляется в самих эндпоинтах.
-
 export const API_ROUTES = {
     user: {
-        // /users-detail/:
-        // - GET  → чтение текущего пользователя;
-        // - PUT  → обновление профиля.
         detailGet: {
             path: '/users-detail/',
             method: 'GET' as const
@@ -18,45 +11,103 @@ export const API_ROUTES = {
     },
 
     currentPrediction: {
-        // Последний отчёт по текущему прогнозу
-        latestReport: {
+        liveReport: {
             path: '/current-prediction',
             method: 'GET' as const
         },
-        // Индекс дат (для истории прогнозов)
+        livePayload: {
+            path: '/current-prediction/payload',
+            method: 'GET' as const
+        },
         datesIndex: {
             path: '/current-prediction/dates',
             method: 'GET' as const
         },
-        // Отчёт по конкретной дате ?dateUtc=YYYY-MM-DD
+        historyCatalog: {
+            path: '/current-prediction/history/catalog',
+            method: 'GET' as const
+        },
+        historyPage: {
+            path: '/current-prediction/history/page',
+            method: 'GET' as const
+        },
+        historyItems: {
+            path: '/current-prediction/history/items',
+            method: 'GET' as const
+        },
         byDateReport: {
             path: '/current-prediction/by-date',
             method: 'GET' as const
         }
     },
 
+    realForecastJournal: {
+        dayList: {
+            path: '/real-forecast-journal',
+            method: 'GET' as const
+        },
+        byDate: {
+            path: '/real-forecast-journal/by-date',
+            method: 'GET' as const
+        },
+        liveStatus: {
+            path: '/real-forecast-journal/live-status',
+            method: 'GET' as const
+        },
+        opsStatus: {
+            path: '/real-forecast-journal/ops-status',
+            method: 'GET' as const
+        }
+    },
+
+    reportVariants: {
+        catalogGet: {
+            path: '/report-variants',
+            method: 'GET' as const
+        }
+    },
+
     backtest: {
-        // Базовый конфиг бэктеста (legacy)
         configGet: {
             path: '/backtest/config',
             method: 'GET' as const
         },
-
-        // Сводка бэктеста (ReportDocument)
         baselineSummaryGet: {
             path: '/backtest/summary',
             method: 'GET' as const
         },
-
-        // Лёгкий baseline-снимок (BacktestBaselineSnapshotDto)
         baselineSnapshotGet: {
             path: '/backtest/baseline',
             method: 'GET' as const
         },
-
-        // Профили бэктеста:
-        // - GET  /backtest/profiles
-        // - POST /backtest/profiles
+        diagnosticsGet: {
+            path: '/backtest/diagnostics',
+            method: 'GET' as const
+        },
+        policyBranchMegaGet: {
+            path: '/backtest/policy-branch-mega',
+            method: 'GET' as const
+        },
+        policyBranchMegaPayloadGet: {
+            path: '/backtest/policy-branch-mega/payload',
+            method: 'GET' as const
+        },
+        policyBranchMegaEvaluationGet: {
+            path: '/backtest/policy-branch-mega/evaluation',
+            method: 'GET' as const
+        },
+        policyBranchMegaValidationGet: {
+            path: '/backtest/policy-branch-mega/validation',
+            method: 'GET' as const
+        },
+        confidenceRiskGet: {
+            path: '/backtest/confidence-risk',
+            method: 'GET' as const
+        },
+        executionPipelineGet: {
+            path: '/backtest/execution-pipeline',
+            method: 'GET' as const
+        },
         profilesListGet: {
             path: '/backtest/profiles',
             method: 'GET' as const
@@ -65,9 +116,6 @@ export const API_ROUTES = {
             path: '/backtest/profiles',
             method: 'POST' as const
         },
-        // /backtest/profiles/{id}:
-        // - GET   → один профиль;
-        // - PATCH → частичное обновление.
         profileGetById: {
             path: '/backtest/profiles',
             method: 'GET' as const
@@ -76,28 +124,61 @@ export const API_ROUTES = {
             path: '/backtest/profiles',
             method: 'PATCH' as const
         },
-
-        // One-shot preview по произвольному конфигу
         previewPost: {
             path: '/backtest/preview',
             method: 'POST' as const
         },
-
-        // Policy-ratios по профилю: /backtest/policy-ratios/{profileId}
+        previewFullPost: {
+            path: '/backtest/preview/full',
+            method: 'POST' as const
+        },
+        comparePost: {
+            path: '/backtest/compare',
+            method: 'POST' as const
+        },
         policyRatiosGetByProfile: {
             path: '/backtest/policy-ratios',
+            method: 'GET' as const
+        },
+        aggregationProbs: {
+            path: '/backtest/aggregation/probs',
+            method: 'GET' as const
+        },
+        aggregationMetrics: {
+            path: '/backtest/aggregation/metrics',
+            method: 'GET' as const
+        },
+        policySetupsCatalogGet: {
+            path: '/backtest/policy-setups',
+            method: 'GET' as const
+        },
+        policySetupStatusGet: {
+            path: '/backtest/policy-setups/status',
+            method: 'GET' as const
+        },
+        policySetupRebuildPost: {
+            path: '/backtest/policy-setups/rebuild',
+            method: 'POST' as const
+        },
+        policySetupLedgerGet: {
+            path: '/backtest/policy-setups',
+            method: 'GET' as const
+        },
+        policySetupCandlesGet: {
+            path: '/backtest/policy-setups',
             method: 'GET' as const
         }
     },
 
     ml: {
-        // PFI по моделям (ReportDocument)
         pfiPerModel: {
             path: '/ml/pfi/per-model',
             method: 'GET' as const
         },
-
-        // Статистика моделей (ReportDocument, kind = "ml_model_stats")
+        pfiSlModel: {
+            path: '/ml/pfi/sl-model',
+            method: 'GET' as const
+        },
         modelStatsPerModel: {
             path: '/ml/stats/per-model',
             method: 'GET' as const

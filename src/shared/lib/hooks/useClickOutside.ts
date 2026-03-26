@@ -1,13 +1,31 @@
 import { RefObject, useEffect } from 'react'
 
+/*
+	useClickOutside — хук закрытия/сворачивания UI при клике вне целевого контейнера.
+
+	Источники данных и сайд-эффекты:
+		- Слушает глобальные события mousedown и touchstart на document.
+		- Вызывает внешний handler только для кликов вне ref и вне excludeRef.
+		- shouldIgnoreEvent позволяет исключить сложные portal/tree-кейсы, где DOM-узел
+		  формально снаружи, но логически относится к тому же интерактивному дереву.
+
+	Контракты:
+		- ref должен указывать на реальный DOM-узел, иначе хук ничего не делает.
+		- excludeRef используется для "кнопок-исключений" (например, кнопки открытия меню), чтобы клик по ним не считался внешним.
+*/
 function useClickOutside<T extends HTMLElement>(
     ref: RefObject<T>,
     handler: (event: MouseEvent | TouchEvent) => void,
-    excludeRef?: RefObject<HTMLElement>
+    excludeRef?: RefObject<HTMLElement>,
+    shouldIgnoreEvent?: (event: MouseEvent | TouchEvent) => boolean
 ): void {
     useEffect(() => {
         const listener = (event: MouseEvent | TouchEvent) => {
-            // Check if the clicked element is not within the ref element and also not the excludeRef element
+            if (shouldIgnoreEvent?.(event)) {
+                return
+            }
+
+            // Не закрываем UI при клике внутри целевого блока и в исключённой зоне (например, кнопке-тогглере).
             if (
                 !ref.current ||
                 ref.current.contains(event.target as Node) ||
@@ -26,7 +44,7 @@ function useClickOutside<T extends HTMLElement>(
             document.removeEventListener('mousedown', listener)
             document.removeEventListener('touchstart', listener)
         }
-    }, [ref, handler, excludeRef])
+    }, [ref, handler, excludeRef, shouldIgnoreEvent])
 }
 
 export default useClickOutside

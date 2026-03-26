@@ -1,45 +1,63 @@
 import type { ErrorInfo } from 'react'
+import { resolveErrorDomain, type ErrorDomain } from './errorDomains'
 
 export interface LogErrorContext {
-    // Откуда пришла ошибка (глобальный boundary, layout, window и т.п.)
     source?: string
-    // Текущий путь/роут, если есть
     path?: string
-    // Внешний ID ошибки (если генерится где-то ещё, например во fallback-UI)
     errorId?: string
-    // Дополнительные данные по ситуации
+    domain?: ErrorDomain
+    severity?: 'error' | 'warning'
     extra?: Record<string, unknown>
 }
 
+export interface LogErrorPayload {
+    name: string
+    message: string
+    stack: string | undefined
+    componentStack: string | undefined
+    source: string | undefined
+    path: string | undefined
+    domain: ErrorDomain
+    severity: 'error' | 'warning'
+    extra: Record<string, unknown> | undefined
+}
+
 /**
- * Универсальная точка логирования ошибок UI.
- * Сейчас: dev → подробный console.error, prod → заготовка под отправку на backend/в сервис мониторинга.
+ * Строит единый payload для всех runtime и boundary ошибок.
+ * Этот слой отделяет домен ошибки от места, где именно она была поймана.
  */
-export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogErrorContext) {
-    const payload = {
+export function buildLogErrorPayload(error: Error, errorInfo?: ErrorInfo, context?: LogErrorContext): LogErrorPayload {
+    return {
         name: error.name,
         message: error.message,
         stack: error.stack,
-        componentStack: errorInfo?.componentStack,
+        componentStack: errorInfo?.componentStack ?? undefined,
         source: context?.source,
         path: context?.path ?? (typeof window !== 'undefined' ? window.location.pathname : undefined),
+        domain: resolveErrorDomain(error, context),
+        severity: context?.severity ?? 'error',
         extra: context?.extra
     }
+}
 
-    if (process.env.NODE_ENV === 'development') {
-        // В dev достаточно честно и подробно вывалить всё в консоль
-        console.error('[UI Error]', payload)
+export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogErrorContext) {
+    const payload = buildLogErrorPayload(error, errorInfo, context)
+    const prefix = payload.severity === 'warning' ? `[UI Warning][${payload.domain}]` : `[UI Error][${payload.domain}]`
+
+    if (payload.severity === 'warning') {
+        if (process.env.NODE_ENV === 'development') {
+            console.warn(prefix, payload)
+            return
+        }
+
+        console.warn(`${prefix}[prod]`, payload)
         return
     }
 
-    // TODO: Добавить в backend:
-    //
-    // void fetch('/api/logs/ui-error', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(payload)
-    // })
-    //
-    // Чтобы сейчас ничего не ломать — оставляем мягкий fallback в консоль.
-    console.error('[UI Error][prod]', payload)
+    if (process.env.NODE_ENV === 'development') {
+        console.error(prefix, payload)
+        return
+    }
+
+    console.error(`${prefix}[prod]`, payload)
 }

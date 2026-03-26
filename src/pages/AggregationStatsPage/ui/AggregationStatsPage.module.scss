@@ -1,0 +1,255 @@
+.AggregationStatsPage {
+    @include product-page-shell(1500px, true, 24px);
+    container-type: inline-size;
+    container-name: aggregation-stats-page;
+
+    // Лёгкий фон, чтобы блоки агрегации не терялись.
+    background: radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05), transparent 48%);
+}
+
+.contentRoot {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Шапка */
+.headerRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.headerMain {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.subtitle {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    max-width: 760px;
+}
+
+/* Сводные карточки */
+.metaGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    min-width: 280px;
+}
+
+.metaCard {
+    @include subtle-surface(10px 12px);
+}
+
+.metaTitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.metaValue {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+/* Секции */
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sectionHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sectionHint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 980px;
+}
+
+/* Карточки сегментов */
+.segmentsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.segmentCard {
+    @include surface-card(
+        $padding: 14px 16px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg-muted),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 10px;
+}
+
+.segmentHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.segmentTitle {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.segmentMeta {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.segmentPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pill {
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--surface-border-strong);
+    background: var(--bg-color-muted);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* Таблицы */
+.tableScroll {
+    @include table-scroll-shell($density: medium, $min-width: 420px);
+}
+
+.table {
+    @include data-table-base($min-width: 420px, $font-size: 12px);
+}
+
+.table th,
+.table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--surface-border-subtle);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Метрики слоя */
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.layerCard {
+    @include surface-card(
+        $padding: 12px 14px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 10px;
+}
+
+.layerTitle {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.metricsList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.metricsLabel {
+    color: var(--text-muted);
+}
+
+.matrixTitle {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Матрица ошибок */
+.confusionTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.confusionTable th,
+.confusionTable td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--surface-border-subtle);
+    text-align: center;
+}
+
+.confusionHeader {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+@container aggregation-stats-page (max-width: 1024px) {
+    .headerRow {
+        flex-direction: column;
+    }
+
+    .metaGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+}
+
+@container aggregation-stats-page (max-width: 760px) {
+    .AggregationStatsPage {
+        gap: 16px;
+    }
+
+    .metaGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .table {
+        min-width: 360px;
+    }
+}

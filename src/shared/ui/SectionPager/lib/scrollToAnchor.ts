@@ -1,30 +1,13 @@
 export interface ScrollToAnchorOptions {
     behavior?: ScrollBehavior
-    /**
-     * Явное смещение сверху, px.
-     * Если не задано, берём значение из CSS-переменной --anchor-offset.
-     */
+
     offsetTop?: number
 
-    /**
-     * Включать ли визуальный эффект перехода (пульс фона / скроллбара).
-     */
     withTransitionPulse?: boolean
 }
 
-/**
- * Текущий таймер для снятия класса scroll-transition-pulse.
- * Нужен, чтобы:
- * - не плодить несколько таймеров;
- * - уметь перезапускать эффект, если пользователь быстро листает секции.
- */
 let scrollTransitionTimeoutId: number | null = null
 
-/**
- * Разрешает нижний guard (чтобы при якорном скролле не показывать футер):
- * - читаем CSS-переменную --anchor-bottom-guard;
- * - поддерживает значения вроде "40px" или "calc(40px + 8px)".
- */
 function resolveBottomGuard(): number {
     if (typeof document === 'undefined') {
         return 0
@@ -54,13 +37,6 @@ function resolveBottomGuard(): number {
     }
 }
 
-/**
- * Разрешает offsetTop:
- * - если передан явно — используем его;
- * - иначе читаем CSS-переменную --anchor-offset
- *   и через временный div получаем реальное px-значение
- *   (работает и с calc(...), и с var(...)).
- */
 function resolveOffsetTop(explicit?: number): number {
     if (typeof explicit === 'number') {
         return explicit
@@ -94,19 +70,6 @@ function resolveOffsetTop(explicit?: number): number {
     }
 }
 
-/**
- * Запускает визуальный эффект перехода:
- * - вешает на body класс scroll-transition-pulse;
- * - через ~600 мс снимает его;
- * - если эффект запускается повторно до окончания предыдущего —
- *   перезапускает таймер и анимацию.
- *
- * CSS-часть:
- * - body.scroll-transition-pulse подменяет CSS-переменные для скроллбара
- *   (фон трека и ручки → кровавый градиент);
- * - у .app::-webkit-scrollbar-* стоят transition'ы, поэтому смена цветов выглядит как пульс;
- * - опционально body.scroll-transition-pulse::before даёт лёгкий оверлей по центру экрана.
- */
 function triggerScrollTransitionPulse() {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
         return
@@ -118,8 +81,6 @@ function triggerScrollTransitionPulse() {
     }
 
     const CLASS = 'scroll-transition-pulse'
-
-    // Если эффект уже активен — снимаем класс и таймер, чтобы перезапустить анимацию корректно.
     if (body.classList.contains(CLASS)) {
         body.classList.remove(CLASS)
 
@@ -127,28 +88,15 @@ function triggerScrollTransitionPulse() {
             window.clearTimeout(scrollTransitionTimeoutId)
             scrollTransitionTimeoutId = null
         }
-
-        // Форсируем reflow, чтобы последующее добавление класса точно перезапустило CSS-анимации.
         void body.offsetWidth
     }
-
-    // Вешаем класс заново.
     body.classList.add(CLASS)
-
-    // Снимаем класс через 600 мс (подогнано под длительность анимаций/transition в CSS).
     scrollTransitionTimeoutId = window.setTimeout(() => {
         body.classList.remove(CLASS)
         scrollTransitionTimeoutId = null
     }, 600)
 }
 
-/**
- * Плавный скролл к секции по её DOM id.
- * - если offsetTop не передан, используется CSS-переменная --anchor-offset;
- * - защищено от SSR и отсутствия элемента;
- * - скролл идёт по .app (scroll-root всего приложения);
- * - если .app не найден, используется fallback через window.scrollTo.
- */
 export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) {
     if (typeof document === 'undefined') {
         return
@@ -174,11 +122,7 @@ export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) 
         const targetRect = element.getBoundingClientRect()
 
         const relativeTop = targetRect.top - containerRect.top
-
-        // желаемая позиция с учётом offsetTop
         let targetTop = scrollRoot.scrollTop + relativeTop - offsetTop
-
-        // максимум: не доезжать до самого низа на bottomGuard пикселей
         const maxScrollTop = Math.max(0, scrollRoot.scrollHeight - scrollRoot.clientHeight - bottomGuard)
 
         if (targetTop > maxScrollTop) {
@@ -195,8 +139,6 @@ export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) 
 
         return
     }
-
-    // fallback для случая, если по какой-то причине .app не найден
     if (typeof window === 'undefined') {
         return
     }
@@ -221,12 +163,6 @@ export function scrollToAnchor(anchor: string, options?: ScrollToAnchorOptions) 
     })
 }
 
-/**
- * Универсальный скролл страницы в самый верх:
- * - скроллит .app как единый scroll-root;
- * - если .app нет — fallback на window;
- * - опционально включает тот же "пульс", что и якорная пагинация.
- */
 export function scrollToTop(options?: { behavior?: ScrollBehavior; withTransitionPulse?: boolean }) {
     if (typeof document === 'undefined') {
         return

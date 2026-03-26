@@ -1,34 +1,106 @@
-.Month_header {
-    position: relative;
-    margin-bottom: 20px;
+.month {
+    min-width: 308px;
+    overflow: hidden;
 }
 
-.date {
+/* Header держит title в центре независимо от наличия левой/правой навигации. */
+.header {
     display: flex;
     align-items: center;
-    justify-content: center;
-
-    & .prev_icon {
-        cursor: pointer;
-        position: absolute;
-        left: 0;
-    }
-
-    & .next_icon {
-        cursor: pointer;
-        position: absolute;
-        right: 0;
-    }
-}
-
-.week_days {
-    display: flex;
     justify-content: space-between;
-    margin-top: 10px;
-    gap: 10px;
+    gap: 12px;
+    padding-bottom: 16px;
 }
 
-.week_day {
+.dateTitle {
     flex: 1;
+    color: var(--picker-text);
+    font-size: 16px;
+    font-weight: 600;
     text-align: center;
+    text-transform: capitalize;
+    user-select: text;
+}
+
+.navButton {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--picker-text-muted);
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.navButton:hover {
+    background-color: var(--picker-surface-muted);
+    color: var(--picker-accent);
+}
+
+.navButton:focus-visible {
+    outline: none;
+    background-color: var(--picker-surface-muted);
+    color: var(--picker-accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.navSpacer {
+    width: 32px;
+    height: 32px;
+}
+
+.navIcon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: auto;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M5 3L9 7L5 11' stroke='%23C9D1D9' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+}
+
+.navIconPrev {
+    transform: rotate(180deg);
+}
+
+.weekDays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    padding-bottom: 6px;
+}
+
+.weekDay {
+    text-align: center;
+    color: var(--picker-text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.daysGrid {
+    --calendar-day-gap: 8px;
+    --calendar-day-surface-width: 25px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 32px;
+    gap: var(--calendar-day-gap);
+    width: 308px;
+}
+
+/* На мобильном месяцы складываются столбцом, поэтому grid растягивается на доступную ширину контейнера. */
+@media (max-width: 920px) {
+    .month {
+        min-width: 100%;
+    }
+
+    .daysGrid {
+        width: 100%;
+    }
 }

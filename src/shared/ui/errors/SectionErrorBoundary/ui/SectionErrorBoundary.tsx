@@ -1,12 +1,14 @@
 import React from 'react'
-import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock';
+import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
+import i18n from '@/shared/configs/i18n/i18n'
+import { markErrorHandledByBoundary } from '@/shared/lib/logging/setupGlobalErrorHandlers'
+import { logError } from '@/shared/lib/logging/logError'
 
 interface SectionErrorBoundaryProps {
-    // Имя секции для логов/диагностики.
     name?: string
-    // Кастомный fallback: либо готовый ReactNode, либо функция, получающая ошибку и reset().
     fallback?: React.ReactNode | ((args: { error: Error; reset: () => void; name?: string }) => React.ReactNode)
     children: React.ReactNode
+    resetKeys?: unknown[]
 }
 
 interface SectionErrorBoundaryState {
@@ -14,12 +16,6 @@ interface SectionErrorBoundaryState {
     error: Error | null
 }
 
-/**
- * Локальный error boundary для отдельных блоков:
- * - ловит runtime-ошибки в рендере конкретной секции;
- * - показывает ErrorBlock вместо падения всей страницы;
- * - даёт reset(), чтобы заново попытаться отрендерить блок.
- */
 export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryProps, SectionErrorBoundaryState> {
     state: SectionErrorBoundaryState = {
         hasError: false,
@@ -27,6 +23,7 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
+        markErrorHandledByBoundary(error)
         return {
             hasError: true,
             error
@@ -34,10 +31,30 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
-        // Здесь можно интегрировать логирование в сторонний сервис.
-        // Сейчас ограничиваемся логом в консоль.
-        // eslint-disable-next-line no-console
-        console.error('[SectionErrorBoundary]', this.props.name, error, info)
+        markErrorHandledByBoundary(error)
+        logError(error, info, {
+            source: 'section-error-boundary',
+            domain: 'ui_section',
+            extra: { sectionName: this.props.name }
+        })
+    }
+
+    componentDidUpdate(prevProps: SectionErrorBoundaryProps): void {
+        const { resetKeys } = this.props
+        if (!this.state.hasError || !resetKeys) {
+            return
+        }
+
+        const prevResetKeys = prevProps.resetKeys
+        if (!prevResetKeys || prevResetKeys.length !== resetKeys.length) {
+            this.reset()
+            return
+        }
+
+        const changed = resetKeys.some((key, index) => !Object.is(key, prevResetKeys[index]))
+        if (changed) {
+            this.reset()
+        }
     }
 
     private reset = () => {
@@ -68,8 +85,13 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
         return (
             <ErrorBlock
                 code='CLIENT'
-                title='Ошибка при отрисовке блока'
-                description='Этот блок временно недоступен из-за ошибки на клиенте. Остальная часть страницы продолжает работать.'
+                title={i18n.t('errors:ui.sectionErrorBoundary.title', {
+                    defaultValue: 'Section render error'
+                })}
+                description={i18n.t('errors:ui.sectionErrorBoundary.description', {
+                    defaultValue:
+                        'This block is temporarily unavailable due to a client-side error. The rest of the page remains available.'
+                })}
                 details={safeError.message}
                 onRetry={this.reset}
             />

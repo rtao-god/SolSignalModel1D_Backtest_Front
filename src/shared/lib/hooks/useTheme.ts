@@ -1,5 +1,6 @@
 import { useContext } from 'react'
 import { LOCAL_STORAGE_THEME_KEY, Theme, ThemeContext } from '@/app/providers/ThemeProvider/lib/ThemeContext'
+import { logError } from '@/shared/lib/logging/logError'
 
 interface UseThemeResult {
     theme: Theme
@@ -10,8 +11,11 @@ export const useTheme = (): UseThemeResult => {
     const ctx = useContext(ThemeContext)
 
     if (!ctx || !ctx.theme || !ctx.setTheme) {
-        // можно кинуть ошибку, но чтобы не ронять прод:
-        console.warn('useTheme используется вне ThemeProvider, возвращаю fallback Theme.DARK')
+        logError(new Error('ThemeContext is unavailable.'), undefined, {
+            source: 'theme-context-fallback',
+            domain: 'app_runtime',
+            severity: 'warning'
+        })
         return {
             theme: Theme.DARK,
             toggleTheme: () => {}
@@ -23,7 +27,6 @@ export const useTheme = (): UseThemeResult => {
     const toggleTheme = () => {
         const newTheme = theme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT
         setTheme(newTheme)
-        // localStorage можно оставить тут или только в провайдере
         localStorage.setItem(LOCAL_STORAGE_THEME_KEY, newTheme)
     }
 

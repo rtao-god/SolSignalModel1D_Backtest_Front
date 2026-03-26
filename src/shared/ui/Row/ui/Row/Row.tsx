@@ -4,10 +4,7 @@ import RowProps from './types'
 
 export default function Row({ children, style, gap, className, onClick }: RowProps) {
     return (
-        <div
-            className={classNames(cls.Row, {}, [className ?? ''])}
-            style={{ ...style, gap }}
-            onClick={onClick}>
+        <div className={classNames(cls.Row, {}, [className ?? ''])} style={{ ...style, gap }} onClick={onClick}>
             {children}
         </div>
     )

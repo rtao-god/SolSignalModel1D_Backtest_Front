@@ -2,30 +2,30 @@ import type { ReactNode } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
 import cls from './ErrorBlock.module.scss'
+import { useTranslation } from 'react-i18next'
 
 interface ErrorBlockProps {
     className?: string
-    // HTTP-код или технический код (NETWORK, UNKNOWN, CLIENT и т.п.).
     code?: string | number
-    // Короткий заголовок ошибки.
     title?: string
-    // Основное описание для пользователя.
     description?: string
-    // Дополнительные детали (сырое сообщение, трассировка и т.п.).
     details?: ReactNode
-    // Колбэк для кнопки "Повторить".
     onRetry?: () => void
-    // Компактный вариант, чтобы блок не раздувал плотный layout.
     compact?: boolean
+    actions?: ReactNode
 }
 
-/**
- * Универсальный блок ошибки:
- * - тёмная тема + неоновый градиент по рамке;
- * - одинаковый внешний вид для всех ошибок по проекту;
- * - вставляется в любые страницы и секции.
- */
-export function ErrorBlock({ className, code, title, description, details, onRetry, compact }: ErrorBlockProps) {
+export function ErrorBlock({
+    className,
+    code,
+    title,
+    description,
+    details,
+    onRetry,
+    compact,
+    actions
+}: ErrorBlockProps) {
+    const { t } = useTranslation('errors')
     const rootClasses = classNames(
         cls.ErrorBlock,
         {
@@ -58,11 +58,14 @@ export function ErrorBlock({ className, code, title, description, details, onRet
 
                     {details && <div className={cls.details}>{details}</div>}
 
-                    {onRetry && (
+                    {(onRetry || actions) && (
                         <div className={cls.actions}>
-                            <Btn className={cls.retryButton} onClick={onRetry}>
-                                Повторить попытку
-                            </Btn>
+                            {onRetry && (
+                                <Btn className={cls.retryButton} onClick={onRetry}>
+                                    {t('ui.errorBlock.retry', { defaultValue: 'Try again' })}
+                                </Btn>
+                            )}
+                            {actions}
                         </div>
                     )}
                 </div>

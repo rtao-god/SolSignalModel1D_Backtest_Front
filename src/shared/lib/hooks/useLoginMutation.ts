@@ -1,43 +1,31 @@
-import { useMutation } from 'react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
-import { authApi } from '@/shared/api'
-// import { useCookie } from './useCookie'
+import axios from 'axios'
+import { API_BASE_URL } from '@/shared/configs/config'
 
-export const useLoginMutation = (
-    identifier: string,
-    password: string 
-) => {
-    // const { setCookie } = useCookie()
+/*
+	useLoginMutation — пользовательский хук.
+
+	Зачем:
+		- Инкапсулирует логику useLoginMutation.
+*/
+export const useLoginMutation = (identifier: string, password: string) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
     return useMutation({
-        mutationFn: () => authApi(identifier, password),
-        mutationKey: ['login'],
-        onSuccess: data => {
-            console.log(data)
-            const storedIdentifier = localStorage.getItem('identifier')
-            const storedPassword = localStorage.getItem('password')
-            console.log('storedIdentifier: ', storedIdentifier, 'storedPassword: ', storedPassword)
-
-            if (storedIdentifier == identifier && storedPassword == password) {
-                console.log('true auth')
-            } else {
-                console.log('false auth')
-            }
-
-            /*  setCookie("refresh_token", data.data.refresh_token, 1);
-      setCookie("access_token", data.data.access_token, 1); */
+        mutationFn: async () => {
+            const response = await axios.post(`${API_BASE_URL}/login`, { identifier, password })
+            return response.data
+        },
+        mutationKey: ['login', identifier],
+        onSuccess: () => {
             navigate('/')
         },
-        onError: /* error */ () => {
-            // const errorMessage = error ?? 'Произошла ошибка при регистрации, проверьте введенные данные.'
-            // setErrorCallback(errorMessage)
-
+        onError: () => {
             dispatch(setError('FALSE AUTH'))
-            console.log('localStorage: ', localStorage)
         }
     })
 }

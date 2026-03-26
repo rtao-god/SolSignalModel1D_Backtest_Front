@@ -8,9 +8,10 @@ interface LangSwitcherProps {
 }
 
 export default function LangSwitcher({ className }: LangSwitcherProps) {
-    const { i18n } = useTranslation('LangSwitcher')
+    const { i18n, t } = useTranslation('common')
 
-    const isRu = i18n.language.startsWith('ru')
+    const currentI18nLanguage = i18n.resolvedLanguage ?? i18n.language ?? i18n.options?.fallbackLng?.toString() ?? 'en'
+    const isRu = currentI18nLanguage.startsWith('ru')
     const currentLang = (isRu ? 'ru' : 'en') as 'ru' | 'en'
     const nextLang = isRu ? 'en' : 'ru'
 
@@ -28,8 +29,8 @@ export default function LangSwitcher({ className }: LangSwitcherProps) {
             className={classNames(cls.Lang_switcher, {}, [className ?? ''])}
             onClick={toggle}
             data-lang={currentLang}
-            aria-label={`Switch language to ${nextLabel}`}
-            title={`Switch language to ${nextLabel}`}>
+            aria-label={t('common:lang.switchTo', { lang: nextLabel })}
+            title={t('common:lang.switchTo', { lang: nextLabel })}>
             <span className={cls.Lang_switcherInner}>
                 <span className={cls.Lang_switcherDot} />
                 <span className={cls.Lang_switcherCode}>{currentLabel}</span>

@@ -1,0 +1,53 @@
+.card {
+    @include surface-card(
+        $padding: var(--surface-padding-lg),
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg-elevated),
+        $border: var(--surface-border-default),
+        $shadow: var(--surface-shadow-md)
+    );
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cardTitle {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.cardSubtitle {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    max-width: 720px;
+}
+
+.rowGood {
+    background-color: rgba(34, 197, 94, 0.1);
+}
+
+.rowCaution {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.rowBad {
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
+.rowUnknown {
+    background-color: rgba(56, 189, 248, 0.08);
+}
+
+.cellPositive {
+    color: #16a34a;
+}
+
+.cellNegative {
+    color: #ef4444;
+}

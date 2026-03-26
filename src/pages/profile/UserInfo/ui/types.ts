@@ -1,3 +1,3 @@
 export default interface UserInfoProps {
-  className?: string
+    className?: string
 }

@@ -6,6 +6,5 @@ export function createRootReducer(asyncReducers: ReducersMapObject<StateSchema>)
     return {
         ...asyncReducers,
         [api.reducerPath]: api.reducer
-        // Добавьте другие редьюсеры при необходимости
     }
 }

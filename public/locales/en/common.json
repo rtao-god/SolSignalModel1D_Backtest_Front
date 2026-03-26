@@ -1,0 +1,142 @@
+{
+    "lang": {
+        "switchTo": "Switch language to {{lang}}"
+    },
+    "loading": {
+        "main": "Loading main page",
+        "current_prediction": "Loading current prediction",
+        "current_prediction_history": "Loading prediction history",
+        "diagnostics_home": "Loading diagnostics",
+        "analysis_home": "Loading analysis",
+        "backtest_baseline": "Loading baseline backtest",
+        "backtest_summary": "Loading backtest summary",
+        "backtest_full": "Loading experimental backtest",
+        "backtest_diagnostics": "Loading risk and liquidations diagnostics",
+        "backtest_diagnostics_guardrail": "Loading guardrail diagnostics",
+        "backtest_diagnostics_decisions": "Loading decision analysis",
+        "backtest_diagnostics_hotspots": "Loading hotspots diagnostics",
+        "backtest_diagnostics_other": "Loading additional diagnostics",
+        "backtest_diagnostics_ratings": "Loading backtest ratings",
+        "backtest_diagnostics_daystats": "Loading day statistics",
+        "backtest_policy_branch_mega": "Loading Policy Branch Mega",
+        "backtest_confidence_risk": "Loading confidence statistics",
+        "backtest_execution_pipeline": "Loading execution pipeline",
+        "pfi_per_model": "Loading PFI report",
+        "models_stats": "Loading model statistics",
+        "aggregation_stats": "Loading prediction aggregation",
+        "guide": "Loading knowledge base",
+        "guide_models": "Loading models knowledge topic",
+        "guide_branches": "Loading branches knowledge topic",
+        "guide_splits": "Loading splits knowledge topic",
+        "guide_time": "Loading time knowledge topic",
+        "guide_features": "Loading features knowledge topic",
+        "guide_truthfulness": "Loading truthfulness knowledge topic",
+        "guide_tests": "Loading tests knowledge topic",
+        "docs": "Loading documentation",
+        "docs_models": "Loading model documentation",
+        "docs_tests": "Loading test documentation",
+        "docs_truthfulness": "Loading truthfulness documentation",
+        "explain": "Loading project explain section",
+        "explain_models": "Loading model explanation",
+        "explain_branches": "Loading branch explanation",
+        "explain_splits": "Loading split explanation",
+        "explain_project": "Loading project overview",
+        "explain_time": "Loading time explanation",
+        "explain_features": "Loading feature explanation",
+        "about": "Loading About page",
+        "contact": "Loading contact page",
+        "registration": "Loading registration page",
+        "login": "Loading login page",
+        "profile": "Loading profile",
+        "not_found": "Loading page",
+        "developer": "Loading developer section",
+        "developer_backend_structure": "Loading backend structure",
+        "developer_runtime_flow": "Loading runtime flow",
+        "developer_reports_api": "Loading reports and API",
+        "developer_tests_guards": "Loading tests and guards"
+    },
+    "navbar": {
+        "sidebarToggleAria": "Open sidebar navigation"
+    },
+    "footer": {
+        "disclaimer": "All backtest results are for informational purposes only and are not investment advice.",
+        "copyright": "© {{year}} Project Name. Internal interface for experiments and analysis."
+    },
+    "contact": {
+        "page": {
+            "title": "Contact me",
+            "subtitle": "A short page with core contacts for project communication and collaboration requests."
+        },
+        "profile": {
+            "fullName": "First Last",
+            "role": "Quant / ML, Full-stack (React + .NET)",
+            "note": "Focused on crypto market models, analytics, and backtest results visualization."
+        },
+        "cards": {
+            "telegram": {
+                "description": "Main channel for quick contact, model questions, and demo calls."
+            },
+            "linkedin": {
+                "description": "Professional profile, resume, and project history.",
+                "link": "Open profile"
+            },
+            "phone": {
+                "title": "Phone / WhatsApp",
+                "description": "For calls, collaboration details, and fast approvals.",
+                "tag": "WhatsApp is available at this number"
+            }
+        },
+        "footer": "If needed, I can offer a short online demo format: 10-15 minutes to show key metrics and the project UI."
+    },
+    "profile": {
+        "avatarAlt": "User avatar",
+        "avatarAltWithName": "User avatar {{name}}",
+        "page": {
+            "eyebrow": "Section in progress",
+            "title": "The profile of a registered user will appear later",
+            "lead": "This section is reserved for the future user profile.",
+            "description": "The profile will be used to save personal settings from the <backtestLink>{{backtestLinkLabel}}</backtestLink> section.",
+            "backtestLinkLabel": "experimental backtest",
+            "descriptionTail": "These settings include leverage, risk level, stop-loss, take-profit, and other calculation parameters. This part of the product is not implemented yet."
+        }
+    },
+    "viewMode": {
+        "business": "Business",
+        "technical": "Technical"
+    },
+    "tableExport": {
+        "ariaLabel": "Download table",
+        "loading": "Preparing file...",
+        "downloadAs": "Download as {{format}}"
+    },
+    "sectionPager": {
+        "vertical": {
+            "prevAria": "Previous section",
+            "nextAria": "Next section"
+        },
+        "dpad": {
+            "ariaLabel": "Report navigation",
+            "upAria": "Up (inside current reports)",
+            "downAria": "Down (inside current reports)",
+            "prevPageAria": "Previous report page",
+            "nextPageAria": "Next report page"
+        }
+    },
+    "sortableTable": {
+        "sort": "Sort",
+        "sortAsc": "Sort: ascending",
+        "sortDesc": "Sort: descending"
+    },
+    "dateRangePicker": {
+        "groupAria": "Date range filter",
+        "fromPlaceholder": "Date from",
+        "toPlaceholder": "Date to",
+        "fromAria": "Select start date",
+        "toAria": "Select end date",
+        "prevMonthAria": "Previous month",
+        "nextMonthAria": "Next month",
+        "yearLabel": "Year",
+        "clear": "Clear",
+        "clearAria": "Clear selected date range"
+    }
+}

@@ -1,6 +1,9 @@
 import { Google } from '@/shared/assets/icons/AuthWith'
 import { AuthWith } from '@/shared/ui'
+import { useTranslation } from 'react-i18next'
 
 export default function AuthWithGoogle() {
-    return <AuthWith img={<Google />} text='Войти с помощью Google' />
+    const { t } = useTranslation('auth')
+
+    return <AuthWith img={<Google />} text={t('login.googleButton')} />
 }

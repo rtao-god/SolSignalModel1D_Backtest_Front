@@ -1,8 +1,7 @@
 .HistoryPage {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding: 24px 32px;
+    @include product-page-shell(1440px, true, 24px);
+    container-type: inline-size;
+    container-name: prediction-history-page;
 }
 
 /* Шапка страницы */
@@ -12,7 +11,7 @@
     flex-direction: column;
     gap: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--surface-border-subtle);
 }
 
 .headerMain {
@@ -30,8 +29,8 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
 
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--bg-color-muted);
+    border: 1px solid var(--surface-border-strong);
 }
 
 .headerMeta {
@@ -50,28 +49,68 @@
     gap: 12px;
 }
 
-.filtersRow {
+.controlsPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    @include subtle-surface(12px 14px);
+}
+
+.filtersControls {
+    margin-top: 0 !important;
+}
+
+.controlBlock {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px 24px;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+.controlLabel {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.controlHint {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.72;
+}
+
+.scopeToggle {
+    flex: 1 1 420px;
+}
+
+.historyWindowToggle {
+    flex-shrink: 0;
+}
+
+.filtersRow {
+    display: grid;
+    grid-template-columns: minmax(360px, 400px) minmax(0, 1fr);
+    column-gap: 24px;
+    row-gap: 16px;
     align-items: flex-start;
 }
 
 .datePicker {
-    min-width: 320px;
+    width: 100%;
+    min-width: 0;
+    max-width: 400px;
 }
 
 .filtersInfo {
-    flex: 1;
-    min-width: 220px;
+    min-width: 0;
     font-size: 13px;
     opacity: 0.9;
 }
 
 .filtersRangeSummary {
     margin-top: 4px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-        monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 /* Контент: список отчётов */
@@ -88,54 +127,117 @@
     gap: 16px;
 }
 
-/* Обёртка одной карточки отчёта за день */
+/* Пагинация истории */
 
-.reportCard {
-    padding: 12px 16px 18px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
-}
-
-/* Кнопка "Показать ещё" */
-
-.loadMore {
-    margin-top: 8px;
+.pagination {
     display: flex;
-    justify-content: center;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    @include subtle-surface(10px 14px);
 }
 
-.loadMoreButton {
-    padding: 8px 18px;
+.paginationButton {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.8);
     background: rgba(15, 23, 42, 0.9);
     color: #e5e7eb;
-    font-size: 13px;
     cursor: pointer;
 
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
 }
 
-.loadMoreButton:hover {
+.paginationButton:hover {
     border-color: rgba(129, 140, 248, 1);
     box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
 }
 
-.loadMoreButton:disabled {
+.paginationButton:disabled {
     opacity: 0.4;
     cursor: default;
     box-shadow: none;
+}
+
+.paginationSpacer {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.paginationInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.85;
+    flex: 1;
+}
+
+.paginationHint {
+    opacity: 0.6;
+}
+
+/* Обёртка одной карточки отчёта за день */
+
+.reportCard {
+    @include surface-card(
+        $padding: 12px 16px 18px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+.tradeTableBlock {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tradeTableToolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+}
+
+.tradeTableHint {
+    font-size: 12px;
+    opacity: 0.78;
+    max-width: 860px;
+}
+
+.bucketControls {
+    margin-top: 0 !important;
+    flex-shrink: 0;
+}
+
+.bucketToggle {
+    flex-shrink: 0;
 }
 
 /* Карточка ошибки */
 
 .errorCard {
     padding: 16px 20px;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: rgba(127, 29, 29, 0.08);
     border: 1px solid rgba(248, 113, 113, 0.5);
 }
@@ -153,7 +255,7 @@
     flex-direction: column;
     gap: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--surface-border-subtle);
 }
 
 .reportHeaderMain {
@@ -173,8 +275,8 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
 
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--bg-color-muted);
+    border: 1px solid var(--surface-border-strong);
 }
 
 /* Мета-информация о репорте */
@@ -202,11 +304,14 @@
 /* Карточка секции */
 
 .section {
-    padding: 16px 20px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    @include surface-card(
+        $padding: 16px 20px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg-muted),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 10px;
 }
 
 .sectionHeader {
@@ -222,7 +327,7 @@
 
 .sectionSubtitle {
     font-size: 13px;
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 /* KeyValue секции */
@@ -237,7 +342,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 6px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid var(--surface-border-soft);
 
     &:first-child {
         border-top: none;
@@ -246,7 +351,7 @@
 
 .kvKey {
     font-size: 13px;
-    opacity: 0.8;
+    color: var(--text-muted);
 }
 
 .kvValue {
@@ -254,7 +359,7 @@
     font-weight: 500;
     padding: 3px 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-color-muted);
     border: 1px solid transparent;
     min-width: 120px;
     text-align: right;
@@ -283,29 +388,25 @@
 /* Табличные секции */
 
 .tableWrapper {
-    width: 100%;
-    overflow-x: auto;
     margin-top: 4px;
+    @include table-scroll-shell($density: medium, $min-width: 560px);
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    min-width: 480px;
+    @include data-table-base($min-width: 560px, $font-size: 13px);
 }
 
 .tableHeaderCell {
     text-align: left;
     padding: 6px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--surface-border-strong);
     font-weight: 600;
     white-space: nowrap;
 }
 
 .tableCell {
     padding: 6px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--surface-border-soft);
     white-space: nowrap;
 }
 
@@ -325,26 +426,68 @@
     margin: 0;
     margin-top: 4px;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 12px;
     line-height: 1.4;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    overflow-x: auto;
+    background: var(--bg-color-muted);
+    border: 1px solid var(--surface-border-subtle);
+    overflow: auto;
 }
 
-/* Адаптация под узкие экраны */
-
-@media (max-width: 900px) {
+@container prediction-history-page (max-width: 900px) {
     .HistoryPage {
-        padding: 16px;
     }
 
     .filtersRow {
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .datePicker {
+        max-width: none;
+    }
+
+    .filtersInfo {
+        min-width: 0;
     }
 
     .reportCard {
         padding: 10px 12px 14px;
+    }
+
+    .section,
+    .errorCard {
+        padding: 14px 16px;
+    }
+
+    .kvRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .kvValue {
+        min-width: 0;
+        text-align: left;
+    }
+}
+
+@keyframes cards-fade-slide {
+    from {
+        opacity: 0.75;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cardsAnimating {
+    animation: cards-fade-slide 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cardsAnimating {
+        animation: none;
     }
 }

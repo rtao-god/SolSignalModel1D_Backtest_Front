@@ -1,0 +1,316 @@
+.root {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    container-type: inline-size;
+    container-name: policy-branch-chart-explorer;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 840px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.subtitle {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.summaryPills {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.summaryPill {
+    padding: 7px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.72);
+    font-size: 12px;
+    line-height: 1.2;
+    color: #e2e8f0;
+}
+
+.summaryPillMuted {
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.58);
+}
+
+.filterBlock {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(17, 24, 39, 0.82)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 14px;
+}
+
+.selectGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.controlLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #cbd5e1;
+}
+
+.controlSelect {
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(2, 6, 23, 0.78);
+    color: #f8fafc;
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease,
+        transform 120ms ease;
+}
+
+.controlSelect:focus-visible {
+    border-color: rgba(56, 189, 248, 0.72);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.32);
+}
+
+.searchInput {
+    width: 100%;
+}
+
+.metricHint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #94a3b8;
+}
+
+.chartGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.chartCard,
+.detailCard {
+    @include surface-card(
+        $padding: 18px,
+        $radius: var(--radius-xl),
+        $background: (
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 32%),
+            linear-gradient(160deg, rgba(8, 15, 31, 0.94), rgba(15, 23, 42, 0.9))
+        ),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+    gap: 14px;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.cardTitle {
+    font-size: 15px;
+    font-weight: 650;
+    color: #f8fafc;
+}
+
+.cardSubtitle {
+    font-size: 12px;
+    line-height: 1.55;
+    color: #94a3b8;
+    max-width: 720px;
+}
+
+.chartMeta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chartMetaItem {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    font-size: 11px;
+    color: #cbd5e1;
+}
+
+.detailHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.detailIdentity {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detailTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.detailSubTitle {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+.detailTags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.detailTag {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    font-size: 12px;
+    color: #f8fafc;
+}
+
+.detailTagDanger {
+    background: rgba(127, 29, 29, 0.72);
+    border-color: rgba(248, 113, 113, 0.42);
+}
+
+.detailTagWarning {
+    background: rgba(120, 53, 15, 0.72);
+    border-color: rgba(251, 191, 36, 0.42);
+}
+
+.detailTagPositive {
+    background: rgba(6, 78, 59, 0.72);
+    border-color: rgba(52, 211, 153, 0.42);
+}
+
+.clearButton {
+    align-self: flex-start;
+}
+
+.policyCompare {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detailSections {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.detailSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detailSectionTitle {
+    font-size: 14px;
+    font-weight: 650;
+    color: #e2e8f0;
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.detailItem {
+    @include subtle-surface(10px 12px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detailItemLabel {
+    font-size: 11px;
+    line-height: 1.35;
+    color: #94a3b8;
+}
+
+.detailItemValue {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #f8fafc;
+    word-break: break-word;
+}
+
+.emptyDetail {
+    padding: 16px 18px;
+    border-radius: var(--radius-xl);
+    border: 1px dashed var(--surface-border-strong);
+    background: var(--bg-color-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+@container policy-branch-chart-explorer (max-width: 1200px) {
+    .chartGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .detailGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container policy-branch-chart-explorer (max-width: 900px) {
+    .selectGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container policy-branch-chart-explorer (max-width: 640px) {
+    .filterBlock,
+    .chartCard,
+    .detailCard {
+        padding: 14px;
+    }
+
+    .selectGrid,
+    .detailGrid {
+        grid-template-columns: 1fr;
+    }
+}

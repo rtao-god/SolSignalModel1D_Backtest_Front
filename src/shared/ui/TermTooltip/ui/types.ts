@@ -1,5 +1,5 @@
-import { ReactNode } from "react"
-import { TextTag } from "../../Text/ui/Text/types"
+import { ReactNode } from 'react'
+import { TextTag } from '../../Text/ui/Text/types'
 
 export default interface TermTooltipProps {
     term: string

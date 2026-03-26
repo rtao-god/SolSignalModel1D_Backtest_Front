@@ -1,0 +1,49 @@
+:root {
+    --radius-sm: 10px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 18px;
+    --radius-2xl: 22px;
+    --radius-pill: 999px;
+
+    --surface-padding-sm: 12px 14px;
+    --surface-padding-md: 16px 18px;
+    --surface-padding-lg: 18px 20px;
+    --surface-padding-xl: 24px;
+
+    --surface-border-subtle: rgba(148, 163, 184, 0.14);
+    --surface-border-default: rgba(148, 163, 184, 0.2);
+    --surface-border-strong: rgba(148, 163, 184, 0.28);
+
+    --surface-shadow-sm: 0 10px 24px rgba(2, 6, 23, 0.22);
+    --surface-shadow-md: 0 18px 42px rgba(2, 6, 23, 0.34);
+    --surface-shadow-lg: 0 24px 56px rgba(2, 6, 23, 0.42);
+
+    --surface-bg-default: rgba(15, 23, 42, 0.76);
+    --surface-bg-elevated: rgba(15, 23, 42, 0.88);
+    --surface-bg-muted: rgba(15, 23, 42, 0.58);
+    --surface-bg-accent: radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 40%),
+        linear-gradient(160deg, rgba(8, 15, 31, 0.96), rgba(15, 23, 42, 0.9));
+
+    --text-muted: rgba(226, 232, 240, 0.72);
+    --text-subtle: rgba(148, 163, 184, 0.92);
+
+    --chart-min-height: 320px;
+    --chart-min-height-compact: 280px;
+
+    --table-font-size: 12px;
+    --table-line-height: 1.5;
+    --table-header-font-size: 11px;
+    --table-cell-padding-y: 8px;
+    --table-cell-padding-x: 10px;
+    --table-min-width: 420px;
+}
+
+@media (max-width: 767px) {
+    :root {
+        --surface-padding-sm: 10px 12px;
+        --surface-padding-md: 14px 16px;
+        --surface-padding-lg: 16px;
+        --surface-padding-xl: 18px;
+    }
+}

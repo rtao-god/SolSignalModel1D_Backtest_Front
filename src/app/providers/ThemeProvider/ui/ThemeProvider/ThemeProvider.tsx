@@ -4,8 +4,6 @@ import { ThemeContext, Theme, LOCAL_STORAGE_THEME_KEY } from '../../lib/ThemeCon
 interface ThemeProviderProps {
     children: ReactNode
 }
-
-// Явная функция для определения начальной темы
 const getInitialTheme = (): Theme => {
     if (typeof window === 'undefined') {
         return Theme.DARK
@@ -21,14 +19,10 @@ const getInitialTheme = (): Theme => {
 
 export default function ThemeProvider({ children }: ThemeProviderProps) {
     const [theme, setTheme] = useState<Theme>(getInitialTheme)
-
-    // Сохраняем выбор темы
     useEffect(() => {
         if (typeof window === 'undefined') return
         localStorage.setItem(LOCAL_STORAGE_THEME_KEY, theme)
     }, [theme])
-
-    // Навешиваем класс темы на body, чтобы скроллбар и т.п. работали от body.dark_theme
     useEffect(() => {
         if (typeof document === 'undefined') return
 

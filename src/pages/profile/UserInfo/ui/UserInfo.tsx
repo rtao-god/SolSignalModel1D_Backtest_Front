@@ -1,4 +1,5 @@
 import { ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Text } from '@/shared/ui'
 import { useAuth } from '@/shared/model/store/auth'
@@ -11,15 +12,21 @@ import UserInfoProps from './types'
 import { getFullUsernameWithInitials } from '@/entities/User/model/selectors/getFullUsernameWithInitials'
 
 export default function UserInfo({ className }: UserInfoProps) {
+    const { t } = useTranslation('common')
     const { user } = useAuth()
     const sick = user
-    console.log('user', user)
+    const fullUsernameWithInitials = getFullUsernameWithInitials(
+        (user && user.last_name) ?? '',
+        (user && user.first_name) ?? '',
+        ''
+    )
+    const avatarAlt =
+        fullUsernameWithInitials ?
+            t('profile.avatarAltWithName', { name: fullUsernameWithInitials })
+        :   t('profile.avatarAlt')
 
     return (
-        <div
-            className={classNames(cls.User_info, {}, [className ?? ''])}
-            /* style={{ borderColor: sick ? '#F7E6E8' : '#EBF3FF' }} */
-        >
+        <div className={classNames(cls.User_info, {}, [className ?? ''])}>
             <div className={cls.image}>
                 <img
                     src={
@@ -29,31 +36,22 @@ export default function UserInfo({ className }: UserInfoProps) {
                             :   noImageBlue
                         :   user && user.image
                     }
-                    // src={
-                    //     (user && user.image)
-                    //         ? sick ? noImageRed : noImageBlue
-                    //         : user && user.image || ""
-                    // }
-                    alt=''
+                    alt={avatarAlt}
                 />
                 <input
                     accept='.jpg, .png, jpeg'
                     type='file'
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                        const file = e.target.files
-
-                        if (file) {
-                            console.log(file[0])
-                        }
+                        void e.target.files
                     }}
                 />
             </div>
             <div className={cls.data}>
                 <Text type='h2' color='#262626' fz='20px'>
-                    {getFullUsernameWithInitials((user && user.last_name) ?? '', (user && user.first_name) ?? '', '')}
+                    {fullUsernameWithInitials}
                 </Text>
                 <Text color='#B1B2B4' fz='14px'>
-                    {user && user.group.name}
+                    {user?.group?.name ?? ''}
                 </Text>
             </div>
         </div>

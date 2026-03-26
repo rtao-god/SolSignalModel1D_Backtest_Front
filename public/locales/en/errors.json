@@ -1,0 +1,68 @@
+{
+    "global": {
+        "title": "Critical error",
+        "retry": "Try again"
+    },
+    "notFound": {
+        "title": "Page not found",
+        "description": {
+            "line1": "Looks like nothing exists at this address.",
+            "line2": "The page may have been renamed or never existed."
+        },
+        "actions": {
+            "home": "Go to main page",
+            "back": "Go back",
+            "orChoose": "Or choose one of the sections below:"
+        },
+        "suggestions": {
+            "currentPrediction": {
+                "title": "Current prediction",
+                "description": "Check model signals for the nearest trading day."
+            },
+            "backtestSummary": {
+                "title": "Backtest summary",
+                "description": "See how the strategy behaved on historical data."
+            },
+            "pfi": {
+                "title": "PFI by models",
+                "description": "Understand which features influence predictions the most."
+            },
+            "about": {
+                "title": "About the project",
+                "description": "Short overview of the system idea, architecture, and capabilities."
+            }
+        }
+    },
+    "ui": {
+        "errorBlock": {
+            "retry": "Try again"
+        },
+        "pageError": {
+            "pill": "Section error",
+            "title": "This part of the page failed to load",
+            "description": "You can retry this section. If the error persists, check settings or open another route; the rest of the application remains available.",
+            "detailsLabel": "Details",
+            "retry": "Retry request",
+            "localizedTitle": "Localized page section failed to load",
+            "localizedDescriptionDefault": "The error is limited to the main content area. The active localization resource is missing or invalid, while the navbar, sidebar, and rest of the layout remain available.",
+            "localizedDescriptionSwitchToRussian": "The error is limited to the main content area. If the issue affects only the English copy, switch to the Russian version and continue using the website.",
+            "localizedDescriptionSwitchToEnglish": "The error is limited to the main content area. If the issue affects only the Russian copy, switch to the English version and continue using the website."
+        },
+        "pageDataBoundary": {
+            "loading": "Loading data"
+        },
+        "sectionErrorBoundary": {
+            "title": "Section render error",
+            "description": "This block is temporarily unavailable due to a client-side error. The rest of the page remains available."
+        },
+        "localizedContentBoundary": {
+            "title": "Localized block failed to load",
+            "loading": "Loading localized block",
+            "descriptionDefault": "The error is limited to this block. The active localization resource is missing or violates the expected contract, while the rest of the page remains available.",
+            "descriptionSwitchToRussian": "The error is limited to this block. If the issue affects only the English copy, switch to the Russian version and continue reading the page.",
+            "descriptionSwitchToEnglish": "The error is limited to this block. If the issue affects only the Russian copy, switch to the English version and continue reading the page.",
+            "switchToRussian": "Switch to Russian version",
+            "switchToEnglish": "Switch to English version"
+        }
+    }
+}

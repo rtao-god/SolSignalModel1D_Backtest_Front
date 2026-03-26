@@ -1,0 +1,81 @@
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+    container-type: inline-size;
+    container-name: backtest-page-header;
+
+    & > h1 {
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    & > p {
+        opacity: 0.9;
+        font-size: 15px;
+        max-width: 880px;
+        line-height: 1.45;
+    }
+}
+
+.profileSelectBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 380px;
+}
+
+.profileSelect {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(7, 10, 18, 0.98);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 15px;
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+
+    &:focus {
+        outline: none;
+        border-color: rgba(56, 189, 248, 0.88);
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.52);
+    }
+}
+
+.profileDescription {
+    font-size: 14px;
+    opacity: 0.72;
+}
+
+.tpSlModeBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 920px;
+    @include subtle-surface(10px 12px);
+}
+
+.tpSlControls {
+    margin-top: 0 !important;
+    width: max-content;
+}
+
+@container backtest-page-header (max-width: 760px) {
+    .header {
+        gap: 6px;
+    }
+
+    .profileSelectBlock {
+        max-width: 100%;
+    }
+
+    .tpSlModeBlock {
+        max-width: 100%;
+    }
+
+    .tpSlControls {
+        width: 100%;
+    }
+}

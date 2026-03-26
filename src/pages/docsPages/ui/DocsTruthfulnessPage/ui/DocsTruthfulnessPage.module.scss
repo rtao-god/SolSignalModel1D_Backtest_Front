@@ -1,0 +1,111 @@
+.DocsTruthfulnessPage {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 6px 0 10px;
+}
+
+.headerRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.subtitle {
+    max-width: 900px;
+    opacity: 0.84;
+    line-height: 1.7;
+}
+
+.sectionsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 1120px;
+}
+
+.sectionCard {
+    border-radius: 16px;
+    padding: 14px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.46);
+}
+
+.sectionTitle {
+    margin-bottom: 14px;
+}
+
+.copyBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sectionText {
+    opacity: 0.92;
+    line-height: 1.72;
+    text-indent: 1.4em;
+}
+
+.tableWrap {
+    margin-top: 18px;
+    overflow-x: auto;
+}
+
+.infoTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+.infoTable th,
+.infoTable td {
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    vertical-align: top;
+    line-height: 1.62;
+}
+
+.infoTable th {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.calloutGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.callout {
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.calloutTitle {
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.calloutText {
+    line-height: 1.68;
+    opacity: 0.9;
+}
+
+@media (max-width: 720px) {
+    .DocsTruthfulnessPage {
+        padding: 4px 0 8px;
+    }
+
+    .sectionCard {
+        padding: 12px 13px;
+    }
+}

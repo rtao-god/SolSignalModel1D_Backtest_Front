@@ -1,9 +1,849 @@
 {
-  "AboutPage": "About page",
-  "test": "test",
-  "test1": "test1",
-  "test2": "test2",
-  "test3": "test3",
-  "test4": "test4",
-  "test5": "test5"
+    "hero": {
+        "eyebrow": "Site atlas",
+        "title": "All visible navigation in one page",
+        "subtitle": "This screen collects the top menu, sidebar navigation, and the main content zones of each page. It is a fast atlas for the whole user-facing interface.",
+        "meta": {
+            "navbar": "Navbar routes",
+            "sidebar": "Sidebar routes",
+            "details": "Block drill-down"
+        }
+    },
+    "groups": {
+        "main": {
+            "eyebrow": "Entry point",
+            "title": "Main",
+            "subtitle": "The starting screen with the product overview, proof layer, and quick jumps."
+        },
+        "predictions": {
+            "eyebrow": "Operational layer",
+            "title": "Predictions",
+            "subtitle": "Current signal, historical archive, and policy trade breakdown."
+        },
+        "models": {
+            "eyebrow": "Model layer",
+            "title": "Models",
+            "subtitle": "Model statistics and aggregated signal behavior across segments."
+        },
+        "backtest": {
+            "eyebrow": "Strategy scenarios",
+            "title": "Backtest",
+            "subtitle": "Baseline, full summary, and the experimental scenario with configuration switches."
+        },
+        "analysis": {
+            "eyebrow": "Causes and comparisons",
+            "title": "Analysis",
+            "subtitle": "Rule ratings, confidence slices, day journal, and execution pipeline."
+        },
+        "diagnostics": {
+            "eyebrow": "Strategy diagnostics",
+            "title": "Diagnostics",
+            "subtitle": "Risk, guardrail, decisions, hotspots, and extra anomaly pages."
+        },
+        "features": {
+            "eyebrow": "Signal [[factor|factors]]",
+            "title": "Features",
+            "subtitle": "Feature importance by model and reading the impact of input [[factor|factors]]."
+        },
+        "guide": {
+            "eyebrow": "Metric meaning",
+            "title": "Knowledge Base",
+            "subtitle": "Explanations for models, time, truthfulness, and test barriers."
+        },
+        "developer": {
+            "eyebrow": "System documentation",
+            "title": "For developers",
+            "subtitle": "Backend structure, runtime flow, delivery contract, and guards."
+        },
+        "system": {
+            "eyebrow": "System pages",
+            "title": "System pages",
+            "subtitle": "Profile, the navigation atlas itself, and project contacts."
+        }
+    },
+    "table": {
+        "columns": {
+            "page": "Page",
+            "description": "Description",
+            "meta": "Structure",
+            "details": "Details"
+        }
+    },
+    "meta": {
+        "navType": {
+            "navbar": "navbar",
+            "sidebar": "sidebar"
+        },
+        "blocksCount": "Blocks: {{count}}"
+    },
+    "detail": {
+        "toggleLabel": {
+            "expand": "Details",
+            "collapse": "Hide"
+        },
+        "toggleAria": {
+            "expand": "Show details for {{title}}",
+            "collapse": "Hide details for {{title}}"
+        },
+        "regionAria": "Details for {{title}}",
+        "sectionPages": {
+            "title": "Section pages",
+            "subtitle": "Child routes inside the current domain.",
+            "count": "Pages: {{count}}"
+        },
+        "pageBlocks": {
+            "title": "Page blocks",
+            "subtitle": "The main semantic zones of the current screen.",
+            "count": "Blocks: {{count}}"
+        }
+    },
+    "routes": {
+        "main": {
+            "description": "The main page explains the product, shows the proof layer, and points to the key domains.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero block",
+                    "description": "Top screen with the product meaning and the live entry point to current prediction."
+                },
+                "audience": {
+                    "title": "Business questions",
+                    "description": "Connects the interface to signal reading, verification, and interpretation."
+                },
+                "workflow": {
+                    "title": "Working flow",
+                    "description": "Reading path from current prediction to archive, analysis, and diagnostics."
+                },
+                "proof": {
+                    "title": "Proof and verification",
+                    "description": "Archive and baseline-backtest facts. This section has a stable anchor."
+                },
+                "tour": {
+                    "title": "Navigation tour",
+                    "description": "Fast links to predictions, analysis, and diagnostics."
+                },
+                "demoConfiguration": {
+                    "title": "Demo configuration",
+                    "description": "Deferred sample configuration from Policy Branch Mega."
+                }
+            }
+        },
+        "current_prediction": {
+            "description": "Current prediction shows the nearest market scenario and the full report for the live signal.",
+            "blocks": {
+                "scopeControls": {
+                    "title": "Scope controls",
+                    "description": "Training-scope switcher for the live signal."
+                },
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Shows preview state and readiness of the signal."
+                },
+                "metaSummary": {
+                    "title": "Meta summary",
+                    "description": "Short lines about mode, report set, and model."
+                },
+                "reportDocument": {
+                    "title": "Prediction document",
+                    "description": "Main report with tables and key-value sections."
+                }
+            }
+        },
+        "current_prediction_history": {
+            "description": "Prediction history keeps past days, archive cards, and the breakdown of policy trades.",
+            "blocks": {
+                "filters": {
+                    "title": "Filters and history window",
+                    "description": "Scope, archive window, and working date controls."
+                },
+                "archivePager": {
+                    "title": "Archive pager",
+                    "description": "Moves through date groups inside the selected history window."
+                },
+                "reportCard": {
+                    "title": "Day card",
+                    "description": "Report for one historical prediction date."
+                },
+                "policyTrades": {
+                    "title": "Policy trades",
+                    "description": "Executed and skipped directional signals by Policy."
+                }
+            }
+        },
+        "models_stats": {
+            "description": "Model statistics shows the quality of model layers and display modes.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Status and freshness",
+                    "description": "Freshness context for the loaded model-stats report."
+                },
+                "sectionPager": {
+                    "title": "Section pager",
+                    "description": "Fast jumps between internal report sections."
+                },
+                "modelTables": {
+                    "title": "Model tables",
+                    "description": "Main tables with segments, modes, and quality metrics."
+                }
+            }
+        },
+        "aggregation_stats": {
+            "description": "Prediction aggregation collects probabilities, metrics, and a recent-day review over the same answer flow.",
+            "blocks": {
+                "probs": {
+                    "description": "Probability section across segments and aggregation layers."
+                },
+                "metrics": {
+                    "description": "Summary quality metrics for the aggregated signal."
+                },
+                "debug": {
+                    "description": "Recent-day review for checking fresh rows and overlay impact."
+                }
+            }
+        },
+        "backtest_baseline": {
+            "description": "Baseline backtest keeps the base strategy snapshot, global parameters, and a short policy table.",
+            "blocks": {
+                "snapshotHeader": {
+                    "title": "Snapshot header",
+                    "description": "Snapshot id, config name, and generation timestamp."
+                },
+                "globalParams": {
+                    "title": "Global parameters",
+                    "description": "Base stop-loss / take-profit settings of the baseline scenario."
+                },
+                "policyTable": {
+                    "title": "Policy table",
+                    "description": "Short summary of policy configurations with PnL, DD, and liquidations."
+                }
+            }
+        },
+        "backtest_summary": {
+            "description": "Backtest summary renders the full report for the baseline scenario and shows its freshness.",
+            "blocks": {
+                "reportHeader": {
+                    "title": "Report header",
+                    "description": "Report id, type, and generation time in UTC and local form."
+                },
+                "reportStatus": {
+                    "title": "Freshness card",
+                    "description": "Actual/debug status and the number of internal sections."
+                },
+                "reportTables": {
+                    "title": "Report sections",
+                    "description": "Main strategy document with tables and parameters."
+                }
+            }
+        },
+        "backtest_full": {
+            "description": "Experimental backtest changes configurations and compares alternative strategy profiles.",
+            "blocks": {
+                "baseline": {
+                    "description": "Base profile used as the comparison anchor."
+                },
+                "whatif": {
+                    "description": "Configuration-change scenario with alternative parameters."
+                },
+                "compare": {
+                    "description": "Side-by-side comparison of baseline and experimental profiles."
+                }
+            }
+        },
+        "analysis_home": {
+            "description": "The analysis home page collects rule ratings, confidence slices, the day journal, and the pipeline.",
+            "blocks": {
+                "overview": {
+                    "title": "Section overview",
+                    "description": "Hero block with the role of the analysis domain."
+                },
+                "sectionCards": {
+                    "title": "Section cards",
+                    "description": "Grid of links to child analysis screens."
+                }
+            }
+        },
+        "backtest_diagnostics_ratings": {
+            "description": "Rule ratings show the strongest and weakest configurations inside the selected diagnostic slice.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source and freshness of the diagnostic document."
+                },
+                "filters": {
+                    "title": "Diagnostic filters",
+                    "description": "Bucket, TP/SL, and risk modes used to build ratings."
+                },
+                "terms": {
+                    "title": "Terms and notes",
+                    "description": "Column explanations for the rating tables."
+                },
+                "tables": {
+                    "title": "Rating tables",
+                    "description": "Policy configuration tables grouped by quality and risk."
+                }
+            }
+        },
+        "backtest_diagnostics_daystats": {
+            "description": "Day statistics breaks the diagnostic report into daily slices.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Freshness context for the day-stats document."
+                },
+                "filters": {
+                    "title": "Day filters",
+                    "description": "Bucket and risk query parameters of the current slice."
+                },
+                "terms": {
+                    "title": "Terms",
+                    "description": "Explanations for daily columns and summary values."
+                },
+                "tables": {
+                    "title": "Daily tables",
+                    "description": "Sections with day-level metrics and deviation periods."
+                }
+            }
+        },
+        "backtest_policy_branch_mega": {
+            "description": "Policy Branch Mega compares rule configurations across bucket modes and risk scenarios.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Status and freshness",
+                    "description": "Freshness block for the mega report and its source."
+                },
+                "overview": {
+                    "title": "Overview and reading rules",
+                    "description": "Overview section with the reading logic of the mega table. This block has a stable anchor."
+                },
+                "chartExplorer": {
+                    "title": "Chart explorer",
+                    "description": "Graphic comparison layer for policy combinations."
+                },
+                "terms": {
+                    "title": "Table terms",
+                    "description": "Explanations for mega-table columns and modes."
+                },
+                "partTables": {
+                    "title": "Mega table parts",
+                    "description": "Core parts of the report for result, risk, and recovery."
+                },
+                "diagnosticsBridge": {
+                    "title": "Diagnostics bridge",
+                    "description": "Jump into diagnostics with the same bucket and mode context."
+                }
+            }
+        },
+        "backtest_policy_setups": {
+            "description": "Policy setup history shows the full chart, the day ledger, and the published candles for one policy setup.",
+            "blocks": {
+                "publishedStatus": {
+                    "title": "Publication status",
+                    "description": "State of the published setup report and the rebuild flow."
+                },
+                "controls": {
+                    "title": "Viewing controls",
+                    "description": "Range, resolution, and balance-view controls that shape the chart window."
+                },
+                "chartExplorer": {
+                    "title": "Chart and candles",
+                    "description": "The main price chart with the setup overlay and the capital timeline."
+                },
+                "detailView": {
+                    "title": "Setup detail",
+                    "description": "Ledger rows and the current setup identity opened from the table."
+                }
+            }
+        },
+        "backtest_confidence_risk": {
+            "description": "Confidence statistics links confidence with accuracy, TP/SL reach, and price behavior.",
+            "blocks": {
+                "filters": {
+                    "title": "Confidence filters",
+                    "description": "Training scope and confidence bucket controls."
+                },
+                "terms": {
+                    "title": "Metric terms",
+                    "description": "Cards for MFE, MAE, TP Reach, and related metrics."
+                },
+                "configBlock": {
+                    "title": "Configuration block",
+                    "description": "Active source, bucket ranges, and selected conditions."
+                },
+                "statisticsTables": {
+                    "title": "Statistics tables",
+                    "description": "Risk and accuracy distributions by confidence bucket."
+                }
+            }
+        },
+        "analysis_real_forecast_journal": {
+            "description": "Real forecast journal combines the causal day slice, live execution status, and comparisons with reference sources.",
+            "blocks": {
+                "daySelector": {
+                    "title": "Day selector",
+                    "description": "Date and comparison-scope controls."
+                },
+                "causalSummary": {
+                    "title": "Causal summary",
+                    "description": "Summary of timings, signal state, and anchor numbers."
+                },
+                "liveTracking": {
+                    "title": "Live tracking",
+                    "description": "What happened after the signal was published."
+                },
+                "policyTables": {
+                    "title": "Policy tables",
+                    "description": "Executed and skipped signals grouped by Policy."
+                },
+                "comparison": {
+                    "title": "Reference comparison",
+                    "description": "Comparison with aggregation or confidence-risk sources."
+                }
+            }
+        },
+        "backtest_execution_pipeline": {
+            "description": "Execution pipeline shows how a signal moves from model level to execution and accounting layers.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Freshness and source of the pipeline document."
+                },
+                "configSections": {
+                    "title": "Configuration sections",
+                    "description": "Key-value blocks with active pipeline parameters."
+                },
+                "stageTables": {
+                    "title": "Stage tables",
+                    "description": "Tables for model, decision, execution, accounting, and aggregation levels."
+                }
+            }
+        },
+        "diagnostics_home": {
+            "description": "The diagnostics home page collects risk, guardrail, decisions, hotspots, and extra anomaly routes.",
+            "blocks": {
+                "overview": {
+                    "title": "Diagnostics overview",
+                    "description": "Hero block with the role of the diagnostics domain."
+                },
+                "sectionCards": {
+                    "title": "Diagnostic cards",
+                    "description": "Grid of links to child diagnostic screens."
+                }
+            }
+        },
+        "backtest_diagnostics": {
+            "description": "Risk and liquidations shows where the strategy loses stability because of leverage and drawdowns.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source and freshness of the diagnostic document."
+                },
+                "filters": {
+                    "title": "Mode filters",
+                    "description": "Bucket, TP/SL, stop-loss, and zonal parameters of the slice."
+                },
+                "terms": {
+                    "title": "Risk terms",
+                    "description": "Explanations for risk metrics, drawdown, and recovery."
+                },
+                "tables": {
+                    "title": "Diagnostic tables",
+                    "description": "Liquidation scenarios, recovery failures, and risk by policy combination."
+                }
+            }
+        },
+        "backtest_diagnostics_guardrail": {
+            "description": "Guardrail / Specificity shows where strategy constraints become too narrow.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Freshness context for the guardrail slice."
+                },
+                "filters": {
+                    "title": "Mode filters",
+                    "description": "Bucket and risk scenario used for guardrail metrics."
+                },
+                "terms": {
+                    "title": "Guardrail terms",
+                    "description": "Explanations for specificity and related constraints."
+                },
+                "tables": {
+                    "title": "Constraint tables",
+                    "description": "Where rules cut the trade flow and what this changes in the result."
+                }
+            }
+        },
+        "backtest_diagnostics_decisions": {
+            "description": "Decisions / Attribution shows which conditions shape the trading decision.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source of the decision-layer document."
+                },
+                "filters": {
+                    "title": "Decision filters",
+                    "description": "Bucket, TP/SL, and risk modes for attribution analysis."
+                },
+                "terms": {
+                    "title": "Attribution terms",
+                    "description": "Explanations for contribution [[factor|factors]] and decision metrics."
+                },
+                "tables": {
+                    "title": "Decision tables",
+                    "description": "Which conditions strengthen a decision and which make it weak."
+                }
+            }
+        },
+        "backtest_diagnostics_hotspots": {
+            "description": "Hotspots / NoTrade helps find zones where the strategy systematically skips signals.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Freshness context for hotspot analysis."
+                },
+                "filters": {
+                    "title": "Hotspot filters",
+                    "description": "Risk parameters and bucket modes of the current slice."
+                },
+                "terms": {
+                    "title": "Hotspot terms",
+                    "description": "Explanations for no-trade situations and local anomalies."
+                },
+                "tables": {
+                    "title": "Bottleneck tables",
+                    "description": "Zones where the strategy loses trade frequency or result quality."
+                }
+            }
+        },
+        "backtest_diagnostics_other": {
+            "description": "Other diagnostics keeps extra tables outside the main risk / decision / hotspot domains.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Current document and its diagnostic context."
+                },
+                "filters": {
+                    "title": "Mode filters",
+                    "description": "The same query context used on neighbor diagnostic pages."
+                },
+                "terms": {
+                    "title": "Extra-section terms",
+                    "description": "Explanations for less obvious diagnostic indicators."
+                },
+                "tables": {
+                    "title": "Extra tables",
+                    "description": "Rare but useful signals for expanded strategy review."
+                }
+            }
+        },
+        "pfi_per_model": {
+            "description": "PFI by models shows which features move the forecast of each model the most.",
+            "blocks": {
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source and freshness of the PFI slice."
+                },
+                "terms": {
+                    "title": "PFI terms",
+                    "description": "Feature-importance and view-mode explanations."
+                },
+                "modelTables": {
+                    "title": "Per-model tables",
+                    "description": "Feature importance by model and reading mode."
+                }
+            }
+        },
+        "guide": {
+            "description": "Knowledge Base explains models, time, features, truthfulness, and test barriers in plain product language.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero block",
+                    "description": "Purpose of the knowledge base and its main topics."
+                },
+                "sectionCards": {
+                    "title": "Topic cards",
+                    "description": "Links to child explanation pages."
+                }
+            }
+        },
+        "guide_models": {
+            "description": "The models page explains the meaning of model layers and how to read their differences.",
+            "blocks": {
+                "guide-models-meaning": {
+                    "description": "What each model layer means and why it exists."
+                },
+                "guide-models-reading": {
+                    "description": "How to read model output and which metrics come first."
+                },
+                "guide-models-logic": {
+                    "description": "How model layers are connected inside the signal."
+                },
+                "guide-models-contract": {
+                    "description": "Contract and limits of the model layer."
+                },
+                "guide-models-checks": {
+                    "description": "Checks and warning signs for a weak model."
+                },
+                "guide-models-related": {
+                    "description": "Related knowledge-base topics needed for full reading."
+                }
+            }
+        },
+        "guide_branches": {
+            "description": "The BASE / ANTI-D branches page explains when the strategy flips position direction.",
+            "blocks": {
+                "explain-branches-overview": {
+                    "description": "Why the system needs different trading branches."
+                },
+                "explain-branches-base": {
+                    "description": "Behavior of the main BASE scenario."
+                },
+                "explain-branches-anti": {
+                    "description": "When anti-direction logic is used."
+                },
+                "explain-branches-conditions": {
+                    "description": "Conditions that activate the ANTI-D branch."
+                },
+                "explain-branches-usage": {
+                    "description": "How branch theory connects to reports."
+                }
+            }
+        },
+        "guide_splits": {
+            "description": "The Train / OOS / Recent page explains historical splits and signal stability reading.",
+            "blocks": {
+                "explain-splits-overview": {
+                    "description": "Why different splits exist and what they test."
+                },
+                "explain-splits-train": {
+                    "description": "Role of the training slice of history."
+                },
+                "explain-splits-oos": {
+                    "description": "Behavior on unseen data."
+                },
+                "explain-splits-recent": {
+                    "description": "Fresh tail of history as a separate stability check."
+                },
+                "explain-splits-full": {
+                    "description": "Full history as context, not as a replacement for split reading."
+                }
+            }
+        },
+        "guide_time": {
+            "description": "The time page explains NY trading day, baseline exit, and temporal keys of the project.",
+            "blocks": {
+                "explain-time-overview": {
+                    "description": "Base calendar canon of the system."
+                },
+                "explain-time-baseline": {
+                    "description": "How baseline exit changes result interpretation."
+                },
+                "explain-time-day-keys": {
+                    "description": "Roles of day-key and time representations."
+                },
+                "explain-time-weekend": {
+                    "description": "Weekends, exclusions, and boundary time cases."
+                }
+            }
+        },
+        "guide_features": {
+            "description": "The features page explains which input data types move the model.",
+            "blocks": {
+                "explain-features-overview": {
+                    "description": "General feature layer and its role in the system."
+                },
+                "explain-features-returns": {
+                    "description": "Returns, spreads, and basic price features."
+                },
+                "explain-features-indicators": {
+                    "description": "Technical indicators and macro layer."
+                },
+                "explain-features-momentum": {
+                    "description": "Momentum and volatility features."
+                },
+                "explain-features-regime": {
+                    "description": "Market regimes and EMA-based features."
+                }
+            }
+        },
+        "guide_truthfulness": {
+            "description": "The data truthfulness page explains causal vs post-fact layers and leakage protection.",
+            "blocks": {
+                "truth-overview": {
+                    "description": "Core meaning of the truthfulness contour."
+                },
+                "truth-causal": {
+                    "description": "What data exists at the moment of the trading decision."
+                },
+                "truth-omniscient": {
+                    "description": "What data appears only after the day is closed."
+                },
+                "truth-structure": {
+                    "description": "Where the truthfulness contract lives in project structure."
+                },
+                "truth-delivery": {
+                    "description": "How truthfulness rules reach reports, API, and UI."
+                },
+                "truth-tests": {
+                    "description": "Tests and barriers against future leakage."
+                }
+            }
+        },
+        "guide_tests": {
+            "description": "The tests page explains how the project defends itself from regressions and leakage.",
+            "blocks": {
+                "tests-overview": {
+                    "description": "General map of test classes."
+                },
+                "tests-sanity": {
+                    "description": "Sanity checks for basic invariants."
+                },
+                "tests-leakage": {
+                    "description": "Leakage tests for the causal contract."
+                },
+                "tests-perf": {
+                    "description": "Checks for speed and compute cost."
+                }
+            }
+        },
+        "developer": {
+            "description": "The developer home page collects engineering maps for structure, runtime, delivery, and guards.",
+            "blocks": {
+                "hero": {
+                    "title": "Hero block",
+                    "description": "Scope of the developer domain and its main engineering axes."
+                },
+                "sectionCards": {
+                    "title": "Engineering cards",
+                    "description": "Links to backend structure, runtime, reports, and guard materials."
+                }
+            }
+        },
+        "developer_backend_structure": {
+            "description": "The backend structure page explains the solution map and the meaning of major projects.",
+            "blocks": {
+                "developer-structure-reading-map": {
+                    "description": "How to read the backend map and where to start."
+                },
+                "developer-structure-root-solution": {
+                    "description": "Repository root level and solution files."
+                },
+                "developer-structure-core-foundation": {
+                    "description": "Base contracts, time, and the foundation layer."
+                },
+                "developer-structure-model-pipeline": {
+                    "description": "Causal, infer, train, and the model pipeline."
+                },
+                "developer-structure-runtime-delivery": {
+                    "description": "Runtime, report, and API projects."
+                },
+                "developer-structure-guards-quality": {
+                    "description": "Tests, architecture barriers, and analyzer checks."
+                },
+                "developer-structure-root-source": {
+                    "description": "Root source layout and important exclusions."
+                }
+            }
+        },
+        "developer_runtime_flow": {
+            "description": "Runtime flow breaks the signal path from entry points to prediction and backtest processes.",
+            "blocks": {
+                "developer-runtime-entrypoints": {
+                    "description": "Real entry points of backend processes."
+                },
+                "developer-runtime-bootstrap": {
+                    "description": "Bootstrap configuration and service wiring."
+                },
+                "developer-runtime-prediction": {
+                    "description": "How runtime builds and publishes current prediction."
+                },
+                "developer-runtime-backtest": {
+                    "description": "How backtest and rebuild scenarios are produced."
+                }
+            }
+        },
+        "developer_reports_api": {
+            "description": "Reports and API describes how backend builds reports and delivers them to frontend.",
+            "blocks": {
+                "developer-delivery-reports": {
+                    "description": "Where reports are built and which layers participate."
+                },
+                "developer-delivery-storage": {
+                    "description": "Where finished artifacts are stored."
+                },
+                "developer-delivery-api": {
+                    "description": "User-facing endpoints and their role in delivery."
+                },
+                "developer-delivery-frontend": {
+                    "description": "How frontend reads backend reports and what limits apply."
+                }
+            }
+        },
+        "developer_tests_guards": {
+            "description": "Tests and guards shows the engineering barriers of the project: tests, architecture checks, and analyzers.",
+            "blocks": {
+                "developer-guards-tests": {
+                    "description": "Main test classes and their purpose."
+                },
+                "developer-guards-arch": {
+                    "description": "Dependency checks and architecture boundaries."
+                },
+                "developer-guards-analyzers": {
+                    "description": "Static rules before runtime."
+                },
+                "developer-guards-selfcheck": {
+                    "description": "Short self-check after local changes."
+                }
+            }
+        },
+        "profile": {
+            "description": "Profile is still a placeholder page for future user settings.",
+            "blocks": {
+                "placeholderState": {
+                    "title": "Placeholder state",
+                    "description": "Main page copy explains that a full profile is not implemented yet."
+                },
+                "backtestLink": {
+                    "title": "Link to experimental backtest",
+                    "description": "Points to the place where user parameters will later be saved."
+                }
+            }
+        },
+        "about": {
+            "description": "This page collects every visible route and expands the structure of each screen.",
+            "blocks": {
+                "hero": {
+                    "title": "Top overview",
+                    "description": "Purpose of the navigation hub and the scope of the site atlas."
+                },
+                "navigationMatrix": {
+                    "title": "Navigation matrix",
+                    "description": "Main table with route domains, rows, and nav type."
+                },
+                "routeDetails": {
+                    "title": "Structure drill-down",
+                    "description": "Per-route maps of blocks and child pages."
+                }
+            }
+        },
+        "contact": {
+            "description": "Contact page contains the profile card, communication channels, and the closing footer block.",
+            "blocks": {
+                "pageHeader": {
+                    "title": "Page header",
+                    "description": "Short context for the contact page."
+                },
+                "profileCard": {
+                    "title": "Profile card",
+                    "description": "Name, role, and a short note for the contact person."
+                },
+                "contactMethods": {
+                    "title": "Contact methods",
+                    "description": "Telegram, LinkedIn, and phone as the main public channels."
+                },
+                "footer": {
+                    "title": "Footer block",
+                    "description": "Closing line for the contact scenario."
+                }
+            }
+        }
+    }
 }

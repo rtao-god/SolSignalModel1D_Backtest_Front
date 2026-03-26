@@ -1,98 +1,147 @@
-@mixin media-xs {
-    @media (max-width: 575px) {
-        @content;
-    }
-}
-
-@mixin media-upto-xs {
-    @media (max-width: 575px) {
-        @content;
-    }
-}
-
-@mixin media-sm {
-    @media (min-width: 576px) and (max-width: 767px) {
-        @content;
-    }
-}
-
-@mixin media-upto-sm {
+@mixin viewport-phone {
     @media (max-width: 767px) {
         @content;
     }
 }
 
+@mixin viewport-tablet {
+    @media (min-width: 768px) and (max-width: 1023px) {
+        @content;
+    }
+}
+
+@mixin viewport-upto-tablet {
+    @media (max-width: 1023px) {
+        @content;
+    }
+}
+
+@mixin viewport-compact-desktop {
+    @media (min-width: 1024px) and (max-width: 1439px) {
+        @content;
+    }
+}
+
+@mixin viewport-upto-compact-desktop {
+    @media (max-width: 1439px) {
+        @content;
+    }
+}
+
+@mixin viewport-from-compact-desktop {
+    @media (min-width: 1024px) {
+        @content;
+    }
+}
+
+@mixin viewport-sidebar-compact-shell {
+    @media (min-width: 1024px) and (max-width: 1199px) {
+        @content;
+    }
+}
+
+@mixin viewport-from-sidebar-full-shell {
+    @media (min-width: 1200px) {
+        @content;
+    }
+}
+
+@mixin viewport-desktop {
+    @media (min-width: 1440px) and (max-width: 1919px) {
+        @content;
+    }
+}
+
+@mixin viewport-from-desktop {
+    @media (min-width: 1440px) {
+        @content;
+    }
+}
+
+@mixin viewport-wide {
+    @media (min-width: 1920px) {
+        @content;
+    }
+}
+
+// Совместимость со старым набором имён, пока не переведены все модули фронта.
+@mixin media-xs {
+    @include viewport-phone {
+        @content;
+    }
+}
+
+@mixin media-upto-xs {
+    @include viewport-phone {
+        @content;
+    }
+}
+
+@mixin media-sm {
+    @include viewport-tablet {
+        @content;
+    }
+}
+
+@mixin media-upto-sm {
+    @include viewport-upto-tablet {
+        @content;
+    }
+}
+
 @mixin media-md {
-    @media (min-width: 768px) and (max-width: 991px) {
+    @include viewport-compact-desktop {
         @content;
     }
 }
 
 @mixin media-upto-md {
-    @media (max-width: 991px) {
+    @include viewport-upto-compact-desktop {
         @content;
     }
 }
 
 @mixin media-lg {
-    @media (min-width: 992px) and (max-width: 1199px) {
+    @include viewport-desktop {
         @content;
     }
 }
 
 @mixin media-upto-lg {
-    @media (max-width: 1199px) {
+    @media (max-width: 1919px) {
         @content;
     }
 }
 
 @mixin media-xl {
-    @media (min-width: 1200px) and (max-width: 1199px) {
+    @include viewport-wide {
         @content;
     }
 }
 
 @mixin media-upto-xl {
-    @media (max-width: 1199px) {
+    @media (max-width: 1919px) {
         @content;
     }
 }
 
 @mixin media-xxl {
-    @media (min-width: 1400px) {
+    @include viewport-wide {
         @content;
     }
 }
 
 @mixin admin-page-paddings {
-    padding-left: 64px;
-    padding-right: 64px;
-
-    @include media-upto-md {
-        padding-left: 32px;
-        padding-right: 32px;
-    }
-
-    @include media-upto-xs {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
+    padding-left: var(--page-gutter-inline);
+    padding-right: var(--page-gutter-inline);
 }
 
 @mixin operator-page-paddings {
-    padding-left: 32px;
-    padding-right: 16px;
-
-    @include media-upto-md {
-        padding-left: 16px;
-    }
+    padding-left: var(--page-gutter-inline);
+    padding-right: var(--page-gutter-inline);
 }
 
 @mixin operator-page-paddings-important {
-    padding-left: 32px !important;
-    padding-right: 16px !important;
-
-    @include media-upto-md {
-        padding-left: 16px !important;
-    }
+    padding-left: var(--page-gutter-inline) !important;
+    padding-right: var(--page-gutter-inline) !important;
 }

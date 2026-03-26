@@ -14,8 +14,6 @@ export default function Btn({
     ...rest
 }: BtnProps) {
     const { theme } = useTheme()
-
-    // Цветовая схема по умолчанию зависит от темы, но может быть явно переопределена.
     const resolvedColorScheme: BtnColorScheme = colorScheme ?? (theme === Theme.DARK ? 'green' : 'blue')
 
     return (

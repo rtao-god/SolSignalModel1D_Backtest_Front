@@ -1,0 +1,66 @@
+.root {
+    @include product-page-shell(1600px, true, 24px);
+    container-type: inline-size;
+    container-name: diagnostics-layout;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.headerMain {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.headerState {
+    max-width: 720px;
+}
+
+.subtitle {
+    margin-top: 6px;
+    opacity: 0.75;
+    max-width: 720px;
+}
+
+.tableGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.termsBlock {
+    margin-top: 2px;
+}
+
+.sectionBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sharedBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sharedTitle {
+    margin: 0;
+}
+
+.sharedSubtitle {
+    color: var(--text-muted);
+    max-width: 780px;
+}
+
+@container diagnostics-layout (max-width: 760px) {
+    .header {
+        flex-direction: column;
+    }
+}

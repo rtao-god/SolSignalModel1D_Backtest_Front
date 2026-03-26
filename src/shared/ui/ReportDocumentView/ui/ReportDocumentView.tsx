@@ -1,72 +1,195 @@
+import { useMemo } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { Text } from '@/shared/ui'
+import { ReportActualStatusCard, ReportTableTermsBlock, Text } from '@/shared/ui'
+import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import {
+    resolveReportColumnTooltip,
+    resolveReportKeyTooltip,
+    resolveReportTooltipSelfAliases
+} from '@/shared/utils/reportTooltips'
+import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
+import {
+    localizeReportColumnTitle,
+    localizeReportDocumentTitle,
+    localizeReportKeyLabel,
+    localizeReportKeyValue,
+    localizeReportSectionTitle
+} from '@/shared/utils/reportPresentationLocalization'
 import type {
     ReportDocumentDto,
     ReportSectionDto,
     KeyValueSectionDto,
     TableSectionDto
 } from '@/shared/types/report.types'
+import { ReportTableCard } from '@/shared/ui/ReportTableCard'
+import PageError from '@/shared/ui/errors/PageError/ui/PageError'
+import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { useTranslation } from 'react-i18next'
 import cls from './ReportDocumentView.module.scss'
+
+export interface ReportDocumentFreshnessInfo {
+    statusMode: 'actual' | 'debug'
+    statusTitle: string
+    statusMessage: string
+    statusLagMinutes?: number | null
+    statusLines?: Array<{ label: string; value: string }>
+}
 
 interface ReportDocumentViewProps {
     report: ReportDocumentDto
+    freshness: ReportDocumentFreshnessInfo
     className?: string
+    showTableTermsBlock?: boolean
+    sectionDomIdPrefix?: string
 }
 
-/**
- * Компонент отображения отчёта ReportDocumentDto:
- * - шапка с title/kind/id и временем генерации;
- * - универсальный рендер секций (KeyValue, таблицы, JSON-фолбэк);
- * - стили заточены под тёмную тему.
- */
-export function ReportDocumentView({ report, className }: ReportDocumentViewProps) {
-    const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
+export function ReportDocumentView({
+    report,
+    freshness,
+    className,
+    showTableTermsBlock = true,
+    sectionDomIdPrefix
+}: ReportDocumentViewProps) {
+    const { i18n } = useTranslation()
+    const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
+    const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
 
-    const formatUtc = (date: Date): string => {
-        const year = date.getUTCFullYear()
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-        const day = String(date.getUTCDate()).padStart(2, '0')
-        const hour = String(date.getUTCHours()).padStart(2, '0')
-        const minute = String(date.getUTCMinutes()).padStart(2, '0')
+    const generatedAtState = useMemo(() => {
+        if (!report.generatedAtUtc) {
+            return { error: new Error('[report-document-view] generatedAtUtc is missing.') }
+        }
 
-        return `${year}-${month}-${day} ${hour}:${minute} UTC`
+        const parsed = new Date(report.generatedAtUtc)
+        if (Number.isNaN(parsed.getTime())) {
+            return { error: new Error(`[report-document-view] generatedAtUtc is invalid: ${report.generatedAtUtc}`) }
+        }
+
+        return { error: null as Error | null }
+    }, [report.generatedAtUtc])
+
+    const sourceEndpointState = useMemo(() => {
+        try {
+            return {
+                value: resolveReportSourceEndpoint(),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            return {
+                value: null as string | null,
+                error: safeError
+            }
+        }
+    }, [])
+
+    const tableSections = useMemo(
+        () =>
+            showTableTermsBlock ?
+                (report.sections.filter(section => isTableSection(section)) as TableSectionDto[])
+            :   ([] as TableSectionDto[]),
+        [report.sections, showTableTermsBlock]
+    )
+    const termsState = useMemo(() => {
+        if (!showTableTermsBlock || tableSections.length === 0) {
+            return {
+                terms: [] as ReportTermItem[],
+                error: null as Error | null
+            }
+        }
+
+        try {
+            return {
+                terms: buildReportTermsFromSections({
+                    sections: tableSections,
+                    reportKind: report.kind,
+                    contextTag: 'report-document-view',
+                    locale: reportUiLanguage,
+                    resolveSectionTitle: section =>
+                        normalizeReportTitle(section.title) || section.title || 'report-table'
+                }),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = err instanceof Error ? err : new Error('Failed to build report terms.')
+            return {
+                terms: [] as ReportTermItem[],
+                error: safeError
+            }
+        }
+    }, [report.kind, reportUiLanguage, showTableTermsBlock, tableSections])
+
+    if (generatedAtState.error) {
+        return (
+            <PageError
+                title='Report has invalid generatedAtUtc'
+                message='generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчёта.'
+                error={generatedAtState.error}
+            />
+        )
     }
 
-    const generatedUtcStr = generatedUtc ? formatUtc(generatedUtc) : '—'
-
-    const generatedLocalStr =
-        generatedUtc ?
-            generatedUtc.toLocaleString(undefined, {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-        :   '—'
+    if (termsState.error) {
+        return (
+            <PageError
+                title='Report terms are invalid'
+                message='Не удалось построить термины для таблиц отчёта. Проверь колонки и словарь подсказок.'
+                error={termsState.error}
+            />
+        )
+    }
 
     const hasSections = Array.isArray(report.sections) && report.sections.length > 0
-
-    const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
+    const hasTableSections = showTableTermsBlock && tableSections.length > 0
+    const localizedReportTitle = localizeReportDocumentTitle(report.kind, report.title, reportUiLanguage)
 
     return (
         <div className={rootClassName}>
             <header className={cls.header}>
                 <div className={cls.headerMain}>
-                    <Text type='h1'>{report.title}</Text>
+                    <Text type='h1' className={cls.reportTitle}>
+                        {localizedReportTitle}
+                    </Text>
                     <span className={cls.kindTag}>{report.kind}</span>
                 </div>
 
-                <div className={cls.meta}>
-                    <span className={cls.metaItem}>ID отчёта: {report.id}</span>
-                    <span className={cls.metaItem}>Сгенерировано (UTC): {generatedUtcStr}</span>
-                    <span className={cls.metaItem}>Сгенерировано (локальное время): {generatedLocalStr}</span>
-                </div>
+                {sourceEndpointState.value && (
+                    <ReportActualStatusCard
+                        statusMode={freshness.statusMode}
+                        statusTitle={freshness.statusTitle}
+                        statusMessage={freshness.statusMessage}
+                        statusLagMinutes={freshness.statusLagMinutes ?? null}
+                        dataSource={sourceEndpointState.value}
+                        reportTitle={report.title}
+                        reportId={report.id}
+                        reportKind={report.kind}
+                        generatedAtUtc={report.generatedAtUtc}
+                        statusLines={freshness.statusLines}
+                    />
+                )}
             </header>
 
             <div className={cls.sections}>
+                {hasTableSections && (
+                    <ReportTableTermsBlock
+                        reportKind={report.kind}
+                        terms={termsState.terms}
+                        title='Термины таблиц отчёта'
+                        subtitle='Подробные определения всех колонок, которые используются в текущем наборе таблиц.'
+                        enhanceDomainTerms
+                        className={cls.termsBlock}
+                    />
+                )}
+
                 {hasSections ?
-                    report.sections.map((section, index) => <SectionRenderer key={index} section={section} />)
+                    report.sections.map((section, index) => (
+                        <SectionRenderer
+                            key={index}
+                            section={section}
+                            reportKind={report.kind}
+                            sectionDomId={sectionDomIdPrefix ? `${sectionDomIdPrefix}-section-${index}` : undefined}
+                        />
+                    ))
                 :   <Text>Нет секций отчёта для отображения.</Text>}
             </div>
         </div>
@@ -75,14 +198,12 @@ export function ReportDocumentView({ report, className }: ReportDocumentViewProp
 
 interface SectionRendererProps {
     section: ReportSectionDto
+    reportKind?: string
+    sectionDomId?: string
 }
-
-// Определение, является ли секция KeyValue-форматом.
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
     return Array.isArray((section as KeyValueSectionDto).items)
 }
-
-// Определение, является ли секция табличной.
 function isTableSection(section: ReportSectionDto): section is TableSectionDto {
     const tbl = section as TableSectionDto
     return Array.isArray(tbl.columns) && Array.isArray(tbl.rows)
@@ -90,79 +211,78 @@ function isTableSection(section: ReportSectionDto): section is TableSectionDto {
 
 type DirectionKind = 'long' | 'short' | 'flat'
 
-/**
- * Эвристика для определения направления по строковому значению.
- * Нужна, чтобы подсветить значения типа "long"/"short"/"flat".
- */
 function detectDirection(value: unknown): DirectionKind | null {
     if (value === null || value === undefined) {
         return null
     }
 
+    // Карточки отчёта приходят уже с пользовательскими подписями, поэтому направление
+    // распознаётся по видимому тексту, а не по одному фиксированному backend-токену.
     const v = String(value).toLowerCase()
 
-    if (v.includes('long') || v.includes('лонг') || v.includes('bull')) {
+    if (v.includes('long') || v.includes('лонг') || v.includes('bull') || v.includes('рост')) {
         return 'long'
     }
 
-    if (v.includes('short') || v.includes('шорт') || v.includes('bear')) {
+    if (
+        v.includes('short') ||
+        v.includes('шорт') ||
+        v.includes('bear') ||
+        v.includes('падение') ||
+        v.includes('микро-падение')
+    ) {
         return 'short'
     }
 
-    if (v.includes('flat') || v.includes('флэт') || v.includes('боковик') || v.includes('sideways')) {
+    if (v.includes('flat') || v.includes('боковик') || v.includes('sideways')) {
         return 'flat'
     }
 
     return null
 }
 
-/**
- * Парсинг числовых значений для подсветки плюса/минуса.
- */
-function parseNumericCell(raw: string): number | null {
-    if (!raw) {
-        return null
-    }
-
-    const cleaned = raw.replace(/\s/g, '').replace('%', '').replace(',', '.')
-    const num = Number.parseFloat(cleaned)
-
-    if (Number.isNaN(num)) {
-        return null
-    }
-
-    return num
+function normalizeReportTitle(title: string | undefined): string {
+    if (!title) return ''
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
 }
 
-/**
- * Рендер одной секции отчёта:
- * - KeyValue секции;
- * - табличные секции;
- * - JSON-фолбэк для новых/неизвестных структур.
- */
-function SectionRenderer({ section }: SectionRendererProps) {
+function SectionRenderer({ section, reportKind, sectionDomId }: SectionRendererProps) {
+    const { i18n } = useTranslation()
     const kv = section as KeyValueSectionDto
     const tbl = section as TableSectionDto
     const description = (section as any)?.description as string | undefined
 
     if (isKeyValueSection(section)) {
+        const rawVisibleTitle = normalizeReportTitle(kv.title) || kv.title
+        const visibleTitle = localizeReportSectionTitle(reportKind, rawVisibleTitle, i18n.language)
+        const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, kv.title)
         return (
-            <section className={cls.section}>
+            <section id={sectionDomId} className={cls.section}>
                 <div className={cls.sectionHeader}>
                     <Text type='h2' className={cls.sectionTitle}>
-                        {kv.title}
+                        {visibleTitle}
                     </Text>
 
-                    {description && <Text className={cls.sectionSubtitle}>{description}</Text>}
+                    {resolvedDescription && <Text className={cls.sectionSubtitle}>{resolvedDescription}</Text>}
                 </div>
 
                 <dl className={cls.kvList}>
                     {kv.items!.map(item => {
-                        const direction = detectDirection(item.value)
+                        const localizedValue = localizeReportKeyValue(reportKind, item.key, item.value, i18n.language)
+                        const localizedKey = localizeReportKeyLabel(reportKind, item.key, i18n.language)
+                        const direction = detectDirection(localizedValue)
+                        const keyTooltip = resolveReportKeyTooltip(reportKind, rawVisibleTitle, item.key)
+                        const keySelfAliases = resolveReportTooltipSelfAliases(reportKind, item.key)
+                        const renderedKey = renderTermTooltipTitle(localizedKey, keyTooltip, {
+                            selfAliases: [item.key, ...keySelfAliases]
+                        })
 
                         return (
                             <div key={item.key} className={cls.kvRow}>
-                                <dt className={cls.kvKey}>{item.key}</dt>
+                                <dt className={cls.kvKey}>{renderedKey}</dt>
 
                                 <dd
                                     className={classNames(
@@ -174,7 +294,7 @@ function SectionRenderer({ section }: SectionRendererProps) {
                                         },
                                         []
                                     )}>
-                                    {item.value}
+                                    {localizedValue}
                                 </dd>
                             </div>
                         )
@@ -185,61 +305,45 @@ function SectionRenderer({ section }: SectionRendererProps) {
     }
 
     if (isTableSection(section)) {
+        const columns = tbl.columns ?? []
+        const rows = tbl.rows ?? []
+        const rawVisibleTitle = normalizeReportTitle(tbl.title) || tbl.title || 'table'
+        const visibleTitle = localizeReportSectionTitle(reportKind, rawVisibleTitle, i18n.language)
+        const resolvedDescription = description ?? resolveReportSectionDescription(reportKind, tbl.title)
+        const safeTitle = rawVisibleTitle
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+        const domId = sectionDomId ?? `report-${safeTitle || 'table'}`
+
+        const renderColumnTitle = (title: string) => {
+            const tooltip = resolveReportColumnTooltip(reportKind, rawVisibleTitle, title)
+            const localizedTitle = localizeReportColumnTitle(reportKind, title, i18n.language)
+            const columnSelfAliases = resolveReportTooltipSelfAliases(reportKind, title)
+            return renderTermTooltipTitle(localizedTitle, tooltip, {
+                selfAliases: [title, ...columnSelfAliases]
+            })
+        }
+
+        const localizedColumns = columns.map(column => localizeReportColumnTitle(reportKind, column, i18n.language))
+
         return (
             <section className={cls.section}>
-                <div className={cls.sectionHeader}>
-                    <Text type='h2' className={cls.sectionTitle}>
-                        {tbl.title}
-                    </Text>
-
-                    {description && <Text className={cls.sectionSubtitle}>{description}</Text>}
-                </div>
-
-                <div className={cls.tableWrapper}>
-                    <table className={cls.table}>
-                        <thead>
-                            <tr>
-                                {tbl.columns?.map(column => (
-                                    <th key={column} className={cls.tableHeaderCell}>
-                                        {column}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tbl.rows?.map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                    {row.map((cell, cellIndex) => {
-                                        const numeric = parseNumericCell(cell)
-                                        const isPositive = numeric !== null && numeric > 0
-                                        const isNegative = numeric !== null && numeric < 0
-
-                                        return (
-                                            <td
-                                                key={cellIndex}
-                                                className={classNames(
-                                                    cls.tableCell,
-                                                    {
-                                                        [cls.positive]: isPositive,
-                                                        [cls.negative]: isNegative
-                                                    },
-                                                    []
-                                                )}>
-                                                {cell}
-                                            </td>
-                                        )
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <ReportTableCard
+                    title={visibleTitle}
+                    description={resolvedDescription ?? undefined}
+                    columns={localizedColumns}
+                    rows={rows}
+                    rowEvaluations={tbl.rowEvaluations ?? []}
+                    domId={domId}
+                    renderColumnTitle={renderColumnTitle}
+                />
             </section>
         )
     }
 
     return (
-        <section className={cls.section}>
+        <section id={sectionDomId} className={cls.section}>
             <pre className={cls.jsonDump}>{JSON.stringify(section, null, 2)}</pre>
         </section>
     )

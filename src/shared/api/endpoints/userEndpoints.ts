@@ -3,10 +3,6 @@ import type { TUserDataForPutRequest } from '@/entities/User/model/types/UserSch
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
-/**
- * Группа эндпоинтов, связанных с пользователем / профилем.
- * Каждый endpoint использует URL и метод из централизованного API_ROUTES.
- */
 export const buildUserEndpoints = (builder: ApiEndpointBuilder) => {
     const { detailGet, detailPut } = API_ROUTES.user
 

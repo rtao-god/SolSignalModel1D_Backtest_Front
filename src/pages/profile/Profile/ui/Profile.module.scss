@@ -1,0 +1,80 @@
+.Profile {
+    @include safe-viewport-min-height;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: radial-gradient(circle at 18% 18%, rgba(73, 116, 255, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 24%, rgba(20, 184, 166, 0.1), transparent 22%);
+}
+
+.content {
+    @include page-content-container(760px);
+    color: inherit;
+}
+
+.accent {
+    width: 84px;
+    height: 5px;
+    margin-bottom: 22px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4263eb, #14b8a6);
+    box-shadow: 0 10px 24px rgba(66, 99, 235, 0.22);
+}
+
+.title {
+    margin: 0 0 18px;
+    color: inherit;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.04;
+    max-width: 12ch;
+}
+
+.lead {
+    margin: 0 0 16px;
+    color: inherit;
+    opacity: 0.88;
+    font-size: 20px;
+    line-height: 1.65;
+    max-width: 40rem;
+}
+
+.description {
+    margin: 0;
+    color: inherit;
+    opacity: 0.72;
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 44rem;
+}
+
+.descriptionLink {
+    color: var(--color-accent-pale);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 0.08em;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: var(--color-accent);
+    }
+}
+
+@include viewport-phone {
+    .Profile {
+        padding: 16px;
+    }
+
+    .accent {
+        width: 68px;
+        margin-bottom: 18px;
+    }
+
+    .title {
+        max-width: none;
+    }
+
+    .lead {
+        font-size: 17px;
+    }
+}

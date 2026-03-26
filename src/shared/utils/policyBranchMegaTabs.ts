@@ -1,0 +1,903 @@
+import type { TableSectionDto } from '@/shared/types/report.types'
+
+export interface PolicyBranchMegaTabConfig {
+    id: string
+    label: string
+    anchor: string
+}
+
+interface PolicyBranchMegaTabPartEntry {
+    part: number
+    bucket: PolicyBranchMegaBucketMode | null
+}
+
+export interface PolicyBranchMegaSectionEntry {
+    part: number
+    bucket: PolicyBranchMegaBucketMode | null
+}
+
+export type PolicyBranchMegaAnchorSectionKind = 'terms' | 'table'
+
+export interface PolicyBranchMegaAnchorTarget {
+    part: number
+    bucket: PolicyBranchMegaBucketMode | null
+    sectionKind: PolicyBranchMegaAnchorSectionKind
+    anchor: string
+}
+
+export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
+export type PolicyBranchMegaTotalBucketView = 'aggregate' | 'separate'
+export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
+export type PolicyBranchMegaTpSlMode = 'all' | 'dynamic' | 'static'
+export type PolicyBranchMegaSlMode = 'all' | 'with-sl' | 'no-sl'
+export type PolicyBranchMegaZonalMode = 'with-zonal' | 'without-zonal'
+
+const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
+    daily: 'daily',
+    intraday: 'intraday',
+    delayed: 'delayed',
+    total: 'total'
+}
+
+const METRIC_QUERY_ALIASES: Record<string, PolicyBranchMegaMetricMode> = {
+    real: 'real',
+    'no-biggest-liq-loss': 'no-biggest-liq-loss'
+}
+
+const TP_SL_QUERY_ALIASES: Record<string, PolicyBranchMegaTpSlMode> = {
+    all: 'all',
+    dynamic: 'dynamic',
+    static: 'static'
+}
+
+const SL_MODE_QUERY_ALIASES: Record<string, PolicyBranchMegaSlMode> = {
+    all: 'all',
+    'with-sl': 'with-sl',
+    'no-sl': 'no-sl'
+}
+
+const ZONAL_QUERY_ALIASES: Record<string, PolicyBranchMegaZonalMode> = {
+    'with-zonal': 'with-zonal',
+    'without-zonal': 'without-zonal'
+}
+
+const TOTAL_BUCKET_VIEW_QUERY_ALIASES: Record<string, PolicyBranchMegaTotalBucketView> = {
+    aggregate: 'aggregate',
+    separate: 'separate'
+}
+
+const POLICY_BRANCH_MEGA_TABLE_SECTION_ANCHOR_REGEX = /^policy-branch-section-(?:(daily|intraday|delayed)-)?(\d+)$/i
+const POLICY_BRANCH_MEGA_TERMS_SECTION_ANCHOR_REGEX =
+    /^policy-branch-terms-section-(?:(daily|intraday|delayed)-)?(\d+)$/i
+
+export function normalizePolicyBranchMegaTitle(title: string | undefined): string {
+    if (!title) return ''
+    return title
+        .replace(/^=+\s*/, '')
+        .replace(/\s*=+$/, '')
+        .trim()
+}
+export function resolvePolicyBranchMegaBucketFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaBucketMode
+): PolicyBranchMegaBucketMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = BUCKET_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown bucket query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaMetricFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaMetricMode
+): PolicyBranchMegaMetricMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = METRIC_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown metric query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaTpSlModeFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaTpSlMode
+): PolicyBranchMegaTpSlMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = TP_SL_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown tpsl query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaSlModeFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaSlMode
+): PolicyBranchMegaSlMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = SL_MODE_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown slmode query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaZonalModeFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaZonalMode
+): PolicyBranchMegaZonalMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = ZONAL_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown zonal query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaTotalBucketViewFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaTotalBucketView {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = TOTAL_BUCKET_VIEW_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown bucketview query: ${raw}`)
+    }
+
+    return mapped
+}
+
+export function resolvePolicyBranchMegaBucketLabel(bucket: PolicyBranchMegaBucketMode): string {
+    if (bucket === 'daily') return 'Daily'
+    if (bucket === 'intraday') return 'Intraday'
+    if (bucket === 'delayed') return 'Delayed'
+    return 'Σ Все бакеты'
+}
+
+export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined): PolicyBranchMegaBucketMode | null {
+    if (!title) return null
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toLowerCase()
+    if (!normalized) return null
+
+    const bracketMatch =
+        normalized.match(/\[(daily|intraday|delayed|total|all|sum)\]/i) ??
+        normalized.match(/\((daily|intraday|delayed|total|all|sum)\)/i)
+
+    if (bracketMatch?.[1]) {
+        const token = bracketMatch[1].toLowerCase()
+        if (token === 'daily') return 'daily'
+        if (token === 'intraday') return 'intraday'
+        if (token === 'delayed') return 'delayed'
+        if (token === 'total' || token === 'all' || token === 'sum') return 'total'
+    }
+
+    const hasDaily = /\bdaily\b/i.test(normalized)
+    const hasIntraday = /\bintraday\b/i.test(normalized)
+    const hasDelayed = /\bdelayed\b/i.test(normalized)
+    const hasTotal =
+        /\b(all buckets|sum buckets|total buckets|combined buckets)\b/i.test(normalized) ||
+        /\bbuckets?\b.*\b(all|sum|total|combined)\b/i.test(normalized)
+
+    const matches: PolicyBranchMegaBucketMode[] = []
+    if (hasDaily) matches.push('daily')
+    if (hasIntraday) matches.push('intraday')
+    if (hasDelayed) matches.push('delayed')
+    if (hasTotal) matches.push('total')
+
+    if (matches.length > 1) {
+        throw new Error(`[policy-branch-mega] bucket tag is ambiguous: ${title}`)
+    }
+
+    return matches.length === 1 ? matches[0] : null
+}
+
+export function resolvePolicyBranchMegaMetricFromTitle(title: string | undefined): PolicyBranchMegaMetricMode | null {
+    if (!title) return null
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toUpperCase()
+    if (!normalized) return null
+
+    if (normalized.includes('NO BIGGEST LIQ LOSS')) return 'no-biggest-liq-loss'
+    if (normalized.includes('[REAL]')) return 'real'
+
+    // Отчёты без явного metric tag трактуем как общий REAL-срез.
+    return 'real'
+}
+
+export function resolvePolicyBranchMegaModeFromTitle(title: string | undefined): PolicyBranchMegaSlMode | null {
+    if (!title) return null
+
+    const normalized = normalizePolicyBranchMegaTitle(title).toUpperCase()
+    if (!normalized) return null
+
+    if (normalized.includes('NO SL')) return 'no-sl'
+    if (normalized.includes('WITH SL')) return 'with-sl'
+
+    return null
+}
+
+export function filterPolicyBranchMegaSectionsByBucket(
+    sections: TableSectionDto[],
+    bucket: PolicyBranchMegaBucketMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const metadataTagged = sections.map(section => ({
+        section,
+        bucket: tryResolvePolicyBranchMegaBucketFromMetadataOrNull(section)
+    }))
+
+    const metadataCount = metadataTagged.filter(item => item.bucket !== null).length
+
+    const tagged =
+        metadataCount === sections.length ?
+            metadataTagged.map(item => ({ section: item.section, bucket: item.bucket! }))
+        :   sections.map(section => ({
+                section,
+                bucket: resolvePolicyBranchMegaBucketFromTitle(section.title)
+            }))
+
+    const hasAnyTag = tagged.some(item => item.bucket !== null)
+    if (!hasAnyTag) {
+        if (bucket === 'total' || bucket === 'daily') {
+            return sections
+        }
+        return []
+    }
+
+    if (tagged.some(item => item.bucket === null)) {
+        throw new Error('[policy-branch-mega] mixed bucket tagging detected in report sections.')
+    }
+
+    const filtered = tagged.filter(item => item.bucket === bucket).map(item => item.section)
+
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for bucket=${bucket}.`)
+    }
+
+    return filtered
+}
+
+export function filterPolicyBranchMegaSectionsBySlMode(
+    sections: TableSectionDto[],
+    mode: PolicyBranchMegaSlMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    if (mode === 'all') {
+        return sections
+    }
+
+    const metadataTagged = sections.map(section => ({
+        section,
+        mode: tryResolvePolicyBranchMegaModeFromMetadataOrNull(section)
+    }))
+
+    const metadataCount = metadataTagged.filter(item => item.mode !== null).length
+
+    const tagged =
+        metadataCount === sections.length ?
+            metadataTagged.map(item => ({ section: item.section, mode: item.mode! }))
+        :   sections.map(section => ({
+                section,
+                mode: resolvePolicyBranchMegaModeFromTitle(section.title)
+            }))
+
+    const hasAnyTag = tagged.some(item => item.mode !== null)
+    if (!hasAnyTag) {
+        throw new Error('[policy-branch-mega] no mode tags found for slmode filter.')
+    }
+
+    if (tagged.some(item => item.mode === null)) {
+        throw new Error('[policy-branch-mega] mixed sl mode tagging detected in report sections.')
+    }
+
+    const filtered = tagged.filter(item => item.mode === mode).map(item => item.section)
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for slmode=${mode}.`)
+    }
+
+    return filtered
+}
+
+export function filterPolicyBranchMegaSectionsByTpSlMode(
+    sections: TableSectionDto[],
+    tpSlMode: PolicyBranchMegaTpSlMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        tpSlMode: tryResolvePolicyBranchMegaTpSlModeFromMetadataOrNull(section)
+    }))
+
+    const taggedCount = tagged.filter(item => item.tpSlMode !== null).length
+    if (taggedCount === 0) {
+        // Отчёты без metadata.tpSlMode содержат только универсальный TP/SL-срез.
+        if (tpSlMode === 'all') {
+            return sections
+        }
+        throw new Error('[policy-branch-mega] no tp/sl tags found for tpsl filter.')
+    }
+    if (taggedCount !== sections.length) {
+        throw new Error('[policy-branch-mega] mixed tp/sl tagging detected in report sections.')
+    }
+
+    const filtered = tagged.filter(item => item.tpSlMode === tpSlMode).map(item => item.section)
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for tpsl=${tpSlMode}.`)
+    }
+
+    return filtered
+}
+
+/**
+ * Мягкий slmode-фильтр для mixed-отчётов:
+ * - секции с явным тегом WITH/NO SL фильтруются по выбранному режиму;
+ * - секции без тега считаются общими и остаются в выдаче.
+ *
+ * Используется для страниц, где в одном наборе таблиц есть и branch-метрики,
+ * и общие diagnostics-блоки без mode-tag.
+ */
+export function filterPolicyBranchMegaSectionsBySlModeKeepingShared(
+    sections: TableSectionDto[],
+    mode: PolicyBranchMegaSlMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    if (mode === 'all') {
+        return sections
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        mode: resolvePolicyBranchMegaModeForMixedReportsOrNull(section)
+    }))
+
+    if (!tagged.some(item => item.mode !== null)) {
+        throw new Error('[policy-branch-mega] no mode tags found for slmode filter.')
+    }
+
+    const matchedTaggedCount = tagged.filter(item => item.mode === mode).length
+    if (matchedTaggedCount === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for slmode=${mode}.`)
+    }
+
+    return tagged.filter(item => item.mode === null || item.mode === mode).map(item => item.section)
+}
+
+export function filterPolicyBranchMegaSectionsByMetric(
+    sections: TableSectionDto[],
+    metric: PolicyBranchMegaMetricMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const metadataTagged = sections.map(section => ({
+        section,
+        metric: tryResolvePolicyBranchMegaMetricFromMetadataOrNull(section)
+    }))
+
+    const metadataCount = metadataTagged.filter(item => item.metric !== null).length
+
+    const tagged =
+        metadataCount === sections.length ?
+            metadataTagged.map(item => ({ section: item.section, metric: item.metric! }))
+        :   sections.map(section => ({
+                section,
+                metric: resolvePolicyBranchMegaMetricFromTitle(section.title)
+            }))
+
+    if (tagged.some(item => item.metric === null)) {
+        throw new Error('[policy-branch-mega] mixed metric tagging detected in report sections.')
+    }
+
+    const filtered = tagged.filter(item => item.metric === metric).map(item => item.section)
+
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for metric=${metric}.`)
+    }
+
+    return filtered
+}
+
+export function filterPolicyBranchMegaSectionsByZonalMode(
+    sections: TableSectionDto[],
+    zonalMode: PolicyBranchMegaZonalMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        zonalMode: resolvePolicyBranchMegaZonalModeFromMetadata(section)
+    }))
+
+    const filtered = tagged.filter(item => item.zonalMode === zonalMode).map(item => item.section)
+
+    if (filtered.length === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for zonal=${zonalMode}.`)
+    }
+
+    return filtered
+}
+
+/**
+ * Мягкий zonal-фильтр для mixed-отчётов:
+ * - секции с metadata.zonalMode фильтруются по выбранному режиму;
+ * - секции без zonal-тега остаются как общие.
+ */
+export function filterPolicyBranchMegaSectionsByZonalModeKeepingShared(
+    sections: TableSectionDto[],
+    zonalMode: PolicyBranchMegaZonalMode
+): TableSectionDto[] {
+    if (!sections || sections.length === 0) {
+        throw new Error('[policy-branch-mega] report has no sections.')
+    }
+
+    const tagged = sections.map(section => ({
+        section,
+        zonalMode: resolvePolicyBranchMegaZonalModeForMixedReportsOrNull(section)
+    }))
+
+    if (!tagged.some(item => item.zonalMode !== null)) {
+        throw new Error('[policy-branch-mega] no zonal tags found for zonal filter.')
+    }
+
+    const matchedTaggedCount = tagged.filter(item => item.zonalMode === zonalMode).length
+    if (matchedTaggedCount === 0) {
+        throw new Error(`[policy-branch-mega] no sections found for zonal=${zonalMode}.`)
+    }
+
+    return tagged.filter(item => item.zonalMode === null || item.zonalMode === zonalMode).map(item => item.section)
+}
+interface PolicyBranchMegaPartTag {
+    part: number
+    total: number
+}
+
+function extractPartTag(title: string | undefined): PolicyBranchMegaPartTag | null {
+    if (!title) return null
+
+    const normalized = normalizePolicyBranchMegaTitle(title)
+    const match = normalized.match(/\[part\s+(\d+)\/(\d+)\]/i)
+    if (!match?.[1] || !match[2]) return null
+
+    const part = Number(match[1])
+    const total = Number(match[2])
+    if (!Number.isInteger(part) || !Number.isInteger(total) || part < 1 || total < 1 || part > total) {
+        return null
+    }
+
+    return { part, total }
+}
+
+function resolvePartLabel(title: string | undefined, index: number): string {
+    const partTag = extractPartTag(title)
+    if (partTag) {
+        return `Часть ${partTag.part}/${partTag.total}`
+    }
+
+    const normalized = normalizePolicyBranchMegaTitle(title)
+    if (normalized) return normalized
+
+    return `Секция ${index + 1}`
+}
+
+function resolvePartOrdinal(title: string | undefined, index: number): number {
+    const partTag = extractPartTag(title)
+    if (partTag !== null) {
+        return partTag.part
+    }
+
+    return index + 1
+}
+
+export function buildPolicyBranchMegaTableSectionAnchor(
+    partOrdinal: number,
+    bucket?: PolicyBranchMegaBucketMode | null
+): string {
+    if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
+        throw new Error(`[policy-branch-mega] invalid table section ordinal: ${partOrdinal}.`)
+    }
+
+    if (bucket) {
+        return `policy-branch-section-${bucket}-${partOrdinal}`
+    }
+
+    return `policy-branch-section-${partOrdinal}`
+}
+
+export function buildPolicyBranchMegaTermsSectionAnchor(
+    partOrdinal: number,
+    bucket?: PolicyBranchMegaBucketMode | null
+): string {
+    if (!Number.isInteger(partOrdinal) || partOrdinal < 1) {
+        throw new Error(`[policy-branch-mega] invalid terms section ordinal: ${partOrdinal}.`)
+    }
+
+    if (bucket) {
+        return `policy-branch-terms-section-${bucket}-${partOrdinal}`
+    }
+
+    return `policy-branch-terms-section-${partOrdinal}`
+}
+
+export function buildPolicyBranchMegaTabsFromSections(sections: TableSectionDto[]): PolicyBranchMegaTabConfig[] {
+    const deduped = new Map<
+        string,
+        {
+            label: string
+            part: number | null
+            total: number | null
+            partOrdinal: number
+            sourceIndex: number
+            bucket: PolicyBranchMegaBucketMode | null
+        }
+    >()
+    const bucketSet = new Set<PolicyBranchMegaBucketMode>()
+
+    sections.forEach((section, index) => {
+        const label = resolvePartLabel(section.title, index)
+        const partTag = extractPartTag(section.title)
+        const part = partTag?.part ?? null
+        const partOrdinal = resolvePartOrdinal(section.title, index)
+        const bucket =
+            tryResolvePolicyBranchMegaBucketFromMetadataOrNull(section) ??
+            resolvePolicyBranchMegaBucketFromTitle(section.title)
+        if (bucket !== null) {
+            bucketSet.add(bucket)
+        }
+
+        const bucketKey = bucket ?? 'unknown'
+        const key = part !== null ? `bucket:${bucketKey}:part:${part}` : `bucket:${bucketKey}:label:${label}`
+        if (deduped.has(key)) {
+            return
+        }
+
+        deduped.set(key, {
+            label,
+            part,
+            total: partTag?.total ?? null,
+            partOrdinal,
+            sourceIndex: index,
+            bucket
+        })
+    })
+
+    const hasMultipleBuckets = bucketSet.size > 1
+    const ordered = Array.from(deduped.values()).sort((a, b) => a.sourceIndex - b.sourceIndex)
+
+    const fallbackTotal = ordered.length
+
+    return ordered.flatMap(entry => {
+        const total = entry.total ?? fallbackTotal
+        const bucketLabel = entry.bucket ? resolvePolicyBranchMegaBucketLabel(entry.bucket) : null
+        const anchorBucket = hasMultipleBuckets ? entry.bucket : null
+        const partLabel =
+            entry.part !== null ? `Часть ${entry.part}/${total}`
+            : entry.label.startsWith('Часть ') ? entry.label
+            : `Часть ${entry.partOrdinal}/${total}`
+        const tableLabel = hasMultipleBuckets && bucketLabel ? `${bucketLabel} · ${partLabel}` : partLabel
+        const termsLabel =
+            hasMultipleBuckets && bucketLabel ?
+                `Термины · ${bucketLabel} · ${entry.partOrdinal}/${total}`
+            :   `Объяснение терминов ${entry.partOrdinal}/${total}`
+        const tabIdPrefix =
+            anchorBucket ? `policy-branch-${anchorBucket}-${entry.partOrdinal}` : `policy-branch-${entry.partOrdinal}`
+
+        return [
+            {
+                id: `${tabIdPrefix}-terms-tab`,
+                label: termsLabel,
+                anchor: buildPolicyBranchMegaTermsSectionAnchor(entry.partOrdinal, anchorBucket)
+            },
+            {
+                id: `${tabIdPrefix}-table-tab`,
+                label: tableLabel,
+                anchor: buildPolicyBranchMegaTableSectionAnchor(entry.partOrdinal, anchorBucket)
+            }
+        ]
+    })
+}
+
+function buildPolicyBranchMegaTabEntriesFromAvailableParts(
+    availableParts: number[],
+    bucket: PolicyBranchMegaBucketMode,
+    bucketView: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaTabPartEntry[] {
+    const orderedParts = Array.from(new Set(availableParts))
+        .filter(part => Number.isInteger(part) && part > 0)
+        .sort((a, b) => a - b)
+
+    if (orderedParts.length === 0) {
+        return []
+    }
+
+    if (bucket === 'total' && bucketView === 'separate') {
+        const orderedBuckets: readonly PolicyBranchMegaBucketMode[] = ['daily', 'intraday', 'delayed']
+        return orderedBuckets.flatMap(bucketMode =>
+            orderedParts.map(
+                part =>
+                    ({
+                        bucket: bucketMode,
+                        part
+                    }) satisfies PolicyBranchMegaTabPartEntry
+            )
+        )
+    }
+
+    return orderedParts.map(part => ({ bucket: null, part }))
+}
+
+export function buildPolicyBranchMegaSectionEntriesFromAvailableParts(
+    availableParts: number[],
+    bucket: PolicyBranchMegaBucketMode,
+    bucketView: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaSectionEntry[] {
+    return buildPolicyBranchMegaTabEntriesFromAvailableParts(availableParts, bucket, bucketView).map(entry => ({
+        part: entry.part,
+        bucket: entry.bucket
+    }))
+}
+
+export function buildPolicyBranchMegaTabsFromAvailableParts(
+    availableParts: number[],
+    bucket: PolicyBranchMegaBucketMode,
+    bucketView: PolicyBranchMegaTotalBucketView
+): PolicyBranchMegaTabConfig[] {
+    const entries = buildPolicyBranchMegaTabEntriesFromAvailableParts(availableParts, bucket, bucketView)
+    if (entries.length === 0) {
+        return []
+    }
+
+    const total = entries.reduce((max, entry) => Math.max(max, entry.part), 0)
+    const hasMultipleBuckets = entries.some(entry => entry.bucket !== null)
+
+    return entries.flatMap(entry => {
+        const bucketLabel = entry.bucket ? resolvePolicyBranchMegaBucketLabel(entry.bucket) : null
+        const partLabel = `Часть ${entry.part}/${total}`
+        const tableLabel = hasMultipleBuckets && bucketLabel ? `${bucketLabel} · ${partLabel}` : partLabel
+        const termsLabel =
+            hasMultipleBuckets && bucketLabel ?
+                `Термины · ${bucketLabel} · ${entry.part}/${total}`
+            :   `Объяснение терминов ${entry.part}/${total}`
+        const tabIdPrefix =
+            entry.bucket ? `policy-branch-${entry.bucket}-${entry.part}` : `policy-branch-${entry.part}`
+
+        return [
+            {
+                id: `${tabIdPrefix}-terms-tab`,
+                label: termsLabel,
+                anchor: buildPolicyBranchMegaTermsSectionAnchor(entry.part, entry.bucket)
+            },
+            {
+                id: `${tabIdPrefix}-table-tab`,
+                label: tableLabel,
+                anchor: buildPolicyBranchMegaTableSectionAnchor(entry.part, entry.bucket)
+            }
+        ]
+    })
+}
+
+export function resolvePolicyBranchMegaPartFromAnchor(anchor: string | null | undefined): number | null {
+    return resolvePolicyBranchMegaAnchorTarget(anchor)?.part ?? null
+}
+
+export function resolvePolicyBranchMegaAnchorTarget(
+    anchor: string | null | undefined
+): PolicyBranchMegaAnchorTarget | null {
+    if (!anchor) {
+        return null
+    }
+
+    const normalized = anchor.trim().replace(/^#/, '')
+    if (!normalized) {
+        return null
+    }
+
+    const tableMatch = normalized.match(POLICY_BRANCH_MEGA_TABLE_SECTION_ANCHOR_REGEX)
+    if (tableMatch?.[2]) {
+        return {
+            part: Number(tableMatch[2]),
+            bucket: (tableMatch[1] as PolicyBranchMegaBucketMode | undefined) ?? null,
+            sectionKind: 'table',
+            anchor: normalized
+        }
+    }
+
+    const termsMatch = normalized.match(POLICY_BRANCH_MEGA_TERMS_SECTION_ANCHOR_REGEX)
+    if (termsMatch?.[2]) {
+        return {
+            part: Number(termsMatch[2]),
+            bucket: (termsMatch[1] as PolicyBranchMegaBucketMode | undefined) ?? null,
+            sectionKind: 'terms',
+            anchor: normalized
+        }
+    }
+
+    return null
+}
+
+function tryResolvePolicyBranchMegaBucketFromMetadataOrNull(
+    section: TableSectionDto
+): PolicyBranchMegaBucketMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.bucket) {
+        throw new Error(`[policy-branch-mega] section metadata.bucket is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.bucket === 'daily') return 'daily'
+    if (metadata.bucket === 'intraday') return 'intraday'
+    if (metadata.bucket === 'delayed') return 'delayed'
+    if (metadata.bucket === 'total-aggregate') return 'total'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.bucket value: ${String(metadata.bucket)}.`)
+}
+
+function tryResolvePolicyBranchMegaMetricFromMetadataOrNull(
+    section: TableSectionDto
+): PolicyBranchMegaMetricMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.metricVariant) {
+        throw new Error(
+            `[policy-branch-mega] section metadata.metricVariant is missing. title=${section.title ?? 'n/a'}.`
+        )
+    }
+
+    if (metadata.metricVariant === 'real') return 'real'
+    if (metadata.metricVariant === 'no-biggest-liq-loss') return 'no-biggest-liq-loss'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.metricVariant value: ${String(metadata.metricVariant)}.`)
+}
+
+function tryResolvePolicyBranchMegaModeFromMetadataOrNull(section: TableSectionDto): PolicyBranchMegaSlMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.mode) {
+        throw new Error(`[policy-branch-mega] section metadata.mode is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.mode === 'with-sl') return 'with-sl'
+    if (metadata.mode === 'no-sl') return 'no-sl'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.mode value: ${String(metadata.mode)}.`)
+}
+
+function tryResolvePolicyBranchMegaTpSlModeFromMetadataOrNull(
+    section: TableSectionDto
+): PolicyBranchMegaTpSlMode | null {
+    const metadata = section.metadata
+    if (!metadata) {
+        return null
+    }
+
+    if (metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.tpSlMode) {
+        throw new Error(`[policy-branch-mega] section metadata.tpSlMode is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.tpSlMode === 'all') return 'all'
+    if (metadata.tpSlMode === 'dynamic') return 'dynamic'
+    if (metadata.tpSlMode === 'static') return 'static'
+
+    throw new Error(`[policy-branch-mega] unsupported metadata.tpSlMode value: ${String(metadata.tpSlMode)}.`)
+}
+
+function resolvePolicyBranchMegaModeForMixedReportsOrNull(section: TableSectionDto): PolicyBranchMegaSlMode | null {
+    const metadataMode = tryResolvePolicyBranchMegaModeFromMetadataOrNull(section)
+    if (metadataMode !== null) {
+        return metadataMode
+    }
+
+    return resolvePolicyBranchMegaModeFromTitle(section.title)
+}
+
+function resolvePolicyBranchMegaZonalModeFromMetadata(section: TableSectionDto): PolicyBranchMegaZonalMode {
+    const metadata = section.metadata
+    if (!metadata || metadata.kind !== 'policy-branch-mega') {
+        throw new Error(
+            `[policy-branch-mega] section metadata is missing or kind is invalid for zonal filtering. title=${section.title ?? 'n/a'}.`
+        )
+    }
+
+    if (!metadata.zonalMode) {
+        throw new Error(`[policy-branch-mega] section metadata.zonalMode is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.zonalMode === 'with-zonal') return 'with-zonal'
+    if (metadata.zonalMode === 'without-zonal') return 'without-zonal'
+
+    throw new Error(
+        `[policy-branch-mega] unsupported metadata.zonalMode value for section ${section.title ?? 'n/a'}: ${String(metadata.zonalMode)}.`
+    )
+}
+
+function resolvePolicyBranchMegaZonalModeForMixedReportsOrNull(
+    section: TableSectionDto
+): PolicyBranchMegaZonalMode | null {
+    const metadata = section.metadata
+    if (!metadata || metadata.kind !== 'policy-branch-mega') {
+        return null
+    }
+
+    if (!metadata.zonalMode) {
+        throw new Error(`[policy-branch-mega] section metadata.zonalMode is missing. title=${section.title ?? 'n/a'}.`)
+    }
+
+    if (metadata.zonalMode === 'with-zonal') return 'with-zonal'
+    if (metadata.zonalMode === 'without-zonal') return 'without-zonal'
+
+    throw new Error(
+        `[policy-branch-mega] unsupported metadata.zonalMode value for section ${section.title ?? 'n/a'}: ${String(metadata.zonalMode)}.`
+    )
+}

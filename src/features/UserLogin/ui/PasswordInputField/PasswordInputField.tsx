@@ -4,6 +4,7 @@ import cls from './PasswordInputField.module.scss'
 import { Input, Row } from '@/shared/ui'
 import { ShowPassword } from '@/features/ShowPassword'
 import classNames from '@/shared/lib/helpers/classNames'
+import { useTranslation } from 'react-i18next'
 
 const ERROR_MESSAGES = {
     PASSWORD_REQUIRED: 'Введите пароль.'
@@ -17,6 +18,7 @@ export default function PasswordInputField({
     placeholder,
     loginError
 }: PasswordInputFieldProps) {
+    const { t } = useTranslation('auth')
     const [isShow, setIsShow] = useState(false)
 
     const handleClick = () => {
@@ -30,10 +32,10 @@ export default function PasswordInputField({
                     className={className}
                     onChange={onChangePassword}
                     type={isShow ? 'text' : 'password'}
-                    placeholder={placeholder ?? 'Введите пароль'}
+                    placeholder={placeholder ?? t('login.passwordPlaceholder')}
                     border='none'
                     borderRadius='8px 0px 0px 8px'
-                    error={loginError?.includes(PASSWORD_REQUIRED) ? 'Ошибка в дате рождения' : ''}
+                    error={loginError?.includes(PASSWORD_REQUIRED) ? t('login.passwordError') : ''}
                 />
                 <ShowPassword isShow={isShow} onClick={handleClick} />
             </Row>

@@ -1,63 +1,205 @@
-.month_grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    // gap: 5px;
-    line-height: 1.5;
-    padding: 10px;
-    background-color: #fff;
-}
-
-.Day_cell {
+/* День остаётся компактной ячейкой как в vs-chat, а fill диапазона дорисовывается псевдоэлементами самой ячейки. */
+.emptyCell,
+.dayCell {
+    width: 100%;
+    height: 32px;
     display: flex;
-    justify-content: center;
     align-items: center;
-    width: 46px;
-    height: 46px;
-    text-align: center;
-    padding: 0.6em 0;
-    border-radius: 4px;
+    justify-content: center;
+    user-select: none;
+    border-radius: 50%;
+    position: relative;
 }
 
-.active {
-    cursor: pointer;
-    color: black;
-    border-radius: 50%;
+.emptyCell {
+    pointer-events: none;
+}
 
-    &:hover {
-        border: 1px rgb(0, 0, 0) solid;
-    }
+.dayCell {
+    border: none;
+    appearance: none;
+    background: transparent;
+    color: var(--picker-text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    overflow: visible;
+    z-index: 0;
+    isolation: isolate;
+    transition:
+        color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-radius 0.2s ease;
+}
+
+.daySurface {
+    width: var(--calendar-day-surface-width, 25px);
+    height: 32px;
+    box-sizing: border-box;
+    padding: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 0;
+    border-radius: 50%;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-radius 0.2s ease;
+}
+
+.dayValue {
+    min-width: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+    text-align: center;
+    user-select: none;
+}
+
+.dayCell:hover:not(:disabled) .daySurface {
+    background-color: var(--picker-range-hover-fill);
+}
+
+.dayCell:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+}
+
+.selected,
+.singleSelected,
+.rangeStart,
+.rangeEnd,
+.inRange,
+.rangeMonthStart,
+.rangeMonthEnd {
+    background-color: transparent;
+}
+
+.selected .daySurface,
+.singleSelected .daySurface,
+.rangeStart .daySurface,
+.rangeEnd .daySurface,
+.inRange .daySurface,
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
+    background-color: var(--picker-range-fill);
+}
+
+/* Обычная лента диапазона и продолжение от start/end используют один и тот же fill-цвет без отдельного accent-state. */
+.rangeStart::after,
+.inRange::after,
+.rangeMonthStart::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+    width: calc(100% - var(--calendar-day-surface-width, 25px) + var(--calendar-day-gap, 8px));
+    background-color: var(--picker-range-fill);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.rangeEnd::before,
+.inRange::before,
+.rangeMonthEnd::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+    width: calc(100% - var(--calendar-day-surface-width, 25px) + var(--calendar-day-gap, 8px));
+    background-color: var(--picker-range-fill);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.rangeStart {
+    border-radius: 999px 0 0 999px;
+}
+
+.rangeStart .daySurface {
+    border-radius: 999px 0 0 999px;
+}
+
+.rangeEnd .daySurface {
+    border-radius: 0 999px 999px 0;
+}
+
+.inRange .daySurface,
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
+    border-radius: 0;
+}
+
+/* Month tail нужен только на переходе между месяцами и клипуется контейнером месяца на краях таблицы. */
+.rangeMonthStart,
+.rangeMonthEnd {
+    overflow: visible;
+}
+
+.rangeMonthStart {
+    justify-content: flex-end;
+}
+
+.rangeMonthStart::after {
+    left: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+}
+
+.rangeMonthEnd {
+    justify-content: flex-start;
+}
+
+.rangeMonthEnd::before {
+    right: calc(50% + (var(--calendar-day-surface-width, 25px) / 2));
+}
+
+.rangeMonthStart .daySurface,
+.rangeMonthEnd .daySurface {
+    overflow: visible;
+}
+
+.rangeMonthStart .daySurface::before,
+.rangeMonthEnd .daySurface::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    width: 44px;
+    height: 30px;
+    background-repeat: no-repeat;
+    background-size: 44px 30px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.rangeMonthStart .daySurface::before {
+    left: -19px;
+    background-position: left center;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIHZpZXdCb3g9JzAgMCA0NCAzMCcgZmlsbD0nbm9uZScgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48cmVjdCB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIGZpbGw9J3VybCgjcGFpbnQwX2xpbmVhciknIC8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSdwYWludDBfbGluZWFyJyB4MT0nMTcuNScgeTE9JzE1JyB4Mj0nNCcgeTI9JzE1JyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZSc+PHN0b3Agc3RvcC1jb2xvcj0nIzIwMzc1MCcvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nIzIwMzc1MCcgc3RvcC1vcGFjaXR5PScwJy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+');
+}
+
+.rangeMonthEnd .daySurface::after {
+    left: 0;
+    background-position: right center;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIHZpZXdCb3g9JzAgMCA0NCAzMCcgZmlsbD0nbm9uZScgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48cmVjdCB3aWR0aD0nNDQnIGhlaWdodD0nMzAnIGZpbGw9J3VybCgjcGFpbnQwX2xpbmVhciknIC8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSdwYWludDBfbGluZWFyJyB4MT0nMjInIHkxPScxNScgeDI9JzM3LjUnIHkyPScxNScgZ3JhZGllbnRVbml0cz0ndXNlclNwYWNlT25Vc2UnPjxzdG9wIHN0b3AtY29sb3I9JyMyMDM3NTAnLz48c3RvcCBvZmZzZXQ9JzEnIHN0b3AtY29sb3I9JyMyMDM3NTAnIHN0b3Atb3BhY2l0eT0nMCcvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjwvc3ZnPg==');
+}
+
+.today .daySurface {
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.45);
+}
+
+.today {
+    color: var(--picker-accent);
 }
 
 .disabled {
-    color: #bbb;
-}
-
-.selected_departure,
-.selected_arrival {
-    color: white;
-    background-color: black;
-}
-
-.range {
-    // background-color: rgb(247, 247, 247);
-    background-color: rgb(242, 255, 0);
-    border-radius: 0;
-    color: white;
-
-    &:hover {
-        border-radius: 50%;
-    }
-}
-
-.selected {
-    background-color: red;
-}
-
-
-.firstDay {
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCA0NCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSI0NCIgaGVpZ2h0PSIzMCIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzE1NV8yMDEyKSIgLz4KICAgIDxkZWZzPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8xNTVfMjAxMiIgeDE9IjE3LjUiIHkxPSIxNSIgeDI9IjQiIHkyPSIxNSIKICAgICAgICAgICAgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjRUJGMEY3IiAvPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNFQkYwRjciIHN0b3Atb3BhY2l0eT0iMCIgLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgo8L3N2Zz4=');
-}
-
-.lastDay {
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCA0NCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ0IiBoZWlnaHQ9IjMwIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMTYyXzE0MTYpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXJfMTYyXzE0MTYiIHgxPSIyMiIgeTE9IjE1IiB4Mj0iMzcuNSIgeTI9IjE1IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiNFQkYwRjciLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRUJGMEY3IiBzdG9wLW9wYWNpdHk9IjAiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4=');
+    color: #6e7681;
+    pointer-events: none;
+    cursor: default;
 }

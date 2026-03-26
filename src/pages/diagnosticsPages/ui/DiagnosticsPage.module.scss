@@ -1,0 +1,104 @@
+.root {
+    @include product-page-shell(1440px, true, 24px);
+    width: 100%;
+    container-type: inline-size;
+    container-name: diagnostics-page;
+}
+
+.hero {
+    max-width: 820px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.heroTitle {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f9fafb;
+}
+
+.heroSubtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #9ca3af;
+    max-width: 720px;
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.sectionsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.cards {
+    @include responsive-grid(320px, 16px);
+}
+
+.cardLink {
+    text-decoration: none;
+}
+
+.card {
+    height: 100%;
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-lg),
+        $background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.9)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    transition:
+        transform 0.18s ease-out,
+        box-shadow 0.18s ease-out,
+        border-color 0.18s ease-out,
+        background 0.18s ease-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(96, 165, 250, 0.8);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+    background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), rgba(15, 23, 42, 0.95));
+}
+
+.cardTitle {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.cardText {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #d1d5db;
+}
+
+.cardHint {
+    margin-top: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: #93c5fd;
+}
+
+@container diagnostics-page (max-width: 760px) {
+    .hero {
+        max-width: none;
+    }
+
+    .heroTitle {
+        font-size: 26px;
+    }
+}

@@ -1,67 +1,198 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSummaryDto, BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import { normalizeCurrentPredictionDateUtc } from '@/shared/utils/currentPredictionDate'
+import { mapBacktestBaselineSnapshotResponse, mapReportResponse } from '../utils/mapReportResponse'
 import { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
-/**
- * Элемент индекса по current_prediction-отчётам.
- * Используется для списка доступных дат на фронте.
- */
 export interface CurrentPredictionIndexItemDto {
     id: string
     predictionDateUtc: string
 }
-
+export interface CurrentPredictionPublishedCatalogDto {
+    set: CurrentPredictionSet
+    scope: CurrentPredictionTrainingScope
+    publishedAtUtc: string
+    totalBuiltReports: number
+    earliestBuiltPredictionDateUtc: string
+    latestBuiltPredictionDateUtc: string
+    missingBuiltWeekdays: number
+    expectedBuiltWeekdays: number
+    missingBuiltFromDateUtc: string
+    missingBuiltToDateUtc: string
+    items: CurrentPredictionIndexItemDto[]
+}
+export interface CurrentPredictionHistoryItemDto {
+    id: string
+    predictionDateUtc: string
+    report: ReportDocumentDto
+}
+export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
+    fullStartDateUtc: string
+    fullEndDateUtc: string
+    fullDays: number
+    trainStartDateUtc: string
+    trainEndDateUtc: string
+    trainDays: number
+    oosStartDateUtc: string
+    oosEndDateUtc: string
+    oosDays: number
+    recentStartDateUtc: string
+    recentEndDateUtc: string
+    recentDays: number
+    recentTailRowsLimit: number
+    recentMatchesOos: boolean
+    totalDays: number
+    trainShare: number
+    oosShare: number
+    lastTrainDateUtc: string
+    firstOosDateUtc: string
+}
 /**
- * Эндпоинты, работающие с ReportDocument / лёгкими снапшотами бэктеста.
- * Сюда входят:
- * - текущий прогноз ML-модели;
- * - индекс и отчёт по конкретной дате;
- * - backtest_summary (ReportDocument);
- * - лёгкий baseline-снимок бэктеста.
+ * Published-read metadata для live current prediction.
+ * Поле отделяет факт наличия последнего опубликованного снимка от вопроса,
+ * совпадает ли он уже с целевым торговым днём.
  */
-export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
-    const { latestReport, datesIndex, byDateReport } = API_ROUTES.currentPrediction
+export interface CurrentPredictionLivePublicationInfoDto {
+    /** Целевой торговый день, для которого live sync ожидает актуальную публикацию. */
+    targetPredictionDateUtc: string
+    /** День прогноза внутри фактически отданного published live-отчёта. */
+    publishedPredictionDateUtc: string
+    /** Признак, что опубликованный live-снимок уже совпадает с целевым днём. */
+    isTargetPredictionDatePublished: boolean
+    /** Признак preview-режима для целевого торгового дня на стороне backend. */
+    expectedPreview: boolean
+}
+/**
+ * Единый payload live current prediction.
+ * Хранит сам опубликованный отчёт, опубликованную дату этого снимка и лёгкую split-статистику.
+ */
+export interface CurrentPredictionLivePayloadDto {
+    report: ReportDocumentDto
+    publication?: CurrentPredictionLivePublicationInfoDto | null
+    trainingScopeStats?: CurrentPredictionBackfilledTrainingScopeStatsDto | null
+}
+export interface CurrentPredictionHistoryPageItemDto {
+    id: string
+    predictionDateUtc: string
+    report: ReportDocumentDto
+}
+export interface CurrentPredictionHistoryPageDto {
+    page: number
+    pageSize: number
+    totalPages: number
+    totalBuiltReports: number
+    filteredReports: number
+    hasPrevPage: boolean
+    hasNextPage: boolean
+    earliestBuiltPredictionDateUtc: string
+    latestBuiltPredictionDateUtc: string
+    missingBuiltWeekdays: number
+    expectedBuiltWeekdays: number
+    missingBuiltFromDateUtc: string
+    missingBuiltToDateUtc: string
+    items: CurrentPredictionHistoryPageItemDto[]
+    trainingScopeStats?: CurrentPredictionBackfilledTrainingScopeStatsDto | null
+}
+export type CurrentPredictionSet = 'live' | 'backfilled'
+export type CurrentPredictionTrainingScope = 'train' | 'full' | 'oos' | 'recent'
 
-    const { baselineSummaryGet, baselineSnapshotGet } = API_ROUTES.backtest
+export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
+    const { liveReport, datesIndex, byDateReport } = API_ROUTES.currentPrediction
+
+    const { baselineSummaryGet, baselineSnapshotGet, diagnosticsGet } = API_ROUTES.backtest
 
     return {
-        // ==== текущий прогноз ML-модели (последний снапшот) ====
-        getCurrentPrediction: builder.query<ReportDocumentDto, void>({
-            query: () => ({
-                url: latestReport.path,
-                method: latestReport.method
-            }),
+        getCurrentPrediction: builder.query<ReportDocumentDto, { scope?: CurrentPredictionTrainingScope } | void>({
+            query: args => {
+                const params: { scope?: CurrentPredictionTrainingScope } = {}
+
+                if (args?.scope) {
+                    params.scope = args.scope
+                }
+
+                return {
+                    url: liveReport.path,
+                    method: liveReport.method,
+                    params: Object.keys(params).length > 0 ? params : undefined
+                }
+            },
             transformResponse: mapReportResponse
         }),
-
-        // ==== индекс доступных дат по текущему прогнозу ====
-        // GET /api/current-prediction/dates?days=60
-        getCurrentPredictionIndex: builder.query<CurrentPredictionIndexItemDto[], { days?: number } | void>({
-            query: args => {
-                const params = args && args.days ? { days: args.days } : undefined
+        getCurrentPredictionIndex: builder.query<
+            CurrentPredictionIndexItemDto[],
+            { set: CurrentPredictionSet; days?: number; scope?: CurrentPredictionTrainingScope }
+        >({
+            query: ({ set, days, scope }) => {
+                const params: {
+                    set: CurrentPredictionSet
+                    days?: number
+                    scope?: CurrentPredictionTrainingScope
+                } = { set }
+                if (typeof days === 'number' && Number.isFinite(days) && days > 0) {
+                    params.days = days
+                }
+                if (scope) {
+                    params.scope = scope
+                }
 
                 return {
                     url: datesIndex.path,
                     method: datesIndex.method,
                     params
                 }
+            },
+            transformResponse: raw => {
+                const payload = raw as Array<{ id?: unknown; predictionDateUtc?: unknown }>
+                if (!Array.isArray(payload)) {
+                    throw new Error('[current-prediction] index payload must be an array.')
+                }
+
+                return payload.map((item, index) => {
+                    if (typeof item?.id !== 'string' || !item.id.trim()) {
+                        throw new Error(`[current-prediction] index item id is invalid at index=${index}.`)
+                    }
+                    if (typeof item?.predictionDateUtc !== 'string') {
+                        throw new Error(
+                            `[current-prediction] index item predictionDateUtc is invalid at index=${index}.`
+                        )
+                    }
+
+                    return {
+                        id: item.id,
+                        predictionDateUtc: normalizeCurrentPredictionDateUtc(item.predictionDateUtc)
+                    }
+                })
             }
         }),
+        getCurrentPredictionByDate: builder.query<
+            ReportDocumentDto,
+            {
+                set: CurrentPredictionSet
+                dateUtc: string
+                scope?: CurrentPredictionTrainingScope
+            }
+        >({
+            query: ({ set, dateUtc, scope }) => {
+                const normalizedDateUtc = normalizeCurrentPredictionDateUtc(dateUtc)
+                const params: {
+                    set: CurrentPredictionSet
+                    dateUtc: string
+                    scope?: CurrentPredictionTrainingScope
+                } = { set, dateUtc: normalizedDateUtc }
 
-        // ==== отчёт по текущему прогнозу за конкретную дату ====
-        // GET /api/current-prediction/by-date?dateUtc=YYYY-MM-DD
-        getCurrentPredictionByDate: builder.query<ReportDocumentDto, { dateUtc: string }>({
-            query: ({ dateUtc }) => ({
-                url: byDateReport.path,
-                method: byDateReport.method,
-                params: { dateUtc }
-            }),
+                if (scope) {
+                    params.scope = scope
+                }
+
+                return {
+                    url: byDateReport.path,
+                    method: byDateReport.method,
+                    params
+                }
+            },
             transformResponse: mapReportResponse
         }),
-
-        // ==== сводка бэктеста (baseline BacktestSummaryReport как ReportDocument) ====
         getBacktestBaselineSummary: builder.query<BacktestSummaryDto, void>({
             query: () => ({
                 url: baselineSummaryGet.path,
@@ -69,13 +200,19 @@ export const buildReportEndpoints = (builder: ApiEndpointBuilder) => {
             }),
             transformResponse: mapReportResponse
         }),
-
-        // ==== лёгкий baseline-снимок бэктеста (DTO BacktestBaselineSnapshotDto) ====
         getBacktestBaselineSnapshot: builder.query<BacktestBaselineSnapshotDto, void>({
             query: () => ({
                 url: baselineSnapshotGet.path,
                 method: baselineSnapshotGet.method
-            })
+            }),
+            transformResponse: mapBacktestBaselineSnapshotResponse
+        }),
+        getBacktestDiagnosticsReport: builder.query<ReportDocumentDto, void>({
+            query: () => ({
+                url: diagnosticsGet.path,
+                method: diagnosticsGet.method
+            }),
+            transformResponse: mapReportResponse
         })
     }
 }

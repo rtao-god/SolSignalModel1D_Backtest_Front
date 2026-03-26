@@ -1,0 +1,154 @@
+.summaryCard {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-xl),
+        $background: (
+            radial-gradient(circle at top right, rgba(79, 209, 197, 0.16), transparent 55%),
+            rgba(10, 10, 16, 0.96)
+        ),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-lg)
+    );
+    gap: 14px;
+    backdrop-filter: blur(22px);
+    container-type: inline-size;
+    container-name: backtest-summary-view;
+}
+
+.summaryHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    & > p {
+        font-size: 14px;
+        opacity: 0.82;
+    }
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.section {
+    @include subtle-surface(12px 14px);
+    overflow: auto;
+
+    h3 {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+}
+
+.sectionSubtitle {
+    margin-top: -2px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.75;
+}
+
+/* KeyValue */
+.kvList {
+    margin: 0;
+    padding: 0;
+}
+
+.kvRow {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+    gap: 6px 18px;
+    margin-bottom: 6px;
+
+    dt {
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    dd {
+        margin: 0;
+        opacity: 0.85;
+    }
+}
+
+/* Таблица */
+.table {
+    @include data-table-base($min-width: 640px, $font-size: 14px);
+}
+
+.table th,
+.table td {
+    border: 1px solid var(--surface-border-subtle);
+    padding: 4px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table thead {
+    background: linear-gradient(120deg, rgba(79, 209, 197, 0.2), rgba(88, 101, 242, 0.18));
+}
+
+.table th {
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.table tbody tr:nth-child(2n) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(79, 209, 197, 0.06);
+}
+
+.table tbody tr.rowGood,
+.table tbody tr.rowGood:hover {
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.table tbody tr.rowCaution,
+.table tbody tr.rowCaution:hover {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.table tbody tr.rowBad,
+.table tbody tr.rowBad:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.table tbody tr.rowUnknown,
+.table tbody tr.rowUnknown:hover {
+    background: rgba(56, 189, 248, 0.07);
+}
+
+/* JSON-фолбэк */
+.rawJson {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre;
+    max-height: 320px;
+    overflow: auto;
+
+    background-color: var(--bg-color-muted);
+    border-radius: var(--radius-md);
+    padding: 8px;
+}
+
+@container backtest-summary-view (max-width: 760px) {
+    .summaryCard {
+        padding: 14px 12px;
+    }
+
+    .section {
+        padding: 10px 10px;
+    }
+
+    .kvRow {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

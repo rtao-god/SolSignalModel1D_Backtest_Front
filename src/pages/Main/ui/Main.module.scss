@@ -1,0 +1,592 @@
+.MainPage {
+    @include product-page-shell(1520px, true, 28px, 36px);
+    container-type: inline-size;
+    container-name: main-page;
+}
+
+.hero,
+.sectionSurface {
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--surface-border-strong);
+    box-shadow: var(--surface-shadow-xl);
+}
+
+.hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+    gap: 24px;
+    padding: 28px;
+    background: radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 34%),
+        radial-gradient(circle at right, rgba(59, 130, 246, 0.16), transparent 36%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92));
+}
+
+.heroContent {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.heroEyebrow,
+.sectionEyebrow,
+.contentCardBadge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.heroEyebrow {
+    color: #7dd3fc;
+}
+
+.heroTitle {
+    max-width: 780px;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.08;
+    color: #f8fafc;
+}
+
+.heroSubtitle {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 760px;
+    font-size: 15px;
+    line-height: 1.72;
+    color: #cbd5e1;
+}
+
+.heroSubtitleParagraph {
+    margin: 0;
+}
+
+.heroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.heroAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(125, 211, 252, 0.3);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    appearance: none;
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.heroAction:hover,
+.heroAction:focus-visible,
+.cardLink:hover,
+.cardLink:focus-visible {
+    transform: translateY(-1px);
+}
+
+.heroActionPrimary {
+    color: #0f172a;
+    background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+}
+
+.heroActionSecondary {
+    color: #e0f2fe;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.heroPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    @include subtle-surface(20px);
+    backdrop-filter: blur(10px);
+}
+
+.heroPanelTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.heroBulletList {
+    display: block;
+    margin: 0;
+    color: #7dd3fc;
+}
+
+.heroBulletItem {
+    color: #7dd3fc;
+}
+
+.heroBulletText {
+    font-size: 14px;
+    line-height: 1.64;
+    color: #dbeafe;
+}
+
+.sectionSurface {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 30%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(17, 24, 39, 0.82));
+}
+
+.sectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 840px;
+}
+
+.sectionEyebrow {
+    color: #93c5fd;
+}
+
+.sectionTitle {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.12;
+    color: #f8fafc;
+}
+
+.sectionSubtitle {
+    font-size: 14px;
+    line-height: 1.68;
+    color: #cbd5e1;
+}
+
+.workflowGrid,
+.proofGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.contentCard,
+.proofCard,
+.tourGroup,
+.demoCard {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--surface-border-subtle);
+    background: var(--surface-bg-muted);
+}
+
+.contentCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+}
+
+.businessCard {
+    max-width: 940px;
+}
+
+.contentCardBadge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: center;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(125, 211, 252, 0.22);
+    background: rgba(14, 165, 233, 0.12);
+    color: #7dd3fc;
+}
+
+.contentCardTitle,
+.cardTitle,
+.tourTileTitle,
+.demoName {
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.contentCardTitle,
+.cardTitle {
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.contentCardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contentCardText,
+.cardText,
+.tourTileText,
+.demoNote,
+.cardStatus,
+.cardErrorText,
+.cardErrorDetails {
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.contentCardText,
+.cardText,
+.tourTileText,
+.demoNote {
+    color: #dbe4f0;
+}
+
+.businessBulletList {
+    display: block;
+    margin: 0;
+    color: #93c5fd;
+}
+
+.businessBulletItem {
+    color: #93c5fd;
+}
+
+.businessBulletText {
+    font-size: 14px;
+    line-height: 1.68;
+    color: #dbe4f0;
+}
+
+.proofCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+}
+
+.proofFacts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+}
+
+.proofFactRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.proofFactRow:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.proofFactLabel {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #93c5fd;
+}
+
+.proofFactValue {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #f8fafc;
+    text-align: right;
+}
+
+.cardStatus {
+    color: #cbd5e1;
+}
+
+.cardError {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    background: rgba(127, 29, 29, 0.18);
+}
+
+.cardErrorTitle {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #fecaca;
+}
+
+.cardErrorText {
+    color: #fee2e2;
+}
+
+.cardErrorDetails {
+    color: #fca5a5;
+    word-break: break-word;
+}
+
+.cardLink {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(125, 211, 252, 0.22);
+    color: #7dd3fc;
+    background: rgba(15, 23, 42, 0.4);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease;
+}
+
+.cardLinkRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.tourGroups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.tourGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+}
+
+.tourGroupHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tourTiles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tourTile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    @include subtle-surface(16px);
+}
+
+.tourTileTitle {
+    font-size: 15px;
+    line-height: 1.3;
+}
+
+.tourTileText {
+    color: #cbd5e1;
+}
+
+.demoHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.demoCard {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px;
+}
+
+.demoCardHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.demoName {
+    font-size: 20px;
+    line-height: 1.15;
+}
+
+.demoResult {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #7dd3fc;
+}
+
+.demoMeta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.demoMetaItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    @include subtle-surface(12px 14px);
+}
+
+.demoMetaLabel {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #93c5fd;
+}
+
+.demoMetaValue {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #f8fafc;
+}
+
+.demoSummary {
+    display: block;
+    margin: 0;
+}
+
+.demoSummaryText {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #dbe4f0;
+}
+
+.demoVerdictDivider {
+    height: 1px;
+    width: 100%;
+    margin: -2px 0 2px;
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.15), rgba(251, 146, 60, 0.7), rgba(251, 146, 60, 0.15));
+}
+
+.demoVerdictBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.demoVerdictTitle {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #f8fafc;
+}
+
+.demoVerdictSubTitle {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #fdba74;
+}
+
+.demoMetricGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.demoMetricCard {
+    flex: 1 1 calc((100% - 36px) / 4);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    @include subtle-surface(14px);
+}
+
+.demoMetricValue {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #f8fafc;
+}
+
+.demoNote {
+    color: #cbd5e1;
+}
+
+@container main-page (max-width: 1180px) {
+    .hero {
+        grid-template-columns: 1fr;
+    }
+
+    .tourGroups,
+    .proofGrid,
+    .workflowGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .demoMetricCard {
+        flex-basis: calc((100% - 12px) / 2);
+    }
+}
+
+@container main-page (max-width: 760px) {
+    .MainPage {
+        gap: 22px;
+    }
+
+    .hero,
+    .sectionSurface {
+        padding: 18px;
+    }
+
+    .heroTitle,
+    .sectionTitle {
+        font-size: 24px;
+    }
+
+    .tourGroups,
+    .proofGrid,
+    .workflowGrid,
+    .demoMeta {
+        grid-template-columns: 1fr;
+    }
+
+    .demoMetricCard {
+        flex-basis: 100%;
+    }
+
+    .demoHeader,
+    .demoCardHeader {
+        flex-direction: column;
+    }
+
+    .heroActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .heroAction {
+        width: 100%;
+    }
+}

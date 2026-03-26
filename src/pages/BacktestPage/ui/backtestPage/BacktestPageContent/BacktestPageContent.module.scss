@@ -1,0 +1,30 @@
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    container-type: inline-size;
+    container-name: backtest-content;
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: flex-start;
+
+    & > * {
+        min-width: 0;
+    }
+}
+
+@container backtest-content (max-width: 1100px) {
+    .columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@container backtest-content (max-width: 760px) {
+    .content {
+        gap: 20px;
+    }
+}

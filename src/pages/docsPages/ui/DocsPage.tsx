@@ -1,70 +1,106 @@
 import classNames from '@/shared/lib/helpers/classNames'
-import { TermTooltip, Text } from '@/shared/ui'
+import { ROUTE_PATH } from '@/app/providers/router/config/consts'
+import { AppRoute } from '@/app/providers/router/config/types'
+import { Link, Text } from '@/shared/ui'
+import { useTranslation } from 'react-i18next'
+import { buildDocsGlossary, renderDocsRichText } from './shared/docsRichText'
+import { readDocsStringList, readDocsTermItems } from './shared/docsI18n'
+import { LocalizedContentBoundary } from '@/shared/ui/errors/LocalizedContentBoundary/ui/LocalizedContentBoundary'
 import cls from './DocsPage.module.scss'
+import type { DocsPageProps } from './types'
 
-interface DocsPageProps {
-    className?: string
-}
+const DOCS_HOME_CARDS = [
+    {
+        id: 'models',
+        route: AppRoute.DOCS_MODELS
+    },
+    {
+        id: 'tests',
+        route: AppRoute.DOCS_TESTS
+    },
+    {
+        id: 'truthfulness',
+        route: AppRoute.DOCS_TRUTHFULNESS
+    }
+] as const
 
 export default function DocsPage({ className }: DocsPageProps) {
+    const { t, i18n } = useTranslation('docs')
+
     return (
-        <div className={classNames(cls.DocsModelsPage, {}, [className ?? ''])}>
-            <Text>DocsPage</Text>
+        <div className={classNames(cls.DocsPageRoot, {}, [className ?? ''])} data-tooltip-boundary>
+            <header className={cls.hero}>
+                <Text type='h1' className={cls.heroTitle}>
+                    {t('page.title')}
+                </Text>
+                <LocalizedContentBoundary name='DocsHome:heroSubtitle'>
+                    {() => {
+                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                        const glossary = buildDocsGlossary([glossaryTerms])
 
-            <section id='model-stats-overview' className={cls.sectionCard}>
-                <Text type='h3' className={cls.sectionTitle}>
-                    Как читать страницу &laquo;Статистика моделей&raquo; (ModelStatsPage)
+                        return (
+                            <Text className={cls.heroSubtitle}>
+                                {renderDocsRichText(t('page.subtitle'), { glossary })}
+                            </Text>
+                        )
+                    }}
+                </LocalizedContentBoundary>
+            </header>
+
+            <section className={cls.sections}>
+                <Text type='h2' className={cls.sectionsTitle}>
+                    {t('page.sectionsTitle')}
                 </Text>
 
-                <Text className={cls.sectionText}>
-                    Страница &laquo;Статистика моделей&raquo; показывает качество ML-моделей на разных выборках (train /
-                    OOS / full / recent) и в двух режимах: бизнес- и техническом. Выбор сегмента и режима влияет на
-                    набор таблиц и метрик ниже.
-                </Text>
+                <LocalizedContentBoundary name='DocsHome:introParagraphs'>
+                    {() => {
+                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                        const glossary = buildDocsGlossary([glossaryTerms])
+                        const introParagraphs = readDocsStringList(i18n, 'page.intro')
 
-                <TermTooltip
-                    term='OOS'
-                    type='h4'
-                    description={
-                        <>
-                            OOS (out-of-sample) — отрезок данных, полностью исключённый из обучения. Метрики на OOS дают
-                            честную оценку качества без переобучения.
-                        </>
-                    }
-                />
+                        return (
+                            <div className={cls.copyBlock}>
+                                {introParagraphs.map((paragraph, index) => (
+                                    <Text key={`docs-intro-${index}`} className={cls.introText}>
+                                        {renderDocsRichText(paragraph, { glossary })}
+                                    </Text>
+                                ))}
+                            </div>
+                        )
+                    }}
+                </LocalizedContentBoundary>
 
-                <TermTooltip
-                    term='Train'
-                    type='h4'
-                    description={
-                        <>
-                            Train — обучающая выборка, на которой подбираются веса модели. Метрики обычно выше, чем на
-                            OOS, поэтому сравнение Train vs OOS важно для контроля переобучения.
-                        </>
-                    }
-                />
+                <div className={cls.cards}>
+                    {DOCS_HOME_CARDS.map(card => (
+                        <Link key={card.id} to={ROUTE_PATH[card.route]} className={cls.cardLink}>
+                            <article className={cls.card}>
+                                <div className={cls.cardHeader}>
+                                    <Text type='h3' className={cls.cardTitle}>
+                                        {t(`page.cards.${card.id}.title`)}
+                                    </Text>
+                                    <span className={cls.cardArrow} aria-hidden='true'>
+                                        →
+                                    </span>
+                                </div>
+                                <LocalizedContentBoundary name={`DocsHome:card:${card.id}`}>
+                                    {() => {
+                                        const glossaryTerms = readDocsTermItems(i18n, 'page.glossary.terms')
+                                        const glossary = buildDocsGlossary([glossaryTerms])
 
-                <TermTooltip
-                    term='Full history'
-                    type='h4'
-                    description={
-                        <>
-                            Full history — вся доступная история отчёта (Train + OOS). Удобно для общей картины, но
-                            контроль качества надо делать по OOS и Recent.
-                        </>
-                    }
-                />
-
-                <TermTooltip
-                    term='Recent'
-                    type='h4'
-                    description={
-                        <>
-                            Recent — свежий отрезок данных за последние N дней. Здесь видно, как модель ведёт себя
-                            &laquo;прямо сейчас&raquo; и есть ли деградация относительно OOS.
-                        </>
-                    }
-                />
+                                        return (
+                                            <Text className={cls.cardText}>
+                                                {renderDocsRichText(t(`page.cards.${card.id}.description`), {
+                                                    glossary
+                                                })}
+                                            </Text>
+                                        )
+                                    }}
+                                </LocalizedContentBoundary>
+                                <Text className={cls.cardHint}>{t(`page.cards.${card.id}.hint`)}</Text>
+                            </article>
+                        </Link>
+                    ))}
+                </div>
             </section>
         </div>
     )

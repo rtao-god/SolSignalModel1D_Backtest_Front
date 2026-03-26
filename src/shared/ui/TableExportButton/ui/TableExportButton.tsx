@@ -4,11 +4,9 @@ import { exportTable, type TableExportFormat } from '@/shared/lib/tableExport/ta
 import cls from './TableExportButton.module.scss'
 import TableExportButtonProps from './types'
 import { Btn } from '../../Btn'
+import { useTranslation } from 'react-i18next'
+import { logError } from '@/shared/lib/logging/logError'
 
-/**
- * Универсальная кнопка-иконка экспорта таблицы.
- * Можно повесить в правый верхний угол любой карточки с таблицей.
- */
 export default function TableExportButton({
     className,
     columns,
@@ -16,34 +14,66 @@ export default function TableExportButton({
     fileBaseName,
     defaultFormat = 'pdf'
 }: TableExportButtonProps) {
+    const { t } = useTranslation('common')
     const [open, setOpen] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
 
     const handleToggle = () => {
+        if (isExporting) {
+            return
+        }
         setOpen(prev => !prev)
     }
 
     const handleClose = () => {
+        if (isExporting) {
+            return
+        }
         setOpen(false)
     }
 
-    const handleExport = (format: TableExportFormat) => {
-        // Нормализация значений до "прямоугольной" таблицы.
+    const handleExport = async (format: TableExportFormat) => {
+        if (isExporting) {
+            return
+        }
+
+        setIsExporting(true)
         const safeRows = (rows ?? []).map(row => row ?? [])
 
-        exportTable({
-            columns: columns ?? [],
-            rows: safeRows,
-            fileBaseName,
-            format
-        })
+        try {
+            await exportTable({
+                columns: columns ?? [],
+                rows: safeRows,
+                fileBaseName,
+                format
+            })
+        } catch (error) {
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error ?? 'Unknown table export error.'))
 
-        setOpen(false)
+            logError(normalizedError, undefined, {
+                source: 'table-export',
+                domain: 'ui_section',
+                severity: 'warning',
+                extra: { fileBaseName, format }
+            })
+        } finally {
+            setIsExporting(false)
+            setOpen(false)
+        }
     }
+
+    const defaultFormatLabel = defaultFormat.toUpperCase()
+    const secondaryFormat = defaultFormat === 'pdf' ? 'csv' : 'pdf'
+    const secondaryFormatLabel = secondaryFormat.toUpperCase()
 
     return (
         <div className={classNames(cls.TableExportButton, {}, [className ?? ''])}>
-            <Btn className={cls.trigger} onClick={handleToggle} aria-label='Скачать таблицу'>
-                {/* Простейшая иконка "download" через SVG, чтобы не тянуть сторонние пакеты */}
+            <Btn
+                className={cls.trigger}
+                onClick={handleToggle}
+                aria-label={t('tableExport.ariaLabel', { defaultValue: 'Download table' })}
+                disabled={isExporting}>
                 <svg className={cls.icon} viewBox='0 0 24 24' aria-hidden='true'>
                     <path
                         d='M12 3.5a.75.75 0 0 1 .75.75v8.19l2.72-2.72a.75.75 0 0 1 1.06 1.06l-4.06 4.06a.75.75 0 0 1-1.06 0L7.35 10.78a.75.75 0 0 1 1.06-1.06l2.84 2.84V4.25A.75.75 0 0 1 12 3.5z'
@@ -57,15 +87,30 @@ export default function TableExportButton({
             </Btn>
 
             {open && (
-                <div
-                    className={cls.menu}
-                    // Простейшая закрывашка при уходе фокуса: можно улучшить позже за счёт глобального слушателя кликов.
-                    onMouseLeave={handleClose}>
-                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat)}>
-                        Скачать как {defaultFormat.toUpperCase()}
+                <div className={cls.menu} onMouseLeave={handleClose}>
+                    <Btn
+                        className={cls.menuItem}
+                        onClick={() => void handleExport(defaultFormat)}
+                        disabled={isExporting}>
+                        {isExporting ?
+                            t('tableExport.loading', { defaultValue: 'Preparing file...' })
+                        :   t('tableExport.downloadAs', {
+                                format: defaultFormatLabel,
+                                defaultValue: 'Download as {{format}}'
+                            })
+                        }
                     </Btn>
-                    <Btn className={cls.menuItem} onClick={() => handleExport(defaultFormat === 'pdf' ? 'csv' : 'pdf')}>
-                        Скачать как {defaultFormat === 'pdf' ? 'CSV' : 'PDF'}
+                    <Btn
+                        className={cls.menuItem}
+                        onClick={() => void handleExport(secondaryFormat)}
+                        disabled={isExporting}>
+                        {isExporting ?
+                            t('tableExport.loading', { defaultValue: 'Preparing file...' })
+                        :   t('tableExport.downloadAs', {
+                                format: secondaryFormatLabel,
+                                defaultValue: 'Download as {{format}}'
+                            })
+                        }
                     </Btn>
                 </div>
             )}

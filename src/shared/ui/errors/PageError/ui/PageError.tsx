@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import cls from './PageError.module.scss'
 import { Btn } from '@/shared/ui/Btn'
 import { Text } from '@/shared/ui/Text'
+import { useTranslation } from 'react-i18next'
 
 interface PageErrorProps {
     title: string
@@ -12,7 +13,6 @@ interface PageErrorProps {
 }
 
 function formatError(error: unknown): string {
-    // упрощённый форматтер, чтобы не тащить конкретные типы RTK Query
     if (!error) return ''
 
     if (typeof error === 'string') {
@@ -31,6 +31,7 @@ function formatError(error: unknown): string {
 }
 
 export default function PageError({ title, message, error, onRetry, actionsSlot }: PageErrorProps) {
+    const { t } = useTranslation('errors')
     const details = error ? formatError(error) : null
 
     return (
@@ -46,7 +47,7 @@ export default function PageError({ title, message, error, onRetry, actionsSlot 
             <div className={cls.actions}>
                 {onRetry && (
                     <Btn className={cls.retryButton} onClick={onRetry}>
-                        Повторить запрос
+                        {t('ui.pageError.retry', { defaultValue: 'Retry request' })}
                     </Btn>
                 )}
 

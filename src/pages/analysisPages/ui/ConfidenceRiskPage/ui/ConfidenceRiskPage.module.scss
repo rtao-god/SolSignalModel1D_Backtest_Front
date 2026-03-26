@@ -1,0 +1,202 @@
+/* ConfidenceRiskPage: базовые стили страницы и блоков метрик. */
+.root {
+    @include product-page-shell(1440px, true, 24px);
+    container-type: inline-size;
+    container-name: confidence-risk-page;
+}
+
+.hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.heroTitle {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f9fafb;
+}
+
+.heroSubtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #9ca3af;
+    max-width: 720px;
+}
+
+.scopeControls {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.scopeControlBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scopeControlLabel {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.scopeToggle {
+    align-self: flex-start;
+}
+
+.scopeBucketToggle {
+    align-self: flex-start;
+}
+
+.scopeHint {
+    font-size: 12px;
+    color: #cbd5f5;
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #cbd5f5;
+    @include subtle-surface(12px 14px);
+    min-width: 220px;
+}
+
+.configBlock {
+    @include surface-card(
+        $padding: 18px 20px,
+        $radius: var(--radius-xl),
+        $background: var(--surface-bg),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 14px;
+}
+
+.configHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.configTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.configSubtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 760px;
+}
+
+.configGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.configItem {
+    @include subtle-surface(12px 14px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.configKeyRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.configValue {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.configDescription {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #cbd5f5;
+}
+
+.sectionBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.termsBlock {
+    @include surface-card(
+        $padding: 18px 20px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(140deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.85)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+}
+
+.termsHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.termsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.termsSubtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 760px;
+}
+
+.termsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.termItem {
+    @include subtle-surface(12px 14px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.termDescription {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d1d5db;
+}
+
+@container confidence-risk-page (max-width: 980px) {
+    .configGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .termsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@container confidence-risk-page (max-width: 720px) {
+    .hero {
+        flex-direction: column;
+    }
+}

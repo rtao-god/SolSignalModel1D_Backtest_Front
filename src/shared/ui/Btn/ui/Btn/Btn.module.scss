@@ -62,7 +62,7 @@
     }
 
     &:disabled {
-        /* Поведение как в старой версии: серый текст и фиксированный фон. */
+        /* Disabled-состояние фиксирует контраст и убирает интерактивные эффекты. */
         color: #a9a9a9 !important;
         background-color: #6aa7f7de !important;
         opacity: 0.7;
@@ -77,7 +77,7 @@
 }
 
 /* Размеры: работают через data-size.
-   Визуально соответствуют старым small/medium/large. */
+   Размер задаёт только внутренние токены кнопки. */
 
 .Btn[data-size='sm'] {
     --btn-padding-y: 4px;
@@ -101,10 +101,7 @@
 }
 
 /* PRIMARY
-   Здесь возвращаем поведение максимально близко к легаси:
-   - цвет фона берётся из var(--inverted-bg-color-btn)
-   - цвет текста белый
-   - без собственных теней, только opacity на hover/active.
+   Основной вариант использует системный цвет фона и контрастный белый текст.
 */
 
 .Btn[data-variant='primary'] {
@@ -183,14 +180,11 @@
 }
 
 .Btn[data-variant='chip'][data-color-scheme='accent'] {
-    --btn-bg:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.35), transparent 55%),
+    --btn-bg: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.35), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95));
-    --btn-bg-hover:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.45), transparent 55%),
+    --btn-bg-hover: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.45), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 1), rgba(15, 23, 42, 1));
-    --btn-bg-active:
-        radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.3), transparent 55%),
+    --btn-bg-active: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.3), transparent 55%),
         linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
     --btn-border-color: rgba(148, 163, 255, 0.4);
 }

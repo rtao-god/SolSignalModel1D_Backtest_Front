@@ -1,0 +1,312 @@
+.root {
+    display: grid;
+    gap: 22px;
+    padding: 28px;
+}
+
+.hero,
+.detailHero {
+    display: grid;
+    gap: 18px;
+    padding: 28px;
+    border: 1px solid rgba(111, 157, 194, 0.16);
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at top left, rgba(72, 176, 255, 0.16), transparent 32%),
+        radial-gradient(circle at right center, rgba(240, 191, 79, 0.12), transparent 28%),
+        linear-gradient(135deg, #091723 0%, #0d1b29 58%, #13253a 100%);
+    box-shadow: 0 28px 60px rgba(5, 10, 16, 0.24);
+}
+
+.detailHero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+}
+
+.heroTitle {
+    color: #f5fbff;
+}
+
+.heroSubtitle {
+    max-width: 980px;
+    color: rgba(221, 235, 247, 0.9);
+}
+
+.heroStats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.heroStats > div,
+.catalogCard,
+.toolbar,
+.rangeNote,
+.notFoundBox,
+.publishedStatusPanel {
+    border: 1px solid rgba(112, 156, 194, 0.16);
+    background: rgba(9, 19, 31, 0.82);
+}
+
+.heroStats > div {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 18px;
+}
+
+.heroStats span,
+.metricLabel,
+.groupLabel {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(171, 195, 215, 0.7);
+}
+
+.heroStats strong,
+.catalogMetrics strong {
+    color: #f3fbff;
+}
+
+.backLink {
+    display: inline-flex;
+    width: fit-content;
+    color: #90c5ff;
+    text-decoration: none;
+}
+
+.catalogGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.catalogCard {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+    border-radius: 24px;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.catalogCard:hover {
+    transform: translateY(-2px);
+    border-color: rgba(145, 195, 241, 0.34);
+}
+
+.catalogTitle {
+    color: #f4fbff;
+}
+
+.catalogMeta,
+.catalogMetrics {
+    display: grid;
+    gap: 8px;
+}
+
+.catalogMeta {
+    color: rgba(205, 221, 235, 0.88);
+}
+
+.catalogMetrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.toolbar {
+    display: grid;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 24px;
+}
+
+.controlGroup {
+    display: grid;
+    gap: 10px;
+}
+
+.chips,
+.toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip {
+    padding: 9px 14px;
+    border: 1px solid rgba(132, 168, 196, 0.18);
+    border-radius: 999px;
+    background: rgba(12, 25, 38, 0.88);
+    color: rgba(222, 236, 248, 0.88);
+    cursor: pointer;
+}
+
+.chipActive {
+    border-color: rgba(120, 198, 255, 0.46);
+    background: linear-gradient(135deg, rgba(23, 108, 171, 0.96), rgba(9, 51, 87, 0.96));
+}
+
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(226, 238, 248, 0.92);
+}
+
+.toggle input {
+    accent-color: #4fb3ff;
+}
+
+.rangeNote,
+.notFoundBox {
+    padding: 14px 18px;
+    border-radius: 18px;
+    color: rgba(219, 232, 243, 0.92);
+}
+
+.publishedStatusPanel {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 22px;
+}
+
+.publishedStatusPanelWarning {
+    border-color: rgba(244, 191, 79, 0.28);
+    background:
+        radial-gradient(circle at top right, rgba(244, 191, 79, 0.14), transparent 28%),
+        rgba(9, 19, 31, 0.9);
+}
+
+.publishedStatusPanelBlocking {
+    border-color: rgba(79, 179, 255, 0.28);
+    background:
+        radial-gradient(circle at top left, rgba(79, 179, 255, 0.12), transparent 28%),
+        rgba(9, 19, 31, 0.9);
+}
+
+.publishedStatusHead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+}
+
+.publishedStatusCopy {
+    display: grid;
+    gap: 8px;
+}
+
+.publishedStatusTitle {
+    color: #f3fbff;
+}
+
+.publishedStatusDescription {
+    color: rgba(219, 232, 243, 0.92);
+}
+
+.publishedStatusActions {
+    display: flex;
+    align-items: start;
+    justify-content: flex-end;
+}
+
+.publishedStatusMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    color: rgba(171, 195, 215, 0.84);
+}
+
+.publishedStatusError {
+    color: #fecaca;
+}
+
+.rangeNote {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.rangeNoteItem {
+    color: rgba(219, 232, 243, 0.92);
+}
+
+.balanceLegend {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid rgba(112, 156, 194, 0.16);
+    border-radius: 24px;
+    background: rgba(9, 19, 31, 0.82);
+}
+
+.balanceLegendTitle {
+    color: #f3fbff;
+}
+
+.balanceLegendList {
+    gap: 14px;
+}
+
+.balanceLegendBullet {
+    align-items: flex-start;
+}
+
+.balanceLegendBulletContent {
+    width: 100%;
+}
+
+.balanceLegendRow {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.balanceLegendSwatch {
+    width: 30px;
+    height: 10px;
+    margin-top: 7px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(232, 242, 251, 0.08);
+}
+
+.balanceLegendSwatchTotalCapital {
+    background: linear-gradient(90deg, #aeb8c4 0%, #aeb8c4 44%, #22c55e 44%, #4ade80 100%);
+}
+
+.balanceLegendSwatchWorkingGap {
+    background: linear-gradient(90deg, rgba(226, 235, 244, 0.76) 0%, rgba(244, 248, 252, 0.96) 100%);
+}
+
+.balanceLegendText {
+    color: rgba(226, 238, 248, 0.92);
+}
+
+@media (max-width: 960px) {
+    .detailHero {
+        grid-template-columns: 1fr;
+    }
+
+    .publishedStatusHead,
+    .heroStats,
+    .catalogMetrics {
+        grid-template-columns: 1fr;
+    }
+
+    .rangeNote {
+        flex-direction: column;
+    }
+
+    .balanceLegendRow {
+        grid-template-columns: 1fr;
+    }
+
+    .balanceLegendSwatch {
+        margin-top: 0;
+    }
+}

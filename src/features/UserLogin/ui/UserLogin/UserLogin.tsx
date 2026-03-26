@@ -3,17 +3,16 @@ import { ChangeEvent, FormEvent, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import cls from './UserLogin.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
-import { getLoginIsLoading, getLoginError, getLoginConfirmPassword, getLoginIdentifier } from '../../model/selectors'
+import { getLoginIsLoading, getLoginError, getLoginIdentifier } from '../../model/selectors'
 import { Input, Btn, Text, Rows, Link } from '@/shared/ui'
 import PasswordInputField from '../PasswordInputField/PasswordInputField'
 import LoginFormProps from './types'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 import { useLogin } from '@/shared/lib/hooks'
 import { IDENTIFIER_INVALID, IDENTIFIER_REQUIRED } from '@/shared/consts/authLogin'
-import { getIsAuthenticated } from '@/shared/ui/auth/AuthSection/model/getIsAuthenticated'
 
 export default function UserLogin({ className }: LoginFormProps) {
-    const { t } = useTranslation()
+    const { t } = useTranslation('auth')
     const dispatch = useDispatch()
 
     const [identifierValue, setIdentifierValue] = useState<string>('')
@@ -42,52 +41,34 @@ export default function UserLogin({ className }: LoginFormProps) {
         login(identifier, password)
     }
 
-    console.log()
-    console.log(
-        'ERROR: ',
-        error,
-        localStorage.user,
-        '\n user: ',
-        identifier,
-        password,
-        '\n isAuthenticated: ',
-        getIsAuthenticated
-    )
-
     return (
         <div className={classNames(cls.User_login, {}, [className ?? ''])}>
             <form onSubmit={handleLogin}>
                 <Input
                     type='text'
                     onChange={onChangeIdentifier}
-                    placeholder={t('EnterEmailOrPhone')}
-                    error={error?.includes(IDENTIFIER_REQUIRED) ? 'Ошибка в' : ''}
-                    /*   className={classNames('auth_input_style', {
-                      [cls.errorBorder]: loginError.includes(IDENTIFIER_REQUIRED)
-                  })} */
+                    placeholder={t('login.identifierPlaceholder')}
+                    error={error?.includes(IDENTIFIER_REQUIRED) ? t('login.identifierError') : ''}
                 />
                 <PasswordInputField
                     onChangePassword={onChangePassword}
-                    placeholder={t('EnterThePassword')}
-                    error={error}
-                    /*   className={classNames('auth_input_style', {
-                      [cls.errorBorder]: loginError.includes(PASSWORD_REQUIRED)
-                  })} */
+                    placeholder={t('login.passwordPlaceholder')}
+                    loginError={error}
                 />
                 <Text color='#d64657' position='center'>
                     {error}
                 </Text>
                 <Rows gap={20} rows={['auto']}>
                     <Btn className={cls.login_btn} color='#0064FA' disabled={isLoading}>
-                        {t('Login')}
+                        {t('login.submit')}
                     </Btn>
                     <div className={cls.register}>
                         <Text color='#7D7F82' fz='16px' type='p'>
-                            {t("Don't have an account?")}
+                            {t('login.noAccount')}
                         </Text>
                         <Link to='/registration' className={cls.register_text}>
                             <Text color='#0064FA' fz='16px' type='p'>
-                                {t('Register')}
+                                {t('login.registerLink')}
                             </Text>
                         </Link>
                     </div>

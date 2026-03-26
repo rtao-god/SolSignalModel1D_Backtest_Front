@@ -3,7 +3,6 @@ import cls from './PostsList.module.scss'
 import PostsListProps from './types'
 import { useState, useEffect } from 'react'
 import { Btn, Row, Text, Form, SubmitButton, TextInput, FormField } from '@/shared/ui'
-// import { getPosts, updateCounter } from '@/shared/api'
 
 export default function PostsList({ className }: PostsListProps) {
     const [posts, setPosts] = useState<any[]>([])
@@ -11,16 +10,12 @@ export default function PostsList({ className }: PostsListProps) {
     const [error, setError] = useState<string | null>(null)
     const [counters, setCounters] = useState<{ [key: number]: number }>({})
     const [formData, setFormData] = useState({})
-    const [errors, setErrors] = useState({})
-
-    console.log('formData: ', formData)
+    const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
 
     useEffect(() => {
         const fetchPosts = async () => {
             try {
                 setIsLoading(true)
-                /*     const response = await getPosts()
-                setPosts(response) */
             } catch (err) {
                 setError('Failed to load posts')
             } finally {
@@ -30,14 +25,9 @@ export default function PostsList({ className }: PostsListProps) {
         fetchPosts()
     }, [])
 
-    const handleUpdateCounter = async (id: number) => {
+    const handleUpdateCounter = (id: number) => {
         const newCounter = (counters[id] || 0) + 1
         setCounters({ ...counters, [id]: newCounter })
-        try {
-            // await updateCounter(id, newCounter)
-        } catch (err) {
-            console.error('Failed to update counter:', err)
-        }
     }
 
     const handleFormSubmit = (data: any) => {

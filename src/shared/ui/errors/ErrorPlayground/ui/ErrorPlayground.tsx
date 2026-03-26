@@ -10,7 +10,6 @@ export default function ErrorPlayground() {
 
     return (
         <div className={cls.ErrorPlayground}>
-            {/* Блок 1: PageError с onRetry */}
             <section className={cls.block}>
                 <Text type='h3' className={cls.blockTitle}>
                     PageError (страничная ошибка)
@@ -35,7 +34,6 @@ export default function ErrorPlayground() {
                 )}
             </section>
 
-            {/* Блок 2: ErrorBlock сам по себе */}
             <section className={cls.block}>
                 <Text type='h3' className={cls.blockTitle}>
                     ErrorBlock (карточка секции / более тяжёлая ошибка)
@@ -51,11 +49,7 @@ export default function ErrorPlayground() {
                     title='Тестовая ошибка секции'
                     description='Этот блок показывает, как выглядит ErrorBlock при падении конкретной секции или виджета.'
                     details='Тестовые детали: условный stack trace / сырой текст ошибки.'
-                    onRetry={() => {
-                        // для теста просто лог, реального ресета тут нет
-                        // eslint-disable-next-line no-console
-                        console.log('[ErrorPlayground] Retry clicked')
-                    }}
+                    onRetry={() => undefined}
                     compact={false}
                 />
             </section>

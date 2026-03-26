@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { scrollToAnchor } from '../lib/scrollToAnchor'
+import { logError } from '@/shared/lib/logging/logError'
+import {
+    INTERNAL_ROUTE_TRANSITION_EVENT,
+    type InternalRouteTransitionIntent
+} from '@/shared/lib/navigation/internalRouteTransition'
 
 export interface SectionConfig {
     id: string
@@ -8,31 +13,19 @@ export interface SectionConfig {
 }
 
 interface UseSectionPagerOptions {
-    /**
-     * Логические секции страницы:
-     * id — внутренний идентификатор;
-     * anchor — DOM-id секции (<section id="...">).
-     */
     sections: SectionConfig[]
-
-    /**
-     * Синхронизировать ли активную секцию с hash в URL.
-     */
     syncHash?: boolean
 
-    /**
-     * Переопределение смещения сверху.
-     * Если не задано, используется глобальная CSS-переменная --anchor-offset.
-     */
+    trackScroll?: boolean
+
+    step?: number
+
     offsetTop?: number
+
+    canonicalAnchor?: string | null
 }
 
 interface UseSectionPagerResult {
-    /**
-     * Текущий индекс активной секции:
-     * - отражает фактическое положение скролла;
-     * - используется для подсветки и для стрелок.
-     */
     currentIndex: number
     canPrev: boolean
     canNext: boolean
@@ -40,18 +33,20 @@ interface UseSectionPagerResult {
     handleNext: () => void
 }
 
-/**
- * Локальное чтение anchor-отступа для расчёта "линии якоря" при скролле.
- * Логика аналогична resolveOffsetTop из scrollToAnchor.
- */
+interface PendingDocumentTransition {
+    pathname: string
+    search: string
+    expiresAt: number
+}
+
+const PENDING_DOCUMENT_TRANSITION_TTL_MS = 3000
+
 function resolveAnchorOffsetForScroll(offsetTop?: number): number {
     if (typeof offsetTop === 'number') {
         return offsetTop
     }
 
-    if (typeof document === 'undefined') {
-        return 0
-    }
+    if (typeof document === 'undefined') return 0
 
     try {
         const root = document.documentElement
@@ -77,41 +72,107 @@ function resolveAnchorOffsetForScroll(offsetTop?: number): number {
     }
 }
 
-/**
- * Общая логика пагинации по секциям:
- * - currentIndex всегда обновляется от реального скролла;
- * - programmaticTargetIndexRef используется ТОЛЬКО как "цель" для UI,
- *   чтобы стрелки не мигали во время плавного перехода;
- * - стрелки всегда опираются на "эффективный" индекс
- *   (целевой, если переход в пути, иначе текущий).
- */
+function resolveStep(step?: number): number {
+    if (typeof step === 'undefined') {
+        return 1
+    }
+
+    const isValid = Number.isFinite(step) && step > 0
+    if (!isValid) {
+        logError(new Error('[useSectionPager] Invalid step value.'), undefined, {
+            source: 'section-pager-step',
+            domain: 'app_runtime',
+            severity: 'warning',
+            extra: { step }
+        })
+        return 1
+    }
+
+    return Math.max(1, Math.floor(step))
+}
+
 export function useSectionPager({
     sections,
     syncHash = true,
-    offsetTop
+    trackScroll,
+    step,
+    offsetTop,
+    canonicalAnchor = null
 }: UseSectionPagerOptions): UseSectionPagerResult {
     const location = useLocation()
     const navigate = useNavigate()
 
-    // Индекс секции, ближайшей к "линии якоря" (scrollTop + anchorOffset).
+    const trackScrollEffective = typeof trackScroll === 'boolean' ? trackScroll : syncHash
+    const stepEffective = resolveStep(step)
     const [currentIndex, setCurrentIndex] = useState(0)
 
-    /**
-     * Целевой индекс при программном переходе (стрелки / hash / подвкладки).
-     * Используется:
-     * - чтобы UI показывал "куда едем" (effectiveIndex);
-     * - чтобы понять, когда мы доехали и можно сбрасывать цель.
-     * НЕ блокирует обновление currentIndex.
-     */
     const programmaticTargetIndexRef = useRef<number | null>(null)
+    const lastHandledHashRef = useRef<string | null>(null)
+    const scrollSyncedHashRef = useRef<string | null>(null)
+    const currentHashRef = useRef<string>('')
+    const pendingDocumentTransitionRef = useRef<PendingDocumentTransition | null>(null)
 
-    // Страхуемся от выхода currentIndex за границы при смене списка секций.
+    const isHashSyncPaused = useCallback(() => {
+        const pendingTransition = pendingDocumentTransitionRef.current
+        if (!pendingTransition) {
+            return false
+        }
+
+        if (Date.now() > pendingTransition.expiresAt) {
+            pendingDocumentTransitionRef.current = null
+            return false
+        }
+
+        return true
+    }, [])
+
+    useEffect(() => {
+        currentHashRef.current = location.hash.replace('#', '')
+    }, [location.hash])
+
+    useEffect(() => {
+        const pendingTransition = pendingDocumentTransitionRef.current
+        if (!pendingTransition) {
+            return
+        }
+
+        if (pendingTransition.pathname === location.pathname && pendingTransition.search === location.search) {
+            pendingDocumentTransitionRef.current = null
+        }
+    }, [location.pathname, location.search])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return
+        }
+
+        const handleDocumentTransition = (event: Event) => {
+            const detail = (event as CustomEvent<InternalRouteTransitionIntent>).detail
+            if (!detail || detail.sameDocument) {
+                return
+            }
+
+            pendingDocumentTransitionRef.current = {
+                pathname: detail.pathname,
+                search: detail.search,
+                expiresAt: Date.now() + PENDING_DOCUMENT_TRANSITION_TTL_MS
+            }
+        }
+
+        window.addEventListener(INTERNAL_ROUTE_TRANSITION_EVENT, handleDocumentTransition as EventListener)
+        return () => {
+            window.removeEventListener(INTERNAL_ROUTE_TRANSITION_EVENT, handleDocumentTransition as EventListener)
+        }
+    }, [])
+
     useEffect(() => {
         if (sections.length === 0) {
             if (currentIndex !== 0) {
                 setCurrentIndex(0)
             }
             programmaticTargetIndexRef.current = null
+            scrollSyncedHashRef.current = null
+            currentHashRef.current = ''
             return
         }
 
@@ -120,48 +181,75 @@ export function useSectionPager({
         }
     }, [sections.length, currentIndex])
 
-    /**
-     * Реакция на изменение hash (подвкладки / прямые ссылки):
-     * - вычисляем индекс секции по anchor;
-     * - выставляем целевой индекс;
-     * - запускаем scrollToAnchor.
-     *
-     * Важный момент:
-     * - даже если роутер не перерисовал hash (navigate на тот же самый),
-     *   переход по якорю для стрелок мы делаем напрямую (в goToIndex),
-     *   а тут — по "внешним" изменениям hash (клики по Link'ам).
-     */
     useEffect(() => {
         if (!syncHash || sections.length === 0) return
+        if (isHashSyncPaused()) return
 
         const hash = location.hash.replace('#', '')
-        if (!hash) return
+        if (!hash) {
+            lastHandledHashRef.current = null
+            scrollSyncedHashRef.current = null
+            return
+        }
 
         const idx = sections.findIndex(s => s.anchor === hash)
         if (idx < 0) return
 
+        if (scrollSyncedHashRef.current === hash) {
+            scrollSyncedHashRef.current = null
+            lastHandledHashRef.current = hash
+            setCurrentIndex(prev => (prev === idx ? prev : idx))
+            return
+        }
+
+        if (lastHandledHashRef.current === hash) {
+            return
+        }
+
         programmaticTargetIndexRef.current = idx
+        lastHandledHashRef.current = hash
 
         scrollToAnchor(hash, {
             behavior: 'smooth',
             offsetTop,
             withTransitionPulse: true
         })
-    }, [location.hash, sections, syncHash, offsetTop])
+    }, [isHashSyncPaused, location.hash, sections, syncHash, offsetTop])
 
-    /**
-     * Синхронизация currentIndex с РУЧНЫМ и программным скроллом:
-     * - слушаем scroll на .app;
-     * - считаем "линию якоря" (scrollTop + anchorOffset);
-     * - находим секцию, чей top ближе всего к этой линии;
-     * - обновляем currentIndex.
-     *
-     * Никаких early-return'ов из-за programmaticTargetIndexRef здесь нет:
-     * currentIndex всегда описывает фактическую позицию.
-     * Это гарантирует, что стрелки никогда не будут "зависать".
-     */
     useEffect(() => {
-        if (!syncHash || sections.length === 0) {
+        if (!syncHash || !canonicalAnchor) {
+            return
+        }
+
+        if (isHashSyncPaused()) {
+            return
+        }
+
+        const currentHash = location.hash.replace('#', '')
+        if (!currentHash || currentHash === canonicalAnchor) {
+            return
+        }
+
+        // Канонизация hash остаётся внутри pager-owner и не должна запускать второй scroll-pass.
+        currentHashRef.current = canonicalAnchor
+        lastHandledHashRef.current = canonicalAnchor
+        scrollSyncedHashRef.current = null
+
+        navigate(
+            {
+                pathname: location.pathname,
+                search: location.search,
+                hash: `#${canonicalAnchor}`
+            },
+            {
+                replace: true,
+                preventScrollReset: true
+            }
+        )
+    }, [canonicalAnchor, isHashSyncPaused, location.hash, location.pathname, location.search, navigate, syncHash])
+
+    useEffect(() => {
+        if (!trackScrollEffective || sections.length === 0) {
             return
         }
 
@@ -208,23 +296,41 @@ export function useSectionPager({
             }
 
             setCurrentIndex(prev => (prev === bestIndex ? prev : bestIndex))
+
+            const bestAnchor = sections[bestIndex]?.anchor
+            const isProgrammaticScroll = programmaticTargetIndexRef.current !== null
+            if (!syncHash || !bestAnchor || isProgrammaticScroll) {
+                return
+            }
+
+            if (isHashSyncPaused()) {
+                return
+            }
+
+            if (currentHashRef.current === bestAnchor) {
+                return
+            }
+
+            scrollSyncedHashRef.current = bestAnchor
+            currentHashRef.current = bestAnchor
+            navigate(
+                {
+                    pathname: location.pathname,
+                    search: location.search,
+                    hash: `#${bestAnchor}`
+                },
+                { replace: true, preventScrollReset: true }
+            )
         }
 
         scrollRoot.addEventListener('scroll', handleScroll, { passive: true })
-
-        // Синхронизация при первом рендере (если страница уже проскроллена).
         handleScroll()
 
         return () => {
             scrollRoot.removeEventListener('scroll', handleScroll)
         }
-    }, [sections, syncHash, offsetTop])
+    }, [isHashSyncPaused, sections, trackScrollEffective, offsetTop, syncHash, navigate, location.pathname, location.search])
 
-    /**
-     * Сбрасываем "целевой" индекс, когда фактический currentIndex доехал до него.
-     * Это нужно, чтобы effectiveIndex в UI переключился обратно
-     * на обычный currentIndex после окончания анимации.
-     */
     useEffect(() => {
         const target = programmaticTargetIndexRef.current
         if (target === null) return
@@ -234,17 +340,6 @@ export function useSectionPager({
         }
     }, [currentIndex])
 
-    /**
-     * Программный переход по секциям (стрелки):
-     * - база всегда currentIndex (эффективный индекс мы считаем отдельно);
-     * - выставляем целевой индекс;
-     * - обязательно вызываем scrollToAnchor НАПРЯМУЮ;
-     * - при syncHash также обновляем hash через navigate, чтобы
-     *   URL / подсветки в сайдбаре были в консистентном состоянии.
-     *
-     * Таким образом, даже если navigate на тот же hash не триггерит
-     * rerender location, переход не "ломается" — scrollToAnchor уже вызван.
-     */
     const goToIndex = useCallback(
         (nextIndex: number) => {
             if (nextIndex < 0 || nextIndex >= sections.length) return
@@ -255,10 +350,17 @@ export function useSectionPager({
             programmaticTargetIndexRef.current = nextIndex
 
             if (syncHash) {
-                // Обновляем hash (для URL/сайдбара)...
-                navigate(`#${section.anchor}`)
-                // ...но НЕ полагаемся на useEffect по hash,
-                // сразу делаем реальный скролл.
+                // In-page навигация не должна терять текущий query-контекст фильтров.
+                navigate(
+                    {
+                        pathname: location.pathname,
+                        search: location.search,
+                        hash: `#${section.anchor}`
+                    },
+                    {
+                        preventScrollReset: true
+                    }
+                )
                 scrollToAnchor(section.anchor, {
                     behavior: 'smooth',
                     offsetTop,
@@ -272,25 +374,17 @@ export function useSectionPager({
                 })
             }
         },
-        [sections, syncHash, offsetTop, navigate]
+        [location.pathname, location.search, sections, syncHash, offsetTop, navigate]
     )
 
     const handlePrev = useCallback(() => {
-        // База — currentIndex, который всегда описывает реальное положение.
-        goToIndex(currentIndex - 1)
-    }, [currentIndex, goToIndex])
+        goToIndex(currentIndex - stepEffective)
+    }, [currentIndex, goToIndex, stepEffective])
 
     const handleNext = useCallback(() => {
-        goToIndex(currentIndex + 1)
-    }, [currentIndex, goToIndex])
+        goToIndex(currentIndex + stepEffective)
+    }, [currentIndex, goToIndex, stepEffective])
 
-    /**
-     * Эффективный индекс:
-     * - если есть целевой программный переход → показываем его (стрелки/подсветка),
-     * - иначе → обычный currentIndex.
-     *
-     * Это убирает мигание стрелок во время анимации: UI "знает", что цель уже другая.
-     */
     const effectiveIndex = programmaticTargetIndexRef.current ?? currentIndex
 
     const canPrev = sections.length > 1 && effectiveIndex > 0

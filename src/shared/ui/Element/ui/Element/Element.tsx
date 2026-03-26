@@ -6,10 +6,7 @@ export default function Element({ type = 'div', className, children, ...rest }: 
     const Tag = type
 
     return (
-        <Tag
-            // все HTML-пропсы (id, aria-*, data-*, onClick, style и т.д.)
-            {...rest}
-            className={classNames(cls.Element, {}, [className ?? ''])}>
+        <Tag {...rest} className={classNames(cls.Element, {}, [className ?? ''])}>
             {children}
         </Tag>
     )

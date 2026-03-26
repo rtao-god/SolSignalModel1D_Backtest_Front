@@ -1,9 +1,9 @@
 .TermTooltip {
     position: relative;
-    display: inline-flex;
-    align-items: baseline;
+    display: inline;
+    vertical-align: baseline;
     cursor: help;
-    margin-right: 0.25em; // визуальный пробел после термина
+    margin: 0;
 }
 
 .termText {
@@ -24,23 +24,25 @@
     outline-offset: 2px;
 }
 
-/* базовое состояние: элемент вообще не участвует в раскладке и в расчёте ширины */
-
 .tooltip {
+    --tooltip-max-height: min(72vh, calc(100vh - 24px));
+
     position: absolute;
-    z-index: 40;
+    z-index: 2000;
 
     top: calc(100% + 6px);
 
     min-width: 220px;
-    max-width: 360px;
+    max-width: min(360px, 90vw);
 
     display: none;
-    /* <- главное изменение */
     opacity: 0;
     pointer-events: none;
-    transform: translateY(4px) scale(0.97);
-    transition: opacity 120ms ease-out, transform 120ms ease-out;
+    transform: translateY(6px) scale(0.965);
+    will-change: transform, opacity;
+    transition:
+        opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* базовое выравнивание (для десктопа), на мобиле поверх этого работает useLayoutEffect */
@@ -55,10 +57,10 @@
 
 .tooltipVisible {
     display: block;
-    /* появляемся только когда открыто */
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);
+    animation: tooltipFadeIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tooltipContent {
@@ -67,19 +69,53 @@
     background: rgba(15, 23, 42, 0.98);
     box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
     border: 1px solid rgba(148, 163, 184, 0.5);
+    text-align: left;
+    white-space: normal;
+    user-select: text;
+    color: #f8fafc;
+    font: var(--font-m);
+    max-height: var(--tooltip-max-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    @include PageScrollbar(10px, 10px);
 }
 
 .tooltipTitle {
     margin: 0 0 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    user-select: text;
 }
 
 .tooltipBody {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+    user-select: text;
+    cursor: text;
 }
 
 @media (max-width: 767px) {
     .tooltip {
+        --tooltip-max-height: min(78vh, calc(100vh - 30px));
         max-width: min(360px, 100vw - 30px);
+    }
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.965);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }

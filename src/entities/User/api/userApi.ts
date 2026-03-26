@@ -1,11 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { TUserDataForPutRequest } from '../model/types/UserSchema'
 import { UserData } from '@/shared/types/user.types'
+import { API_BASE_URL } from '@/shared/configs/config'
 
 export const userApi = createApi({
     reducerPath: 'userApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: '/api',
+        baseUrl: API_BASE_URL,
         prepareHeaders: (headers, { getState }) => {
             const token = (getState() as any).auth?.token
             if (token) {

@@ -1,0 +1,311 @@
+/* Policy Branch Mega: базовая сетка страницы и блоков терминов. */
+.root {
+    @include product-page-shell(1440px, true, 24px);
+    container-type: inline-size;
+    container-name: policy-branch-mega-page;
+}
+
+.hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.heroTitle {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f9fafb;
+}
+
+.heroSubtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #9ca3af;
+    max-width: 720px;
+}
+
+.validationAlert {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(140deg, rgba(67, 20, 7, 0.9), rgba(30, 41, 59, 0.92)),
+        $border: rgba(249, 115, 22, 0.4),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 8px;
+}
+
+.validationAlertHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.validationAlertTitle {
+    color: #ffedd5;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.validationAlertDismiss {
+    appearance: none;
+    border: 1px solid rgba(251, 146, 60, 0.45);
+    background: rgba(15, 23, 42, 0.36);
+    color: #fed7aa;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease;
+
+    &:hover {
+        background: rgba(249, 115, 22, 0.18);
+        border-color: rgba(251, 146, 60, 0.7);
+        color: #fff7ed;
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(251, 146, 60, 0.92);
+        outline-offset: 2px;
+    }
+}
+
+.validationAlertText {
+    color: #ffedd5;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.validationAlertDetail {
+    color: #fdba74;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.sectionsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.overviewBlock {
+    @include surface-card(
+        $padding: 18px 20px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(140deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.82)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 10px;
+}
+
+.overviewTitle {
+    font-size: 17px;
+    font-weight: 650;
+    color: #e2e8f0;
+}
+
+.overviewText {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.overviewSubTitle {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 650;
+    color: #e2e8f0;
+}
+
+.overviewList {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.overviewList li {
+    white-space: pre-line;
+}
+
+.sectionBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    content-visibility: auto;
+    contain-intrinsic-size: 1200px;
+}
+
+.diagnosticsLinkBlock {
+    @include surface-card(
+        $padding: 18px 20px,
+        $radius: var(--radius-xl),
+        $background: (
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 34%),
+            linear-gradient(140deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.9))
+        ),
+        $border: rgba(56, 189, 248, 0.28),
+        $shadow: var(--surface-shadow-md)
+    );
+    gap: 14px;
+}
+
+.diagnosticsLinkHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.diagnosticsLinkTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+    color: #e0f2fe;
+}
+
+.diagnosticsLinkDescription {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    max-width: 860px;
+}
+
+.diagnosticsLinkList {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #dbeafe;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.diagnosticsLinkList li {
+    white-space: pre-line;
+}
+
+.diagnosticsLinkAction {
+    width: fit-content;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #7dd3fc;
+    text-decoration: underline;
+    text-decoration-color: rgba(125, 211, 252, 0.5);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #bae6fd;
+        text-decoration-color: rgba(186, 230, 253, 0.88);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(125, 211, 252, 0.92);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+}
+
+.policySetupLink {
+    font-weight: 700;
+    color: #93c5fd;
+    text-decoration: underline;
+    text-decoration-color: rgba(147, 197, 253, 0.42);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #dbeafe;
+        text-decoration-color: rgba(219, 234, 254, 0.92);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(147, 197, 253, 0.92);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+}
+
+.termsBlock {
+    @include surface-card(
+        $padding: 18px 20px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(140deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.85)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+}
+
+.termsHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.termsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.termsSubtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 760px;
+}
+
+.termsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.termItem {
+    @include subtle-surface(12px 14px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.termDescription {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d1d5db;
+}
+
+@container policy-branch-mega-page (max-width: 980px) {
+    .termsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@container policy-branch-mega-page (max-width: 720px) {
+    .hero {
+        flex-direction: column;
+    }
+
+    .bucketButton {
+        min-width: 0;
+    }
+
+    .diagnosticsLinkBlock {
+        padding: 16px;
+    }
+}

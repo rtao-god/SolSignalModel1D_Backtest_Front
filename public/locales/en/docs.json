@@ -1,0 +1,625 @@
+{
+  "labels": {
+    "why": "Why it matters",
+    "example": "Reading example",
+    "terms": "Terms with tooltips"
+  },
+  "page": {
+    "title": "Documentation",
+    "subtitle": "Documentation explains [[causal-term|causal]] decision logic, [[landing-omniscient|omniscient]] evaluation, [[landing-interop|Interop]], [[landing-report-document|ReportDocument]], and protection against [[landing-leakage-guards|leakage]].",
+    "sectionsTitle": "Documentation sections",
+    "intro": [
+      "This documentation explains how to read the pages, metrics, and terms used in the interface. It starts with model logic, then moves to tests, and includes a separate section about the border between [[causal-term|causal]] and [[landing-omniscient|omniscient]] data.",
+      "The sections are easiest to read in order: models -> tests -> data truthfulness. That way you see how a forecast is formed, how the project protects it from false statistics, and how the result reaches the UI through [[landing-report-document|ReportDocument]] and [[landing-interop|Interop]]."
+    ],
+    "cards": {
+      "models": {
+        "title": "Models",
+        "description": "How the daily layer, micro refinement, and [[landing-sl-model|SL model]] assemble the final signal and how `Train` should be read together with [[landing-oos|OOS]].",
+        "hint": "Open model docs ->"
+      },
+      "tests": {
+        "title": "Tests",
+        "description": "Which [[landing-leakage-guards|leakage guards]] and sanity checks stop the pipeline from publishing a “successful” report on broken or future-aware data.",
+        "hint": "Open test docs ->"
+      },
+      "truthfulness": {
+        "title": "Data truthfulness",
+        "description": "How the project separates [[causal-term|causal]] decisions, [[landing-omniscient|omniscient]] evaluation, [[landing-interop|Interop]], and delivery through [[landing-report-document|ReportDocument]] without silent substitutions.",
+        "hint": "Open truthfulness docs ->"
+      }
+    },
+    "glossary": {
+      "terms": [
+        {
+          "id": "causal-term",
+          "term": "Causal",
+          "description": "1) Causal is the decision path at entry time, not the post-fact evaluation path. Only signals and slices that already existed before the trade are allowed here.\n\n2) This path must not use the final day outcome, realized `TP/SL`, realized `MinMove`, or any other field that appears only after the window closes. That knowledge belongs to the [[landing-omniscient|omniscient]] path.\n\n3) Why it matters: if a future-only field slips into causal input, the model starts looking smarter than it would be in live trading. A high [[landing-oos|OOS]] can no longer be read as honest quality.\n\n4) Reading example: if documentation or [[landing-report-document|ReportDocument]] shows a causal forecast, that forecast must be explainable only by what the system actually knew at entry time, without hindsight."
+        },
+        {
+          "id": "landing-omniscient",
+          "term": "Omniscient",
+          "description": "Omniscient is the post-fact evaluation path that sees the outcome of the trading window only after that window is closed.\n\nWhat it shows:\nthis layer owns factual day outcome, realized movement, execution path, PnL, and other fields that did not exist yet at the moment of the causal decision.\n\nHow to read it:\nomniscient is required for honest evaluation, not for the forecast itself. If this knowledge leaks back into the [[causal-term|causal]] path, the model starts looking stronger than it would be in live conditions."
+        },
+        {
+          "id": "landing-interop",
+          "term": "Interop",
+          "description": "Interop is the DTO and contract layer between solution projects.\n\nWhat it shows:\nits job is not to recompute the forecast, but to preserve one stable field meaning while data moves between causal computation, post-fact evaluation, reports, and API delivery.\n\nHow to read it:\nwhen Interop is sound, the same field keeps the same meaning across the whole pipeline. When the contract drifts, the UI starts reading numbers differently from what the backend actually computed."
+        },
+        {
+          "id": "landing-oos",
+          "term": "OOS",
+          "sharedTermId": "oos-segment"
+        },
+        {
+          "id": "landing-report-document",
+          "term": "ReportDocument",
+          "description": "ReportDocument is the unified report format shared by backend and frontend.\n\nWhat it shows:\nit stores already assembled meaning for sections, tables, and metadata so the UI reads a ready-made contract instead of reinterpreting business logic on the client.\n\nHow to read it:\nwhen ReportDocument is correct, the same report keeps the same meaning in API, on the page, and inside tooltip-driven explanations. That is a direct protection against silent substitution and conflicting interpretations."
+        },
+        {
+          "id": "landing-sl-model",
+          "term": "SL model",
+          "sharedTermId": "sl-model"
+        },
+        {
+          "id": "landing-leakage-guards",
+          "term": "Leakage guards",
+          "description": "Leakage guards are the tests and architecture barriers that prevent future-only data from entering the decision path.\n\nWhat it shows:\nthese checks protect the causal layer from fields that exist only after the window closes and from hidden dependencies between decision and post-fact evaluation paths.\n\nHow to read it:\nwithout leakage guards the project can show beautiful but false statistics. This layer exists so high OOS and a good backtest really mean honest model quality rather than hindsight hidden inside the pipeline."
+        }
+      ]
+    }
+  },
+  "modelsPage": {
+    "title": "Models and signal logic",
+    "subtitle": "The same pipeline can be read in two modes: as business-facing decision logic and as a technical layer contract.",
+    "labels": {
+      "models-overview": "What each model means",
+      "models-daily": "Daily layer",
+      "models-micro": "Micro refinement",
+      "models-sl": "SL risk layer",
+      "models-pipeline": "Pipeline and data"
+    },
+    "controls": {
+      "viewModeLabel": "View mode",
+      "viewModeAriaLabel": "Documentation model page view mode"
+    },
+    "sections": {
+      "models-overview": {
+        "business": [
+          "The system has three main roles. [[models-overview-day|Daily layer]] gives the base day direction; [[models-overview-micro|micro layer]] refines only ambiguous `FLAT` days; [[models-overview-sl|SL risk layer]] checks whether the entry becomes too dangerous under execution risk.",
+          "These layers should not be read as three isolated numbers. Comparing [[models-overview-day|`Day`]], [[models-micro-output|`Day+Micro`]], and [[models-overview-total|`Total`]] shows where the decision changed: base direction, local sideways refinement, or the [[models-shared-risk-overlay|risk overlay]]."
+        ],
+        "technical": [
+          "The daily layer emits `Prob3` and the base `UP / FLAT / DOWN` distribution first. If a day lands in `FLAT`, the [[models-overview-micro|micro layer]] joins in, and the [[models-overview-sl|SL risk layer]] then applies the [[models-shared-risk-overlay|risk overlay]] on top of the base direction.",
+          "The final [[models-overview-total|Total prediction]] does not erase the meaning of earlier layers. The chain [[models-overview-day|`Day`]] -> [[models-micro-output|`Day+Micro`]] -> [[models-overview-total|`Total`]] is a sequence of causes, not one anonymous sum of probabilities."
+        ],
+        "why": "Role separation makes the reason behind metric changes visible. You can see whether the change came from the base forecast, local sideways refinement, or the [[models-shared-risk-overlay|risk overlay]].",
+        "terms": [
+          {
+            "id": "models-overview-day",
+            "term": "Daily layer",
+            "description": "Daily layer is Base day-direction layer. It decides whether there is a tradable move upward, downward, or whether the day stays closer to `FLAT`, and it forms the first candidate for trade direction.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-overview-micro",
+            "term": "Micro layer",
+            "description": "Micro layer is Refinement layer only for disputed `FLAT` days. It tries to find a weak directional tilt when the daily layer does not see enough confidence for a direct `UP` or `DOWN` call.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-overview-sl",
+            "term": "SL risk layer",
+            "description": "SL risk layer is Risk-control layer after direction selection. It estimates the probability of hitting `SL` before `TP` and either makes the final signal more cautious or leaves it unchanged.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-overview-total",
+            "term": "Total prediction",
+            "description": "Total prediction is Final probability state after day, micro, and the [[models-shared-risk-overlay|risk overlay]] are combined. This is what trading logic and reports consume.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-shared-risk-overlay",
+            "term": "Risk overlay",
+            "description": "Risk overlay is A risk overlay adjusts the final signal after base direction is already known. It does not choose growth or decline from scratch; it changes the trading usability of the assembled [[models-micro-output|`Day+Micro`]] based on execution risk.\n\nThe main driver here is [[models-sl-prob|SlProb]]. When bad-exit probability is high, [[models-overview-total|`Total`]] becomes more cautious even if direction still looks strong.\n\nReading example: if the base signal looks confident but the final forecast weakens materially, first inspect the risk overlay rather than assuming the market direction simply vanished.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "models-daily": {
+        "business": [
+          "[[models-daily-core|Daily model]] answers the main question: is [[models-daily-meaningful-move|a meaningful move]] expected, and is growth or decline more likely?",
+          "This is the first layer that chooses the trade side, so its transfer to unseen data matters more than any local cosmetic change in [[models-daily-downstream|downstream logic]]."
+        ],
+        "technical": [
+          "[[models-daily-core|Daily model]] is a three-class classifier, and class boundaries depend on [[models-daily-minmove|MinMove]]. That is where `Prob3` comes from, and it then shapes [[models-overview-day|`Day`]] and influences [[models-overview-total|`Total`]].",
+          "The key health check here is [[models-daily-train|`Train`]] versus [[models-daily-oos|`OOS`]], because a strong training score without transfer means broken generalization rather than real signal strength."
+        ],
+        "why": "The daily layer matters because it provides the base market hypothesis. If it is weak, [[models-daily-downstream|downstream layers]] can only soften the consequences or refine narrow cases, but they cannot replace the foundation itself.",
+        "example": "If [[models-daily-train|`Train`]] is high but [[models-daily-oos|`OOS`]] drops sharply, first treat it as a sign of leakage or a broken time boundary, and only then as ordinary overfit. [[models-daily-oos-gap-why|Why?]]",
+        "terms": [
+          {
+            "id": "models-daily-core",
+            "term": "Daily model",
+            "description": "Daily model is Main direction model for the day. It decides whether the market is `UP`, `FLAT`, or `DOWN`.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-daily-meaningful-move",
+            "term": "Meaningful move",
+            "description": "Meaningful move is A meaningful move is a price path that exceeds [[models-daily-minmove|MinMove]] and is therefore treated as tradable rather than noisy.\n\nThat threshold is not guessed by hand: it adapts to current volatility through `ATR indicator` and other components inside the [[models-daily-minmove|MinMove]] calculation.\n\nHow to read it: if expected displacement stays below that threshold, the daily layer should lean toward `FLAT` more often than toward a confident growth or decline call.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-daily-minmove",
+            "term": "MinMove",
+            "sharedTermId": "min-move"
+          },
+          {
+            "id": "models-daily-train",
+            "term": "Train",
+            "sharedTermId": "train-segment"
+          },
+          {
+            "id": "models-daily-oos",
+            "term": "Daily-model OOS",
+            "description": "Daily-model OOS is Out-of-sample segment used to check whether the daily layer transfers to unseen days without overfit and without hidden future leakage.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-daily-downstream",
+            "term": "Downstream logic",
+            "description": "Downstream logic is Downstream logic covers everything after the daily model: micro refinement, risk correction, filters, and final forecast assembly.\n\nIt can soften a bad day or make a good signal more cautious, but it should not create a quality direction call out of a weak base hypothesis.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-daily-oos-gap-why",
+            "term": "Why?",
+            "description": "Why? is When [[models-daily-train|`Train`]] stays high and [[models-daily-oos|`OOS`]] collapses, the first question is whether the model received a hint during training that is unavailable on new days.\n\nWhat changes is usually not the market itself, but the information set: train may contain a post-fact field, a split too close to the future, or another illegal dependency.\n\nThat hint disappears on [[models-daily-oos|`OOS`]], so confidence and quality fall apart. This is why a sharp [[models-daily-train|`Train`]] / [[models-daily-oos|`OOS`]] gap is read as a leakage warning.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "models-micro": {
+        "business": [
+          "[[models-micro-core|Micro model]] is only needed when the base day looks `FLAT`, but the market may still contain a weak directional bias.",
+          "It does not compete with the daily layer on every record. It works in a narrow uncertainty zone where that extra refinement is actually useful."
+        ],
+        "technical": [
+          "[[models-micro-core|Micro model]] only runs on the `FLAT` subset and produces [[models-micro-output|`Day+Micro`]]. That means its gain should be read as local sideways-market improvement, not as a universal system-wide win.",
+          "Coverage on `FLAT` days is what determines its real influence: a good micro score on a tiny subset cannot be treated as a full-pipeline breakthrough."
+        ],
+        "why": "The micro layer matters because it adds flexibility inside sideways days without changing the base task of the daily model.",
+        "example": "If [[models-overview-day|`Day`]] often predicts `FLAT`, while [[models-micro-output|`Day+Micro`]] improves only on that subset, the micro layer is helping exactly where it should.",
+        "terms": [
+          {
+            "id": "models-micro-core",
+            "term": "Micro model",
+            "sharedTermId": "landing-micro-model"
+          },
+          {
+            "id": "models-micro-output",
+            "term": "Day+Micro",
+            "description": "Day+Micro is Intermediate probability layer after micro refinement. It shows the local effect of the micro logic.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "models-sl": {
+        "business": [
+          "[[models-sl-core|SL model]] is not about market direction. It is about the quality of an entry under execution risk.",
+          "Two days can have the same bullish direction probability and still have very different trading quality because `SL` risk is different."
+        ],
+        "technical": [
+          "[[models-sl-core|SL model]] produces [[models-sl-prob|SlProb]] and a risk-day flag. These fields alter the gap between [[models-micro-output|`Day+Micro`]] and [[models-overview-total|`Total`]], which is exactly how the [[models-shared-risk-overlay|risk overlay]] works.",
+          "The layer should be judged not only by classification metrics, but also by whether it actually filters painful entries without killing too many good ones."
+        ],
+        "why": "This layer matters because it separates signal quality from execution quality. Without it, direction and risk are collapsed into one hard-to-read number.",
+        "example": "If [[models-overview-total|`Total`]] is more cautious than [[models-micro-output|`Day+Micro`]] while heavy drawdowns decline in backtests, that usually indicates useful work from the [[models-sl-core|SL model]].",
+        "terms": [
+          {
+            "id": "models-sl-core",
+            "term": "SL model",
+            "sharedTermId": "sl-model"
+          },
+          {
+            "id": "models-sl-prob",
+            "term": "SlProb",
+            "sharedTermId": "sl-prob"
+          }
+        ]
+      },
+      "models-pipeline": {
+        "business": [
+          "A model is inseparable from time and data slicing. Documentation therefore treats [[models-pipeline-asof|as-of slice]], [[models-daily-train|`Train`]] / [[models-daily-oos|`OOS`]], and invalid-day rules as part of the model contract.",
+          "This is the level where the project decides which features are even allowed to enter [[models-pipeline-causal-input|causal input]] and where the boundary lies between honest history and post-fact knowledge."
+        ],
+        "technical": [
+          "The pipeline fixes [[models-pipeline-asof|AsOfUtc]], history boundaries, and the allowed causal input set. This is where post-fact fields must be cut off.",
+          "That is why future leakage is first a pipeline problem, and only later a misleading-chart problem."
+        ],
+        "why": "An honest pipeline fixes the cause, not the symptom. If the data boundary is broken at input time, downstream reports cannot make the result truthful again.",
+        "example": "If a post-fact field enters the causal feature row, the error already happened before the model. The UI can only display a broken computation nicely.",
+        "terms": [
+          {
+            "id": "models-pipeline-asof",
+            "term": "As-of slice",
+            "description": "As-of slice is Fixed historical cutoff up to which data is considered known for the forecast. It separates allowed past from forbidden future.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "models-pipeline-causal-input",
+            "term": "Causal input",
+            "description": "Causal input is The set of features allowed at decision time. If a post-fact outcome enters it, the whole prediction stops being truthful.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      }
+    }
+  },
+  "testsPage": {
+    "title": "Tests and safeguards",
+    "subtitle": "This section explains not only test names, but also why each validation layer is necessary for model, backtest, and UI truthfulness.",
+    "labels": {
+      "tests-overview": "Overall validation contour",
+      "tests-sanity": "Sanity checks",
+      "tests-leakage": "Leakage and future-blind",
+      "tests-perf": "Performance and regressions"
+    },
+    "sections": {
+      "tests-overview": {
+        "paragraphs": [
+          "Tests are split by purpose: some catch [[tests-overview-leakage|leakage]], others enforce [[tests-overview-sanity|sanity invariants]], others keep architecture boundaries, and another group guards repeatability of the full run.",
+          "This matters because false statistics can appear in different ways: future data inside a feature, an empty report silently treated as valid, or a dependency that lets causal code see post-fact logic."
+        ],
+        "why": "If all validation is reduced to one smoke test, it shows only the symptom “something is wrong”. Layered checks expose the actual contract that failed.",
+        "example": "A failing architecture test means a broken dependency boundary, while a failing sanity check usually means invalid values or a broken report payload. These are different causes.",
+        "terms": [
+          {
+            "id": "tests-overview-leakage",
+            "term": "Leakage",
+            "sharedTermId": "leakage"
+          },
+          {
+            "id": "tests-overview-sanity",
+            "term": "Sanity check",
+            "description": "Sanity check is Validation of basic data and report invariants: ranges, `NaN`, `Infinity`, empty sections, and broken boundaries.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "tests-sanity": {
+        "paragraphs": [
+          "[[tests-sanity-core|Sanity checks]] are the first line of defense against silent lies. They verify that probabilities and metrics are within valid bounds and that the report is not empty while pretending to be successful.",
+          "This is what protects the frontend from the scenario “there is no data, but the UI still shows something nice”. Here the project prefers [[tests-sanity-fail-fast|fail-fast]] over decorative placeholders."
+        ],
+        "why": "Broken data often looks plausible at a glance. If the system does not stop itself at the first broken contract, the user notices the problem too late.",
+        "example": "If a probability arrives as `Infinity`, the correct behavior is to stop the computation with an invariant error. The wrong behavior is to quietly replace it with `0` and keep rendering.",
+        "terms": [
+          {
+            "id": "tests-sanity-core",
+            "term": "Sanity checks",
+            "description": "Sanity checks is A package of validations for basic data and report correctness. These checks stop broken state before it reaches the UI.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "tests-sanity-fail-fast",
+            "term": "Fail-fast",
+            "description": "Fail-fast is A principle where the system throws immediately on contract violation instead of hiding the issue behind a safe-looking default.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "tests-leakage": {
+        "paragraphs": [
+          "The [[tests-leakage-core|leakage]] block explains the most expensive ML defect: when future information reaches a feature or evaluation path and artificially improves historical statistics.",
+          "That is why the solution uses [[tests-leakage-future-blind|future-blind checks]], shuffle tests, and a split/time contract. The real question is not “is the metric high?”, but “could the system know this at decision time?”."
+        ],
+        "why": "Leakage is dangerous because it rarely looks like an error. It usually looks like an unusually strong model. Without dedicated tests, the team sees a beautiful report and misses the future peek.",
+        "example": "If quality barely drops after label shuffling, that is not robustness. It is a reason to suspect [[tests-leakage-core|leakage]] or a broken causal contract.",
+        "terms": [
+          {
+            "id": "tests-leakage-core",
+            "term": "Leakage",
+            "sharedTermId": "leakage"
+          },
+          {
+            "id": "tests-leakage-future-blind",
+            "term": "Future-blind check",
+            "description": "Future-blind check is A test that confirms future data changes do not alter a causal result that was already decided.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "tests-leakage-split",
+            "term": "Split/time contract",
+            "description": "Split/time contract is Rules for `Train`, `OOS`, entry time, and day keys. They preserve historical evaluation honesty.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "tests-perf": {
+        "paragraphs": [
+          "Performance checks matter here not for abstract speed, but because a slow or unstable full run tempts the team to disable validations or cut the data horizon.",
+          "That is part of truthfulness too: if the pipeline is only honest on a tiny sandbox window, the user is no longer looking at the same system."
+        ],
+        "why": "Time and memory control protect repeatability of the full computation. Without them, temporary shortcuts can change behavior more than the slowdown itself.",
+        "example": "If a refactor makes the full-history report exceed its runtime budget, the team may be tempted to disable an expensive check. That is no longer a neutral optimization.",
+        "terms": [
+          {
+            "id": "tests-perf-budget",
+            "term": "Runtime budget",
+            "description": "Runtime budget is Allowed time and resource cost for the full run. Systematic budget violations create pressure for risky temporary workarounds.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "tests-perf-repeatability",
+            "term": "Run repeatability",
+            "description": "Run repeatability is Ability to reproduce the same result on the same data and parameters. Without it, version-to-version comparison stops being trustworthy.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      }
+    }
+  },
+  "truthfulnessPage": {
+    "title": "Data truthfulness and trust contour",
+    "subtitle": "This page explains how the project protects truthfulness at each stage: from causal slicing and post-fact evaluation to solution boundaries, reports, API, and UI.",
+    "labels": {
+      "truth-overview": "Truthfulness contour by stage",
+      "truth-causal": "Causal layer",
+      "truth-omniscient": "Post-fact layer",
+      "truth-structure": "Solution projects and Interop",
+      "truth-delivery": "Reports, API, and UI",
+      "truth-tests": "Tests and architecture barriers"
+    },
+    "sections": {
+      "truth-overview": {
+        "paragraphs": [
+          "Truthfulness is distributed across stages: first the project freezes a [[truth-overview-causal|causal snapshot]], then computes a separate [[truth-overview-fact|post-fact outcome]], then packs the result into [[truth-overview-report|ReportDocument]] and delivers it with [[truth-overview-trace|traceability]] context.",
+          "One layer answers what was known at decision time. Another answers what actually happened later. A third controls how those two facts reach the user without client-side guessing."
+        ],
+        "table": {
+          "headers": {
+            "col1": "Stage",
+            "col2": "What protects truthfulness",
+            "col3": "What the user gets"
+          },
+          "rows": [
+            [
+              "Input preparation",
+              "[[truth-overview-causal|Causal snapshot]] cuts future-only fields and fixes the moment of data availability.",
+              "An honest feature set for decision-making."
+            ],
+            [
+              "Post-window evaluation",
+              "[[truth-overview-fact|Post-fact outcome]] is computed only after the window closes and never flows back into the decision.",
+              "A valid comparison between forecast and reality."
+            ],
+            [
+              "Report assembly",
+              "[[truth-overview-report|ReportDocument]] stores already assembled meaning for API and UI.",
+              "The same interpretation on every screen."
+            ],
+            [
+              "Delivery",
+              "[[truth-overview-trace|Traceability]] preserves source, generation time, and selected slice.",
+              "A clear answer to what is being viewed and where it came from."
+            ]
+          ]
+        },
+        "why": "Truthfulness can fail outside the model itself. Even an honest forecast becomes misleading if causal and post-fact data are mixed inside one DTO or if the UI invents missing meaning on the client.",
+        "terms": [
+          {
+            "id": "truth-overview-causal",
+            "term": "Causal snapshot",
+            "description": "Causal snapshot is A snapshot of data available at decision time. It freezes what the model truly knew before entry.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-overview-fact",
+            "term": "Post-fact outcome",
+            "description": "Post-fact outcome is The final day outcome after the [[truth-omniscient-window|window]] closes. It is needed for quality and PnL evaluation, but must not alter the causal decision.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-overview-report",
+            "term": "ReportDocument",
+            "sharedTermId": "landing-report-document"
+          },
+          {
+            "id": "truth-overview-trace",
+            "term": "Traceability",
+            "description": "Traceability is Transparent linkage between report source, generation time, selected slice, and the screen where the user reads the numbers.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "truth-causal": {
+        "paragraphs": [
+          "[[truth-causal-core|Causal layer]] answers one hard question: what was the system allowed to know at [[truth-causal-entry|`EntryUtc`]]? [[truth-causal-entry|EntryUtc]], [[truth-causal-asof|AsOfUtc]], and [[truth-causal-cutoff|DataCutoffUtc]] define the border between allowed past and forbidden future.",
+          "If a post-fact field enters the causal input, the rest of the architecture cannot save the result. The model starts making decisions on knowledge it would never have in live mode."
+        ],
+        "why": "This is where the cause is fixed rather than the symptom. Once the knowledge boundary is broken in the causal row, downstream metrics and charts cannot restore honesty.",
+        "example": "If realized `MinMove` reaches the feature row before the forecast, even a strong `OOS` is no longer trustworthy. That is not a strong model; it is a broken causal contract.",
+        "terms": [
+          {
+            "id": "truth-causal-core",
+            "term": "Causal layer",
+            "description": "Causal layer is Decision path that uses only the data truly available before entry. It defines the causal forecast.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-causal-entry",
+            "term": "EntryUtc",
+            "description": "EntryUtc is UTC entry moment from which the allowed information set for the causal path is derived.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-causal-asof",
+            "term": "AsOfUtc",
+            "description": "AsOfUtc is Upper historical boundary the model is allowed to treat as known at decision time.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-causal-cutoff",
+            "term": "DataCutoffUtc",
+            "description": "DataCutoffUtc is Data cut-off moment before forecast computation. After it, new candles and derived fields must not enter the causal snapshot.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "truth-omniscient": {
+        "paragraphs": [
+          "[[truth-omniscient-core|Omniscient layer]] starts after the causal decision is frozen and the forward window is closed. This is where the project can honestly compute [[truth-omniscient-record|BacktestRecord]] and ask what really happened to the forecast and trade path.",
+          "Its value depends on one ban: post-fact knowledge must not flow backward. The omniscient path exists for honest evaluation, not for backfilling the causal model with hindsight."
+        ],
+        "why": "Without this layer, truthful outcome and PnL evaluation would be impossible. But it only helps while its knowledge stays cleanly separated from the decision path.",
+        "example": "Showing forecast `MinMove` next to realized `MinMove` is correct only when the realized value is computed inside the [[truth-omniscient-core|omniscient layer]] after the window closes.",
+        "terms": [
+          {
+            "id": "truth-omniscient-core",
+            "term": "Omniscient layer",
+            "description": "Omniscient layer is Post-fact evaluation path that sees the final outcome after the window closes and is used for outcome, PnL, and diagnostics.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-omniscient-window",
+            "term": "Forward window",
+            "description": "Forward window is Period after entry during which the market realizes the actual day outcome. Before it closes, the post-fact truth does not yet exist honestly.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-omniscient-record",
+            "term": "BacktestRecord",
+            "description": "BacktestRecord is Record of factual outcome and execution context inside the post-fact path.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "truth-structure": {
+        "paragraphs": [
+          "Truthfulness depends not only on data, but also on solution boundaries. [[truth-structure-causal|Core.Causal]] owns decision logic, [[truth-structure-omniscient|Core.Omniscient]] owns post-fact evaluation, while [[truth-structure-interop|Interop]] and [[truth-structure-orchestration|AppOrchestration]] connect scenarios without mixing roles.",
+          "This is why docs explains solution project names explicitly. They are not decorative labels. They mark where responsibility lives and where “just one convenient dependency” is no longer safe."
+        ],
+        "table": {
+          "headers": {
+            "col1": "Project",
+            "col2": "Truthfulness role",
+            "col3": "Why it is separated"
+          },
+          "rows": [
+            [
+              "[[truth-structure-causal|Core.Causal]]",
+              "Owns the decision and the features valid for the causal forecast.",
+              "So post-fact knowledge cannot leak into live logic."
+            ],
+            [
+              "[[truth-structure-omniscient|Core.Omniscient]]",
+              "Computes outcome, PnL, and factual execution after the window.",
+              "So evaluation stays richer without changing the decision."
+            ],
+            [
+              "[[truth-structure-interop|Interop]]",
+              "Transfers DTOs across layers and scenarios.",
+              "So the meaning of a field is not reinvented at every pipeline hop."
+            ],
+            [
+              "[[truth-structure-reports|Reports]] / [[truth-structure-api|Api]]",
+              "Assemble and deliver ready-made reports.",
+              "So the UI does not invent business meaning from internal structures."
+            ]
+          ]
+        },
+        "why": "If one layer both decides, evaluates itself with hindsight, and prepares UI output, role mixing becomes inevitable. Separate projects make that mixing visible and testable.",
+        "example": "In this architecture, Interop is not just a utility folder. It is the place where contracts must keep the same field meaning across orchestration, reports, and API.",
+        "terms": [
+          {
+            "id": "truth-structure-causal",
+            "term": "Core.Causal",
+            "description": "Core.Causal is Solution project for decision logic that stays valid for the causal forecast. It must not know post-fact outcomes.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-structure-omniscient",
+            "term": "Core.Omniscient",
+            "description": "Core.Omniscient is Solution project for post-fact evaluation and factual result computation.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-structure-interop",
+            "term": "Interop",
+            "sharedTermId": "landing-interop"
+          },
+          {
+            "id": "truth-structure-orchestration",
+            "term": "AppOrchestration",
+            "description": "AppOrchestration is Scenario orchestration layer that coordinates flows between causal, omniscient, infra, and reports.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-structure-reports",
+            "term": "Reports",
+            "description": "Reports is Project that assembles report documents into a stable contract for API and UI.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-structure-api",
+            "term": "Api",
+            "description": "Api is HTTP delivery layer for reports and current prediction. It should return a valid contract or an explicit error.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "truth-delivery": {
+        "paragraphs": [
+          "Even an honestly computed result can be corrupted during delivery if the UI starts guessing on behalf of the backend. That is why the project relies on [[truth-delivery-storage|ReportStorage]], [[truth-overview-report|ReportDocument]], generation metadata, and stable [[truth-delivery-endpoint|API endpoints]], while the frontend treats them as read-only meaning sources.",
+          "Silent fallbacks are especially dangerous here. If a report is missing, a section is empty, or `generatedAt` is invalid, the system should fail explicitly instead of showing a pretty but false screen."
+        ],
+        "why": "Truthfulness can fail on the very last meter. When the UI quietly inserts a safe-looking default, it changes not the styling but the meaning of the data.",
+        "example": "If the backend did not return the required section, the correct behavior is a contract error. The wrong behavior is an empty table that pretends the strategy simply had nothing to trade.",
+        "terms": [
+          {
+            "id": "truth-delivery-storage",
+            "term": "ReportStorage",
+            "description": "ReportStorage is Storage of reports by `kind/id`, used by the API to fetch ready-made documents and preserve source traceability.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-delivery-generated-at",
+            "term": "generatedAtUtc",
+            "description": "generatedAtUtc is Report generation timestamp used for traceability and freshness checks.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-delivery-endpoint",
+            "term": "API endpoint",
+            "description": "API endpoint is Contract route for forecast or report reading. It should return structured data or an explicit error.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      },
+      "truth-tests": {
+        "paragraphs": [
+          "The final truthfulness layer is a barrier network: [[truth-tests-arch|ArchTests]] for dependencies, [[truth-tests-shuffle|shuffle tests]] for degradation, [[truth-tests-split|split/time contract]] for history boundaries, and [[truth-tests-selfcheck|SelfCheckRunner]] for post-run sanity.",
+          "These checks protect each other. An architecture test will not catch `NaN`, and a sanity check will not notice an illegal causal -> omniscient reference. Only together do they address causes instead of symptoms."
+        ],
+        "table": {
+          "headers": {
+            "col1": "Group",
+            "col2": "What it catches",
+            "col3": "Why it matters"
+          },
+          "rows": [
+            [
+              "[[truth-tests-arch|ArchTests]]",
+              "Forbidden dependencies between solution layers.",
+              "Prevents [[truth-structure-causal|Core.Causal]] from seeing post-fact knowledge."
+            ],
+            [
+              "[[truth-tests-shuffle|Shuffle tests]]",
+              "Missing degradation on randomized data.",
+              "Shows that a pretty metric may actually be caused by leakage."
+            ],
+            [
+              "[[truth-tests-split|Split/time contract]]",
+              "Broken `Train`, `OOS`, and exit-time boundaries.",
+              "Protects historical evaluation honesty."
+            ],
+            [
+              "[[truth-tests-selfcheck|SelfCheckRunner]]",
+              "Empty sections, broken values, and contradictory report invariants.",
+              "Stops corrupted documents before they reach API and UI."
+            ]
+          ]
+        },
+        "why": "A single beautiful chart cannot prove truthfulness. Only independent checks can do that by breaking each error class before the user sees a number.",
+        "example": "If the UI still looks clean but ArchTests show a causal -> omniscient dependency, the screen is no longer trustworthy: the architecture defect compromises downstream numbers.",
+        "terms": [
+          {
+            "id": "truth-tests-arch",
+            "term": "ArchTests",
+            "description": "ArchTests is Architecture dependency tests across solution projects. They ensure causal, omniscient, reports, and orchestration do not mix responsibility.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-tests-shuffle",
+            "term": "Shuffle tests",
+            "description": "Shuffle tests is Checks for expected degradation on randomized data. If quality does not drop, the project suspects leakage or a broken causal contract.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-tests-split",
+            "term": "Split/time contract",
+            "description": "Split/time contract is Rules that fix `Train`, `OOS`, [[truth-causal-entry|`EntryUtc`]], and `baseline-exit` boundaries for honest historical evaluation.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          },
+          {
+            "id": "truth-tests-selfcheck",
+            "term": "SelfCheckRunner",
+            "description": "SelfCheckRunner is Post-run validation package that checks the report result after pipeline completion and blocks broken documents from storage and API.\n\nWhat it shows:\nthis term acts as a reference point inside the documentation for the corresponding project layer. It shows where that role, time boundary, data artifact, or validation step appears in the pipeline.\n\nHow to read it:\nthis term should not be read in isolation. It should be read together with the surrounding documentation block, because it explains what the project freezes, protects, or delivers at that step. If the contract is broken here, the issue affects the trustworthiness of the whole flow rather than one screen only."
+          }
+        ]
+      }
+    }
+  }
+}

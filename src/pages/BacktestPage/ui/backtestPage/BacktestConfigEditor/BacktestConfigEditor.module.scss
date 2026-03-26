@@ -1,0 +1,135 @@
+.configEditor {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-xl),
+        $background: (
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 56%),
+            rgba(9, 12, 20, 0.96)
+        ),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-lg)
+    );
+    gap: 14px;
+    container-type: inline-size;
+    container-name: backtest-config-editor;
+
+    p {
+        font-size: 14px;
+        opacity: 0.92;
+    }
+}
+
+.configRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    opacity: 0.95;
+}
+
+.input {
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(5, 10, 18, 0.96);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: rgba(34, 211, 238, 0.82);
+    }
+}
+
+.dynamicBlock {
+    @include subtle-surface(10px 12px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dynamicInfo {
+    font-size: 14px;
+    line-height: 1.45;
+    opacity: 0.86;
+}
+
+.quickActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.policiesBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h3 {
+        font-size: 15px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        opacity: 0.95;
+    }
+}
+
+.tableWrap {
+    @include table-scroll-shell($density: dense, $min-width: 620px);
+}
+
+.table {
+    @include data-table-base($min-width: 620px, $font-size: 14px);
+}
+
+.table th,
+.table td {
+    border: 1px solid var(--surface-border-subtle);
+    padding: 7px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table thead {
+    background: linear-gradient(120deg, rgba(56, 189, 248, 0.2), rgba(34, 197, 94, 0.18));
+}
+
+.table th {
+    font-weight: 600;
+}
+
+.table tbody tr:nth-child(2n) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(56, 189, 248, 0.08);
+}
+
+.checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.runButton {
+    align-self: flex-start;
+}
+
+.errorText {
+    margin-top: 4px;
+    color: #ff6b6b;
+    font-size: 14px;
+}
+
+@container backtest-config-editor (max-width: 900px) {
+    .configEditor {
+        padding: 14px;
+    }
+}

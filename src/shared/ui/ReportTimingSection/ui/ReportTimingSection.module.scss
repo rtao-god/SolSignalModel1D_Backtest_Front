@@ -1,0 +1,81 @@
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title,
+.countdown {
+    margin: 0;
+    color: #f8fafc;
+}
+
+.subtitle,
+.statusText,
+.rowLabel,
+.rowValue,
+.emptyDescription {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.subtitle,
+.statusText,
+.rowLabel {
+    color: #94a3b8;
+}
+
+.statusHealthy {
+    color: #34d399;
+}
+
+.statusWarning {
+    color: #f59e0b;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+.card {
+    @include surface-card(
+        $padding: 18px,
+        $radius: var(--radius-xl),
+        $background: linear-gradient(160deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.82)),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
+    gap: 12px;
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: minmax(120px, 150px) 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.emptyDescription {
+    color: #cbd5e1;
+}
+
+@media (max-width: 720px) {
+    .row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}

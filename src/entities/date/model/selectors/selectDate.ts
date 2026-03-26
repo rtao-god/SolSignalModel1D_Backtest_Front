@@ -1,44 +1,56 @@
+import { createSelector } from '@reduxjs/toolkit'
 import { StateSchema } from '@/app/providers/StoreProvider'
-import type DateSchema from '../types/DateSchema'
+import { formatDateKey, parseDateKey, toStartOfDay } from '@/shared/consts/date'
+import type { UiDate } from '../types/DateSchema'
 
-// Канонический формат даты для UI: то, что реально нужно DatePicker/страницам.
-type UiDate = DateSchema['departureDate'] // { value: string; dateObj: Date } | null
+function createUiDate(value: string | null, dateObj: Date | null): UiDate {
+    if (!value && !dateObj) {
+        return null
+    }
+
+    const normalizedByValue = value ? parseDateKey(value) : null
+    const normalizedByObject = dateObj ? toStartOfDay(dateObj) : null
+    const normalized = normalizedByValue ?? normalizedByObject
+
+    if (!normalized) {
+        return null
+    }
+
+    return {
+        value: formatDateKey(normalized),
+        dateObj: normalized
+    }
+}
 
 function normalizeDate(raw: unknown): UiDate {
     if (raw == null) {
         return null
     }
 
-    // Уже в нужном формате: { value, dateObj? }
-    if (typeof raw === 'object' && 'value' in (raw as any)) {
-        const r = raw as { value: string; dateObj?: Date }
-        const value = r.value
-        const dateObj = r.dateObj instanceof Date ? r.dateObj : new Date(value)
+    if (typeof raw === 'object' && 'value' in (raw as Record<string, unknown>)) {
+        const typedRaw = raw as { value?: unknown; dateObj?: unknown }
+        const value = typeof typedRaw.value === 'string' ? typedRaw.value : null
+        const dateObj = typedRaw.dateObj instanceof Date ? typedRaw.dateObj : null
 
-        return { value, dateObj }
+        return createUiDate(value, dateObj)
     }
 
-    // Храним Date как есть, value берём из toISOString
     if (raw instanceof Date) {
-        const iso = raw.toISOString()
-        const value = iso.slice(0, 10) // YYYY-MM-DD
-        return { value, dateObj: raw }
+        const normalizedDate = toStartOfDay(raw)
+        return createUiDate(formatDateKey(normalizedDate), normalizedDate)
     }
 
-    // Строка: считаем, что это YYYY-MM-DD или ISO
     if (typeof raw === 'string') {
-        const value = raw
-        const dateObj = new Date(raw)
-        // Даже если дата "кривая", объект всё равно будет создан; для UI критична строка value.
-        return { value, dateObj }
+        return createUiDate(raw, null)
     }
 
-    // Любой другой формат считаем неприменимым
     return null
 }
 
-export const selectDepartureDate = (state: StateSchema): UiDate => normalizeDate(state.date?.departureDate as unknown)
+const selectRawDepartureDate = (state: StateSchema): unknown => state.date?.departureDate as unknown
 
-export const selectArrivalDate = (state: StateSchema): UiDate => normalizeDate(state.date?.arrivalDate as unknown)
+const selectRawArrivalDate = (state: StateSchema): unknown => state.date?.arrivalDate as unknown
 
-export const selectIsSelectingDepartureDate = (state: StateSchema) => state.date?.isSelectingDepartureDate
+export const selectDepartureDate = createSelector([selectRawDepartureDate], normalizeDate)
+
+export const selectArrivalDate = createSelector([selectRawArrivalDate], normalizeDate)

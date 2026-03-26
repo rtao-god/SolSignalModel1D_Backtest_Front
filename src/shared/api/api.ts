@@ -5,6 +5,7 @@ import { buildUserEndpoints } from './endpoints/userEndpoints'
 import { buildReportEndpoints } from './endpoints/reportEndpoints'
 import { modelStatsEndpoints } from './endpoints/modelStatsEndpoints'
 import { pfiEndpoints } from './endpoints/pfiEndpoints'
+import { aggregationEndpoints } from './endpoints/aggregationEndpoints'
 import { API_BASE_URL } from '../configs/config'
 
 export const api = createApi({
@@ -24,48 +25,36 @@ export const api = createApi({
         const b = builder as unknown as ApiEndpointBuilder
 
         return {
-            // user
             ...buildUserEndpoints(b),
-
-            // reports
             ...buildReportEndpoints(b),
-
-            // backtest
             ...buildBacktestEndpoints(b),
-
-            // PFI
             ...pfiEndpoints(b),
-
-            // ML model stats
-            ...modelStatsEndpoints(b)
+            ...modelStatsEndpoints(b),
+            ...aggregationEndpoints(b)
         }
     }
 })
 
 export const {
-    // user
     useGetUserQuery,
     useChangeUserDetailsMutation,
-
-    // reports
     useGetCurrentPredictionQuery,
     useGetCurrentPredictionIndexQuery,
     useGetCurrentPredictionByDateQuery,
     useGetBacktestBaselineSummaryQuery,
     useGetBacktestBaselineSnapshotQuery,
-
-    // backtest
+    useGetBacktestDiagnosticsReportQuery,
     useGetBacktestConfigQuery,
     useGetBacktestProfilesQuery,
     useGetBacktestProfileByIdQuery,
     useCreateBacktestProfileMutation,
     useUpdateBacktestProfileMutation,
     usePreviewBacktestMutation,
+    usePreviewBacktestFullMutation,
+    useCompareBacktestProfilesMutation,
     useGetBacktestPolicyRatiosQuery,
-
-    // PFI
     useGetPfiPerModelReportQuery,
-
-    // ML model stats
-    useGetModelStatsReportQuery
+    useGetModelStatsReportQuery,
+    useGetAggregationProbsQuery,
+    useGetAggregationMetricsQuery
 } = api

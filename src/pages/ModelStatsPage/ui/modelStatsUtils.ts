@@ -1,0 +1,150 @@
+import type {
+    GlobalMeta,
+    ResolvedSegmentMeta,
+    SegmentInfo,
+    SegmentKey,
+    ReportSection,
+    KeyValueSection,
+    TableSection
+} from './modelStatsTypes'
+import type { TFunction } from 'i18next'
+import { SEGMENT_INIT_ORDER, SEGMENT_PREFIX } from './modelStatsConstants'
+
+export function stripSegmentPrefix(title: string | undefined | null): string {
+    if (!title) return ''
+    const match = title.match(/^\[(FULL|TRAIN|OOS|RECENT)\]\s*/i)
+    if (!match) return title
+    return title.slice(match[0].length)
+}
+
+export function isKeyValueSection(section: ReportSection): section is KeyValueSection {
+    return Array.isArray((section as KeyValueSection).items)
+}
+
+export function isTableSection(section: ReportSection): section is TableSection {
+    return Array.isArray((section as TableSection).columns)
+}
+
+export function buildGlobalMeta(sections: ReportSection[]): GlobalMeta | null {
+    if (!sections.length) {
+        return null
+    }
+
+    const metaSection = sections.filter(isKeyValueSection).find(section => {
+        const title = section.title ?? ''
+        return title.includes('multi-segment') || title.includes('Model statistics parameters')
+    })
+
+    if (!metaSection || !Array.isArray(metaSection.items)) {
+        return null
+    }
+
+    const map = new Map<string, string>()
+    for (const item of metaSection.items) {
+        if (!item) continue
+        if (typeof item.key === 'string') {
+            map.set(item.key, String(item.value ?? ''))
+        }
+    }
+
+    const parseIntStrict = (key: string): number => {
+        const raw = map.get(key)
+        const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN
+        if (Number.isFinite(parsed)) {
+            return parsed
+        }
+
+        throw new Error(`[model-stats] invalid global meta integer: ${key}='${raw ?? '<missing>'}'.`)
+    }
+
+    const parseBoolSafe = (key: string): boolean => {
+        const raw = (map.get(key) ?? '').toLowerCase()
+        return raw === 'true' || raw === '1' || raw === 'yes'
+    }
+
+    return {
+        runKind: map.get('RunKind') ?? '',
+        hasOos: parseBoolSafe('HasOos'),
+        trainRecordsCount: parseIntStrict('TrainRecordsCount'),
+        oosRecordsCount: parseIntStrict('OosRecordsCount'),
+        totalRecordsCount: parseIntStrict('TotalRecordsCount'),
+        recentDays: parseIntStrict('RecentDays'),
+        recentRecordsCount: parseIntStrict('RecentRecordsCount')
+    }
+}
+
+export function collectAvailableSegments(sections: TableSection[]): SegmentInfo[] {
+    if (!sections.length) {
+        return []
+    }
+
+    const found = new Map<SegmentKey, SegmentInfo>()
+
+    for (const section of sections) {
+        const title = section.title ?? ''
+        ;(Object.entries(SEGMENT_PREFIX) as [SegmentKey, string][]).forEach(([key, prefix]) => {
+            if (title.startsWith(prefix) && !found.has(key)) {
+                found.set(key, { key, prefix })
+            }
+        })
+    }
+
+    const ordered: SegmentInfo[] = []
+    for (const key of SEGMENT_INIT_ORDER) {
+        const seg = found.get(key)
+        if (seg) {
+            ordered.push(seg)
+        }
+    }
+
+    return ordered
+}
+
+export function resolveSegmentMeta(
+    segment: SegmentKey,
+    meta: GlobalMeta | null,
+    t: TFunction
+): ResolvedSegmentMeta | null {
+    if (!meta) {
+        return null
+    }
+
+    switch (segment) {
+        case 'OOS': {
+            const label = t('reports:modelStats.inner.segmentMeta.oos.label')
+            const description = t('reports:modelStats.inner.segmentMeta.oos.description', {
+                label,
+                count: meta.oosRecordsCount
+            })
+            return { label, description }
+        }
+        case 'TRAIN': {
+            const label = t('reports:modelStats.inner.segmentMeta.train.label')
+            const description = t('reports:modelStats.inner.segmentMeta.train.description', {
+                label,
+                count: meta.trainRecordsCount
+            })
+            return { label, description }
+        }
+        case 'FULL': {
+            const label = t('reports:modelStats.inner.segmentMeta.full.label')
+            const description = t('reports:modelStats.inner.segmentMeta.full.description', {
+                label,
+                count: meta.totalRecordsCount
+            })
+            return { label, description }
+        }
+        case 'RECENT': {
+            const label = t('reports:modelStats.inner.segmentMeta.recent.label', {
+                days: meta.recentDays
+            })
+            const description = t('reports:modelStats.inner.segmentMeta.recent.description', {
+                label,
+                count: meta.recentRecordsCount
+            })
+            return { label, description }
+        }
+        default:
+            return null
+    }
+}

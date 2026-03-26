@@ -1,3 +1,3 @@
 export default interface LogoutBtnProps {
-  className?: string
+    className?: string
 }

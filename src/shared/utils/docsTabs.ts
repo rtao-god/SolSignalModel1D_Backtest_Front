@@ -3,14 +3,10 @@ export interface DocsTabConfig {
     label: string
     anchor: string
 }
-
-/**
- * Подвкладки для страницы описания моделей.
- */
 export const DOCS_MODELS_TABS: DocsTabConfig[] = [
     {
         id: 'models-overview',
-        label: 'Общий обзор',
+        label: 'Что означает каждая модель',
         anchor: 'models-overview'
     },
     {
@@ -34,10 +30,6 @@ export const DOCS_MODELS_TABS: DocsTabConfig[] = [
         anchor: 'models-pipeline'
     }
 ]
-
-/**
- * Подвкладки для страницы описания тестов и self-check'ов.
- */
 export const DOCS_TESTS_TABS: DocsTabConfig[] = [
     {
         id: 'tests-overview',
@@ -58,5 +50,37 @@ export const DOCS_TESTS_TABS: DocsTabConfig[] = [
         id: 'tests-perf',
         label: 'Перфоманс-тесты',
         anchor: 'tests-perf'
+    }
+]
+export const DOCS_TRUTHFULNESS_TABS: DocsTabConfig[] = [
+    {
+        id: 'truth-overview',
+        label: 'Контур правдивости',
+        anchor: 'truth-overview'
+    },
+    {
+        id: 'truth-causal',
+        label: 'Казуальный слой',
+        anchor: 'truth-causal'
+    },
+    {
+        id: 'truth-omniscient',
+        label: 'Post-fact слой',
+        anchor: 'truth-omniscient'
+    },
+    {
+        id: 'truth-structure',
+        label: 'Проекты и Interop',
+        anchor: 'truth-structure'
+    },
+    {
+        id: 'truth-delivery',
+        label: 'Отчёты, API и UI',
+        anchor: 'truth-delivery'
+    },
+    {
+        id: 'truth-tests',
+        label: 'Тесты и барьеры',
+        anchor: 'truth-tests'
     }
 ]

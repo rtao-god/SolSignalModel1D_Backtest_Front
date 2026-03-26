@@ -1,0 +1,80 @@
+.chartRoot {
+    container-type: inline-size;
+    container-name: report-metric-chart;
+    @include chart-surface($min-height: 320px, $padding: 14px 14px 10px);
+}
+
+.emptyState {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px;
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--surface-border-strong);
+    background: var(--bg-color-muted);
+}
+
+.emptyTitle {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--text-color);
+}
+
+.emptyDescription {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--surface-border-strong);
+    background: rgba(2, 6, 23, 0.96);
+    box-shadow: var(--surface-shadow-lg);
+}
+
+.tooltipTitle {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text-color);
+}
+
+.tooltipRows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tooltipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.tooltipLabel {
+    color: var(--text-muted);
+}
+
+.tooltipValue {
+    color: var(--text-color);
+    font-weight: 600;
+    text-align: right;
+}
+
+@include viewport-phone {
+    .chartRoot {
+        min-height: 280px;
+        padding: 10px 10px 6px;
+    }
+}

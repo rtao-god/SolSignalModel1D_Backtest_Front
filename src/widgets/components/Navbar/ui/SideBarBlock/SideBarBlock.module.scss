@@ -1,14 +1,13 @@
 .SideBarBlock {
     position: fixed;
-    left: 4px;
-    top: calc(var(--navbar-height) + 10px);
+    left: 8px;
+    top: calc(var(--navbar-height) + 12px);
     z-index: 90;
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    /* убираем визуальный фон/рамку/тень у Btn */
     padding: 0 !important;
     border: none !important;
     background: transparent !important;
@@ -17,7 +16,6 @@
     width: auto;
     height: auto;
     min-width: auto;
-
     color: inherit;
 }
 
@@ -26,21 +24,19 @@
     height: 18px;
 }
 
-/* глушим hover-анимации Btn, чтобы не прыгало и не мутнело */
 .SideBarBlock:not(:disabled):hover {
     transform: none !important;
     opacity: 1 !important;
 }
 
-/* на десктопе кнопка не нужна */
-@media (min-width: 1024px) {
+// Постоянная compact rail берёт управление на себя, поэтому кнопка нужна только до tablet включительно.
+@include viewport-from-compact-desktop {
     .SideBarBlock {
         display: none;
     }
 }
 
-/* на очень маленьких экранах ещё чуть уменьшаем иконку */
-@media (max-width: 480px) {
+@include viewport-phone {
     .SideBarBlock {
         left: 7px;
     }

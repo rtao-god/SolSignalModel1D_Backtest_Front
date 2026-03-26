@@ -1,0 +1,260 @@
+{
+    "navbar": {
+        "expand": {
+            "show": "Показать дополнительные разделы",
+            "hide": "Свернуть разделы"
+        }
+    },
+    "section": {
+        "predictions": "Прогнозы",
+        "models": "Модели",
+        "backtest": "Бэктест",
+        "analysis": "Анализ",
+        "diagnostics": "Диагностика",
+        "features": "Фичи",
+        "guide": "База знаний",
+        "docs": "Документация",
+        "explain": "Объяснение",
+        "developer": "Для разработчика"
+    },
+    "sectionCompact": {
+        "predictions": "Прогнозы",
+        "models": "Модели",
+        "backtest": "Бэктест",
+        "analysis": "Анализ",
+        "diagnostics": "Диагн.",
+        "features": "PFI",
+        "guide": "База",
+        "docs": "Док.",
+        "explain": "Объясн.",
+        "developer": "Dev"
+    },
+    "route": {
+        "main": "Главная",
+        "diagnostics_home": "Диагностика",
+        "analysis_home": "Анализ",
+        "docs": "Документация",
+        "explain": "Объяснение",
+        "profile": "Профиль",
+        "about": "О странице",
+        "contact": "Контакты",
+        "current_prediction": "Текущий прогноз",
+        "current_prediction_history": "История прогнозов",
+        "models_stats": "Статистика моделей",
+        "aggregation_stats": "Агрегация прогнозов",
+        "backtest_baseline": "Baseline бэктест",
+        "backtest_summary": "Сводка бэктеста",
+        "backtest_full": "Экспериментальный бэктест",
+        "backtest_diagnostics": "Риск и ликвидации",
+        "backtest_diagnostics_guardrail": "Фильтр и качество блокировок",
+        "backtest_diagnostics_decisions": "Решения и причины",
+        "backtest_diagnostics_hotspots": "Проблемные зоны",
+        "backtest_diagnostics_other": "Прочая диагностика",
+        "backtest_diagnostics_ratings": "Лучшие и худшие сделки",
+        "backtest_diagnostics_daystats": "Дни и типы рынка",
+        "backtest_policy_branch_mega": "Стратегии и ветки",
+        "backtest_confidence_risk": "Уверенность и риск входа",
+        "backtest_execution_pipeline": "Путь расчёта бэктеста",
+        "pfi_per_model": "Важность фич по моделям",
+        "guide": "База знаний",
+        "guide_models": "Модели",
+        "guide_branches": "Ветки BASE/ANTI-D",
+        "guide_splits": "Train/OOS/Recent",
+        "guide_time": "Время и дни",
+        "guide_features": "Фичи и индикаторы",
+        "guide_truthfulness": "Правдивость данных",
+        "guide_tests": "Тесты и барьеры",
+        "docs_models": "Модели",
+        "docs_tests": "Тесты",
+        "docs_truthfulness": "Правдивость данных",
+        "explain_models": "Модели",
+        "explain_branches": "Ветки BASE/ANTI-D",
+        "explain_splits": "Train/OOS/Recent",
+        "explain_project": "О проекте",
+        "explain_time": "Время и дни",
+        "explain_features": "Фичи и индикаторы",
+        "developer": "Для разработчика",
+        "developer_backend_structure": "Структура backend-а",
+        "developer_runtime_flow": "Runtime flow",
+        "developer_reports_api": "Reports и API",
+        "developer_tests_guards": "Тесты и guards"
+    },
+    "subnav": {
+        "backtest_full": "Разделы бэктеста",
+        "pfi_per_model": "Модели PFI",
+        "guide_models": "Разделы моделей",
+        "guide_branches": "Разделы веток",
+        "guide_splits": "Разделы сплитов",
+        "guide_time": "Разделы времени",
+        "guide_features": "Разделы фич",
+        "guide_truthfulness": "Разделы правдивости данных",
+        "guide_tests": "Разделы тестов и барьеров",
+        "docs_models": "Описание моделей",
+        "docs_tests": "Описание тестов",
+        "docs_truthfulness": "Описание правдивости данных",
+        "explain_models": "Объяснение моделей",
+        "explain_branches": "Объяснение веток",
+        "explain_splits": "Объяснение сплитов",
+        "explain_project": "Объяснение проекта",
+        "explain_time": "Объяснение времени",
+        "explain_features": "Объяснение фич",
+        "aggregation_stats": "Разделы агрегации прогнозов",
+        "backtest_diagnostics": "Разделы диагностики",
+        "backtest_diagnostics_guardrail": "Разделы guardrail",
+        "backtest_diagnostics_decisions": "Разделы решений",
+        "backtest_diagnostics_hotspots": "Разделы hotspots",
+        "backtest_diagnostics_other": "Разделы прочего",
+        "backtest_diagnostics_ratings": "Разделы анализа",
+        "backtest_diagnostics_daystats": "Разделы статистики по дням",
+        "backtest_policy_branch_mega": "Разделы Policy Branch Mega",
+        "developer_backend_structure": "Разделы структуры backend-а",
+        "developer_runtime_flow": "Разделы runtime flow",
+        "developer_reports_api": "Разделы reports и API",
+        "developer_tests_guards": "Разделы тестов и guards"
+    },
+    "tab": {
+        "guide_models": {
+            "guide-models-meaning": "Что это означает",
+            "guide-models-reading": "Как это читать",
+            "guide-models-logic": "Как это работает",
+            "guide-models-contract": "Контракт и ограничения",
+            "guide-models-checks": "Проверки и сигналы",
+            "guide-models-related": "Связанные темы"
+        },
+        "guide_branches": {
+            "explain-branches-overview": "Зачем ветки",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "Условия ANTI-D",
+            "explain-branches-usage": "Как читать результаты"
+        },
+        "guide_splits": {
+            "explain-splits-overview": "Зачем сплиты",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "guide_time": {
+            "explain-time-overview": "Торговый день",
+            "explain-time-baseline": "Baseline-exit",
+            "explain-time-day-keys": "Day-key и типы времени",
+            "explain-time-weekend": "Выходные и исключения"
+        },
+        "guide_features": {
+            "explain-features-overview": "Как читать фичи",
+            "explain-features-returns": "Доходности и спреды",
+            "explain-features-indicators": "Индикаторы и макро",
+            "explain-features-momentum": "Momentum и волатильность",
+            "explain-features-regime": "Режимы и EMA"
+        },
+        "guide_truthfulness": {
+            "truth-overview": "Контур правдивости",
+            "truth-causal": "Казуальный слой",
+            "truth-omniscient": "Post-fact слой",
+            "truth-structure": "Проекты и Interop",
+            "truth-delivery": "Отчёты, API и UI",
+            "truth-tests": "Тесты и барьеры"
+        },
+        "guide_tests": {
+            "tests-overview": "Общий обзор тестов",
+            "tests-sanity": "Sanity-checks",
+            "tests-leakage": "Leakage-тесты",
+            "tests-perf": "Перфоманс-тесты"
+        },
+        "aggregation_stats": {
+            "probs": "Вероятности",
+            "metrics": "Метрики",
+            "debug": "Разбор последних дней"
+        },
+        "docs_models": {
+            "models-overview": "Что означает каждая модель",
+            "models-daily": "Дневная модель (Daily)",
+            "models-micro": "Микро-модель",
+            "models-sl": "SL-модель",
+            "models-pipeline": "Пайплайн и данные"
+        },
+        "docs_tests": {
+            "tests-overview": "Общий обзор тестов",
+            "tests-sanity": "Sanity-checks",
+            "tests-leakage": "Leakage-тесты",
+            "tests-perf": "Перфоманс-тесты"
+        },
+        "docs_truthfulness": {
+            "truth-overview": "Контур правдивости",
+            "truth-causal": "Казуальный слой",
+            "truth-omniscient": "Post-fact слой",
+            "truth-structure": "Проекты и Interop",
+            "truth-delivery": "Отчёты, API и UI",
+            "truth-tests": "Тесты и барьеры"
+        },
+        "explain_models": {
+            "explain-models-overview": "Общий обзор",
+            "explain-models-daily": "Дневная модель",
+            "explain-models-micro": "Микро-модель",
+            "explain-models-sl": "SL-модель",
+            "explain-models-aggregation": "Сборка сигнала"
+        },
+        "explain_branches": {
+            "explain-branches-overview": "Зачем ветки",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "Условия ANTI-D",
+            "explain-branches-usage": "Как читать результаты"
+        },
+        "explain_splits": {
+            "explain-splits-overview": "Зачем сплиты",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "explain_project": {
+            "explain-project-overview": "Общий пайплайн",
+            "explain-project-causal": "Causal vs Omniscient",
+            "explain-project-structure": "Проекты и папки",
+            "explain-project-reports": "Отчёты и API",
+            "explain-project-tests": "Тесты и защиты"
+        },
+        "explain_time": {
+            "explain-time-overview": "Торговый день",
+            "explain-time-baseline": "Baseline-exit",
+            "explain-time-day-keys": "Day-key и типы времени",
+            "explain-time-weekend": "Выходные и исключения"
+        },
+        "explain_features": {
+            "explain-features-overview": "Как читать фичи",
+            "explain-features-returns": "Доходности и спреды",
+            "explain-features-indicators": "Индикаторы и макро",
+            "explain-features-momentum": "Momentum и волатильность",
+            "explain-features-regime": "Режимы и EMA"
+        },
+        "developer_backend_structure": {
+            "developer-structure-reading-map": "Как читать карту",
+            "developer-structure-root-solution": "Root и solutions",
+            "developer-structure-core-foundation": "Core foundation и contracts",
+            "developer-structure-model-pipeline": "Model pipeline",
+            "developer-structure-runtime-delivery": "Runtime / reports / API",
+            "developer-structure-guards-quality": "Guards и quality",
+            "developer-structure-root-source": "Root source и исключения"
+        },
+        "developer_runtime_flow": {
+            "developer-runtime-entrypoints": "Entry points",
+            "developer-runtime-bootstrap": "Bootstrap",
+            "developer-runtime-prediction": "Current prediction",
+            "developer-runtime-backtest": "Backtest и rebuild"
+        },
+        "developer_reports_api": {
+            "developer-delivery-reports": "Report builders",
+            "developer-delivery-storage": "Storage",
+            "developer-delivery-api": "API surface",
+            "developer-delivery-frontend": "Frontend contract"
+        },
+        "developer_tests_guards": {
+            "developer-guards-tests": "Test suites",
+            "developer-guards-arch": "Архитектурные барьеры",
+            "developer-guards-analyzers": "Analyzers",
+            "developer-guards-selfcheck": "Self-check"
+        }
+    }
+}

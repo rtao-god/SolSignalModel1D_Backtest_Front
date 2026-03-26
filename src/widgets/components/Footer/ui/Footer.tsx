@@ -1,36 +1,32 @@
+import { memo } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './Footer.module.scss'
 import { Text } from '@/shared/ui'
+import { useTranslation } from 'react-i18next'
 
 interface FooterProps {
     className?: string
 }
 
-export default function Footer({ className }: FooterProps) {
+function Footer({ className }: FooterProps) {
+    const { t } = useTranslation('common')
     const year = new Date().getFullYear()
 
     return (
-        // Используется семантический <footer>, но по стилям это тот же блок, что и раньше
         <footer className={classNames(cls.Footer, {}, [className ?? ''])}>
             <div className={cls.inner}>
-                {/* Блок под логотип/иконку. Сейчас — только placeholder */}
                 <div className={cls.logoBlock}>
-                    {/* Круглый placeholder под иконку/логотип */}
                     <div className={cls.logoPlaceholder} aria-hidden='true' />
                     <span className={cls.brandName}>Project Name</span>
                 </div>
 
-                {/* Текстовый блок с моковыми текстами */}
                 <div className={cls.textBlock}>
-                    <Text className={cls.textPrimary}>
-                        Все результаты бэктестов носят ознакомительный характер и не являются инвестиционной
-                        рекомендацией.
-                    </Text>
-                    <Text className={cls.textSecondary}>
-                        © {year} Project Name. Внутренний интерфейс для экспериментов и анализа.
-                    </Text>
+                    <Text className={cls.textPrimary}>{t('footer.disclaimer')}</Text>
+                    <Text className={cls.textSecondary}>{t('footer.copyright', { year })}</Text>
                 </div>
             </div>
         </footer>
     )
 }
+
+export default memo(Footer)

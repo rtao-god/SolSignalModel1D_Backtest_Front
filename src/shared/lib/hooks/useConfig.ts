@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../configs/config'
 
 interface Notification {
     title: string
@@ -9,8 +10,6 @@ interface Config {
     notifications: Notification[]
 }
 
-const baseURL = import.meta.env.API_BASE_URL
-
 function useConfig(endpoint: string): { config: Config | null; isLoading: boolean; error: Error | null } {
     const [config, setConfig] = useState<Config | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -18,7 +17,7 @@ function useConfig(endpoint: string): { config: Config | null; isLoading: boolea
 
     useEffect(() => {
         setIsLoading(true)
-        fetch(`${baseURL}${endpoint}`)
+        fetch(`${API_BASE_URL}${endpoint}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok')

@@ -1,14 +1,7 @@
 .PfiPage {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-
-    padding: 24px;
-
-    // Немного ограничиваем ширину на очень широких мониторах,
-    // чтобы таблицы не растягивались бесконечно.
-    max-width: 1400px;
-    margin: 0 auto;
+    @include product-page-shell(1400px, true, 24px);
+    container-type: inline-size;
+    container-name: pfi-page;
 }
 
 .headerRow {
@@ -22,7 +15,7 @@
 
 .subtitle {
     margin-top: 4px;
-    opacity: 0.8;
+    color: var(--text-muted);
 }
 
 .meta {
@@ -32,7 +25,7 @@
     gap: 4px;
 
     font-size: 12px;
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .tablesGrid {
@@ -41,13 +34,19 @@
     gap: 16px;
 }
 
+.pageTermsBlock {
+    margin-top: 4px;
+}
+
 /* Карточка для одной таблицы (одна модель) */
 .tableCard {
-    border-radius: 12px;
-    padding: 16px 20px;
-
-    background-color: var(--bg-color-elevated, #171a20);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    @include surface-card(
+        $padding: 16px 20px,
+        $radius: var(--radius-lg),
+        $background: var(--surface-bg),
+        $border: var(--surface-border-subtle),
+        $shadow: var(--surface-shadow-sm)
+    );
 }
 
 .cardHeader {
@@ -60,53 +59,31 @@
 
 .cardTitle {
     font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.cardSubtitle {
+    margin-bottom: 10px;
+    color: var(--text-muted);
+    max-width: 820px;
 }
 
 /* Переключатель режимов (кнопка на "вкладке") */
-.modeToggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-
-    padding: 2px;
-    border-radius: 999px;
-    background-color: rgba(255, 255, 255, 0.04);
-}
-
-.modeButton {
-    min-width: 80px;
-    padding: 4px 10px;
-
-    border-radius: 999px;
-    border: 1px solid transparent;
-
-    font-size: 12px;
-    line-height: 16px;
-}
-
-/* Активный режим — слегка подсвечиваем и даём рамку */
-.modeButtonActive {
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+.modeControls {
+    margin-top: 0 !important;
 }
 
 /* Таблица с горизонтальным скроллом, чтобы не ломать layout на узких экранах */
 .tableScroll {
-    width: 100%;
-    overflow-x: auto;
-
-    /* чуть сглаживаем скролл */
-    scrollbar-width: thin;
+    @include table-scroll-shell($density: dense, $min-width: 780px);
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
+    @include data-table-base($min-width: 780px, $font-size: 12px);
 }
 
 .table thead {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--bg-color-muted);
 }
 
 .table th,
@@ -122,5 +99,102 @@
 }
 
 .table tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.025);
+}
+
+/* ===== sortable headers ===== */
+
+.thButton {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    color: inherit;
+    font: inherit;
+
+    cursor: pointer;
+}
+
+.table th:first-child .thButton {
+    justify-content: flex-start;
+}
+
+.thButton:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.25);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.thButtonSorted {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.01);
+}
+
+.sortIcons {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+
+    opacity: 0.25;
+    transition: opacity 140ms ease;
+}
+
+.thButton:hover .sortIcons {
+    opacity: 0.7;
+}
+
+@media (hover: none) {
+    .sortIcons {
+        opacity: 0.6;
+    }
+}
+
+.thButtonSorted .sortIcons {
+    opacity: 1;
+}
+
+.sortIcon {
+    width: 10px;
+    height: 10px;
+
+    opacity: 0.35;
+    transform: translateY(0);
+
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease;
+}
+
+.sortIconActive {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.sortIconMuted {
+    opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sortIcons,
+    .sortIcon {
+        transition: none;
+    }
+}
+
+@container pfi-page (max-width: 760px) {
+    .headerRow,
+    .cardHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .meta {
+        align-items: flex-start;
+    }
 }

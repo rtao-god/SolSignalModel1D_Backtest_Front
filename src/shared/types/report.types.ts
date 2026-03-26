@@ -1,42 +1,55 @@
-// Базовый тип любой секции отчёта
+import type { PolicyEvaluationDto } from './policyEvaluation.types'
+
 export interface BaseSectionDto {
     title: string
-    // Если на бэке есть discriminator (SectionType/Kind) — сюда он приедет
+    sectionKey?: string
     sectionType?: string
-    // Остальные поля, чтобы не падать при расширении модели
     [key: string]: unknown
 }
-
-// Элемент "ключ-значение" в KeyValueSection
 export interface KeyValueItemDto {
+    itemKey?: string
     key: string
     value: string
 }
-
-// Секция "ключ-значение"
 export interface KeyValueSectionDto extends BaseSectionDto {
     items?: KeyValueItemDto[]
+    metadata?: CapturedTableMetadataDto
 }
-
-// Табличная секция
 export interface TableSectionDto extends BaseSectionDto {
     title: string
-    // Можно дополнительно ввести level, если решим добавить его на бэке.
     detailLevel?: TableDetailLevel
     columns?: string[]
+    columnKeys?: string[]
     rows?: string[][]
+    rowEvaluations?: Array<PolicyEvaluationDto | null>
+    metadata?: CapturedTableMetadataDto
 }
-
-// Объединённый тип секций
 export type ReportSectionDto = KeyValueSectionDto | TableSectionDto
-
-// Корневой DTO для ReportDocument
 export interface ReportDocumentDto {
+    schemaVersion: number
     id: string
     kind: string
     title: string
-    generatedAtUtc: string // DateTime → ISO-строка
+    titleKey?: string
+    generatedAtUtc: string // DateTime → ISO-строка.
     sections: ReportSectionDto[]
 }
 
-export type TableDetailLevel = 'simple' | 'technical';
+export type TableDetailLevel = 'simple' | 'technical'
+
+export type CapturedTableKindDto = 'unknown' | 'policy-branch-mega' | 'top-trades'
+export type CapturedMegaModeDto = 'all' | 'with-sl' | 'no-sl'
+export type CapturedMegaZonalModeDto = 'with-zonal' | 'without-zonal'
+export type CapturedMegaMetricVariantDto = 'real' | 'no-biggest-liq-loss'
+export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total' | 'total-aggregate'
+export type CapturedMegaTpSlModeDto = 'all' | 'dynamic' | 'static'
+
+export interface CapturedTableMetadataDto {
+    kind: CapturedTableKindDto
+    mode?: CapturedMegaModeDto
+    tpSlMode?: CapturedMegaTpSlModeDto
+    zonalMode?: CapturedMegaZonalModeDto
+    metricVariant?: CapturedMegaMetricVariantDto
+    bucket?: CapturedMegaBucketDto
+    part?: number
+}

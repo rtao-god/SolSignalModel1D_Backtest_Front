@@ -1,0 +1,142 @@
+{
+    "lang": {
+        "switchTo": "Переключить язык на {{lang}}"
+    },
+    "loading": {
+        "main": "Загружаю главную страницу",
+        "current_prediction": "Загружаю текущий прогноз",
+        "current_prediction_history": "Загружаю историю прогнозов",
+        "diagnostics_home": "Загружаю диагностику",
+        "analysis_home": "Загружаю анализ",
+        "backtest_baseline": "Загружаю baseline бэктеста",
+        "backtest_summary": "Загружаю сводку бэктеста",
+        "backtest_full": "Загружаю экспериментальный бэктест",
+        "backtest_diagnostics": "Загружаю риск и ликвидации",
+        "backtest_diagnostics_guardrail": "Загружаю guardrail-диагностику",
+        "backtest_diagnostics_decisions": "Загружаю анализ решений",
+        "backtest_diagnostics_hotspots": "Загружаю hotspots",
+        "backtest_diagnostics_other": "Загружаю прочие диагностики",
+        "backtest_diagnostics_ratings": "Загружаю рейтинги бэктеста",
+        "backtest_diagnostics_daystats": "Загружаю статистику по дням",
+        "backtest_policy_branch_mega": "Загружаю Policy Branch Mega",
+        "backtest_confidence_risk": "Загружаю статистику уверенности",
+        "backtest_execution_pipeline": "Загружаю execution pipeline",
+        "pfi_per_model": "Загружаю PFI отчёт",
+        "models_stats": "Загружаю статистику моделей",
+        "aggregation_stats": "Загружаю агрегацию прогнозов",
+        "guide": "Загружаю базу знаний",
+        "guide_models": "Загружаю тему моделей",
+        "guide_branches": "Загружаю тему веток",
+        "guide_splits": "Загружаю тему сплитов",
+        "guide_time": "Загружаю тему времени",
+        "guide_features": "Загружаю тему фич",
+        "guide_truthfulness": "Загружаю тему правдивости данных",
+        "guide_tests": "Загружаю тему тестов и барьеров",
+        "docs": "Загружаю документацию",
+        "docs_models": "Загружаю описание моделей",
+        "docs_tests": "Загружаю описание тестов",
+        "docs_truthfulness": "Загружаю описание правдивости данных",
+        "explain": "Загружаю объяснение проекта",
+        "explain_models": "Загружаю объяснение моделей",
+        "explain_branches": "Загружаю объяснение веток",
+        "explain_splits": "Загружаю объяснение сплитов",
+        "explain_project": "Загружаю описание проекта",
+        "explain_time": "Загружаю объяснение времени",
+        "explain_features": "Загружаю описание фич",
+        "about": "Загружаю страницу About",
+        "contact": "Загружаю страницу контактов",
+        "registration": "Загружаю страницу регистрации",
+        "login": "Загружаю страницу входа",
+        "profile": "Загружаю профиль",
+        "not_found": "Загружаю страницу",
+        "developer": "Загружаю раздел для разработчика",
+        "developer_backend_structure": "Загружаю структуру backend-а",
+        "developer_runtime_flow": "Загружаю runtime flow",
+        "developer_reports_api": "Загружаю reports и API",
+        "developer_tests_guards": "Загружаю тесты и guards"
+    },
+    "navbar": {
+        "sidebarToggleAria": "Открыть навигацию сайдбара"
+    },
+    "footer": {
+        "disclaimer": "Все результаты бэктестов носят ознакомительный характер и не являются инвестиционной рекомендацией.",
+        "copyright": "© {{year}} Project Name. Внутренний интерфейс для экспериментов и анализа."
+    },
+    "contact": {
+        "page": {
+            "title": "Связаться со мной",
+            "subtitle": "Короткая страница с основными контактами для связи по проекту и вопросам сотрудничества."
+        },
+        "profile": {
+            "fullName": "Имя Фамилия",
+            "role": "Quant / ML, Full-stack (React + .NET)",
+            "note": "Фокус на моделях для крипторынка, аналитике и визуализации результатов бэктестов."
+        },
+        "cards": {
+            "telegram": {
+                "description": "Основной канал для быстрой связи, вопросов по модели и демо-созвонов."
+            },
+            "linkedin": {
+                "description": "Профессиональный профиль, резюме и история проектов.",
+                "link": "Открыть профиль"
+            },
+            "phone": {
+                "title": "Телефон / WhatsApp",
+                "description": "Для созвонов, обсуждения деталей сотрудничества и быстрых согласований.",
+                "tag": "WhatsApp доступен по этому номеру"
+            }
+        },
+        "footer": "При необходимости могу предложить короткий онлайн-демо формат: 10–15 минут, чтобы показать ключевые метрики и UI проекта."
+    },
+    "profile": {
+        "avatarAlt": "Аватар пользователя",
+        "avatarAltWithName": "Аватар пользователя {{name}}",
+        "page": {
+            "eyebrow": "Раздел в разработке",
+            "title": "Профиль зарегистрированного пользователя появится позже",
+            "lead": "Раздел зарезервирован под будущий профиль пользователя.",
+            "description": "Профиль будет нужен для сохранения персональных настроек из раздела <backtestLink>{{backtestLinkLabel}}</backtestLink>.",
+            "backtestLinkLabel": "экспериментального бэктеста",
+            "descriptionTail": "В этих настройках будут сохраняться плечо, уровень риска, stop-loss, take-profit и другие параметры расчёта. Сейчас эта часть продукта ещё не реализована."
+        }
+    },
+    "viewMode": {
+        "business": "Бизнес",
+        "technical": "Технический"
+    },
+    "tableExport": {
+        "ariaLabel": "Скачать таблицу",
+        "loading": "Готовлю файл...",
+        "downloadAs": "Скачать как {{format}}"
+    },
+    "sectionPager": {
+        "vertical": {
+            "prevAria": "Предыдущий раздел",
+            "nextAria": "Следующий раздел"
+        },
+        "dpad": {
+            "ariaLabel": "Навигация по отчётам",
+            "upAria": "Выше (внутри текущих отчётов)",
+            "downAria": "Ниже (внутри текущих отчётов)",
+            "prevPageAria": "Предыдущая страница отчётов",
+            "nextPageAria": "Следующая страница отчётов"
+        }
+    },
+    "sortableTable": {
+        "sort": "Сортировать",
+        "sortAsc": "Сортировка: по возрастанию",
+        "sortDesc": "Сортировка: по убыванию"
+    },
+    "dateRangePicker": {
+        "groupAria": "Фильтр диапазона дат",
+        "fromPlaceholder": "Дата от",
+        "toPlaceholder": "Дата до",
+        "fromAria": "Выбрать начальную дату",
+        "toAria": "Выбрать конечную дату",
+        "prevMonthAria": "Предыдущий месяц",
+        "nextMonthAria": "Следующий месяц",
+        "yearLabel": "Год",
+        "clear": "Сбросить",
+        "clearAria": "Сбросить выбранный диапазон дат"
+    }
+}

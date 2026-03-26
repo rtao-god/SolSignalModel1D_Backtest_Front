@@ -1,25 +1,60 @@
 import { AppRoute, RouteSection } from './types'
-
-// Карта id → путь
 export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.MAIN]: '/',
 
     [AppRoute.CURRENT_PREDICTION]: '/current-prediction',
     [AppRoute.CURRENT_PREDICTION_HISTORY]: '/current-prediction/history',
 
+    [AppRoute.DIAGNOSTICS_HOME]: '/diagnostics',
+    [AppRoute.ANALYSIS_HOME]: '/analysis',
+
     [AppRoute.BACKTEST_BASELINE]: '/backtest/baseline',
     [AppRoute.BACKTEST_SUMMARY]: '/backtest/summary',
     [AppRoute.BACKTEST_FULL]: '/backtest/full',
+    [AppRoute.BACKTEST_DIAGNOSTICS]: '/diagnostics/backtest',
+    [AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL]: '/diagnostics/guardrail',
+    [AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS]: '/diagnostics/decisions',
+    [AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS]: '/diagnostics/hotspots',
+    [AppRoute.BACKTEST_DIAGNOSTICS_OTHER]: '/diagnostics/other',
+    [AppRoute.BACKTEST_DIAGNOSTICS_RATINGS]: '/analysis/ratings',
+    [AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS]: '/analysis/day-stats',
+    [AppRoute.BACKTEST_POLICY_BRANCH_MEGA]: '/analysis/policy-branch-mega',
+    [AppRoute.BACKTEST_POLICY_SETUPS]: '/analysis/policy-setups',
+    [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: '/analysis/policy-setups/:setupId',
+    [AppRoute.BACKTEST_CONFIDENCE_RISK]: '/analysis/confidence-risk',
+    [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: '/analysis/real-forecast-journal',
+    [AppRoute.BACKTEST_EXECUTION_PIPELINE]: '/analysis/execution-pipeline',
 
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
+    [AppRoute.PFI_SL_MODEL]: '/features/pfi-sl',
 
     [AppRoute.MODELS_STATS]: '/models/stats',
+    [AppRoute.AGGREGATION_STATS]: '/models/aggregation',
     [AppRoute.FEATURES_STATS]: '/features/stats',
-
-    // Документация
+    [AppRoute.GUIDE]: '/guide',
+    [AppRoute.GUIDE_MODELS]: '/guide/models',
+    [AppRoute.GUIDE_BRANCHES]: '/guide/branches',
+    [AppRoute.GUIDE_SPLITS]: '/guide/splits',
+    [AppRoute.GUIDE_TIME]: '/guide/time',
+    [AppRoute.GUIDE_FEATURES]: '/guide/features',
+    [AppRoute.GUIDE_TRUTHFULNESS]: '/guide/truthfulness',
+    [AppRoute.GUIDE_TESTS]: '/guide/tests',
+    [AppRoute.DEVELOPER]: '/developer',
+    [AppRoute.DEVELOPER_BACKEND_STRUCTURE]: '/developer/backend-structure',
+    [AppRoute.DEVELOPER_RUNTIME_FLOW]: '/developer/runtime-flow',
+    [AppRoute.DEVELOPER_REPORTS_API]: '/developer/reports-and-api',
+    [AppRoute.DEVELOPER_TESTS_GUARDS]: '/developer/tests-and-guards',
     [AppRoute.DOCS]: '/docs',
     [AppRoute.DOCS_MODELS]: '/docs/models',
     [AppRoute.DOCS_TESTS]: '/docs/tests',
+    [AppRoute.DOCS_TRUTHFULNESS]: '/docs/truthfulness',
+    [AppRoute.EXPLAIN]: '/explain',
+    [AppRoute.EXPLAIN_MODELS]: '/explain/models',
+    [AppRoute.EXPLAIN_BRANCHES]: '/explain/branches',
+    [AppRoute.EXPLAIN_SPLITS]: '/explain/splits',
+    [AppRoute.EXPLAIN_PROJECT]: '/explain/project',
+    [AppRoute.EXPLAIN_TIME]: '/explain/time',
+    [AppRoute.EXPLAIN_FEATURES]: '/explain/features',
 
     [AppRoute.ABOUT]: '/about',
     [AppRoute.CONTACT]: '/contact',
@@ -28,6 +63,16 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.PROFILE]: '/profile',
     [AppRoute.NOT_FOUND]: '*'
 }
-
-// Порядок секций в сайдбаре
-export const ROUTE_SECTION_ORDER: RouteSection[] = ['predictions', 'models', 'backtest', 'features', 'docs', 'system']
+export const ROUTE_SECTION_ORDER: RouteSection[] = [
+    'predictions',
+    'models',
+    'backtest',
+    'analysis',
+    'diagnostics',
+    'features',
+    'guide',
+    'developer',
+    'docs',
+    'explain',
+    'system'
+]

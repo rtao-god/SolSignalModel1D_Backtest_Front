@@ -2,12 +2,240 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <meta
+      name="description"
+      content="SolSignal 1D: интерфейс для прогнозов, бэктестов и диагностики торговых стратегий."
+    />
+    <meta name="theme-color" content="#0d1117" />
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-SemiBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>SolSignal 1D - ML Backtest Frontend</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      ;(() => {
+        const overlayId = 'app-preboot-fatal-overlay'
+        let isBootCompleted = false
+
+        function ensureOverlay() {
+          let overlay = document.getElementById(overlayId)
+
+          if (overlay) {
+            return overlay
+          }
+
+          overlay = document.createElement('div')
+          overlay.id = overlayId
+          overlay.style.position = 'fixed'
+          overlay.style.inset = '0'
+          overlay.style.zIndex = '99999'
+          overlay.style.display = 'flex'
+          overlay.style.alignItems = 'center'
+          overlay.style.justifyContent = 'center'
+          overlay.style.padding = '24px'
+          overlay.style.background =
+            'linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(30, 41, 59, 0.95))'
+
+          const card = document.createElement('div')
+          card.style.width = 'min(720px, 100%)'
+          card.style.borderRadius = '20px'
+          card.style.padding = '24px'
+          card.style.background = 'rgba(15, 23, 42, 0.96)'
+          card.style.border = '1px solid rgba(248, 113, 113, 0.45)'
+          card.style.boxShadow = '0 24px 60px rgba(0, 0, 0, 0.45)'
+          card.style.color = '#e2e8f0'
+          card.style.fontFamily =
+            '"Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif'
+
+          const pill = document.createElement('div')
+          pill.textContent = 'Критическая ошибка'
+          pill.style.display = 'inline-flex'
+          pill.style.padding = '6px 12px'
+          pill.style.borderRadius = '999px'
+          pill.style.background = 'rgba(248, 113, 113, 0.14)'
+          pill.style.color = '#fecaca'
+          pill.style.fontSize = '12px'
+          pill.style.fontWeight = '600'
+          pill.style.letterSpacing = '0.04em'
+          pill.style.textTransform = 'uppercase'
+
+          const title = document.createElement('h1')
+          title.textContent = 'Сайт столкнулся с необработанной ошибкой'
+          title.style.margin = '16px 0 10px'
+          title.style.fontSize = '28px'
+          title.style.lineHeight = '1.15'
+
+          const description = document.createElement('p')
+          description.textContent =
+            'Приложение не смогло загрузиться полностью. Это не проблема сети и не бесконечная загрузка: во время старта сломался один из модулей.'
+          description.style.margin = '0 0 18px'
+          description.style.color = 'rgba(226, 232, 240, 0.86)'
+          description.style.fontSize = '15px'
+          description.style.lineHeight = '1.5'
+
+          const detailsLabel = document.createElement('div')
+          detailsLabel.textContent = 'Описание'
+          detailsLabel.style.marginBottom = '8px'
+          detailsLabel.style.fontSize = '12px'
+          detailsLabel.style.fontWeight = '600'
+          detailsLabel.style.textTransform = 'uppercase'
+          detailsLabel.style.letterSpacing = '0.04em'
+          detailsLabel.style.color = '#fca5a5'
+
+          const details = document.createElement('pre')
+          details.dataset.role = 'fatal-details'
+          details.style.margin = '0'
+          details.style.padding = '12px 14px'
+          details.style.borderRadius = '12px'
+          details.style.background = 'rgba(2, 6, 23, 0.78)'
+          details.style.border = '1px dashed rgba(148, 163, 184, 0.45)'
+          details.style.whiteSpace = 'pre-wrap'
+          details.style.wordBreak = 'break-word'
+          details.style.fontSize = '13px'
+          details.style.lineHeight = '1.45'
+          details.style.color = '#e2e8f0'
+
+          const actions = document.createElement('div')
+          actions.style.display = 'flex'
+          actions.style.gap = '10px'
+          actions.style.flexWrap = 'wrap'
+          actions.style.marginTop = '18px'
+
+          const reloadButton = document.createElement('button')
+          reloadButton.type = 'button'
+          reloadButton.textContent = 'Обновить страницу'
+          reloadButton.style.border = 'none'
+          reloadButton.style.borderRadius = '999px'
+          reloadButton.style.padding = '10px 16px'
+          reloadButton.style.cursor = 'pointer'
+          reloadButton.style.fontWeight = '600'
+          reloadButton.style.color = '#0f172a'
+          reloadButton.style.background = 'linear-gradient(135deg, #f97373, #fb923c)'
+          reloadButton.addEventListener('click', () => {
+            window.location.reload()
+          })
+
+          actions.appendChild(reloadButton)
+          card.appendChild(pill)
+          card.appendChild(title)
+          card.appendChild(description)
+          card.appendChild(detailsLabel)
+          card.appendChild(details)
+          card.appendChild(actions)
+          overlay.appendChild(card)
+          document.body.appendChild(overlay)
+
+          return overlay
+        }
+
+        function stringifyUnknownReason(reason) {
+          if (typeof reason === 'string' && reason.trim().length > 0) {
+            return reason
+          }
+
+          try {
+            const serialized = JSON.stringify(reason)
+            if (typeof serialized === 'string' && serialized.length > 0) {
+              return serialized
+            }
+          } catch {}
+
+          return String(reason ?? 'Unknown bootstrap error.')
+        }
+
+        function showPrebootFatalOverlay(source, message, stack) {
+          if (isBootCompleted) {
+            return
+          }
+
+          const overlay = ensureOverlay()
+          const details = overlay.querySelector('[data-role="fatal-details"]')
+          if (!(details instanceof HTMLElement)) {
+            return
+          }
+
+          const blocks = [`${source}: ${message}`]
+          if (stack) {
+            blocks.push(stack)
+          }
+
+          details.textContent = blocks.join('\n\n')
+        }
+
+        function handleWindowError(event) {
+          if (isBootCompleted || (!event.error && !event.message)) {
+            return
+          }
+
+          const location =
+            event.filename ?
+              `${event.filename}${event.lineno ? `:${event.lineno}` : ''}${event.colno ? `:${event.colno}` : ''}`
+            : 'unknown source'
+          const message =
+            event.error instanceof Error ?
+              `${event.error.name}: ${event.error.message}`
+            : `${event.message || 'Unhandled script error.'} (${location})`
+          const stack = event.error instanceof Error ? event.error.stack : ''
+
+          console.error('[preboot][window.onerror]', {
+            message,
+            stack,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          })
+          event.preventDefault()
+          showPrebootFatalOverlay('window.onerror', message, stack)
+        }
+
+        function handleUnhandledRejection(event) {
+          if (isBootCompleted) {
+            return
+          }
+
+          const reason = event.reason
+          const message =
+            reason instanceof Error ?
+              `${reason.name}: ${reason.message}`
+            : `Unhandled promise rejection: ${stringifyUnknownReason(reason)}`
+          const stack = reason instanceof Error ? reason.stack : ''
+
+          console.error('[preboot][unhandledrejection]', {
+            reason,
+            message,
+            stack,
+          })
+          event.preventDefault()
+          showPrebootFatalOverlay('unhandledrejection', message, stack)
+        }
+
+        window.__SOLSIGNAL_PREBOOT_FATAL__ = {
+          markBootCompleted() {
+            isBootCompleted = true
+            window.removeEventListener('error', handleWindowError)
+            window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+          },
+        }
+
+        window.addEventListener('error', handleWindowError)
+        window.addEventListener('unhandledrejection', handleUnhandledRejection)
+      })()
+    </script>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>

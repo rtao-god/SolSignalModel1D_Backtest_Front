@@ -11,7 +11,6 @@ export function useUser() {
         if (user) {
             setCurrentUser(user)
         } else {
-            // Здесь можно добавить логику для получения данных из localStorage
             const storedUser = localStorage.getItem('user')
             if (storedUser) {
                 setCurrentUser(JSON.parse(storedUser) as User)

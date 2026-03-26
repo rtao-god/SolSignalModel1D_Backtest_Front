@@ -1,0 +1,260 @@
+{
+    "navbar": {
+        "expand": {
+            "show": "Show more sections",
+            "hide": "Collapse sections"
+        }
+    },
+    "section": {
+        "predictions": "Predictions",
+        "models": "Models",
+        "backtest": "Backtest",
+        "analysis": "Analysis",
+        "diagnostics": "Diagnostics",
+        "features": "Features",
+        "guide": "Knowledge Base",
+        "docs": "Documentation",
+        "explain": "Explain",
+        "developer": "For developers"
+    },
+    "sectionCompact": {
+        "predictions": "Predict",
+        "models": "Models",
+        "backtest": "Backtest",
+        "analysis": "Analysis",
+        "diagnostics": "Diag",
+        "features": "PFI",
+        "guide": "Guide",
+        "docs": "Docs",
+        "explain": "Explain",
+        "developer": "Dev"
+    },
+    "route": {
+        "main": "Main",
+        "diagnostics_home": "Diagnostics",
+        "analysis_home": "Analysis",
+        "docs": "Docs",
+        "explain": "Explain",
+        "profile": "Profile",
+        "about": "About",
+        "contact": "Contact",
+        "current_prediction": "Current prediction",
+        "current_prediction_history": "Prediction history",
+        "models_stats": "Model statistics",
+        "aggregation_stats": "Prediction aggregation",
+        "backtest_baseline": "Baseline backtest",
+        "backtest_summary": "Backtest summary",
+        "backtest_full": "Experimental backtest",
+        "backtest_diagnostics": "Risk and liquidations",
+        "backtest_diagnostics_guardrail": "Guardrail / Specificity",
+        "backtest_diagnostics_decisions": "Decisions / Attribution",
+        "backtest_diagnostics_hotspots": "Hotspots / NoTrade",
+        "backtest_diagnostics_other": "Other diagnostics",
+        "backtest_diagnostics_ratings": "Policy ratings",
+        "backtest_diagnostics_daystats": "Day statistics",
+        "backtest_policy_branch_mega": "Policy Branch Mega",
+        "backtest_confidence_risk": "Confidence statistics",
+        "backtest_execution_pipeline": "Execution pipeline",
+        "pfi_per_model": "PFI by models",
+        "guide": "Knowledge Base",
+        "guide_models": "Models",
+        "guide_branches": "BASE/ANTI-D branches",
+        "guide_splits": "Train/OOS/Recent",
+        "guide_time": "Time and days",
+        "guide_features": "Features and indicators",
+        "guide_truthfulness": "Data truthfulness",
+        "guide_tests": "Tests and barriers",
+        "docs_models": "Models",
+        "docs_tests": "Tests",
+        "docs_truthfulness": "Data truthfulness",
+        "explain_models": "Models",
+        "explain_branches": "BASE/ANTI-D branches",
+        "explain_splits": "Train/OOS/Recent",
+        "explain_project": "Project overview",
+        "explain_time": "Time and days",
+        "explain_features": "Features and indicators",
+        "developer": "For developers",
+        "developer_backend_structure": "Backend structure",
+        "developer_runtime_flow": "Runtime flow",
+        "developer_reports_api": "Reports and API",
+        "developer_tests_guards": "Tests and guards"
+    },
+    "subnav": {
+        "backtest_full": "Backtest sections",
+        "pfi_per_model": "PFI models",
+        "guide_models": "Model knowledge sections",
+        "guide_branches": "Branch knowledge sections",
+        "guide_splits": "Split knowledge sections",
+        "guide_time": "Time knowledge sections",
+        "guide_features": "Feature knowledge sections",
+        "guide_truthfulness": "Truthfulness knowledge sections",
+        "guide_tests": "Test knowledge sections",
+        "docs_models": "Model docs",
+        "docs_tests": "Test docs",
+        "docs_truthfulness": "Truthfulness docs",
+        "explain_models": "Model explain",
+        "explain_branches": "Branch explain",
+        "explain_splits": "Split explain",
+        "explain_project": "Project explain",
+        "explain_time": "Time explain",
+        "explain_features": "Feature explain",
+        "aggregation_stats": "Aggregation sections",
+        "backtest_diagnostics": "Diagnostics sections",
+        "backtest_diagnostics_guardrail": "Guardrail sections",
+        "backtest_diagnostics_decisions": "Decision sections",
+        "backtest_diagnostics_hotspots": "Hotspot sections",
+        "backtest_diagnostics_other": "Other sections",
+        "backtest_diagnostics_ratings": "Analysis sections",
+        "backtest_diagnostics_daystats": "Day stat sections",
+        "backtest_policy_branch_mega": "Policy Branch Mega sections",
+        "developer_backend_structure": "Backend structure sections",
+        "developer_runtime_flow": "Runtime flow sections",
+        "developer_reports_api": "Reports and API sections",
+        "developer_tests_guards": "Tests and guard sections"
+    },
+    "tab": {
+        "guide_models": {
+            "guide-models-meaning": "What it means",
+            "guide-models-reading": "How to read it",
+            "guide-models-logic": "How it works",
+            "guide-models-contract": "Contract and limits",
+            "guide-models-checks": "Checks and signals",
+            "guide-models-related": "Related topics"
+        },
+        "guide_branches": {
+            "explain-branches-overview": "Why branches",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "ANTI-D conditions",
+            "explain-branches-usage": "How to read results"
+        },
+        "guide_splits": {
+            "explain-splits-overview": "Why splits",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "guide_time": {
+            "explain-time-overview": "Trading day",
+            "explain-time-baseline": "Baseline exit",
+            "explain-time-day-keys": "Day keys and time types",
+            "explain-time-weekend": "Weekends and exclusions"
+        },
+        "guide_features": {
+            "explain-features-overview": "How to read features",
+            "explain-features-returns": "Returns and spreads",
+            "explain-features-indicators": "Indicators and macro",
+            "explain-features-momentum": "Momentum and volatility",
+            "explain-features-regime": "Regimes and EMA"
+        },
+        "guide_truthfulness": {
+            "truth-overview": "Truthfulness contour",
+            "truth-causal": "Causal layer",
+            "truth-omniscient": "Post-fact layer",
+            "truth-structure": "Projects and Interop",
+            "truth-delivery": "Reports, API, and UI",
+            "truth-tests": "Tests and barriers"
+        },
+        "guide_tests": {
+            "tests-overview": "Test overview",
+            "tests-sanity": "Sanity checks",
+            "tests-leakage": "Leakage tests",
+            "tests-perf": "Performance tests"
+        },
+        "aggregation_stats": {
+            "probs": "Probabilities",
+            "metrics": "Metrics",
+            "debug": "Recent-day review"
+        },
+        "docs_models": {
+            "models-overview": "What each model means",
+            "models-daily": "Daily model",
+            "models-micro": "Micro model",
+            "models-sl": "SL model",
+            "models-pipeline": "Pipeline and data"
+        },
+        "docs_tests": {
+            "tests-overview": "Test overview",
+            "tests-sanity": "Sanity checks",
+            "tests-leakage": "Leakage tests",
+            "tests-perf": "Performance tests"
+        },
+        "docs_truthfulness": {
+            "truth-overview": "Truthfulness contour",
+            "truth-causal": "Causal layer",
+            "truth-omniscient": "Post-fact layer",
+            "truth-structure": "Projects and Interop",
+            "truth-delivery": "Reports, API, and UI",
+            "truth-tests": "Tests and barriers"
+        },
+        "explain_models": {
+            "explain-models-overview": "Overview",
+            "explain-models-daily": "Daily model",
+            "explain-models-micro": "Micro model",
+            "explain-models-sl": "SL model",
+            "explain-models-aggregation": "Signal assembly"
+        },
+        "explain_branches": {
+            "explain-branches-overview": "Why branches",
+            "explain-branches-base": "BASE",
+            "explain-branches-anti": "ANTI-D",
+            "explain-branches-conditions": "ANTI-D conditions",
+            "explain-branches-usage": "How to read results"
+        },
+        "explain_splits": {
+            "explain-splits-overview": "Why splits",
+            "explain-splits-train": "Train",
+            "explain-splits-oos": "OOS",
+            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-full": "Full history"
+        },
+        "explain_project": {
+            "explain-project-overview": "Overall pipeline",
+            "explain-project-causal": "Causal vs Omniscient",
+            "explain-project-structure": "Projects and folders",
+            "explain-project-reports": "Reports and API",
+            "explain-project-tests": "Tests and safeguards"
+        },
+        "explain_time": {
+            "explain-time-overview": "Trading day",
+            "explain-time-baseline": "Baseline exit",
+            "explain-time-day-keys": "Day keys and time types",
+            "explain-time-weekend": "Weekends and exclusions"
+        },
+        "explain_features": {
+            "explain-features-overview": "How to read features",
+            "explain-features-returns": "Returns and spreads",
+            "explain-features-indicators": "Indicators and macro",
+            "explain-features-momentum": "Momentum and volatility",
+            "explain-features-regime": "Regimes and EMA"
+        },
+        "developer_backend_structure": {
+            "developer-structure-reading-map": "How to read it",
+            "developer-structure-root-solution": "Root and solutions",
+            "developer-structure-core-foundation": "Core foundation",
+            "developer-structure-model-pipeline": "Model pipeline",
+            "developer-structure-runtime-delivery": "Runtime and delivery",
+            "developer-structure-guards-quality": "Guards and quality",
+            "developer-structure-root-source": "Root source and exclusions"
+        },
+        "developer_runtime_flow": {
+            "developer-runtime-entrypoints": "Entry points",
+            "developer-runtime-bootstrap": "Bootstrap",
+            "developer-runtime-prediction": "Current prediction",
+            "developer-runtime-backtest": "Backtest and rebuild"
+        },
+        "developer_reports_api": {
+            "developer-delivery-reports": "Report builders",
+            "developer-delivery-storage": "Storage",
+            "developer-delivery-api": "API surface",
+            "developer-delivery-frontend": "Frontend contract"
+        },
+        "developer_tests_guards": {
+            "developer-guards-tests": "Test suites",
+            "developer-guards-arch": "Architecture barriers",
+            "developer-guards-analyzers": "Analyzers",
+            "developer-guards-selfcheck": "Self-check"
+        }
+    }
+}

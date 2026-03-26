@@ -8,12 +8,10 @@ import { registrationApi } from '@/shared/lib/hooks'
 import { Reducer, AnyAction, ReducersMapObject, EnhancedStore } from '@reduxjs/toolkit'
 
 export interface StateSchema {
-    date?: DateSchema
-    user?: UserSchema
-    registration?: RegistrationSchema
-    loginForm?: LoginSchema
-
-    // RTK Query-слайсы
+    date: DateSchema
+    user: UserSchema
+    registration: RegistrationSchema
+    loginForm: LoginSchema
     [api.reducerPath]: ReturnType<typeof api.reducer>
     [authApi.reducerPath]: ReturnType<typeof authApi.reducer>
     [registrationApi.reducerPath]: ReturnType<typeof registrationApi.reducer>

@@ -1,12 +1,125 @@
-.Calendar {
+/* Popup делится на toolbar, двухмесячную сетку и footer-действия, чтобы навигация не смешивалась с выбором дня. */
+.calendar {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: min(704px, calc(100vw - 24px));
+    padding: 24px;
+    background-color: var(--picker-surface);
+    border: 1px solid var(--picker-border);
+    border-radius: 20px;
+    box-shadow: var(--picker-shadow);
+}
+
+.toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.yearControl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.yearLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--picker-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.yearSelect {
+    min-width: 96px;
+    height: 34px;
+    padding: 0 32px 0 12px;
+    border: 1px solid var(--picker-border);
+    border-radius: 10px;
+    background-color: var(--picker-surface-muted);
+    color: var(--picker-text);
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+}
+
+.yearSelect:focus {
+    outline: none;
+    border-color: var(--picker-accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.months {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    flex-direction: row;
-    gap: 20px;
-    padding: 16px 32px !important;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 32px;
-    box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.15);
+    gap: 32px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid rgba(240, 246, 252, 0.08);
+}
+
+.clearButton {
+    min-width: 88px;
+    height: 36px;
+    padding: 8px 16px;
+    border: 1px solid var(--picker-accent);
+    border-radius: 10px;
+    background-color: var(--picker-surface-muted);
+    color: var(--picker-accent);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.clearButton:hover:not(:disabled) {
+    background-color: var(--picker-accent);
+    color: #ffffff;
+}
+
+.clearButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* На tablet/mobile два месяца складываются в одну колонку, чтобы сетка не выходила за viewport. */
+@media (max-width: 920px) {
+    .calendar {
+        min-width: min(100vw - 24px, 360px);
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .months {
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .toolbar {
+        justify-content: flex-start;
+    }
+
+    .yearControl {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .actions {
+        padding-top: 14px;
+    }
 }
