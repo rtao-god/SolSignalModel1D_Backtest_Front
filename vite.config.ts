@@ -1,34 +1,81 @@
 /// <reference types="vitest/config" />
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Server as HttpProxyServer } from 'http-proxy'
+import type { Connect, Plugin, UserConfig, ViteDevServer } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import { plugins, css, alias } from './config'
+import { writeDevApiProxyErrorResponse } from './config/vite/devApiProxy'
+import {
+    buildLocalApiRuntimeFailurePayload,
+    ensureManagedLocalApiReady,
+    readLocalApiRuntimeContract
+} from './config/vite/localApiRuntime'
 
-function resolveDevApiProxyTarget(rawTarget: string | undefined): string {
-    const fallback = 'http://localhost:10000'
-    const normalized = rawTarget?.trim().replace(/\/+$/, '').replace(/\/api$/i, '') ?? ''
-    if (!normalized) return fallback
-
-    const withProtocol = /^https?:\/\//i.test(normalized) ? normalized : `http://${normalized}`
-
-    try {
-        new URL(withProtocol)
-        return withProtocol
-    } catch {
-        return fallback
-    }
-}
-
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     const env = loadEnv(mode, process.cwd(), '')
-    const devApiProxyTarget = resolveDevApiProxyTarget(env.VITE_DEV_API_PROXY_TARGET)
+    const isVitestRuntime = process.env.VITEST === 'true'
+    const isDevServer = command === 'serve' && mode !== 'production' && mode !== 'test' && !isVitestRuntime
+    // Локальный dev-server не должен жить отдельно от backend owner-profile:
+    // если API ещё не поднят, Vite сначала доводит до готовности этот host, а уже потом принимает `/api` трафик.
+    const localApiRuntimeContract = isDevServer ? readLocalApiRuntimeContract() : null
+    const devApiProxyTarget = localApiRuntimeContract
+        ? await ensureManagedLocalApiReady({
+              rawTarget: env.VITE_DEV_API_PROXY_TARGET,
+              contract: localApiRuntimeContract
+          })
+        : null
+    const managedLocalApiRuntimePlugin: Plugin | null = localApiRuntimeContract && devApiProxyTarget
+        ? {
+              name: 'managed-local-api-runtime',
+              configureServer(server: ViteDevServer) {
+                  // Один startup-check недостаточен: если локальный backend упал после boot,
+                  // первый же `/api` запрос должен поднять owner-host заново, а не деградировать в proxy-only 502.
+                  server.middlewares.use(async (
+                      req: IncomingMessage,
+                      res: ServerResponse<IncomingMessage>,
+                      next: Connect.NextFunction
+                  ) => {
+                      if (!req.url?.startsWith('/api')) {
+                          next()
+                          return
+                      }
+
+                      try {
+                          await ensureManagedLocalApiReady({
+                              rawTarget: env.VITE_DEV_API_PROXY_TARGET,
+                              contract: localApiRuntimeContract
+                          })
+                          next()
+                      } catch (error) {
+                          if (res.headersSent) {
+                              return
+                          }
+
+                          const payload = buildLocalApiRuntimeFailurePayload({
+                              error,
+                              req,
+                              target: devApiProxyTarget
+                          })
+
+                          res.statusCode = payload.status
+                          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+                          res.end(JSON.stringify(payload))
+                      }
+                  })
+              }
+          }
+        : null
 
     return {
-        plugins,
+        plugins: managedLocalApiRuntimePlugin
+            ? [...plugins, managedLocalApiRuntimePlugin]
+            : plugins,
         css,
         resolve: alias,
         build: {
             rollupOptions: {
                 output: {
-                    manualChunks(id) {
+                    manualChunks(id: string) {
                         if (!id.includes('node_modules')) {
                             return
                         }
@@ -60,14 +107,30 @@ export default defineConfig(({ mode }) => {
                 }
             }
         },
-        server: {
-            proxy: {
-                '/api': {
-                    target: devApiProxyTarget,
-                    changeOrigin: true
-                }
-            }
-        },
+        server: devApiProxyTarget
+            ? {
+                  proxy: {
+                      '/api': {
+                          target: devApiProxyTarget,
+                          changeOrigin: true,
+                          configure(proxy: HttpProxyServer<IncomingMessage, ServerResponse<IncomingMessage>>) {
+                              proxy.on('error', (
+                                  error: Error & { code?: string },
+                                  req: IncomingMessage,
+                                  res: ServerResponse<IncomingMessage>
+                              ) => {
+                                  writeDevApiProxyErrorResponse({
+                                      target: devApiProxyTarget,
+                                      req,
+                                      res,
+                                      error
+                                  })
+                              })
+                          }
+                      }
+                  }
+              }
+            : undefined,
         test: {
             globals: true,
             environment: 'jsdom',
