@@ -10,6 +10,7 @@ import {
     prefetchPolicyBranchMegaReportPayload,
     resolvePolicyBranchMegaReportQueryArgs,
     resolvePolicyBranchMegaNeighborParts,
+    usePolicyBranchMegaReportNavQuery,
     usePolicyBranchMegaReportDocumentQuery,
     usePolicyBranchMegaReportQuery
 } from './policyBranchMega'
@@ -130,7 +131,7 @@ describe('policyBranchMega report queries', () => {
             }
 
             if (url.includes('/api/backtest/policy-branch-mega?')) {
-                return jsonResponse(createPolicyBranchMegaReport())
+                throw new Error('raw report endpoint must not be used in report payload flow')
             }
 
             throw new Error(`Unexpected url: ${url}`)
@@ -146,21 +147,21 @@ describe('policyBranchMega report queries', () => {
         })
     })
 
-    test('loads the report document without payload evaluation requests', async () => {
+    test('loads the report document through payload cache when direct payload is needed', async () => {
         const queryClient = createQueryClient()
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input)
-
-            if (url.includes('/api/backtest/policy-branch-mega/payload')) {
-                throw new Error('payload endpoint must not be used in report document flow')
-            }
 
             if (url.includes('/api/backtest/policy-branch-mega/status')) {
                 throw new Error('status endpoint must not be used in report document flow')
             }
 
             if (url.includes('/api/backtest/policy-branch-mega?')) {
-                return jsonResponse(createPolicyBranchMegaReport())
+                throw new Error('raw report endpoint must not be used in report document flow')
+            }
+
+            if (url.includes('/api/backtest/policy-branch-mega/payload?')) {
+                return jsonResponse(createPolicyBranchMegaPayload())
             }
 
             throw new Error(`Unexpected url: ${url}`)
@@ -169,6 +170,39 @@ describe('policyBranchMega report queries', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         const { result } = renderHook(() => usePolicyBranchMegaReportDocumentQuery({ part: 1 }), {
+            wrapper: createWrapper(queryClient)
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+        expect(result.current.data).toMatchObject({
+            id: 'policy-branch-mega-test',
+            kind: 'policy_branch_mega'
+        })
+    })
+
+    test('loads nav query through payload cache when report cache is cold', async () => {
+        const queryClient = createQueryClient()
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input)
+
+            if (url.includes('/api/backtest/policy-branch-mega?')) {
+                throw new Error('raw report endpoint must not be used in nav flow')
+            }
+
+            if (url.includes('/api/backtest/policy-branch-mega/payload?')) {
+                return jsonResponse(createPolicyBranchMegaPayload())
+            }
+
+            throw new Error(`Unexpected url: ${url}`)
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        const { result } = renderHook(() => usePolicyBranchMegaReportNavQuery({ enabled: true }, { part: 1 }), {
             wrapper: createWrapper(queryClient)
         })
 
@@ -192,12 +226,43 @@ describe('policyBranchMega report queries', () => {
                 throw new Error('status endpoint must not be used in part prefetch flow')
             }
 
+            if (url.includes('/api/report-variants/policy_branch_mega/selection?')) {
+                return jsonResponse({
+                    family: 'policy_branch_mega',
+                    sourceReportKind: 'policy_branch_mega',
+                    sourceReportId: 'policy-branch-mega-source',
+                    publishedAtUtc: '2026-03-12T08:41:00.000Z',
+                    variantKey: 'policy-branch-mega-daily-part-1',
+                    selection: {
+                        bucket: 'daily',
+                        bucketview: 'aggregate',
+                        metric: 'real',
+                        part: '1',
+                        tpsl: 'all',
+                        slmode: 'all',
+                        zonal: 'with-zonal'
+                    },
+                    axes: [
+                        {
+                            key: 'part',
+                            defaultValue: '1',
+                            options: [
+                                { value: '1', label: '1' },
+                                { value: '2', label: '2' },
+                                { value: '3', label: '3' },
+                                { value: '4', label: '4' }
+                            ]
+                        }
+                    ]
+                })
+            }
+
             if (url.includes('/api/backtest/policy-branch-mega/payload?')) {
                 return jsonResponse(createPolicyBranchMegaPayload())
             }
 
             if (url.includes('/api/backtest/policy-branch-mega?')) {
-                return jsonResponse(createPolicyBranchMegaReport())
+                throw new Error('raw report endpoint must not be used in part prefetch flow')
             }
 
             throw new Error(`Unexpected url: ${url}`)
@@ -207,9 +272,10 @@ describe('policyBranchMega report queries', () => {
 
         await prefetchPolicyBranchMegaReportParts(queryClient, { part: 1 })
 
-        expect(fetchMock).toHaveBeenCalledTimes(4)
+        expect(fetchMock).toHaveBeenCalledTimes(5)
         const requestedUrls = fetchMock.mock.calls.map(call => String(call[0]))
 
+        expect(requestedUrls.some(url => url.includes('/api/report-variants/policy_branch_mega/selection?'))).toBe(true)
         expect(requestedUrls.some(url => url.includes('/api/backtest/policy-branch-mega/payload?part=1'))).toBe(true)
         expect(requestedUrls.some(url => url.includes('part=2'))).toBe(true)
         expect(requestedUrls.some(url => url.includes('part=3'))).toBe(true)
@@ -222,15 +288,15 @@ describe('policyBranchMega report queries', () => {
         expect(resolvePolicyBranchMegaNeighborParts([1, 2, 3, 4], 4)).toEqual([3, 4])
     })
 
-    test('surfaces the real report endpoint error without status fallback noise', async () => {
+    test('surfaces the payload endpoint error without status fallback noise', async () => {
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input)
 
-            if (url.includes('/api/backtest/policy-branch-mega/payload')) {
-                throw new Error('payload endpoint must not be used in report document error flow')
+            if (url.includes('/api/backtest/policy-branch-mega?')) {
+                throw new Error('raw report endpoint must not be used in report document error flow')
             }
 
-            if (url.includes('/api/backtest/policy-branch-mega')) {
+            if (url.includes('/api/backtest/policy-branch-mega/payload')) {
                 return textResponse('server exploded', 500)
             }
 
@@ -248,7 +314,8 @@ describe('policyBranchMega report queries', () => {
             expect(result.current.isError).toBe(true)
         })
 
-        expect(result.current.error?.message).toContain('Failed to load policy branch mega report: 500 server exploded')
+        expect(result.current.error?.message).toContain('Failed to load policy branch mega payload: 500')
+        expect(result.current.error?.message).toContain('body=server exploded')
     })
 
     test('loads validation payload for the current selection', async () => {
@@ -307,9 +374,7 @@ describe('policyBranchMega report queries', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         const reportPromise = fetchPolicyBranchMegaReport({ part: 1 })
-        const rejection = expect(reportPromise).rejects.toThrow(
-            `Request timed out after ${POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS}ms`
-        )
+        const rejection = expect(reportPromise).rejects.toThrow('[fetch-timeout] Request timed out.')
         await vi.advanceTimersByTimeAsync(POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS + 1)
 
         await rejection

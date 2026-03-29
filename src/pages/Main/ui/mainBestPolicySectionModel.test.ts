@@ -5,11 +5,11 @@ import {
 } from './mainBestPolicySectionModel'
 
 describe('mainBestPolicySectionModel', () => {
-    test('uses owner profit normalization before resolving the anchor policy row', () => {
+    test('uses owner-provided TotalPnl% before resolving the anchor policy row', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'Wealth%', 'Tr'],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
                 rows: [
                     ['const_2x', 'BASE', '12.50', '4'],
                     ['const_3x', 'BASE', '25.00', '7']
@@ -25,10 +25,10 @@ describe('mainBestPolicySectionModel', () => {
             }
         ]
 
-        const normalizedSections = buildMainDemoPolicyBranchMegaSections(sections)
-        const bestPolicy = resolveMainDemoBestPolicyRows(normalizedSections)
+        const preparedSections = buildMainDemoPolicyBranchMegaSections(sections)
+        const bestPolicy = resolveMainDemoBestPolicyRows(preparedSections)
 
-        expect(normalizedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Tr'])
+        expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Tr'])
         expect(bestPolicy.policy).toBe('const_3x')
         expect(bestPolicy.branch).toBe('BASE')
         expect(bestPolicy.totalPnlPct).toBe(25)

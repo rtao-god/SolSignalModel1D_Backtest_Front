@@ -46,6 +46,7 @@ function buildSnapshotPayload() {
                 branch: 'BASE',
                 bucket: 'daily',
                 margin: 0,
+                isSpotPolicy: false,
                 isRiskDay: false,
                 hasDirection: true,
                 skipped: false,
@@ -104,7 +105,7 @@ describe('realForecastJournal parser', () => {
             {
                 id: 'real-forecast-2026-03-10',
                 predictionDateUtc: '2026-03-10',
-                status: 'finalized',
+                status: 'captured',
                 trainingScope: 'full',
                 capturedAtUtc: '2026-03-10T13:30:00.000Z',
                 entryUtc: '2026-03-10T13:30:00.000Z',
@@ -126,6 +127,7 @@ describe('realForecastJournal parser', () => {
     test('maps full day record and resolves margin mode from enum', () => {
         const parsed = parseRealForecastJournalDayRecordResponse({
             id: 'real-forecast-2026-03-10',
+            status: 2,
             trainingScope: 'full',
             predictionDateUtc: '2026-03-10',
             capturedAtUtc: '2026-03-10T13:30:00.000Z',
@@ -177,10 +179,12 @@ describe('realForecastJournal parser', () => {
             }
         })
 
+        expect(parsed.status).toBe('finalized')
         expect(parsed.forecastSnapshot.policyRows).toHaveLength(1)
         expect(parsed.forecastSnapshot.policyRows[0]).toMatchObject({
             bucket: 'daily',
             margin: 'cross',
+            isSpotPolicy: false,
             policyName: 'const_2x_cross'
         })
         expect(parsed.finalize?.snapshot.actualDay?.close24).toBe(123.1)
@@ -188,10 +192,45 @@ describe('realForecastJournal parser', () => {
         expect(parsed.finalize?.report.id).toBe('finalize')
     })
 
+    test('normalizes blank exit reason in the morning snapshot to null', () => {
+        const parsed = parseRealForecastJournalDayRecordResponse({
+            id: 'real-forecast-2026-03-10',
+            status: 1,
+            trainingScope: 'full',
+            predictionDateUtc: '2026-03-10',
+            capturedAtUtc: '2026-03-10T13:30:00.000Z',
+            entryUtc: '2026-03-10T13:30:00.000Z',
+            exitUtc: '2026-03-10T20:00:00.000Z',
+            forecastHash: 'ABC123',
+            forecastSnapshot: {
+                ...buildSnapshotPayload(),
+                policyRows: [
+                    {
+                        ...buildSnapshotPayload().policyRows[0],
+                        exitReason: '   '
+                    }
+                ]
+            },
+            forecastReport: buildReportPayload('forecast'),
+            sessionOpenIndicators: {
+                phase: 'session_open',
+                anchorUtc: '2026-03-10T13:30:00.000Z',
+                featureBarOpenUtc: '2026-03-10T06:00:00.000Z',
+                featureBarCloseUtc: '2026-03-10T12:00:00.000Z',
+                indicatorDayUtc: '2026-03-09',
+                items: []
+            },
+            finalize: null
+        })
+
+        expect(parsed.forecastSnapshot.policyRows[0].exitReason).toBeNull()
+    })
+
     test('throws on unsupported policy bucket instead of silently accepting it', () => {
         expect(() =>
             parseRealForecastJournalDayRecordResponse({
                 id: 'real-forecast-2026-03-10',
+                status: 'captured',
                 trainingScope: 'full',
                 predictionDateUtc: '2026-03-10',
                 capturedAtUtc: '2026-03-10T13:30:00.000Z',
@@ -221,6 +260,31 @@ describe('realForecastJournal parser', () => {
         ).toThrow('[real-forecast-journal] unsupported policy bucket: weekly.')
     })
 
+    test('throws when detailed day record payload omits lifecycle status', () => {
+        expect(() =>
+            parseRealForecastJournalDayRecordResponse({
+                id: 'real-forecast-2026-03-10',
+                trainingScope: 'full',
+                predictionDateUtc: '2026-03-10',
+                capturedAtUtc: '2026-03-10T13:30:00.000Z',
+                entryUtc: '2026-03-10T13:30:00.000Z',
+                exitUtc: '2026-03-10T20:00:00.000Z',
+                forecastHash: 'ABC123',
+                forecastSnapshot: buildSnapshotPayload(),
+                forecastReport: buildReportPayload('forecast'),
+                sessionOpenIndicators: {
+                    phase: 'session_open',
+                    anchorUtc: '2026-03-10T13:30:00.000Z',
+                    featureBarOpenUtc: '2026-03-10T06:00:00.000Z',
+                    featureBarCloseUtc: '2026-03-10T12:00:00.000Z',
+                    indicatorDayUtc: '2026-03-09',
+                    items: []
+                },
+                finalize: null
+            })
+        ).toThrow('[real-forecast-journal] status is missing.')
+    })
+
     test('maps ops status payload with next capture and active finalize targets', () => {
         const parsed = parseRealForecastJournalOpsStatusResponse({
             health: 1,
@@ -247,6 +311,7 @@ describe('realForecastJournal parser', () => {
             archiveRecordCount: 1,
             expectedCaptureDayUtc: '2026-03-10',
             expectedCaptureEntryUtc: '2026-03-10T13:30:00.000Z',
+            expectedCaptureDayStatus: null,
             nextCaptureDayUtc: '2026-03-11',
             nextCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
             captureWindowClosed: true,
@@ -284,6 +349,7 @@ describe('realForecastJournal parser', () => {
             archiveRecordCount: 1,
             expectedCaptureDayUtc: '2026-03-10',
             expectedCaptureEntryUtc: '2026-03-10T13:30:00.000Z',
+            expectedCaptureDayStatus: null,
             nextCaptureDayUtc: '2026-03-11',
             nextCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
             captureWindowClosed: true,

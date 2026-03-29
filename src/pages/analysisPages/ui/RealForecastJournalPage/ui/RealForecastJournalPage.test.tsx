@@ -35,9 +35,14 @@ vi.mock('@/shared/api/tanstackQueries/backtestConfidenceRisk', () => ({
     useBacktestConfidenceRiskReportQuery
 }))
 
-vi.mock('@/shared/lib/logging/logError', () => ({
-    logError: vi.fn()
-}))
+vi.mock('@/shared/lib/logging/logError', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/lib/logging/logError')>()
+
+    return {
+        ...actual,
+        logError: vi.fn()
+    }
+})
 
 function createQueryResult<T>(overrides: Record<string, unknown> = {}) {
     return {
@@ -76,6 +81,7 @@ function createPolicyRow(overrides: Record<string, unknown> = {}) {
         branch: 'BASE',
         bucket: 'daily',
         margin: 'cross',
+        isSpotPolicy: false,
         isRiskDay: false,
         hasDirection: true,
         skipped: false,
@@ -155,9 +161,10 @@ function createIndicatorSnapshot(
     }
 }
 
-function createDayRecord() {
+function createDayRecord(overrides: Record<string, unknown> = {}) {
     return {
         id: 'day-1',
+        status: 'finalized',
         trainingScope: 'oos',
         predictionDateUtc: '2026-03-10',
         capturedAtUtc: '2026-03-10T14:30:00.000Z',
@@ -197,7 +204,8 @@ function createDayRecord() {
                 title: 'Finalized report'
             }),
             endOfDayIndicators: createIndicatorSnapshot('close', 158, '158.0000')
-        }
+        },
+        ...overrides
     }
 }
 
@@ -471,5 +479,121 @@ describe('RealForecastJournalPage', () => {
         })
 
         expect(screen.getAllByText('Section terms')).toHaveLength(3)
+    })
+
+    test('shows every published policy row by default, including spot policies', async () => {
+        mockSuccessfulQueries()
+        useRealForecastJournalDayQuery.mockReturnValue(
+            createQueryResult({
+                data: createDayRecord({
+                    forecastSnapshot: createSnapshot({
+                        policyRows: [
+                            createPolicyRow(),
+                            createPolicyRow({
+                                policyName: 'spot_fixed1pct',
+                                branch: 'BASE',
+                                bucket: 'intraday',
+                                margin: null,
+                                isSpotPolicy: true,
+                                leverage: 1,
+                                notionalUsd: 100,
+                                liqPrice: null,
+                                liqDistPct: null
+                            }),
+                            createPolicyRow({
+                                policyName: 'const_4x_cross',
+                                branch: 'AGG',
+                                bucket: 'delayed',
+                                leverage: 4
+                            })
+                        ]
+                    }),
+                    finalize: {
+                        ...createDayRecord().finalize,
+                        snapshot: createSnapshot({
+                            actualDay: {
+                                trueLabel: 1,
+                                entry: 150,
+                                maxHigh24: 160,
+                                minLow24: 145,
+                                close24: 158,
+                                minMove: 0.01
+                            },
+                            policyRows: [
+                                createPolicyRow({
+                                    exitPrice: 158,
+                                    exitReason: 'Take profit',
+                                    exitPnlPct: 0.04,
+                                    trades: 1,
+                                    totalPnlPct: 0.04,
+                                    maxDdPct: 0.01,
+                                    hadLiquidation: false,
+                                    withdrawnTotal: 0
+                                }),
+                                createPolicyRow({
+                                    policyName: 'spot_fixed1pct',
+                                    branch: 'BASE',
+                                    bucket: 'intraday',
+                                    margin: null,
+                                    isSpotPolicy: true,
+                                    leverage: 1,
+                                    notionalUsd: 100,
+                                    liqPrice: null,
+                                    liqDistPct: null,
+                                    exitPrice: 151,
+                                    exitReason: 'EndOfDay',
+                                    exitPnlPct: 0.01,
+                                    trades: 1,
+                                    totalPnlPct: 0.01,
+                                    maxDdPct: 0.005,
+                                    hadLiquidation: false,
+                                    withdrawnTotal: 0
+                                }),
+                                createPolicyRow({
+                                    policyName: 'const_4x_cross',
+                                    branch: 'AGG',
+                                    bucket: 'delayed',
+                                    leverage: 4,
+                                    exitPrice: 149,
+                                    exitReason: 'Stop loss',
+                                    exitPnlPct: -0.02,
+                                    trades: 1,
+                                    totalPnlPct: -0.02,
+                                    maxDdPct: 0.03,
+                                    hadLiquidation: false,
+                                    withdrawnTotal: 0
+                                })
+                            ]
+                        }),
+                        report: createReportDocument({
+                            id: 'report-finalized',
+                            title: 'Finalized report'
+                        }),
+                        endOfDayIndicators: createIndicatorSnapshot('close', 158, '158.0000')
+                    }
+                }),
+                refetch: vi.fn()
+            })
+        )
+
+        render(<RealForecastJournalPage />, {
+            route: '/analysis/real-forecast-journal'
+        })
+
+        await screen.findByText('spot_fixed1pct')
+        expect(screen.getByText('const_4x_cross')).toBeInTheDocument()
+    })
+
+    test('removes fake SL controls, hides duplicated control hints, and drops the margin column from the policy table', () => {
+        mockSuccessfulQueries()
+
+        render(<RealForecastJournalPage />, {
+            route: '/analysis/real-forecast-journal'
+        })
+
+        expect(screen.queryByRole('button', { name: 'With SL' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'No SL' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Margin mode')).not.toBeInTheDocument()
+        expect(screen.queryByText(/days the model had not seen during training/i)).not.toBeInTheDocument()
     })
 })

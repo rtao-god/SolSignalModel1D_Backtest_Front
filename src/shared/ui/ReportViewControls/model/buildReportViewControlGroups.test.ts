@@ -21,6 +21,7 @@ const MOCK_SPLIT_STATS: CurrentPredictionBackfilledTrainingScopeStats = {
     recentStartDateUtc: '2025-11-19',
     recentEndDateUtc: '2026-03-18',
     recentDays: 81,
+    splitHoldoutCalendarDays: 120,
     recentTailRowsLimit: 240,
     recentMatchesOos: true,
     totalDays: 1327,

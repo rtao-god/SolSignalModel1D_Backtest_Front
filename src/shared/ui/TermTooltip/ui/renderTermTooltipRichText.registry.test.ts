@@ -179,13 +179,26 @@ describe('renderTermTooltipRichText registry coverage', () => {
 
         expect(ruReports).toContain('модель берёт всю завершённую историю')
         expect(ruReports).toContain('[[landing-model-weights|веса модели]]')
-        expect(ruReports).toContain('до 240 последних OOS-записей')
+        expect(ruReports).toContain('свежий OOS-хвост в пределах лимита режима')
         expect(ruReports).not.toContain('последние 240 торговых дней рабочего ряда модели')
 
         expect(enReports).toContain('model takes the whole completed history')
         expect(enReports).toContain('[[landing-model-weights|model weights]]')
-        expect(enReports).toContain('up to the latest 240 OOS records')
+        expect(enReports).toContain('fresh OOS tail within the mode limit')
         expect(enReports).not.toContain('last 240 trading days of the active model row')
+    })
+
+    test('keeps shared PFI owner term focused on input signals instead of abstract quality loss only', () => {
+        const ruReports = readProjectFile('public/locales/ru/reports.json')
+        const enReports = readProjectFile('public/locales/en/reports.json')
+
+        expect(ruReports).toContain('какие входные сигналы реально нужны модели')
+        expect(ruReports).toContain('PFI по очереди ломает один такой сигнал')
+        expect(ruReports).not.toContain('отчёт о том, насколько качество модели падает')
+
+        expect(enReports).toContain('which input signals the model actually needs')
+        expect(enReports).toContain('PFI breaks one such signal at a time')
+        expect(enReports).not.toContain('measures how much the model loses quality')
     })
 
     test('registers every shared owner-term id used in locale content', () => {

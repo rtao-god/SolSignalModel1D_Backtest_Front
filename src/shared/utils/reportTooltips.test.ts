@@ -114,6 +114,75 @@ describe('report tooltips shared-term guard', () => {
         expect(guardrailEn).toContain('share of good base-trade days')
     })
 
+    test('keeps generic diagnostics fallbacks concrete and without ambiguous either-or wording', () => {
+        const genericYearRu = resolveReportColumnTooltip('backtest_diagnostics', 'Unknown diagnostics section', 'Year', 'ru')
+        const genericDateRu = resolveReportColumnTooltip('backtest_diagnostics', 'Unknown diagnostics section', 'ReportDate', 'ru')
+        const genericNoTradeRu = resolveReportColumnTooltip(
+            'backtest_diagnostics',
+            'Unknown diagnostics section',
+            'NoTradeDays',
+            'ru'
+        )
+        const genericTradeRu = resolveReportColumnTooltip(
+            'backtest_diagnostics',
+            'Unknown diagnostics section',
+            'TradeCount',
+            'ru'
+        )
+        const genericLevEn = resolveReportColumnTooltip('backtest_diagnostics', 'Unknown diagnostics section', 'LevP90', 'en')
+
+        expect(genericYearRu).toContain('Календарный год текущего среза.')
+        expect(genericYearRu).not.toContain('или')
+        expect(genericDateRu).toContain('Дата текущей строки.')
+        expect(genericDateRu).not.toContain('или')
+        expect(genericNoTradeRu).toContain('дней без сделки')
+        expect(genericNoTradeRu).not.toContain('торговой активности')
+        expect(genericTradeRu).toContain('торговой активности')
+        expect(genericTradeRu).not.toContain('дней без сделки')
+        expect(genericLevEn).toContain('how aggressive the working risk was')
+        expect(genericLevEn).not.toContain(' or ')
+    })
+
+    test('keeps PFI tooltips human-readable and links percentage points through the shared term', () => {
+        const featureRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'FeatureName', 'ru')
+        const importanceRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Importance (ΔAUC, p.p.)', 'ru')
+        const deltaAucRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'ΔAUC (p.p.)', 'ru')
+        const corrScoreRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Corr(score)', 'ru')
+        const baselineRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Baseline AUC', 'ru')
+        const supportRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Eval support (pos/neg)', 'ru')
+
+        expect(featureRu).toContain('один входной сигнал модели')
+        expect(importanceRu).toContain('[[percentage-points|п.п.]]')
+        expect(importanceRu).toContain('Значение 4.10 означает падение AUC на 0.041')
+        expect(deltaAucRu).toContain('[[percentage-points|п.п.]]')
+        expect(corrScoreRu).toContain('внутренним баллом модели')
+        expect(baselineRu).toContain('4.0 [[percentage-points|п.п.]]')
+        expect(supportRu).toContain('18/14')
+        expect(supportRu).toContain('480/510')
+    })
+
+    test('explains new feature-detail quality and bucket metrics in RU and EN', () => {
+        const rocAucRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'ROC-AUC', 'ru')
+        const brierRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Brier', 'ru')
+        const topReasonRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Top 1 reason, %', 'ru')
+        const bucketRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Bucket', 'ru')
+        const calibrationEn = resolveReportColumnTooltip('pfi_per_model', undefined, 'Calibration gap (p.p.)', 'en')
+        const precisionTopEn = resolveReportColumnTooltip('pfi_per_model', undefined, 'Precision @ Top 10%, %', 'en')
+
+        expect(rocAucRu).toContain('качество разделения')
+        expect(rocAucRu).toContain('PR-AUC')
+        expect(brierRu).toContain('меньше - лучше')
+        expect(brierRu).toContain('(p - y)^2')
+        expect(topReasonRu).toContain('главных причин')
+        expect(topReasonRu).toContain('Top 1')
+        expect(bucketRu).toContain('диапазон значений признака')
+        expect(bucketRu).toContain('Q1')
+        expect(calibrationEn).toContain('overestimation')
+        expect(calibrationEn).toContain('percentage points')
+        expect(precisionTopEn).toContain('highest-probability')
+        expect(precisionTopEn).toContain('base positive share')
+    })
+
     test('keeps diagnostics exact owner-tooltips full and structured in RU and EN', () => {
         ;(['ru', 'en'] as const).forEach(locale => {
             DIAGNOSTICS_EXACT_KEYS.forEach(key => {
@@ -219,6 +288,10 @@ describe('report tooltips shared-term guard', () => {
             reportColumnSuites.forEach(suite => {
                 suite.keys.forEach(key => {
                     const description = resolveReportColumnTooltip(suite.reportKind, undefined, key, locale)
+                    expect(
+                        description,
+                        `[${locale}] report column tooltip "${suite.reportKind}:${key}" resolved to null`
+                    ).not.toBeNull()
                     const descriptionIssues = validateCommonTooltipDescription(description)
 
                     issues.push(
