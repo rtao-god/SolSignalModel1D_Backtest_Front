@@ -1,10 +1,5 @@
 import type { KeyValueSectionDto, ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
 
-// Эти константы должны совпадать с backend owner-контрактом:
-// PredictionTrainingEngineFactory.HoldoutDays и CurrentPredictionTrainingDefaults.RecentTailScoredRowsLimit.
-export const CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS = 120
-export const CURRENT_PREDICTION_RECENT_TAIL_ROWS_LIMIT = 240
-
 export interface CurrentPredictionStructuredTrainingFacts {
     trainingScopeRange: string | null
     trainingRecipe: string | null

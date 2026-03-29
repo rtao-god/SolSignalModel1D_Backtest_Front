@@ -21,7 +21,6 @@ import type {
 } from '@/shared/utils/policyBranchMegaTabs'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import {
-    CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS,
     resolveCurrentPredictionStructuredTrainingFacts,
     type CurrentPredictionStructuredTrainingFacts
 } from '@/shared/utils/currentPredictionTrainingFacts'
@@ -356,8 +355,13 @@ function buildTrainingScopeCalendarFact(startDateUtc: string, endDateUtc: string
     return buildTrainingScopeRangeFact(startDateUtc, endDateUtc)
 }
 
-function buildTrainingScopeSplitRuleFact(): string {
-    return `[[split-boundaries|Граница между Train и OOS]] считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]]. Система берёт последний доступный такой день, отступает назад на ${CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS} календарных дней и так делит историю на более ранний [[train-segment|Train]] и более новые дни [[landing-oos|OOS]].`
+function buildTrainingScopeSplitRuleFact(splitHoldoutCalendarDays?: number | null): string {
+    const explicitHoldoutFact =
+        typeof splitHoldoutCalendarDays === 'number' && Number.isFinite(splitHoldoutCalendarDays) && splitHoldoutCalendarDays > 0 ?
+            ` Система берёт последний доступный такой день, отступает назад на ${formatTrainingScopeCount(splitHoldoutCalendarDays, 'календарный день', 'календарных дня', 'календарных дней')} и так делит историю на более ранний [[train-segment|Train]] и более новые дни [[landing-oos|OOS]].`
+        :   ' Дальше история делится на более ранний [[train-segment|Train]] и более новые дни [[landing-oos|OOS]] по owner-правилу split recipe.'
+
+    return `[[split-boundaries|Граница между Train и OOS]] считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]].${explicitHoldoutFact}`
 }
 
 function buildGenericTrainingScopeOverviewDescription(): string {
@@ -408,7 +412,7 @@ function buildCurrentPredictionHistoryOosDescription(
 ): string {
     return `[[landing-oos|OOS]]
 
-[[landing-oos|OOS]] — это новые дни: ${buildTrainingScopeRangeFact(splitStats.oosStartDateUtc, splitStats.oosEndDateUtc)}. Перед ними идёт более ранний [[train-segment|Train]]: ${buildTrainingScopeRangeFact(splitStats.trainStartDateUtc, splitStats.trainEndDateUtc)}. Сначала модель обучается только на [[train-segment|Train]], потом обучение останавливается, и уже эта же версия модели идёт на дни [[landing-oos|OOS]]. Граница между ними считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]]: система берёт последний доступный такой день, отступает назад на ${CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS} календарных дней и всё, что новее этой границы, относит к [[landing-oos|OOS]].
+[[landing-oos|OOS]] — это новые дни: ${buildTrainingScopeRangeFact(splitStats.oosStartDateUtc, splitStats.oosEndDateUtc)}. Перед ними идёт более ранний [[train-segment|Train]]: ${buildTrainingScopeRangeFact(splitStats.trainStartDateUtc, splitStats.trainEndDateUtc)}. Сначала модель обучается только на [[train-segment|Train]], потом обучение останавливается, и уже эта же версия модели идёт на дни [[landing-oos|OOS]]. Граница между ними считается по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]]: система берёт последний доступный такой день, отступает назад на ${formatTrainingScopeCount(splitStats.splitHoldoutCalendarDays, 'календарный день', 'календарных дня', 'календарных дней')} и всё, что новее этой границы, относит к [[landing-oos|OOS]].
 
 Технически режим работает отдельно от [[landing-all-history|Full]]. Сначала модель учится только на [[train-segment|Train]]. Потом эта же версия без дообучения проходит только по дням [[landing-oos|OOS]]. Во время самого прогноза фактический исход OOS-дня в модель не передаётся: сначала считаются вероятности по данным дня, а реальный итог добавляется к отчёту уже после этого.
 
@@ -545,7 +549,7 @@ function buildCurrentPredictionLiveOosDescription(
 Что показывает
 1) Более строгую live-версию текущего прогноза после разделения истории.
 2) То, как текущий день выглядит у модели без обучения на более новой части истории.
-3) ${buildTrainingScopeSplitRuleFact()}
+3) ${buildTrainingScopeSplitRuleFact(splitStats?.splitHoldoutCalendarDays)}
 
 Когда смотреть
 Это главный live-режим, когда нужен ответ на вопрос: держится ли текущий прогноз у более строгой версии модели или красиво выглядит только у максимально дообученного [[landing-all-history|Full]].

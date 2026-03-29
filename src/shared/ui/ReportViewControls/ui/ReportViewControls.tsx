@@ -30,9 +30,14 @@ export interface ReportViewControlGroup<T extends string = string> {
 interface ReportViewControlsProps {
     groups?: readonly ReportViewControlGroup[]
     className?: string
+    showSelectedOptionHints?: boolean
 }
 
-export default function ReportViewControls({ groups = [], className }: ReportViewControlsProps) {
+export default function ReportViewControls({
+    groups = [],
+    className,
+    showSelectedOptionHints = true
+}: ReportViewControlsProps) {
     const visibleGroups = groups.filter(group => group.options.length > 0)
 
     if (visibleGroups.length === 0) {
@@ -64,6 +69,9 @@ export default function ReportViewControls({ groups = [], className }: ReportVie
                             return (
                                 <Btn
                                     key={`${group.key}-${option.value}`}
+                                    // Segmented control сам управляет поверхностью и активным состоянием.
+                                    // Ghost-кнопка убирает конфликт со стандартным залитым видом Btn.
+                                    variant='ghost'
                                     size='sm'
                                     className={classNames(cls.button, { [cls.buttonActive]: isActive }, [])}
                                     onClick={() => {
@@ -77,6 +85,22 @@ export default function ReportViewControls({ groups = [], className }: ReportVie
                             )
                         })}
                     </div>
+
+                    {showSelectedOptionHints &&
+                        group.options.some(option => option.value === group.value && option.tooltip) && (
+                        <div className={cls.hints}>
+                            {group.options
+                                .filter(option => option.value === group.value && option.tooltip)
+                                .map(option => (
+                                    <Text key={`${group.key}-${option.value}-hint`} className={cls.hint}>
+                                        {enrichTermTooltipDescription(option.tooltip!, {
+                                            excludeTerms: option.tooltipExcludeTerms,
+                                            excludeRuleIds: option.tooltipExcludeRuleIds
+                                        })}
+                                    </Text>
+                                ))}
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

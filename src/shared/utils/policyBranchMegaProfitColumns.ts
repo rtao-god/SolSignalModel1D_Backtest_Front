@@ -1,102 +1,10 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 
-const MEGA_MONEY_EPSILON = 1e-9
-const MEGA_PERCENT_EPSILON = 1e-9
-
 export const POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS = ['TotalPnl%', 'Wealth%'] as const
 
-function parseFiniteNumberOrNull(raw: string | undefined): number | null {
-    if (raw == null) return null
-
-    const normalized = raw.trim().replace(/\s+/g, '').replace(',', '.')
-    if (!normalized || normalized === '—' || normalized === 'нетданных' || normalized === 'nodata') {
-        return null
-    }
-
-    const value = Number(normalized)
-    if (!Number.isFinite(value)) {
-        return null
-    }
-
-    return value
-}
-
-function buildTrimmedRow(
-    row: string[] | undefined,
-    indexesToKeep: readonly number[],
-    sectionTitle: string,
-    rowIndex: number
-): string[] {
-    if (!row) {
-        throw new Error(
-            `[policy-branch-mega] cannot normalize profit columns for empty row. section=${sectionTitle}, row=${rowIndex}.`
-        )
-    }
-
-    return indexesToKeep.map(index => String(row[index] ?? ''))
-}
-
-function sectionHasDistinctWealthAndTotal(section: TableSectionDto): boolean {
-    const columns = section.columns ?? []
-    const rows = section.rows ?? []
-    const wealthIdx = columns.indexOf('Wealth%')
-    if (wealthIdx < 0) {
-        return false
-    }
-
-    const totalPnlIdx = columns.indexOf('TotalPnl%')
-    if (totalPnlIdx >= 0) {
-        for (const row of rows) {
-            const wealthValue = parseFiniteNumberOrNull(row?.[wealthIdx])
-            const totalPnlValue = parseFiniteNumberOrNull(row?.[totalPnlIdx])
-            if (
-                wealthValue !== null &&
-                totalPnlValue !== null &&
-                Math.abs(wealthValue - totalPnlValue) > MEGA_PERCENT_EPSILON
-            ) {
-                return true
-            }
-        }
-    }
-
-    return false
-}
-
-function sectionShowsReinvestedActiveBalance(section: TableSectionDto): boolean {
-    const columns = section.columns ?? []
-    const rows = section.rows ?? []
-
-    const onExchUsdIdx = columns.indexOf('OnExch$')
-    const startCapUsdIdx = columns.indexOf('StartCap$')
-    if (onExchUsdIdx >= 0 && startCapUsdIdx >= 0) {
-        for (const row of rows) {
-            const onExchUsd = parseFiniteNumberOrNull(row?.[onExchUsdIdx])
-            const startCapUsd = parseFiniteNumberOrNull(row?.[startCapUsdIdx])
-            if (onExchUsd !== null && startCapUsd !== null && onExchUsd > startCapUsd + MEGA_MONEY_EPSILON) {
-                return true
-            }
-        }
-    }
-
-    const onExchPctIdx = columns.indexOf('OnExch%')
-    if (onExchPctIdx >= 0) {
-        for (const row of rows) {
-            const onExchPct = parseFiniteNumberOrNull(row?.[onExchPctIdx])
-            if (onExchPct !== null && onExchPct > MEGA_PERCENT_EPSILON) {
-                return true
-            }
-        }
-    }
-
-    return false
-}
-
-/**
- * Возвращает главный profit-столбец после owner-нормализации mega-таблицы.
- * TotalPnl% имеет приоритет как основной итог, а Wealth% остаётся только
- * там, где у строки реально появляется отдельный wealth-смысл.
- */
-export function resolvePolicyBranchMegaPrimaryProfitColumn(columns: readonly string[]): 'TotalPnl%' | 'Wealth%' | null {
+export function resolvePolicyBranchMegaPrimaryProfitColumn(
+    columns: readonly string[]
+): 'TotalPnl%' | 'Wealth%' | null {
     if (columns.includes('TotalPnl%')) {
         return 'TotalPnl%'
     }
@@ -108,69 +16,54 @@ export function resolvePolicyBranchMegaPrimaryProfitColumn(columns: readonly str
     return null
 }
 
+function resolveMegaSectionPart(section: TableSectionDto): number | null {
+    const metadataPart =
+        section.metadata?.kind === 'policy-branch-mega' && Number.isInteger(section.metadata.part) ?
+            section.metadata.part
+        :   null
+    if (typeof metadataPart === 'number' && metadataPart > 0) {
+        return metadataPart
+    }
+
+    const title = section.title ?? ''
+    const match = title.match(/\[PART\s+(\d+)\/\d+\]/i)
+    if (!match?.[1]) {
+        return null
+    }
+
+    const part = Number(match[1])
+    return Number.isInteger(part) && part > 0 ? part : null
+}
+
 /**
- * Схлопывает Wealth% в TotalPnl%, когда по показанным строкам у wealth нет отдельного смысла.
- * Если активный баланс нигде не растёт выше стартовой базы и отдельного TotalPnl%-расхождения нет,
- * UI не должен показывать два одинаковых столбца прибыли под разными названиями.
+ * UI не владеет profit-колонками mega-отчёта.
+ * Если backend не отдал TotalPnl% или Wealth% в PART 1, это контрактная ошибка published slice.
  */
-export function normalizePolicyBranchMegaProfitColumns(sections: readonly TableSectionDto[]): TableSectionDto[] {
+export function assertPolicyBranchMegaPrimaryProfitColumns(
+    sections: readonly TableSectionDto[],
+    contextTag: string
+): void {
     if (!sections || sections.length === 0) {
-        throw new Error('[policy-branch-mega] cannot normalize profit columns for empty sections list.')
+        throw new Error(`[${contextTag}] policy_branch_mega sections are empty.`)
     }
 
-    if (
-        sections.some(section => sectionHasDistinctWealthAndTotal(section)) ||
-        sections.some(section => sectionShowsReinvestedActiveBalance(section))
-    ) {
-        return [...sections]
-    }
+    sections.forEach((section, sectionIndex) => {
+        const part = resolveMegaSectionPart(section)
+        if (part !== 1) {
+            return
+        }
 
-    return sections.map(section => {
         const columns = section.columns ?? []
-        const rows = section.rows ?? []
-        const wealthIdx = columns.indexOf('Wealth%')
-        if (wealthIdx < 0) {
-            return section
-        }
-
-        const totalPnlIdx = columns.indexOf('TotalPnl%')
-        if (totalPnlIdx >= 0) {
-            const indexesToKeep = columns
-                .map((_, index) => index)
-                .filter(index => index !== wealthIdx)
-
-            const nextColumns = indexesToKeep.map(index => columns[index]!)
-            const nextRows = rows.map((row, rowIndex) =>
-                buildTrimmedRow(row, indexesToKeep, section.title ?? 'n/a', rowIndex)
+        if (!columns.includes('TotalPnl%')) {
+            throw new Error(
+                `[${contextTag}] mega part1 section is missing TotalPnl%. section=${section.title ?? 'n/a'}, index=${sectionIndex}, columns=${columns.join(', ')}.`
             )
-
-            const nextSection: TableSectionDto = {
-                ...section,
-                columns: nextColumns,
-                rows: nextRows
-            }
-
-            if (Array.isArray(section.columnKeys) && section.columnKeys.length >= columns.length) {
-                nextSection.columnKeys = indexesToKeep.map(index => String(section.columnKeys![index] ?? nextColumns[index]))
-            }
-
-            return nextSection
         }
 
-        const nextColumns = [...columns]
-        nextColumns[wealthIdx] = 'TotalPnl%'
-
-        const nextSection: TableSectionDto = {
-            ...section,
-            columns: nextColumns
+        if (!columns.includes('Wealth%')) {
+            throw new Error(
+                `[${contextTag}] mega part1 section is missing Wealth%. section=${section.title ?? 'n/a'}, index=${sectionIndex}, columns=${columns.join(', ')}.`
+            )
         }
-
-        if (Array.isArray(section.columnKeys) && section.columnKeys.length >= columns.length) {
-            const nextColumnKeys = [...section.columnKeys]
-            nextColumnKeys[wealthIdx] = 'TotalPnl%'
-            nextSection.columnKeys = nextColumnKeys
-        }
-
-        return nextSection
     })
 }

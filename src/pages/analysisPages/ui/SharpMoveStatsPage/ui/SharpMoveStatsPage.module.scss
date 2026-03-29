@@ -1,0 +1,21 @@
+.root {
+    display: grid;
+    gap: 24px;
+}
+
+.hero {
+    display: grid;
+    gap: 12px;
+}
+
+.controls {
+    padding: 20px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.report {
+    display: grid;
+    gap: 16px;
+}

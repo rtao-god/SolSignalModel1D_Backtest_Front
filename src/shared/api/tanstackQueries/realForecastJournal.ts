@@ -2,6 +2,8 @@ import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
 import { mapReportResponse } from '../utils/mapReportResponse'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import {
     normalizeUtcDayKey as normalizeDomainUtcDayKey,
     normalizeUtcInstant as normalizeDomainUtcInstant
@@ -331,6 +333,7 @@ function mapPolicyRow(value: unknown, index: number): RealForecastJournalPolicyR
         branch: toNonEmptyString(readRequiredField(raw, 'branch', 'branch', 'Branch'), 'branch'),
         bucket: resolvePolicyBucket(readRequiredField(raw, 'bucket', 'bucket', 'Bucket'), 'bucket'),
         margin: resolveMarginModeOrNull(readOptionalField(raw, 'margin', 'Margin')),
+        isSpotPolicy: toBoolean(readRequiredField(raw, 'isSpotPolicy', 'isSpotPolicy', 'IsSpotPolicy'), 'isSpotPolicy'),
         isRiskDay: toBoolean(readRequiredField(raw, 'isRiskDay', 'isRiskDay', 'IsRiskDay'), 'isRiskDay'),
         hasDirection: toBoolean(readRequiredField(raw, 'hasDirection', 'hasDirection', 'HasDirection'), 'hasDirection'),
         skipped: toBoolean(readRequiredField(raw, 'skipped', 'skipped', 'Skipped'), 'skipped'),
@@ -349,7 +352,9 @@ function mapPolicyRow(value: unknown, index: number): RealForecastJournalPolicyR
         stakeUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakeUsd', 'StakeUsd')),
         stakePct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakePct', 'StakePct')),
         exitPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPrice', 'ExitPrice')),
-        exitReason: toNonEmptyString(readRequiredField(raw, 'exitReason', 'exitReason', 'ExitReason'), 'exitReason'),
+        exitReason: toOptionalStringOrNull(
+            readRequiredField(raw, 'exitReason', 'exitReason', 'ExitReason')
+        ),
         exitPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPnlPct', 'ExitPnlPct')),
         trades: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'trades', 'Trades')),
         totalPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'totalPnlPct', 'TotalPnlPct')),
@@ -558,6 +563,7 @@ function mapDayRecord(value: unknown): RealForecastJournalDayRecordDto {
 
     return {
         id: toNonEmptyString(readRequiredField(raw, 'id', 'id', 'Id'), 'id'),
+        status,
         trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope', 'TrainingScope')),
         predictionDateUtc: normalizeUtcDayKey(
             readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
@@ -824,7 +830,7 @@ async function fetchRealForecastJournalDayList(
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`Failed to load real forecast journal index: ${response.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load real forecast journal index', response, text))
     }
 
     return parseRealForecastJournalDayListResponse(await response.json())
@@ -839,7 +845,7 @@ async function fetchRealForecastJournalDay(
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`Failed to load real forecast journal day: ${response.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load real forecast journal day', response, text))
     }
 
     return parseRealForecastJournalDayRecordResponse(await response.json())
@@ -851,7 +857,7 @@ async function fetchRealForecastJournalOpsStatus(): Promise<RealForecastJournalO
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`Failed to load real forecast journal ops status: ${response.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load real forecast journal ops status', response, text))
     }
 
     return parseRealForecastJournalOpsStatusResponse(await response.json())
@@ -866,7 +872,7 @@ async function fetchRealForecastJournalLiveStatus(
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`Failed to load real forecast journal live status: ${response.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load real forecast journal live status', response, text))
     }
 
     return parseRealForecastJournalLiveStatusResponse(await response.json())
@@ -897,7 +903,7 @@ export function useRealForecastJournalDayListQuery(
         enabled: options?.enabled ?? true,
         retry: false,
         // Journal page должна обновляться без ручного refresh, когда worker записывает новый capture/finalize.
-        refetchInterval: 15000
+        refetchInterval: QUERY_POLICY_REGISTRY.realForecastJournal.indexRefetchIntervalMs
     })
 }
 
@@ -911,7 +917,7 @@ export function useRealForecastJournalDayQuery(
         enabled: (options?.enabled ?? true) && Boolean(args),
         retry: false,
         // Активный день может перейти из captured в finalized, пока страница остаётся открытой.
-        refetchInterval: 15000
+        refetchInterval: QUERY_POLICY_REGISTRY.realForecastJournal.dayRefetchIntervalMs
     })
 }
 
@@ -927,7 +933,7 @@ export function useRealForecastJournalOpsStatusQuery(
         queryFn: fetchRealForecastJournalOpsStatus,
         enabled: options?.enabled ?? true,
         retry: false,
-        refetchInterval: 15000
+        refetchInterval: QUERY_POLICY_REGISTRY.realForecastJournal.opsStatusRefetchIntervalMs
     })
 }
 
@@ -944,7 +950,7 @@ export function useRealForecastJournalLiveStatusQuery(
         queryFn: () => fetchRealForecastJournalLiveStatus(requireDayQueryArgs(args, 'live-status')),
         enabled: (options?.enabled ?? true) && Boolean(args),
         retry: false,
-        refetchInterval: 30 * 60 * 1000
+        refetchInterval: QUERY_POLICY_REGISTRY.realForecastJournal.liveStatusRefetchIntervalMs
     })
 }
 

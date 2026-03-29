@@ -24,7 +24,7 @@ export const EXPLAIN_SPLITS_TABS: ExplainTabConfig[] = [
     { id: 'explain-splits-overview', label: 'Зачем сплиты', anchor: 'explain-splits-overview' },
     { id: 'explain-splits-train', label: 'Train', anchor: 'explain-splits-train' },
     { id: 'explain-splits-oos', label: 'OOS', anchor: 'explain-splits-oos' },
-    { id: 'explain-splits-recent', label: 'Recent (240d)', anchor: 'explain-splits-recent' },
+    { id: 'explain-splits-recent', label: 'Recent', anchor: 'explain-splits-recent' },
     { id: 'explain-splits-full', label: 'Full history', anchor: 'explain-splits-full' }
 ]
 

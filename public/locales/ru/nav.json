@@ -54,6 +54,7 @@
         "backtest_diagnostics_daystats": "Дни и типы рынка",
         "backtest_policy_branch_mega": "Стратегии и ветки",
         "backtest_confidence_risk": "Уверенность и риск входа",
+        "backtest_sharp_move_stats": "Резкие движения",
         "backtest_execution_pipeline": "Путь расчёта бэктеста",
         "pfi_per_model": "Важность фич по моделям",
         "guide": "База знаний",
@@ -132,7 +133,7 @@
             "explain-splits-overview": "Зачем сплиты",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "guide_time": {
@@ -206,7 +207,7 @@
             "explain-splits-overview": "Зачем сплиты",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "explain_project": {

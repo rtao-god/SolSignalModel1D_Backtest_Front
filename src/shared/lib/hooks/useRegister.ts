@@ -4,6 +4,7 @@ import { useRegisterUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/Registration/model/slice/registrationSlice'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 export const useRegister = () => {
     const [registerUser, { isLoading }] = useRegisterUserMutation()
@@ -22,8 +23,10 @@ export const useRegister = () => {
 
             navigate('/')
         } catch (error) {
-            const normalizedError =
-                error instanceof Error ? error : new Error(String(error ?? 'Unknown register hook error.'))
+            const normalizedError = normalizeErrorLike(error, 'Unknown register hook error.', {
+                source: 'register-hook',
+                domain: 'api_transport'
+            })
 
             logError(normalizedError, undefined, {
                 source: 'register-hook',

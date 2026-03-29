@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueries } from '@tanstack/react-query'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { BulletList } from '@/shared/ui/BulletList'
 import { TermTooltip, Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
@@ -225,8 +227,8 @@ export default function MainBestPolicySection() {
                             ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
                             part
                         }),
-                    staleTime: 2 * 60 * 1000,
-                    gcTime: 15 * 60 * 1000
+                    staleTime: QUERY_POLICY_REGISTRY.policyBranchMega.staleTimeMs,
+                    gcTime: QUERY_POLICY_REGISTRY.policyBranchMega.gcTimeMs
                 })) ?? []
     })
 
@@ -267,7 +269,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 best: null as MainBestPolicyRowBundle | null,
-                error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
+                error: normalizeErrorLike(err, 'Failed to resolve demo configuration.', {
+                    source: 'main-demo-configuration',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should merge published mega parts into one comparable policy set.',
+                    requiredAction: 'Inspect published mega report parts and demo section builder.'
+                })
             }
         }
     }, [reports])
@@ -332,7 +340,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 items: [] as DemoMetaItem[],
-                error: err instanceof Error ? err : new Error('Failed to build demo meta items.')
+                error: normalizeErrorLike(err, 'Failed to build demo meta items.', {
+                    source: 'main-demo-meta',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build meta facts from the resolved best policy.',
+                    requiredAction: 'Inspect demo meta builder and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])
@@ -492,7 +506,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 data: null as DemoNarrativeSummary | null,
-                error: err instanceof Error ? err : new Error('Failed to build demo summary.')
+                error: normalizeErrorLike(err, 'Failed to build demo summary.', {
+                    source: 'main-demo-summary',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build narrative summary from the resolved best policy.',
+                    requiredAction: 'Inspect demo summary builder and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])
@@ -525,7 +545,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 items: [] as Array<{ label: string; termKey: string; termTitle: string; value: string }>,
-                error: err instanceof Error ? err : new Error('Failed to build demo metrics.')
+                error: normalizeErrorLike(err, 'Failed to build demo metrics.', {
+                    source: 'main-demo-metrics',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build metric cards from the resolved best policy.',
+                    requiredAction: 'Inspect demo metric definitions and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])

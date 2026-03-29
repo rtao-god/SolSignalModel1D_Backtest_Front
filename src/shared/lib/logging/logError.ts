@@ -7,6 +7,10 @@ export interface LogErrorContext {
     errorId?: string
     domain?: ErrorDomain
     severity?: 'error' | 'warning'
+    owner?: string
+    expected?: string
+    actual?: string
+    requiredAction?: string
     extra?: Record<string, unknown>
 }
 
@@ -19,6 +23,10 @@ export interface LogErrorPayload {
     path: string | undefined
     domain: ErrorDomain
     severity: 'error' | 'warning'
+    owner: string | undefined
+    expected: string | undefined
+    actual: string | undefined
+    requiredAction: string | undefined
     extra: Record<string, unknown> | undefined
 }
 
@@ -36,8 +44,39 @@ export function buildLogErrorPayload(error: Error, errorInfo?: ErrorInfo, contex
         path: context?.path ?? (typeof window !== 'undefined' ? window.location.pathname : undefined),
         domain: resolveErrorDomain(error, context),
         severity: context?.severity ?? 'error',
+        owner: context?.owner,
+        expected: context?.expected,
+        actual: context?.actual,
+        requiredAction: context?.requiredAction,
         extra: context?.extra
     }
+}
+
+export function buildDetailedErrorDetails(error: Error, context?: LogErrorContext): string {
+    const parts: string[] = [`${error.name}: ${error.message}`]
+
+    if (context?.owner) parts.push(`owner=${context.owner}`)
+    if (context?.expected) parts.push(`expected=${context.expected}`)
+    if (context?.actual) parts.push(`actual=${context.actual}`)
+    if (context?.requiredAction) parts.push(`requiredAction=${context.requiredAction}`)
+    if (context?.source) parts.push(`source=${context.source}`)
+    if (context?.path) parts.push(`path=${context.path}`)
+    if (context?.domain) parts.push(`domain=${context.domain}`)
+    if (context?.errorId) parts.push(`errorId=${context.errorId}`)
+
+    if (context?.extra) {
+        try {
+            parts.push(`extra=${JSON.stringify(context.extra)}`)
+        } catch {
+            parts.push('extra=[unserializable]')
+        }
+    }
+
+    if (error.stack) {
+        parts.push(`stack=${error.stack}`)
+    }
+
+    return parts.join('\n')
 }
 
 export function logError(error: Error, errorInfo?: ErrorInfo, context?: LogErrorContext) {

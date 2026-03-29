@@ -40,6 +40,7 @@ export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
     recentStartDateUtc: string
     recentEndDateUtc: string
     recentDays: number
+    splitHoldoutCalendarDays: number
     recentTailRowsLimit: number
     recentMatchesOos: boolean
     totalDays: number
@@ -47,6 +48,46 @@ export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
     oosShare: number
     lastTrainDateUtc: string
     firstOosDateUtc: string
+    oosPresetCatalog?: CurrentPredictionOosPresetCatalogDto | null
+}
+export interface CurrentPredictionOosPresetEntryDto {
+    key: string
+    isFullOos: boolean
+    isExtended: boolean
+    isDefaultPrimary: boolean
+    isDefaultSecondary: boolean
+    requestedTradeSharePercent: number
+    requestedTradeShare: number
+    targetTradeCount: number
+    selectedTradeCount: number
+    selectedTradeShare: number
+    selectedDays: number
+    selectedDayShare: number
+    daysWithTrades: number
+    daysWithoutTrades: number
+    startPredictionDateUtc: string
+    endPredictionDateUtc: string
+}
+export interface CurrentPredictionOosPresetCatalogDto {
+    publishedAtUtc: string
+    oosTotalTrades: number
+    oosTotalDays: number
+    oosStartDateUtc: string
+    oosEndDateUtc: string
+    fullOosPresetKey: string
+    defaultPrimaryPresetKey: string
+    defaultSecondaryPresetKey: string
+    entries: CurrentPredictionOosPresetEntryDto[]
+}
+export interface CurrentPredictionOosPresetAnalysisDto {
+    mode: string
+    publishedAtUtc: string
+    splitHoldoutCalendarDays: number
+    oosTotalTrades: number
+    oosTotalDays: number
+    oosStartDateUtc: string
+    oosEndDateUtc: string
+    rows: CurrentPredictionOosPresetEntryDto[]
 }
 /**
  * Published-read metadata для live current prediction.

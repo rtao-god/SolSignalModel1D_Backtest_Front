@@ -38,6 +38,18 @@ interface PolicySetupDayWindow {
     dayBlockStartTs: number
     dayBlockEndTs: number
 }
+
+interface CompositePointerPaneLocation {
+    pane: 'price' | 'balance'
+    chart: IChartApi
+    container: HTMLDivElement
+    containerRect: DOMRect
+    localX: number
+    localY: number
+    plotWidth: number
+    plotHeight: number
+    inPlotArea: boolean
+}
 const TARGET_DAY_WIDTH_PX = 56
 const PRICE_CHART_HEIGHT_PX = 560
 const BALANCE_CHART_HEIGHT_PX = 232
@@ -688,6 +700,39 @@ export default function PolicySetupsChart({
         return null
     }, [showDetachedBalancePane])
 
+    const resolvePointerPaneLocation = useCallback((clientX: number, clientY: number): CompositePointerPaneLocation | null => {
+        const sourcePane = resolvePointerSourcePane(clientY)
+        if (!sourcePane) {
+            return null
+        }
+
+        const chart = sourcePane === 'price' ? priceChartRef.current : balanceChartRef.current
+        const container = sourcePane === 'price' ? priceContainerRef.current : balanceContainerRef.current
+        if (!chart || !container) {
+            return null
+        }
+
+        const containerRect = container.getBoundingClientRect()
+        const localX = clamp(clientX - containerRect.left, 0, containerRect.width)
+        const localY = clamp(clientY - containerRect.top, 0, containerRect.height)
+        const timeAxisHeight = chart.timeScale().height()
+        const rightPriceScaleWidth = chart.priceScale('right').width()
+        const plotWidth = Math.max(containerRect.width - rightPriceScaleWidth, 0)
+        const plotHeight = Math.max(containerRect.height - timeAxisHeight, 0)
+
+        return {
+            pane: sourcePane,
+            chart,
+            container,
+            containerRect,
+            localX,
+            localY,
+            plotWidth,
+            plotHeight,
+            inPlotArea: localX <= plotWidth && localY <= plotHeight
+        }
+    }, [resolvePointerSourcePane])
+
     const applySharedLogicalRange = useCallback((
         range: LogicalRange | null,
         context: Record<string, unknown>
@@ -739,15 +784,23 @@ export default function PolicySetupsChart({
             return
         }
 
-        const sourcePane = resolvePointerSourcePane(clientY)
-        if (!sourcePane) {
+        const paneLocation = resolvePointerPaneLocation(clientX, clientY)
+        if (!paneLocation) {
             clearCompositeCrosshair('pointer-outside-pane')
             return
         }
 
+        if (!paneLocation.inPlotArea) {
+            // Оси X/Y должны оставаться под полным контролем chart engine:
+            // общий crosshair живёт только внутри plot-area и не вмешивается в axis gestures.
+            clearCompositeCrosshair('pointer-over-axis')
+            return
+        }
+
+        const sourcePane = paneLocation.pane
+
         const shell = compositeShellRef.current
-        const sourceChart = sourcePane === 'price' ? priceChartRef.current : balanceChartRef.current
-        const sourceContainer = sourcePane === 'price' ? priceContainerRef.current : balanceContainerRef.current
+        const sourceChart = paneLocation.chart
         const targetChart =
             !showDetachedBalancePane
                 ? null
@@ -769,18 +822,18 @@ export default function PolicySetupsChart({
         const fallbackTargetPrice =
             sourcePane === 'price' ? balanceCrosshairFallback : priceCrosshairFallback
 
-        if (!shell || !sourceChart || !sourceContainer) {
+        if (!shell) {
             return
         }
 
-        const sourceRect = sourceContainer.getBoundingClientRect()
+        const sourceRect = paneLocation.containerRect
         if (sourceRect.width <= 0 || sourceRect.height <= 0) {
             clearCompositeCrosshair('invalid-source-pane-rect')
             return
         }
 
-        const sourceX = clamp(clientX - sourceRect.left, 0, sourceRect.width)
-        const sourceY = clamp(clientY - sourceRect.top, 0, sourceRect.height)
+        const sourceX = paneLocation.localX
+        const sourceY = paneLocation.localY
         const time = sourceChart.timeScale().coordinateToTime(sourceX)
         const hoveredUnixSeconds = extractUnixSecondsFromTime(time)
 
@@ -845,7 +898,7 @@ export default function PolicySetupsChart({
         hideGlobalCrosshairOverlay,
         priceCrosshairFallback,
         resolveBalanceCrosshairSeries,
-        resolvePointerSourcePane,
+        resolvePointerPaneLocation,
         resolvePriceCrosshairSeries,
         showDetachedBalancePane,
         showGlobalCrosshairOverlay

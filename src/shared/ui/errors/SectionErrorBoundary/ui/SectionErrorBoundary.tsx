@@ -1,8 +1,9 @@
 import React from 'react'
 import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 import i18n from '@/shared/configs/i18n/i18n'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { markErrorHandledByBoundary } from '@/shared/lib/logging/setupGlobalErrorHandlers'
-import { logError } from '@/shared/lib/logging/logError'
+import { buildDetailedErrorDetails, logError } from '@/shared/lib/logging/logError'
 
 interface SectionErrorBoundaryProps {
     name?: string
@@ -72,7 +73,13 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
             return children
         }
 
-        const safeError = error ?? new Error('Unknown client error')
+        const safeError = normalizeErrorLike(error, 'Unknown client error.', {
+            source: 'section-error-boundary',
+            domain: 'ui_section',
+            owner: 'section-error-boundary',
+            expected: 'React boundary should receive an Error instance from the failed section render.',
+            requiredAction: 'Inspect the failed section render path and throw owner-specific Error instances.'
+        })
 
         if (typeof fallback === 'function') {
             return fallback({ error: safeError, reset: this.reset, name })
@@ -92,7 +99,11 @@ export class SectionErrorBoundary extends React.Component<SectionErrorBoundaryPr
                     defaultValue:
                         'This block is temporarily unavailable due to a client-side error. The rest of the page remains available.'
                 })}
-                details={safeError.message}
+                details={buildDetailedErrorDetails(safeError, {
+                    source: 'section-error-boundary',
+                    domain: 'ui_section',
+                    extra: { sectionName: name }
+                })}
                 onRetry={this.reset}
             />
         )

@@ -22,11 +22,14 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.BACKTEST_POLICY_SETUPS]: '/analysis/policy-setups',
     [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: '/analysis/policy-setups/:setupId',
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: '/analysis/confidence-risk',
+    [AppRoute.BACKTEST_SHARP_MOVE_STATS]: '/analysis/sharp-move-stats',
+    [AppRoute.CURRENT_PREDICTION_OOS_PRESETS]: '/analysis/oos-presets',
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: '/analysis/real-forecast-journal',
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: '/analysis/execution-pipeline',
 
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
     [AppRoute.PFI_SL_MODEL]: '/features/pfi-sl',
+    [AppRoute.PFI_PER_MODEL_FEATURE_DETAIL]: '/features/pfi-per-model/feature/:featureId',
 
     [AppRoute.MODELS_STATS]: '/models/stats',
     [AppRoute.AGGREGATION_STATS]: '/models/aggregation',

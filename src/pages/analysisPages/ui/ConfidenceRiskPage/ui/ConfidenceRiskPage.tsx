@@ -27,6 +27,7 @@ import {
     usePublishedReportVariantCatalogQuery,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import cls from './ConfidenceRiskPage.module.scss'
@@ -332,7 +333,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk scope query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse confidence-risk scope query.', {
+                source: 'confidence-risk-scope-query',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should parse a valid training scope from URL params.',
+                requiredAction: 'Inspect confidence-risk scope query and supported scope values.'
+            })
             return {
                 value: DEFAULT_CONFIDENCE_SCOPE,
                 error: safeError
@@ -356,8 +363,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to resolve confidence-risk report variant.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve confidence-risk report variant.', {
+                source: 'confidence-risk-variant',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve a catalog-compatible published report variant.',
+                requiredAction: 'Inspect confidence-risk URL params and published variant catalog.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -421,8 +433,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to resolve current prediction training scope metadata.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve current prediction training scope metadata.', {
+                source: 'confidence-risk-scope-meta',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve training scope metadata for the selected scope.',
+                requiredAction: 'Inspect current prediction training scope metadata registry.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -437,7 +454,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'confidence-risk-source-endpoint',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -456,7 +479,15 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         if (variantCatalogQuery.isError) {
             return {
                 options: [] as ConfidenceBucketOption[],
-                error: variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.')
+                error:
+                    variantCatalogQuery.error ??
+                    normalizeErrorLike(null, 'Failed to load confidence-risk catalog.', {
+                        source: 'confidence-risk-catalog-query',
+                        domain: 'ui_section',
+                        owner: 'confidence-risk-page',
+                        expected: 'Confidence-risk page should receive a published variant catalog or a detailed API error.',
+                        requiredAction: 'Inspect confidence-risk catalog endpoint and response envelope.'
+                    })
             }
         }
 
@@ -481,10 +512,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ?
-                    err
-                :   new Error('Failed to build confidence bucket options for selected scope.')
+            const safeError = normalizeErrorLike(err, 'Failed to build confidence bucket options for selected scope.', {
+                source: 'confidence-risk-bucket-options',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should build compatible confidence bucket options from the published catalog.',
+                requiredAction: 'Inspect bucket option builder and the selected scope/variant.'
+            })
             return {
                 options: [] as ConfidenceBucketOption[],
                 error: safeError
@@ -534,7 +568,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
             return { section, error: null }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate confidence risk config.')
+            const safeError = normalizeErrorLike(err, 'Failed to validate confidence risk config.', {
+                source: 'confidence-risk-config',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should validate config items against known term metadata.',
+                requiredAction: 'Inspect confidence-risk config section and term registry.'
+            })
             return { section: null as KeyValueSectionDto | null, error: safeError }
         }
     }, [configTermsMap, data, keyValueSections])
@@ -624,7 +664,16 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         null
     const reportStateError =
         error ??
-        (variantCatalogQuery.isError ? variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.') : null) ??
+        (variantCatalogQuery.isError ?
+            (variantCatalogQuery.error ??
+                normalizeErrorLike(null, 'Failed to load confidence-risk catalog.', {
+                    source: 'confidence-risk-catalog-query',
+                    domain: 'ui_section',
+                    owner: 'confidence-risk-page',
+                    expected: 'Confidence-risk page should receive a published variant catalog or a detailed API error.',
+                    requiredAction: 'Inspect confidence-risk catalog endpoint and response envelope.'
+                }))
+        :   null) ??
         generatedAtState.error ??
         sourceEndpointState.error ??
         null

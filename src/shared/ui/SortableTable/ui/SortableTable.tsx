@@ -13,6 +13,7 @@ import {
 } from '../model/utils'
 import { useTranslation } from 'react-i18next'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 export type TableDensity = 'simple' | 'medium' | 'dense'
 
@@ -100,7 +101,11 @@ function safeLoadSortState(key: string, columnsLen: number): SortState | null {
 
         return { colIdx, kind: kind as SortKind }
     } catch (e) {
-        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state load error.'))
+        const normalizedError = normalizeErrorLike(e, 'Unknown sort state load error.', {
+            source: 'sortable-table-sort-load',
+            domain: 'app_runtime',
+            extra: { key }
+        })
 
         logError(normalizedError, undefined, {
             source: 'sortable-table-sort-load',
@@ -119,7 +124,11 @@ function safeSaveSortState(key: string, state: SortState) {
     try {
         window.localStorage.setItem(key, JSON.stringify(state))
     } catch (e) {
-        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state save error.'))
+        const normalizedError = normalizeErrorLike(e, 'Unknown sort state save error.', {
+            source: 'sortable-table-sort-save',
+            domain: 'app_runtime',
+            extra: { key }
+        })
 
         logError(normalizedError, undefined, {
             source: 'sortable-table-sort-save',

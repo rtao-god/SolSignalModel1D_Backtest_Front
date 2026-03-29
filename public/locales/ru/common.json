@@ -20,6 +20,7 @@
         "backtest_diagnostics_daystats": "Загружаю статистику по дням",
         "backtest_policy_branch_mega": "Загружаю Policy Branch Mega",
         "backtest_confidence_risk": "Загружаю статистику уверенности",
+        "backtest_sharp_move_stats": "Загружаю статистику резких движений",
         "backtest_execution_pipeline": "Загружаю execution pipeline",
         "pfi_per_model": "Загружаю PFI отчёт",
         "models_stats": "Загружаю статистику моделей",

@@ -19,6 +19,19 @@
             "ctaForecast": "Forecast for today",
             "ctaProof": "Historical simulation"
         },
+        "whitePaper": {
+            "eyebrow": "For specialists",
+            "title": "Technical document on how the project works",
+            "subtitle": "This document describes in detail how the system estimates the direction of Solana coin price for one trading day in advance, which data enters the calculation, and how the result is checked on past dates.",
+            "bullets": [
+                "What exactly the system calculates during one trading day.",
+                "Which data enters the calculation and how the forecast is built from it.",
+                "How the forecast becomes a trading decision and how that result is checked on past dates."
+            ],
+            "downloadLead": "The full technical breakdown is collected in a separate document.",
+            "downloadCta": "Download technical white paper",
+            "downloadNote": "Markdown file."
+        },
         "audience": {
             "eyebrow": "Why it matters for business",
             "title": "Which questions the service answers",
@@ -185,7 +198,7 @@
             "specificity": "Specificity is the share of good base-trade days among all days that the model classified as safe enough to avoid the bad-trade class.\n\nWhat it shows:\nit answers how often the system correctly rejects clearly bad trading days without confusing too many good ones. In diagnostics this matters because the model is judged not only by finding opportunities, but also by avoiding harmful entries.\n\nHow to read it:\nhigh specificity means the model is better at protecting the strategy from obviously bad trade days. Low specificity means the “safe” side still contains too many days that later behave like the bad class.",
             "blameSplit": "Blame split is the attribution layer that assigns a weak result to the dominant failure bucket instead of leaving all bad days in one undifferentiated pile.\n\nWhat it shows:\nit separates whether the problem came from the model itself, from policy restrictions, from execution quality, or from other downstream conditions.\n\nHow to read it:\nthis layer matters because the same weak PnL can come from very different causes. Blame split makes the cause observable, so the next fix targets the real bottleneck instead of the most visible symptom.",
             "hotspots": "Hotspots are the parts of the pipeline where the strategy most often loses quality, accumulates risk, or produces unstable behavior.\n\nWhat it shows:\nthis is not one metric by itself. It is the reading layer that highlights where weak outcomes cluster: model-side, policy-side, execution-side, or data-quality-side.\n\nHow to read it:\nif the same hotspot keeps dominating different tables, the problem is structural rather than accidental. That is usually the place where the next fix gives the highest impact on truthfulness or strategy quality.",
-            "pfi": "PFI (permutation feature importance) measures how much the model loses quality when one feature is intentionally broken or shuffled while the rest stay intact.\n\nWhat it shows:\nPFI does not say that one feature alone “causes” the forecast. It shows how dependent the model is on that feature for keeping its current quality level.\n\nHow to read it:\na high PFI means the model materially degrades without that feature. A near-zero PFI means the feature adds little unique value, even if it still looks intuitive to a human reader.",
+            "pfi": "PFI (Permutation Feature Importance) is a way to check which input signals the model actually needs. The model has many features: price position versus a moving average, speed of movement, volatility, market background, and other observable pieces of market state. PFI breaks one such signal at a time by randomly shuffling it between rows and then checks how much model quality gets worse.\n\nWhat it shows:\nif quality barely changes, that signal adds little to the current model. If quality drops clearly, the model truly used that signal to separate good and bad day scenarios.\n\nHow to read it:\nPFI is not a search for a magic profit button. It is a way to inspect model logic: which input signal the model starts missing when it disappears.\n\nExample:\nif shuffling the feature that tracks price position versus [[ema-indicator|EMA]] hurts quality more than shuffling a sentiment feature, the first signal matters more for this model.",
             "confusionMatrix": "Confusion matrix is the table that compares predicted classes with realized classes for the same evaluation window.\n\nWhat it shows:\nit makes class errors visible by direction: which outcomes are recognized correctly, which ones are confused with each other, and where the model most often overstates or understates a scenario.\n\nHow to read it:\nthis table matters because one headline score can hide asymmetric mistakes. A model may look acceptable overall while still repeatedly confusing one specific class that is critical for trading decisions.",
             "modelMetrics": "Model metrics are the quality measures used to judge whether a forecasting layer is stable, transferable, and worth trusting on new data.\n\nWhat it shows:\nthese metrics are not only about accuracy. They describe calibration, class balance, error structure, and the gap between seen history and unseen evaluation slices.\n\nHow to read it:\nstrong model metrics matter only when they remain coherent across Train, OOS, diagnostics, and backtest behavior. A good score in isolation is weaker evidence than a consistent profile across these layers.",
             "policyBranchMega": "Policy Branch Mega is the full historical table for every [[policy|Policy]] configuration on one long history. It keeps [[branch|BASE / ANTI-D branches]], SL modes, filters, return, drawdown, liquidations, long/short structure, and recovery in one place.\n\nWhat it shows:\nthis page is built for comparing not one isolated strategy idea, but the whole layer of Policy configurations on identical trading days.\n\nHow to read it:\nthis mega table should not be read by TotalPnl% alone. Its purpose is to show which configuration stays robust and which one buys the result with deeper drawdowns, liquidations, stricter filters, or weaker recovery.",
@@ -194,7 +207,7 @@
             "featureImportance": "Feature importance is the layer that ranks which inputs matter most for the model and which ones change the result only marginally.\n\nWhat it shows:\nit does not promise causal truth by itself. It shows where the forecasting pipeline depends most on information content and where removing a feature would change the model least.\n\nHow to read it:\nfeature importance is strongest when it is read together with explain and PFI. If the same feature stays important across those layers, its role in the decision is much more credible than in a single ranking alone.",
             "predictionAggregation": "Prediction aggregation is the step where outputs of several model layers are combined into one final probability view.\n\nWhat it shows:\nthis step collects the daily layer, micro refinement, and risk-aware interpretation into the final scenario ranking that the strategy later consumes.\n\nHow to read it:\naggregation should be read as a structured merge, not as a blind average. If the final answer changes, the useful question is which layer shifted the balance and whether that shift improved robustness or only changed the final label.",
             "allHistory": "Full history is the mode where the model takes the whole completed history up to the latest day whose [[landing-time-horizon|trading day]] outcome is already known, trains on that full range, and then recalculates the whole history with that same trained version.\n\nWhat it shows:\n1) The most fully trained version of the model on the whole available past.\n2) History with no split between [[train-segment|Train]] and [[landing-oos|OOS]].\n3) A mode where the same day may appear both in training and in the repeated forecast pass.\n\nHow to read it:\n1) History first changes only the [[landing-model-weights|model weights]].\n2) During inference the ready-made day outcome is no longer fed into the model: the engine sees only day data, and the realized outcome is attached to the report later.\n3) That is why old full forecasts may change not because the day was memorized directly, but because the refit model changed its weights.\n4) For an honest quality check [[landing-all-history|Full]] should always be compared with [[landing-oos|OOS]].",
-            "recentTailHistory": "Recent tail is not a separate training mode. It is only the freshest end of an already built [[landing-oos|OOS]] slice.\n\nWhat it shows:\n1) The system first builds ordinary [[landing-oos|OOS]] and only then keeps up to the latest 240 OOS records.\n2) If the whole OOS slice is shorter than that limit, the tail becomes the full OOS slice.\n3) This mode isolates what is happening on the most recent days of the honest evaluation.\n\nHow to read it:\n1) The tail is selected from already built OOS records rather than from a new calendar rule.\n2) No new model is trained here and no new prediction pass is launched.\n3) If OOS still looks stable while the tail is already weaker, deterioration starts on the most recent days.",
+            "recentTailHistory": "Recent tail is not a separate training mode. It is only the freshest end of an already built [[landing-oos|OOS]] slice.\n\nWhat it shows:\n1) The system first builds ordinary [[landing-oos|OOS]] and only then keeps a fresh OOS tail within the mode limit.\n2) If the whole OOS slice is shorter than that limit, the tail becomes the full OOS slice.\n3) This mode isolates what is happening on the most recent days of the honest evaluation.\n\nHow to read it:\n1) The tail is selected from already built OOS records rather than from a new calendar rule.\n2) No new model is trained here and no new prediction pass is launched.\n3) If OOS still looks stable while the tail is already weaker, deterioration starts on the most recent days.",
             "baselineBacktest": "Baseline backtest is the reference historical simulation under the main production-like setup used by the project.\n\nWhat it shows:\nit is the default comparison point for new variants, filters, and strategy changes. The point of the baseline is not to be “best”, but to provide a stable anchor for judging whether later modifications really improve the profile.\n\nHow to read it:\nwhen an experimental variant looks better, the right question is not only whether return increased. The comparison must also show what happened to drawdown, liquidation exposure, and recovery difficulty relative to the baseline.",
             "experimentalBacktest": "Experimental backtest is a non-baseline historical simulation used to test a modified rule set, filter, layer, or execution mode against the reference setup.\n\nWhat it shows:\nit exists to answer whether the new idea changes the result for the better or only moves risk into another place.\n\nHow to read it:\nan experimental result should never be judged by one attractive metric in isolation. It must beat or clarify the baseline across both return and risk, otherwise it is just a different profile, not a better one.",
             "modelConfidence": "Model confidence is the strength of the model's belief in the selected scenario for the trading day.\n\nWhat it shows:\nconfidence is not the same thing as guaranteed correctness. It is the internal strength of the probability edge that later controls whether the strategy trades, how strict filters become, and which risk layers are allowed to engage.\n\nHow to read it:\nhigh confidence matters only when history supports it. A strong-looking confidence value without stable behavior in OOS, diagnostics, and backtests is still weak evidence.",
@@ -351,7 +364,7 @@
             "metrics": {
                 "reports": {
                     "label": "Analysis pages",
-                    "value": "7 pages"
+                    "value": "8 pages"
                 },
                 "readingContours": {
                     "label": "Reading angles",
@@ -368,6 +381,7 @@
                 "policySetups": "Section: Policy setup history",
                 "dayStats": "Section: Day statistics",
                 "confidenceRisk": "Section: Confidence and TP/SL",
+                "sharpMoveStats": "Section: Sharp move statistics",
                 "realForecastJournal": "Section: Real Forecast Journal",
                 "executionPipeline": "Section: Execution pipeline",
                 "diagnosticsHome": "Section: Diagnostics",
@@ -465,6 +479,11 @@
                 "description": "Bucket statistics by model confidence: TP/SL hit frequency and MFE/MAE dynamics across signal levels. Helps decide where to increase take-profit and where to reduce risk.",
                 "hint": "Confidence and excursion room"
             },
+            "sharpMoveStats": {
+                "title": "Sharp move statistics",
+                "description": "The section checks what the statistics favor after a strong price impulse: trend continuation or a fast reversal.\n\nThe second layer exposes both rise and fall signals, thresholds from 5% to 20%, and horizons from 1 to 30 days. This helps find stable follow-the-trend scenarios and separately measure where the impulse usually runs out of strength.",
+                "hint": "Impulse, continuation, and reversal"
+            },
             "realForecastJournal": {
                 "title": "Real Forecast Journal",
                 "description": "The section compares forecast and realized outcome on real days that appeared after the semi-live contour started.\n\nThe second layer shows where the forecast matched the day result, how quality behaves on new dates, and how close that picture stays to historical expectations.",
@@ -504,7 +523,7 @@
                 },
                 "invalidSource": {
                     "title": "Execution pipeline report source is invalid",
-                    "description": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "description": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "invalidSections": {
                     "title": "Execution pipeline report sections are invalid",
@@ -796,7 +815,7 @@
             "errors": {
                 "invalidSource": {
                     "title": "Model stats report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Model stats bucket query is invalid",
@@ -1317,7 +1336,7 @@
                 },
                 "sourceEndpoint": {
                     "title": "Invalid diagnostics report source",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Invalid bucket query",
@@ -1408,7 +1427,7 @@
             "errors": {
                 "sourceEndpoint": {
                     "title": "Invalid PFI report source",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Invalid bucket query",
@@ -1623,7 +1642,7 @@
             "short": "Short"
         },
         "status": {
-            "captured": "The morning forecast is already fixed. Realized fields remain empty until the New York day closes and the factual data is written.",
+            "captured": "The morning forecast is already fixed. Realized fields remain empty until the New York session closes and the final day data becomes available.",
             "finalized": "The day is already finalized after the New York session (working day) closes. The morning forecast is immutable and the realized outcome is now read-only."
         },
         "timing": {
@@ -1692,7 +1711,7 @@
                 "scheduleDstTerm": "DST",
                 "scheduleDstTooltip": "DST (Daylight Saving Time) is the seasonal clock shift between winter and summer time in New York.\n\nBecause of that shift, the same trading-session opening point appears in different UTC hours during winter and summer.",
                 "schedulePointDstSuffix": ".",
-                "schedulePointFinalize": "Realized fields stay empty until the New York session (working day) closes and candle and indicator sync finishes.",
+                "schedulePointFinalize": "Realized fields stay empty until the New York session closes and the final day data becomes available.",
                 "usefulnessTitle": "Why this page matters",
                 "usefulnessLead": "This block shows how closely real outcomes match the model's historical expectations.",
                 "usefulnessPointSequence": "Only days where the forecast was published first and the market outcome appeared later are collected here.",
@@ -1757,7 +1776,7 @@
         "policy": {
             "title": "Policy plan and realized execution",
             "subtitle": "Morning values come from the fixed forecast. Realized fields appear only after the day is finalized. Null values stay explicit instead of being turned into zero.",
-            "empty": "No Policies match the current bucket / SL / branch / margin filters.",
+            "empty": "No published policy rows match the current bucket, branch, and search filters.",
             "buckets": {
                 "daily": "Daily",
                 "intraday": "Intraday",
@@ -1791,7 +1810,7 @@
             },
             "table": {
                 "title": "Published Policies",
-                "description": "The default view opens the daily / with-SL / zonal slice. Switching to “All” shows every published bucket and Policy together.",
+                "description": "The table starts with every published row for the selected day. Bucket, branch, and search only narrow the published set, and margin type is already visible in the policy name.",
                 "sessionOpenPublished": "Published",
                 "columns": {
                     "policy": "Policy",
@@ -1856,7 +1875,7 @@
             "noStopLoss": "No stop-loss",
             "noTakeProfit": "No take-profit",
             "notApplicable": "Not applicable",
-            "pendingFinalize": "Waiting for the New York close and indicator sync",
+            "pendingFinalize": "Day is still open",
             "noDirection": "No direction",
             "noDelta": "Delta becomes available after the close",
             "deltaUnavailable": "No numeric delta",
@@ -1960,7 +1979,7 @@
                 },
                 "invalidSource": {
                     "title": "Confidence risk report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Confidence risk bucket query is invalid",
@@ -2016,6 +2035,61 @@
             "confBucketAriaLabel": "Confidence-bucket filter for selected scope"
         }
     },
+    "sharpMoveStats": {
+        "page": {
+            "title": "Sharp move statistics",
+            "subtitle": "The page measures what happens more often after a sharp price move: trend continuation or a fast reversal.\n\nThe second layer presents a scenario grid across rise and fall signals, thresholds from 5% to 20%, and horizons from 1 to 30 days.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_sharp_move_stats is not configured: report metadata is shown without freshness validation."
+            },
+            "loading": "Loading sharp move statistics",
+            "errorTitle": "Failed to load sharp move statistics",
+            "errorMessage": "Check the published variant catalog and the selected scenario parameters."
+        },
+        "controls": {
+            "scope": {
+                "label": "History scope",
+                "tooltip": "Full shows the whole history, Train keeps only the training part, OOS shows days that were new for the model, and Recent narrows OOS to the freshest tail."
+            },
+            "signal": {
+                "label": "Signal",
+                "tooltip": "Separate modes for a sharp rise and a sharp fall in the coin price.",
+                "options": {
+                    "rise": {
+                        "label": "Rise",
+                        "hint": "The signal fires after a sharp rise in the coin price."
+                    },
+                    "fall": {
+                        "label": "Fall",
+                        "hint": "The signal fires after a sharp fall in the coin price."
+                    }
+                }
+            },
+            "outcome": {
+                "label": "Outcome",
+                "tooltip": "Continuation and reversal are counted as separate patterns.",
+                "options": {
+                    "continuation": {
+                        "label": "Continuation",
+                        "hint": "Shows how often the impulse kept moving in the same direction."
+                    },
+                    "reversal": {
+                        "label": "Reversal",
+                        "hint": "Shows how often the impulse quickly turned in the opposite direction."
+                    }
+                }
+            },
+            "threshold": {
+                "label": "Threshold",
+                "tooltip": "Minimum size of the initial impulse and the target follow-through after the signal."
+            },
+            "horizon": {
+                "label": "Horizon",
+                "tooltip": "How many days after the signal the scenario gets for continuation or reversal."
+            }
+        }
+    },
     "policyBranchMega": {
         "page": {
             "errorTitle": "Failed to load Policy Branch Mega",
@@ -2045,7 +2119,7 @@
                 },
                 "invalidSource": {
                     "title": "Policy Branch Mega report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Policy Branch Mega bucket query is invalid",
@@ -2240,7 +2314,7 @@
                     "title": "What simulation includes",
                     "items": {
                         "item1": "[[exchange-fees|Exchange fees]]: included ([[round-trip|round-trip]], [[entry-fee|entry fee]] and [[exit-fee|exit fee]]).",
-                        "item2": "Funding: not included, so real exchange result may differ for long-held positions.",
+                        "item2": "[[funding|Funding]]: included. If the position lives until a funding timestamp, that cash debit or cash credit is already part of the trade result.",
                         "item3": "[[slippage|Slippage]] / [[price-impact|price impact]]: not included.",
                         "item4Prefix": "Event order inside first-event rule: liquidation → stop-loss → take-profit →"
                     },

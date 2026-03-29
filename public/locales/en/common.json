@@ -20,6 +20,7 @@
         "backtest_diagnostics_daystats": "Loading day statistics",
         "backtest_policy_branch_mega": "Loading Policy Branch Mega",
         "backtest_confidence_risk": "Loading confidence statistics",
+        "backtest_sharp_move_stats": "Loading sharp move statistics",
         "backtest_execution_pipeline": "Loading execution pipeline",
         "pfi_per_model": "Loading PFI report",
         "models_stats": "Loading model statistics",

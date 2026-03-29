@@ -11,10 +11,14 @@ export const useTheme = (): UseThemeResult => {
     const ctx = useContext(ThemeContext)
 
     if (!ctx || !ctx.theme || !ctx.setTheme) {
-        logError(new Error('ThemeContext is unavailable.'), undefined, {
+        logError(new Error('[theme-context] ThemeContext is unavailable.'), undefined, {
             source: 'theme-context-fallback',
             domain: 'app_runtime',
-            severity: 'warning'
+            severity: 'warning',
+            owner: 'ThemeProvider',
+            expected: 'useTheme should be called under ThemeProvider with theme and setTheme available.',
+            actual: 'ThemeContext was null or incomplete.',
+            requiredAction: 'Wrap the consuming tree with ThemeProvider or inspect provider bootstrap order.'
         })
         return {
             theme: Theme.DARK,

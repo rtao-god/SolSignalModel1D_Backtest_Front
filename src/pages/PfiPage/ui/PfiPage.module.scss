@@ -102,6 +102,25 @@
     background-color: rgba(255, 255, 255, 0.025);
 }
 
+.featureLink {
+    font-weight: 700;
+    color: #93c5fd;
+    text-decoration: underline;
+    text-decoration-color: rgba(147, 197, 253, 0.42);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #dbeafe;
+        text-decoration-color: rgba(219, 234, 254, 0.92);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(147, 197, 253, 0.92);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+}
+
 /* ===== sortable headers ===== */
 
 .thButton {

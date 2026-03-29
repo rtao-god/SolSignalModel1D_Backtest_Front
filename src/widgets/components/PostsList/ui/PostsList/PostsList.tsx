@@ -3,6 +3,8 @@ import cls from './PostsList.module.scss'
 import PostsListProps from './types'
 import { useState, useEffect } from 'react'
 import { Btn, Row, Text, Form, SubmitButton, TextInput, FormField } from '@/shared/ui'
+import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 export default function PostsList({ className }: PostsListProps) {
     const [posts, setPosts] = useState<any[]>([])
@@ -17,7 +19,25 @@ export default function PostsList({ className }: PostsListProps) {
             try {
                 setIsLoading(true)
             } catch (err) {
-                setError('Failed to load posts')
+                const normalizedError = normalizeErrorLike(err, 'Posts list failed to initialize.', {
+                    source: 'posts-list',
+                    domain: 'ui_section',
+                    owner: 'ui.posts-list',
+                    expected: 'Posts list initializes loading state before data render starts.',
+                    actual: 'Posts list threw while preparing its initial loading state.',
+                    requiredAction: 'Inspect the posts-list initialization flow or remove the dead loading branch if the component stays static.'
+                })
+
+                logError(normalizedError, undefined, {
+                    source: 'posts-list',
+                    domain: 'ui_section',
+                    severity: 'warning',
+                    owner: 'ui.posts-list',
+                    expected: 'Posts list initializes loading state before data render starts.',
+                    actual: 'Posts list threw while preparing its initial loading state.',
+                    requiredAction: 'Inspect the posts-list initialization flow or remove the dead loading branch if the component stays static.'
+                })
+                setError(normalizedError.message)
             } finally {
                 setIsLoading(false)
             }

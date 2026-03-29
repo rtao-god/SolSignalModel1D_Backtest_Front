@@ -64,7 +64,7 @@
     "explain-splits-overview": "Why splits",
     "explain-splits-train": "Train",
     "explain-splits-oos": "OOS",
-    "explain-splits-recent": "Recent (240d)",
+    "explain-splits-recent": "Recent",
     "explain-splits-full": "Full history",
     "explain-project-overview": "Overall pipeline",
     "explain-project-causal": "Causal vs Omniscient",
@@ -484,7 +484,7 @@
             ],
             [
               "Recent",
-              "Last 240 EntryDayKeyUtc",
+              "Fresh OOS tail within the mode limit",
               "How relevant is the model now?"
             ],
             [
@@ -504,8 +504,8 @@
             "sharedTermId": "oos-segment"
           },
           {
-            "term": "Recent (240d)",
-            "description": "Recent (240d) — Last 240 trading days.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+            "term": "Recent",
+            "description": "Recent — Fresh tail of the available history.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
           },
           {
             "term": "Full history",
@@ -558,12 +558,12 @@
         ]
       },
       "recent": {
-        "title": "Recent (last 240 days)",
+        "title": "Recent",
         "text": "Dedicated indicator of current-market performance.",
         "terms": [
           {
-            "term": "Last 240 days",
-            "description": "Last 240 days — Rolling window from the latest day backwards.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+            "term": "Fresh history tail",
+            "description": "Fresh history tail — The nearest available part of history to the present moment.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
           },
           {
             "term": "What recent shows",

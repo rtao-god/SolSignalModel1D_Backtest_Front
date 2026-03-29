@@ -3,7 +3,8 @@ import type { ErrorBoundaryFallbackProps } from '../../ErrorBoundary'
 import cls from './GlobalErrorFallback.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
-import { logError } from '@/shared/lib/logging/logError'
+import { buildDetailedErrorDetails, logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 interface GlobalErrorFallbackProps extends ErrorBoundaryFallbackProps {
     className?: string
@@ -26,12 +27,20 @@ export default function GlobalErrorFallback({ error, resetErrorBoundary, classNa
     }
 
     const handleReportClick = () => {
-        logError(error ?? new Error('Unknown global error report.'), undefined, {
+        logError(
+            normalizeErrorLike(error, 'Unknown global error report.', {
+                source: 'global-error-fallback-report',
+                domain: 'app_runtime',
+                extra: { errorId, reportedFromFallback: true }
+            }),
+            undefined,
+            {
             source: 'global-error-fallback-report',
             domain: 'app_runtime',
             severity: 'warning',
             extra: { errorId, reportedFromFallback: true }
-        })
+            }
+        )
     }
 
     return (
@@ -54,12 +63,18 @@ export default function GlobalErrorFallback({ error, resetErrorBoundary, classNa
                         <span className={cls.metaValue}>{errorId}</span>
                     </div>
 
-                    {error?.message && (
-                        <div className={cls.metaRow}>
-                            <span className={cls.metaLabel}>Описание</span>
-                            <span className={cls.metaValue}>{error.message}</span>
-                        </div>
-                    )}
+                {error?.message && (
+                    <div className={cls.metaRow}>
+                        <span className={cls.metaLabel}>Описание</span>
+                        <span className={cls.metaValue}>
+                            {buildDetailedErrorDetails(error, {
+                                source: 'global-error-fallback',
+                                domain: 'app_runtime',
+                                extra: { errorId }
+                            })}
+                        </span>
+                    </div>
+                )}
                 </div>
 
                 {isDev && error?.stack && (

@@ -27,6 +27,7 @@ import {
 } from '@/shared/utils/backtestDiagnosticsQuery'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
@@ -214,7 +215,13 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse execution pipeline query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse execution pipeline query.', {
+                source: 'execution-pipeline-query',
+                domain: 'ui_section',
+                owner: 'execution-pipeline-page',
+                expected: 'Execution pipeline page should parse a valid published diagnostics selection from URL params.',
+                requiredAction: 'Inspect execution pipeline query params and supported catalog values.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -346,7 +353,13 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'execution-pipeline-source-endpoint',
+                domain: 'ui_section',
+                owner: 'execution-pipeline-page',
+                expected: 'Execution pipeline page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -365,8 +378,13 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to parse execution pipeline report sections.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse execution pipeline report sections.', {
+                source: 'execution-pipeline-sections',
+                domain: 'ui_section',
+                owner: 'execution-pipeline-page',
+                expected: 'Execution pipeline page should parse report sections into key-value and table blocks.',
+                requiredAction: 'Inspect execution pipeline report sections and page parser.'
+            })
             return {
                 value: null as ParsedPipelineSections | null,
                 error: safeError
@@ -379,7 +397,14 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
     const reportStateError =
         sliceSelectionState.error ??
         (variantCatalogQuery.isError ?
-            (variantCatalogQuery.error ?? new Error('Failed to load execution pipeline catalog.'))
+            (variantCatalogQuery.error ??
+                normalizeErrorLike(null, 'Failed to load execution pipeline catalog.', {
+                    source: 'execution-pipeline-catalog-query',
+                    domain: 'ui_section',
+                    owner: 'execution-pipeline-page',
+                    expected: 'Execution pipeline page should receive a published variant catalog or a detailed API error.',
+                    requiredAction: 'Inspect execution pipeline catalog endpoint and response envelope.'
+                }))
         :   null) ??
         error ??
         generatedAtState.error ??

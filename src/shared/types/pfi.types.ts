@@ -1,6 +1,9 @@
 export type PfiReportKindDto = 'pfi_per_model' | 'pfi_sl_model'
+export type PfiFeatureDetailReportKindDto = 'pfi_per_model_feature_detail'
 export type PfiReportFamilyKeyDto = 'daily_model' | 'sl_model'
 export type PfiScoreScopeKeyDto = 'train_oof' | 'oos' | 'train' | 'full_history'
+export type PfiFeatureHistoryRangeKeyDto = 'all' | '180' | '730'
+export type PfiFeatureDetailScoreScopeKeyDto = PfiScoreScopeKeyDto
 
 /**
  * Published PFI-документ для одного семейства моделей.
@@ -54,4 +57,179 @@ export interface PfiReportSectionDto {
     columnKeys: string[]
     /** Materialized строки таблицы в display-порядке. */
     rows: string[][]
+}
+
+/**
+ * Published PFI detail-отчёт по одной фиче.
+ * Читается фронтом как готовый read-only артефакт.
+ */
+export interface PfiFeatureDetailReportDto {
+    /** Уникальный идентификатор отчёта внутри storage-kind. */
+    id: string
+    /** Published kind detail-отчёта. */
+    kind: PfiFeatureDetailReportKindDto
+    /** Каноничное имя фичи. */
+    featureName: string
+    /** Каноничный ключ family: daily_model. */
+    familyKey: PfiReportFamilyKeyDto
+    /** Ключ схемы признаков (или объединённый список через '/'). */
+    featureSchemaKey: string
+    /** UTC-время генерации отчёта в ISO-формате. */
+    generatedAtUtc: string
+    /** Train-boundary исходного прогона в ISO day-key UTC. */
+    trainUntilExitDayKeyUtc?: string
+    /** Каноничный ключ выбранного смыслового источника. */
+    scoreScopeKey: PfiFeatureDetailScoreScopeKeyDto
+    /** Доступные source-кнопки без дополнительного запроса. */
+    availableScoreScopeKeys: PfiFeatureDetailScoreScopeKeyDto[]
+    /** Доступные range-кнопки без дополнительного запроса. */
+    availableHistoryRangeKeys: PfiFeatureHistoryRangeKeyDto[]
+    /** Каноничный ключ опубликованного диапазона истории. */
+    historyRangeKey: PfiFeatureHistoryRangeKeyDto
+    /** Блоки описания фичи. */
+    descriptionBlocks: PfiFeatureDetailBlockDto[]
+    /** Таблица метрик по секциям моделей. */
+    sectionStatsTable?: PfiFeatureDetailTableDto
+    /** Таблица сравнения с соседними фичами. */
+    peerFeaturesTable?: PfiFeatureDetailTableDto
+    /** Таблица качества прогноза по секциям моделей. */
+    modelQualityTable?: PfiFeatureDetailTableDto
+    /** Таблица локального вклада выбранной фичи по секциям моделей. */
+    contributionStatsTable?: PfiFeatureDetailTableDto
+    /** Таблица buckets по значениям выбранной фичи. */
+    valueBucketsTable?: PfiFeatureDetailTableDto
+    /** Готовые исторические графики по фиче. */
+    historyCharts: PfiFeatureHistoryChartDto[]
+    /** Сводка покрытия истории. */
+    historyCoverage?: PfiFeatureHistoryCoverageDto
+}
+
+export interface PfiFeatureHistoryCoverageDto {
+    /** Сколько окон builder попытался посчитать. */
+    requestedWindowCount: number
+    /** Сколько окон реально опубликовано. */
+    successfulWindowCount: number
+    /** Сколько окон было пропущено. */
+    skippedWindowCount: number
+    /** Начало фактического покрытия истории. */
+    coverageStartDayKeyUtc?: string
+    /** Конец фактического покрытия истории. */
+    coverageEndDayKeyUtc?: string
+}
+
+export interface PfiFeatureHistoryChartDto {
+    /** Machine-readable ключ графика. */
+    chartKey: string
+    /** Заголовок графика. */
+    title: string
+    /** Короткое описание того, как читать график. */
+    description: string
+    /** Вариант метрики, который нужно открыть по умолчанию. */
+    defaultVariantKey: string
+    /** Ключ модели, для которой собрана история. */
+    modelKey: string
+    /** Человекочитаемое имя модели. */
+    modelDisplayName: string
+    /** Ключ score scope. */
+    scoreScopeKey: string
+    /** Размер rolling-окна в днях. */
+    windowDays: number
+    /** Шаг между окнами в днях. */
+    stepDays: number
+    /** Границы rolling-окон. */
+    windows: PfiFeatureHistoryWindowDto[]
+    /** Варианты метрик для локального переключения без новых запросов. */
+    variants: PfiFeatureHistoryVariantDto[]
+}
+
+export interface PfiFeatureHistoryWindowDto {
+    /** Начало окна в ISO day-key UTC. */
+    startDayKeyUtc: string
+    /** Конец окна в ISO day-key UTC. */
+    endDayKeyUtc: string
+}
+
+export interface PfiFeatureHistoryVariantDto {
+    /** Machine-readable ключ варианта. */
+    variantKey: string
+    /** Короткий заголовок варианта. */
+    title: string
+    /** Подпись метрики на оси Y. */
+    metricTitle: string
+    /** Единица измерения метрики. */
+    metricUnit: string
+    /** Признак того, что меньшие значения нужно читать как лучший результат. */
+    lowerValuesAreBetter: boolean
+    /** Рекомендуемое число знаков после запятой. */
+    valueDecimals: number
+    /** Серии по всем признакам. */
+    series: PfiFeatureHistorySeriesDto[]
+}
+
+export interface PfiFeatureHistorySeriesDto {
+    /** Каноничное имя фичи. */
+    featureName: string
+    /** Признак выбранной фичи. */
+    isPrimary: boolean
+    /** Порядок близости к выбранной фиче по основному графику полезности. */
+    comparisonRank?: number
+    /** Значения серии в порядке окон. */
+    values: number[]
+}
+
+export interface PfiFeatureDetailBlockDto {
+    /** Заголовок смыслового блока. */
+    title: string
+    /** Текст блока в rich-text формате. */
+    body: string
+}
+
+export interface PfiFeatureDetailTableDto {
+    /** Заголовок таблицы. */
+    title: string
+    /** Display-заголовки колонок. */
+    columns: string[]
+    /** Machine-readable ключи колонок. */
+    columnKeys: string[]
+    /** Materialized строки таблицы. */
+    rows: string[][]
+}
+
+export interface PfiFeatureRollingChartDto {
+    /** Заголовок графика. */
+    title: string
+    /** Название метрики по оси Y. */
+    metricTitle: string
+    /** Единицы метрики (например, п.п.). */
+    metricUnit: string
+    /** Ключ модели, по которой построена серия. */
+    modelKey: string
+    /** Человекочитаемое имя модели. */
+    modelDisplayName: string
+    /** Ключ скоупа расчёта. */
+    scoreScopeKey: string
+    /** Размер rolling-окна в днях. */
+    windowDays: number
+    /** Шаг между окнами в днях. */
+    stepDays: number
+    /** Серии графика (основная фича и конкуренты). */
+    series: PfiFeatureRollingSeriesDto[]
+}
+
+export interface PfiFeatureRollingSeriesDto {
+    /** Каноничное имя фичи. */
+    featureName: string
+    /** Признак основной (выбранной) фичи. */
+    isPrimary: boolean
+    /** Точки серии по rolling-окнам. */
+    points: PfiFeatureRollingPointDto[]
+}
+
+export interface PfiFeatureRollingPointDto {
+    /** Начало rolling-окна в ISO day-key UTC. */
+    windowStartDayKeyUtc: string
+    /** Конец rolling-окна в ISO day-key UTC. */
+    windowEndDayKeyUtc: string
+    /** Важность признака в процентных пунктах. */
+    value: number
 }

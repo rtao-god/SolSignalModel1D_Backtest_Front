@@ -341,7 +341,8 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Общий ответ (интерпретация моделей)': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
     'Итоговый ответ моделей': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
     'Обучение моделей (диапазон)': 'Prediction scope range (mode + range + scored rows).',
-    'Диапазон режима прогноза': 'Prediction scope range (mode + range + scored rows).',
+    'Диапазон режима прогноза':
+        'Prediction scope range shows which training mode is active, what historical window it covers, and how many scored rows entered the report.\n\nWhat it shows:\nit brings together the active mode, the scored date range, and the size of the visible slice.\n\nHow to read it:\nthis field helps separate full history, honest OOS evaluation, train diagnostics, and the recent OOS tail before comparing any metrics between them.',
     'Training recipe':
         'Training recipe is the rule used to assemble the model-fitting path for this current prediction card.\n\nWhat it shows:\nit separates full refit on the whole completed history, where the outcome of each day is already known, from split train/OOS, where the model is trained on train and evaluated only on OOS.\n\nHow to read it:\nthis field explains model preparation rather than market state. It is the first place to look when full, OOS, recent, and train diagnostics behave differently.',
     'Prediction semantics':
@@ -517,9 +518,13 @@ export const PFI_COLUMNS_EN: Record<string, string> = {
     FeatureName: 'Technical feature name.',
     'Важность (ΔAUC)':
         'AUC drop when feature is permuted (Permutation importance). Higher means more important feature.',
+    'Importance (ΔAUC, p.p.)': 'Absolute AUC drop when feature is permuted, shown in percentage points.',
     'ImportanceAuc (abs ΔAUC)': 'Absolute AUC drop when feature is permuted.',
+    'ImportanceAuc (abs ΔAUC, p.p.)': 'Absolute AUC drop when feature is permuted, shown in percentage points.',
     'ΔAUC (сырое)': 'Raw ΔAUC = baseline AUC - permuted AUC.',
+    'ΔAUC (p.p.)': 'Difference between baseline AUC and permuted AUC, shown in percentage points.',
     'DeltaAuc (baseline - perm)': 'Raw ΔAUC (baseline - permuted).',
+    'DeltaAuc (baseline - perm, p.p.)': 'ΔAUC (baseline - permuted), shown in percentage points.',
     'ΔMean (1-0)': 'Difference of feature means between class 1 and class 0 (MeanPos - MeanNeg).',
     'MeanPos - MeanNeg': 'Difference of feature means between class 1 and class 0.',
     'MeanPos (Label=1)': 'Mean feature value for positive class.',
@@ -530,8 +535,41 @@ export const PFI_COLUMNS_EN: Record<string, string> = {
     'CorrScore (Pearson)': 'Feature correlation with model score (Pearson).',
     'Corr(label)': 'Feature correlation with target label (Pearson).',
     'CorrLabel (Pearson)': 'Feature correlation with target label (Pearson).',
+    'Baseline AUC': 'Baseline ROC-AUC score before permutation. This is the reference point for ΔAUC.',
     'Support (pos/neg)': 'Number of examples per class: pos/neg.',
-    'CountPos / CountNeg': 'Count of class-1 and class-0 samples.'
+    'Eval support (pos/neg)': 'Number of evaluation examples per class: pos/neg.',
+    'CountPos / CountNeg': 'Count of class-1 and class-0 samples.',
+    'Binary eval support (CountPos / CountNeg)': 'Number of evaluation examples per class: pos/neg.',
+    Model: 'Binary model for which the feature statistics were computed.',
+    Scope: 'Data slice on which the metric was computed: train, train_oof, oos, or full_history.',
+    Rank: 'Feature rank inside the importance ordering of one model and one scope.',
+    Feature: 'Neighboring feature shown for comparison.',
+    'ROC-AUC': 'Overall class-separation quality across the full threshold range.',
+    'PR-AUC': 'Positive-class quality on the precision-recall curve.',
+    Brier: 'Mean squared error of predicted probability. Lower is better.',
+    'Pos share, %': 'Positive-class share in the full evaluation slice.',
+    'TPR @ FPR 5%, %': 'Recall of the positive class at a 5% false-positive rate limit.',
+    'TPR @ FPR 10%, %': 'Recall of the positive class at a 10% false-positive rate limit.',
+    'Precision @ Top 10%, %': 'Precision among the top 10% highest-probability observations.',
+    'Precision @ Top 20%, %': 'Precision among the top 20% highest-probability observations.',
+    'Mean calibration gap (p.p.)': 'Average difference between model probability and realized rate across calibration bins.',
+    'Mean |contribution|': 'Average absolute strength of local feature contribution.',
+    'Mean contribution': 'Average signed local feature contribution.',
+    'Positive contribution, %': 'Share of rows where the feature pushed prediction upward.',
+    'Negative contribution, %': 'Share of rows where the feature pushed prediction downward.',
+    'Top 1 reason, %': 'Share of rows where the feature was the strongest prediction reason.',
+    'Top 3 reasons, %': 'Share of rows where the feature entered the top three reasons.',
+    Bucket: 'Feature-value range or exact value used for local bucket statistics.',
+    Rows: 'Observation count inside the bucket.',
+    'Rows, %': 'Bucket share of the full evaluation slice.',
+    'Avg value': 'Average feature value inside the bucket.',
+    'Value range': 'Minimum and maximum feature value inside the bucket.',
+    'Positive class, %': 'Realized positive-class share inside the bucket.',
+    'Lift x': 'Bucket positive-rate divided by the section baseline rate.',
+    'Avg probability, %': 'Average predicted positive-class probability inside the bucket.',
+    'Calibration gap (p.p.)': 'Difference between average probability and realized positive rate inside the bucket.',
+    'Avg score': 'Average internal model score inside the bucket.',
+    'Avg contribution': 'Average signed feature contribution inside the bucket.'
 }
 
 export const MODEL_STATS_COLUMNS_EN: Record<string, string> = {
@@ -576,10 +614,14 @@ function buildPfiColumnDescriptionEn(key: string): string | null {
         case 'FeatureName':
             return 'Feature is the concrete input signal that was fed into the model and then appeared in the PFI table.\n\nWhat it shows:\nit names the signal whose importance, correlations, and class means are shown across the row.\n\nHow to read it:\nfirst understand what the feature measures, then read its influence through ΔAUC, mean gaps, and correlations.\n\nExample:\nif the same feature stays near the top across runs, it is one of the strongest stable drivers of model quality.'
         case 'Важность (ΔAUC)':
+        case 'Importance (ΔAUC, p.p.)':
         case 'ImportanceAuc (abs ΔAUC)':
+        case 'ImportanceAuc (abs ΔAUC, p.p.)':
             return 'Importance (ΔAUC) is how much the model AUC falls when only this feature is permuted.\n\nWhat it shows:\na stronger drop means the model truly depends on the information carried by this feature.\n\nHow to read it:\nhigher values mean stronger contribution; values near zero mean the feature adds little unique signal.\n\nExample:\nif two features have ΔAUC of 0.041 and 0.003, the first one is materially more important.'
         case 'ΔAUC (сырое)':
+        case 'ΔAUC (p.p.)':
         case 'DeltaAuc (baseline - perm)':
+        case 'DeltaAuc (baseline - perm, p.p.)':
             return 'ΔAUC is the raw difference between baseline AUC and AUC after permuting one feature.\n\nWhat it shows:\nit is the direct quality loss caused by destroying the structure of that single signal.\n\nHow to read it:\na larger positive ΔAUC means a more useful feature; a value near zero means weak or almost neutral contribution.\n\nFormula:\nΔAUC = baseline AUC - permuted AUC.'
         case 'ΔMean (1-0)':
         case 'MeanPos - MeanNeg':
@@ -596,9 +638,69 @@ function buildPfiColumnDescriptionEn(key: string): string | null {
         case 'Corr(label)':
         case 'CorrLabel (Pearson)':
             return 'Corr(label) is the Pearson correlation between the feature and the target label.\n\nWhat it shows:\nit is a more direct relation to the target than Corr(score), because it bypasses the model score layer.\n\nHow to read it:\nvalues farther from zero mean a stronger linear relation to the target, and the sign shows the direction.\n\nExample:\na correlation of -0.31 means the feature tends to rise on negative-class rows.'
+        case 'Baseline AUC':
+            return 'Baseline AUC is the reference ROC-AUC of the model before any single feature is permuted.\n\nWhat it shows:\nit is the starting quality level from which ΔAUC is later measured for every row of the PFI table.\n\nHow to read it:\nthis field is not feature importance by itself. It gives the base quality point needed to judge how large the later quality drop really is.'
         case 'Support (pos/neg)':
+        case 'Eval support (pos/neg)':
         case 'CountPos / CountNeg':
+        case 'Binary eval support (CountPos / CountNeg)':
             return 'Support is how many positive and negative samples stand behind the statistics of the row.\n\nWhat it shows:\nit is the evidence size used for means, correlations, and permutation importance.\n\nHow to read it:\nsmall support makes every other number more fragile; larger support makes the row more trustworthy.\n\nExample:\nSupport 18/14 is much thinner and less stable than 480/510.'
+        case 'Model':
+            return 'Model is the binary forecasting model to which the current feature row belongs.\n\nWhat it shows:\nit separates different prediction tasks that may coexist on one feature page: up-move detection, down-move detection, stop-loss risk, and other sections when present.\n\nHow to read it:\ncompare numbers directly only inside the same model, because different models solve different tasks and have different baseline difficulty.'
+        case 'Scope':
+            return 'Scope is the data slice on which the metric was computed.\n\nWhat it shows:\nit separates train, train_oof, oos, and full_history. In plain terms, it tells you where the model was judged: on training rows, leak-safe validation rows, future holdout rows, or the full available history.\n\nHow to read it:\noos is usually the main owner view for quality because it is the closest to a true future check.'
+        case 'Rank':
+            return 'Rank is the feature position inside the importance ordering of one model and one scope.\n\nWhat it shows:\nit is an already sorted place in the list, not a standalone mathematical metric.\n\nHow to read it:\nsmaller rank means a feature sits closer to the top. But rank alone hides scale, so it should be read together with ΔAUC.'
+        case 'Feature':
+            return 'Feature is the name of a neighboring signal shown for comparison.\n\nWhat it shows:\nin the peer table it lists nearby features by rank or strength so the current signal can be judged against its closest neighbors.\n\nHow to read it:\nuse the name as context. The actual conclusion about strength still comes from rank and importance, not from the label alone.'
+        case 'ROC-AUC':
+            return 'ROC-AUC is the overall class-separation quality across the full threshold range.\n\nWhat it shows:\nit measures how often the model places truly more positive cases above negative ones. A value near 0.5 is close to random ordering, while a value closer to 1.0 means stronger separation.\n\nHow to read it:\nhigher is better. Use it as the broad quality headline, but when the positive class is rare it should be read together with PR-AUC.'
+        case 'PR-AUC':
+            return 'PR-AUC is the quality of the positive class on the precision-recall curve.\n\nWhat it shows:\nit focuses more directly on how cleanly the model captures the positive class and how much noise it raises while doing so. This makes it especially informative when positives are rare.\n\nHow to read it:\nhigher is better. A strong ROC-AUC with a much weaker PR-AUC often means ranking is decent overall but the positive class is still hard to isolate cleanly.'
+        case 'Brier':
+            return 'Brier is the mean squared error of predicted probability.\n\nWhat it shows:\nit compares predicted probability with the realized outcome 0 or 1 and penalizes both overconfident misses and generally inaccurate probabilities.\n\nHow to read it:\nlower is better. If Brier improves, predicted probabilities sit closer to reality. It should be read together with calibration gap because good ranking does not automatically mean well-calibrated probability.\n\nFormula:\nmean of (p - y)^2.'
+        case 'Pos share, %':
+            return 'Pos share, % is the positive-class share in the full evaluation slice of the section.\n\nWhat it shows:\nit is the base event rate against which PR-AUC, lift, and bucket-level frequencies should be judged. In plain terms, it tells how rare the positive class is in this check.\n\nHow to read it:\nthe lower the share, the more carefully narrow-slice percentages should be interpreted. Rare-event setups can have useful quality even when PR-AUC still looks modest.'
+        case 'TPR @ FPR 5%, %':
+        case 'TPR @ FPR 10%, %':
+            return 'TPR @ FPR is positive-class recall under a fixed false-positive budget.\n\nWhat it shows:\nfirst the allowed false-positive rate is fixed, for example 5% or 10%, and then the metric measures what share of real positives the model still catches under that constraint.\n\nHow to read it:\nhigher is better. It is especially useful when the practical goal is to catch positives while tightly controlling false alarms.'
+        case 'Precision @ Top 10%, %':
+        case 'Precision @ Top 20%, %':
+            return 'Precision @ Top is the positive-class share inside the highest-probability part of the ranked list.\n\nWhat it shows:\nit answers how clean the model top becomes if you keep only the top 10% or top 20% most confident observations.\n\nHow to read it:\nhigher is better. If top precision is far above the base positive share, the model is successfully lifting the strongest cases to the top.'
+        case 'Mean calibration gap (p.p.)':
+            return 'Mean calibration gap (p.p.) is the average shift between predicted probability and realized positive rate across calibration bins.\n\nWhat it shows:\na positive value means the model tends to overstate probability on average, while a negative value means it tends to understate it. The value is shown in percentage points for easier reading.\n\nHow to read it:\nvalues closer to zero mean more honest probabilities. A large absolute gap means the probability sounds precise but does not carry its usual real-world meaning well.'
+        case 'Mean |contribution|':
+            return 'Mean |contribution| is the average absolute local contribution of the feature across all rows of the section.\n\nWhat it shows:\nit measures the typical strength of the feature influence without caring about sign. In plain terms, it answers how often the signal moves the prediction meaningfully at all.\n\nHow to read it:\nhigher values mean the feature participates more strongly in local decisions. Use signed mean contribution to see the average direction of that push.'
+        case 'Mean contribution':
+            return 'Mean contribution is the average signed local contribution of the feature across the whole section.\n\nWhat it shows:\na positive value means the feature more often pushes prediction toward the positive class on average. A negative value means it more often pushes downward.\n\nHow to read it:\nread it together with mean |contribution|. A small signed mean with a large absolute mean often means the feature is strong but works in both directions depending on regime or value range.'
+        case 'Positive contribution, %':
+        case 'Negative contribution, %':
+            return 'Contribution share shows how often the local contribution of the feature had a positive or negative sign.\n\nWhat it shows:\npositive share counts rows where the feature pushed prediction upward, while negative share counts rows where it pushed prediction downward. Near-zero contributions usually do not belong to either side.\n\nHow to read it:\nif one share clearly dominates, the feature has a stable prevailing direction. If the two shares are close, the feature behaves more like a regime switch than a one-direction driver.'
+        case 'Top 1 reason, %':
+        case 'Top 3 reasons, %':
+            return 'Top reason share tells how often the feature was among the main reasons of a concrete prediction.\n\nWhat it shows:\nTop 1 counts rows where the feature had the strongest absolute local contribution. Top 3 counts rows where it entered the three strongest reasons.\n\nHow to read it:\nhigher values mean the model repeatedly relies on this signal in concrete decisions rather than keeping it as a weak background feature.'
+        case 'Bucket':
+            return 'Bucket is the feature-value range used for local slice statistics.\n\nWhat it shows:\nwhen the feature has only a few unique values, a bucket may be one exact value. When values are many, the bucket is usually a quantile range such as Q1, Q2, and so on. This exposes where prediction quality rises or weakens along the feature scale.\n\nHow to read it:\nread bucket together with row count, positive rate, lift, average probability, and average contribution rather than treating the label alone as the conclusion.'
+        case 'Rows':
+            return 'Rows is how many observations fell into the current feature-value bucket.\n\nWhat it shows:\nit is the factual sample size behind every other number in the row: positive class, probability, lift, calibration gap, and contribution.\n\nHow to read it:\nsmall buckets are statistically thinner, so sharp percentages inside them should be treated more cautiously than the same values on wide coverage.'
+        case 'Rows, %':
+            return 'Rows, % is the share of the current bucket relative to the whole evaluation slice.\n\nWhat it shows:\nit answers how often the model actually sees this value range of the feature. That helps separate a common working regime from a rare tail of the distribution.\n\nHow to read it:\na large share means the range materially shapes the overall picture. A very small share usually means a rarer extreme regime.'
+        case 'Avg value':
+            return 'Avg value is the mean feature value inside the current bucket.\n\nWhat it shows:\nit is the typical signal level inside the selected range. For a wide bucket it helps show the center of mass rather than only the left and right edges.\n\nHow to read it:\nread it together with value range. When the range is wide, avg value tells where most observations sit inside that interval.'
+        case 'Value range':
+            return 'Value range is the minimum and maximum feature value inside the bucket.\n\nWhat it shows:\nit defines the actual feature zone behind all other numbers of the row. This is the main answer to where quality, lift, or contribution changes across the feature scale.\n\nHow to read it:\ncompare neighboring ranges as behavior zones of the feature. That is where strong, neutral, and weak value areas become visible.'
+        case 'Positive class, %':
+            return 'Positive class, % is the realized positive-class share inside the current bucket.\n\nWhat it shows:\nit is the honest success frequency of the target for this feature-value zone. It is independent from any downstream trading policy and speaks directly about predictive relation.\n\nHow to read it:\nif it is materially above the section base rate, the range looks stronger than average. If it is lower, the range is more associated with a weaker or adverse scenario.'
+        case 'Lift x':
+            return 'Lift x is how many times the bucket positive rate stands above or below the section baseline.\n\nWhat it shows:\nit normalizes the bucket positive class share by the global positive share of the section. A value of 1.0 means baseline behavior, above 1.0 means a stronger zone, below 1.0 means a weaker one.\n\nHow to read it:\nlift is the easiest relative-strength view of the range. For example, 1.40 means positives appear 1.4 times as often as the section baseline.'
+        case 'Avg probability, %':
+            return 'Avg probability, % is the mean predicted probability of the positive class inside the bucket.\n\nWhat it shows:\nit is the average model confidence for this exact feature-value zone. It lets you compare what the model promises with what the positive class actually delivered.\n\nHow to read it:\nif avg probability is well above realized positive class, the model overestimates this zone. If it is lower, the model underestimates it.'
+        case 'Calibration gap (p.p.)':
+            return 'Calibration gap (p.p.) is the difference between mean predicted probability and realized positive rate inside the bucket.\n\nWhat it shows:\na positive value means overestimation in this range, while a negative value means underestimation. The value is shown in percentage points to make bucket-to-bucket comparison easier.\n\nHow to read it:\nvalues closer to zero mean the model probability is more honest specifically in this feature zone.'
+        case 'Avg score':
+            return 'Avg score is the mean internal model score inside the bucket.\n\nWhat it shows:\nit is the raw model number before the final reading through probability or threshold. In a binary model it usually reflects how strongly the model leans toward the positive or negative class.\n\nHow to read it:\nthis field is useful for internal mechanics. A rising avg score usually means the bucket pushes the model more strongly toward the positive class.'
+        case 'Avg contribution':
+            return 'Avg contribution is the mean signed local contribution of the feature inside the bucket.\n\nWhat it shows:\nit is the direct answer to how this value zone moves prediction: upward, downward, or almost neutrally. Unlike the section-wide mean contribution, here you see behavior inside one concrete feature range.\n\nHow to read it:\na positive value means the range tends to push the prediction toward the positive class, and a negative value means it tends to push it away. Sign flips across buckets are a clean way to spot helpful and harmful value zones.'
         default:
             return null
     }
@@ -655,6 +757,46 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
 Object.assign(
     PFI_COLUMNS_EN,
     Object.fromEntries(Object.keys(PFI_COLUMNS_EN).map(key => [key, buildPfiColumnDescriptionEn(key) ?? PFI_COLUMNS_EN[key]]))
+)
+
+const PFI_EXTENDED_OWNER_COLUMN_KEYS_EN = [
+    'Model',
+    'Scope',
+    'Rank',
+    'Feature',
+    'ROC-AUC',
+    'PR-AUC',
+    'Brier',
+    'Pos share, %',
+    'TPR @ FPR 5%, %',
+    'TPR @ FPR 10%, %',
+    'Precision @ Top 10%, %',
+    'Precision @ Top 20%, %',
+    'Mean calibration gap (p.p.)',
+    'Mean |contribution|',
+    'Mean contribution',
+    'Positive contribution, %',
+    'Negative contribution, %',
+    'Top 1 reason, %',
+    'Top 3 reasons, %',
+    'Bucket',
+    'Rows',
+    'Rows, %',
+    'Avg value',
+    'Value range',
+    'Positive class, %',
+    'Lift x',
+    'Avg probability, %',
+    'Calibration gap (p.p.)',
+    'Avg score',
+    'Avg contribution'
+] as const
+
+Object.assign(
+    PFI_COLUMNS_EN,
+    Object.fromEntries(
+        PFI_EXTENDED_OWNER_COLUMN_KEYS_EN.map(key => [key, buildPfiColumnDescriptionEn(key) ?? PFI_COLUMNS_EN[key]])
+    )
 )
 
 Object.assign(

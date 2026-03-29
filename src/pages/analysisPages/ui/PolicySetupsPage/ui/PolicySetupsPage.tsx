@@ -28,6 +28,7 @@ import type {
     PolicySetupHistoryResolution,
     PolicySetupLedgerResponseDto
 } from '@/shared/types/policySetupHistory'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import PolicySetupsChart from './PolicySetupsChart'
 import type { BalanceViewMode, LineVisibilityMode, PolicySetupChartVisibleRange, RangePreset } from './types'
 import cls from './PolicySetupsPage.module.scss'
@@ -469,7 +470,16 @@ export default function PolicySetupsPage() {
             }))
         } catch (error) {
             if (activeLedgerLoadKeyRef.current !== requestLedgerLoadKey) return
-            setOlderPrefetchError(error instanceof Error ? error : new Error('Failed to prefetch older detail chunk.'))
+            setOlderPrefetchError(
+                normalizeErrorLike(error, 'Failed to prefetch older detail chunk.', {
+                    source: 'policy-setup-older-prefetch',
+                    domain: 'ui_section',
+                    owner: 'policy-setups-page',
+                    expected: 'Older policy setup chunk prefetch should resolve a ledger and candle chunk pair.',
+                    requiredAction: 'Inspect policy setup chunk queries and the selected visible range.',
+                    extra: { setupId, resolution, rangePreset }
+                })
+            )
         } finally {
             if (olderRequestKeyRef.current === nextRequestKey) {
                 olderRequestKeyRef.current = null
@@ -520,8 +530,8 @@ export default function PolicySetupsPage() {
                             <span className={classNames(cls.balanceLegendSwatch, {}, [cls.balanceLegendSwatchWorkingGap])} />
                             <Text className={cls.balanceLegendText}>
                                 Тонкая светлая ветка показывает только [[current-balance|рабочий баланс]].
-                                Она появляется там, где часть результата уже ушла в [[withdrawn-profit|выведенную прибыль]] и деньги в торговле стали меньше общего капитала.
-                                Если расхождения нет, нижний график остаётся одной веткой без второго дубля.
+                                Она появляется там, где часть результата уже ушла в [[withdrawn-profit|выведенную прибыль]], а деньги в торговле ещё не вернулись выше [[start-cap|стартового капитала]].
+                                Когда рабочий баланс снова выше стартовой базы, нижний график остаётся одной основной веткой.
                             </Text>
                         </div>
                     )

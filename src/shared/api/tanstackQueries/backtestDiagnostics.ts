@@ -7,6 +7,7 @@ import {
     prefetchPublishedReportVariantCatalog,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from './reportVariants'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const BACKTEST_DIAGNOSTICS_QUERY_KEY = ['backtest', 'diagnostics'] as const
 const { path } = API_ROUTES.backtest.diagnosticsGet
@@ -44,32 +45,8 @@ export interface BacktestSliceReportQueryArgs {
 
 export type BacktestDiagnosticsReportQueryArgs = BacktestSliceReportQueryArgs
 
-interface ApiErrorPayload {
-    error?: string
-    message?: string
-    title?: string
-    detail?: string
-}
-
-function formatBacktestDiagnosticsError(status: number, bodyText: string): string {
-    if (!bodyText) {
-        return `Failed to load backtest diagnostics report: ${status}`
-    }
-
-    try {
-        const payload = JSON.parse(bodyText) as ApiErrorPayload
-        const details = [payload.error, payload.message ?? payload.detail ?? payload.title]
-            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-            .join(' | ')
-
-        if (details) {
-            return `Failed to load backtest diagnostics report: ${status} ${details}`
-        }
-    } catch {
-        // ignore invalid JSON payload and fall back to plain response text
-    }
-
-    return `Failed to load backtest diagnostics report: ${status} ${bodyText}`
+function formatBacktestDiagnosticsError(response: Response, bodyText: string): string {
+    return buildDetailedRequestErrorMessage('backtest diagnostics report', response, bodyText)
 }
 
 function buildBacktestDiagnosticsPath(args?: BacktestDiagnosticsReportQueryArgs): string {
@@ -117,7 +94,7 @@ async function fetchBacktestDiagnosticsReport(args?: BacktestDiagnosticsReportQu
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(formatBacktestDiagnosticsError(resp.status, text))
+        throw new Error(formatBacktestDiagnosticsError(resp, text))
     }
 
     const raw = await resp.json()

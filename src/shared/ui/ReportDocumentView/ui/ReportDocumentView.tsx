@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { ReportActualStatusCard, ReportTableTermsBlock, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import {
@@ -75,7 +76,13 @@ export function ReportDocumentView({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'report-document-view-source-endpoint',
+                domain: 'ui_section',
+                owner: 'report-document-view',
+                expected: 'Report document view should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -111,7 +118,13 @@ export function ReportDocumentView({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build report terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build report terms.', {
+                source: 'report-document-view-terms',
+                domain: 'ui_section',
+                owner: 'report-document-view',
+                expected: 'Report document view should build terms from published sections and shared glossary.',
+                requiredAction: 'Inspect report sections and report terms resolver for missing owner term metadata.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError

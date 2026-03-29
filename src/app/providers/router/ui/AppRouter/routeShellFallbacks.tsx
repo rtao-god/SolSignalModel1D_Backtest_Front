@@ -237,6 +237,12 @@ const ROUTE_SHELLS: Partial<Record<AppRoute, ComponentType<RouteShellStateProps>
         'confidenceRisk.page.subtitle',
         'Связь confidence, bucket и риска на уровне фактических сделок.'
     ),
+    [AppRoute.BACKTEST_SHARP_MOVE_STATS]: createReportsShell(
+        'sharpMoveStats.page.title',
+        'Sharp move statistics',
+        'sharpMoveStats.page.subtitle',
+        'Сетка сценариев по продолжению и развороту после резкого движения цены.'
+    ),
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: createReportsShell(
         'realForecastJournal.page.title',
         'Real Forecast Journal',

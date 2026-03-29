@@ -2,6 +2,7 @@ import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react
 import type { BacktestBaselineSnapshotDto, BacktestSummaryDto } from '@/shared/types/backtest.types'
 import { mapBacktestBaselineSnapshotResponse, mapReportResponse } from '../utils/mapReportResponse'
 import { API_BASE_URL } from '../../configs/config'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const BACKTEST_BASELINE_SUMMARY_URL = '/backtest/summary'
 const BACKTEST_BASELINE_SNAPSHOT_URL = '/backtest/baseline'
@@ -24,7 +25,7 @@ async function fetchBacktestBaselineSummary(): Promise<BacktestSummaryDto> {
     const resp = await fetch(`${API_BASE_URL}${BACKTEST_BASELINE_SUMMARY_URL}`)
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load backtest baseline summary: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load backtest baseline summary', resp, text))
     }
 
     const raw = await resp.json()
@@ -35,7 +36,7 @@ async function fetchBacktestBaselineSnapshot(): Promise<BacktestBaselineSnapshot
     const resp = await fetch(`${API_BASE_URL}${BACKTEST_BASELINE_SNAPSHOT_URL}`)
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load backtest baseline snapshot: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load backtest baseline snapshot', resp, text))
     }
 
     const raw = await resp.json()

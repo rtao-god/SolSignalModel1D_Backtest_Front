@@ -128,6 +128,34 @@ const MODEL_STATS_RULES: DescriptionRule[] = [
     }
 ]
 
+const PFI_RULES: DescriptionRule[] = [
+    {
+        match: /^Model quality by section$/i,
+        ru: 'Сравнение общего качества модели по каждой секции и источнику оценки. Этот блок нужен, чтобы понять, на каком наборе данных модель вообще держит сильный прогноз, а где базовое качество уже проседает само по себе.',
+        en: 'Compares overall model quality across sections and score scopes. Use this block to see where the model itself remains strong before interpreting feature-level behavior.'
+    },
+    {
+        match: /^Local feature contribution by section$/i,
+        ru: 'Локальный вклад выбранного признака в сам прогноз модели. Таблица показывает, как часто признак толкает прогноз вверх или вниз и как часто входит в главные причины решения внутри каждой секции.',
+        en: 'Local contribution of the selected feature to the model output. The table shows how often the feature pushes the prediction up or down and how often it becomes one of the main drivers within each section.'
+    },
+    {
+        match: /^Value buckets and prediction quality$/i,
+        ru: 'Разбор признака по диапазонам значений. Здесь видно, какие зоны значения чаще совпадают с сильным прогнозом, где модель переоценивает вероятность и в каких диапазонах вклад признака становится слабее.',
+        en: 'Breakdown of the feature by value ranges. This section shows which ranges align with stronger prediction quality, where probabilities become overstated, and where the feature contribution fades.'
+    },
+    {
+        match: /^PFI by models \(feature detail\)$/i,
+        ru: 'Главная сводка важности признака по моделям и источникам оценки. Здесь видно, насколько сильно перестановка признака портит качество прогноза и как меняется его ранг между секциями.',
+        en: 'Main feature-importance summary across models and score scopes. It shows how much prediction quality drops after permutation and how the feature rank changes across sections.'
+    },
+    {
+        match: /^Top features \(section context\)$/i,
+        ru: 'Контекст соседних признаков внутри той же секции. Блок помогает понять, кто находится рядом с выбранным признаком по рангу и где вокруг него уже есть более сильные или близкие по полезности признаки.',
+        en: 'Section-level peer context for the selected feature. This block shows nearby ranked features and helps reveal where stronger or closely competing neighbors already surround it.'
+    }
+]
+
 const PFI_DESCRIPTION: Record<ReportUiLocale, string> = {
     ru: 'Permutation Feature Importance (PFI) по одной модели: показываем, насколько ухудшается качество (AUC), если перемешать фичу. Чем выше ΔAUC, тем важнее признак. ΔMean и корреляции помогают понять направление влияния.',
     en: 'Permutation Feature Importance (PFI) for a single model: shows quality degradation (AUC drop) when each feature is shuffled. Higher ΔAUC means higher feature importance. ΔMean and correlation fields help interpret directional effect.'
@@ -162,6 +190,11 @@ export function resolveReportSectionDescription(
     }
 
     if (reportKind === 'pfi_per_model' || reportKind === 'pfi_sl_model') {
+        const withoutPrefix = stripSegmentPrefix(normalized)
+        for (const rule of PFI_RULES) {
+            if (rule.match.test(withoutPrefix)) return resolveRuleDescription(rule, resolvedLocale)
+        }
+
         return PFI_DESCRIPTION[resolvedLocale]
     }
 

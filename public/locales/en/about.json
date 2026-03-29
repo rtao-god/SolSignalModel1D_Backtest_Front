@@ -374,6 +374,27 @@
                 }
             }
         },
+        "backtest_sharp_move_stats": {
+            "description": "Sharp move statistics shows what happens more often after a strong price impulse: trend continuation or reversal.",
+            "blocks": {
+                "controls": {
+                    "title": "Scenario controls",
+                    "description": "Selection of history scope, signal type, outcome direction, threshold, and horizon."
+                },
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source of the published scenario and its freshness context."
+                },
+                "selectedScenario": {
+                    "title": "Selected scenario",
+                    "description": "Core metrics of the open scenario: hit rate, average move, risk, and signal count."
+                },
+                "comparisonTables": {
+                    "title": "Comparison tables",
+                    "description": "Threshold and horizon ladders plus the leaderboard of the most stable scenarios."
+                }
+            }
+        },
         "analysis_real_forecast_journal": {
             "description": "Real forecast journal combines the causal day slice, live execution status, and comparisons with reference sources.",
             "blocks": {

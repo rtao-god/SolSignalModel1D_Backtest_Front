@@ -3,6 +3,7 @@ import { ROUTE_PATH } from './consts'
 import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { Navigate } from 'react-router-dom'
 const importMainPage = () => import('@/pages/Main')
 const MainPage = lazyPage(importMainPage)
@@ -59,6 +60,10 @@ const importPolicySetupsPage = () => import('@/pages/analysisPages/ui/PolicySetu
 const PolicySetupsPage = lazyPage(importPolicySetupsPage)
 const importConfidenceRiskPage = () => import('@/pages/analysisPages/ui/ConfidenceRiskPage')
 const ConfidenceRiskPage = lazyPage(importConfidenceRiskPage)
+const importSharpMoveStatsPage = () => import('@/pages/analysisPages/ui/SharpMoveStatsPage')
+const SharpMoveStatsPage = lazyPage(importSharpMoveStatsPage)
+const importCurrentPredictionOosPresetsPage = () => import('@/pages/analysisPages/ui/CurrentPredictionOosPresetsPage')
+const CurrentPredictionOosPresetsPage = lazyPage(importCurrentPredictionOosPresetsPage)
 const importRealForecastJournalPage = () => import('@/pages/analysisPages/ui/RealForecastJournalPage')
 const RealForecastJournalPage = lazyPage(importRealForecastJournalPage)
 const importExecutionPipelinePage = () => import('@/pages/analysisPages/ui/ExecutionPipelinePage')
@@ -69,6 +74,8 @@ const importPredictionHistoryPage = () => import('@/pages/predictions/ui/Predict
 const PredictionHistoryPage = lazyPage(importPredictionHistoryPage)
 const importPfiPage = () => import('@/pages/PfiPage')
 const PfiPage = lazyPage(importPfiPage)
+const importPfiFeatureDetailPage = () => import('@/pages/PfiFeatureDetailPage')
+const PfiFeatureDetailPage = lazyPage(importPfiFeatureDetailPage)
 const importDocsTestsPage = () => import('@/pages/docsPages/ui/DocsTestsPage')
 const DocsTestsPage = lazyPage(importDocsTestsPage)
 const importDocsTruthfulnessPage = () => import('@/pages/docsPages/ui/DocsTruthfulnessPage')
@@ -366,6 +373,32 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         }
     },
     {
+        id: AppRoute.BACKTEST_SHARP_MOVE_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_SHARP_MOVE_STATS],
+        element: <SharpMoveStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading sharp move statistics',
+        nav: {
+            sidebar: true,
+            label: 'Sharp move statistics',
+            section: 'analysis',
+            order: 8
+        }
+    },
+    {
+        id: AppRoute.CURRENT_PREDICTION_OOS_PRESETS,
+        path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_OOS_PRESETS],
+        element: <CurrentPredictionOosPresetsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading OOS preset tails',
+        nav: {
+            sidebar: true,
+            label: 'Хвосты новых дней',
+            section: 'analysis',
+            order: 9
+        }
+    },
+    {
         id: AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL,
         path: ROUTE_PATH[AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL],
         element: <RealForecastJournalPage />,
@@ -403,6 +436,13 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             section: 'features',
             order: 2
         }
+    },
+    {
+        id: AppRoute.PFI_PER_MODEL_FEATURE_DETAIL,
+        path: ROUTE_PATH[AppRoute.PFI_PER_MODEL_FEATURE_DETAIL],
+        element: <PfiFeatureDetailPage />,
+        layout: 'app',
+        loadingTitle: 'Загрузка описания признака'
     },
     {
         id: AppRoute.PFI_SL_MODEL,
@@ -775,9 +815,12 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.BACKTEST_POLICY_SETUPS]: importPolicySetupsPage,
     [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: importPolicySetupsPage,
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: importConfidenceRiskPage,
+    [AppRoute.BACKTEST_SHARP_MOVE_STATS]: importSharpMoveStatsPage,
+    [AppRoute.CURRENT_PREDICTION_OOS_PRESETS]: importCurrentPredictionOosPresetsPage,
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: importRealForecastJournalPage,
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: importExecutionPipelinePage,
     [AppRoute.PFI_PER_MODEL]: importPfiPage,
+    [AppRoute.PFI_PER_MODEL_FEATURE_DETAIL]: importPfiFeatureDetailPage,
     [AppRoute.PFI_SL_MODEL]: importPfiPage,
     [AppRoute.MODELS_STATS]: importModelStatsPage,
     [AppRoute.AGGREGATION_STATS]: importAggregationStatsPage,
@@ -813,7 +856,11 @@ export function prefetchRouteChunk(routeId: AppRoute): void {
     }
 
     void prefetcher().catch(error => {
-        const normalizedError = error instanceof Error ? error : new Error(String(error ?? 'Unknown prefetch error.'))
+        const normalizedError = normalizeErrorLike(error, 'Unknown prefetch error.', {
+            source: 'route-chunk-prefetch',
+            domain: 'route_runtime',
+            extra: { routeId }
+        })
         logError(normalizedError, undefined, {
             source: 'route-chunk-prefetch',
             domain: 'route_runtime',

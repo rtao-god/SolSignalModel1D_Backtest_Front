@@ -4,6 +4,7 @@ import {
     resolvePublishedReportVariantSelection,
     usePublishedReportVariantCatalogQuery
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import type { ModelStatsPageProps } from './modelStatsTypes'
 import { ModelStatsPageInner } from './ModelStatsPageInner'
 import { useSearchParams } from 'react-router-dom'
@@ -29,7 +30,13 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve model-stats variant.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve model-stats variant.', {
+                source: 'model-stats-page-variant',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve a published variant from URL params and catalog.',
+                requiredAction: 'Inspect model-stats URL params and published variant catalog.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -46,7 +53,16 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
         }
     )
     const mergedError =
-        (variantCatalogQuery.isError ? variantCatalogQuery.error ?? new Error('Failed to load model-stats catalog.') : null) ??
+        (variantCatalogQuery.isError ?
+            (variantCatalogQuery.error ??
+                normalizeErrorLike(null, 'Failed to load model-stats catalog.', {
+                    source: 'model-stats-catalog-query',
+                    domain: 'ui_section',
+                    owner: 'model-stats-page',
+                    expected: 'Model stats page should receive a published variant catalog or a detailed API error.',
+                    requiredAction: 'Inspect model-stats catalog endpoint and response envelope.'
+                }))
+        :   null) ??
         (isError ? error : null)
     const handleRetry = useCallback(() => {
         void variantCatalogQuery.refetch()

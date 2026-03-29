@@ -25,6 +25,7 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import {
     buildPublishedReportVariantCompatibleOptions,
     type PublishedReportVariantCatalogDto
@@ -124,7 +125,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'diagnostics-layout-source-endpoint',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -139,7 +146,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse diagnostics query.', {
+                source: 'diagnostics-layout-query',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should parse a valid published diagnostics selection from URL params.',
+                requiredAction: 'Inspect diagnostics query params and supported catalog values.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -225,7 +238,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build diagnostics terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build diagnostics terms.', {
+                source: 'diagnostics-layout-terms',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should build terms from diagnostics sections and shared glossary.',
+                requiredAction: 'Inspect diagnostics sections and shared term resolver.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError

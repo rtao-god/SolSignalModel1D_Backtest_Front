@@ -1,7 +1,7 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { orderPolicyBranchMegaSections } from '@/shared/utils/policyBranchMegaTerms'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
-import { normalizePolicyBranchMegaProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
+import { assertPolicyBranchMegaPrimaryProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
 
 export interface MainBestPolicyRowBundle {
     policy: string
@@ -78,9 +78,8 @@ function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string):
 export function buildMainDemoPolicyBranchMegaSections(sections: unknown[]): TableSectionDto[] {
     const tableSections = buildTableSections(sections)
     const orderedSections = orderPolicyBranchMegaSections(tableSections)
-
-    // Карточка лидера не должна расходиться с owner-нормализацией profit-колонок.
-    return normalizePolicyBranchMegaProfitColumns(orderedSections)
+    assertPolicyBranchMegaPrimaryProfitColumns(orderedSections, 'main.demo')
+    return orderedSections
 }
 
 export function resolveMainDemoBestPolicyRows(sections: TableSectionDto[]): MainBestPolicyRowBundle {

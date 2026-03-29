@@ -12,6 +12,7 @@ import {
     buildBacktestDiagnosticsQueryArgs,
     resolveBacktestDiagnosticsSearchSelection
 } from '@/shared/utils/backtestDiagnosticsQuery'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 interface UseBacktestDiagnosticsPublishedPageQueryResult {
     data: ReturnType<typeof useBacktestDiagnosticsReportQuery>['data']
@@ -46,7 +47,13 @@ export function useBacktestDiagnosticsPublishedPageQuery(
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve diagnostics selection.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve diagnostics selection.', {
+                source: 'diagnostics-selection-state',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-page-query',
+                expected: 'Diagnostics page query should resolve a published catalog-compatible selection.',
+                requiredAction: 'Inspect diagnostics query params and published variant catalog.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -67,8 +74,26 @@ export function useBacktestDiagnosticsPublishedPageQuery(
 
     const error =
         diagnosticsSelectionState.error ??
-        (catalogQuery.isError ? (catalogQuery.error ?? new Error('Failed to load diagnostics catalog.')) : null) ??
-        (reportQuery.isError ? (reportQuery.error ?? new Error('Failed to load diagnostics report.')) : null)
+        (catalogQuery.isError ?
+            (catalogQuery.error ??
+                normalizeErrorLike(null, 'Failed to load diagnostics catalog.', {
+                    source: 'diagnostics-catalog-query',
+                    domain: 'ui_section',
+                    owner: 'backtest-diagnostics-page-query',
+                    expected: 'Diagnostics page query should receive a published diagnostics catalog or a detailed API error.',
+                    requiredAction: 'Inspect published diagnostics catalog endpoint and response envelope.'
+                }))
+        :   null) ??
+        (reportQuery.isError ?
+            (reportQuery.error ??
+                normalizeErrorLike(null, 'Failed to load diagnostics report.', {
+                    source: 'diagnostics-report-query',
+                    domain: 'ui_section',
+                    owner: 'backtest-diagnostics-page-query',
+                    expected: 'Diagnostics page query should receive a published diagnostics report or a detailed API error.',
+                    requiredAction: 'Inspect diagnostics report endpoint and response envelope.'
+                }))
+        :   null)
 
     const refetch = useCallback(() => {
         void catalogQuery.refetch()

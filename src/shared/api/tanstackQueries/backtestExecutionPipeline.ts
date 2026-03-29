@@ -8,6 +8,7 @@ import {
     prefetchPublishedReportVariantCatalog,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from './reportVariants'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const BACKTEST_EXECUTION_PIPELINE_QUERY_KEY = ['backtest', 'execution-pipeline'] as const
 const { path } = API_ROUTES.backtest.executionPipelineGet
@@ -52,7 +53,7 @@ async function fetchBacktestExecutionPipelineReport(args?: BacktestSliceReportQu
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load execution pipeline report: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load execution pipeline report', resp, text))
     }
 
     const raw = await resp.json()

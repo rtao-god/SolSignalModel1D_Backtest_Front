@@ -20,9 +20,7 @@ export type RealForecastJournalIndicatorGroupFilter = 'all' | string
 
 export interface RealForecastJournalPolicyViewFilters {
     bucket: RealForecastJournalPolicyBucket | 'total'
-    slMode: 'all' | 'with-sl' | 'no-sl'
     branch: RealForecastJournalBranchFilter
-    marginMode: 'all' | RealForecastJournalMarginMode
     policySearch: RealForecastJournalPolicySearchValue
 }
 
@@ -33,6 +31,7 @@ export interface RealForecastJournalCombinedPolicyRow {
     bucket: RealForecastJournalPolicyBucket
     evaluation: PolicyEvaluationDto | null
     margin: RealForecastJournalMarginMode | null
+    isSpotPolicy: boolean
     hasDirection: boolean
     skipped: boolean
     isRiskDay: boolean
@@ -221,9 +220,17 @@ function resolveScope(value: string): CurrentPredictionTrainingScope {
 
 function resolveDirection(value: string): RealForecastJournalDirection {
     const normalized = value.trim().toUpperCase()
+    const wrappedLabelMatch = normalized.match(/\((UP|FLAT|DOWN)\)/)
+    if (wrappedLabelMatch) {
+        return wrappedLabelMatch[1] as RealForecastJournalDirection
+    }
+
     if (normalized === 'UP') return 'UP'
     if (normalized === 'FLAT') return 'FLAT'
     if (normalized === 'DOWN') return 'DOWN'
+    if (normalized === '2') return 'UP'
+    if (normalized === '1') return 'FLAT'
+    if (normalized === '0') return 'DOWN'
 
     throw new Error(`[real-forecast-journal] unsupported direction: ${value}.`)
 }
@@ -321,10 +328,6 @@ function buildDerivedNotionalUsd(row: RealForecastJournalPolicyRowDto): number |
     return row.stakeUsd * row.leverage
 }
 
-function hasStopLoss(row: RealForecastJournalCombinedPolicyRow): boolean {
-    return row.slPrice !== null && row.slPct !== null
-}
-
 function compareTextAsc(left: string, right: string): number {
     return left.localeCompare(right, 'en-US', { sensitivity: 'base' })
 }
@@ -380,6 +383,7 @@ export function buildCombinedPolicyRows(
                 bucket: row.bucket,
                 evaluation: finalizedEvaluations.get(rowKey) ?? forecastEvaluations.get(rowKey) ?? null,
                 margin: row.margin,
+                isSpotPolicy: row.isSpotPolicy,
                 hasDirection: row.hasDirection,
                 skipped: row.skipped,
                 isRiskDay: row.isRiskDay,
@@ -434,18 +438,6 @@ export function filterCombinedPolicyRows(
         }
 
         if (filters.branch !== 'all' && row.branch !== filters.branch) {
-            return false
-        }
-
-        if (filters.marginMode !== 'all' && row.margin !== filters.marginMode) {
-            return false
-        }
-
-        if (filters.slMode === 'with-sl' && (!row.hasDirection || !hasStopLoss(row))) {
-            return false
-        }
-
-        if (filters.slMode === 'no-sl' && (!row.hasDirection || hasStopLoss(row))) {
             return false
         }
 

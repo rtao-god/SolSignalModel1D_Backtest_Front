@@ -12,6 +12,7 @@ import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { useLocale } from '@/shared/lib/i18n'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 interface BacktestPolicyRatiosSectionProps {
     profileId?: string
@@ -329,7 +330,14 @@ export function BacktestPolicyRatiosSection({
             <SectionDataState
                 isLoading={isLoading}
                 isError={isError}
-                error={isError ? new Error(resolvedError ?? 'Unknown policy-ratios error.') : null}
+                error={
+                    isError ?
+                        normalizeErrorLike(resolvedError ?? 'Unknown policy-ratios error.', 'Unknown policy-ratios error.', {
+                            source: 'backtest-policy-ratios-section',
+                            domain: 'ui_section'
+                        })
+                    :   null
+                }
                 hasData={Boolean(activeReport)}
                 title={t('backtestFull.policyRatios.errors.dataTitle', {
                     defaultValue: 'Failed to load policy ratios'

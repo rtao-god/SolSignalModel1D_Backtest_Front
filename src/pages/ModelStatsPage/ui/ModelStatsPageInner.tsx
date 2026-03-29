@@ -30,6 +30,7 @@ import { buildGlobalMeta, isTableSection, resolveSegmentMeta, stripSegmentPrefix
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 const DEFAULT_MODEL_STATS_SEGMENT: SegmentKey = 'OOS'
 const DEFAULT_MODEL_STATS_VIEW: ViewMode = 'business'
@@ -106,7 +107,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats global metadata.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats global metadata.', {
+                source: 'model-stats-global-meta',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse global metadata from published report sections.',
+                requiredAction: 'Inspect model-stats report sections and global metadata builder.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -122,7 +129,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats segment query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats segment query.', {
+                source: 'model-stats-segment-query',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse a valid segment query value.',
+                requiredAction: 'Inspect the segment URL param and supported segment values.'
+            })
             return {
                 value: DEFAULT_MODEL_STATS_SEGMENT,
                 error: safeError
@@ -137,7 +150,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats view query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats view query.', {
+                source: 'model-stats-view-query',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse a valid view query value.',
+                requiredAction: 'Inspect the view URL param and supported view values.'
+            })
             return {
                 value: DEFAULT_MODEL_STATS_VIEW,
                 error: safeError
@@ -166,7 +185,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve model-stats variant.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve model-stats variant.', {
+                source: 'model-stats-variant-selection',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve a catalog-compatible variant from URL params.',
+                requiredAction: 'Inspect published model-stats catalog and URL selection.'
+            })
             return {
                 segment: rawSegmentState.value,
                 view: rawViewState.value,
@@ -197,7 +222,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'model-stats-source-endpoint',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -224,7 +255,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build model stats terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build model stats terms.', {
+                source: 'model-stats-terms',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should build terms from table sections and shared glossary.',
+                requiredAction: 'Inspect model-stats table sections and term resolver.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError

@@ -1,0 +1,94 @@
+.root {
+    @include product-page-shell(1440px, true, 24px);
+    width: 100%;
+    container-type: inline-size;
+    container-name: current-prediction-oos-presets-page;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 920px;
+}
+
+.heroTitle {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.12;
+    color: #f8fafc;
+}
+
+.heroSubtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.controls {
+    @include subtle-surface(14px 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.controlHint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #94a3b8;
+}
+
+.summaryGrid {
+    @include responsive-grid(220px, 14px);
+}
+
+.summaryCard {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-lg),
+        $background: linear-gradient(160deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summaryLabel {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #93c5fd;
+}
+
+.summaryValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.summaryHint {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+.tableSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.loadingNote {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #f59e0b;
+}
+
+@container current-prediction-oos-presets-page (max-width: 760px) {
+    .heroTitle {
+        font-size: 25px;
+    }
+}

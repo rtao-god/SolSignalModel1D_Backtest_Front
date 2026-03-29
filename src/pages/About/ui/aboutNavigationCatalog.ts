@@ -312,6 +312,16 @@ const ABOUT_ROUTE_CATALOG_CONFIG: readonly AboutRouteCatalogEntry[] = [
         ])
     },
     {
+        routeId: AppRoute.BACKTEST_SHARP_MOVE_STATS,
+        group: 'analysis',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_SHARP_MOVE_STATS, [
+            'controls',
+            'reportStatus',
+            'selectedScenario',
+            'comparisonTables'
+        ])
+    },
+    {
         routeId: AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL,
         group: 'analysis',
         blocks: createCuratedBlocks(AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL, [

@@ -31,6 +31,10 @@ export const API_ROUTES = {
             path: '/current-prediction/history/page',
             method: 'GET' as const
         },
+        oosPresetAnalysis: {
+            path: '/current-prediction/oos-presets/analysis',
+            method: 'GET' as const
+        },
         historyItems: {
             path: '/current-prediction/history/items',
             method: 'GET' as const
@@ -62,6 +66,10 @@ export const API_ROUTES = {
 
     reportVariants: {
         catalogGet: {
+            path: '/report-variants',
+            method: 'GET' as const
+        },
+        selectionGet: {
             path: '/report-variants',
             method: 'GET' as const
         }
@@ -102,6 +110,10 @@ export const API_ROUTES = {
         },
         confidenceRiskGet: {
             path: '/backtest/confidence-risk',
+            method: 'GET' as const
+        },
+        sharpMoveStatsGet: {
+            path: '/backtest/sharp-move-stats',
             method: 'GET' as const
         },
         executionPipelineGet: {
@@ -173,6 +185,10 @@ export const API_ROUTES = {
     ml: {
         pfiPerModel: {
             path: '/ml/pfi/per-model',
+            method: 'GET' as const
+        },
+        pfiPerModelFeatureDetail: {
+            path: '/ml/pfi/per-model/features',
             method: 'GET' as const
         },
         pfiSlModel: {

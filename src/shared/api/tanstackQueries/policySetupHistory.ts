@@ -1,6 +1,8 @@
 import { API_BASE_URL } from '@/shared/configs/config'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { API_ROUTES } from '../routes'
-import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from './utils/fetchWithTimeout'
+import { fetchWithTimeout } from './utils/fetchWithTimeout'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 import { normalizeUtcDayKey, normalizeUtcInstant } from '../utils/normalizeDomainTime'
 import { buildUnexpectedValueErrorMessage, describeUnexpectedValue } from '@/shared/lib/errors/describeUnexpectedValue'
 import {
@@ -30,20 +32,7 @@ const POLICY_SETUP_STATUS_QUERY_KEY = ['backtest', 'policy-setups', 'status'] as
 const POLICY_SETUP_CATALOG_QUERY_KEY = ['backtest', 'policy-setups', 'catalog'] as const
 const POLICY_SETUP_LEDGER_QUERY_KEY = ['backtest', 'policy-setups', 'ledger'] as const
 const POLICY_SETUP_CANDLES_QUERY_KEY = ['backtest', 'policy-setups', 'candles'] as const
-const POLICY_SETUP_STATUS_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_REBUILD_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_CATALOG_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_LEDGER_REQUEST_TIMEOUT_MS = 120_000
-const POLICY_SETUP_CANDLES_REQUEST_TIMEOUT_MS = 60_000
 const POLICY_SETUP_HISTORY_TIME_SCOPE = { scope: 'policy-setup-history' } as const
-const POLICY_SETUP_STATUS_STALE_TIME_MS = 0
-const POLICY_SETUP_STATUS_GC_TIME_MS = 5 * 60 * 1000
-const POLICY_SETUP_CATALOG_STALE_TIME_MS = 5 * 60 * 1000
-const POLICY_SETUP_CATALOG_GC_TIME_MS = 15 * 60 * 1000
-const POLICY_SETUP_LEDGER_STALE_TIME_MS = 2 * 60 * 1000
-const POLICY_SETUP_LEDGER_GC_TIME_MS = 10 * 60 * 1000
-const POLICY_SETUP_CANDLES_STALE_TIME_MS = 2 * 60 * 1000
-const POLICY_SETUP_CANDLES_GC_TIME_MS = 10 * 60 * 1000
 
 const { path: policySetupCatalogPath } = API_ROUTES.backtest.policySetupsCatalogGet
 const { path: policySetupStatusPath } = API_ROUTES.backtest.policySetupStatusGet
@@ -94,13 +83,6 @@ export function buildPolicySetupCandlesQueryKey(
         args?.windowDays ?? null,
         args?.resolution ?? null
     ] as const
-}
-
-interface ApiErrorPayload {
-    error?: string
-    message?: string
-    title?: string
-    detail?: string
 }
 
 function asObject(raw: unknown, tag: string): Record<string, unknown> {
@@ -439,24 +421,7 @@ async function postJson(url: string, timeoutMs: number): Promise<unknown> {
 
 async function buildPolicySetupHistoryRequestError(response: Response): Promise<string> {
     const bodyText = await response.text().catch(() => '')
-    if (!bodyText) {
-        return `[policy-setup-history] request failed: ${response.status} ${response.statusText}.`
-    }
-
-    try {
-        const payload = JSON.parse(bodyText) as ApiErrorPayload
-        const details = [payload.error, payload.message ?? payload.detail ?? payload.title]
-            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-            .join(' | ')
-
-        if (details) {
-            return `[policy-setup-history] request failed: ${response.status} ${details}.`
-        }
-    } catch {
-        // Некорректный JSON не должен ломать отображение исходного текста ошибки.
-    }
-
-    return `[policy-setup-history] request failed: ${response.status} ${bodyText}.`
+    return buildDetailedRequestErrorMessage('policy-setup-history request', response, bodyText)
 }
 
 export function parsePolicySetupHistoryPublishedStatusResponse(raw: unknown): PolicySetupHistoryPublishedStatusDto {
@@ -540,7 +505,7 @@ export function parsePolicySetupCandlesResponse(raw: unknown): PolicySetupCandle
 export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogItemDto[]> {
     const raw = await fetchJson(
         `${API_BASE_URL}${policySetupCatalogPath}`,
-        POLICY_SETUP_CATALOG_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.catalog.timeoutMs
     )
 
     return parsePolicySetupCatalogResponse(raw)
@@ -549,7 +514,7 @@ export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogItemD
 export async function fetchPolicySetupHistoryStatus(): Promise<PolicySetupHistoryPublishedStatusDto> {
     const raw = await fetchJson(
         `${API_BASE_URL}${policySetupStatusPath}`,
-        POLICY_SETUP_STATUS_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.status.timeoutMs
     )
 
     return parsePolicySetupHistoryPublishedStatusResponse(raw)
@@ -558,7 +523,7 @@ export async function fetchPolicySetupHistoryStatus(): Promise<PolicySetupHistor
 export async function triggerPolicySetupHistoryRebuild(): Promise<PolicySetupHistoryPublishedStatusDto> {
     const raw = await postJson(
         `${API_BASE_URL}${policySetupRebuildPath}`,
-        POLICY_SETUP_REBUILD_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.rebuild.timeoutMs
     )
 
     return parsePolicySetupHistoryPublishedStatusResponse(raw)
@@ -570,7 +535,7 @@ export async function fetchPolicySetupLedger(
 ): Promise<PolicySetupLedgerResponseDto> {
     const raw = await fetchJson(
         buildPolicySetupLedgerUrl(setupId, args),
-        POLICY_SETUP_LEDGER_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.ledger.timeoutMs
     )
 
     return parsePolicySetupLedgerResponse(raw)
@@ -582,7 +547,7 @@ export async function fetchPolicySetupCandles(
 ): Promise<PolicySetupCandlesResponseDto> {
     const raw = await fetchJson(
         buildPolicySetupCandlesUrl(setupId, args),
-        POLICY_SETUP_CANDLES_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.candles.timeoutMs
     )
 
     return parsePolicySetupCandlesResponse(raw)
@@ -592,8 +557,8 @@ export async function prefetchPolicySetupCatalog(queryClient: QueryClient): Prom
     await queryClient.prefetchQuery({
         queryKey: buildPolicySetupCatalogQueryKey(),
         queryFn: fetchPolicySetupCatalog,
-        staleTime: POLICY_SETUP_CATALOG_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CATALOG_GC_TIME_MS
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.gcTimeMs
     })
 }
 
@@ -604,10 +569,13 @@ export function usePolicySetupHistoryStatusQuery(
         queryKey: buildPolicySetupHistoryStatusQueryKey(),
         queryFn: fetchPolicySetupHistoryStatus,
         enabled,
-        staleTime: POLICY_SETUP_STATUS_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_STATUS_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.status.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.status.gcTimeMs,
         refetchOnWindowFocus: false,
-        refetchInterval: query => (query.state.data?.state === 'building' ? 3000 : false)
+        refetchInterval: query =>
+            query.state.data?.state === 'building' ?
+                QUERY_POLICY_REGISTRY.policySetupHistory.status.refetchWhileBuildingIntervalMs
+            :   false
     })
 }
 
@@ -616,8 +584,8 @@ export function usePolicySetupCatalogQuery(enabled = true): UseQueryResult<Polic
         queryKey: buildPolicySetupCatalogQueryKey(),
         queryFn: fetchPolicySetupCatalog,
         enabled,
-        staleTime: POLICY_SETUP_CATALOG_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CATALOG_GC_TIME_MS
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.gcTimeMs
     })
 }
 
@@ -636,8 +604,8 @@ export function usePolicySetupLedgerQuery(
             return fetchPolicySetupLedger(setupId, args)
         },
         enabled: Boolean(setupId) && enabled,
-        staleTime: POLICY_SETUP_LEDGER_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_LEDGER_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.ledger.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.ledger.gcTimeMs,
         refetchOnWindowFocus: false
     })
 }
@@ -657,8 +625,8 @@ export function usePolicySetupCandlesQuery(
             return fetchPolicySetupCandles(setupId, args)
         },
         enabled: Boolean(setupId) && enabled,
-        staleTime: POLICY_SETUP_CANDLES_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CANDLES_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.candles.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.candles.gcTimeMs,
         refetchOnWindowFocus: false
     })
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import {
     Btn,
     Input,
@@ -11,7 +12,6 @@ import {
     ReportViewControls,
     TermTooltip,
     Text,
-    buildMegaSlModeControlGroup,
     buildPredictionPolicyBucketControlGroup,
     buildTrainingScopeControlGroup,
     formatTimingExactUtc,
@@ -37,7 +37,6 @@ import type {
     RealForecastJournalDayRecordDto,
     RealForecastJournalLiveRowObservationDto,
     RealForecastJournalLiveStatusDto,
-    RealForecastJournalMarginMode,
     RealForecastJournalOpsStatusDto,
     RealForecastJournalPolicyBucket
 } from '@/shared/types/realForecastJournal.types'
@@ -61,7 +60,10 @@ import {
     type RealForecastJournalTermsLocale
 } from './realForecastJournalTerms'
 import { formatDateWithLocale } from '@/shared/utils/dateFormat'
-import { resolveEndOfDayExitReasonLabel } from '@/shared/utils/reportCellLocalization'
+import {
+    localizeExitReasonLabel,
+    resolveReportLiquidationFallbackLabel
+} from '@/shared/utils/reportCellLocalization'
 import cls from './RealForecastJournalPage.module.scss'
 import type { RealForecastJournalPageProps } from './types'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
@@ -69,9 +71,7 @@ import { buildReportTermsFromReferences } from '@/shared/utils/reportTerms'
 
 const DEFAULT_COMPARISON_SOURCE: RealForecastJournalComparisonSource = 'aggregation'
 const DEFAULT_COMPARISON_SCOPE: CurrentPredictionTrainingScope = 'oos'
-const DEFAULT_BUCKET_FILTER: RealForecastJournalPolicyBucket | 'total' = 'daily'
-const DEFAULT_SL_FILTER: 'all' | 'with-sl' | 'no-sl' = 'with-sl'
-const DEFAULT_MARGIN_FILTER: 'all' | RealForecastJournalMarginMode = 'all'
+const DEFAULT_BUCKET_FILTER: RealForecastJournalPolicyBucket | 'total' = 'total'
 const DEFAULT_BRANCH_FILTER: RealForecastJournalBranchFilter = 'all'
 const DEFAULT_POLICY_SEARCH: RealForecastJournalPolicySearchValue = ''
 const DEFAULT_INDICATOR_GROUP: RealForecastJournalIndicatorGroupFilter = 'all'
@@ -400,67 +400,6 @@ function resolveBucketLabel(bucket: RealForecastJournalPolicyBucket, t: Translat
     }
 }
 
-function resolveMarginModeLabel(mode: RealForecastJournalMarginMode, t: TranslateFn): string {
-    switch (mode) {
-        case 'cross':
-            return t('realForecastJournal.policy.controls.marginCross', { defaultValue: 'Cross' })
-        case 'isolated':
-            return t('realForecastJournal.policy.controls.marginIsolated', { defaultValue: 'Isolated' })
-        default:
-            throw new Error(`[real-forecast-journal] unsupported margin mode label: ${String(mode)}.`)
-    }
-}
-
-function resolveExitReasonLabel(reason: string | null, locale: string, t: TranslateFn, fallback: string): string {
-    if (reason === null) {
-        return fallback
-    }
-
-    const normalized = reason.trim().toLowerCase()
-    if (normalized.length === 0) {
-        return fallback
-    }
-    if (normalized === 'take profit') {
-        return t('realForecastJournal.policy.exitReasons.takeProfit', { defaultValue: 'Take profit' })
-    }
-    if (normalized === 'stop loss') {
-        return t('realForecastJournal.policy.exitReasons.stopLoss', { defaultValue: 'Stop loss' })
-    }
-    if (
-        normalized === 'forced close at end of window (eod)' ||
-        normalized === 'endofday' ||
-        normalized === 'end of day' ||
-        normalized === 'eod'
-    ) {
-        return resolveEndOfDayExitReasonLabel(locale)
-    }
-    if (normalized === 'liquidation') {
-        return t('realForecastJournal.policy.exitReasons.liquidation', { defaultValue: 'Liquidation' })
-    }
-    if (normalized === 'liquidation (sl disabled)') {
-        return t('realForecastJournal.policy.exitReasons.liquidationSlDisabled', {
-            defaultValue: 'Liquidation (SL disabled)'
-        })
-    }
-    if (normalized === 'liquidation (sl beyond liquidation price)') {
-        return t('realForecastJournal.policy.exitReasons.liquidationSlBeyond', {
-            defaultValue: 'Liquidation (SL beyond liquidation price)'
-        })
-    }
-    if (normalized === 'liquidation (sl and liquidation in the same minute)') {
-        return t('realForecastJournal.policy.exitReasons.liquidationSameMinute', {
-            defaultValue: 'Liquidation (SL and liquidation in the same minute)'
-        })
-    }
-    if (normalized === 'liquidation (before stop loss)') {
-        return t('realForecastJournal.policy.exitReasons.liquidationBeforeSl', {
-            defaultValue: 'Liquidation (before stop loss)'
-        })
-    }
-
-    return reason
-}
-
 function resolveOpsStatusReasonText(status: RealForecastJournalOpsStatusDto, t: TranslateFn): string {
     if (status.captureOverdue) {
         return t('realForecastJournal.timing.health.captureOverdue', {
@@ -501,7 +440,7 @@ function resolveStatusText(day: RealForecastJournalDayListItemDto, t: TranslateF
     if (day.status === 'captured') {
         return t('realForecastJournal.status.captured', {
             defaultValue:
-                'The morning forecast is already fixed. Realized fields stay empty until the New York day closes and the post-close data sync finishes.'
+                'The morning forecast is already fixed. Realized fields stay empty until the New York session closes and the final day data becomes available.'
         })
     }
 
@@ -649,46 +588,6 @@ function buildBranchControlGroup(
     }
 }
 
-function buildMarginControlGroup(
-    value: 'all' | RealForecastJournalMarginMode,
-    onChange: (next: 'all' | RealForecastJournalMarginMode) => void,
-    t: TranslateFn
-): ReportViewControlGroup<'all' | RealForecastJournalMarginMode> {
-    return {
-        key: 'real-forecast-margin',
-        label: t('realForecastJournal.policy.controls.margin', { defaultValue: 'Margin mode' }),
-        value,
-        options: [
-            { value: 'all', label: t('realForecastJournal.common.all', { defaultValue: 'ALL' }) },
-            { value: 'cross', label: t('realForecastJournal.policy.controls.marginCross', { defaultValue: 'Cross' }) },
-            {
-                value: 'isolated',
-                label: t('realForecastJournal.policy.controls.marginIsolated', { defaultValue: 'Isolated' })
-            }
-        ],
-        onChange
-    }
-}
-
-function buildZonalControlGroup(t: TranslateFn): ReportViewControlGroup<'with-zonal'> {
-    return {
-        key: 'real-forecast-zonal',
-        label: t('realForecastJournal.policy.controls.zonal', { defaultValue: 'Zonal slice' }),
-        infoTooltip: t('realForecastJournal.policy.controls.zonalTooltip', {
-            defaultValue:
-                'Current real-forecast journal stores the published zonal slice only. Alternative zonal modes are not exposed by the immutable journal payload yet, so the page keeps the control explicit instead of faking a mode switch.'
-        }),
-        value: 'with-zonal',
-        options: [
-            {
-                value: 'with-zonal',
-                label: t('realForecastJournal.policy.controls.zonalWith', { defaultValue: 'With zonal' })
-            }
-        ],
-        onChange: () => {}
-    }
-}
-
 function buildIndicatorGroupControlGroup(
     groups: string[],
     value: RealForecastJournalIndicatorGroupFilter,
@@ -713,7 +612,6 @@ function buildPolicyTableColumns(t: TranslateFn, includeLiveColumns: boolean): s
         t('realForecastJournal.policy.table.columns.branch', { defaultValue: 'Branch' }),
         t('realForecastJournal.policy.table.columns.bucket', { defaultValue: 'Bucket' }),
         t('realForecastJournal.policy.table.columns.sessionOpen', { defaultValue: 'Morning forecast' }),
-        t('realForecastJournal.policy.table.columns.marginMode', { defaultValue: 'Margin mode' }),
         t('realForecastJournal.policy.table.columns.direction', { defaultValue: 'Direction' }),
         t('realForecastJournal.policy.table.columns.riskDay', { defaultValue: 'Risk day' }),
         t('realForecastJournal.policy.table.columns.skipped', { defaultValue: 'Skipped' }),
@@ -774,7 +672,7 @@ function buildPolicyTableRows(
     const noTakeProfit = t('realForecastJournal.placeholders.noTakeProfit', { defaultValue: 'No take-profit' })
     const notApplicable = t('realForecastJournal.placeholders.notApplicable', { defaultValue: 'Not applicable' })
     const pendingFinalize = t('realForecastJournal.placeholders.pendingFinalize', {
-        defaultValue: 'Pending NY close and indicator sync'
+        defaultValue: 'Day is still open'
     })
     const yesLabel = t('realForecastJournal.common.yes', { defaultValue: 'Yes' })
     const noLabel = t('realForecastJournal.common.no', { defaultValue: 'No' })
@@ -793,7 +691,6 @@ function buildPolicyTableRows(
             row.publishedInSessionOpenSnapshot ?
                 t('realForecastJournal.policy.table.sessionOpenPublished', { defaultValue: 'Published' })
             :   notPublishedSessionOpen,
-            row.margin === null ? notPublished : resolveMarginModeLabel(row.margin, t),
             row.hasDirection ? resolveTradeDirectionLabel(row.direction, t) : noDirection,
             row.isRiskDay ? yesLabel : noLabel,
             row.skipped ? yesLabel : noLabel,
@@ -806,7 +703,28 @@ function buildPolicyTableRows(
             formatOptionalPrice(row.entryPrice, locale, notPublished),
             row.hasDirection ? formatOptionalPrice(row.slPrice, locale, noStopLoss) : notApplicable,
             row.hasDirection ? formatOptionalPrice(row.tpPrice, locale, noTakeProfit) : notApplicable,
-            row.hasDirection ? formatOptionalPrice(row.liqPrice, locale, notPublished) : notApplicable,
+            row.hasDirection ?
+                row.liqPrice === null ?
+                    resolveReportLiquidationFallbackLabel(
+                        {
+                            leverage: row.leverage,
+                            policyName: row.policyName,
+                            branch: row.branch,
+                            bucket: row.bucket,
+                            hasDirection: row.hasDirection,
+                            skipped: row.skipped,
+                            direction: row.direction,
+                            isSpotPolicy: row.isSpotPolicy,
+                            margin: row.margin,
+                            notionalUsd: row.publishedNotionalUsd ?? row.derivedNotionalUsd,
+                            bucketCapitalUsd: row.bucketCapitalUsd,
+                            stakeUsd: row.stakeUsd
+                        },
+                        locale,
+                        t
+                    )
+                :   formatPrice(row.liqPrice, locale)
+            :   notApplicable,
             row.hasDirection ? formatOptionalPercent(row.liqDistPct, locale, notPublished) : notApplicable
         ]
 
@@ -829,7 +747,7 @@ function buildPolicyTableRows(
 
         rowCells.push(
             isFinalized ? formatOptionalPrice(row.actualExitPrice, locale, notPublished) : pendingFinalize,
-            isFinalized ? resolveExitReasonLabel(row.actualExitReason, locale, t, notPublished) : pendingFinalize,
+            isFinalized ? (localizeExitReasonLabel(row.actualExitReason, locale) ?? notPublished) : pendingFinalize,
             isFinalized ? formatOptionalPercent(row.actualExitPnlPct, locale, notPublished) : pendingFinalize,
             isFinalized ?
                 row.actualTrades === null ?
@@ -854,7 +772,7 @@ function buildIndicatorTableRows(
     t: TranslateFn
 ): TableRow[] {
     const pendingFinalize = t('realForecastJournal.placeholders.pendingFinalize', {
-        defaultValue: 'Pending NY close and indicator sync'
+        defaultValue: 'Day is still open'
     })
     const noDelta = t('realForecastJournal.placeholders.noDelta', { defaultValue: 'Delta available after close' })
     const deltaUnavailable = t('realForecastJournal.placeholders.deltaUnavailable', {
@@ -1032,7 +950,7 @@ function buildScheduleNoteItems(t: TranslateFn): ReactNode[] {
         </>,
         t('realForecastJournal.page.notes.schedulePointFinalize', {
             defaultValue:
-                'Realized fields stay empty until the New York session (working day) closes and candle and indicator sync finishes.'
+                'Realized fields stay empty until the New York session closes and the final day data becomes available.'
         })
     ]
 }
@@ -1317,7 +1235,13 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
         } catch (error) {
             return {
                 value: DEFAULT_COMPARISON_SOURCE,
-                error: error instanceof Error ? error : new Error(String(error))
+                error: normalizeErrorLike(error, 'Failed to parse real forecast journal comparison source.', {
+                    source: 'real-forecast-journal-comparison-source',
+                    domain: 'ui_section',
+                    owner: 'real-forecast-journal-page',
+                    expected: 'Real forecast journal page should parse a valid comparison source from URL params.',
+                    requiredAction: 'Inspect comparison source query and supported values.'
+                })
             }
         }
     }, [searchParams])
@@ -1325,14 +1249,21 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
         try {
             return { value: resolveComparisonScope(searchParams.get('scope')), error: null as Error | null }
         } catch (error) {
-            return { value: DEFAULT_COMPARISON_SCOPE, error: error instanceof Error ? error : new Error(String(error)) }
+            return {
+                value: DEFAULT_COMPARISON_SCOPE,
+                error: normalizeErrorLike(error, 'Failed to parse real forecast journal comparison scope.', {
+                    source: 'real-forecast-journal-comparison-scope',
+                    domain: 'ui_section',
+                    owner: 'real-forecast-journal-page',
+                    expected: 'Real forecast journal page should parse a valid comparison scope from URL params.',
+                    requiredAction: 'Inspect comparison scope query and supported values.'
+                })
+            }
         }
     }, [searchParams])
 
     const [bucketFilter, setBucketFilter] = useState<RealForecastJournalPolicyBucket | 'total'>(DEFAULT_BUCKET_FILTER)
-    const [slModeFilter, setSlModeFilter] = useState<'all' | 'with-sl' | 'no-sl'>(DEFAULT_SL_FILTER)
     const [branchFilter, setBranchFilter] = useState<RealForecastJournalBranchFilter>(DEFAULT_BRANCH_FILTER)
-    const [marginFilter, setMarginFilter] = useState<'all' | RealForecastJournalMarginMode>(DEFAULT_MARGIN_FILTER)
     const [policySearch, setPolicySearch] = useState<RealForecastJournalPolicySearchValue>(DEFAULT_POLICY_SEARCH)
     const [indicatorGroup, setIndicatorGroup] =
         useState<RealForecastJournalIndicatorGroupFilter>(DEFAULT_INDICATOR_GROUP)
@@ -1400,12 +1331,8 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
             confidenceRiskQuery={confidenceRiskQuery}
             bucketFilter={bucketFilter}
             onBucketFilterChange={setBucketFilter}
-            slModeFilter={slModeFilter}
-            onSlModeFilterChange={setSlModeFilter}
             branchFilter={branchFilter}
             onBranchFilterChange={setBranchFilter}
-            marginFilter={marginFilter}
-            onMarginFilterChange={setMarginFilter}
             policySearch={policySearch}
             onPolicySearchChange={setPolicySearch}
             indicatorGroup={indicatorGroup}
@@ -1438,12 +1365,8 @@ interface RealForecastJournalPageContentProps {
     confidenceRiskQuery: ReturnType<typeof useBacktestConfidenceRiskReportQuery>
     bucketFilter: RealForecastJournalPolicyBucket | 'total'
     onBucketFilterChange: (next: RealForecastJournalPolicyBucket | 'total') => void
-    slModeFilter: 'all' | 'with-sl' | 'no-sl'
-    onSlModeFilterChange: (next: 'all' | 'with-sl' | 'no-sl') => void
     branchFilter: RealForecastJournalBranchFilter
     onBranchFilterChange: (next: RealForecastJournalBranchFilter) => void
-    marginFilter: 'all' | RealForecastJournalMarginMode
-    onMarginFilterChange: (next: 'all' | RealForecastJournalMarginMode) => void
     policySearch: string
     onPolicySearchChange: (next: string) => void
     indicatorGroup: RealForecastJournalIndicatorGroupFilter
@@ -1474,12 +1397,8 @@ function RealForecastJournalPageContent({
     confidenceRiskQuery,
     bucketFilter,
     onBucketFilterChange,
-    slModeFilter,
-    onSlModeFilterChange,
     branchFilter,
     onBranchFilterChange,
-    marginFilter,
-    onMarginFilterChange,
     policySearch,
     onPolicySearchChange,
     indicatorGroup,
@@ -1504,12 +1423,10 @@ function RealForecastJournalPageContent({
         () =>
             filterCombinedPolicyRows(policyRows, {
                 bucket: bucketFilter,
-                slMode: slModeFilter,
                 branch: branchFilter,
-                marginMode: marginFilter,
                 policySearch
             }),
-        [branchFilter, bucketFilter, marginFilter, policyRows, policySearch, slModeFilter]
+        [branchFilter, bucketFilter, policyRows, policySearch]
     )
     const indicatorGroupOptions = useMemo(
         () => (selectedRecord ? buildIndicatorGroupOptions(selectedRecord) : []),
@@ -1546,25 +1463,7 @@ function RealForecastJournalPageContent({
 
                     return resolveBucketLabel(value, t)
                 }
-            ),
-            withLocalizedOptionLabels(
-                buildMegaSlModeControlGroup({ value: slModeFilter, onChange: onSlModeFilterChange }),
-                value => {
-                    if (value === 'all') {
-                        return t('realForecastJournal.common.all', { defaultValue: 'ALL' })
-                    }
-                    if (value === 'with-sl') {
-                        return t('realForecastJournal.policy.controls.withSl', { defaultValue: 'With SL' })
-                    }
-                    if (value === 'no-sl') {
-                        return t('realForecastJournal.policy.controls.noSl', { defaultValue: 'No SL' })
-                    }
-
-                    throw new Error(`[real-forecast-journal] unsupported SL mode option label: ${String(value)}.`)
-                }
-            ),
-            buildZonalControlGroup(t),
-            buildMarginControlGroup(marginFilter, onMarginFilterChange, t)
+            )
         ]
 
         if (branchOptions.length > 0) {
@@ -1576,12 +1475,8 @@ function RealForecastJournalPageContent({
         branchFilter,
         branchOptions,
         bucketFilter,
-        marginFilter,
         onBranchFilterChange,
         onBucketFilterChange,
-        onMarginFilterChange,
-        onSlModeFilterChange,
-        slModeFilter,
         t
     ])
 
@@ -1621,7 +1516,7 @@ function RealForecastJournalPageContent({
 
     const isFinalized = selectedDay?.status === 'finalized'
     const pendingFinalizeLabel = t('realForecastJournal.placeholders.pendingFinalize', {
-        defaultValue: 'Pending NY close and indicator sync'
+        defaultValue: 'Day is still open'
     })
     const policyColumns = useMemo(() => buildPolicyTableColumns(t, isSelectedDayActive), [isSelectedDayActive, t])
     const policyTerms = useMemo(
@@ -2011,7 +1906,11 @@ function RealForecastJournalPageContent({
                                 </Text>
                             </div>
                             <div className={cls.filtersRow}>
-                                <ReportViewControls groups={policyControlGroups} className={cls.controls} />
+                                <ReportViewControls
+                                    groups={policyControlGroups}
+                                    className={cls.controls}
+                                    showSelectedOptionHints={false}
+                                />
                                 <div className={cls.searchBox}>
                                     <Text className={cls.searchLabel}>
                                         {t('realForecastJournal.policy.controls.search', {
@@ -2040,7 +1939,7 @@ function RealForecastJournalPageContent({
                                 })}
                                 description={t('realForecastJournal.policy.table.description', {
                                     defaultValue:
-                                        'Default filters open the daily / with-SL / zonal slice. Switch to ALL to inspect every published bucket and policy row together.'
+                                        'The table starts with every published row for the selected day. Bucket, branch, and search only narrow the published set, and margin type is already visible in the policy name.'
                                 })}
                                 columns={policyColumns}
                                 rows={policyRowsTable}
@@ -2052,7 +1951,7 @@ function RealForecastJournalPageContent({
                                 <Text className={cls.emptyState}>
                                     {t('realForecastJournal.policy.empty', {
                                         defaultValue:
-                                            'No policy rows match the current bucket / SL / branch / margin filters.'
+                                            'No published policy rows match the current bucket, branch, and search filters.'
                                     })}
                                 </Text>
                             )}
@@ -2084,7 +1983,11 @@ function RealForecastJournalPageContent({
                             </Btn>
                             {isDetailedOpen && (
                                 <div className={cls.indicatorBlock}>
-                                    <ReportViewControls groups={indicatorControlGroups} className={cls.controls} />
+                                    <ReportViewControls
+                                        groups={indicatorControlGroups}
+                                        className={cls.controls}
+                                        showSelectedOptionHints={false}
+                                    />
                                     <ReportTableTermsBlock
                                         terms={indicatorTerms}
                                         enhanceDomainTerms
@@ -2206,7 +2109,13 @@ function RealForecastJournalComparisonSection({
             return {
                 aggregation: null,
                 confidenceRisk: null,
-                error: error instanceof Error ? error : new Error(String(error)),
+                error: normalizeErrorLike(error, 'Failed to build real forecast journal comparison state.', {
+                    source: 'real-forecast-journal-comparison-state',
+                    domain: 'ui_section',
+                    owner: 'real-forecast-journal-page',
+                    expected: 'Comparison block should build a benchmark state from published journal and benchmark data.',
+                    requiredAction: 'Inspect comparison builders and the selected benchmark payload.'
+                }),
                 isLoading: false
             }
         }
@@ -2295,7 +2204,11 @@ function RealForecastJournalComparisonSection({
                     })}
                 </Text>
             </div>
-            <ReportViewControls groups={comparisonControlGroups} className={cls.controls} />
+            <ReportViewControls
+                groups={comparisonControlGroups}
+                className={cls.controls}
+                showSelectedOptionHints={false}
+            />
             {queryError && (
                 <div className={cls.sectionError}>
                     <Text type='h3'>

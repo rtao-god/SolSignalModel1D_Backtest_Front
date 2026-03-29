@@ -1,4 +1,6 @@
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { logError } from './logError'
+import { buildDetailedErrorDetails } from './logError'
 import { resolveErrorDomain, shouldSurfaceRuntimeError } from './errorDomains'
 import { isLocalizedContentError } from '@/shared/lib/i18n'
 
@@ -9,24 +11,7 @@ const RUNTIME_ERROR_BANNER_ID = 'app-runtime-error-banner'
 const boundaryHandledErrors = new WeakSet<Error>()
 
 function buildFatalErrorDetails(error: Error, source: string): string {
-    return `${source}: ${error.name}: ${error.message}`
-}
-
-function stringifyUnknownErrorReason(reason: unknown): string {
-    if (typeof reason === 'string' && reason.trim().length > 0) {
-        return reason
-    }
-
-    try {
-        const serialized = JSON.stringify(reason)
-        if (typeof serialized === 'string' && serialized.length > 0) {
-            return serialized
-        }
-    } catch {
-        // Ошибка сериализации не должна скрывать исходную runtime-причину.
-    }
-
-    return String(reason ?? 'Unknown runtime error.')
+    return buildDetailedErrorDetails(error, { source })
 }
 
 function buildErrorFromWindowEvent(event: ErrorEvent): Error {
@@ -40,7 +25,18 @@ function buildErrorFromWindowEvent(event: ErrorEvent): Error {
             `${event.filename}${event.lineno ? `:${event.lineno}` : ''}${event.colno ? `:${event.colno}` : ''}`
         :   'unknown source'
 
-    return new Error(`${event.message || 'Unhandled script error.'} (${location})`)
+    return normalizeErrorLike(event.error ?? event.message, 'Unhandled script error.', {
+        source: 'window.onerror',
+        domain: 'app_runtime',
+        owner: 'window.onerror',
+        expected: 'Runtime error event should provide an Error instance or a detailed browser message.',
+        actual: `location=${location}`,
+        requiredAction: 'Inspect the reported script location and throw owner-specific Error instances.',
+        extra: {
+            location,
+            message: event.message || null
+        }
+    })
 }
 
 export function markErrorHandledByBoundary(error: Error): void {
@@ -375,7 +371,15 @@ export function setupGlobalErrorHandlers() {
             return
         }
 
-        const wrappedError = new Error(`Unhandled promise rejection: ${stringifyUnknownErrorReason(reason)}`)
+        const wrappedError = normalizeErrorLike(reason, 'Unhandled promise rejection.', {
+            source: 'unhandledrejection',
+            domain: 'app_runtime',
+            owner: 'window.unhandledrejection',
+            expected: 'Promise rejection should provide an Error instance with owner context.',
+            actual: 'Promise rejected with a non-Error value.',
+            requiredAction: 'Reject promises with Error instances that include owner, expected, actual, and context.',
+            extra: { reason }
+        })
         event.preventDefault()
         scheduleRuntimeErrorSurface(wrappedError, 'unhandledrejection', { reason })
     })

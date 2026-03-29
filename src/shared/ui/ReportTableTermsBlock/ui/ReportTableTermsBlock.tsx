@@ -5,6 +5,7 @@ import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
 import { buildReportTermsFromSections } from '@/shared/utils/reportTerms'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import {
     buildReportTableTermsCollapseStorageKey,
     buildSelfTooltipExclusions
@@ -120,8 +121,11 @@ function safeLoadCollapsedState(key: string): boolean | null {
 
         return null
     } catch (error) {
-        const normalizedError =
-            error instanceof Error ? error : new Error(String(error ?? 'Unknown report terms collapse load error.'))
+        const normalizedError = normalizeErrorLike(error, 'Unknown report terms collapse load error.', {
+            source: 'report-table-terms-collapse-load',
+            domain: 'app_runtime',
+            extra: { key }
+        })
         logError(normalizedError, undefined, {
             source: 'report-table-terms-collapse-load',
             domain: 'app_runtime',
@@ -140,8 +144,11 @@ function safeSaveCollapsedState(key: string, isCollapsed: boolean) {
     try {
         window.localStorage.setItem(key, isCollapsed ? '1' : '0')
     } catch (error) {
-        const normalizedError =
-            error instanceof Error ? error : new Error(String(error ?? 'Unknown report terms collapse save error.'))
+        const normalizedError = normalizeErrorLike(error, 'Unknown report terms collapse save error.', {
+            source: 'report-table-terms-collapse-save',
+            domain: 'app_runtime',
+            extra: { key }
+        })
         logError(normalizedError, undefined, {
             source: 'report-table-terms-collapse-save',
             domain: 'app_runtime',

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import { usePfiReportReadQuery, type PfiQueryFamily } from '@/shared/api/tanstackQueries/pfi'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { AppRoute } from '@/app/providers/router/config/types'
+import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
@@ -13,6 +16,7 @@ import { useSectionPager } from '@/shared/ui/SectionPager/model/useSectionPager'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
+import { Link } from '@/shared/ui/Link'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import {
     ReportActualStatusCard,
@@ -57,7 +61,7 @@ const PFI_PAGE_VIEW_CONFIGS: Record<PfiQueryFamily, PfiPageViewConfig> = {
     }
 }
 
-function PfiTableCard({ section, domId, reportKind }: PfiTableCardProps) {
+function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: PfiTableCardProps) {
     const { t } = useTranslation(['reports', 'common'])
     const [mode, setMode] = useState<BusinessTechnicalViewControlValue>('business')
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
@@ -113,6 +117,16 @@ function PfiTableCard({ section, domId, reportKind }: PfiTableCardProps) {
     )
     const fileBaseName = section.title || domId
     const description = resolveReportSectionDescription(reportKind, section.title)
+    // Линки на detail-страницу включаются только для daily PFI.
+    const featureColumnIndex = useMemo(() => {
+        if (!featureDetailRoutePath || !section.columnKeys || section.columnKeys.length === 0) {
+            return null
+        }
+
+        const index = section.columnKeys.findIndex(key => key === 'name')
+        return index >= 0 ? index : null
+    }, [section.columnKeys])
+
     const renderColumnTitle = (title: string) =>
         renderTermTooltipTitle(title, resolveReportColumnTooltip(reportKind, section.title, title))
 
@@ -142,6 +156,36 @@ function PfiTableCard({ section, domId, reportKind }: PfiTableCardProps) {
                 storageKey={`pfi.sort.${domId}`}
                 onSortedRowsChange={setSortedRows}
                 renderColumnTitle={renderColumnTitle}
+                renderCell={(value, _rowIndex, colIdx) => {
+                    const detailRoutePath = featureDetailRoutePath
+
+                    if (featureColumnIndex === null || colIdx !== featureColumnIndex || !detailRoutePath) {
+                        return toExportCell(value)
+                    }
+
+                    if (typeof value !== 'string') {
+                        return toExportCell(value)
+                    }
+
+                    const featureName = value.trim()
+                    if (!featureName) {
+                        return toExportCell(value)
+                    }
+
+                    const targetPath = detailRoutePath.replace(':featureId', encodeURIComponent(featureName))
+                    const targetSearch =
+                        section.scoreScopeKey === 'oos'
+                            ? ''
+                            : section.scoreScopeKey === 'train_oof' || section.scoreScopeKey === 'full_history'
+                              ? `?source=${encodeURIComponent(section.scoreScopeKey)}`
+                              : ''
+                    const target = `${targetPath}${targetSearch}`
+                    return (
+                        <Link to={target} className={cls.featureLink}>
+                            {featureName}
+                        </Link>
+                    )
+                }}
             />
         </section>
     )
@@ -165,7 +209,13 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'pfi-page-source-endpoint',
+                domain: 'ui_section',
+                owner: 'pfi-page',
+                expected: 'PFI page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -184,7 +234,13 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build PFI terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build PFI terms.', {
+                source: 'pfi-page-terms',
+                domain: 'ui_section',
+                owner: 'pfi-page',
+                expected: 'PFI page should build terms from table sections and shared glossary.',
+                requiredAction: 'Inspect PFI table sections and term resolver.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError
@@ -193,6 +249,8 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
     }, [tableSections, viewConfig.routeReportKind])
 
     const tabs = useMemo(() => buildPfiTabsFromSections(tableSections), [tableSections])
+    const featureDetailRoutePath =
+        viewConfig.family === 'daily' ? ROUTE_PATH[AppRoute.PFI_PER_MODEL_FEATURE_DETAIL] : null
     const { currentIndex, canPrev, canNext, handlePrev, handleNext } = useSectionPager({
         sections: tabs,
         syncHash: true
@@ -270,6 +328,7 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                                             section={section}
                                             domId={domId}
                                             reportKind={viewConfig.routeReportKind}
+                                            featureDetailRoutePath={featureDetailRoutePath}
                                         />
                                     )
                                 })}

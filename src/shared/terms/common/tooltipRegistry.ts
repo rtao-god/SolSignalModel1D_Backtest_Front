@@ -113,9 +113,11 @@ import {
 } from './reportColumns.en'
 import {
     ATR_INDICATOR_DESCRIPTION,
+    DXY_INDEX_DESCRIPTION,
     EMA_200_BTC_SOL_DESCRIPTION,
     EMA_50_SOL_DESCRIPTION,
     EMA_INDICATOR_DESCRIPTION,
+    FEAR_GREED_INDEX_DESCRIPTION,
     FACTOR_DESCRIPTION_EN,
     FACTOR_DESCRIPTION_RU,
     MIN_MOVE_DESCRIPTION,
@@ -936,6 +938,20 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         description: MARKET_NOISE_DESCRIPTION,
         aliases: ['рыночный шум', 'market noise'],
         priority: 150,
+        scope: 'common'
+    },
+    {
+        id: 'fear-greed-index',
+        pattern: /Fear\s*&\s*Greed|FNG|индекс\s+страха\s+и\s+жадности/i,
+        title: 'Индекс страха и жадности',
+        description: FEAR_GREED_INDEX_DESCRIPTION,
+        scope: 'common'
+    },
+    {
+        id: 'dxy-index',
+        pattern: /DXY|индекс\s+доллара/i,
+        title: 'Индекс доллара DXY',
+        description: DXY_INDEX_DESCRIPTION,
         scope: 'common'
     },
     {

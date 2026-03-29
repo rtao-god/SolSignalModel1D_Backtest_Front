@@ -11,6 +11,7 @@ import {
     ReportTableCard,
     ReportTimingSection,
     Text,
+    type ReportViewControlGroup,
     formatTimingExactUtc,
     resolveCurrentPredictionTrainingScopeMeta
 } from '@/shared/ui'
@@ -21,6 +22,8 @@ import { ReportDocumentView } from '@/shared/ui/ReportDocumentView/ui/ReportDocu
 import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import {
     DEFAULT_BACKFILLED_HISTORY_SCOPE,
+    type CurrentPredictionOosPresetCatalog,
+    type CurrentPredictionOosPresetEntry,
     useCurrentPredictionHistoryPageQuery
 } from '@/shared/api/tanstackQueries/currentPrediction'
 import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
@@ -56,6 +59,10 @@ import {
     resolveCurrentPredictionTimingSnapshot,
     resolveCurrentPredictionHistoryTimingStatus
 } from '@/shared/utils/currentPredictionTiming'
+import {
+    localizeExitReasonLabel,
+    resolveReportLiquidationFallbackLabel
+} from '@/shared/utils/reportCellLocalization'
 const PAGE_SIZE = 10
 const IN_PAGE_SCROLL_STEP = 1
 const HISTORY_SET: CurrentPredictionSet = 'backfilled'
@@ -87,6 +94,9 @@ interface PredictionHistoryPageInnerProps {
     onPageIndexChange: (nextPageIndex: number) => void
     trainingScope: CurrentPredictionTrainingScope
     onTrainingScopeChange: (scope: CurrentPredictionTrainingScope) => void
+    oosPresetCatalog: CurrentPredictionOosPresetCatalog | null
+    selectedOosPresetKey: string | null
+    onOosPresetChange: (presetKey: string) => void
     historyWindow: PredictionHistoryWindow
     onHistoryWindowChange: (window: PredictionHistoryWindow) => void
 }
@@ -129,6 +139,74 @@ interface PolicySkippedSignalRow {
 interface ParsedPolicyTradeRows {
     executedTrades: PolicyTradeRow[]
     skippedDirectionalSignals: PolicySkippedSignalRow[]
+}
+
+interface PredictionHistoryOosPresetOption {
+    value: string
+    label: string
+    tooltip: string
+}
+
+function normalizeOosPresetKey(value: string | null | undefined): string | null {
+    if (typeof value !== 'string') {
+        return null
+    }
+
+    const normalized = value.trim()
+    return normalized ? normalized : null
+}
+
+function findOosPresetEntry(
+    catalog: CurrentPredictionOosPresetCatalog | null,
+    presetKey: string | null | undefined
+): CurrentPredictionOosPresetEntry | null {
+    const normalizedPresetKey = normalizeOosPresetKey(presetKey)
+    if (!catalog || !normalizedPresetKey) {
+        return null
+    }
+
+    return catalog.entries.find(entry => entry.key === normalizedPresetKey) ?? null
+}
+
+function buildOosQuickPresetEntries(catalog: CurrentPredictionOosPresetCatalog | null): CurrentPredictionOosPresetEntry[] {
+    if (!catalog) {
+        return []
+    }
+
+    const entries: CurrentPredictionOosPresetEntry[] = []
+    const seenKeys = new Set<string>()
+
+    ;[
+        catalog.defaultPrimaryPresetKey,
+        catalog.defaultSecondaryPresetKey,
+        catalog.fullOosPresetKey
+    ].forEach(key => {
+        const entry = findOosPresetEntry(catalog, key)
+        if (!entry || seenKeys.has(entry.key)) {
+            return
+        }
+
+        seenKeys.add(entry.key)
+        entries.push(entry)
+    })
+
+    return entries
+}
+
+function formatTradeCountLabel(value: number, locale: string): string {
+    return `${value.toLocaleString(locale)} сделок`
+}
+
+function buildOosPresetShortLabel(entry: CurrentPredictionOosPresetEntry, locale: string): string {
+    return `${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}%)`
+}
+
+function buildOosPresetTooltip(entry: CurrentPredictionOosPresetEntry, locale: string): string {
+    return `Показывает последний хвост проверки на новых днях размером ${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}% от всех сделок проверки).\n\nПериод: ${entry.startPredictionDateUtc} .. ${entry.endPredictionDateUtc}.\n\nВнутри хвоста: ${entry.selectedDays.toLocaleString(locale)} дней, ${entry.daysWithTrades.toLocaleString(locale)} дней со сделками и ${entry.daysWithoutTrades.toLocaleString(locale)} дней без сделок.`
+}
+
+function buildOosPresetSummary(entry: CurrentPredictionOosPresetEntry, locale: string): string {
+    return `Сейчас открыт хвост ${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}%) за период ${entry.startPredictionDateUtc} .. ${entry.endPredictionDateUtc}.`
 }
 
 const POLICY_TABLE_SECTION_KEY = 'leverage_policies'
@@ -540,6 +618,9 @@ function PredictionHistoryPageInner({
     onPageIndexChange,
     trainingScope,
     onTrainingScopeChange,
+    oosPresetCatalog,
+    selectedOosPresetKey,
+    onOosPresetChange,
     historyWindow,
     onHistoryWindowChange
 }: PredictionHistoryPageInnerProps) {
@@ -588,19 +669,55 @@ function PredictionHistoryPageInner({
         () => buildCurrentPredictionHistoryTrainingScopeDescription(historyPage?.trainingScopeStats ?? null),
         [historyPage?.trainingScopeStats]
     )
+    const quickOosPresetEntries = useMemo(() => buildOosQuickPresetEntries(oosPresetCatalog), [oosPresetCatalog])
+    const selectedOosPresetEntry = useMemo(
+        () => findOosPresetEntry(oosPresetCatalog, selectedOosPresetKey),
+        [oosPresetCatalog, selectedOosPresetKey]
+    )
+    const oosPresetOptions = useMemo<PredictionHistoryOosPresetOption[]>(
+        () =>
+            quickOosPresetEntries.map(entry => ({
+                value: entry.key,
+                label: buildOosPresetShortLabel(entry, i18n.language),
+                tooltip: buildOosPresetTooltip(entry, i18n.language)
+            })),
+        [i18n.language, quickOosPresetEntries]
+    )
     const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
         throw new Error(`[ui] Unsupported prediction history window option: ${historyWindow}.`)
     }
-    const controlGroups = useMemo(
-        () => [
+    const controlGroups = useMemo(() => {
+        const groups: ReportViewControlGroup[] = [
             buildTrainingScopeControlGroup({
                 value: trainingScope,
                 onChange: onTrainingScopeChange,
                 label: t('predictionHistory.filters.scope.label'),
                 ariaLabel: t('predictionHistory.filters.scope.ariaLabel'),
                 infoTooltip: trainingScopeDescription
-            }),
+            })
+        ]
+
+        if (trainingScope === 'oos' && oosPresetOptions.length > 0 && selectedOosPresetEntry) {
+            groups.push({
+                key: 'prediction-oos-preset',
+                label: t('predictionHistory.filters.oosPreset.label', {
+                    defaultValue: 'Проверочный хвост'
+                }),
+                ariaLabel: t('predictionHistory.filters.oosPreset.ariaLabel', {
+                    defaultValue: 'Выберите размер проверочного хвоста'
+                }),
+                infoTooltip: t('predictionHistory.filters.oosPreset.tooltip', {
+                    defaultValue:
+                        'Переключатель показывает только последний хвост части истории, где модель проверяется на новых днях. Переключение не пересчитывает прогнозы заново и не загружает скрытые хвосты заранее.'
+                }),
+                value: selectedOosPresetEntry.key,
+                options: oosPresetOptions,
+                onChange: onOosPresetChange
+            })
+        }
+
+        groups.push(
             buildPredictionHistoryWindowControlGroup({
                 value: historyWindow,
                 options: historyWindowOptions,
@@ -614,17 +731,21 @@ function PredictionHistoryPageInner({
                 label: t('predictionHistory.filters.window.label'),
                 ariaLabel: t('predictionHistory.filters.window.ariaLabel')
             })
-        ],
-        [
-            historyWindow,
-            historyWindowOptions,
-            onHistoryWindowChange,
-            onTrainingScopeChange,
-            t,
-            trainingScope,
-            trainingScopeDescription
-        ]
-    )
+        )
+
+        return groups
+    }, [
+        historyWindow,
+        historyWindowOptions,
+        onHistoryWindowChange,
+        onOosPresetChange,
+        onTrainingScopeChange,
+        oosPresetOptions,
+        selectedOosPresetEntry,
+        t,
+        trainingScope,
+        trainingScopeDescription
+    ])
     const totalPages = historyPage?.totalPages ?? 0
     const resolvedPage = historyPage?.page ?? 0
     const clampedPageIndex =
@@ -636,7 +757,7 @@ function PredictionHistoryPageInner({
 
     useEffect(() => {
         onPageIndexChange(0)
-    }, [historyWindow, fromDate, onPageIndexChange, toDate, trainingScope])
+    }, [historyWindow, fromDate, onPageIndexChange, selectedOosPresetKey, toDate, trainingScope])
 
     useEffect(() => {
         if (!historyPage) {
@@ -732,6 +853,14 @@ function PredictionHistoryPageInner({
                         {t('predictionHistory.page.meta.loadWindow', { value: selectedHistoryWindowMeta.label })}
                     </span>
                     <span>{t('predictionHistory.page.meta.trainingScope', { value: currentScopeMeta.label })}</span>
+                    {trainingScope === 'oos' && selectedOosPresetEntry && (
+                        <span>
+                            {t('predictionHistory.page.meta.oosPreset', {
+                                defaultValue: 'Проверочный хвост: {{value}}',
+                                value: buildOosPresetShortLabel(selectedOosPresetEntry, i18n.language)
+                            })}
+                        </span>
+                    )}
                     <span>
                         {t('predictionHistory.page.meta.trainingModel', {
                             value: trainingLabel ?? t('predictionHistory.page.meta.trainingModelFallback')
@@ -764,6 +893,11 @@ function PredictionHistoryPageInner({
                     <Text type='p' className={cls.controlHint}>
                         {currentScopeMeta.hint}
                     </Text>
+                    {trainingScope === 'oos' && selectedOosPresetEntry && (
+                        <Text type='p' className={cls.controlHint}>
+                            {buildOosPresetSummary(selectedOosPresetEntry, i18n.language)}
+                        </Text>
+                    )}
                 </div>
 
                 <div className={cls.filtersRow}>
@@ -846,7 +980,7 @@ function PredictionHistoryPageInner({
                             <div className={classNames(cls.cards, { [cls.cardsAnimating]: cardsAnimating }, [])}>
                                 {(historyPage?.items ?? []).map(item => (
                                     <MemoizedPredictionHistoryReportCard
-                                        key={`${trainingScope}-${item.predictionDateUtc}`}
+                                        key={`${trainingScope}-${selectedOosPresetKey ?? 'all'}-${item.predictionDateUtc}`}
                                         dateUtc={item.predictionDateUtc}
                                         report={item.report}
                                         domId={`pred-${item.predictionDateUtc}`}
@@ -934,37 +1068,6 @@ function resolvePolicyBucketLabel(
     return translate('predictionHistory.tradesTable.bucket.total')
 }
 
-function resolveLiqFallbackLabel(
-    row: PolicyTradeRow,
-    translate: (key: string, options?: Record<string, unknown>) => string
-): string {
-    const normalized = row.liqPriceLabel?.trim().toLowerCase() ?? ''
-
-    if (normalized === 'no liquidation (1x leverage)') {
-        // Защита от неверного источника: этот текст допустим только при фактическом плече 1x.
-        if (row.leverage > 1.0 + 1e-6) {
-            throw new Error(
-                `[ui] Liquidation 1x label mismatch. leverage=${row.leverage}, policy=${row.policyName}, branch=${row.branch}, bucket=${row.bucket}.`
-            )
-        }
-        return translate('predictionHistory.tradesTable.liqFallback.leverage1x')
-    }
-    if (normalized === 'no liquidation (bucket balance >= position notional)') {
-        return translate('predictionHistory.tradesTable.liqFallback.bucketBalance')
-    }
-    if (normalized === 'no liquidation (margin >= position notional)') {
-        return translate('predictionHistory.tradesTable.liqFallback.marginBalance')
-    }
-    if (normalized === 'no liquidation (balance >= position notional)') {
-        return translate('predictionHistory.tradesTable.liqFallback.balance')
-    }
-    if (normalized === 'n/a (liquidation price missing)') {
-        return translate('predictionHistory.tradesTable.liqFallback.missing')
-    }
-
-    return translate('predictionHistory.tradesTable.liqFallback.missing')
-}
-
 function resolveColumnLabel(
     translate: (key: string, options?: Record<string, unknown>) => string,
     key: string,
@@ -1025,6 +1128,7 @@ function PredictionPolicyTradesTable({
     const { t, i18n } = useTranslation('reports')
     const { intlLocale } = useLocale()
     const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
+    const reportLanguage = i18n.resolvedLanguage ?? i18n.language
     const [bucketFilter, setBucketFilter] = useState<PolicyBranchMegaBucketMode>('daily')
     const translate = (key: string, options?: Record<string, unknown>) => t(key, options)
     const bucketControlGroups = useMemo(
@@ -1080,14 +1184,27 @@ function PredictionPolicyTradesTable({
         formatLeverage(row.leverage, intlLocale),
         formatPrice(row.entryPrice, intlLocale),
         formatPrice(row.exitPrice, intlLocale),
-        row.exitReason,
+        localizeExitReasonLabel(row.exitReason, reportLanguage) ?? row.exitReason,
         formatPrice(row.tpPrice, intlLocale),
         formatPercent(row.tpPct, intlLocale),
         formatPrice(row.slPrice, intlLocale),
         formatPercent(row.slPct, intlLocale),
         row.liqPrice !== null ?
             formatPrice(row.liqPrice, intlLocale)
-        :   resolveLiqFallbackLabel(row, translate),
+        :   resolveReportLiquidationFallbackLabel(
+                {
+                    liqPriceLabel: row.liqPriceLabel,
+                    leverage: row.leverage,
+                    policyName: row.policyName,
+                    branch: row.branch,
+                    bucket: row.bucket,
+                    notionalUsd: row.notionalUsd,
+                    bucketCapitalUsd: row.bucketCapitalUsd,
+                    stakeUsd: row.stakeUsd
+                },
+                reportLanguage,
+                translate
+            ),
         formatMoney(row.notionalUsd, intlLocale),
         formatMoney(row.bucketCapitalUsd, intlLocale),
         formatMoney(row.stakeUsd, intlLocale),
@@ -1406,11 +1523,18 @@ const MemoizedPredictionHistoryReportCard = memo(PredictionHistoryReportCard)
 
 function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>(DEFAULT_BACKFILLED_HISTORY_SCOPE)
+    const [selectedOosPresetKey, setSelectedOosPresetKey] = useState<string | null>(null)
+    const [knownOosPresetCatalog, setKnownOosPresetCatalog] = useState<CurrentPredictionOosPresetCatalog | null>(null)
     const [historyWindow, setHistoryWindow] = useState<PredictionHistoryWindow>('365')
     const departure = useSelector(selectDepartureDate)
     const arrival = useSelector(selectArrivalDate)
     const historyDays = resolveHistoryWindowDays(historyWindow)
     const [pageIndex, setPageIndex] = useState(0)
+    const resolvedSelectedOosPresetKey =
+        trainingScope === 'oos' ?
+            normalizeOosPresetKey(selectedOosPresetKey) ??
+            normalizeOosPresetKey(knownOosPresetCatalog?.defaultPrimaryPresetKey)
+        :   null
 
     // История читает только открытую страницу с выбранным окном и не запускает скрытую подзагрузку соседних страниц.
     const { data, isLoading, isError, error, refetch } = useCurrentPredictionHistoryPageQuery({
@@ -1420,8 +1544,47 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
         pageSize: PAGE_SIZE,
         days: historyDays,
         fromDateUtc: departure?.value ?? undefined,
-        toDateUtc: arrival?.value ?? undefined
+        toDateUtc: arrival?.value ?? undefined,
+        oosPresetKey: resolvedSelectedOosPresetKey ?? undefined
     })
+    const currentOosPresetCatalog = data?.trainingScopeStats?.oosPresetCatalog ?? knownOosPresetCatalog
+
+    useEffect(() => {
+        const nextCatalog = data?.trainingScopeStats?.oosPresetCatalog ?? null
+        if (nextCatalog) {
+            setKnownOosPresetCatalog(nextCatalog)
+        }
+    }, [data?.trainingScopeStats?.oosPresetCatalog])
+
+    useEffect(() => {
+        if (trainingScope !== 'oos' || !currentOosPresetCatalog) {
+            return
+        }
+
+        if (findOosPresetEntry(currentOosPresetCatalog, selectedOosPresetKey)) {
+            return
+        }
+
+        setSelectedOosPresetKey(currentOosPresetCatalog.defaultPrimaryPresetKey)
+    }, [currentOosPresetCatalog, selectedOosPresetKey, trainingScope])
+
+    const handleTrainingScopeChange = useCallback(
+        (nextScope: CurrentPredictionTrainingScope) => {
+            setTrainingScope(nextScope)
+
+            if (nextScope !== 'oos') {
+                return
+            }
+
+            const nextPresetKey =
+                normalizeOosPresetKey(selectedOosPresetKey) ??
+                normalizeOosPresetKey(currentOosPresetCatalog?.defaultPrimaryPresetKey)
+            if (nextPresetKey) {
+                setSelectedOosPresetKey(nextPresetKey)
+            }
+        },
+        [currentOosPresetCatalog?.defaultPrimaryPresetKey, selectedOosPresetKey]
+    )
 
     const handleRetry = () => {
         void refetch()
@@ -1435,7 +1598,10 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
             historyPageError={isError ? error : null}
             onHistoryPageRetry={handleRetry}
             trainingScope={trainingScope}
-            onTrainingScopeChange={setTrainingScope}
+            onTrainingScopeChange={handleTrainingScopeChange}
+            oosPresetCatalog={currentOosPresetCatalog}
+            selectedOosPresetKey={resolvedSelectedOosPresetKey}
+            onOosPresetChange={setSelectedOosPresetKey}
             historyWindow={historyWindow}
             onHistoryWindowChange={setHistoryWindow}
             pageIndex={pageIndex}
