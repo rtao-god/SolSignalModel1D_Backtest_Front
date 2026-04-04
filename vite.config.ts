@@ -6,14 +6,19 @@ import { defineConfig, loadEnv } from 'vite'
 import { plugins, css, alias } from './config'
 import { writeDevApiProxyErrorResponse } from './config/vite/devApiProxy'
 import { resolveDevApiProxyTarget } from './config/vite/devProxyTarget'
+import { resolveFrontendProjectPaths } from './config/vite/projectPaths'
 
 export default defineConfig(({ mode }): UserConfig => {
-    const env = loadEnv(mode, process.cwd(), '')
+    const projectPaths = resolveFrontendProjectPaths()
+    const env = loadEnv(mode, projectPaths.rootDir, '')
     // Dev startup фронта должен быть изолирован от lifecycle backend-а:
     // Vite поднимается сразу, а target для `/api` задаётся только простым proxy-контрактом.
     const devApiProxyTarget = resolveDevApiProxyTarget(env.VITE_DEV_API_PROXY_TARGET)
 
     return {
+        root: projectPaths.rootDir,
+        envDir: projectPaths.rootDir,
+        cacheDir: projectPaths.viteCacheDir,
         plugins,
         css,
         resolve: alias,
