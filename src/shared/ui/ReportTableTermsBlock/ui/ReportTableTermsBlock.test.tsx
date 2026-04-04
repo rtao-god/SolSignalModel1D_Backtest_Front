@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
 import i18nForTests from '@/shared/configs/i18n/i18nForTests'
+import { PageLocalIssuesProvider } from '@/shared/ui/errors/PageLocalIssues'
 import { buildReportTableTermsCollapseStorageKey } from '../model/reportTableTermsBlock'
 import ReportTableTermsBlock from './ReportTableTermsBlock'
 
@@ -124,5 +125,25 @@ describe('ReportTableTermsBlock', () => {
 
         expect(screen.queryByRole('button', { name: 'Что такое Policy?' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое Branch?' })).toBeInTheDocument()
+    })
+
+    test('reports detailed local term error to the page top instead of rendering a local block', async () => {
+        render(
+            <PageLocalIssuesProvider scopeKey='/test'>
+                <ReportTableTermsBlock
+                    reportKind='policy_branch_mega'
+                    sectionTitle='PART 1/4'
+                    columns={['MissingMetricColumn']}
+                />
+            </PageLocalIssuesProvider>
+        )
+
+        expect(await screen.findByText('На странице есть локальные ошибки')).toBeInTheDocument()
+        expect(await screen.findByText('Ошибка блока терминов таблицы')).toBeInTheDocument()
+        expect(
+            await screen.findByText(
+                'Для этой колонки не найден tooltip. Колонка: MissingMetricColumn. Секция: PART 1/4. Отчёт: policy_branch_mega. Локаль: ru.'
+            )
+        ).toBeInTheDocument()
     })
 })

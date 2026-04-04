@@ -9,10 +9,10 @@ describe('mainBestPolicySectionModel', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'],
                 rows: [
-                    ['const_2x', 'BASE', '12.50', '4'],
-                    ['const_3x', 'BASE', '25.00', '7']
+                    ['const_2x', 'BASE', '12.50', '12.50', '4'],
+                    ['const_3x', 'BASE', '25.00', '25.00', '7']
                 ]
             },
             {
@@ -28,7 +28,7 @@ describe('mainBestPolicySectionModel', () => {
         const preparedSections = buildMainDemoPolicyBranchMegaSections(sections)
         const bestPolicy = resolveMainDemoBestPolicyRows(preparedSections)
 
-        expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Tr'])
+        expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'])
         expect(bestPolicy.policy).toBe('const_3x')
         expect(bestPolicy.branch).toBe('BASE')
         expect(bestPolicy.totalPnlPct).toBe(25)
@@ -38,10 +38,10 @@ describe('mainBestPolicySectionModel', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'],
                 rows: [
-                    ['const_2x', 'BASE', '12.50', '4'],
-                    ['const_3x', 'BASE', '25.00', '7']
+                    ['const_2x', 'BASE', '12.50', '12.50', '4'],
+                    ['const_3x', 'BASE', '25.00', '25.00', '7']
                 ]
             },
             {
@@ -65,8 +65,8 @@ describe('mainBestPolicySectionModel', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'TotalPnl$', 'Days', 'Tr', 'StartDay', 'EndDay'],
-                rows: [['const_3x', 'BASE', '25.00', '50000', '1113', '7', '2021-10-12', '2026-03-20']]
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'TotalPnl$', 'Days', 'Tr', 'StartDay', 'EndDay'],
+                rows: [['const_3x', 'BASE', '25.00', '25.00', '50000', '1113', '7', '2021-10-12', '2026-03-20']]
             },
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 2/4]',

@@ -1,4 +1,5 @@
 import {
+    localizeReportColumnTitle,
     localizeReportKeyValue,
     localizeReportDocumentTitle,
     localizeReportKeyLabel,
@@ -94,9 +95,9 @@ describe('reportPresentationLocalization', () => {
 
         expect(
             localizeReportKeyValue('current_prediction', 'Training recipe', 'full_history_retrospective_refit', 'ru')
-        ).toBe('Полное переобучение на всей завершённой истории')
+        ).toBe('Полное переобучение на 100% завершённой истории')
         expect(localizeReportKeyValue('current_prediction', 'Training recipe', 'split_train_oos', 'ru')).toBe(
-            'Split train/OOS: модель обучена на train и считает только OOS'
+            'Базовая пара Train 70% / OOS 30%'
         )
 
         expect(
@@ -105,18 +106,18 @@ describe('reportPresentationLocalization', () => {
 
         expect(
             localizeReportKeyValue('current_prediction', 'Prediction semantics', 'full_history_snapshot_forecast', 'ru')
-        ).toBe('Прогноз на новый день после полного обучения на завершённой истории')
+        ).toBe('Прогноз на новый день после полного обучения на 100% завершённой истории')
         expect(
             localizeReportKeyValue('current_prediction', 'Prediction semantics', 'oos_scored_by_train_recent_tail', 'ru')
-        ).toBe('Свежий OOS-хвост: показаны только последние scored OOS-строки')
+        ).toBe('Короткий OOS-хвост 15%: показан только самый свежий хвост внутри OOS 30%')
         expect(
             localizeReportKeyValue('current_prediction', 'Prediction semantics', 'train_diagnostics_in_sample', 'ru')
-        ).toBe('Диагностика train: in-sample разбор ошибок и уверенности')
+        ).toBe('Диагностика Train 70%: разбор ошибок на обучающей части')
         expect(localizeReportKeyValue('current_prediction', 'View mode', 'train_diagnostics', 'ru')).toBe(
-            'Диагностика train'
+            'Train 70%'
         )
         expect(localizeReportKeyValue('current_prediction', 'Display slice mode', 'recent_tail', 'ru')).toBe(
-            'Свежий хвост scored rows'
+            'Короткий хвост 15%'
         )
 
         expect(
@@ -126,12 +127,38 @@ describe('reportPresentationLocalization', () => {
         expect(localizeReportKeyValue('current_prediction', 'Uses train/OOS split', 'no', 'ru')).toBe('Нет')
     })
 
+    test('localizes current prediction top-factor column titles in RU', () => {
+        expect(localizeReportColumnTitle('current_prediction_history', 'Type', 'ru')).toBe('Тип фактора')
+        expect(localizeReportColumnTitle('current_prediction_history', 'Name', 'ru')).toBe('Название фактора')
+        expect(localizeReportColumnTitle('current_prediction_history', 'Description', 'ru')).toBe(
+            'Человеческое описание'
+        )
+        expect(localizeReportColumnTitle('current_prediction_history', 'Value', 'ru')).toBe('Число')
+        expect(localizeReportColumnTitle('current_prediction_history', 'Rank', 'ru')).toBe('Порядок')
+    })
+
     test('localizes current prediction train diagnostics section titles in RU', () => {
         expect(localizeReportSectionTitle('current_prediction_train', 'Train diagnostics summary', 'ru')).toBe(
             'Сводка диагностики train'
         )
         expect(localizeReportSectionTitle('current_prediction_train', 'Worst mistakes (in-sample)', 'ru')).toBe(
             'Худшие ошибки train (in-sample)'
+        )
+    })
+
+    test('localizes current model-stats overview titles in RU', () => {
+        expect(localizeReportSectionTitle('backtest_model_stats', 'Models overview', 'ru')).toBe('Обзор моделей')
+        expect(localizeReportColumnTitle('backtest_model_stats', 'Family', 'ru')).toBe('Семейство моделей')
+        expect(localizeReportColumnTitle('backtest_model_stats', 'BaselineAuc', 'ru')).toBe('Базовый AUC')
+        expect(localizeReportColumnTitle('backtest_model_stats', 'EvalRows', 'ru')).toBe('Строк проверки')
+    })
+
+    test('localizes PFI column titles in RU', () => {
+        expect(localizeReportColumnTitle('pfi_per_model', 'Index', 'ru')).toBe('Индекс')
+        expect(localizeReportColumnTitle('pfi_per_model', 'FeatureDescription', 'ru')).toBe('Человеческое описание')
+        expect(localizeReportColumnTitle('pfi_per_model', 'FeatureName', 'ru')).toBe('Имя признака')
+        expect(localizeReportColumnTitle('pfi_per_model_feature_detail', 'Mean contribution', 'ru')).toBe(
+            'Средний вклад'
         )
     })
 })

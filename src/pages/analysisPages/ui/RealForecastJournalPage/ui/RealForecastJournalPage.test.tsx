@@ -10,14 +10,16 @@ const {
     useRealForecastJournalLiveStatusQuery,
     useRealForecastJournalOpsStatusQuery,
     useAggregationMetricsQuery,
-    useBacktestConfidenceRiskReportQuery
+    useBacktestConfidenceRiskReportQuery,
+    useCurrentPredictionBackfilledTrainingScopeStatsQuery
 } = vi.hoisted(() => ({
     useRealForecastJournalDayListQuery: vi.fn(),
     useRealForecastJournalDayQuery: vi.fn(),
     useRealForecastJournalLiveStatusQuery: vi.fn(),
     useRealForecastJournalOpsStatusQuery: vi.fn(),
     useAggregationMetricsQuery: vi.fn(),
-    useBacktestConfidenceRiskReportQuery: vi.fn()
+    useBacktestConfidenceRiskReportQuery: vi.fn(),
+    useCurrentPredictionBackfilledTrainingScopeStatsQuery: vi.fn()
 }))
 
 vi.mock('@/shared/api/tanstackQueries/realForecastJournal', () => ({
@@ -34,6 +36,15 @@ vi.mock('@/shared/api/tanstackQueries/aggregation', () => ({
 vi.mock('@/shared/api/tanstackQueries/backtestConfidenceRisk', () => ({
     useBacktestConfidenceRiskReportQuery
 }))
+
+vi.mock('@/shared/api/tanstackQueries/currentPrediction', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/currentPrediction')>()
+
+    return {
+        ...actual,
+        useCurrentPredictionBackfilledTrainingScopeStatsQuery
+    }
+})
 
 vi.mock('@/shared/lib/logging/logError', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/lib/logging/logError')>()
@@ -390,6 +401,19 @@ describe('RealForecastJournalPage', () => {
         await i18nForTests.changeLanguage('en')
         clearLoggedSectionKeys()
         vi.clearAllMocks()
+        useCurrentPredictionBackfilledTrainingScopeStatsQuery.mockReturnValue(
+            createQueryResult({
+                data: {
+                    fullDays: 1327,
+                    trainDays: 1246,
+                    oosDays: 81,
+                    recentDays: 81,
+                    recentMatchesOos: true,
+                    oosHistoryDaySharePercent: 30,
+                    recentHistoryDaySharePercent: 15
+                }
+            })
+        )
 
         useRealForecastJournalDayListQuery.mockReturnValue(
             createQueryResult({

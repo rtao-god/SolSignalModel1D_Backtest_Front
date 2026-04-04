@@ -1,6 +1,9 @@
 import {
+    ENTRY_FEE_DESCRIPTION_RU,
+    EXCHANGE_FEES_DESCRIPTION_RU,
     FIRST_EVENT_DESCRIPTION,
-    FUNDING_DESCRIPTION
+    FUNDING_DESCRIPTION,
+    ROUND_TRIP_DESCRIPTION_RU
 } from './trading'
 import {
     CAP_P50_P90_DESCRIPTION,
@@ -34,5 +37,18 @@ describe('common shared term copy', () => {
         expect(STATIC_TP_SL_DESCRIPTION).toContain('30 закрытых сделок и 45% успешных исходов')
         expect(COMMON_CAP_P50_P90_DESCRIPTION_EN).toContain('top 10% of executed trades')
         expect(COMMON_CAP_P50_P90_DESCRIPTION_EN).not.toContain('sometimes scales')
+    })
+
+    test('keeps exchange fee terms tied to exact project rates', () => {
+        expect(EXCHANGE_FEES_DESCRIPTION_RU).toContain('0.04%')
+        expect(EXCHANGE_FEES_DESCRIPTION_RU).toContain('0.08%')
+        expect(EXCHANGE_FEES_DESCRIPTION_RU).toContain('Комиссия на вход')
+        expect(EXCHANGE_FEES_DESCRIPTION_RU).toContain('Комиссия на выход')
+
+        expect(ROUND_TRIP_DESCRIPTION_RU).toContain('0.08%')
+        expect(ROUND_TRIP_DESCRIPTION_RU).not.toContain('не в одну сторону')
+
+        expect(ENTRY_FEE_DESCRIPTION_RU).toContain('0.04%')
+        expect(ENTRY_FEE_DESCRIPTION_RU).toContain('10 000 USDT')
     })
 })

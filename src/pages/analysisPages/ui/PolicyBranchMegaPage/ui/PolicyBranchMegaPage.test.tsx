@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
+import { scrollToAnchor } from '@/shared/ui/SectionPager/lib/scrollToAnchor'
 import PolicyBranchMegaPage from './PolicyBranchMegaPage'
 
 const refetchMock = vi.fn()
 const useQueriesMock = vi.fn()
+const useCurrentPredictionBackfilledTrainingScopeStatsQueryMock = vi.fn()
 
 function buildVariantSelection(part: string) {
     return {
@@ -13,6 +15,7 @@ function buildVariantSelection(part: string) {
         publishedAtUtc: '2026-03-27T12:00:00.000Z',
         variantKey: `policy-branch-mega-daily-part-${part}`,
         selection: {
+            history: 'full_history',
             bucket: 'daily',
             bucketview: 'aggregate',
             metric: 'real',
@@ -22,6 +25,15 @@ function buildVariantSelection(part: string) {
             zonal: 'with-zonal'
         },
         axes: [
+            {
+                key: 'history',
+                defaultValue: 'full_history',
+                options: [
+                    { value: 'full_history', label: 'Full history' },
+                    { value: 'oos', label: 'OOS' },
+                    { value: 'recent', label: 'Recent' }
+                ]
+            },
             {
                 key: 'part',
                 defaultValue: part,
@@ -40,11 +52,12 @@ function buildPart1Section() {
     return {
         sectionKey: 'policy_branch_mega_daily_with_sl_part_1',
         title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-        columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
-        columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'trades'],
-        rows: [['const_2x', 'BASE', '1.00', '3']],
+        columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'TotalPnl$', 'Comm$', 'Comm%', 'Tr', 'EODExit_n', 'EODExit%', 'EODExit$', 'EODExitPnl%'],
+        columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'wealth_pct', 'total_pnl_usd', 'comm_usd', 'comm_pct', 'trades', 'eod_exit_n', 'eod_exit_share_pct', 'eod_exit_usd', 'eod_exit_pnl_pct'],
+        rows: [['const_2x', 'BASE', '1.00', '1.00', '120.00', '8.00', '0.40', '3', '1', '33.3', '-12.00', '-0.06']],
         metadata: {
             kind: 'policy-branch-mega',
+            historySlice: 'full_history',
             mode: 'with-sl',
             tpSlMode: 'all',
             zonalMode: 'with-zonal',
@@ -86,6 +99,7 @@ function buildPart2FundingSection() {
         rows: [['const_2x', 'BASE', '3', '7', '-120.50', '180.20', '59.70', '1', '0', '1']],
         metadata: {
             kind: 'policy-branch-mega',
+            historySlice: 'full_history',
             mode: 'with-sl',
             tpSlMode: 'all',
             zonalMode: 'with-zonal',
@@ -103,6 +117,7 @@ vi.mock('@tanstack/react-query', async importOriginal => {
     const actual = await importOriginal<typeof import('@tanstack/react-query')>()
     return {
         ...actual,
+        useQueryClient: () => ({}),
         useQueries: (...args: Parameters<typeof useQueriesMock>) => useQueriesMock(...args)
     }
 })
@@ -175,10 +190,31 @@ vi.mock('@/shared/api/tanstackQueries/reportVariants', async importOriginal => {
     }
 })
 
+vi.mock('@/shared/api/tanstackQueries/currentPrediction', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/currentPrediction')>()
+
+    return {
+        ...actual,
+        useCurrentPredictionBackfilledTrainingScopeStatsQuery: () =>
+            useCurrentPredictionBackfilledTrainingScopeStatsQueryMock()
+    }
+})
+
 describe('PolicyBranchMegaPage', () => {
     beforeEach(() => {
         primarySectionsMock = [buildPart1Section()]
         variantSelectionMock = buildVariantSelection('1')
+        useCurrentPredictionBackfilledTrainingScopeStatsQueryMock.mockReturnValue({
+            data: {
+                fullDays: 1327,
+                trainDays: 1246,
+                oosDays: 81,
+                recentDays: 81,
+                recentMatchesOos: true,
+                oosHistoryDaySharePercent: 30,
+                recentHistoryDaySharePercent: 15
+            }
+        })
         useQueriesMock.mockImplementation(({ queries }: { queries: Array<{ queryKey: unknown }> }) =>
             queries.map(query => {
                 const queryKeyText = JSON.stringify(query.queryKey)
@@ -206,25 +242,87 @@ describe('PolicyBranchMegaPage', () => {
         vi.clearAllMocks()
     })
 
-    test('берёт части из selection snapshot и запрашивает part 2, даже если активный report содержит только part 1', async () => {
+    test('без hash не закрепляет первую часть как активный anchor и не дёргает скролл к началу', async () => {
+        useQueriesMock.mockReturnValue([])
+
         render(<PolicyBranchMegaPage />, {
-            route: '/analysis/policy-branch-mega?bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal'
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal'
         })
 
-        expect(await screen.findByText('Часть 2/4')).toBeInTheDocument()
+        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(scrollToAnchor).not.toHaveBeenCalled()
+    })
 
-        const reportPartQueries = useQueriesMock.mock.calls[0]?.[0]?.queries
-        expect(reportPartQueries).toHaveLength(1)
-        expect(reportPartQueries?.[0]?.queryKey).toEqual([
-            'backtest',
-            'policy-branch-mega',
-            'daily',
-            'aggregate',
-            'real',
-            2,
-            'all',
-            'with-sl',
-            'with-zonal'
+    test('с явным hash сохраняет deep-link и прокручивает к запрошенной части', async () => {
+        useQueriesMock.mockReturnValue([])
+
+        render(<PolicyBranchMegaPage />, {
+            route:
+                '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal#policy-branch-section-1'
+        })
+
+        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(scrollToAnchor).toHaveBeenCalledWith(
+            'policy-branch-section-1',
+            expect.objectContaining({
+                behavior: 'auto',
+                withTransitionPulse: false
+            })
+        )
+    })
+
+    test('после активной части прогревает payload всех остальных частей из selection snapshot без промежуточных loading-slot', async () => {
+        render(<PolicyBranchMegaPage />, {
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal'
+        })
+
+        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(screen.getByText('Срез истории')).toBeInTheDocument()
+        expect(screen.getByText('Хвост OOS')).toBeInTheDocument()
+        expect(screen.queryByText('Loading data')).not.toBeInTheDocument()
+
+        const backgroundPayloadQueries = useQueriesMock.mock.calls[0]?.[0]?.queries
+        expect(backgroundPayloadQueries).toHaveLength(3)
+        expect(backgroundPayloadQueries?.map((query: { queryKey: unknown }) => query.queryKey)).toEqual([
+            [
+                'backtest',
+                'policy-branch-mega',
+                'payload',
+                'full_history',
+                'daily',
+                'aggregate',
+                'real',
+                2,
+                'all',
+                'with-sl',
+                'with-zonal'
+            ],
+            [
+                'backtest',
+                'policy-branch-mega',
+                'payload',
+                'full_history',
+                'daily',
+                'aggregate',
+                'real',
+                3,
+                'all',
+                'with-sl',
+                'with-zonal'
+            ],
+            [
+                'backtest',
+                'policy-branch-mega',
+                'payload',
+                'full_history',
+                'daily',
+                'aggregate',
+                'real',
+                4,
+                'all',
+                'with-sl',
+                'with-zonal'
+            ]
         ])
     })
 
@@ -234,13 +332,52 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
-            route: '/analysis/policy-branch-mega?bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=2'
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=2'
         })
 
         expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
-        expect(
-            screen.queryByText(/unexpected columns found while reordering section/i)
-        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
+    })
+
+    test('спокойно принимает backend-порядок part 1, где TotalPnl% идёт сразу после конфигурации', async () => {
+        useQueriesMock.mockReturnValue([])
+
+        render(<PolicyBranchMegaPage />, {
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=1'
+        })
+
+        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
+    })
+
+    test('спокойно принимает mixed part 1, где SL Mode остаётся внутри конфигурационного блока', async () => {
+        primarySectionsMock = [
+            {
+                ...buildPart1Section(),
+                title: 'Policy Branch Mega [Daily] WITH SL + NO SL [PART 1/4]',
+                columns: ['Policy', 'Branch', 'SL Mode', 'TotalPnl%', 'Wealth%', 'Tr'],
+                columnKeys: ['policy_name', 'branch', 'sl_mode', 'total_pnl_pct', 'wealth_pct', 'trades'],
+                rows: [['const_2x', 'BASE', 'WITH SL', '1.00', '1.00', '3']],
+                metadata: {
+                    ...buildPart1Section().metadata,
+                    mode: 'all'
+                }
+            }
+        ]
+        variantSelectionMock = {
+            ...buildVariantSelection('1'),
+            selection: {
+                ...buildVariantSelection('1').selection,
+                slmode: 'all'
+            }
+        }
+        useQueriesMock.mockReturnValue([])
+
+        render(<PolicyBranchMegaPage />, {
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=all&zonal=with-zonal&part=1'
+        })
+
+        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
         expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
     })
 })

@@ -81,6 +81,19 @@ describe('Sidebar route matching', () => {
         expect(screen.queryByText('Predictions')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: activeTabLabel })).toHaveClass(cls.subLinkActive)
     })
+
+    test('shows only statistics sidebar section on BTC weakness route', () => {
+        renderSidebar(ROUTE_PATH[AppRoute.BACKTEST_BTC_WEAKNESS_STATS])
+
+        expect(screen.getByText('Statistics')).toBeInTheDocument()
+        expect(screen.queryByText('Analysis')).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'BTC weakness statistics' })).toHaveClass(cls.linkActive)
+        expect(screen.getByRole('link', { name: 'Micro overlay statistics' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Trade risk statistics' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Strong-day statistics' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Sharp move statistics' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Bounded parameter statistics' })).toBeInTheDocument()
+    })
 })
 
 describe('Sidebar hash reset scroll guard', () => {

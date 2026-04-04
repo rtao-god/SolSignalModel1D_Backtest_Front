@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@/shared/lib/tests/ComponentRender/ComponentRender'
+import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { renderTermTooltipRichText } from './renderTermTooltipRichText'
 import cls from './renderTermTooltipRichText.module.scss'
 
@@ -55,32 +56,35 @@ describe('renderTermTooltipRichText', () => {
         render(
             <div data-testid='round-trip-text'>
                 {renderTermTooltipRichText(
-                    'Комиссии биржи: учитываются ([[round-trip|round-trip]], комиссия на вход и на выход).'
+                    'Комиссии биржи: учитываются. В текущем расчёте это [[entry-fee|комиссия на вход]] 0.04%, [[exit-fee|комиссия на выход]] 0.04%, по итогу за одну сделку биржа забирает [[round-trip|0.08% комиссии]].'
                 )}
             </div>
         )
 
         expect(screen.getByTestId('round-trip-text')).toHaveTextContent(
-            'Комиссии биржи: учитываются (round-trip, комиссия на вход и на выход).'
+            'Комиссии биржи: учитываются. В текущем расчёте это комиссия на вход 0.04%, комиссия на выход 0.04%, по итогу за одну сделку биржа забирает 0.08% комиссии.'
         )
-        expect(screen.getByRole('button', { name: 'Что такое round-trip?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое комиссия на вход?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое комиссия на выход?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое 0.08% комиссии?' })).toBeInTheDocument()
     })
 
     test('renders exchange cost terms through shared tooltip owners', () => {
         render(
             <div data-testid='exchange-costs-text'>
                 {renderTermTooltipRichText(
-                    '[[exchange-fees|Комиссии биржи]]: учитываются ([[round-trip|round-trip]], [[entry-fee|комиссия на вход]] и [[exit-fee|комиссия на выход]]). [[slippage|Проскальзывание]] / [[price-impact|price impact]]: не учитывается.'
+                    '[[exchange-fees|Комиссии биржи]]: учитываются. В текущем расчёте это [[entry-fee|комиссия на вход]] 0.04%, [[exit-fee|комиссия на выход]] 0.04%, по итогу за одну сделку биржа забирает [[round-trip|0.08% комиссии]]. [[slippage|Проскальзывание]] / [[price-impact|price impact]]: не учитывается.'
                 )}
             </div>
         )
 
         expect(screen.getByTestId('exchange-costs-text')).toHaveTextContent(
-            'Комиссии биржи: учитываются (round-trip, комиссия на вход и комиссия на выход). Проскальзывание / price impact: не учитывается.'
+            'Комиссии биржи: учитываются. В текущем расчёте это комиссия на вход 0.04%, комиссия на выход 0.04%, по итогу за одну сделку биржа забирает 0.08% комиссии. Проскальзывание / price impact: не учитывается.'
         )
         expect(screen.getByRole('button', { name: 'Что такое Комиссии биржи?' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое комиссия на вход?' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое комиссия на выход?' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Что такое 0.08% комиссии?' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое price impact?' })).toBeInTheDocument()
     })
 
@@ -207,5 +211,24 @@ describe('renderTermTooltipRichText', () => {
         expect(screen.getByRole('button', { name: 'Что такое Train?' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое OOS?' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Что такое хвост истории?' })).toBeInTheDocument()
+    })
+
+    test('renders nested calc-mode terms inside execution-pipeline tooltip copy', () => {
+        const description = resolveReportColumnTooltip('backtest_execution_pipeline', undefined, 'CalcMode', 'ru')
+
+        if (!description) {
+            throw new Error('CalcMode tooltip is missing for execution pipeline.')
+        }
+
+        render(<div data-testid='calc-mode-text'>{renderTermTooltipRichText(description)}</div>)
+
+        expect(screen.getByTestId('calc-mode-text').textContent).toContain(
+            'CalcMode — правило, по которому движок считает итоговую позицию'
+        )
+        expect(screen.getAllByRole('button', { name: 'Что такое Budgeted?' }).length).toBeGreaterThan(0)
+        expect(screen.getAllByRole('button', { name: 'Что такое ExchangeLike?' }).length).toBeGreaterThan(0)
+        expect(screen.getAllByRole('button', { name: 'Что такое маржа?' }).length).toBeGreaterThan(0)
+        expect(screen.getAllByRole('button', { name: 'Что такое stop-loss?' }).length).toBeGreaterThan(0)
+        expect(screen.getAllByRole('button', { name: 'Что такое плечо?' }).length).toBeGreaterThan(0)
     })
 })

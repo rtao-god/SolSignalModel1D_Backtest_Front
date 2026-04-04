@@ -65,4 +65,48 @@ describe('buildReportTermsFromSections', () => {
             }
         ])
     })
+
+    test('builds PFI feature-detail terms without missing owner tooltips', () => {
+        const terms = buildReportTermsFromSections({
+            sections: [
+                {
+                    title: 'Model quality by section',
+                    columns: ['Model', 'ROC-AUC', 'Brier']
+                }
+            ],
+            reportKind: 'pfi_per_model_feature_detail',
+            contextTag: 'report-terms-test',
+            locale: 'ru'
+        })
+
+        expect(terms.map(term => term.key)).toEqual(['Model', 'ROC-AUC', 'Brier'])
+        expect(terms.every(term => term.description.trim().length > 0)).toBe(true)
+    })
+
+    test('builds model-stats terms for the current backend overview schema', () => {
+        const terms = buildReportTermsFromSections({
+            sections: [
+                {
+                    title: 'Models overview',
+                    columns: ['Family', 'Scope', 'ModelKey', 'Model', 'Threshold', 'BaselineAuc', 'EvalRows', 'EvalPos', 'EvalNeg']
+                }
+            ],
+            reportKind: 'backtest_model_stats',
+            contextTag: 'report-terms-test',
+            locale: 'ru'
+        })
+
+        expect(terms.map(term => term.key)).toEqual([
+            'Family',
+            'Scope',
+            'ModelKey',
+            'Model',
+            'Threshold',
+            'BaselineAuc',
+            'EvalRows',
+            'EvalPos',
+            'EvalNeg'
+        ])
+        expect(terms.every(term => term.description.trim().length > 0)).toBe(true)
+    })
 })

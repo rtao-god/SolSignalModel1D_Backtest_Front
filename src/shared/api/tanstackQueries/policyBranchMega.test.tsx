@@ -11,8 +11,7 @@ import {
     resolvePolicyBranchMegaReportQueryArgs,
     resolvePolicyBranchMegaNeighborParts,
     usePolicyBranchMegaReportNavQuery,
-    usePolicyBranchMegaReportDocumentQuery,
-    usePolicyBranchMegaReportQuery
+    usePolicyBranchMegaReportDocumentQuery
 } from './policyBranchMega'
 
 function createQueryClient(): QueryClient {
@@ -62,11 +61,12 @@ function createPolicyBranchMegaReport() {
             {
                 sectionKey: 'policy_branch_mega_daily_with_sl_part_1',
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%'],
-                columnKeys: ['policy_name', 'branch', 'total_pnl_pct'],
-                rows: [['const_2x', 'BASE', '1.00']],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%'],
+                columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'wealth_pct'],
+                rows: [['const_2x', 'BASE', '1.00', '1.00']],
                 metadata: {
                     kind: 'policy-branch-mega',
+                    historySlice: 'full_history',
                     mode: 'with-sl',
                     isStopLossEnabled: true,
                     tpSlMode: 'all',
@@ -90,6 +90,7 @@ function createPolicyBranchMegaPayload() {
             rows: {}
         },
         capabilities: {
+            availableHistories: ['full_history', 'oos', 'recent'],
             availableBuckets: ['daily'],
             availableParts: [1, 2, 3, 4],
             availableTotalBucketViews: ['aggregate'],
@@ -99,6 +100,7 @@ function createPolicyBranchMegaPayload() {
             availableZonalModes: ['with-zonal']
         },
         resolvedQuery: {
+            history: 'full_history',
             bucket: 'daily',
             bucketView: 'aggregate',
             metric: 'real',
@@ -234,6 +236,7 @@ describe('policyBranchMega report queries', () => {
                     publishedAtUtc: '2026-03-12T08:41:00.000Z',
                     variantKey: 'policy-branch-mega-daily-part-1',
                     selection: {
+                        history: 'full_history',
                         bucket: 'daily',
                         bucketview: 'aggregate',
                         metric: 'real',
@@ -276,10 +279,37 @@ describe('policyBranchMega report queries', () => {
         const requestedUrls = fetchMock.mock.calls.map(call => String(call[0]))
 
         expect(requestedUrls.some(url => url.includes('/api/report-variants/policy_branch_mega/selection?'))).toBe(true)
-        expect(requestedUrls.some(url => url.includes('/api/backtest/policy-branch-mega/payload?part=1'))).toBe(true)
-        expect(requestedUrls.some(url => url.includes('part=2'))).toBe(true)
-        expect(requestedUrls.some(url => url.includes('part=3'))).toBe(true)
-        expect(requestedUrls.some(url => url.includes('part=4'))).toBe(true)
+        expect(
+            requestedUrls.some(
+                url =>
+                    url.includes('/api/report-variants/policy_branch_mega/selection?') &&
+                    url.includes('history=full_history')
+            )
+        ).toBe(true)
+        expect(
+            requestedUrls.some(
+                url =>
+                    url.includes('/api/backtest/policy-branch-mega/payload?') &&
+                    url.includes('history=full_history') &&
+                    url.includes('part=2')
+            )
+        ).toBe(true)
+        expect(
+            requestedUrls.some(
+                url =>
+                    url.includes('/api/backtest/policy-branch-mega/payload?') &&
+                    url.includes('history=full_history') &&
+                    url.includes('part=3')
+            )
+        ).toBe(true)
+        expect(
+            requestedUrls.some(
+                url =>
+                    url.includes('/api/backtest/policy-branch-mega/payload?') &&
+                    url.includes('history=full_history') &&
+                    url.includes('part=4')
+            )
+        ).toBe(true)
     })
 
     test('keeps a one-part neighbor window around the active mega part', () => {

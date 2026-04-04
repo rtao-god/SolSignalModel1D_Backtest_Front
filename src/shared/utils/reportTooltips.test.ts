@@ -44,6 +44,24 @@ describe('report tooltips shared-term guard', () => {
         })
     })
 
+    test('keeps execution pipeline CalcMode tooltip concrete and owner-backed in RU and EN', () => {
+        const calcModeRu = resolveReportColumnTooltip('backtest_execution_pipeline', undefined, 'CalcMode', 'ru')
+        const calcModeEn = resolveReportColumnTooltip('backtest_execution_pipeline', undefined, 'CalcMode', 'en')
+
+        expect(calcModeRu).toContain('[[budgeted-calc-mode|Budgeted]]')
+        expect(calcModeRu).toContain('[[exchange-like-calc-mode|ExchangeLike]]')
+        expect(calcModeRu).toContain('[[margin|маржа]]')
+        expect(calcModeRu).toContain('[[tp-sl|stop-loss]]')
+        expect(calcModeRu).not.toContain('глобальный режим расчёта позиции')
+        expect(calcModeRu).not.toContain('текущий pipeline')
+
+        expect(calcModeEn).toContain('[[budgeted-calc-mode|Budgeted]]')
+        expect(calcModeEn).toContain('[[exchange-like-calc-mode|ExchangeLike]]')
+        expect(calcModeEn).toContain('[[margin|margin]]')
+        expect(calcModeEn).toContain('[[tp-sl|stop-loss]]')
+        expect(calcModeEn).not.toContain('global position-calculation mode')
+    })
+
     test('keeps current prediction Policy and Branch on canonical shared descriptions in RU and EN', () => {
         ;(['ru', 'en'] as const).forEach(locale => {
             ;(['Policy', 'Branch'] as const).forEach(title => {
@@ -144,6 +162,7 @@ describe('report tooltips shared-term guard', () => {
     })
 
     test('keeps PFI tooltips human-readable and links percentage points through the shared term', () => {
+        const descriptionRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'FeatureDescription', 'ru')
         const featureRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'FeatureName', 'ru')
         const importanceRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Importance (ΔAUC, p.p.)', 'ru')
         const deltaAucRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'ΔAUC (p.p.)', 'ru')
@@ -151,6 +170,8 @@ describe('report tooltips shared-term guard', () => {
         const baselineRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Baseline AUC', 'ru')
         const supportRu = resolveReportColumnTooltip('pfi_per_model', undefined, 'Eval support (pos/neg)', 'ru')
 
+        expect(descriptionRu).toContain('короткое бытовое объяснение')
+        expect(descriptionRu).toContain('без формул')
         expect(featureRu).toContain('один входной сигнал модели')
         expect(importanceRu).toContain('[[percentage-points|п.п.]]')
         expect(importanceRu).toContain('Значение 4.10 означает падение AUC на 0.041')
@@ -181,6 +202,16 @@ describe('report tooltips shared-term guard', () => {
         expect(calibrationEn).toContain('percentage points')
         expect(precisionTopEn).toContain('highest-probability')
         expect(precisionTopEn).toContain('base positive share')
+    })
+
+    test('resolves PFI feature-detail columns through the same owner tooltip map', () => {
+        const modelRu = resolveReportColumnTooltip('pfi_per_model_feature_detail', undefined, 'Model', 'ru')
+        const rocAucEn = resolveReportColumnTooltip('pfi_per_model_feature_detail', undefined, 'ROC-AUC', 'en')
+
+        expect(modelRu).toContain('бинарная модель')
+        expect(modelRu).toContain('разные задачи прогноза')
+        expect(rocAucEn).toContain('class-separation quality')
+        expect(rocAucEn).toContain('0.5')
     })
 
     test('keeps diagnostics exact owner-tooltips full and structured in RU and EN', () => {
@@ -277,6 +308,10 @@ describe('report tooltips shared-term guard', () => {
                 keys: PFI_COLUMN_KEYS
             },
             {
+                reportKind: 'pfi_per_model_feature_detail',
+                keys: PFI_COLUMN_KEYS
+            },
+            {
                 reportKind: 'backtest_model_stats',
                 keys: MODEL_STATS_COLUMN_KEYS
             }
@@ -360,7 +395,7 @@ describe('report tooltips shared-term guard', () => {
                 locale === 'ru' ? 'доля правильных прогнозов' : 'share of correct predictions'
             )
             expect(resolveReportColumnTooltip('backtest_model_stats', undefined, 'Threshold', locale)).toContain(
-                locale === 'ru' ? 'значение threshold' : 'cut-off used by the SL model'
+                locale === 'ru' ? 'рабочий порог' : 'working cut-off'
             )
             expect(
                 resolveReportColumnTooltip('backtest_model_stats', undefined, 'Stop-loss day recall, %', locale)
@@ -368,6 +403,29 @@ describe('report tooltips shared-term guard', () => {
             expect(
                 resolveReportColumnTooltip('backtest_model_stats', undefined, 'High-risk prediction rate, %', locale)
             ).toContain(locale === 'ru' ? 'доля случаев' : 'share of cases')
+        })
+    })
+
+    test('covers current backend model-stats overview columns in RU and EN', () => {
+        const overviewColumns = [
+            'Family',
+            'Scope',
+            'ModelKey',
+            'Model',
+            'Threshold',
+            'BaselineAuc',
+            'EvalRows',
+            'EvalPos',
+            'EvalNeg'
+        ] as const
+
+        ;(['ru', 'en'] as const).forEach(locale => {
+            overviewColumns.forEach(column => {
+                const description = resolveReportColumnTooltip('backtest_model_stats', 'Models overview', column, locale)
+
+                expect(description, `[${locale}] model-stats overview column "${column}" resolved to null`).not.toBeNull()
+                expect(validateCommonTooltipDescription(description)).toEqual([])
+            })
         })
     })
 })

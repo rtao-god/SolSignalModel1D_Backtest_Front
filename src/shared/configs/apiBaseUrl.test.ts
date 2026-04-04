@@ -15,21 +15,29 @@ describe('apiBaseUrl runtime resolution', () => {
     })
 
     test('rejects relative API base URL in production', () => {
-        expect(() =>
+        const getError = () =>
             resolveApiBaseUrlForRuntime({
                 rawEnvValue: '/api',
                 isProd: true
             })
-        ).toThrow('[api-base-url] production API base URL must be absolute.')
+
+        expect(getError).toThrow('Production API base URL must be absolute.')
+        expect(getError).toThrow('owner=frontend.api-base-url')
+        expect(getError).toThrow('code=production_api_base_url_not_absolute')
+        expect(getError).toThrow('requiredAction=Set VITE_API_BASE_URL to the deployed backend API origin before building the frontend.')
     })
 
     test('requires explicit API base URL in production', () => {
-        expect(() =>
+        const getError = () =>
             resolveApiBaseUrlForRuntime({
                 rawEnvValue: '',
                 isProd: true
             })
-        ).toThrow('[api-base-url] VITE_API_BASE_URL is required in production.')
+
+        expect(getError).toThrow('Production API base URL is missing.')
+        expect(getError).toThrow('owner=frontend.api-base-url')
+        expect(getError).toThrow('code=production_api_base_url_missing')
+        expect(getError).toThrow('actual=VITE_API_BASE_URL is empty or undefined while isProd=true.')
     })
 
     test('keeps dev fallback on relative /api without browser origin', () => {
