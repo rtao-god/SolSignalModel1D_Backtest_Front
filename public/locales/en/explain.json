@@ -403,7 +403,7 @@
             ],
             [
               "MinMove",
-              "0.5%..12%",
+              "from 0.5% to 12%",
               "Removes noise and extremes"
             ],
             [
