@@ -3,9 +3,9 @@
 ## Local
 
 - `VITE_API_BASE_URL=/api`
-- Frontend requests go to `/api`, and Vite reads the local backend origin from `backend/SolSignalModel1D_Backtest/SolSignalModel1D_Backtest.Api/Properties/launchSettings.json`.
-- `npm run dev` builds the backend into `d:/crypto/tmp/frontend-local-api-runtime` and starts the fresh isolated DLL on the canonical local host when the API is still down.
-- `VITE_DEV_API_PROXY_TARGET` is optional and should be used only for an explicit non-standard backend target.
+- Frontend requests go to `/api`, and Vite proxies that path to a configured backend host.
+- `npm run dev` starts only the frontend dev server. It does not build, start or probe the backend.
+- `VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:10000` keeps the standard local backend target.
 
 ## Production
 
@@ -18,5 +18,5 @@
 
 - One API contract for all consumers in the frontend.
 - No hostname guessing in runtime code.
-- Local dev proxy reuses the backend launch profile as the single source of truth.
+- Local dev proxy uses an explicit backend target and never owns backend lifecycle.
 - Production API URL is configured outside the transport layer.
