@@ -23,6 +23,10 @@ import {
     resolveMainDemoBestPolicyRows,
     type MainBestPolicyRowBundle
 } from './mainBestPolicySectionModel'
+import {
+    resolvePolicyBranchMegaCurrentBalance,
+    resolvePolicyBranchMegaMetricValue
+} from '@/shared/utils/policyBranchMegaCurrentBalance'
 import cls from './Main.module.scss'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
@@ -57,7 +61,7 @@ interface DemoNarrativeSummary {
 
 const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
-    { labelKey: 'bucketNow', termKey: 'BucketNow$', termTitle: 'BucketNow$' },
+    { labelKey: 'bucketNow', termKey: 'OnExch$', termTitle: 'OnExch$' },
     { labelKey: 'maxDd', termKey: 'MaxDD%', termTitle: 'MaxDD%' },
     { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' },
     { labelKey: 'accountRuin', termKey: 'AccRuin', termTitle: 'AccRuin' },
@@ -154,22 +158,7 @@ function resolveMainDemoPolicySummaryKey(
 }
 
 function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): string {
-    for (const item of bundle.sectionRows) {
-        const columns = item.section.columns ?? []
-        const index = columns.indexOf(title)
-        if (index < 0) {
-            continue
-        }
-
-        const value = item.row[index]
-        if (typeof value !== 'string' || value.trim().length === 0) {
-            throw new Error(`[main.demo] metric value is empty for ${title}.`)
-        }
-
-        return value
-    }
-
-    throw new Error(`[main.demo] metric not found in policy branch mega report: ${title}.`)
+    return resolvePolicyBranchMegaMetricValue(bundle.sectionRows, title, `main.demo.metric.${title}`)
 }
 
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
@@ -286,12 +275,13 @@ export default function MainBestPolicySection() {
         }
 
         try {
+            const currentBalanceRaw = resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.meta')
             const startCapital = formatLocalizedCompactUsd(
                 parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'StartCap$'), 'StartCap$'),
                 i18n.language
             )
             const finalBalance = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'BucketNow$'), 'BucketNow$'),
+                parseRequiredNumber(currentBalanceRaw, 'OnExch$'),
                 i18n.language
             )
             const withdrawnProfit = formatLocalizedCompactUsd(
@@ -359,9 +349,9 @@ export default function MainBestPolicySection() {
         try {
             const totalPnlPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl%'), 'TotalPnl%')
             const totalPnlUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl$'), 'TotalPnl$')
-            const bucketNowUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'BucketNow$'),
-                'BucketNow$'
+            const currentBalanceUsd = parseRequiredNumber(
+                resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.summary'),
+                'OnExch$'
             )
             const withdrawnUsd = parseRequiredNumber(
                 resolveMetricValue(bestPolicyState.best, 'Withdrawn$'),
@@ -437,7 +427,7 @@ export default function MainBestPolicySection() {
                         t(policySummaryKey),
                         t('main.demo.summary.capitalFlow', {
                             withdrawnUsd: formatLocalizedCompactUsd(withdrawnUsd, i18n.language),
-                            bucketNowUsd: formatLocalizedCompactUsd(bucketNowUsd, i18n.language)
+                            bucketNowUsd: formatLocalizedCompactUsd(currentBalanceUsd, i18n.language)
                         }),
                         t('main.demo.summary.activity', {
                             days: formatLocalizedNumber(days, i18n.language, {
@@ -529,15 +519,16 @@ export default function MainBestPolicySection() {
         try {
             return {
                 items: DEMO_METRIC_DEFINITIONS.map(definition => {
+                    const rawValue =
+                        definition.termKey === 'OnExch$' ?
+                            resolvePolicyBranchMegaCurrentBalance(bestPolicy.sectionRows, 'main.demo.metrics')
+                        :   resolveMetricValue(bestPolicy, definition.termKey)
+
                     return {
                         label: t(`main.demo.metrics.${definition.labelKey}`),
                         termKey: definition.termKey,
                         termTitle: definition.termTitle,
-                        value: localizeReportCellValue(
-                            definition.termKey,
-                            resolveMetricValue(bestPolicy, definition.termKey),
-                            i18n.language
-                        )
+                        value: localizeReportCellValue(definition.termKey, rawValue, i18n.language)
                     }
                 }),
                 error: null as Error | null

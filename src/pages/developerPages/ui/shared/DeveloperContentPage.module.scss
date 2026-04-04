@@ -87,7 +87,7 @@
     }
 
     th {
-        font-size: 12px;
+        @include type-table-body-dense;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: rgba(212, 238, 255, 0.78);
@@ -106,7 +106,7 @@
 }
 
 .tableCodeCell {
-    font-size: 12px;
+    @include type-table-body-dense;
     color: rgba(212, 238, 255, 0.98);
 }
 
@@ -169,7 +169,7 @@
 }
 
 .detailTitleCode {
-    font-size: 14px;
+    @include type-body-md;
     color: rgba(212, 238, 255, 0.98);
 }
 
@@ -190,7 +190,7 @@
 }
 
 .detailMetaLabel {
-    font-size: 11px;
+    @include type-caption;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(212, 238, 255, 0.72);
@@ -248,7 +248,7 @@
     background: rgba(54, 112, 162, 0.22);
     border: 1px solid rgba(120, 196, 255, 0.24);
     color: rgba(212, 238, 255, 0.96);
-    font-size: 12px;
+    @include type-label;
 }
 
 .groupGrid {
@@ -284,7 +284,7 @@
     background: rgba(120, 196, 255, 0.18);
     border: 1px solid rgba(120, 196, 255, 0.3);
     color: rgba(212, 238, 255, 0.98);
-    font-size: 13px;
+    @include type-caption;
     font-weight: 600;
     flex-shrink: 0;
 }
@@ -296,7 +296,7 @@
 .inlineWhy {
     display: inline-flex;
     margin-left: 6px;
-    font-size: 13px;
+    @include type-body-sm;
 }
 
 .treeRoot {
@@ -338,7 +338,7 @@
     background: rgba(54, 112, 162, 0.24);
     border: 1px solid rgba(120, 196, 255, 0.28);
     color: rgba(212, 238, 255, 0.98);
-    font-size: 12px;
+    @include type-label;
     line-height: 1.4;
     max-width: 100%;
     white-space: normal;

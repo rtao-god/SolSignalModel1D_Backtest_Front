@@ -17,13 +17,13 @@
 }
 
 .emptyTitle {
-    font-size: 14px;
+    @include type-body-md;
     font-weight: 650;
     color: var(--text-color);
 }
 
 .emptyDescription {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: var(--text-muted);
 }
@@ -41,7 +41,7 @@
 }
 
 .tooltipTitle {
-    font-size: 13px;
+    @include type-body-sm;
     font-weight: 700;
     line-height: 1.35;
     color: var(--text-color);
@@ -57,7 +57,7 @@
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.4;
     color: var(--text-secondary);
 }

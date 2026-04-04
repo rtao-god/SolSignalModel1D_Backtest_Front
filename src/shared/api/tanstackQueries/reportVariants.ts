@@ -11,6 +11,7 @@ export const PUBLISHED_REPORT_VARIANT_FAMILIES = {
     backtestExecutionPipeline: 'backtest_execution_pipeline',
     backtestConfidenceRisk: 'backtest_confidence_risk',
     backtestSharpMoveStats: 'backtest_sharp_move_stats',
+    backtestBoundedParameterStats: 'backtest_bounded_parameter_stats',
     backtestModelStats: 'backtest_model_stats'
 } as const
 

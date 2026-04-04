@@ -68,7 +68,7 @@
 }
 
 .infoTable th {
-    font-size: 13px;
+    @include type-table-body;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     text-align: left;
@@ -91,7 +91,7 @@
 
 .calloutTitle {
     margin-bottom: 8px;
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 600;
 }
 

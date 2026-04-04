@@ -19,7 +19,7 @@
 }
 
 .controlLabel {
-    font-size: 11px;
+    @include type-caption;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #94a3b8;
@@ -44,7 +44,7 @@
     border-radius: 999px;
     padding-inline: 12px;
     min-width: 92px;
-    font-size: 12px;
+    @include type-label;
     font-weight: 600;
     line-height: 1.1;
     white-space: nowrap;
@@ -98,7 +98,7 @@
 }
 
 .hint {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.45;
     color: #f59e0b;
 }

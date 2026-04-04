@@ -8,6 +8,7 @@ import { Modal } from '@/shared/ui'
 import PageErrorFallback from '@/app/providers/ErrorBoundary/ui/PageErrorFallback/PageErrorFallback'
 import { logError } from '@/shared/lib/logging/logError'
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary/ErrorBoundary'
+import { PageLocalIssuesProvider } from '@/shared/ui/errors/PageLocalIssues'
 
 export default function Layout({ children, className }: LayoutProps) {
     const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
@@ -40,18 +41,20 @@ export default function Layout({ children, className }: LayoutProps) {
                 </div>
 
                 <main className={classNames(cls.main, { [cls.guideMain]: isGuideRoute })} data-tooltip-boundary>
-                    <ErrorBoundary
-                        resetKeys={[location.pathname]}
-                        onError={(error, errorInfo) =>
-                            logError(error, errorInfo, {
-                                source: 'layout-error-boundary',
-                                path: location.pathname,
-                                domain: 'route_runtime'
-                            })
-                        }
-                        fallbackRender={props => <PageErrorFallback {...props} />}>
-                        {children ?? <Outlet />}
-                    </ErrorBoundary>
+                    <PageLocalIssuesProvider scopeKey={location.pathname}>
+                        <ErrorBoundary
+                            resetKeys={[location.pathname]}
+                            onError={(error, errorInfo) =>
+                                logError(error, errorInfo, {
+                                    source: 'layout-error-boundary',
+                                    path: location.pathname,
+                                    domain: 'route_runtime'
+                                })
+                            }
+                            fallbackRender={props => <PageErrorFallback {...props} />}>
+                            {children ?? <Outlet />}
+                        </ErrorBoundary>
+                    </PageLocalIssuesProvider>
                 </main>
             </div>
 

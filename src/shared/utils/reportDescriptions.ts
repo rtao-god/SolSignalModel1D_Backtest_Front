@@ -29,6 +29,12 @@ function resolveRuleDescription(rule: DescriptionRule, locale: ReportUiLocale): 
     return locale === 'ru' ? rule.ru : rule.en
 }
 
+const PFI_REPORT_KINDS = new Set(['pfi_per_model', 'pfi_sl_model', 'pfi_per_model_feature_detail'])
+
+function isPfiReportKind(reportKind: string | undefined): boolean {
+    return reportKind ? PFI_REPORT_KINDS.has(reportKind) : false
+}
+
 const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     {
         match: /^(Общие параметры бэктеста|Backtest summary parameters)/i,
@@ -42,8 +48,8 @@ const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     },
     {
         match: /^Policies \(baseline config\)/i,
-        ru: 'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом, плечом и режимом маржи.',
-        en: 'Policy list from the active config (const/risk_aware/ultra_safe/dynamic/spot) with policy type, leverage, and margin mode.'
+        ru: 'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом и плечом. Если имя политики уже содержит Cross или Isolated, режим маржи читается из самого имени и не дублируется отдельным столбцом.',
+        en: 'Policy list from the active config (const/risk_aware/ultra_safe/dynamic/spot) with policy type and leverage. When the policy name already contains Cross or Isolated, the margin regime is read from the name itself and is not duplicated in a separate column.'
     },
     {
         match: /^(Политики бэктеста|Backtest policies)/i,
@@ -86,6 +92,11 @@ const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
 ]
 
 const MODEL_STATS_RULES: DescriptionRule[] = [
+    {
+        match: /^Models overview$/i,
+        ru: 'Сводная таблица по моделям и срезам проверки. Она показывает, какая модель открыта, на каком куске истории посчитан AUC и сколько строк лежит под этой оценкой.',
+        en: 'Overview table by model and evaluation slice. It shows which model is open, on what history slice AUC was measured, and how many rows stand behind that estimate.'
+    },
     {
         match: /^Daily label summary/i,
         ru: 'Краткое объяснение качества дневной модели по каждому классу (UP/DOWN/FLAT). Полезно, чтобы быстро понять, где модель чаще ошибается.',
@@ -189,7 +200,7 @@ export function resolveReportSectionDescription(
         }
     }
 
-    if (reportKind === 'pfi_per_model' || reportKind === 'pfi_sl_model') {
+    if (isPfiReportKind(reportKind)) {
         const withoutPrefix = stripSegmentPrefix(normalized)
         for (const rule of PFI_RULES) {
             if (rule.match.test(withoutPrefix)) return resolveRuleDescription(rule, resolvedLocale)

@@ -1,24 +1,11 @@
 import type { PolicyEvaluationDto } from './policyEvaluation.types'
+import type { PolicyPerformanceMetricsDto } from './policyPerformanceMetrics.types'
 
 export interface PolicyRatiosPerPolicyDto {
     policyName: string
     bucket: string
-    tradesCount: number
     marginMode: string | null
-    totalPnlPct: number
-    maxDdPct: number
-    maxDdNoLiqPct: number | null
-    mean: number
-    std: number
-    downStd: number
-    sharpe: number
-    sortino: number
-    cagr: number
-    calmar: number
-    winRatePct: number
-    withdrawnUsd: number
-    accountRuinCount: number | null
-    hadLiquidation: boolean
+    performanceMetrics: PolicyPerformanceMetricsDto
     evaluation: PolicyEvaluationDto | null
 }
 

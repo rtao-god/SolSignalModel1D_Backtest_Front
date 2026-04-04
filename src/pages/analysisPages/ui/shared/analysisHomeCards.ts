@@ -28,10 +28,6 @@ export const ANALYSIS_HOME_CARDS: readonly AnalysisHomeCardConfig[] = [
         route: AppRoute.BACKTEST_CONFIDENCE_RISK
     },
     {
-        id: 'sharpMoveStats',
-        route: AppRoute.BACKTEST_SHARP_MOVE_STATS
-    },
-    {
         id: 'oosPresetTails',
         route: AppRoute.CURRENT_PREDICTION_OOS_PRESETS
     },

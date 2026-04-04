@@ -10,6 +10,7 @@ export type AboutSectionGroup =
     | 'models'
     | 'backtest'
     | 'analysis'
+    | 'statistics'
     | 'diagnostics'
     | 'features'
     | 'guide'

@@ -1,0 +1,27 @@
+.banner {
+    margin-bottom: 14px;
+}
+
+.issueList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.issueItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.issueTitle {
+    @include type-body-sm;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.issueDescription {
+    @include type-body-sm;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}

@@ -6,6 +6,7 @@ import { resolveReportTooltipSelfAliases } from '@/shared/utils/reportTooltips'
 import { buildReportTermsFromSections } from '@/shared/utils/reportTerms'
 import { logError } from '@/shared/lib/logging/logError'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { usePageLocalIssueReporter } from '@/shared/ui/errors/PageLocalIssues'
 import {
     buildReportTableTermsCollapseStorageKey,
     buildSelfTooltipExclusions
@@ -16,13 +17,23 @@ type ReportTableTermTextResolver = () => string
 type PreparedReportTableTermItem = {
     key: string
     title: string
+    description: string
+    tooltip: string
+    selfAliases?: string[]
+}
+type ProvidedReportTableTermItem = Omit<PreparedReportTableTermItem, 'description' | 'tooltip'> & {
     description?: string
     tooltip?: string
     resolveDescription?: ReportTableTermTextResolver
     resolveTooltip?: ReportTableTermTextResolver
-    selfAliases?: string[]
 }
-type ProvidedReportTableTermItem = PreparedReportTableTermItem
+
+interface ReportTermsIssueContext {
+    reportKind?: string
+    sectionTitle?: string
+    blockTitle: string
+    locale: string
+}
 
 interface ReportTableTermsBlockProps {
     reportKind?: string
@@ -94,13 +105,18 @@ function buildProvidedTerms(terms: ProvidedReportTableTermItem[]): PreparedRepor
     return terms.map((term, index) => ({
         key: ensureNonEmptyValue(term.key, `terms[${index}].key`),
         title: ensureNonEmptyValue(term.title, `terms[${index}].title`),
-        description:
+        description: resolveLazyText(
             typeof term.description === 'string' && term.description.trim().length > 0 ?
                 term.description.trim()
             :   undefined,
-        tooltip: typeof term.tooltip === 'string' && term.tooltip.trim().length > 0 ? term.tooltip.trim() : undefined,
-        resolveDescription: term.resolveDescription,
-        resolveTooltip: term.resolveTooltip,
+            term.resolveDescription,
+            `terms.${term.key}.description`
+        ),
+        tooltip: resolveLazyText(
+            typeof term.tooltip === 'string' && term.tooltip.trim().length > 0 ? term.tooltip.trim() : undefined,
+            term.resolveTooltip,
+            `terms.${term.key}.tooltip`
+        ),
         selfAliases: normalizeNonEmptyAliases(term.selfAliases ?? [])
     }))
 }
@@ -166,6 +182,58 @@ function resolveCollapseToggleLabel(language: string, isCollapsed: boolean): str
     return isCollapsed ? 'Show block' : 'Hide block'
 }
 
+function extractTermsErrorColumn(errorMessage: string): string | null {
+    const match = errorMessage.match(/column=([^.|]+)/i)
+    return match?.[1]?.trim() ?? null
+}
+
+function extractTermsErrorProblem(errorMessage: string): string {
+    if (errorMessage.includes('tooltip is missing')) {
+        return 'Для этой колонки не найден tooltip.'
+    }
+
+    if (errorMessage.includes('description is missing')) {
+        return 'Для этой колонки не найдено описание.'
+    }
+
+    if (errorMessage.includes('resolved to empty value')) {
+        return 'Поставщик текста вернул пустое значение.'
+    }
+
+    if (errorMessage.includes('is missing')) {
+        return 'Один из обязательных текстов блока отсутствует.'
+    }
+
+    return errorMessage
+}
+
+function buildReportTermsIssueDescription(error: Error, context: ReportTermsIssueContext): string {
+    const details: string[] = []
+    const errorMessage = error.message.trim()
+    const brokenColumn = extractTermsErrorColumn(errorMessage)
+    const problem = extractTermsErrorProblem(errorMessage)
+
+    details.push(problem)
+
+    if (brokenColumn) {
+        details.push(`Колонка: ${brokenColumn}.`)
+    }
+
+    if (context.sectionTitle && context.sectionTitle.trim().length > 0) {
+        details.push(`Секция: ${context.sectionTitle.trim()}.`)
+    } else if (context.blockTitle.trim().length > 0) {
+        details.push(`Блок: ${context.blockTitle.trim()}.`)
+    }
+
+    if (context.reportKind && context.reportKind.trim().length > 0) {
+        details.push(`Отчёт: ${context.reportKind.trim()}.`)
+    }
+
+    details.push(`Локаль: ${context.locale}.`)
+
+    return details.join(' ')
+}
+
 export default function ReportTableTermsBlock({
     reportKind,
     sectionTitle,
@@ -183,18 +251,46 @@ export default function ReportTableTermsBlock({
     const { i18n } = useTranslation()
     const resolvedLocale = i18n.resolvedLanguage ?? i18n.language ?? 'en'
     const resolvedLanguage = resolvedLocale.trim().toLowerCase()
-    const resolvedTerms = useMemo<PreparedReportTableTermItem[]>(
-        () =>
-        terms ?
-            buildProvidedTerms(terms)
-        :   buildTermsFromColumns(
-                ensureNonEmptyValue(reportKind, 'reportKind'),
-                ensureNonEmptyValue(sectionTitle, 'sectionTitle'),
-                columns ?? [],
-                resolvedLocale
-            ),
-        [columns, reportKind, resolvedLocale, sectionTitle, terms]
+    const preparedTermsState = useMemo<{
+        resolvedTerms: PreparedReportTableTermItem[]
+        error: Error | null
+    }>(
+        () => {
+            try {
+                return {
+                    resolvedTerms:
+                        terms ?
+                            buildProvidedTerms(terms)
+                        :   buildTermsFromColumns(
+                                ensureNonEmptyValue(reportKind, 'reportKind'),
+                                ensureNonEmptyValue(sectionTitle, 'sectionTitle'),
+                                columns ?? [],
+                                resolvedLocale
+                            ),
+                    error: null
+                }
+            } catch (error) {
+                return {
+                    resolvedTerms: [],
+                    error: normalizeErrorLike(error, 'Unknown report terms block error.', {
+                        source: 'report-table-terms-block',
+                        domain: 'ui_section',
+                        owner: 'report-table-terms-block',
+                        expected: 'Terms block should resolve tooltip and description for every requested column.',
+                        requiredAction: 'Add the missing shared term tooltip or pass explicit terms for the local block.',
+                        extra: {
+                            reportKind,
+                            sectionTitle,
+                            columns: columns ?? null,
+                            title
+                        }
+                    })
+                }
+            }
+        },
+        [columns, reportKind, resolvedLocale, sectionTitle, terms, title]
     )
+    const { resolvedTerms, error: termsBlockError } = preparedTermsState
     const effectiveCollapseStorageKey = useMemo(
         () =>
             collapseStorageKey ??
@@ -228,6 +324,42 @@ export default function ReportTableTermsBlock({
 
         safeSaveCollapsedState(effectiveCollapseStorageKey, isCollapsed)
     }, [canCollapse, effectiveCollapseStorageKey, isCollapsed])
+
+    useEffect(() => {
+        if (!termsBlockError) {
+            return
+        }
+
+        logError(termsBlockError, undefined, {
+            source: 'report-table-terms-block',
+            domain: 'ui_section',
+            severity: 'warning',
+            extra: {
+                reportKind,
+                sectionTitle,
+                columns: columns ?? null,
+                title
+            }
+        })
+    }, [columns, reportKind, sectionTitle, termsBlockError, title])
+    usePageLocalIssueReporter(
+        termsBlockError ?
+            {
+                id: `report-table-terms-block:${reportKind ?? 'custom'}:${sectionTitle ?? title}`,
+                title: 'Ошибка блока терминов таблицы',
+                description: buildReportTermsIssueDescription(termsBlockError, {
+                    reportKind,
+                    sectionTitle,
+                    blockTitle: title,
+                    locale: resolvedLocale
+                })
+            }
+        :   null
+    )
+
+    if (termsBlockError) {
+        return null
+    }
 
     return (
         <div className={`${cls.root}${className ? ` ${className}` : ''}`} data-tooltip-boundary>
@@ -268,18 +400,12 @@ export default function ReportTableTermsBlock({
                                 <TermTooltip
                                     term={term.title}
                                     description={() => {
-                                        const tooltip = resolveLazyText(
-                                            term.tooltip,
-                                            term.resolveTooltip,
-                                            `terms.${term.key}.tooltip`
-                                        )
-
                                         return enhanceDomainTerms ?
                                                 renderTermTooltipRichText(
-                                                    tooltip,
+                                                    term.tooltip,
                                                     buildSelfTooltipExclusions(term.key, term.title, selfAliases)
                                                 )
-                                            :   tooltip
+                                            :   term.tooltip
                                     }}
                                     type='span'
                                 />
@@ -287,20 +413,12 @@ export default function ReportTableTermsBlock({
 
                             {displayMode === 'inline' && (
                                 <Text className={cls.description}>
-                                    {(() => {
-                                        const description = resolveLazyText(
+                                    {enhanceDomainTerms ?
+                                        renderTermTooltipRichText(
                                             term.description,
-                                            term.resolveDescription,
-                                            `terms.${term.key}.description`
+                                            buildSelfTooltipExclusions(term.key, term.title, selfAliases)
                                         )
-
-                                        return enhanceDomainTerms ?
-                                                renderTermTooltipRichText(
-                                                    description,
-                                                    buildSelfTooltipExclusions(term.key, term.title, selfAliases)
-                                                )
-                                            :   description
-                                    })()}
+                                    :   term.description}
                                 </Text>
                             )}
                         </div>

@@ -2,6 +2,18 @@
     margin-right: 0;
 }
 
+.multilineTermDisplay {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+    white-space: normal;
+}
+
+.multilineTermDisplayLine {
+    display: block;
+}
+
 .textSegment {
     display: inline;
     white-space: break-spaces;

@@ -5,6 +5,8 @@ import type {
     PfiFeatureDetailScoreScopeKeyDto,
     PfiFeatureHistoryRangeKeyDto,
     PfiFeatureHistoryCoverageDto,
+    PfiFeatureValueOutcomeProfileDto,
+    PfiFeatureValueOutcomePointDto,
     PfiFeatureDetailTableDto,
     PfiFeatureHistoryChartDto,
     PfiFeatureHistorySeriesDto,
@@ -236,6 +238,68 @@ function mapOptionalHistoryCoverage(value: unknown, label: string): PfiFeatureHi
         skippedWindowCount: toRequiredNonNegativeInt(payload.skippedWindowCount, `${label}.skippedWindowCount`),
         coverageStartDayKeyUtc: toOptionalString(payload.coverageStartDayKeyUtc),
         coverageEndDayKeyUtc: toOptionalString(payload.coverageEndDayKeyUtc)
+    }
+}
+
+function mapValueOutcomePoint(raw: unknown, label: string): PfiFeatureValueOutcomePointDto {
+    const payload = toObject(raw, label)
+
+    const upProbability =
+        payload.upProbability === null || typeof payload.upProbability === 'undefined'
+            ? undefined
+            : toRequiredNumber(payload.upProbability, `${label}.upProbability`)
+    const flatProbability =
+        payload.flatProbability === null || typeof payload.flatProbability === 'undefined'
+            ? undefined
+            : toRequiredNumber(payload.flatProbability, `${label}.flatProbability`)
+    const downProbability =
+        payload.downProbability === null || typeof payload.downProbability === 'undefined'
+            ? undefined
+            : toRequiredNumber(payload.downProbability, `${label}.downProbability`)
+    const longShortEdge =
+        payload.longShortEdge === null || typeof payload.longShortEdge === 'undefined'
+            ? undefined
+            : toRequiredNumber(payload.longShortEdge, `${label}.longShortEdge`)
+
+    return {
+        value: toRequiredNumber(payload.value, `${label}.value`),
+        supportCount: toRequiredNonNegativeInt(payload.supportCount, `${label}.supportCount`),
+        upProbability,
+        flatProbability,
+        downProbability,
+        longShortEdge
+    }
+}
+
+function mapOptionalValueOutcomeProfile(
+    value: unknown,
+    label: string
+): PfiFeatureValueOutcomeProfileDto | undefined {
+    if (value === null || typeof value === 'undefined') {
+        return undefined
+    }
+
+    const payload = toObject(value, label)
+    if (!Array.isArray(payload.points)) {
+        throw new Error(`[ui] ${label}.points must be an array.`)
+    }
+
+    const points = payload.points.map((item, index) => mapValueOutcomePoint(item, `${label}.points[${index}]`))
+    if (points.length === 0) {
+        throw new Error(`[ui] ${label}.points must not be empty.`)
+    }
+
+    return {
+        title: toRequiredString(payload.title, `${label}.title`),
+        description: toRequiredString(payload.description, `${label}.description`),
+        scaleTitle: toRequiredString(payload.scaleTitle, `${label}.scaleTitle`),
+        scaleUnit: toRequiredString(payload.scaleUnit, `${label}.scaleUnit`),
+        valueDecimals: toRequiredNonNegativeInt(payload.valueDecimals, `${label}.valueDecimals`),
+        gridStep: toRequiredNumber(payload.gridStep, `${label}.gridStep`),
+        observationCount: toRequiredPositiveInt(payload.observationCount, `${label}.observationCount`),
+        coverageStartDayKeyUtc: toOptionalString(payload.coverageStartDayKeyUtc),
+        coverageEndDayKeyUtc: toOptionalString(payload.coverageEndDayKeyUtc),
+        points
     }
 }
 
@@ -525,6 +589,10 @@ export function mapPfiFeatureDetailReportResponse(raw: unknown): PfiFeatureDetai
             'PfiFeatureDetailReport.contributionStatsTable'
         ),
         valueBucketsTable: mapOptionalTable(payload.valueBucketsTable, 'PfiFeatureDetailReport.valueBucketsTable'),
+        valueOutcomeProfile: mapOptionalValueOutcomeProfile(
+            payload.valueOutcomeProfile,
+            'PfiFeatureDetailReport.valueOutcomeProfile'
+        ),
         historyCoverage: mapOptionalHistoryCoverage(payload.historyCoverage, 'PfiFeatureDetailReport.historyCoverage'),
         historyCharts:
             historyCharts && historyCharts.length > 0

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
@@ -13,6 +13,7 @@ import {
     useBacktestSharpMoveStatsReportQuery,
     type BacktestSharpMoveStatsQueryArgs
 } from '@/shared/api/tanstackQueries/backtestSharpMoveStats'
+import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import {
@@ -85,15 +86,38 @@ function resolveOutcomeHint(
             })
 }
 
+function resolveRussianDayWord(value: number): string {
+    const absValue = Math.abs(value) % 100
+    const lastDigit = absValue % 10
+
+    if (absValue >= 11 && absValue <= 19) {
+        return 'дней'
+    }
+
+    if (lastDigit === 1) {
+        return 'день'
+    }
+
+    if (lastDigit >= 2 && lastDigit <= 4) {
+        return 'дня'
+    }
+
+    return 'дней'
+}
+
 function resolveAxisOptions(
     catalog: PublishedReportVariantCatalogDto,
     resolvedSelection: Record<string, string>,
     axisKey: (typeof SHARP_MOVE_AXIS_ORDER)[number],
-    translate: (key: string, options?: Record<string, unknown>) => string
+    translate: (key: string, options?: Record<string, unknown>) => string,
+    splitStats?: Parameters<typeof resolveCurrentPredictionTrainingScopeMeta>[1]
 ) {
     return buildPublishedReportVariantCompatibleOptions(catalog, resolvedSelection, axisKey).map(option => {
         if (axisKey === 'scope') {
-            const scopeMeta = resolveCurrentPredictionTrainingScopeMeta(option.value as CurrentPredictionTrainingScope)
+            const scopeMeta = resolveCurrentPredictionTrainingScopeMeta(
+                option.value as CurrentPredictionTrainingScope,
+                splitStats
+            )
             return {
                 value: option.value,
                 label: scopeMeta.label,
@@ -132,9 +156,10 @@ function resolveAxisOptions(
 }
 
 export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
     const variantCatalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestSharpMoveStats)
+    const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
 
     const selectionState = useMemo(() => {
         if (!variantCatalogQuery.data) {
@@ -174,8 +199,60 @@ export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProp
     const reportQuery = useBacktestSharpMoveStatsReportQuery(queryArgs, {
         enabled: Boolean(effectiveSelection) && !variantCatalogQuery.isError && !selectionState.error
     })
+    const scopeInfoTooltip = useMemo(() => {
+        const splitStats = trainingScopeStatsQuery.data
+        const isRu = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru')
+        const locale = isRu ? 'ru-RU' : 'en-US'
+        if (!splitStats) {
+            return t('sharpMoveStats.controls.scope.tooltip', {
+                defaultValue:
+                    isRu ?
+                        'Срез данных — выбор участка истории для этой статистики. Full = 100% завершённой истории, Train = 70% до базового OOS 30%, OOS = 30% новых дней, Recent = 15% внутри OOS.'
+                    :   'History scope is the history slice used in this statistics page. Full = 100% completed history, Train = the earlier 70% before the base OOS 30%, OOS = 30% new days, Recent = the short 15% tail inside OOS 30%.'
+            })
+        }
 
-    const updateAxis = (
+        const fullDaysLabel =
+            isRu ?
+                `${splitStats.fullDays.toLocaleString(locale)} ${resolveRussianDayWord(splitStats.fullDays)}`
+            :   `${splitStats.fullDays.toLocaleString(locale)} days`
+        const trainDaysLabel =
+            isRu ?
+                `${splitStats.trainDays.toLocaleString(locale)} ${resolveRussianDayWord(splitStats.trainDays)}`
+            :   `${splitStats.trainDays.toLocaleString(locale)} days`
+        const oosDaysLabel =
+            isRu ?
+                `${splitStats.oosDays.toLocaleString(locale)} ${resolveRussianDayWord(splitStats.oosDays)}`
+            :   `${splitStats.oosDays.toLocaleString(locale)} days`
+        const recentDaysLabel =
+            isRu ?
+                `${splitStats.recentDays.toLocaleString(locale)} ${resolveRussianDayWord(splitStats.recentDays)}`
+            :   `${splitStats.recentDays.toLocaleString(locale)} days`
+
+        if (!isRu) {
+            return `Data scope is the history slice used for this statistics page.
+
+Full = 100% completed history. This currently contains ${splitStats.fullDays.toLocaleString(locale)} days.
+
+Train = the earlier 70% of full history before the base OOS 30%. This currently contains ${splitStats.trainDays.toLocaleString(locale)} days.
+
+OOS = the base user tail of new days: 30% of full history. This currently contains ${splitStats.oosDays.toLocaleString(locale)} days.
+
+Recent = the short user tail: 15% of full history inside OOS 30%. This currently contains ${splitStats.recentDays.toLocaleString(locale)} days.`
+        }
+
+        return `Срез данных — выбор участка истории для этой статистики.
+
+Full = 100% завершённой истории. Сейчас это ${fullDaysLabel}.
+
+Train = 70% полной истории перед базовым OOS 30%. Сейчас это ${trainDaysLabel}.
+
+OOS = базовый пользовательский хвост 30% полной истории. Сейчас это ${oosDaysLabel}.
+
+Recent = короткий пользовательский хвост 15% внутри OOS 30%. Сейчас это ${recentDaysLabel}.`
+    }, [i18n.language, i18n.resolvedLanguage, t, trainingScopeStatsQuery.data])
+
+    const updateAxis = useCallback((
         axisKey: (typeof SHARP_MOVE_AXIS_ORDER)[number],
         nextValue: string
     ) => {
@@ -185,7 +262,7 @@ export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProp
         const changedIndex = SHARP_MOVE_AXIS_ORDER.indexOf(axisKey)
         SHARP_MOVE_AXIS_ORDER.slice(changedIndex + 1).forEach(key => nextParams.delete(key))
         setSearchParams(nextParams, { replace: true })
-    }
+    }, [searchParams, setSearchParams])
 
     const controlGroups = useMemo<ReportViewControlGroup[]>(() => {
         if (!variantCatalogQuery.data || !effectiveSelection) {
@@ -196,12 +273,15 @@ export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProp
             {
                 key: 'scope',
                 label: t('sharpMoveStats.controls.scope.label', { defaultValue: 'Срез данных' }),
-                infoTooltip: t('sharpMoveStats.controls.scope.tooltip', {
-                    defaultValue:
-                        'Full показывает всю историю, Train оставляет только обучающую часть, OOS показывает новые для модели дни, Recent сжимает OOS до свежего хвоста.'
-                }),
+                infoTooltip: scopeInfoTooltip,
                 value: effectiveSelection.scope,
-                options: resolveAxisOptions(variantCatalogQuery.data, effectiveSelection, 'scope', t),
+                options: resolveAxisOptions(
+                    variantCatalogQuery.data,
+                    effectiveSelection,
+                    'scope',
+                    t,
+                    trainingScopeStatsQuery.data ?? null
+                ),
                 onChange: next => updateAxis('scope', next)
             },
             {
@@ -245,7 +325,7 @@ export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProp
                 onChange: next => updateAxis('horizon', next)
             }
         ]
-    }, [effectiveSelection, searchParams, setSearchParams, t, variantCatalogQuery.data])
+    }, [effectiveSelection, scopeInfoTooltip, t, trainingScopeStatsQuery.data, updateAxis, variantCatalogQuery.data])
 
     const pageError = selectionState.error ?? variantCatalogQuery.error ?? reportQuery.error ?? null
     const freshness = useMemo(

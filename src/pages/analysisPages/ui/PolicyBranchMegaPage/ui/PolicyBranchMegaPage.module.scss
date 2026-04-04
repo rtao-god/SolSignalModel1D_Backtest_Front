@@ -14,14 +14,14 @@
 }
 
 .heroTitle {
-    font-size: 32px;
+    @include type-page-title;
     font-weight: 700;
     line-height: 1.15;
     color: #f9fafb;
 }
 
 .heroSubtitle {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.6;
     color: #9ca3af;
     max-width: 720px;
@@ -47,7 +47,7 @@
 
 .validationAlertTitle {
     color: #ffedd5;
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 700;
 }
 
@@ -58,7 +58,7 @@
     color: #fed7aa;
     border-radius: 10px;
     padding: 6px 10px;
-    font-size: 12px;
+    @include type-label;
     font-weight: 600;
     line-height: 1;
     cursor: pointer;
@@ -81,13 +81,13 @@
 
 .validationAlertText {
     color: #ffedd5;
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.6;
 }
 
 .validationAlertDetail {
     color: #fdba74;
-    font-size: 12px;
+    @include type-label;
     line-height: 1.5;
 }
 
@@ -109,20 +109,20 @@
 }
 
 .overviewTitle {
-    font-size: 17px;
+    @include type-card-title-strong;
     font-weight: 650;
     color: #e2e8f0;
 }
 
 .overviewText {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.6;
     color: #cbd5e1;
 }
 
 .overviewSubTitle {
     margin-top: 6px;
-    font-size: 14px;
+    @include type-body-md;
     font-weight: 650;
     color: #e2e8f0;
 }
@@ -134,7 +134,7 @@
     flex-direction: column;
     gap: 6px;
     color: #cbd5e1;
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.6;
 }
 
@@ -172,14 +172,14 @@
 
 .diagnosticsLinkTitle {
     margin: 0;
-    font-size: 16px;
+    @include type-button;
     font-weight: 650;
     color: #e0f2fe;
 }
 
 .diagnosticsLinkDescription {
     margin: 0;
-    font-size: 13px;
+    @include type-button-sm;
     line-height: 1.6;
     color: #cbd5e1;
     max-width: 860px;
@@ -192,7 +192,7 @@
     flex-direction: column;
     gap: 8px;
     color: #dbeafe;
-    font-size: 13px;
+    @include type-button-sm;
     line-height: 1.6;
 }
 
@@ -202,7 +202,7 @@
 
 .diagnosticsLinkAction {
     width: fit-content;
-    font-size: 13px;
+    @include type-button-sm;
     font-weight: 700;
     line-height: 1.4;
     color: #7dd3fc;
@@ -259,13 +259,13 @@
 }
 
 .termsTitle {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #e2e8f0;
 }
 
 .termsSubtitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.5;
     color: var(--text-muted);
     max-width: 760px;
@@ -285,7 +285,7 @@
 }
 
 .termDescription {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: #d1d5db;
 }

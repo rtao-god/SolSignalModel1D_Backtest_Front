@@ -1,5 +1,5 @@
 .root {
-    @include product-page-shell(1440px, true, 24px);
+    @include product-page-shell(1480px, true, 24px);
     width: 100%;
     container-type: inline-size;
     container-name: current-prediction-oos-presets-page;
@@ -13,37 +13,55 @@
 }
 
 .heroTitle {
-    font-size: 30px;
+    @include type-page-title-compact;
     font-weight: 700;
     line-height: 1.12;
     color: #f8fafc;
 }
 
 .heroSubtitle {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.6;
     color: #cbd5e1;
 }
 
-.controls {
+.controls,
+.chartCard,
+.detailCard {
     @include subtle-surface(14px 16px);
+}
+
+.controls {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.controlHint {
+.controlHint,
+.metricHint,
+.loadingNote {
     margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
+    @include type-label;
+    line-height: 1.55;
+}
+
+.controlHint,
+.metricHint {
     color: #94a3b8;
 }
 
-.summaryGrid {
-    @include responsive-grid(220px, 14px);
+.loadingNote {
+    color: #f59e0b;
 }
 
-.summaryCard {
+.summaryGrid,
+.chartGrid,
+.detailGrid {
+    @include responsive-grid(260px, 14px);
+}
+
+.summaryCard,
+.detailItem {
     @include surface-card(
         $padding: 16px 18px,
         $radius: var(--radius-lg),
@@ -56,39 +74,66 @@
     gap: 8px;
 }
 
-.summaryLabel {
-    font-size: 12px;
+.summaryLabel,
+.detailLabel {
+    @include type-label;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: #93c5fd;
 }
 
-.summaryValue {
-    font-size: 24px;
+.summaryValue,
+.detailValue {
+    @include type-section-title;
     font-weight: 700;
     color: #f8fafc;
 }
 
-.summaryHint {
-    font-size: 13px;
+.summaryHint,
+.detailHint {
+    @include type-caption;
     line-height: 1.55;
     color: #cbd5e1;
 }
 
+.chartGrid,
 .tableSection {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
 }
 
-.loadingNote {
-    font-size: 12px;
-    line-height: 1.5;
-    color: #f59e0b;
+.cardHeader,
+.detailHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.cardTitle {
+    @include type-section-title-compact;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.cardSubtitle {
+    @include type-body-sm;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+@container current-prediction-oos-presets-page (min-width: 1040px) {
+    .chartGrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
 }
 
 @container current-prediction-oos-presets-page (max-width: 760px) {
-    .heroTitle {
-        font-size: 25px;
+    .heroTitle,
+    .summaryValue,
+    .detailValue {
+
     }
 }

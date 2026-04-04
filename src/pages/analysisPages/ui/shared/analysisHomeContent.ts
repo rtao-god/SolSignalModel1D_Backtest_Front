@@ -53,11 +53,11 @@ export const ANALYSIS_HOME_OVERVIEW_BLOCKS = [
     },
     {
         id: 'boundaries',
-        bulletIds: ['analysisVsDiagnostics', 'analysisVsGuide', 'analysisVsDeveloper'],
+        bulletIds: ['analysisVsStatistics', 'analysisVsDiagnostics', 'analysisVsGuide'],
         links: [
+            { id: 'statisticsHome', route: AppRoute.STATISTICS_HOME },
             { id: 'diagnosticsHome', route: AppRoute.DIAGNOSTICS_HOME },
-            { id: 'guideHome', route: AppRoute.GUIDE },
-            { id: 'developerHome', route: AppRoute.DEVELOPER }
+            { id: 'guideHome', route: AppRoute.GUIDE }
         ]
     }
 ] as const

@@ -12,7 +12,7 @@
 }
 
 .heroTitle {
-    font-size: 30px;
+    @include type-page-title-compact;
     font-weight: 700;
     line-height: 1.12;
     color: #f9fafb;
@@ -21,7 +21,7 @@
 .heroSubtitle {
     margin-top: 10px;
     max-width: 760px;
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.55;
     color: #cbd5e1;
 }
@@ -54,7 +54,7 @@
 }
 
 .keyValueTitle {
-    font-size: 14px;
+    @include type-body-md;
     font-weight: 600;
     color: #f8fafc;
 }
@@ -82,14 +82,14 @@
 
 .keyValueKey {
     margin: 0;
-    font-size: 12px;
+    @include type-label;
     color: #93c5fd;
     font-weight: 600;
 }
 
 .keyValueValue {
     margin: 0;
-    font-size: 12px;
+    @include type-label;
     color: #e2e8f0;
     word-break: break-word;
 }

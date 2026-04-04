@@ -27,10 +27,23 @@ export interface PolicyBranchMegaAnchorTarget {
 
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
 export type PolicyBranchMegaTotalBucketView = 'aggregate' | 'separate'
+export type PolicyBranchMegaHistoryMode = 'full_history' | 'oos' | 'recent'
 export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
 export type PolicyBranchMegaTpSlMode = 'all' | 'dynamic' | 'static'
 export type PolicyBranchMegaSlMode = 'all' | 'with-sl' | 'no-sl'
 export type PolicyBranchMegaZonalMode = 'with-zonal' | 'without-zonal'
+
+const HISTORY_QUERY_ALIASES: Record<string, PolicyBranchMegaHistoryMode> = {
+    full: 'full_history',
+    'full-history': 'full_history',
+    full_history: 'full_history',
+    oos: 'oos',
+    recent: 'recent',
+    'oos-tail': 'recent',
+    oos_tail: 'recent',
+    'tail-oos': 'recent',
+    tail_oos: 'recent'
+}
 
 const BUCKET_QUERY_ALIASES: Record<string, PolicyBranchMegaBucketMode> = {
     daily: 'daily',
@@ -77,6 +90,23 @@ export function normalizePolicyBranchMegaTitle(title: string | undefined): strin
         .replace(/\s*=+$/, '')
         .trim()
 }
+export function resolvePolicyBranchMegaHistoryFromQuery(
+    raw: string | null | undefined,
+    fallback: PolicyBranchMegaHistoryMode
+): PolicyBranchMegaHistoryMode {
+    if (!raw) return fallback
+
+    const key = raw.trim().toLowerCase()
+    if (!key) return fallback
+
+    const mapped = HISTORY_QUERY_ALIASES[key]
+    if (!mapped) {
+        throw new Error(`[policy-branch-mega] unknown history query: ${raw}`)
+    }
+
+    return mapped
+}
+
 export function resolvePolicyBranchMegaBucketFromQuery(
     raw: string | null | undefined,
     fallback: PolicyBranchMegaBucketMode
@@ -184,6 +214,12 @@ export function resolvePolicyBranchMegaBucketLabel(bucket: PolicyBranchMegaBucke
     if (bucket === 'intraday') return 'Intraday'
     if (bucket === 'delayed') return 'Delayed'
     return 'Σ Все бакеты'
+}
+
+export function resolvePolicyBranchMegaHistoryLabel(history: PolicyBranchMegaHistoryMode): string {
+    if (history === 'full_history') return 'Вся история'
+    if (history === 'oos') return 'OOS'
+    return 'Хвост OOS'
 }
 
 export function resolvePolicyBranchMegaBucketFromTitle(title: string | undefined): PolicyBranchMegaBucketMode | null {

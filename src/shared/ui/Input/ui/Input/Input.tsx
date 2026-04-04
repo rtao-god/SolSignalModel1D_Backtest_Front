@@ -19,7 +19,6 @@ export default function Input({
     borderRadius,
     padding,
     className = '',
-    fz,
     border,
     error = '',
     ...rest
@@ -45,7 +44,6 @@ export default function Input({
                 borderLeft: bl,
                 backgroundColor: bgcolor,
                 padding,
-                fontSize: fz,
                 border
             }}
         />

@@ -98,10 +98,50 @@ export interface PfiFeatureDetailReportDto {
     contributionStatsTable?: PfiFeatureDetailTableDto
     /** Таблица buckets по значениям выбранной фичи. */
     valueBucketsTable?: PfiFeatureDetailTableDto
+    /** Профиль связи значения фичи с дальнейшим исходом дня. */
+    valueOutcomeProfile?: PfiFeatureValueOutcomeProfileDto
     /** Готовые исторические графики по фиче. */
     historyCharts: PfiFeatureHistoryChartDto[]
     /** Сводка покрытия истории. */
     historyCoverage?: PfiFeatureHistoryCoverageDto
+}
+
+export interface PfiFeatureValueOutcomeProfileDto {
+    /** Заголовок блока. */
+    title: string
+    /** Короткое описание того, как читать профиль. */
+    description: string
+    /** Заголовок шкалы значений по оси X. */
+    scaleTitle: string
+    /** Единица шкалы значений. */
+    scaleUnit: string
+    /** Число знаков после запятой для значений шкалы X. */
+    valueDecimals: number
+    /** Шаг между соседними точками профиля. */
+    gridStep: number
+    /** Общее число дней внутри выбранного среза. */
+    observationCount: number
+    /** Начало покрытия истории для профиля. */
+    coverageStartDayKeyUtc?: string
+    /** Конец покрытия истории для профиля. */
+    coverageEndDayKeyUtc?: string
+    /** Точки профиля в порядке возрастания значений. */
+    points: PfiFeatureValueOutcomePointDto[]
+}
+
+export interface PfiFeatureValueOutcomePointDto {
+    /** Значение фичи в человекочитаемой шкале. */
+    value: number
+    /** Число реальных дней около этого значения. */
+    supportCount: number
+    /** Вероятность дня роста. */
+    upProbability?: number
+    /** Вероятность дня без выраженного движения. */
+    flatProbability?: number
+    /** Вероятность дня падения. */
+    downProbability?: number
+    /** Перевес роста над падением. */
+    longShortEdge?: number
 }
 
 export interface PfiFeatureHistoryCoverageDto {

@@ -24,6 +24,7 @@ import {
 } from '@/shared/api/tanstackQueries/policySetupHistory'
 import type {
     PolicySetupCandlesResponseDto,
+    PolicySetupCatalogItemDto,
     PolicySetupHistoryPublishedStatusDto,
     PolicySetupHistoryResolution,
     PolicySetupLedgerResponseDto
@@ -43,6 +44,7 @@ const RANGE_PRESETS: readonly { id: RangePreset; label: string }[] = [
 const INITIAL_ALL_WINDOW_DAYS = 24
 const OLDER_PREFETCH_WINDOW_DAYS = 90
 const OLDER_PREFETCH_THRESHOLD_DAYS = 8
+const VISIBLE_RANGE_STATE_GRANULARITY_SECONDS = 60 * 60
 
 function resolveRangePreset(raw: string | null): RangePreset {
     return RANGE_PRESETS.some(preset => preset.id === raw) ? (raw as RangePreset) : 'all'
@@ -97,7 +99,9 @@ function buildOlderWindowQueryArgs(
     ledger: PolicySetupLedgerResponseDto,
     chunkWindowDays: number
 ): PolicySetupWindowQueryArgs | null {
-    if (ledger.appliedRange.fromDateUtc <= ledger.availableRange.fromDateUtc) {
+    const availableHistoryRange = ledger.boundaryManifest.historyDayRange
+
+    if (ledger.appliedRange.fromDateUtc <= availableHistoryRange.fromDateUtc) {
         return null
     }
 
@@ -105,8 +109,8 @@ function buildOlderWindowQueryArgs(
 
     return {
         from:
-            extendedFromDateUtc < ledger.availableRange.fromDateUtc
-                ? ledger.availableRange.fromDateUtc
+            extendedFromDateUtc < availableHistoryRange.fromDateUtc
+                ? availableHistoryRange.fromDateUtc
                 : extendedFromDateUtc,
         to: ledger.appliedRange.toDateUtc
     }
@@ -182,7 +186,7 @@ function mergeCandleResponses(
 
     return {
         ...incoming,
-        availableRange: current.availableRange,
+        boundaryManifest: current.boundaryManifest,
         appliedRange: {
             fromDateUtc:
                 current.appliedRange.fromDateUtc < incoming.appliedRange.fromDateUtc
@@ -203,7 +207,7 @@ function shouldPrefetchOlderChunk(
     visibleRange: PolicySetupChartVisibleRange | null
 ): boolean {
     if (!visibleRange || ledger.days.length === 0) return false
-    if (ledger.appliedRange.fromDateUtc <= ledger.availableRange.fromDateUtc) return false
+    if (ledger.appliedRange.fromDateUtc <= ledger.boundaryManifest.historyDayRange.fromDateUtc) return false
 
     const oldestLoadedStartUnixSeconds = toUnixSeconds(ledger.days[0].dayBlockStartUtc)
     const thresholdSeconds = OLDER_PREFETCH_THRESHOLD_DAYS * 24 * 60 * 60
@@ -217,6 +221,34 @@ function formatStatusTimestamp(isoUtc: string | null): string | null {
     if (Number.isNaN(date.getTime())) return isoUtc
 
     return `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+}
+
+function requireSetupMetricNumber(
+    setup: PolicySetupCatalogItemDto,
+    field: keyof NonNullable<PolicySetupCatalogItemDto['performanceMetrics']>
+): number {
+    const value = setup.performanceMetrics[field]
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+            `[policy-setup-history] setup.performanceMetrics.${String(field)} must be a finite number. setupId=${setup.setupId}.`
+        )
+    }
+
+    return value
+}
+
+function requireSetupMetricBoolean(
+    setup: PolicySetupCatalogItemDto,
+    field: keyof NonNullable<PolicySetupCatalogItemDto['performanceMetrics']>
+): boolean {
+    const value = setup.performanceMetrics[field]
+    if (typeof value !== 'boolean') {
+        throw new Error(
+            `[policy-setup-history] setup.performanceMetrics.${String(field)} must be a boolean. setupId=${setup.setupId}.`
+        )
+    }
+
+    return value
 }
 
 function resolvePublishedStatusTitle(status: PolicySetupHistoryPublishedStatusDto): string {
@@ -357,9 +389,32 @@ export default function PolicySetupsPage() {
     const shouldSeedCandlesForResolution = !cachedCandlesForResolution
     const candlesQuery = usePolicySetupCandlesQuery(setupId, seedCandlesArgs, Boolean(setupId) && shouldSeedCandlesForResolution)
     const resolvedCandles = cachedCandlesForResolution ?? candlesQuery.data ?? null
-    const shouldTrackPublishedStatus = !isDetailMode || Boolean(resolvedLedger || ledgerQuery.error)
+    const shouldTrackPublishedStatus =
+        !isDetailMode
+        || !resolvedLedger
+        || Boolean(ledgerQuery.error)
+        || rebuildMutation.isPending
     const publishedStatusQuery = usePolicySetupHistoryStatusQuery(shouldTrackPublishedStatus)
     const publishedStatus = publishedStatusQuery.data ?? null
+
+    const handleChartVisibleRangeChange = useCallback((nextRange: PolicySetupChartVisibleRange | null) => {
+        setVisibleRange(current => {
+            if (current == null || nextRange == null) {
+                return current === nextRange ? current : nextRange
+            }
+
+            const currentFromBucket = Math.floor(current.from / VISIBLE_RANGE_STATE_GRANULARITY_SECONDS)
+            const currentToBucket = Math.floor(current.to / VISIBLE_RANGE_STATE_GRANULARITY_SECONDS)
+            const nextFromBucket = Math.floor(nextRange.from / VISIBLE_RANGE_STATE_GRANULARITY_SECONDS)
+            const nextToBucket = Math.floor(nextRange.to / VISIBLE_RANGE_STATE_GRANULARITY_SECONDS)
+
+            // Родителю не нужен пиксельный visible-range; ему нужен только coarse сигнал,
+            // что левая граница действительно приблизилась к зоне фоновой подгрузки.
+            return currentFromBucket === nextFromBucket && currentToBucket === nextToBucket
+                ? current
+                : nextRange
+        })
+    }, [])
 
     const handlePublishedRebuild = useCallback(async () => {
         try {
@@ -530,8 +585,8 @@ export default function PolicySetupsPage() {
                             <span className={classNames(cls.balanceLegendSwatch, {}, [cls.balanceLegendSwatchWorkingGap])} />
                             <Text className={cls.balanceLegendText}>
                                 Тонкая светлая ветка показывает только [[current-balance|рабочий баланс]].
-                                Она появляется там, где часть результата уже ушла в [[withdrawn-profit|выведенную прибыль]], а деньги в торговле ещё не вернулись выше [[start-cap|стартового капитала]].
-                                Когда рабочий баланс снова выше стартовой базы, нижний график остаётся одной основной веткой.
+                                Она появляется там, где часть результата уже ушла в [[withdrawn-profit|выведенную прибыль]], но рабочий баланс всё ещё держится на [[start-cap|стартовом капитале]] или выше.
+                                Если рабочий баланс падает ниже стартовой базы, нижний график снова читается одной основной веткой без второго дубля.
                             </Text>
                         </div>
                     )
@@ -583,8 +638,14 @@ export default function PolicySetupsPage() {
                     title='Не удалось загрузить каталог policy setup'
                     loadingText='Каталог policy setup загружается'
                     logContext={{ source: 'policy-setups-catalog' }}>
+                    {catalogQuery.data &&
+                        <div className={cls.rangeNote}>
+                            <Text type='span' className={cls.rangeNoteItem}>
+                                Доступный период: {catalogQuery.data.boundaryManifest.historyDayRange.fromDateUtc} - {catalogQuery.data.boundaryManifest.historyDayRange.toDateUtc}
+                            </Text>
+                        </div>}
                     <div className={cls.catalogGrid}>
-                        {catalogQuery.data?.map(setup => (
+                        {catalogQuery.data?.items.map(setup => (
                             <RouterLink
                                 key={setup.setupId}
                                 to={`${catalogPath}/${setup.setupId}`}
@@ -593,23 +654,23 @@ export default function PolicySetupsPage() {
                                     {setup.displayLabel}
                                 </Text>
                                 <div className={cls.catalogMeta}>
-                                    <span>{setup.tradesCount} trade days</span>
+                                    <span>{requireSetupMetricNumber(setup, 'tradesCount')} trade days</span>
                                     <span>{setup.noTradeDaysCount} no-trade days</span>
-                                    <span>{setup.hadLiquidation ? 'liq seen' : 'no liq'}</span>
+                                    <span>{requireSetupMetricBoolean(setup, 'hadLiquidation') ? 'liq seen' : 'no liq'}</span>
                                 </div>
                                 <div className={cls.catalogMetrics}>
                                     <div>
                                         <span className={cls.metricLabel}>PnL</span>
-                                        <strong>{setup.totalPnlPct.toFixed(2)}%</strong>
+                                        <strong>{requireSetupMetricNumber(setup, 'totalPnlPct').toFixed(2)}%</strong>
                                     </div>
                                     <div>
                                         <span className={cls.metricLabel}>Max DD</span>
-                                        <strong>{setup.maxDrawdownPct.toFixed(2)}%</strong>
+                                        <strong>{requireSetupMetricNumber(setup, 'maxDdPct').toFixed(2)}%</strong>
                                     </div>
                                     <div>
                                         <span className={cls.metricLabel}>Window</span>
                                         <strong>
-                                            {setup.fromDateUtc} - {setup.toDateUtc}
+                                            {catalogQuery.data.boundaryManifest.historyDayRange.fromDateUtc} - {catalogQuery.data.boundaryManifest.historyDayRange.toDateUtc}
                                         </strong>
                                     </div>
                                 </div>
@@ -647,22 +708,23 @@ export default function PolicySetupsPage() {
                         History only, UTC only, daily bucket. Первый релиз страницы показывает closed history без live-дня.
                     </Text>
                 </div>
-                <div className={cls.heroStats}>
-                    <div>
-                        <span>Trade days</span>
-                        <strong>{resolvedSetup?.tradesCount ?? 0}</strong>
-                    </div>
-                    <div>
-                        <span>No-trade days</span>
-                        <strong>{resolvedSetup?.noTradeDaysCount ?? 0}</strong>
-                    </div>
-                    <div>
-                        <span>PnL / DD</span>
-                        <strong>
-                            {resolvedSetup?.totalPnlPct.toFixed(2)}% / {resolvedSetup?.maxDrawdownPct.toFixed(2)}%
-                        </strong>
-                    </div>
-                </div>
+                {resolvedSetup &&
+                    <div className={cls.heroStats}>
+                        <div>
+                            <span>Trade days</span>
+                            <strong>{requireSetupMetricNumber(resolvedSetup, 'tradesCount')}</strong>
+                        </div>
+                        <div>
+                            <span>No-trade days</span>
+                            <strong>{resolvedSetup.noTradeDaysCount}</strong>
+                        </div>
+                        <div>
+                            <span>PnL / DD</span>
+                            <strong>
+                                {requireSetupMetricNumber(resolvedSetup, 'totalPnlPct').toFixed(2)}% / {requireSetupMetricNumber(resolvedSetup, 'maxDdPct').toFixed(2)}%
+                            </strong>
+                        </div>
+                    </div>}
             </section>
 
             {publishedStatus && publishedStatus.state !== 'fresh' && (
@@ -773,7 +835,7 @@ export default function PolicySetupsPage() {
                                     : `загрузка ${resolution}`}
                             </Text>
                             <Text type='span' className={cls.rangeNoteItem}>
-                                Доступный период: {resolvedLedger.availableRange.fromDateUtc} - {resolvedLedger.availableRange.toDateUtc}
+                                Доступный период: {resolvedLedger.boundaryManifest.historyDayRange.fromDateUtc} - {resolvedLedger.boundaryManifest.historyDayRange.toDateUtc}
                             </Text>
                             <Text type='span' className={cls.rangeNoteItem}>
                                 {`[[start-cap|Стартовый капитал]]: $${resolvedLedger.startCapitalUsd.toLocaleString('en-US')}`}
@@ -810,7 +872,7 @@ export default function PolicySetupsPage() {
                                 hideNoTradeDays={hideNoTradeDays}
                                 lineVisibilityMode={lineVisibilityMode}
                                 viewportResetKey={ledgerLoadKey ?? 'policy-setup-ledger'}
-                                onVisibleRangeChange={setVisibleRange}
+                                onVisibleRangeChange={handleChartVisibleRangeChange}
                             />
                         :   <div className={cls.notFoundBox}>Свечной слой загружается отдельно от дневного журнала.</div>}
                     </>

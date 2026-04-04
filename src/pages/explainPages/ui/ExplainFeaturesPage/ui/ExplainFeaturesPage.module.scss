@@ -25,12 +25,12 @@
 }
 
 .linkLabel {
-    font-size: 14px;
+    @include type-button-sm;
     opacity: 0.7;
 }
 
 .inlineLink {
-    font-size: 14px;
+    @include type-button-sm;
     text-decoration: underline;
     color: inherit;
     opacity: 0.9;
@@ -81,7 +81,7 @@
 .infoTable td {
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 10px;
-    font-size: 13px;
+    @include type-table-body;
     vertical-align: top;
     line-height: 1.45;
 }
@@ -109,7 +109,7 @@
 
 .calloutTitle {
     margin-bottom: 8px;
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 600;
 }
 

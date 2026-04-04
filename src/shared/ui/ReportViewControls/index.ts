@@ -7,6 +7,7 @@ export {
     buildConfidenceBucketControlGroup,
     buildCurrentPredictionHistoryTrainingScopeDescription,
     buildCurrentPredictionLiveTrainingScopeDescription,
+    buildMegaHistoryControlGroup,
     buildMegaBucketControlGroup,
     buildMegaMetricControlGroup,
     buildMegaTotalBucketViewControlGroup,
@@ -15,6 +16,7 @@ export {
     buildMegaSlModeControlGroup,
     buildMegaTpSlControlGroup,
     buildMegaZonalControlGroup,
+    buildSelectionControlGroup,
     buildModelStatsSegmentControlGroup,
     buildModelStatsViewControlGroup,
     buildTrainingScopeControlGroup

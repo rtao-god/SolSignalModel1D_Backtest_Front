@@ -6,9 +6,10 @@ import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { AppRoute } from '@/app/providers/router/config/types'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { buildPfiTabsFromSections } from '@/shared/utils/pfiTabs'
-import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { resolveReportColumnTooltip, resolveReportTooltipLocale } from '@/shared/utils/reportTooltips'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { localizeReportColumnTitle } from '@/shared/utils/reportPresentationLocalization'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import SectionPager from '@/shared/ui/SectionPager/ui/SectionPager'
@@ -18,18 +19,31 @@ import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shar
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { Link } from '@/shared/ui/Link'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import type { PfiReportSectionDto } from '@/shared/types/pfi.types'
 import {
     ReportActualStatusCard,
     ReportTableTermsBlock,
     ReportViewControls,
     Text,
     buildBusinessTechnicalViewControlGroup,
+    buildSelectionControlGroup,
     type BusinessTechnicalViewControlValue
 } from '@/shared/ui'
+import ModelStatsPage from '@/pages/ModelStatsPage'
 import cls from './PfiPage.module.scss'
-import type { PfiPageProps, PfiTableCardProps } from './types'
+import type { PfiPageMode, PfiPageProps, PfiTableCardProps } from './types'
 
-const BUSINESS_COLUMN_INDEXES = [0, 1, 2, 4, 7, 9]
+const PFI_FEATURE_DESCRIPTION_COLUMN_KEY = 'feature_description'
+const PFI_BUSINESS_COLUMN_KEYS = ['index', 'feature_description', 'name', 'importance_auc', 'delta_mean', 'corr_score', 'support']
+
+function buildBusinessColumnIndexes(section: PfiReportSectionDto): number[] {
+    const columnKeys = section.columnKeys ?? []
+    if (columnKeys.length === 0) {
+        return section.columns.map((_value, index) => index)
+    }
+
+    return PFI_BUSINESS_COLUMN_KEYS.map(key => columnKeys.indexOf(key)).filter(index => index >= 0)
+}
 
 interface PfiPageViewConfig {
     family: PfiQueryFamily
@@ -62,9 +76,10 @@ const PFI_PAGE_VIEW_CONFIGS: Record<PfiQueryFamily, PfiPageViewConfig> = {
 }
 
 function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: PfiTableCardProps) {
-    const { t } = useTranslation(['reports', 'common'])
+    const { t, i18n } = useTranslation(['reports', 'common'])
     const [mode, setMode] = useState<BusinessTechnicalViewControlValue>('business')
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
+    const locale = resolveReportTooltipLocale(i18n.resolvedLanguage ?? i18n.language)
     const viewControlGroups = useMemo(
         () => [
             buildBusinessTechnicalViewControlGroup({
@@ -99,8 +114,9 @@ function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: Pf
             return columns.map((_value, index) => index)
         }
 
-        return BUSINESS_COLUMN_INDEXES.filter(index => index < columns.length)
-    }, [columns, mode])
+        const businessIndexes = buildBusinessColumnIndexes(section)
+        return businessIndexes.length > 0 ? businessIndexes : columns.map((_value, index) => index)
+    }, [columns, mode, section])
 
     useEffect(() => {
         setSortedRows(normalizedRows)
@@ -111,7 +127,9 @@ function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: Pf
     }
 
     const rowsForExport = sortedRows.length > 0 ? sortedRows : normalizedRows
-    const exportColumns = visibleColumnIndexes.map(colIdx => columns[colIdx] ?? `col_${colIdx}`)
+    const exportColumns = visibleColumnIndexes.map(colIdx =>
+        localizeReportColumnTitle(reportKind, columns[colIdx] ?? `col_${colIdx}`, locale)
+    )
     const exportRows = rowsForExport.map(row =>
         visibleColumnIndexes.map(colIdx => toExportCell(getCellValue(row, colIdx)))
     )
@@ -128,7 +146,10 @@ function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: Pf
     }, [section.columnKeys])
 
     const renderColumnTitle = (title: string) =>
-        renderTermTooltipTitle(title, resolveReportColumnTooltip(reportKind, section.title, title))
+        renderTermTooltipTitle(
+            localizeReportColumnTitle(reportKind, title, locale),
+            resolveReportColumnTooltip(reportKind, section.title, title, locale)
+        )
 
     return (
         <section id={domId} className={cls.tableCard}>
@@ -154,10 +175,29 @@ function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: Pf
                 rows={normalizedRows}
                 visibleColumnIndexes={visibleColumnIndexes}
                 storageKey={`pfi.sort.${domId}`}
+                className={cls.tableScroll}
+                tableClassName={cls.table}
                 onSortedRowsChange={setSortedRows}
                 renderColumnTitle={renderColumnTitle}
+                getCellClassName={(_value, _rowIndex, colIdx) => {
+                    const columnKey = section.columnKeys?.[colIdx]
+                    if (columnKey === PFI_FEATURE_DESCRIPTION_COLUMN_KEY) {
+                        return cls.descriptionCell
+                    }
+
+                    if (columnKey === 'name') {
+                        return cls.featureNameCell
+                    }
+
+                    return undefined
+                }}
                 renderCell={(value, _rowIndex, colIdx) => {
+                    const columnKey = section.columnKeys?.[colIdx]
                     const detailRoutePath = featureDetailRoutePath
+
+                    if (columnKey === PFI_FEATURE_DESCRIPTION_COLUMN_KEY) {
+                        return <span className={cls.descriptionText}>{toExportCell(value)}</span>
+                    }
 
                     if (featureColumnIndex === null || colIdx !== featureColumnIndex || !detailRoutePath) {
                         return toExportCell(value)
@@ -191,8 +231,12 @@ function PfiTableCard({ section, domId, reportKind, featureDetailRoutePath }: Pf
     )
 }
 
-export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
-    const { t } = useTranslation('reports')
+interface PfiDiagnosticsPanelProps {
+    family: PfiQueryFamily
+}
+
+function PfiDiagnosticsPanel({ family }: PfiDiagnosticsPanelProps) {
+    const { t, i18n } = useTranslation('reports')
     const viewConfig = PFI_PAGE_VIEW_CONFIGS[family]
     const { data: report, isLoading, error, refetch } = usePfiReportReadQuery(family)
     const reportTitle =
@@ -200,7 +244,10 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
         t(viewConfig.titleFallbackKey, {
             defaultValue: viewConfig.titleFallbackDefault
         })
-    const tableSections = useMemo(() => (report?.sections ?? []).filter(section => section.columns.length > 0), [report])
+    const tableSections = useMemo(
+        () => (report?.sections ?? []).filter(section => section.columns.length > 0),
+        [report]
+    )
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -229,7 +276,8 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                 terms: buildReportTermsFromSections({
                     sections: tableSections,
                     reportKind: viewConfig.routeReportKind,
-                    contextTag: 'pfi'
+                    contextTag: 'pfi',
+                    locale: i18n.resolvedLanguage ?? i18n.language
                 }),
                 error: null as Error | null
             }
@@ -257,7 +305,7 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
     })
 
     return (
-        <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
+        <>
             <header className={cls.headerRow}>
                 <div>
                     <Text type='h2'>{reportTitle}</Text>
@@ -271,7 +319,6 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                     <ReportActualStatusCard
                         statusMode='actual'
                         statusTitle={t('pfi.page.status.publishedTitle')}
-                        statusMessage={t('pfi.page.status.publishedMessage')}
                         dataSource={sourceEndpointState.value}
                         reportTitle={reportTitle}
                         reportId={report.id}
@@ -348,6 +395,51 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
                     }
                 </SectionDataState>
             </SectionDataState>
+        </>
+    )
+}
+
+export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
+    const { t } = useTranslation('reports')
+    const [pageMode, setPageMode] = useState<PfiPageMode>('model_quality')
+    const familyFilter = family === 'daily' ? 'daily_model' : 'sl_model'
+
+    // Обе PFI-страницы теперь живут по одному shell-контракту:
+    // сначала published слой качества моделей по выбранному семейству,
+    // затем по кнопке подключается отдельный диагностический PFI-отчёт.
+    const pageModeControls = useMemo(
+        () => [
+            buildSelectionControlGroup<PfiPageMode>({
+                key: `pfi-page-mode-${family}`,
+                label: t('pfi.page.pageMode.label'),
+                ariaLabel: t('pfi.page.pageMode.ariaLabel'),
+                infoTooltip: t('pfi.page.pageMode.tooltip'),
+                value: pageMode,
+                options: [
+                    {
+                        value: 'model_quality',
+                        label: t('pfi.page.pageMode.options.modelQuality.label'),
+                        tooltip: t('pfi.page.pageMode.options.modelQuality.tooltip')
+                    },
+                    {
+                        value: 'feature_impact',
+                        label: t('pfi.page.pageMode.options.featureImpact.label'),
+                        tooltip: t('pfi.page.pageMode.options.featureImpact.tooltip')
+                    }
+                ],
+                onChange: setPageMode
+            })
+        ],
+        [family, pageMode, t]
+    )
+
+    return (
+        <div className={classNames(cls.PfiPage, {}, [className ?? ''])}>
+            <ReportViewControls groups={pageModeControls} className={cls.pageModeControls} />
+
+            {pageMode === 'model_quality' ?
+                <ModelStatsPage embedded familyFilter={familyFilter} />
+            :   <PfiDiagnosticsPanel family={family} />}
         </div>
     )
 }

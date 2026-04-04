@@ -12,3 +12,5 @@ export interface PfiPageProps {
     className?: string
     family?: PfiQueryFamily
 }
+
+export type PfiPageMode = 'model_quality' | 'feature_impact'

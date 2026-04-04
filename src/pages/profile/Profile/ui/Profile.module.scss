@@ -25,7 +25,7 @@
 .title {
     margin: 0 0 18px;
     color: inherit;
-    font-size: clamp(32px, 5vw, 52px);
+    @include type-display;
     line-height: 1.04;
     max-width: 12ch;
 }
@@ -34,7 +34,7 @@
     margin: 0 0 16px;
     color: inherit;
     opacity: 0.88;
-    font-size: 20px;
+    @include type-section-title;
     line-height: 1.65;
     max-width: 40rem;
 }
@@ -43,7 +43,7 @@
     margin: 0;
     color: inherit;
     opacity: 0.72;
-    font-size: 16px;
+    @include type-body-lg;
     line-height: 1.7;
     max-width: 44rem;
 }
@@ -75,6 +75,6 @@
     }
 
     .lead {
-        font-size: 17px;
+
     }
 }

@@ -82,7 +82,7 @@
 
 .arrow {
     color: white;
-    font-size: 17px;
+    @include type-section-title-compact;
     line-height: 1;
     user-select: none;
 }
@@ -168,7 +168,7 @@
     padding: 4px 8px;
     border-radius: 999px;
 
-    font-size: 12px;
+    @include type-label;
     line-height: 14px;
     color: rgba(255, 255, 255, 0.92);
 

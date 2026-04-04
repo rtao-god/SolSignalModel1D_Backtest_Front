@@ -24,7 +24,7 @@
 .headerTag {
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    @include type-table-header-dense;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -37,7 +37,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px 24px;
-    font-size: 13px;
+    @include type-table-header;
     opacity: 0.8;
 }
 
@@ -69,14 +69,14 @@
 
 .controlLabel {
     margin: 0;
-    font-size: 13px;
+    @include type-table-body;
     opacity: 0.9;
     font-weight: 500;
 }
 
 .controlHint {
     margin: 0;
-    font-size: 12px;
+    @include type-table-body-dense;
     opacity: 0.72;
 }
 
@@ -104,7 +104,7 @@
 
 .filtersInfo {
     min-width: 0;
-    font-size: 13px;
+    @include type-table-body;
     opacity: 0.9;
 }
 
@@ -178,7 +178,7 @@
     flex-direction: column;
     gap: 4px;
     text-align: center;
-    font-size: 13px;
+    @include type-table-body;
     opacity: 0.85;
     flex: 1;
 }
@@ -202,7 +202,6 @@
     gap: 16px;
 }
 
-
 .tradeTableBlock {
     margin-top: 16px;
     display: flex;
@@ -219,7 +218,7 @@
 }
 
 .tradeTableHint {
-    font-size: 12px;
+    @include type-table-body-dense;
     opacity: 0.78;
     max-width: 860px;
 }
@@ -270,7 +269,7 @@
 .kindTag {
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    @include type-table-body-dense;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -285,7 +284,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px 24px;
-    font-size: 13px;
+    @include type-table-body;
     opacity: 0.8;
 }
 
@@ -326,7 +325,7 @@
 }
 
 .sectionSubtitle {
-    font-size: 13px;
+    @include type-table-body;
     color: var(--text-muted);
 }
 
@@ -350,12 +349,12 @@
 }
 
 .kvKey {
-    font-size: 13px;
+    @include type-table-body;
     color: var(--text-muted);
 }
 
 .kvValue {
-    font-size: 14px;
+    @include type-table-body;
     font-weight: 500;
     padding: 3px 8px;
     border-radius: 999px;
@@ -393,7 +392,7 @@
 }
 
 .table {
-    @include data-table-base($min-width: 560px, $font-size: 13px);
+    @include data-table-base($min-width: 560px, $density: medium);
 }
 
 .tableHeaderCell {
@@ -427,7 +426,7 @@
     margin-top: 4px;
     padding: 10px 12px;
     border-radius: var(--radius-md);
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.4;
     background: var(--bg-color-muted);
     border: 1px solid var(--surface-border-subtle);

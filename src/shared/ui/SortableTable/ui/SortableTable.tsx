@@ -1,7 +1,15 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './SortableTable.module.scss'
-import type { RowEntry, SortDir, SortKind, SortState, TableRow } from '../model/types'
+import type {
+    RowEntry,
+    SortDir,
+    SortKind,
+    SortState,
+    TableRow,
+    TableSortComparator,
+    TableSortValueResolver
+} from '../model/types'
 import {
     defaultDirForColumn,
     effectiveAriaSort,
@@ -31,6 +39,8 @@ interface SortableTableProps {
     getRowTitle?: (row: TableRow, rowIndex: number) => string | undefined
     getCellClassName?: (value: unknown, rowIndex: number, colIdx: number) => string | undefined
     renderCell?: (value: unknown, rowIndex: number, colIdx: number) => ReactNode
+    getSortValue?: TableSortValueResolver
+    getSortComparator?: TableSortComparator
     onSortedRowsChange?: (rows: TableRow[]) => void
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
@@ -153,6 +163,8 @@ export default function SortableTable({
     getRowTitle,
     getCellClassName,
     renderCell,
+    getSortValue,
+    getSortComparator,
     onSortedRowsChange,
     renderColumnTitle
 }: SortableTableProps) {
@@ -181,13 +193,13 @@ export default function SortableTable({
     const defaultDirByColIdx = useMemo(() => {
         const map = new Map<number, SortDir>()
         for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-            const d = defaultDirForColumn(rowEntries, colIdx)
+            const d = defaultDirForColumn(rowEntries, colIdx, getSortValue, getSortComparator)
             if (d) {
                 map.set(colIdx, d)
             }
         }
         return map
-    }, [columns.length, rowEntries])
+    }, [columns.length, getSortComparator, getSortValue, rowEntries])
     useEffect(() => {
         const key = storageKeyFor(storageKey)
         if (!key) {
@@ -238,8 +250,8 @@ export default function SortableTable({
             return rowEntries
         }
 
-        return stableSortByCol(rowEntries, sort.colIdx, resolved)
-    }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx])
+        return stableSortByCol(rowEntries, sort.colIdx, resolved, getSortValue, getSortComparator)
+    }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx, getSortComparator, getSortValue])
 
     const shouldVirtualize =
         virtualizeRows &&

@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import {
     buildPublishedReportVariantCompatibleOptions,
     type PublishedReportVariantCatalogDto
@@ -173,8 +174,15 @@ export default function BacktestDiagnosticsPageLayout({
         [diagnosticsSelectionState.value]
     )
 
-    const sharedSections = useMemo(() => sections.filter(section => !isVariantDiagnosticsSection(section)), [sections])
-    const variantSections = useMemo(() => sections.filter(isVariantDiagnosticsSection), [sections])
+    const normalizedSections = useMemo(() => pruneDuplicatePolicyMarginColumns(sections), [sections])
+    const sharedSections = useMemo(
+        () => normalizedSections.filter(section => !isVariantDiagnosticsSection(section)),
+        [normalizedSections]
+    )
+    const variantSections = useMemo(
+        () => normalizedSections.filter(isVariantDiagnosticsSection),
+        [normalizedSections]
+    )
     const sectionsForView = useMemo(() => [...variantSections, ...sharedSections], [sharedSections, variantSections])
     const effectiveAxisVisibility = useMemo(
         () => ({

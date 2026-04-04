@@ -16,7 +16,7 @@
     container-name: backtest-compare;
 
     h2 {
-        font-size: 17px;
+        @include type-section-title-compact;
         font-weight: 600;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -37,7 +37,7 @@
     max-width: 300px;
 
     p {
-        font-size: 14px;
+        @include type-body-md;
         opacity: 0.9;
     }
 }
@@ -48,7 +48,7 @@
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(7, 10, 18, 0.97);
     color: rgba(255, 255, 255, 0.93);
-    font-size: 15px;
+    @include type-body-lg;
     transition:
         border-color 0.16s ease,
         box-shadow 0.16s ease;
@@ -70,7 +70,7 @@
     gap: 6px;
 
     h3 {
-        font-size: 14px;
+        @include type-body-md;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         opacity: 0.92;
@@ -83,7 +83,7 @@
     gap: 12px;
 
     p {
-        font-size: 14px;
+        @include type-body-md;
         opacity: 0.92;
     }
 }
@@ -95,7 +95,7 @@
 .errorText {
     margin-top: 4px;
     color: #ff6b6b;
-    font-size: 14px;
+    @include type-body-md;
 }
 
 .columns {

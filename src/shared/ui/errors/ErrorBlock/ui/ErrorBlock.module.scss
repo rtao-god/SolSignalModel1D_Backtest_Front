@@ -40,7 +40,7 @@
 
 .icon {
     font-weight: 700;
-    font-size: 18px;
+    @include type-body-lg;
     color: rgba(226, 232, 240, 0.95);
 }
 
@@ -59,7 +59,7 @@
 }
 
 .title {
-    font-size: 18px;
+    @include type-section-title-compact;
     font-weight: 600;
     letter-spacing: 0.02em;
     background: linear-gradient(90deg, #e5e7eb, #a5b4fc);
@@ -71,7 +71,7 @@
 .codeBadge {
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 11px;
+    @include type-caption;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     background: rgba(15, 23, 42, 0.78);
@@ -80,7 +80,7 @@
 }
 
 .description {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.5;
     color: rgba(226, 232, 240, 0.9);
 }
@@ -92,7 +92,7 @@
     background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.45), rgba(15, 23, 42, 0.95));
     border: 1px solid rgba(51, 65, 85, 0.9);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    font-size: 12px;
+    @include type-label;
     line-height: 1.4;
     color: rgba(203, 213, 225, 0.95);
     max-height: 260px;
@@ -153,17 +153,17 @@
     }
 
     .description {
-        font-size: 13px;
+        @include type-body-sm;
     }
 
     .details {
-        font-size: 11px;
+        @include type-caption;
         max-height: 180px;
         padding: 10px 12px;
     }
 
     .title {
-        font-size: 16px;
+        @include type-card-title;
     }
 
     .iconGlow {
@@ -172,7 +172,7 @@
     }
 
     .icon {
-        font-size: 16px;
+        @include type-body-lg;
     }
 }
 
@@ -183,15 +183,15 @@
     }
 
     .title {
-        font-size: 16px;
+
     }
 
     .description {
-        font-size: 13px;
+
     }
 
     .details {
-        font-size: 11px;
+
         max-height: 220px;
     }
 }

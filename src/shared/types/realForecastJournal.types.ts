@@ -1,4 +1,5 @@
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
+import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 
 export type RealForecastJournalDayStatus =
@@ -60,11 +61,7 @@ export interface RealForecastJournalPolicyRowDto {
     exitPrice: number | null
     exitReason: string | null
     exitPnlPct: number | null
-    trades: number | null
-    totalPnlPct: number | null
-    maxDdPct: number | null
-    hadLiquidation: boolean | null
-    withdrawnTotal: number | null
+    performanceMetrics: PolicyPerformanceMetricsDto | null
 }
 
 export interface RealForecastJournalSnapshotDto {

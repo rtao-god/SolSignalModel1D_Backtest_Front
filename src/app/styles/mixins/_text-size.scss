@@ -1,65 +1,170 @@
+@mixin typography-role($role) {
+    font-size: var(--type-#{$role}-size);
+    line-height: var(--type-#{$role}-line);
+    font-weight: var(--type-#{$role}-weight);
+    font-family: var(--font-family-main);
+}
+
+@mixin type-display {
+    @include typography-role(display);
+}
+
+@mixin type-display-compact {
+    @include typography-role(display-compact);
+}
+
+@mixin type-page-title {
+    @include typography-role(page-title);
+}
+
+@mixin type-page-title-compact {
+    @include typography-role(page-title-compact);
+}
+
+@mixin type-section-title {
+    @include typography-role(section-title);
+}
+
+@mixin type-section-title-compact {
+    @include typography-role(section-title-compact);
+}
+
+@mixin type-card-title {
+    @include typography-role(card-title);
+}
+
+@mixin type-card-title-strong {
+    @include typography-role(card-title-strong);
+}
+
+@mixin type-body-lg {
+    @include typography-role(body-lg);
+}
+
+@mixin type-body-md {
+    @include typography-role(body-md);
+}
+
+@mixin type-body-sm {
+    @include typography-role(body-sm);
+}
+
+@mixin type-label {
+    @include typography-role(label);
+}
+
+@mixin type-caption {
+    @include typography-role(caption);
+}
+
+@mixin type-micro {
+    @include typography-role(micro);
+}
+
+@mixin type-nav {
+    @include typography-role(nav);
+}
+
+@mixin type-button-sm {
+    @include typography-role(button-sm);
+}
+
+@mixin type-button {
+    @include typography-role(button);
+}
+
+@mixin type-button-lg {
+    @include typography-role(button-lg);
+}
+
+@mixin type-chip {
+    @include typography-role(chip);
+}
+
+@mixin type-input {
+    @include typography-role(input);
+}
+
+@mixin type-tooltip {
+    @include typography-role(tooltip);
+}
+
+@mixin type-error {
+    @include typography-role(error);
+}
+
+@mixin type-kpi {
+    @include typography-role(kpi);
+}
+
+@mixin type-chart-axis {
+    @include typography-role(chart-axis);
+}
+
+@mixin type-table-body {
+    @include typography-role(table-body);
+}
+
+@mixin type-table-body-simple {
+    @include typography-role(table-body-simple);
+}
+
+@mixin type-table-body-dense {
+    @include typography-role(table-body-dense);
+}
+
+@mixin type-table-header {
+    @include typography-role(table-header);
+}
+
+@mixin type-table-header-simple {
+    @include typography-role(table-header-simple);
+}
+
+@mixin type-table-header-dense {
+    @include typography-role(table-header-dense);
+}
+
 @mixin text-size-h1 {
-    font-size: 48px;
-    font-style: normal;
-    line-height: 72px;
+    @include type-display;
 }
 
 @mixin text-size-h2 {
-    font-size: 32px;
-    font-style: normal;
-    line-height: 46px;
+    @include type-page-title;
 }
 
 @mixin text-size-h3 {
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 24px;
+    @include type-section-title;
 }
 
 @mixin text-size-h4 {
-    font-size: 16px;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 20px;
+    @include type-card-title-strong;
 }
 
 @mixin text-size-h5 {
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 18.2px;
+    @include type-body-md;
 }
 
 @mixin text-size-body-1 {
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 28px;
+    @include type-body-lg;
 }
 
 @mixin text-size-body-2 {
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 24px;
+    @include type-body-md;
 }
 
 @mixin text-size-body-3 {
-    font-size: 16px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 24px;
+    @include type-body-sm;
 }
 
 @mixin text-size-body-4 {
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 18.2px;
+    @include type-caption;
 }
 
-@mixin paragraph-text($sizePx, $lineHeightPx) {
-    font-size: #{$sizePx}px;
-    line-height: #{$lineHeightPx}px;
+@mixin paragraph-text($role: body-md) {
+    @if type-of($role) != 'string' {
+        @error 'Use semantic typography role instead of raw font-size values.';
+    }
+
+    @include typography-role($role);
 }

@@ -228,6 +228,8 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
         'Withdrawn$ is the amount of profit this policy already moved out of active trading balance.\n\nIt is not current on-exchange balance, but profit already taken out of the live equity curve.\n\nHow to read it:\nit matters for wealth interpretation because a strategy may have realized and withdrawn part of its gains even if current balance now looks smaller.',
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION_EN,
+    'Человеческое описание':
+        'Human description is a short plain-language explanation of what the factor means.\n\nWhat it shows:\nit rewrites the meaning of the row in one line without internal code labels.\n\nHow to read it:\nread this field first to understand the object of the row, and only then move to factor type, value, and rank.\n\nExample:\nif the row belongs to a PFI feature, this field usually says which piece of the market that signal measures.',
     Значение: CURRENT_PREDICTION_FACTOR_VALUE_DESCRIPTION_EN,
     Ранг: CURRENT_PREDICTION_FACTOR_RANK_DESCRIPTION_EN
 }
@@ -238,6 +240,7 @@ Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
     Bucket: CURRENT_PREDICTION_COLUMNS_EN.Bucket,
     Type: CURRENT_PREDICTION_COLUMNS_EN['Тип'],
     Name: CURRENT_PREDICTION_COLUMNS_EN['Имя'],
+    Description: CURRENT_PREDICTION_COLUMNS_EN['Человеческое описание'],
     Value: CURRENT_PREDICTION_COLUMNS_EN['Значение'],
     Rank: CURRENT_PREDICTION_COLUMNS_EN['Ранг'],
     'Risk day': CURRENT_PREDICTION_COLUMNS_EN['Рискованный день'],
@@ -340,17 +343,18 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Микро-модель': CURRENT_PREDICTION_MICRO_MODEL_DESCRIPTION_EN,
     'Общий ответ (интерпретация моделей)': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
     'Итоговый ответ моделей': CURRENT_PREDICTION_COMBINED_RESPONSE_DESCRIPTION_EN,
-    'Обучение моделей (диапазон)': 'Prediction scope range (mode + range + scored rows).',
+    'Обучение моделей (диапазон)':
+        'Prediction scope range shows which historical slice is active, what date window it covers, and how many scored rows entered the report.\n\nWhat it shows:\n1) [[landing-all-history|Full]] = 100% of completed history.\n2) [[train-segment|Train]] = the earlier 70% of full history before the base [[landing-oos|OOS]] 30%.\n3) [[landing-oos|OOS]] = the latest 30% of full history.\n4) [[landing-recent-tail-history|Recent]] = the latest 15% of full history inside [[landing-oos|OOS]] 30%.\n\nHow to read it:\nthis field separates full history, the training part, the base OOS 30%, and the short 15% tail before comparing metrics between them.',
     'Диапазон режима прогноза':
-        'Prediction scope range shows which training mode is active, what historical window it covers, and how many scored rows entered the report.\n\nWhat it shows:\nit brings together the active mode, the scored date range, and the size of the visible slice.\n\nHow to read it:\nthis field helps separate full history, honest OOS evaluation, train diagnostics, and the recent OOS tail before comparing any metrics between them.',
+        'Prediction scope range shows which historical slice is active, what date window it covers, and how many scored rows entered the report.\n\nWhat it shows:\n1) [[landing-all-history|Full]] = 100% of completed history.\n2) [[train-segment|Train]] = the earlier 70% of full history before the base [[landing-oos|OOS]] 30%.\n3) [[landing-oos|OOS]] = the latest 30% of full history.\n4) [[landing-recent-tail-history|Recent]] = the latest 15% of full history inside [[landing-oos|OOS]] 30%.\n\nHow to read it:\nthis field separates full history, the training part, the base OOS 30%, and the short 15% tail before comparing metrics between them.',
     'Training recipe':
-        'Training recipe is the rule used to assemble the model-fitting path for this current prediction card.\n\nWhat it shows:\nit separates full refit on the whole completed history, where the outcome of each day is already known, from split train/OOS, where the model is trained on train and evaluated only on OOS.\n\nHow to read it:\nthis field explains model preparation rather than market state. It is the first place to look when full, OOS, recent, and train diagnostics behave differently.',
+        'Training recipe is the rule used to assemble the model-fitting path for this current prediction card.\n\nWhat it shows:\nit separates full refit on 100% completed history from the base split pair, where the model is trained on Train 70% and evaluated on OOS 30%.\n\nHow to read it:\nthis field explains model preparation rather than market state. It is the first place to look when full, OOS, recent, and train diagnostics behave differently.',
     'Prediction semantics':
-        'Prediction semantics is the honest reading mode of this current prediction report.\n\nWhat it shows:\nit separates retrospective full, honest OOS evaluation, recent OOS tail, and train diagnostics.\n\nHow to read it:\nthis field tells whether the report is user-facing history on new days, only the freshest OOS tail, or a dev-only diagnostics pass on train.',
+        'Prediction semantics is the honest reading mode of this current prediction report.\n\nWhat it shows:\nit separates retrospective full 100%, honest OOS 30%, the short user tail 15%, and Train 70% diagnostics.\n\nHow to read it:\nthis field tells whether the report is user-facing history on new days, only the freshest OOS tail, or a diagnostics pass on Train 70%.',
     'View mode':
-        'View mode is the high-level presentation mode for current prediction.\n\nWhat it shows:\nit separates full history, honest OOS evaluation, and diagnostics-only train mode.\n\nHow to read it:\nif the value is train diagnostics, the report must not be read as regular prediction history. If it is OOS evaluation, only scored OOS days should be visible.',
+        'View mode is the high-level presentation mode for current prediction.\n\nWhat it shows:\nit separates full history 100%, honest OOS 30%, and diagnostics-only Train 70% mode.\n\nHow to read it:\nif the value is train diagnostics, the report must not be read as regular prediction history. If it is OOS evaluation, only OOS 30% days should be visible.',
     'Display slice mode':
-        'Display slice mode is the rule that defines which part of already scored rows is shown.\n\nWhat it shows:\nit separates the whole scored range from the recent OOS tail.\n\nHow to read it:\nrecent tail is only a post-filter over scored rows, not a separate training mode.',
+        'Display slice mode is the rule that defines which part of already scored rows is shown.\n\nWhat it shows:\nit separates the whole scored range from the short user tail 15% inside OOS 30%.\n\nHow to read it:\nRecent is only a post-filter over already scored rows, not a separate training mode.',
     'User-facing history':
         'User-facing history tells whether this report belongs to the user-facing prediction archive.\n\nWhat it shows:\na No value means diagnostics-only developer output rather than regular archived forecast history.\n\nHow to read it:\nreports with No must not be interpreted as the same user-facing history artifact as full or OOS cards.',
     'Snapshot max labeled day (UTC)':
@@ -362,19 +366,19 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Train window start (UTC)':
         'Train window start (UTC) is the first day in the split train window.\n\nWhat it shows:\nit marks the left edge of the history used to fit the split model before OOS evaluation or train diagnostics.\n\nHow to read it:\nread it together with train-window end to understand where the familiar training history begins.',
     'Train window end (UTC)':
-        'Train window end (UTC) is the last day in the split train window.\n\nWhat it shows:\nit is the right edge of split-model fitting.\n\nHow to read it:\nanything to the right of this boundary must belong only to OOS evaluation rather than to train.',
+        'Train window end (UTC) is the last day of the Train 70% window in the base Train 70% / OOS 30% pair.\n\nWhat it shows:\nit is the right edge of split-model fitting.\n\nHow to read it:\nanything to the right of this boundary must belong only to OOS 30%, not to Train 70%.',
     'Score window start (UTC)':
         'Score window start (UTC) is the first day that the current full model is asked to score.\n\nWhat it shows:\nit is the left edge of the scoring window, which is separate from the fit window.\n\nHow to read it:\ncompare it with the fit window to see whether the model is rescoring already trained historical days or scoring a new day after the snapshot.',
     'Score window end (UTC)':
         'Score window end (UTC) is the last day that the current full run is asked to score.\n\nWhat it shows:\nit closes the scoring window and helps distinguish retrospective full from forecast-after-snapshot mode.\n\nHow to read it:\nif score end moves past the latest labeled day, the card is already in live/full forecast semantics rather than pure retrospective rescoring.',
     'Uses train/OOS split':
-        'Uses train/OOS split tells whether the classic train/OOS split participates in this card.\n\nWhat it shows:\nfor the new full pipeline this field should explicitly confirm that train/OOS split is not the controlling training scaffold.\n\nHow to read it:\nif the value is No, full should be interpreted as its own whole-snapshot refit path rather than as a stitched train-plus-OOS mode.',
+        'Uses train/OOS split tells whether the base Train 70% / OOS 30% pair participates in this card.\n\nWhat it shows:\nfor the full pipeline this field separates training on 100% completed history from the split mode where history is divided into Train 70% and OOS 30%.\n\nHow to read it:\nif the value is No, full should be interpreted as its own whole-history refit path rather than as a stitched train-plus-OOS mode.',
     'Score rows presence in train':
         'Score rows presence in train describes how the scoring window intersects with the training window in this full run.\n\nWhat it shows:\nit tells whether scored days are fully inside the training snapshot, partly outside it, or completely outside it.\n\nHow to read it:\nthis is the key marker for interpreting full correctly because it separates retrospective rescoring of old days from forecasting a new day after the training snapshot.',
     'Recent tail rows limit':
-        'Recent tail rows limit is the maximum number of scored OOS rows allowed in the fresh tail.\n\nWhat it shows:\nit fixes the display-slice contract for recent and does not change model training.\n\nHow to read it:\nif recent returns fewer rows than this limit, the archive simply has fewer scored OOS days available.',
+        'Recent tail rows limit is the maximum number of latest OOS days allowed in the short user tail 15%.\n\nWhat it shows:\nit fixes the display-slice contract for Recent and does not change model training.\n\nHow to read it:\nif Recent returns fewer rows than this limit, the archive simply has fewer published OOS days available.',
     'Recent tail rows returned':
-        'Recent tail rows returned is the actual number of scored rows shown in the fresh OOS tail.\n\nWhat it shows:\nit tells how many last scored OOS days really entered the current recent report.\n\nHow to read it:\nthe value must stay less than or equal to the tail limit and must not be interpreted as train-window size.',
+        'Recent tail rows returned is the actual number of latest OOS days that really entered the short user tail 15%.\n\nWhat it shows:\nit tells how many rows Recent is showing right now.\n\nHow to read it:\nthe value must stay less than or equal to the tail limit and must not be interpreted as the size of Train 70% or of the full OOS 30% window.',
     'Режим рынка': CURRENT_PREDICTION_MARKET_REGIME_DESCRIPTION_EN,
     'Вероятность срабатывания стоп-лосса': CURRENT_PREDICTION_SL_PROBABILITY_DESCRIPTION_EN,
     'Сигнал SL-модели': 'Interpreted SL signal (normal risk / high risk).',
@@ -514,6 +518,8 @@ Object.assign(CURRENT_PREDICTION_KEYS_EN, {
 export const PFI_COLUMNS_EN: Record<string, string> = {
     '#': 'Feature rank index inside table ordering.',
     Index: 'Feature index in source feature list.',
+    'Feature description': 'Short plain-language explanation of what the feature measures.',
+    FeatureDescription: 'Short plain-language explanation of what the feature measures.',
     Фича: 'Feature name passed into model.',
     FeatureName: 'Technical feature name.',
     'Важность (ΔAUC)':
@@ -573,6 +579,14 @@ export const PFI_COLUMNS_EN: Record<string, string> = {
 }
 
 export const MODEL_STATS_COLUMNS_EN: Record<string, string> = {
+    Family: 'Model family of the current overview row.',
+    Scope: 'History slice on which this model was evaluated.',
+    ModelKey: 'Stable internal key of the model row.',
+    Model: 'Human-readable model name in the overview table.',
+    BaselineAuc: 'Baseline AUC quality of the model on the current slice.',
+    EvalRows: 'How many rows entered the evaluation of this model.',
+    EvalPos: 'How many positive rows were in the evaluation slice of this model.',
+    EvalNeg: 'How many negative rows were in the evaluation slice of this model.',
     Class: 'True-label class (UP/DOWN/FLAT).',
     Summary: 'Short quality summary for this class (hits/misses).',
     TRUE: 'True label class.',
@@ -610,6 +624,9 @@ function buildPfiColumnDescriptionEn(key: string): string | null {
             return '# is the row order inside the PFI table.\n\nWhat it shows:\nit is the position of the feature in the already ranked importance list, not an independent model metric.\n\nHow to read it:\nsmaller numbers mean the feature stands higher in the final importance ranking.\n\nExample:\n#=1 means the leading [[factor|factor]] in the current PFI table.'
         case 'Index':
             return 'Index is the original feature index inside the full feature pool.\n\nWhat it shows:\nit is a technical reference to the feature position before the table was sorted by importance.\n\nHow to read it:\nthis field is useful for matching the row with feature configs and exports, but it does not measure influence by itself.\n\nExample:\nIndex=57 means the row points to feature number 57 in the source set.'
+        case 'FeatureDescription':
+        case 'Feature description':
+            return 'Human description is a short plain-language explanation of what the feature actually measures.\n\nWhat it shows:\nit rewrites the signal meaning in one line without formulas or internal code labels.\n\nHow to read it:\nread this field first to understand the object of the signal, and only then move to importance, means, and correlations.\n\nExample:\nif the description speaks about volatility near the entry point, ΔAUC should be read as the usefulness of that volatility signal.'
         case 'Фича':
         case 'FeatureName':
             return 'Feature is the concrete input signal that was fed into the model and then appeared in the PFI table.\n\nWhat it shows:\nit names the signal whose importance, correlations, and class means are shown across the row.\n\nHow to read it:\nfirst understand what the feature measures, then read its influence through ΔAUC, mean gaps, and correlations.\n\nExample:\nif the same feature stays near the top across runs, it is one of the strongest stable drivers of model quality.'
@@ -717,6 +734,22 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
             return 'Class is the factual day or row class on which this part of the report is built.\n\nWhat it shows:\nit is the realized outcome, not the model forecast. It defines the row of the confusion-style block or threshold table.\n\nHow to read it:\nall neighboring counts and percentages in the row relate to this factual class.\n\nExample:\nif the row is DOWN, the cells to the right show how the model behaved on truly down days.'
         case 'Summary':
             return 'Summary is a compressed quality note for the current class or block.\n\nWhat it shows:\nit is a short textual digest of the statistics nearby, not a new independent metric.\n\nHow to read it:\nuse Summary as a quick entry point, then verify the message by looking at hits, misses, and shares in the same row.\n\nExample:\na weak Summary should be confirmed by low Hit % or by a visibly imbalanced confusion row.'
+        case 'Family':
+            return 'Family is which model family the current row belongs to.\n\nWhat it shows:\nin the current overview table it separates the main day-direction model from the separate stop-loss risk model.\n\nHow to read it:\ncompare rows directly first inside the same family, because the families solve different tasks.\n\nExample:\ndaily_model describes the day scenario model, while sl_model describes stop-loss risk.'
+        case 'Scope':
+            return 'Scope is the history slice on which this model was evaluated.\n\nWhat it shows:\nthe row belongs either to the training part, to a fairer check on newer days, or to the full available history.\n\nHow to read it:\nOOS is the main slice for judging quality on newer data. Train is for the training part, and full_history is for the most fully trained version of the model.'
+        case 'ModelKey':
+            return 'ModelKey is the stable internal key of the model row.\n\nWhat it shows:\nit helps distinguish rows when several models have similar human-readable names.\n\nHow to read it:\nfor normal quality reading, Model matters more. ModelKey is useful when you need to match the row to another report or export exactly.'
+        case 'Model':
+            return 'Model is the human-readable name of the model shown in this overview row.\n\nWhat it shows:\nit names the concrete model, while the neighboring columns show its quality, evaluation size, and working threshold when relevant.\n\nHow to read it:\nstart with Model, then read Scope and BaselineAuc. That trio tells you which model was checked, where it was checked, and how strongly it separates good and bad rows.'
+        case 'BaselineAuc':
+            return 'BaselineAuc is the base AUC quality of the model on the current slice.\n\nWhat it shows:\nAUC answers how well the model ranks better rows above worse ones. A value near 0.5 is close to random ranking, while a value closer to 1.0 means stronger separation.\n\nHow to read it:\nhigher BaselineAuc means the model separates classes better on this exact history slice.\n\nExample:\nAUC 0.74 is stronger than AUC 0.58 when both rows belong to the same model type and the same slice.'
+        case 'EvalRows':
+            return 'EvalRows is how many rows actually entered the evaluation of this model on the current slice.\n\nWhat it shows:\nit is the total sample size behind BaselineAuc and the neighboring numbers of the row.\n\nHow to read it:\nsmaller EvalRows means quality conclusions are more fragile.\n\nExample:\nAUC 0.72 on 40 rows is weaker evidence than AUC 0.72 on 4,000 rows.'
+        case 'EvalPos':
+            return 'EvalPos is how many positive rows were present in the evaluation slice of this model.\n\nWhat it shows:\nit is the size of the positive class inside the current check.\n\nHow to read it:\na very small positive count makes rare-event metrics more fragile, so EvalPos should always be read together with EvalNeg and EvalRows.'
+        case 'EvalNeg':
+            return 'EvalNeg is how many negative rows were present in the evaluation slice of this model.\n\nWhat it shows:\nit is the size of the negative class inside the current check.\n\nHow to read it:\nit helps judge class balance. If negative rows dominate strongly, model quality should be read with that class skew in mind.'
         case 'Pred DOWN':
         case 'Pred FLAT':
         case 'Pred UP':
@@ -740,7 +773,7 @@ function buildModelStatsColumnDescriptionEn(key: string): string | null {
             return 'value is the numeric value of the metric named in the neighboring metric column.\n\nWhat it shows:\nit can be a percentage, a raw count, or a threshold depending on the row.\n\nHow to read it:\nvalue must always be interpreted through metric, because the same number can mean accuracy, HIGH share, or threshold depending on context.\n\nExample:\nvalue=0.74 with metric=TPR(SL) means 74% of stop-loss days were correctly flagged.'
         case 'Порог':
         case 'Threshold':
-            return 'Threshold is the cut-off used by the SL model to separate LOW and HIGH risk days.\n\nWhat it shows:\nit is the working decision boundary: above it the day becomes HIGH, below it the day stays LOW.\n\nHow to read it:\nchanging threshold shifts the balance between sensitivity and false alarms.\n\nExample:\na lower threshold usually raises TPR(SL) but often increases FPR(TP) as well.'
+            return 'Threshold is the working cut-off that the risk model uses to separate LOW and HIGH risk days.\n\nWhat it shows:\nfor SL-model rows it is a real decision boundary. For the main direction model the field can stay empty because that model does not use a separate risk threshold.\n\nHow to read it:\nwithin SL-model rows, a lower threshold usually increases the HIGH share and can also increase false alarms.\n\nExample:\nthreshold 0.60 is stricter than threshold 0.40 because the day needs a higher risk score to be labeled HIGH.'
         case 'TPR(SL), %':
         case 'Stop-loss day recall, %':
             return 'TPR(SL), % is the share of stop-loss days that the model correctly labeled as HIGH risk.\n\nWhat it shows:\nit is the sensitivity of the SL model on harmful days.\n\nHow to read it:\nhigher TPR(SL) means the model catches more truly dangerous stop-loss days in advance.\n\nFormula:\nTP / (TP + FN).'

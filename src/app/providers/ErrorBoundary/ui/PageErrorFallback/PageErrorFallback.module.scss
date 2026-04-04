@@ -28,7 +28,7 @@
     padding: 2px 8px;
     border-radius: 999px;
 
-    font-size: 10px;
+    @include type-micro;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -39,14 +39,14 @@
 
 .title {
     margin: 0;
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #ffffff;
 }
 
 .subtitle {
     margin: 0;
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.4;
     color: rgba(255, 255, 255, 0.75);
 }
@@ -63,14 +63,14 @@
 }
 
 .messageLabel {
-    font-size: 11px;
+    @include type-caption;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: rgba(255, 255, 255, 0.56);
 }
 
 .messageText {
-    font-size: 13px;
+    @include type-body-sm;
     color: rgba(255, 255, 255, 0.9);
 }
 
@@ -84,7 +84,7 @@
 .primary {
     border-radius: 999px;
     padding: 7px 12px;
-    font-size: 13px;
+    @include type-body-sm;
     cursor: pointer;
 
     border: none;

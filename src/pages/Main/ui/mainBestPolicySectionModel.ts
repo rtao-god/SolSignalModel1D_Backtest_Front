@@ -1,5 +1,6 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { orderPolicyBranchMegaSections } from '@/shared/utils/policyBranchMegaTerms'
+import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import { assertPolicyBranchMegaPrimaryProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
 
@@ -31,10 +32,12 @@ function columnIndex(columns: string[] | undefined, title: string, tag: string):
 }
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
-    return (sections ?? []).filter(
+    const tableSections = (sections ?? []).filter(
         (section): section is TableSectionDto =>
             Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
     )
+
+    return pruneDuplicatePolicyMarginColumns(tableSections)
 }
 
 function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string): string[] {

@@ -160,7 +160,7 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                                             card.id === 'policyBranchMega' ? 'Policy Branch Mega'
                                             : card.id === 'executionPipeline' ? 'Execution Pipeline'
                                             : card.id === 'sharpMoveStats' ? 'Sharp move statistics'
-                                            : card.id === 'oosPresetTails' ? 'Хвосты новых дней'
+                                            : card.id === 'oosPresetTails' ? 'Сравнение OOS и TRAIN'
                                             : card.id === 'realForecastJournal' ? 'Real Forecast Journal'
                                             : undefined
                                     })}
@@ -168,9 +168,9 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                                 <Text className={cls.cardText}>
                                     {renderAnalysisText(
                                         t(`analysisHome.cards.${card.id}.description`, {
-                                            defaultValue:
+                                                defaultValue:
                                                 card.id === 'oosPresetTails' ?
-                                                    'Сравнивает, какой последний кусок проверочной истории попадает в анализ при хвосте от 10% до 70% сделок. Расширенный режим отдельно догружает хвосты 75%..90%.'
+                                                    'Сравнивает варианты OOS от 10% до 70% дней полной истории. Базовый режим для экрана — OOS 30% / TRAIN 70%. Короткий режим — OOS 15% / TRAIN 85%. Расширенный режим отдельно догружает варианты от 75% до 90%.'
                                                 :   undefined
                                         })
                                     )}
@@ -178,7 +178,7 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                                 <span className={cls.cardHint}>
                                     {t(`analysisHome.cards.${card.id}.hint`, {
                                         defaultValue:
-                                            card.id === 'oosPresetTails' ? 'Сравнить хвосты' : undefined
+                                            card.id === 'oosPresetTails' ? 'Открыть сравнение OOS и TRAIN' : undefined
                                     })}
                                 </span>
                             </article>

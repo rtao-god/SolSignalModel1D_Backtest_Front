@@ -14,14 +14,14 @@
 }
 
 .heroTitle {
-    font-size: 32px;
+    @include type-page-title;
     font-weight: 700;
     line-height: 1.15;
     color: #f9fafb;
 }
 
 .heroSubtitle {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.6;
     color: #9ca3af;
     max-width: 720px;
@@ -41,7 +41,7 @@
 }
 
 .scopeControlLabel {
-    font-size: 12px;
+    @include type-label;
     color: #94a3b8;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .scopeHint {
-    font-size: 12px;
+    @include type-label;
     color: #cbd5f5;
 }
 
@@ -62,7 +62,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12px;
+    @include type-label;
     color: #cbd5f5;
     @include subtle-surface(12px 14px);
     min-width: 220px;
@@ -86,13 +86,13 @@
 }
 
 .configTitle {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #e2e8f0;
 }
 
 .configSubtitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.5;
     color: var(--text-muted);
     max-width: 760px;
@@ -119,13 +119,13 @@
 }
 
 .configValue {
-    font-size: 13px;
+    @include type-body-sm;
     font-weight: 600;
     color: #e5e7eb;
 }
 
 .configDescription {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.5;
     color: #cbd5f5;
 }
@@ -154,13 +154,13 @@
 }
 
 .termsTitle {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #e2e8f0;
 }
 
 .termsSubtitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.5;
     color: var(--text-muted);
     max-width: 760px;
@@ -180,7 +180,7 @@
 }
 
 .termDescription {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: #d1d5db;
 }

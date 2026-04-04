@@ -29,6 +29,10 @@ import {
     useRealForecastJournalOpsStatusQuery
 } from '@/shared/api/tanstackQueries/realForecastJournal'
 import { useBacktestConfidenceRiskReportQuery } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
+import {
+    useCurrentPredictionBackfilledTrainingScopeStatsQuery,
+    type CurrentPredictionBackfilledTrainingScopeStats
+} from '@/shared/api/tanstackQueries/currentPrediction'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import type {
     RealForecastJournalDayStatus,
@@ -59,7 +63,6 @@ import {
     type RealForecastJournalResolvedTooltip,
     type RealForecastJournalTermsLocale
 } from './realForecastJournalTerms'
-import { formatDateWithLocale } from '@/shared/utils/dateFormat'
 import {
     localizeExitReasonLabel,
     resolveReportLiquidationFallbackLabel
@@ -1273,6 +1276,7 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
     const opsStatusQuery = useRealForecastJournalOpsStatusQuery()
     const aggregationMetricsQuery = useAggregationMetricsQuery()
     const confidenceRiskQuery = useBacktestConfidenceRiskReportQuery({ scope: comparisonScopeState.value })
+    const backfilledTrainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
     const selectedDate = useMemo(
         () => resolveSelectedDate(dayListQuery.data, searchParams.get('date')),
         [dayListQuery.data, searchParams]
@@ -1326,6 +1330,7 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
             liveStatusQuery={liveStatusQuery}
             comparisonSource={comparisonSourceState.value}
             comparisonScope={comparisonScopeState.value}
+            trainingScopeStats={backfilledTrainingScopeStatsQuery.data ?? null}
             comparisonQueryError={comparisonSourceState.error ?? comparisonScopeState.error}
             aggregationMetricsQuery={aggregationMetricsQuery}
             confidenceRiskQuery={confidenceRiskQuery}
@@ -1360,6 +1365,7 @@ interface RealForecastJournalPageContentProps {
     liveStatusQuery: ReturnType<typeof useRealForecastJournalLiveStatusQuery>
     comparisonSource: RealForecastJournalComparisonSource
     comparisonScope: CurrentPredictionTrainingScope
+    trainingScopeStats: CurrentPredictionBackfilledTrainingScopeStats | null
     comparisonQueryError: Error | null
     aggregationMetricsQuery: ReturnType<typeof useAggregationMetricsQuery>
     confidenceRiskQuery: ReturnType<typeof useBacktestConfidenceRiskReportQuery>
@@ -1392,6 +1398,7 @@ function RealForecastJournalPageContent({
     liveStatusQuery,
     comparisonSource,
     comparisonScope,
+    trainingScopeStats,
     comparisonQueryError,
     aggregationMetricsQuery,
     confidenceRiskQuery,
@@ -1484,29 +1491,27 @@ function RealForecastJournalPageContent({
         () => [buildIndicatorGroupControlGroup(indicatorGroupOptions, indicatorGroup, onIndicatorGroupChange, t)],
         [indicatorGroup, indicatorGroupOptions, onIndicatorGroupChange, t]
     )
-    const comparisonControlGroups = useMemo(
-        () => [
-            buildComparisonSourceControlGroup(
-                comparisonSource,
-                next => {
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('source', next)
-                    setSearchParams(nextParams, { replace: true })
-                },
-                t
-            ),
-            buildTrainingScopeControlGroup({
-                value: comparisonScope,
-                onChange: next => {
-                    const nextParams = new URLSearchParams(searchParams)
-                    nextParams.set('scope', next)
-                    setSearchParams(nextParams, { replace: true })
-                },
-                label: t('realForecastJournal.comparison.controls.scopeLabel', { defaultValue: 'Historical scope' })
-            })
-        ],
-        [comparisonScope, comparisonSource, searchParams, setSearchParams, t]
-    )
+    const comparisonControlGroups = [
+        buildComparisonSourceControlGroup(
+            comparisonSource,
+            next => {
+                const nextParams = new URLSearchParams(searchParams)
+                nextParams.set('source', next)
+                setSearchParams(nextParams, { replace: true })
+            },
+            t
+        ),
+        buildTrainingScopeControlGroup({
+            value: comparisonScope,
+            onChange: next => {
+                const nextParams = new URLSearchParams(searchParams)
+                nextParams.set('scope', next)
+                setSearchParams(nextParams, { replace: true })
+            },
+            label: t('realForecastJournal.comparison.controls.scopeLabel', { defaultValue: 'Historical scope' }),
+            splitStats: trainingScopeStats
+        })
+    ]
 
     const selectedDayError =
         selectedRecordError ??

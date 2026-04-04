@@ -7,6 +7,13 @@
     background: radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.04), transparent 45%);
 }
 
+.embedded {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+}
+
 .headerRow {
     display: flex;
     align-items: flex-start;
@@ -21,7 +28,7 @@
 
 .subtitle {
     margin-top: 8px;
-    font-size: 13px;
+    @include type-table-body;
     line-height: 1.5;
     color: var(--text-muted);
     max-width: 640px;
@@ -39,7 +46,7 @@
     border-radius: 999px;
     border: 1px solid var(--surface-border-strong);
     background: var(--bg-color-muted);
-    font-size: 11px;
+    @include type-table-body-dense;
     line-height: 1.4;
     white-space: nowrap;
 }
@@ -54,20 +61,20 @@
         $border: var(--surface-border-subtle),
         $shadow: var(--surface-shadow-sm)
     );
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.5;
 }
 
 .metaTitle {
     margin-bottom: 6px;
-    font-size: 12px;
+    @include type-table-body-dense;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-muted);
 }
 
 .metaLine {
-    font-size: 12px;
+    @include type-table-body-dense;
 }
 
 .metaLine + .metaLine {
@@ -97,13 +104,13 @@
 
 .controlBarInfo {
     max-width: 420px;
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.5;
     color: var(--text-muted);
 }
 
 .controlTitle {
-    font-size: 12px;
+    @include type-table-body-dense;
     font-weight: 500;
     margin-bottom: 4px;
     text-transform: uppercase;
@@ -112,12 +119,12 @@
 }
 
 .controlText {
-    font-size: 12px;
+    @include type-table-body-dense;
 }
 
 .segmentSubtitle {
     margin-top: 8px;
-    font-size: 12px;
+    @include type-table-body-dense;
     color: var(--text-muted);
 }
 
@@ -144,7 +151,7 @@
     border-radius: 999px;
     border: 1px solid transparent;
 
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 16px;
     cursor: pointer;
 
@@ -200,13 +207,13 @@
 }
 
 .cardTitle {
-    font-size: 14px;
+    @include type-table-body;
     font-weight: 500;
 }
 
 .cardSubtitle {
     margin-top: 6px;
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.4;
     color: var(--text-muted);
     max-width: 720px;
@@ -221,7 +228,7 @@
 
 /* Таблица с липким заголовком */
 .table {
-    @include data-table-base($min-width: 360px, $font-size: 12px, $line-height: 1.4);
+    @include data-table-base($min-width: 360px, $density: dense);
 }
 
 .table thead {
@@ -240,7 +247,7 @@
 
 .table th {
     font-weight: 500;
-    font-size: 11px;
+    @include type-table-body-dense;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);

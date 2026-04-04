@@ -328,6 +328,28 @@ function buildDerivedNotionalUsd(row: RealForecastJournalPolicyRowDto): number |
     return row.stakeUsd * row.leverage
 }
 
+function resolveMetricNumber(
+    row: RealForecastJournalPolicyRowDto | null,
+    selector: (metrics: NonNullable<RealForecastJournalPolicyRowDto['performanceMetrics']>) => number | null | undefined
+): number | null {
+    if (!row?.performanceMetrics) {
+        return null
+    }
+
+    return selector(row.performanceMetrics) ?? null
+}
+
+function resolveMetricBoolean(
+    row: RealForecastJournalPolicyRowDto | null,
+    selector: (metrics: NonNullable<RealForecastJournalPolicyRowDto['performanceMetrics']>) => boolean | null | undefined
+): boolean | null {
+    if (!row?.performanceMetrics) {
+        return null
+    }
+
+    return selector(row.performanceMetrics) ?? null
+}
+
 function compareTextAsc(left: string, right: string): number {
     return left.localeCompare(right, 'en-US', { sensitivity: 'base' })
 }
@@ -404,11 +426,11 @@ export function buildCombinedPolicyRows(
                 actualExitPrice: actualRow?.exitPrice ?? null,
                 actualExitReason: actualRow?.exitReason?.trim() ? actualRow.exitReason : null,
                 actualExitPnlPct: resolveRowNumericValue(actualRow?.exitPnlPct ?? null, null),
-                actualTrades: resolveRowNumericValue(actualRow?.trades ?? null, null),
-                actualTotalPnlPct: resolveRowNumericValue(actualRow?.totalPnlPct ?? null, null),
-                actualMaxDdPct: resolveRowNumericValue(actualRow?.maxDdPct ?? null, null),
-                actualHadLiquidation: actualRow?.hadLiquidation ?? null,
-                actualWithdrawnUsd: resolveRowNumericValue(actualRow?.withdrawnTotal ?? null, null),
+                actualTrades: resolveMetricNumber(actualRow, metrics => metrics.tradesCount),
+                actualTotalPnlPct: resolveMetricNumber(actualRow, metrics => metrics.totalPnlPct),
+                actualMaxDdPct: resolveMetricNumber(actualRow, metrics => metrics.maxDdPct),
+                actualHadLiquidation: resolveMetricBoolean(actualRow, metrics => metrics.hadLiquidation),
+                actualWithdrawnUsd: resolveMetricNumber(actualRow, metrics => metrics.withdrawnTotalUsd),
                 publishedInSessionOpenSnapshot: sessionOpenRows.some(
                     candidate => buildPolicyRowKey(candidate) === rowKey
                 ),

@@ -35,6 +35,34 @@ function resolveEvaluationRowTitle(evaluation: PolicyEvaluationDto | null): stri
     return reasons.join(' | ')
 }
 
+function requireMetricNumber(
+    policy: BacktestPolicySummaryDto,
+    field: keyof NonNullable<BacktestPolicySummaryDto['performanceMetrics']>
+): number {
+    const value = policy.performanceMetrics[field]
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+            `[backtest-baseline-page] performanceMetrics.${String(field)} must be a finite number. policy=${policy.policyName}.`
+        )
+    }
+
+    return value
+}
+
+function requireMetricBoolean(
+    policy: BacktestPolicySummaryDto,
+    field: keyof NonNullable<BacktestPolicySummaryDto['performanceMetrics']>
+): boolean {
+    const value = policy.performanceMetrics[field]
+    if (typeof value !== 'boolean') {
+        throw new Error(
+            `[backtest-baseline-page] performanceMetrics.${String(field)} must be a boolean. policy=${policy.policyName}.`
+        )
+    }
+
+    return value
+}
+
 export default function BacktestBaselinePage({ className }: BacktestBaselinePageProps) {
     const { t } = useTranslation('reports')
     const { data, isLoading, isError, error, refetch } = useBacktestBaselineSnapshotQuery()
@@ -209,15 +237,15 @@ function PoliciesTable({ policies }: PoliciesTableProps) {
                                     t('backtestBaseline.table.mode.antiDirection')
                                 :   t('backtestBaseline.table.mode.base')}
                             </td>
-                            <td>{(policy.totalPnlPct * 100).toFixed(2)}</td>
-                            <td>{(policy.maxDrawdownPct * 100).toFixed(2)}</td>
+                            <td>{(requireMetricNumber(policy, 'totalPnlPct') * 100).toFixed(2)}</td>
+                            <td>{(requireMetricNumber(policy, 'maxDdPct') * 100).toFixed(2)}</td>
                             <td>
-                                {policy.hadLiquidation ?
+                                {requireMetricBoolean(policy, 'hadLiquidation') ?
                                     t('backtestBaseline.table.liquidations.yes')
                                 :   t('backtestBaseline.table.liquidations.no')}
                             </td>
-                            <td>{policy.withdrawnTotal.toFixed(2)}</td>
-                            <td>{policy.tradesCount}</td>
+                            <td>{requireMetricNumber(policy, 'withdrawnTotalUsd').toFixed(2)}</td>
+                            <td>{requireMetricNumber(policy, 'tradesCount')}</td>
                         </tr>
                     ))}
                 </tbody>

@@ -2,7 +2,9 @@ import type {
     BacktestBaselineSnapshotDto,
     BacktestPolicySummaryDto
 } from '@/shared/types/backtest.types'
+import type { PolicyRatiosPerPolicyDto, PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
 import type {
+    BacktestHistorySliceDto,
     CapturedMegaBucketDto,
     CapturedMegaMetricVariantDto,
     CapturedMegaModeDto,
@@ -19,6 +21,7 @@ import type {
     PolicyEvaluationReasonDto,
     PolicyEvaluationThresholdsDto
 } from '@/shared/types/policyEvaluation.types'
+import { mapPolicyPerformanceMetricsResponse } from './mapPolicyPerformanceMetrics'
 
 function toString(value: unknown, label: string): string {
     if (value === null || typeof value === 'undefined') {
@@ -197,6 +200,25 @@ function parseMegaMode(raw: unknown, label: string): CapturedMegaModeDto {
     throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
 }
 
+function parseBacktestHistorySlice(raw: unknown, label: string): BacktestHistorySliceDto {
+    if (typeof raw === 'number') {
+        if (raw === 1) return 'full_history'
+        if (raw === 2) return 'train'
+        if (raw === 3) return 'oos'
+        if (raw === 4) return 'recent'
+    }
+
+    if (typeof raw === 'string') {
+        const normalized = raw.trim().toLowerCase()
+        if (normalized === 'full_history') return 'full_history'
+        if (normalized === 'train') return 'train'
+        if (normalized === 'oos') return 'oos'
+        if (normalized === 'recent') return 'recent'
+    }
+
+    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+}
+
 function parseMegaTpSlMode(raw: unknown, label: string): CapturedMegaTpSlModeDto {
     if (typeof raw === 'number') {
         if (raw === 0) return 'all'
@@ -319,11 +341,10 @@ function mapBacktestPolicySummaryResponse(raw: unknown, label: string): Backtest
             payload.useAntiDirectionOverlay,
             `${label}.useAntiDirectionOverlay`
         ),
-        totalPnlPct: toRequiredNumber(payload.totalPnlPct, `${label}.totalPnlPct`),
-        maxDrawdownPct: toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
-        hadLiquidation: toRequiredBoolean(payload.hadLiquidation, `${label}.hadLiquidation`),
-        withdrawnTotal: toRequiredNumber(payload.withdrawnTotal, `${label}.withdrawnTotal`),
-        tradesCount: parseNonNegativeInt(payload.tradesCount, `${label}.tradesCount`),
+        performanceMetrics: mapPolicyPerformanceMetricsResponse(payload.performanceMetrics, {
+            owner: 'ui',
+            label: `${label}.performanceMetrics`
+        }),
         evaluation: mapPolicyEvaluationResponse(payload.evaluation, `${label}.evaluation`)
     }
 }
@@ -347,6 +368,38 @@ export function mapBacktestBaselineSnapshotResponse(raw: unknown): BacktestBasel
     }
 }
 
+function mapPolicyRatiosPolicyResponse(raw: unknown, label: string): PolicyRatiosPerPolicyDto {
+    const payload = toObject(raw, label)
+
+    return {
+        policyName: toString(payload.policyName, `${label}.policyName`),
+        bucket: toString(payload.bucket, `${label}.bucket`),
+        marginMode: toOptionalStringOrUndefined(payload.marginMode) ?? null,
+        performanceMetrics: mapPolicyPerformanceMetricsResponse(payload.performanceMetrics, {
+            owner: 'ui',
+            label: `${label}.performanceMetrics`
+        }),
+        evaluation: mapPolicyEvaluationResponse(payload.evaluation, `${label}.evaluation`)
+    }
+}
+
+export function mapPolicyRatiosReportResponse(raw: unknown): PolicyRatiosReportDto {
+    const payload = toObject(raw, 'PolicyRatiosReport')
+
+    if (!Array.isArray(payload.policies)) {
+        throw new Error('[ui] PolicyRatiosReport.policies must be an array.')
+    }
+
+    return {
+        backtestId: toString(payload.backtestId, 'PolicyRatiosReport.backtestId'),
+        fromDateUtc: toOptionalStringOrUndefined(payload.fromDateUtc) ?? null,
+        toDateUtc: toOptionalStringOrUndefined(payload.toDateUtc) ?? null,
+        policies: payload.policies.map((policy, index) =>
+            mapPolicyRatiosPolicyResponse(policy, `PolicyRatiosReport.policies[${index}]`)
+        )
+    }
+}
+
 function mapSectionMetadata(
     raw: unknown,
     sectionTitle: string
@@ -362,12 +415,19 @@ function mapSectionMetadata(
         kind
     }
 
+    const historySliceLabel = `ReportSection.metadata.historySlice (${sectionTitle})`
     const modeLabel = `ReportSection.metadata.mode (${sectionTitle})`
     const tpSlModeLabel = `ReportSection.metadata.tpSlMode (${sectionTitle})`
     const zonalModeLabel = `ReportSection.metadata.zonalMode (${sectionTitle})`
     const metricVariantLabel = `ReportSection.metadata.metricVariant (${sectionTitle})`
     const bucketLabel = `ReportSection.metadata.bucket (${sectionTitle})`
     const partLabel = `ReportSection.metadata.part (${sectionTitle})`
+
+    if (payload.historySlice !== null && typeof payload.historySlice !== 'undefined') {
+        metadata.historySlice = parseBacktestHistorySlice(payload.historySlice, historySliceLabel)
+    } else if (kind === 'policy-branch-mega') {
+        throw new Error(`[ui] ${historySliceLabel} is missing.`)
+    }
 
     if (payload.mode !== null && typeof payload.mode !== 'undefined') {
         metadata.mode = parseMegaMode(payload.mode, modeLabel)

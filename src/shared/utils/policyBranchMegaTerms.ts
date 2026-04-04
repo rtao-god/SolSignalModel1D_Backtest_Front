@@ -281,11 +281,29 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'TotalPnl$ — денежный итог выбранного среза.\n\nФормула:\nTotalPnl$ = ([[current-balance|текущий баланс]] + [[withdrawn-profit|выведенная прибыль]]) - [[start-cap|стартовый капитал]].\n\nЧто показывает:\n1) это абсолютный результат в деньгах, а не процент;\n2) плюс означает прибыль, минус — убыток.\n\nКак читать:\n1) колонка нужна, когда важен не только относительный процент, но и реальный денежный масштаб эффекта;\n2) сравнение между строками корректно только вместе со [[start-cap|стартовым капиталом]], иначе одинаковый процент может скрывать разный денежный размер результата.',
     },
+    'Comm$': {
+        key: 'Comm$',
+        title: 'Comm$',
+        description:
+            'Comm$ — суммарные [[exchange-fees|биржевые комиссии]] по всем сделкам этой строки.\n\nФормула:\nсумма всех комиссий на вход и выход по сделкам выбранного среза.\n\nКак читать:\nчем выше значение, тем больше валового результата стратегия отдала в издержки исполнения.',
+    },
+    'Comm%': {
+        key: 'Comm%',
+        title: 'Comm%',
+        description:
+            'Comm% — доля суммарных комиссий от [[start-cap|стартового капитала]].\n\nФормула:\nComm$ / [[start-cap|StartCap$]] * 100.\n\nКак читать:\nметрика показывает, какую часть стартовой базы стратегия сожгла только на торговых издержках, даже до анализа прибыли и просадки.',
+    },
     BucketNow$: {
         key: 'BucketNow$',
         title: 'BucketNow$',
         description:
             'Текущий реальный баланс выбранного бакета после всех сделок, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nДля [[bucket-daily|daily]] / [[bucket-intraday|intraday]] / [[bucket-delayed|delayed]] это локальный баланс бакета.\n\nДля [[bucket-total-aggregate|aggregate]] — сумма по всем бакетам.',
+    },
+    AvgBalance$: {
+        key: 'AvgBalance$',
+        title: 'AvgBalance$',
+        description:
+            'Среднее число денег у этой Policy за весь период в долларах.\n\nФормула считается по каждому календарному дню от StartDay до EndDay с переносом последнего значения на дни без сделок.\n\nВ метрику входит весь [[visible-balance|видимый баланс]]: деньги в работе плюс уже выведенная прибыль.\n\nКак читать:\nэта колонка показывает типичный денежный уровень стратегии по ходу периода, а не только финальную точку.',
     },
     'MaxDD%': {
         key: 'MaxDD%',
@@ -393,7 +411,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'PSR>0%',
         title: 'PSR>0%',
         description:
-            'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах 0..100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
+            'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах от 0 до 100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
     },
     'MinTRL95 SR>0': {
         key: 'MinTRL95 SR>0',
@@ -435,7 +453,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'OnExch$',
         title: 'OnExch$',
         description:
-            'OnExch$ — капитал, который после выбранного среза остаётся в рынке, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nВ [[bucket-total-aggregate|aggregate]] это сумма по всем бакетам.\n\nВ одном бакете число часто совпадает с [[bucket-now|BucketNow$]], но здесь акцент на той части капитала, которая ещё остаётся в работе.',
+            'OnExch$ — активный капитал, который после выбранного среза остаётся в рынке, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nВ [[bucket-total-aggregate|aggregate]] это сумма по всем бакетам.\n\nВ mega-контракте это та же текущая активная сумма, что и [[bucket-now|BucketNow$]]; отличие только в том, что part2 показывает её рядом со [[start-cap|StartCap$]] и [[withdrawn-profit|Withdrawn$]] как денежную структуру результата.',
     },
     HadLiq: {
         key: 'HadLiq',
@@ -484,6 +502,12 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         title: 'EODExit$',
         description:
             'Суммарный NetPnL в долларах только по сделкам с принудительным EndOfDay-выходом. Показывает вклад EOD-сделок в общий денежный результат.',
+    },
+    'EODExitPnl%': {
+        key: 'EODExitPnl%',
+        title: 'EODExitPnl%',
+        description:
+            'EODExitPnl% — денежный итог сделок с принудительным EndOfDay-выходом в процентах от [[start-cap|стартового капитала]].\n\nФормула:\nEODExit$ / [[start-cap|StartCap$]] * 100.\n\nКак читать:\nметрика показывает, сколько процентов стартовой базы принесли или забрали именно сделки, которые дотянули до закрытия по времени.',
     },
     'EODExit_AvgRet%': {
         key: 'EODExit_AvgRet%',
@@ -1018,13 +1042,16 @@ function resolveTermReadingHintOrDefault(key: string): string {
     }
     if (
         key === 'TotalPnl%' ||
+        key === 'Comm$' ||
+        key === 'Comm%' ||
         key === 'BucketNow$' ||
+        key === 'AvgBalance$' ||
         key === 'OnExch$' ||
         key === 'Withdrawn$' ||
         key === 'OnExch%' ||
         key === 'Wealth%'
     ) {
-        return 'интерпретация идёт связкой: TotalPnl% — это главный итог прибыли, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а Wealth% имеет отдельный смысл только там, где рабочий баланс реально растёт внутри периода.'
+        return 'интерпретация идёт связкой: TotalPnl% — это главный итог прибыли, BucketNow$ — финальная активная сумма, AvgBalance$ — типичный денежный уровень по всему периоду, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а Wealth% имеет отдельный смысл только там, где рабочий баланс реально растёт внутри периода.'
     }
     if (key === 'StartCap$') {
         return 'это база масштаба; проценты корректно сравнивать между стратегиями, а доллары — только при одинаковом стартовом капитале.'
@@ -1063,7 +1090,7 @@ function resolveTermReadingHintOrDefault(key: string): string {
     if (key === 'EODExit_n' || key === 'EODExit%') {
         return 'рост означает, что сделка чаще закрывается в конце окна, а не по TP/SL; это меняет профиль риска и качества выходов.'
     }
-    if (key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'если метрика стабильно отрицательная, режим EOD чаще ухудшает итог, чем помогает.'
     }
     if (RECOVERY_KEYS.has(key)) {
@@ -1174,13 +1201,16 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     }
     if (
         key === 'TotalPnl%' ||
+        key === 'Comm$' ||
+        key === 'Comm%' ||
         key === 'BucketNow$' ||
+        key === 'AvgBalance$' ||
         key === 'OnExch$' ||
         key === 'Withdrawn$' ||
         key === 'OnExch%' ||
         key === 'Wealth%'
     ) {
-        return 'Interpret them together: TotalPnl% is the main profit result, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and Wealth% becomes separately useful only where the working balance can really grow inside the period.'
+        return 'Interpret them together: TotalPnl% is the main profit result, BucketNow$ is the final active balance, AvgBalance$ is the typical money level across the whole period, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and Wealth% becomes separately useful only where the working balance can really grow inside the period.'
     }
     if (key === 'StartCap$') {
         return 'This is the scale baseline: percentages can be compared between strategies, but dollar amounts only when start capital is the same.'
@@ -1219,7 +1249,7 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     if (key === 'EODExit_n' || key === 'EODExit%') {
         return 'Higher values mean trades reach end-of-window closure more often instead of exiting by TP/SL; that changes both risk profile and exit quality.'
     }
-    if (key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'If this metric is consistently negative, EndOfDay behavior harms the final result more often than it helps.'
     }
     if (RECOVERY_KEYS.has(key)) {
@@ -1368,6 +1398,9 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62 000 означает текущий капитал бакета после всех закрытых сделок.'
     }
+    if (key === 'AvgBalance$') {
+        return 'AvgBalance$=54 000 означает, что по календарным дням периода у Policy в среднем было около 54 000 долларов visible balance.'
+    }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% означает, что в худшей точке капитал падал на 41% от локального максимума.'
     }
@@ -1440,7 +1473,10 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
         return 'FundingLiq_n=2 означает два принудительных закрытия, где позицию добил именно funding-checkpoint.'
     }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'Comm$' || key === 'Comm%') {
+        return 'Comm%=0.9 означает, что биржевые комиссии забрали 0.9% стартового капитала в этом срезе.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 означает, что 42% сделок закрылись по времени в конце окна, а не по TP/SL.'
     }
     if (
@@ -1541,6 +1577,9 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62,000 means the current bucket capital after all closed trades.'
     }
+    if (key === 'AvgBalance$') {
+        return 'AvgBalance$=54,000 means the Policy had about $54,000 of visible balance on an average calendar day of the period.'
+    }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% means capital fell 41% from the local peak at the worst point.'
     }
@@ -1613,7 +1652,10 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
         return 'FundingLiq_n=2 means there were two forced exits where funding checkpoint itself finished the position.'
     }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'Comm$' || key === 'Comm%') {
+        return 'Comm%=0.9 means exchange fees consumed 0.9% of the starting capital in this slice.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 means 42% of trades were closed by time at end of window, not by TP/SL.'
     }
     if (
@@ -1788,8 +1830,20 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description:
             'TotalPnl$ is the money result of the selected slice.\n\nFormula:\nTotalPnl$ = ([[current-balance|current balance]] + [[withdrawn-profit|withdrawn profit]]) - [[start-cap|starting capital]].\n\nWhat it shows:\n1) this is the absolute result in money, not a percentage;\n2) positive means profit, negative means loss.\n\nHow to read it:\n1) the column matters when the business needs the real dollar scale of the effect, not only relative return;\n2) comparison across rows is only fair together with [[start-cap|starting capital]], because the same percentage can hide very different money size.',
     },
+    'Comm$': {
+        description:
+            'Comm$ is the total [[exchange-fees|exchange fee]] cost across all trades of the row.\n\nFormula:\nsum of every entry and exit fee charged inside the selected slice.\n\nHow to read it:\na larger value means more of the gross edge was given back to execution costs before it could reach capital.',
+    },
+    'Comm%': {
+        description:
+            'Comm% is the share of total commissions relative to [[start-cap|starting capital]].\n\nFormula:\nComm$ / [[start-cap|StartCap$]] * 100.\n\nHow to read it:\nthis shows how much of the starting base was burned by trading costs alone, before profit and drawdown are interpreted.',
+    },
     BucketNow$: {
         description: 'Current capital of selected bucket after all closed trades.',
+    },
+    AvgBalance$: {
+        description:
+            'Average amount of money held by this Policy across the whole period, in USD. Computed day by day from StartDay to EndDay with carry-forward on days without trades, and includes both money still in work and already withdrawn profit.',
     },
     'MaxDD%': {
         description:
@@ -1868,7 +1922,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description: 'Total withdrawn profit in USD.',
     },
     OnExch$: {
-        description: 'Capital still on exchange in USD.',
+        description:
+            'Active capital still on exchange in USD, excluding withdrawn profit.\n\nInside the mega contract this is the same current active balance as BucketNow$; part 2 keeps it next to StartCap$ and Withdrawn$ so the money structure of the result stays readable.',
     },
     StartCap$: {
         description: 'Start capital baseline in USD for this Policy.',
@@ -1905,6 +1960,9 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     EODExit$: {
         description: 'Sum of NetPnl$ for EndOfDay exits only.',
+    },
+    'EODExitPnl%': {
+        description: 'Share of EndOfDay exit money result relative to StartCap$: EODExit$ / StartCap$ * 100.',
     },
     'EODExit_AvgRet%': {
         description: 'Average NetRet% for EndOfDay exits only.',

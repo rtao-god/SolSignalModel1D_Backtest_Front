@@ -75,6 +75,9 @@ export const COMMON_HAD_LIQ_DESCRIPTION_EN =
 export const COMMON_WITHDRAWN_DESCRIPTION_EN =
     'Withdrawn$ is profit that was already withdrawn from the trading balance and is therefore no longer sitting inside current equity.\n\nThis metric matters because a strategy can show moderate on-exchange capital while still having already extracted a meaningful amount of money out of the slice.\n\nHow to read it:\nread Withdrawn$ together with TotalPnl%, current bucket capital, and drawdown. A moderate live balance does not mean the slice earned little if a meaningful share of profit was already moved out of trading capital.'
 
+export const COMMON_SUM_FUNDING_NET_USD_DESCRIPTION_EN =
+    'SumFundingNetUsd is the net funding cash result of the selected slice, in USD.\n\nFormula:\ntotal funding received minus total funding paid.\n\nHow to read it:\n1) a positive value means funding added money to the result overall;\n2) a negative value means funding reduced profit or deepened loss;\n3) this column is best read next to the final strategy result to separate the price move from the separate funding cash layer.\n\nExample:\nSumFundingNetUsd = -320 means funding worsened the result by 320 USD overall.'
+
 export const COMMON_SHARPE_DESCRIPTION_EN =
     'Sharpe is the check of how smoothly the strategy earns relative to the full day-to-day noise in results.\n\nWhat it checks:\n1) whether the average daily result is positive;\n2) whether that result swings too hard from day to day.\n\nHow to read it:\n1) a higher Sharpe means the strategy gets more result per unit of total daily noise;\n2) a low Sharpe means the profit path is too uneven or too small for that amount of fluctuation;\n3) a negative Sharpe means the average daily result of the series is already below zero;\n4) comparison is valid only inside the same historical slice.\n\nFormula:\nSharpe = average daily return / standard deviation of daily returns * sqrt(252).\n\nExample:\nif two strategies end with similar [[total-pnl|TotalPnl%]], but one has Sharpe = 1.4 and the other Sharpe = 0.5, the first one reached that result through a much smoother path.'
 
@@ -120,5 +123,6 @@ export const COMMON_REPORT_COLUMN_TOOLTIPS_EN: CommonReportColumnTooltipMap = {
     CAGR: COMMON_CAGR_DESCRIPTION_EN,
     'CAGR%': COMMON_CAGR_DESCRIPTION_EN,
     HadLiq: COMMON_HAD_LIQ_DESCRIPTION_EN,
-    Withdrawn$: COMMON_WITHDRAWN_DESCRIPTION_EN
+    Withdrawn$: COMMON_WITHDRAWN_DESCRIPTION_EN,
+    SumFundingNetUsd: COMMON_SUM_FUNDING_NET_USD_DESCRIPTION_EN
 }

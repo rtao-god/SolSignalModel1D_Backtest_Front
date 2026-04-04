@@ -13,14 +13,14 @@
 }
 
 .heroTitle {
-    font-size: 32px;
+    @include type-page-title;
     font-weight: 700;
     line-height: 1.15;
     color: #f9fafb;
 }
 
 .heroSubtitle {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.6;
     color: #9ca3af;
     max-width: 720px;
@@ -33,7 +33,7 @@
 }
 
 .sectionsTitle {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #e5e7eb;
 }
@@ -75,20 +75,20 @@
 }
 
 .cardTitle {
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 600;
     color: #f9fafb;
 }
 
 .cardText {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.5;
     color: #d1d5db;
 }
 
 .cardHint {
     margin-top: auto;
-    font-size: 12px;
+    @include type-label;
     font-weight: 500;
     color: #93c5fd;
 }
@@ -99,6 +99,6 @@
     }
 
     .heroTitle {
-        font-size: 26px;
+
     }
 }

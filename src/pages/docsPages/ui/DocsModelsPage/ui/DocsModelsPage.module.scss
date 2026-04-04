@@ -71,7 +71,7 @@
 
 .calloutTitle {
     margin-bottom: 8px;
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 600;
 }
 

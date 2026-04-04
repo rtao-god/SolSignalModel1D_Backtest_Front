@@ -16,6 +16,7 @@ import {
     buildPublishedReportVariantCompatibleOptions,
     resolvePublishedReportVariantSelection
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import cls from './ModelStatsPage.module.scss'
 import { ModelStatsTableCard } from './ModelStatsTableCard'
 import type {
@@ -26,7 +27,14 @@ import type {
     TableSection,
     ResolvedSegmentMeta
 } from './modelStatsTypes'
-import { buildGlobalMeta, isTableSection, resolveSegmentMeta, stripSegmentPrefix } from './modelStatsUtils'
+import {
+    buildGlobalMeta,
+    buildModelStatsHeaderSubtitle,
+    filterModelStatsTableSectionsByFamily,
+    isTableSection,
+    resolveSegmentMeta,
+    stripSegmentPrefix
+} from './modelStatsUtils'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
@@ -89,16 +97,19 @@ function mapApiSegmentToUiValue(segment: string): SegmentKey {
 
 export function ModelStatsPageInner({
     className,
+    embedded = false,
+    familyFilter = null,
     data,
     variantCatalog,
     isLoading,
     error,
     onRetry
 }: ModelStatsPageInnerProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
+    const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
 
-    const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
+    const rootClassName = classNames(cls.ModelStatsPage, { [cls.embedded]: embedded }, [className ?? ''])
     const allSections = useMemo(() => (data?.sections as ReportSection[] | undefined) ?? [], [data?.sections])
     const globalMetaState = useMemo(() => {
         try {
@@ -236,7 +247,31 @@ export function ModelStatsPageInner({
         }
     }, [])
 
-    const tableSections = useMemo(() => allSections.filter(isTableSection), [allSections]) as TableSection[]
+    const filteredTableSectionsState = useMemo(() => {
+        try {
+            return {
+                value: filterModelStatsTableSectionsByFamily(
+                    allSections.filter(isTableSection) as TableSection[],
+                    familyFilter
+                ),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = normalizeErrorLike(err, 'Failed to filter model-stats sections by family.', {
+                source: 'model-stats-family-filter',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve visible table sections for the requested model family.',
+                requiredAction: 'Inspect the published model-stats report and family filter contract.',
+                extra: { familyFilter }
+            })
+            return {
+                value: [] as TableSection[],
+                error: safeError
+            }
+        }
+    }, [allSections, familyFilter])
+    const tableSections = filteredTableSectionsState.value
     const keyValueSectionCount = useMemo(
         () =>
             allSections.filter(section => Array.isArray((section as { items?: unknown[] }).items)).length,
@@ -250,7 +285,8 @@ export function ModelStatsPageInner({
                     sections: tableSections,
                     reportKind: 'backtest_model_stats',
                     contextTag: 'model-stats',
-                    resolveSectionTitle: section => stripSegmentPrefix(section.title)
+                    resolveSectionTitle: section => stripSegmentPrefix(section.title),
+                    locale: i18n.resolvedLanguage ?? i18n.language
                 }),
                 error: null as Error | null
             }
@@ -267,7 +303,7 @@ export function ModelStatsPageInner({
                 error: safeError
             }
         }
-    }, [tableSections])
+    }, [i18n.language, i18n.resolvedLanguage, tableSections])
 
     const tabs = useMemo(
         () =>
@@ -290,8 +326,15 @@ export function ModelStatsPageInner({
     })
 
     const currentSegmentMeta: ResolvedSegmentMeta | null = useMemo(
-        () => resolveSegmentMeta(segmentState.value, globalMeta, t),
-        [globalMeta, segmentState.value, t]
+        () =>
+            resolveSegmentMeta(
+                segmentState.value,
+                globalMeta,
+                t,
+                i18n.resolvedLanguage ?? i18n.language,
+                trainingScopeStatsQuery.data ?? null
+            ),
+        [globalMeta, i18n.language, i18n.resolvedLanguage, segmentState.value, t, trainingScopeStatsQuery.data]
     )
 
     const controlGroups = useMemo(() => {
@@ -320,6 +363,7 @@ export function ModelStatsPageInner({
 
         const segmentGroup = buildModelStatsSegmentControlGroup({
             value: segmentState.value,
+            splitStats: trainingScopeStatsQuery.data ?? null,
             onChange: next => {
                 if (next === segmentState.value) return
                 const nextParams = new URLSearchParams(searchParams)
@@ -346,12 +390,16 @@ export function ModelStatsPageInner({
             segmentGroup,
             viewGroup
         ]
-    }, [searchParams, segmentState.value, setSearchParams, variantCatalog, viewState.value])
+    }, [searchParams, segmentState.value, setSearchParams, trainingScopeStatsQuery.data, variantCatalog, viewState.value])
 
     const segmentDescription = currentSegmentMeta?.description ?? ''
+    const subtitle = buildModelStatsHeaderSubtitle(
+        i18n.resolvedLanguage ?? i18n.language,
+        trainingScopeStatsQuery.data ?? null
+    )
 
     const controlsError = segmentState.error ?? viewState.error ?? null
-    const reportStateError = error ?? sourceEndpointState.error ?? globalMetaState.error ?? null
+    const reportStateError = error ?? sourceEndpointState.error ?? globalMetaState.error ?? filteredTableSectionsState.error ?? null
     const hasReadyReport = Boolean(data && sourceEndpointState.value)
 
     return (
@@ -359,7 +407,7 @@ export function ModelStatsPageInner({
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
                     <Text type='h2'>{data?.title || t('modelStats.inner.header.titleFallback')}</Text>
-                    <Text className={cls.subtitle}>{t('modelStats.inner.header.subtitle')}</Text>
+                    <Text className={cls.subtitle}>{subtitle}</Text>
 
                     <div className={cls.badgesRow}>
                         {currentSegmentMeta && (
@@ -408,7 +456,6 @@ export function ModelStatsPageInner({
                     <ReportActualStatusCard
                         statusMode='actual'
                         statusTitle={t('modelStats.inner.status.publishedTitle')}
-                        statusMessage={t('modelStats.inner.status.publishedMessage')}
                         dataSource={sourceEndpointState.value}
                         reportTitle={data.title}
                         reportId={data.id}

@@ -58,6 +58,8 @@ import {
     ACTIVE_EQUITY_DESCRIPTION,
     ANTI_D_NOT_APPLIED_DESCRIPTION,
     ANTI_DIRECTION_DESCRIPTION,
+    BUDGETED_CALC_MODE_DESCRIPTION_EN,
+    BUDGETED_CALC_MODE_DESCRIPTION_RU,
     CAGR_DESCRIPTION,
     CALMAR_DESCRIPTION,
     CAP_FRACTION_DESCRIPTION,
@@ -69,6 +71,8 @@ import {
     CURRENT_BALANCE_DESCRIPTION,
     DRAWDOWN_DESCRIPTION,
     DYNAMIC_TP_SL_DESCRIPTION,
+    EXCHANGE_LIKE_CALC_MODE_DESCRIPTION_EN,
+    EXCHANGE_LIKE_CALC_MODE_DESCRIPTION_RU,
     EXPOSURE_DESCRIPTION,
     HIGH_RISK_DAY_DESCRIPTION,
     ISOLATED_MARGIN_DESCRIPTION,
@@ -202,6 +206,16 @@ function resolveLocalizedPriceImpactDescription(): string {
     return isEnglish ? PRICE_IMPACT_DESCRIPTION_EN : PRICE_IMPACT_DESCRIPTION_RU
 }
 
+function resolveLocalizedBudgetedCalcModeDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? BUDGETED_CALC_MODE_DESCRIPTION_EN : BUDGETED_CALC_MODE_DESCRIPTION_RU
+}
+
+function resolveLocalizedExchangeLikeCalcModeDescription(): string {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? EXCHANGE_LIKE_CALC_MODE_DESCRIPTION_EN : EXCHANGE_LIKE_CALC_MODE_DESCRIPTION_RU
+}
+
 export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'sl-mode-term',
@@ -210,6 +224,24 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         description: SL_MODE_TERM_DESCRIPTION,
         aliases: ['SL Mode', 'режим SL'],
         priority: 140,
+        scope: 'common'
+    },
+    {
+        id: 'budgeted-calc-mode',
+        pattern: /\bBudgeted\b/i,
+        title: 'Budgeted',
+        description: () => resolveLocalizedBudgetedCalcModeDescription(),
+        aliases: ['Budgeted'],
+        priority: 150,
+        scope: 'common'
+    },
+    {
+        id: 'exchange-like-calc-mode',
+        pattern: /\bExchange(?:-|\s)?Like\b/i,
+        title: 'ExchangeLike',
+        description: () => resolveLocalizedExchangeLikeCalcModeDescription(),
+        aliases: ['ExchangeLike', 'Exchange-Like', 'Exchange Like'],
+        priority: 150,
         scope: 'common'
     },
     {

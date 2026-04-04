@@ -29,6 +29,7 @@ import type {
     RealForecastJournalProbabilityDto,
     RealForecastJournalSnapshotDto
 } from '@/shared/types/realForecastJournal.types'
+import { mapPolicyPerformanceMetricsOrNull } from '../utils/mapPolicyPerformanceMetrics'
 
 const REAL_FORECAST_JOURNAL_QUERY_KEY = ['real-forecast-journal'] as const
 const { dayList, byDate, liveStatus, opsStatus } = API_ROUTES.realForecastJournal
@@ -356,11 +357,15 @@ function mapPolicyRow(value: unknown, index: number): RealForecastJournalPolicyR
             readRequiredField(raw, 'exitReason', 'exitReason', 'ExitReason')
         ),
         exitPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPnlPct', 'ExitPnlPct')),
-        trades: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'trades', 'Trades')),
-        totalPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'totalPnlPct', 'TotalPnlPct')),
-        maxDdPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'maxDdPct', 'MaxDdPct')),
-        hadLiquidation: toOptionalBooleanOrNull(readOptionalField(raw, 'hadLiquidation', 'HadLiquidation')),
-        withdrawnTotal: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'withdrawnTotal', 'WithdrawnTotal'))
+        performanceMetrics: mapPolicyPerformanceMetricsOrNull(
+            readOptionalField(raw, 'performanceMetrics', 'PerformanceMetrics'),
+            {
+                owner: 'real-forecast-journal',
+                label: `policyRows[${index}].performanceMetrics`,
+                allowPascalCase: true,
+                allowStringPrimitives: true
+            }
+        )
     }
 }
 

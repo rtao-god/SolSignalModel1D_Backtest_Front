@@ -26,13 +26,14 @@ import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { pruneDuplicatePolicyMarginColumnsInReportSections } from '@/shared/utils/reportPolicyMarginMode'
 import { useTranslation } from 'react-i18next'
 import cls from './ReportDocumentView.module.scss'
 
 export interface ReportDocumentFreshnessInfo {
     statusMode: 'actual' | 'debug'
     statusTitle: string
-    statusMessage: string
+    statusMessage?: string
     statusLagMinutes?: number | null
     statusLines?: Array<{ label: string; value: string }>
 }
@@ -55,6 +56,10 @@ export function ReportDocumentView({
     const { i18n } = useTranslation()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
+    const normalizedSections = useMemo(
+        () => pruneDuplicatePolicyMarginColumnsInReportSections(report.sections),
+        [report.sections]
+    )
 
     const generatedAtState = useMemo(() => {
         if (!report.generatedAtUtc) {
@@ -93,9 +98,9 @@ export function ReportDocumentView({
     const tableSections = useMemo(
         () =>
             showTableTermsBlock ?
-                (report.sections.filter(section => isTableSection(section)) as TableSectionDto[])
+                (normalizedSections.filter(section => isTableSection(section)) as TableSectionDto[])
             :   ([] as TableSectionDto[]),
-        [report.sections, showTableTermsBlock]
+        [normalizedSections, showTableTermsBlock]
     )
     const termsState = useMemo(() => {
         if (!showTableTermsBlock || tableSections.length === 0) {
@@ -152,7 +157,7 @@ export function ReportDocumentView({
         )
     }
 
-    const hasSections = Array.isArray(report.sections) && report.sections.length > 0
+    const hasSections = Array.isArray(normalizedSections) && normalizedSections.length > 0
     const hasTableSections = showTableTermsBlock && tableSections.length > 0
     const localizedReportTitle = localizeReportDocumentTitle(report.kind, report.title, reportUiLanguage)
 
@@ -195,7 +200,7 @@ export function ReportDocumentView({
                 )}
 
                 {hasSections ?
-                    report.sections.map((section, index) => (
+                    normalizedSections.map((section, index) => (
                         <SectionRenderer
                             key={index}
                             section={section}

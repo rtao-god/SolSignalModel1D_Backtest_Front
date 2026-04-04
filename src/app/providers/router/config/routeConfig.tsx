@@ -4,7 +4,7 @@ import { lazyPage } from './utils/lazyPage'
 import { buildSidebarNavItems } from './utils/buildSidebarNavItems'
 import { logError } from '@/shared/lib/logging/logError'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 const importMainPage = () => import('@/pages/Main')
 const MainPage = lazyPage(importMainPage)
 const importModelStatsPage = () => import('@/pages/ModelStatsPage')
@@ -27,6 +27,8 @@ const importDiagnosticsHomePage = () => import('@/pages/diagnosticsPages/ui/Diag
 const DiagnosticsHomePage = lazyPage(importDiagnosticsHomePage)
 const importAnalysisHomePage = () => import('@/pages/analysisPages/ui/AnalysisPage')
 const AnalysisHomePage = lazyPage(importAnalysisHomePage)
+const importStatisticsHomePage = () => import('@/pages/statisticsPages/ui/StatisticsPage')
+const StatisticsHomePage = lazyPage(importStatisticsHomePage)
 const importBacktestBaselinePage = () => import('@/pages/BacktestBaselinePage')
 const BacktestBaselinePage = lazyPage(importBacktestBaselinePage)
 const importBacktestPage = () => import('@/pages/BacktestPage')
@@ -62,6 +64,16 @@ const importConfidenceRiskPage = () => import('@/pages/analysisPages/ui/Confiden
 const ConfidenceRiskPage = lazyPage(importConfidenceRiskPage)
 const importSharpMoveStatsPage = () => import('@/pages/analysisPages/ui/SharpMoveStatsPage')
 const SharpMoveStatsPage = lazyPage(importSharpMoveStatsPage)
+const importBtcWeaknessStatsPage = () => import('@/pages/statisticsPages/ui/BtcWeaknessStatsPage')
+const BtcWeaknessStatsPage = lazyPage(importBtcWeaknessStatsPage)
+const importMicroOverlayStatsPage = () => import('@/pages/statisticsPages/ui/MicroOverlayStatsPage')
+const MicroOverlayStatsPage = lazyPage(importMicroOverlayStatsPage)
+const importSlOverlayStatsPage = () => import('@/pages/statisticsPages/ui/SlOverlayStatsPage')
+const SlOverlayStatsPage = lazyPage(importSlOverlayStatsPage)
+const importSlStrongDayStatsPage = () => import('@/pages/statisticsPages/ui/SlStrongDayStatsPage')
+const SlStrongDayStatsPage = lazyPage(importSlStrongDayStatsPage)
+const importBoundedParameterStatsPage = () => import('@/pages/analysisPages/ui/BoundedParameterStatsPage')
+const BoundedParameterStatsPage = lazyPage(importBoundedParameterStatsPage)
 const importCurrentPredictionOosPresetsPage = () => import('@/pages/analysisPages/ui/CurrentPredictionOosPresetsPage')
 const CurrentPredictionOosPresetsPage = lazyPage(importCurrentPredictionOosPresetsPage)
 const importRealForecastJournalPage = () => import('@/pages/analysisPages/ui/RealForecastJournalPage')
@@ -102,6 +114,12 @@ const importDeveloperReportsApiPage = () => import('@/pages/developerPages/ui/De
 const DeveloperReportsApiPage = lazyPage(importDeveloperReportsApiPage)
 const importDeveloperTestsGuardsPage = () => import('@/pages/developerPages/ui/DeveloperTestsGuardsPage')
 const DeveloperTestsGuardsPage = lazyPage(importDeveloperTestsGuardsPage)
+
+function RedirectToCanonicalRoute({ routeId }: { routeId: AppRoute }) {
+    const location = useLocation()
+
+    return <Navigate replace to={`${ROUTE_PATH[routeId]}${location.search}${location.hash}`} />
+}
 export const ROUTE_CONFIG: AppRouteConfig[] = [
     {
         id: AppRoute.MAIN,
@@ -142,6 +160,20 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             label: 'Analysis',
             section: 'analysis',
             navbarOrder: 2
+        }
+    },
+    {
+        id: AppRoute.STATISTICS_HOME,
+        path: ROUTE_PATH[AppRoute.STATISTICS_HOME],
+        element: <StatisticsHomePage />,
+        layout: 'app',
+        loadingTitle: 'Loading statistics',
+        nav: {
+            sidebar: false,
+            navbar: true,
+            label: 'Statistics',
+            section: 'statistics',
+            navbarOrder: 3
         }
     },
     {
@@ -381,8 +413,73 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         nav: {
             sidebar: true,
             label: 'Sharp move statistics',
-            section: 'analysis',
-            order: 8
+            section: 'statistics',
+            order: 5
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_BTC_WEAKNESS_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_BTC_WEAKNESS_STATS],
+        element: <BtcWeaknessStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading BTC weakness statistics',
+        nav: {
+            sidebar: true,
+            label: 'BTC weakness statistics',
+            section: 'statistics',
+            order: 1
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_MICRO_OVERLAY_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_MICRO_OVERLAY_STATS],
+        element: <MicroOverlayStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading micro overlay statistics',
+        nav: {
+            sidebar: true,
+            label: 'Micro overlay statistics',
+            section: 'statistics',
+            order: 2
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_SL_OVERLAY_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_SL_OVERLAY_STATS],
+        element: <SlOverlayStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading SL overlay statistics',
+        nav: {
+            sidebar: true,
+            label: 'Trade risk statistics',
+            section: 'statistics',
+            order: 3
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_SL_STRONG_DAY_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_SL_STRONG_DAY_STATS],
+        element: <SlStrongDayStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading SL strong-day statistics',
+        nav: {
+            sidebar: true,
+            label: 'Strong-day statistics',
+            section: 'statistics',
+            order: 4
+        }
+    },
+    {
+        id: AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS,
+        path: ROUTE_PATH[AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS],
+        element: <BoundedParameterStatsPage />,
+        layout: 'app',
+        loadingTitle: 'Loading bounded parameter statistics',
+        nav: {
+            sidebar: true,
+            label: 'Bounded parameter statistics',
+            section: 'statistics',
+            order: 6
         }
     },
     {
@@ -393,9 +490,9 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         loadingTitle: 'Loading OOS preset tails',
         nav: {
             sidebar: true,
-            label: 'Хвосты новых дней',
+            label: 'Сравнение OOS и TRAIN',
             section: 'analysis',
-            order: 9
+            order: 10
         }
     },
     {
@@ -429,10 +526,10 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
         element: <PfiPage family='daily' />,
         layout: 'app',
-        loadingTitle: 'Loading daily-model PFI report',
+        loadingTitle: 'Loading model analysis',
         nav: {
             sidebar: true,
-            label: 'PFI',
+            label: 'Models',
             section: 'features',
             order: 2
         }
@@ -468,7 +565,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Knowledge base',
             section: 'guide',
-            navbarOrder: 3
+            navbarOrder: 4
         }
     },
     {
@@ -573,7 +670,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
             navbar: true,
             label: 'Developer',
             section: 'developer',
-            navbarOrder: 4
+            navbarOrder: 5
         }
     },
     {
@@ -706,6 +803,20 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         loadingTitle: 'Loading feature explanation'
     },
     {
+        id: AppRoute.LEGACY_ANALYSIS_SHARP_MOVE_STATS,
+        path: ROUTE_PATH[AppRoute.LEGACY_ANALYSIS_SHARP_MOVE_STATS],
+        element: <RedirectToCanonicalRoute routeId={AppRoute.BACKTEST_SHARP_MOVE_STATS} />,
+        layout: 'app',
+        loadingTitle: 'Redirecting sharp move statistics'
+    },
+    {
+        id: AppRoute.LEGACY_ANALYSIS_BOUNDED_PARAMETER_STATS,
+        path: ROUTE_PATH[AppRoute.LEGACY_ANALYSIS_BOUNDED_PARAMETER_STATS],
+        element: <RedirectToCanonicalRoute routeId={AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS} />,
+        layout: 'app',
+        loadingTitle: 'Redirecting bounded parameter statistics'
+    },
+    {
         id: AppRoute.ABOUT,
         path: ROUTE_PATH[AppRoute.ABOUT],
         element: <AboutPage />,
@@ -801,6 +912,7 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.CURRENT_PREDICTION_HISTORY]: importPredictionHistoryPage,
     [AppRoute.DIAGNOSTICS_HOME]: importDiagnosticsHomePage,
     [AppRoute.ANALYSIS_HOME]: importAnalysisHomePage,
+    [AppRoute.STATISTICS_HOME]: importStatisticsHomePage,
     [AppRoute.BACKTEST_BASELINE]: importBacktestBaselinePage,
     [AppRoute.BACKTEST_SUMMARY]: importBacktestSummaryReportPage,
     [AppRoute.BACKTEST_FULL]: importBacktestPage,
@@ -816,6 +928,11 @@ const ROUTE_PREFETCHERS: Partial<Record<AppRoute, () => Promise<unknown>>> = {
     [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: importPolicySetupsPage,
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: importConfidenceRiskPage,
     [AppRoute.BACKTEST_SHARP_MOVE_STATS]: importSharpMoveStatsPage,
+    [AppRoute.BACKTEST_BTC_WEAKNESS_STATS]: importBtcWeaknessStatsPage,
+    [AppRoute.BACKTEST_MICRO_OVERLAY_STATS]: importMicroOverlayStatsPage,
+    [AppRoute.BACKTEST_SL_OVERLAY_STATS]: importSlOverlayStatsPage,
+    [AppRoute.BACKTEST_SL_STRONG_DAY_STATS]: importSlStrongDayStatsPage,
+    [AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS]: importBoundedParameterStatsPage,
     [AppRoute.CURRENT_PREDICTION_OOS_PRESETS]: importCurrentPredictionOosPresetsPage,
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: importRealForecastJournalPage,
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: importExecutionPipelinePage,

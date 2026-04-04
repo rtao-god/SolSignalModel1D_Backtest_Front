@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useSearchParams } from 'react-router-dom'
 import classNames from '@/shared/lib/helpers/classNames'
 import { usePfiFeatureDetailReportQuery } from '@/shared/api/tanstackQueries/pfi'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { resolveReportSectionDescription } from '@/shared/utils/reportDescriptions'
-import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
+import { resolveReportColumnTooltip, resolveReportTooltipLocale } from '@/shared/utils/reportTooltips'
+import { localizeReportColumnTitle } from '@/shared/utils/reportPresentationLocalization'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { normalizeZeroLikeNumericText } from '@/shared/utils/numberFormat'
 import type { PfiFeatureDetailScoreScopeKeyDto, PfiFeatureHistoryRangeKeyDto } from '@/shared/types/pfi.types'
@@ -23,6 +25,7 @@ import {
 } from '@/shared/ui'
 import cls from './PfiFeatureDetailPage.module.scss'
 import PfiFeatureRollingChart from './PfiFeatureRollingChart'
+import PfiFeatureValueOutcomeProfileChart from './PfiFeatureValueOutcomeProfileChart'
 import type { PfiFeatureDetailTableCardProps } from './types'
 
 const SCORE_SCOPE_OPTIONS: ReadonlyArray<ReportViewControlOption<PfiFeatureDetailScoreScopeKeyDto>> = [
@@ -152,7 +155,9 @@ function PfiFeatureDetailTableCard({
     subtitle,
     className
 }: PfiFeatureDetailTableCardProps) {
+    const { i18n } = useTranslation()
     const [sortedRows, setSortedRows] = useState<TableRow[]>([])
+    const locale = resolveReportTooltipLocale(i18n.resolvedLanguage ?? i18n.language)
 
     const columns = table.columns ?? []
     const resolvedSubtitle = subtitle?.trim() || resolveReportSectionDescription(reportKind, table.title)
@@ -176,7 +181,10 @@ function PfiFeatureDetailTableCard({
     const exportRows = rowsForExport.map(row => columns.map((_title, colIdx) => toExportCell(getCellValue(row, colIdx))))
 
     const renderColumnTitle = (title: string) =>
-        renderTermTooltipTitle(title, resolveReportColumnTooltip(reportKind, table.title, title))
+        renderTermTooltipTitle(
+            localizeReportColumnTitle(reportKind, title, locale),
+            resolveReportColumnTooltip(reportKind, table.title, title, locale)
+        )
 
     return (
         <section className={classNames(cls.tableCard, {}, [className ?? ''])}>
@@ -189,7 +197,7 @@ function PfiFeatureDetailTableCard({
                 </div>
 
                 <TableExportButton
-                    columns={columns}
+                    columns={columns.map(column => localizeReportColumnTitle(reportKind, column, locale))}
                     rows={exportRows}
                     fileBaseName={table.title}
                     defaultFormat='pdf'
@@ -208,6 +216,7 @@ function PfiFeatureDetailTableCard({
 }
 
 export default function PfiFeatureDetailPage({ className }: { className?: string }) {
+    const { i18n } = useTranslation()
     const params = useParams()
     const [searchParams, setSearchParams] = useSearchParams()
     const rawFeatureId = typeof params.featureId === 'string' ? params.featureId : ''
@@ -293,7 +302,7 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
 
     const reportTitle = report?.featureName || featureId || 'Признак'
     const reportSubtitle =
-        'Страница собирает полный разбор выбранного признака: важность по моделям, локальный вклад в прогноз и качество прогноза по диапазонам значений.'
+        'Страница собирает полный разбор выбранного признака: реакцию рынка на его значения, важность по моделям, локальный вклад в прогноз и качество прогноза по диапазонам значений.'
     const statusLines = useMemo(() => {
         if (!report) {
             return []
@@ -432,7 +441,8 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
                 terms: buildReportTermsFromSections({
                     sections: detailTableSections,
                     reportKind: report.kind,
-                    contextTag: 'pfi-feature-detail'
+                    contextTag: 'pfi-feature-detail',
+                    locale: i18n.resolvedLanguage ?? i18n.language
                 }),
                 error: null as Error | null
             }
@@ -449,7 +459,7 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
                 error: safeError
             }
         }
-    }, [detailTableSections, report])
+    }, [detailTableSections, i18n.language, i18n.resolvedLanguage, report])
 
     return (
         <div className={classNames(cls.PfiFeatureDetailPage, {}, [className ?? ''])}>
@@ -510,6 +520,10 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
                                         </div>
                                     ))}
                                 </section>
+                            )}
+
+                            {report.valueOutcomeProfile && (
+                                <PfiFeatureValueOutcomeProfileChart profile={report.valueOutcomeProfile} />
                             )}
 
                             {termsState.terms.length > 0 && (

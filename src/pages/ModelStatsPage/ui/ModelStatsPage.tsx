@@ -10,7 +10,7 @@ import { ModelStatsPageInner } from './ModelStatsPageInner'
 import { useSearchParams } from 'react-router-dom'
 import { useCallback, useMemo } from 'react'
 
-export default function ModelStatsPage({ className }: ModelStatsPageProps) {
+export default function ModelStatsPage({ className, embedded = false, familyFilter = null }: ModelStatsPageProps) {
     const [searchParams] = useSearchParams()
     const variantCatalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestModelStats)
     const variantResolutionState = useMemo(() => {
@@ -72,6 +72,8 @@ export default function ModelStatsPage({ className }: ModelStatsPageProps) {
     return (
         <ModelStatsPageInner
             className={className}
+            embedded={embedded}
+            familyFilter={familyFilter}
             data={data ?? null}
             variantCatalog={variantCatalogQuery.data ?? null}
             isLoading={variantCatalogQuery.isPending || isLoading}

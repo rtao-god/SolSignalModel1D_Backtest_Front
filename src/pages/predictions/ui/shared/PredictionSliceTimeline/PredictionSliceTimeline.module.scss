@@ -1,0 +1,430 @@
+.PredictionSliceTimeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.loadingCard {
+    display: flex;
+    align-items: center;
+    min-height: 112px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.loadingText {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title,
+.subtitle,
+.activeSummary {
+    margin: 0;
+}
+
+.subtitle {
+    opacity: 0.88;
+    line-height: 1.55;
+}
+
+.activeSummary {
+    color: rgba(191, 219, 254, 0.98);
+    line-height: 1.5;
+}
+
+.milestoneRail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.dateChip,
+.segmentChip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    border-radius: 999px;
+    padding: 7px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.dateChip {
+    @include type-label;
+    letter-spacing: 0.02em;
+    background: rgba(15, 23, 42, 0.86);
+    color: rgba(226, 232, 240, 0.96);
+    white-space: nowrap;
+}
+
+.segmentChip {
+    @include type-caption;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.segmentChipWarmup {
+    background: rgba(180, 83, 9, 0.22);
+    color: #fde68a;
+}
+
+.warmupDisplayTerm {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+    text-align: center;
+}
+
+.warmupDisplayTermLine {
+    display: block;
+}
+
+.segmentChipTrain {
+    background: rgba(8, 47, 73, 0.62);
+    color: #bfdbfe;
+}
+
+.segmentChipOos {
+    background: rgba(127, 29, 29, 0.34);
+    color: #fecdd3;
+}
+
+.segmentChipActive {
+    border-color: rgba(248, 250, 252, 0.3);
+    box-shadow:
+        0 0 0 1px rgba(248, 250, 252, 0.08),
+        0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.scaleBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.scaleBar {
+    position: relative;
+    display: flex;
+    min-height: 24px;
+    overflow: hidden;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(15, 23, 42, 0.78);
+}
+
+.scaleSegment {
+    position: relative;
+    min-width: 20px;
+    opacity: 0.76;
+    transition:
+        opacity 0.2s ease,
+        filter 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.scaleWarmup {
+    background: #d97706;
+}
+
+.scaleTrain {
+    background: #0284c7;
+}
+
+.scaleOos {
+    background: #e11d48;
+}
+
+.scaleSegmentActive {
+    opacity: 1;
+    filter: saturate(1.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.recentOverlay {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    bottom: 3px;
+    min-width: 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(248, 250, 252, 0.45);
+    background: rgba(251, 191, 36, 0.88);
+}
+
+.recentOverlayActive {
+    border-color: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.scaleBoundaries {
+    position: relative;
+}
+
+.scaleBoundaryItem {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.82);
+    @include type-label;
+    line-height: 1.2;
+    color: rgba(226, 232, 240, 0.84);
+    white-space: nowrap;
+    transition:
+        left 0.2s ease,
+        top 0.2s ease;
+}
+
+.scaleDimensions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.scaleDimensionEndpoints {
+    position: relative;
+    min-height: 20px;
+}
+
+.scaleDimensionEndpoint {
+    position: absolute;
+    top: 0;
+    @include type-label;
+    line-height: 1;
+    color: rgba(203, 213, 225, 0.72);
+    white-space: nowrap;
+}
+
+.scaleDimensionEndpointStart {
+    transform: translateX(-50%);
+}
+
+.scaleDimensionEndpointPinnedStart {
+    transform: none;
+}
+
+.scaleDimensionEndpointEnd {
+    right: 0;
+}
+
+.scaleDimensionCanvas {
+    position: relative;
+    min-height: 34px;
+}
+
+.scaleDimension {
+    position: absolute;
+}
+
+.scaleDimensionPrimaryLane {
+    top: 0;
+}
+
+.scaleDimensionNestedLane {
+    top: 34px;
+}
+
+.scaleDimension::before,
+.scaleDimension::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    width: 1px;
+    height: 14px;
+    background: currentColor;
+    opacity: 0.9;
+}
+
+.scaleDimension::before {
+    left: 0;
+}
+
+.scaleDimension::after {
+    right: 0;
+}
+
+.scaleDimensionLine {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.9;
+}
+
+.scaleDimensionLine::before,
+.scaleDimensionLine::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-top: 1px solid currentColor;
+    opacity: 0.9;
+}
+
+.scaleDimensionLine::before {
+    left: 0;
+    border-left: 1px solid currentColor;
+    transform: rotate(-45deg);
+}
+
+.scaleDimensionLine::after {
+    right: 0;
+    border-right: 1px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.scaleDimensionLabel {
+    position: absolute;
+    top: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.94);
+    @include type-label;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.scaleDimensionLabelWarmup {
+    top: -10px;
+    min-height: 30px;
+    align-items: flex-start;
+}
+
+.scaleDimensionLabelStart {
+    left: 0;
+}
+
+.scaleDimensionLabelCenter {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.scaleDimensionLabelEnd {
+    right: 0;
+}
+
+.scaleDimensionWarmup {
+    color: #fbbf24;
+    z-index: 1;
+}
+
+.scaleDimensionTrain {
+    color: #7dd3fc;
+    z-index: 2;
+}
+
+.scaleDimensionOos {
+    color: #fda4af;
+    z-index: 3;
+}
+
+.scaleDimensionRecent {
+    color: #fcd34d;
+    z-index: 4;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 14px 15px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.7);
+}
+
+.cardActive {
+    border-color: rgba(248, 250, 252, 0.26);
+    box-shadow:
+        0 0 0 1px rgba(248, 250, 252, 0.04),
+        0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.card_warmup {
+    background: rgba(120, 53, 15, 0.34);
+}
+
+.card_train {
+    background: rgba(8, 47, 73, 0.48);
+}
+
+.card_oos {
+    background: rgba(127, 29, 29, 0.28);
+}
+
+.card_recent {
+    background: rgba(120, 53, 15, 0.42);
+}
+
+.cardTitle,
+.cardRange,
+.cardCount {
+    margin: 0;
+}
+
+.cardTitle {
+    @include type-body-sm;
+    font-weight: 600;
+}
+
+.cardRange {
+    @include type-body-sm;
+    line-height: 1.45;
+    color: rgba(226, 232, 240, 0.9);
+}
+
+.cardCount {
+    @include type-label;
+    color: rgba(191, 219, 254, 0.82);
+}
+
+@media (max-width: 1100px) {
+    .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .PredictionSliceTimeline {
+        padding: 16px;
+    }
+
+    .scaleDimensionLabel {
+
+    }
+
+    .cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

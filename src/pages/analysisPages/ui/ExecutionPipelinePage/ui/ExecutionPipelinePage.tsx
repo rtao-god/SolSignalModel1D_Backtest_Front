@@ -29,6 +29,7 @@ import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
+import { pruneDuplicatePolicyMarginColumn } from '@/shared/utils/reportPolicyMarginMode'
 import { resolveReportColumnTooltip, resolveReportKeyTooltip } from '@/shared/utils/reportTooltips'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { buildReportTermsFromReferences } from '@/shared/utils/reportTerms'
@@ -123,7 +124,7 @@ function parseSections(sections: ReportSectionDto[]): ParsedPipelineSections {
                 }
             }
 
-            tableSections.push(section)
+            tableSections.push(pruneDuplicatePolicyMarginColumn(section))
             continue
         }
 

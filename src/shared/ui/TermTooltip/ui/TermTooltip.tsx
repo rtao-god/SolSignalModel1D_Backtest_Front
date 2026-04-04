@@ -21,6 +21,7 @@ import { TextTag } from '../../Text/ui/Text/types'
 
 interface TermTooltipProps {
     term: string
+    displayTerm?: ReactNode
     description: ReactNode | (() => ReactNode)
     tooltipTitle?: string
     type?: TextTag
@@ -167,6 +168,7 @@ function propagateOpenStateToAncestors(instanceId: string | null, delta: 1 | -1)
 
 export default function TermTooltip({
     term,
+    displayTerm,
     description,
     tooltipTitle,
     type = 'h3',
@@ -197,6 +199,7 @@ export default function TermTooltip({
 
     const selfOpen = hovered || pinned
     const open = selfOpen || openDescendantCount > 0 || treeOverlayHoverCount > 0
+    const normalizedTermLabel = useMemo(() => term.replace(/\s+/g, ' ').trim(), [term])
     const resolvedDescription = useMemo(() => {
         if (!open) {
             return null
@@ -695,9 +698,9 @@ export default function TermTooltip({
                             onMouseLeave={handleTermLeave}
                             onFocus={handleTermFocus}
                             onBlur={handleTermBlur}
-                            aria-label={term}
+                            aria-label={normalizedTermLabel}
                             aria-expanded={open}>
-                            {term}
+                            {displayTerm ?? term}
                         </RouterLink>
                     :   <span
                             data-term-tooltip-instance-id={instanceId}
@@ -710,9 +713,9 @@ export default function TermTooltip({
                             onKeyDown={handleKeyDown}
                             role='button'
                             tabIndex={0}
-                            aria-label={`Что такое ${term}?`}
+                            aria-label={`Что такое ${normalizedTermLabel}?`}
                             aria-expanded={open}>
-                            {term}
+                            {displayTerm ?? term}
                         </span>
                     }
                 </Element>
@@ -732,7 +735,7 @@ export default function TermTooltip({
                         onClick={handleTooltipClick}>
                         <div className={cls.tooltipContent}>
                             <Element type='p' className={cls.tooltipTitle}>
-                                {tooltipTitle ?? term}
+                                {tooltipTitle ?? normalizedTermLabel}
                             </Element>
                             <div className={cls.tooltipBody}>{resolvedDescription}</div>
                         </div>

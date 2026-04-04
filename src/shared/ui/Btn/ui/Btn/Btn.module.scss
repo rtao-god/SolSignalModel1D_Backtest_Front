@@ -2,9 +2,10 @@
     /* Базовые токены размеров/типографики. */
     --btn-padding-y: 8px;
     --btn-padding-x: 20px;
-    --btn-font-size: 14px;
+    --btn-font-size: var(--type-button-size);
+    --btn-line-height: var(--type-button-line);
     --btn-radius: 12px;
-    --btn-font-weight: 500;
+    --btn-font-weight: var(--type-button-weight);
 
     /* Базовые токены цветов/состояний, переопределяются вариантами. */
     --btn-bg: transparent;
@@ -28,7 +29,7 @@
 
     font-size: var(--btn-font-size);
     font-weight: var(--btn-font-weight);
-    line-height: 1.2;
+    line-height: var(--btn-line-height);
 
     color: var(--btn-color);
     background: var(--btn-bg);
@@ -82,21 +83,25 @@
 .Btn[data-size='sm'] {
     --btn-padding-y: 4px;
     --btn-padding-x: 12px;
-    --btn-font-size: 12px;
+    --btn-font-size: var(--type-button-sm-size);
+    --btn-line-height: var(--type-button-sm-line);
+    --btn-font-weight: var(--type-button-sm-weight);
     --btn-radius: 8px;
 }
 
 .Btn[data-size='md'] {
     --btn-padding-y: 8px;
     --btn-padding-x: 20px;
-    --btn-font-size: 14px;
+    --btn-font-size: var(--type-button-size);
     --btn-radius: 12px;
 }
 
 .Btn[data-size='lg'] {
     --btn-padding-y: 12px;
     --btn-padding-x: 24px;
-    --btn-font-size: 16px;
+    --btn-font-size: var(--type-button-lg-size);
+    --btn-line-height: var(--type-button-lg-line);
+    --btn-font-weight: var(--type-button-lg-weight);
     --btn-radius: 14px;
 }
 
@@ -167,9 +172,10 @@
 .Btn[data-variant='chip'] {
     --btn-padding-y: 4px;
     --btn-padding-x: 10px;
-    --btn-font-size: 12px;
+    --btn-font-size: var(--type-chip-size);
+    --btn-line-height: var(--type-chip-line);
     --btn-radius: 999px;
-    --btn-font-weight: 600;
+    --btn-font-weight: var(--type-chip-weight);
 
     --btn-color: #f9fafb;
     --btn-shadow: 0 10px 18px rgba(15, 23, 42, 0.9);
@@ -199,31 +205,8 @@
     --btn-border-color: rgba(96, 165, 250, 0.8);
 }
 
-/* Респонсив только для chip, чтобы не трогать обычные кнопки. */
-
-@media (max-width: 768px) {
+@include viewport-phone {
     .Btn[data-variant='chip'] {
-        --btn-padding-y: 3px;
-        --btn-padding-x: 8px;
-        --btn-font-size: 11px;
         min-width: 36px;
-    }
-}
-
-@media (max-width: 480px) {
-    .Btn[data-variant='chip'] {
-        --btn-padding-y: 2px;
-        --btn-padding-x: 8px;
-        --btn-font-size: 10px;
-        min-width: 32px;
-    }
-}
-
-@media (max-width: 360px) {
-    .Btn[data-variant='chip'] {
-        --btn-padding-y: 2px;
-        --btn-padding-x: 6px;
-        --btn-font-size: 9px;
-        min-width: 30px;
     }
 }

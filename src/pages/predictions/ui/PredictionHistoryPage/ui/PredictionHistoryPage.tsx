@@ -54,6 +54,7 @@ import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
+import { PredictionSliceTimelinePanel } from '@/pages/predictions/ui/shared/PredictionSliceTimeline'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 import {
     resolveCurrentPredictionTimingSnapshot,
@@ -194,19 +195,113 @@ function buildOosQuickPresetEntries(catalog: CurrentPredictionOosPresetCatalog |
 }
 
 function formatTradeCountLabel(value: number, locale: string): string {
+    if (!locale.toLowerCase().startsWith('ru')) {
+        return `${value.toLocaleString(locale)} trades`
+    }
+
+    const absValue = Math.abs(value) % 100
+    const lastDigit = absValue % 10
+
+    if (absValue >= 11 && absValue <= 19) {
+        return `${value.toLocaleString(locale)} сделок`
+    }
+
+    if (lastDigit === 1) {
+        return `${value.toLocaleString(locale)} сделка`
+    }
+
+    if (lastDigit >= 2 && lastDigit <= 4) {
+        return `${value.toLocaleString(locale)} сделки`
+    }
+
     return `${value.toLocaleString(locale)} сделок`
 }
 
-function buildOosPresetShortLabel(entry: CurrentPredictionOosPresetEntry, locale: string): string {
-    return `${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}%)`
+function formatDayCountLabel(value: number, locale: string): string {
+    if (!locale.toLowerCase().startsWith('ru')) {
+        return `${value.toLocaleString(locale)} days`
+    }
+
+    const absValue = Math.abs(value) % 100
+    const lastDigit = absValue % 10
+
+    if (absValue >= 11 && absValue <= 19) {
+        return `${value.toLocaleString(locale)} дней`
+    }
+
+    if (lastDigit === 1) {
+        return `${value.toLocaleString(locale)} день`
+    }
+
+    if (lastDigit >= 2 && lastDigit <= 4) {
+        return `${value.toLocaleString(locale)} дня`
+    }
+
+    return `${value.toLocaleString(locale)} дней`
 }
 
-function buildOosPresetTooltip(entry: CurrentPredictionOosPresetEntry, locale: string): string {
-    return `Показывает последний хвост проверки на новых днях размером ${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}% от всех сделок проверки).\n\nПериод: ${entry.startPredictionDateUtc} .. ${entry.endPredictionDateUtc}.\n\nВнутри хвоста: ${entry.selectedDays.toLocaleString(locale)} дней, ${entry.daysWithTrades.toLocaleString(locale)} дней со сделками и ${entry.daysWithoutTrades.toLocaleString(locale)} дней без сделок.`
+function buildPredictionHistoryScopeDaysNote(value: number | null | undefined, locale: string): string {
+    if (!Number.isInteger(value) || (value ?? 0) < 0) {
+        return ''
+    }
+
+    const resolvedValue = value as number
+    return ` (${formatDayCountLabel(resolvedValue, locale)})`
 }
 
-function buildOosPresetSummary(entry: CurrentPredictionOosPresetEntry, locale: string): string {
-    return `Сейчас открыт хвост ${formatTradeCountLabel(entry.selectedTradeCount, locale)} (${entry.requestedTradeSharePercent}%) за период ${entry.startPredictionDateUtc} .. ${entry.endPredictionDateUtc}.`
+function resolveTrainDaysBeforeOosPreset(
+    catalog: CurrentPredictionOosPresetCatalog,
+    entry: CurrentPredictionOosPresetEntry
+): number {
+    const trainDays = catalog.historyTotalDays - entry.selectedDays
+    if (!Number.isFinite(trainDays) || trainDays < 0) {
+        throw new Error(
+            `[ui] Invalid train-days complement for OOS preset. totalDays=${catalog.historyTotalDays}; selectedDays=${entry.selectedDays}.`
+        )
+    }
+
+    return trainDays
+}
+
+function resolveTrainPercentBeforeOosPreset(entry: CurrentPredictionOosPresetEntry): number {
+    const trainPercent = 100 - entry.requestedDaySharePercent
+    if (!Number.isFinite(trainPercent) || trainPercent <= 0) {
+        throw new Error(
+            `[ui] Invalid train-percent complement for OOS preset. requestedDaySharePercent=${entry.requestedDaySharePercent}.`
+        )
+    }
+
+    return trainPercent
+}
+
+function buildOosPresetShortLabel(
+    catalog: CurrentPredictionOosPresetCatalog,
+    entry: CurrentPredictionOosPresetEntry,
+    locale: string
+): string {
+    return `OOS ${entry.requestedDaySharePercent}% (${formatDayCountLabel(entry.selectedDays, locale)})`
+}
+
+function buildOosPresetTooltip(
+    catalog: CurrentPredictionOosPresetCatalog,
+    entry: CurrentPredictionOosPresetEntry,
+    locale: string
+): string {
+    const trainPercent = resolveTrainPercentBeforeOosPreset(entry)
+    const trainDays = resolveTrainDaysBeforeOosPreset(catalog, entry)
+
+    return `Показывает пользовательский OOS-хвост ${entry.requestedDaySharePercent}% полной истории: ${formatDayCountLabel(entry.selectedDays, locale)} за период с ${entry.startPredictionDateUtc} по ${entry.endPredictionDateUtc}.\n\nДополняющая обучающая часть перед ним занимает ${trainPercent}% полной истории: ${formatDayCountLabel(trainDays, locale)}.\n\nВнутри этого OOS-хвоста: ${formatTradeCountLabel(entry.selectedTradeCount, locale)}, ${entry.daysWithTrades.toLocaleString(locale)} дней со сделками и ${entry.daysWithoutTrades.toLocaleString(locale)} дней без сделок.`
+}
+
+function buildOosPresetSummary(
+    catalog: CurrentPredictionOosPresetCatalog,
+    entry: CurrentPredictionOosPresetEntry,
+    locale: string
+): string {
+    const trainPercent = resolveTrainPercentBeforeOosPreset(entry)
+    const trainDays = resolveTrainDaysBeforeOosPreset(catalog, entry)
+
+    return `Сейчас открыт пользовательский OOS-хвост ${entry.requestedDaySharePercent}%: ${formatDayCountLabel(entry.selectedDays, locale)}. Перед ним остаётся Train ${trainPercent}%: ${formatDayCountLabel(trainDays, locale)}.`
 }
 
 const POLICY_TABLE_SECTION_KEY = 'leverage_policies'
@@ -633,13 +728,34 @@ function PredictionHistoryPageInner({
 
     const [cardsAnimating, setCardsAnimating] = useState(false)
     const isTrainDiagnosticsMode = isTrainDiagnosticsScope(trainingScope)
+    const trainingScopeStats = historyPage?.trainingScopeStats ?? null
+    const trainDiagnosticsInterpolation = useMemo(() => {
+        const locale = i18n.language.toLowerCase().startsWith('ru') ? 'ru-RU' : 'en-US'
+        const oosPercent = trainingScopeStats?.oosHistoryDaySharePercent ?? 30
+        const recentPercent = trainingScopeStats?.recentHistoryDaySharePercent ?? 15
+        const trainPercent = 100 - oosPercent
+
+        return {
+            trainPercent: `${trainPercent}%`,
+            oosPercent: `${oosPercent}%`,
+            recentPercent: `${recentPercent}%`,
+            trainDaysNote: buildPredictionHistoryScopeDaysNote(trainingScopeStats?.trainDays, locale),
+            oosDaysNote: buildPredictionHistoryScopeDaysNote(trainingScopeStats?.oosDays, locale),
+            recentDaysNote: buildPredictionHistoryScopeDaysNote(trainingScopeStats?.recentDays, locale)
+        }
+    }, [i18n.language, trainingScopeStats])
     const introBullets = useMemo(
         () => readPredictionPageStringList(i18n, 'predictionHistory.page.intro.bullets'),
         [i18n]
     )
     const trainDiagnosticsIntroBullets = useMemo(
-        () => readPredictionPageStringList(i18n, 'predictionHistory.page.trainDiagnosticsIntro.bullets'),
-        [i18n]
+        () =>
+            readPredictionPageStringList(
+                i18n,
+                'predictionHistory.page.trainDiagnosticsIntro.bullets',
+                trainDiagnosticsInterpolation
+            ),
+        [i18n, trainDiagnosticsInterpolation]
     )
     const renderIntroText = useCallback((text: string) => renderTermTooltipRichText(text), [])
 
@@ -664,10 +780,10 @@ function PredictionHistoryPageInner({
 
         return parsedEarliestBuiltDate
     }, [historyPage?.earliestBuiltPredictionDateUtc])
-    const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
+    const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope, trainingScopeStats)
     const trainingScopeDescription = useMemo(
-        () => buildCurrentPredictionHistoryTrainingScopeDescription(historyPage?.trainingScopeStats ?? null),
-        [historyPage?.trainingScopeStats]
+        () => buildCurrentPredictionHistoryTrainingScopeDescription(trainingScopeStats),
+        [trainingScopeStats]
     )
     const quickOosPresetEntries = useMemo(() => buildOosQuickPresetEntries(oosPresetCatalog), [oosPresetCatalog])
     const selectedOosPresetEntry = useMemo(
@@ -678,10 +794,10 @@ function PredictionHistoryPageInner({
         () =>
             quickOosPresetEntries.map(entry => ({
                 value: entry.key,
-                label: buildOosPresetShortLabel(entry, i18n.language),
-                tooltip: buildOosPresetTooltip(entry, i18n.language)
+                label: buildOosPresetShortLabel(oosPresetCatalog!, entry, i18n.language),
+                tooltip: buildOosPresetTooltip(oosPresetCatalog!, entry, i18n.language)
             })),
-        [i18n.language, quickOosPresetEntries]
+        [i18n.language, oosPresetCatalog, quickOosPresetEntries]
     )
     const selectedHistoryWindowMeta = historyWindowOptions.find(option => option.value === historyWindow)
     if (!selectedHistoryWindowMeta || !isPredictionHistoryWindow(selectedHistoryWindowMeta.value)) {
@@ -694,7 +810,8 @@ function PredictionHistoryPageInner({
                 onChange: onTrainingScopeChange,
                 label: t('predictionHistory.filters.scope.label'),
                 ariaLabel: t('predictionHistory.filters.scope.ariaLabel'),
-                infoTooltip: trainingScopeDescription
+                infoTooltip: trainingScopeDescription,
+                splitStats: historyPage?.trainingScopeStats ?? null
             })
         ]
 
@@ -709,7 +826,7 @@ function PredictionHistoryPageInner({
                 }),
                 infoTooltip: t('predictionHistory.filters.oosPreset.tooltip', {
                     defaultValue:
-                        'Переключатель показывает только последний хвост части истории, где модель проверяется на новых днях. Переключение не пересчитывает прогнозы заново и не загружает скрытые хвосты заранее.'
+                        'Основной пользовательский хвост новых дней здесь равен OOS 30% / Train 70%. Короткий режим показывает OOS 15% / Train 85%. Переключение не пересчитывает прогнозы заново: страница просто открывает другой уже опубликованный хвост.'
                 }),
                 value: selectedOosPresetEntry.key,
                 options: oosPresetOptions,
@@ -743,6 +860,7 @@ function PredictionHistoryPageInner({
         oosPresetOptions,
         selectedOosPresetEntry,
         t,
+        historyPage?.trainingScopeStats,
         trainingScope,
         trainingScopeDescription
     ])
@@ -857,7 +975,10 @@ function PredictionHistoryPageInner({
                         <span>
                             {t('predictionHistory.page.meta.oosPreset', {
                                 defaultValue: 'Проверочный хвост: {{value}}',
-                                value: buildOosPresetShortLabel(selectedOosPresetEntry, i18n.language)
+                                value:
+                                    oosPresetCatalog ?
+                                        buildOosPresetShortLabel(oosPresetCatalog, selectedOosPresetEntry, i18n.language)
+                                    :   `OOS ${selectedOosPresetEntry.requestedDaySharePercent}%`
                             })}
                         </span>
                     )}
@@ -878,7 +999,7 @@ function PredictionHistoryPageInner({
                 }
                 lead={
                     isTrainDiagnosticsMode ?
-                        t('predictionHistory.page.trainDiagnosticsIntro.lead')
+                        t('predictionHistory.page.trainDiagnosticsIntro.lead', trainDiagnosticsInterpolation)
                     :   t('predictionHistory.page.intro.lead')
                 }
                 bullets={isTrainDiagnosticsMode ? trainDiagnosticsIntroBullets : introBullets}
@@ -886,6 +1007,11 @@ function PredictionHistoryPageInner({
             />
 
             <PredictionTrainingScopeDescriptionBlock variant='history' description={trainingScopeDescription} />
+            <PredictionSliceTimelinePanel
+                primaryStats={trainingScopeStats}
+                activeScope={trainingScope}
+                isPrimaryLoading={isHistoryPageLoading}
+            />
 
             <section className={cls.filters}>
                 <div className={cls.controlsPanel}>
@@ -895,7 +1021,9 @@ function PredictionHistoryPageInner({
                     </Text>
                     {trainingScope === 'oos' && selectedOosPresetEntry && (
                         <Text type='p' className={cls.controlHint}>
-                            {buildOosPresetSummary(selectedOosPresetEntry, i18n.language)}
+                            {oosPresetCatalog ?
+                                buildOosPresetSummary(oosPresetCatalog, selectedOosPresetEntry, i18n.language)
+                            :   `Сейчас открыт пользовательский OOS-хвост ${selectedOosPresetEntry.requestedDaySharePercent}%.`}
                         </Text>
                     )}
                 </div>

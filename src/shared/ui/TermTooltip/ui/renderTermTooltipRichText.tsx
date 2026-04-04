@@ -45,6 +45,12 @@ const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU: ReactNode =
 const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN: ReactNode =
     'Daily is the base daily layer in current prediction.\n\nIt first estimates whether a meaningful move is likely, then selects the base day class: UP, FLAT, or DOWN.\n\nThis layer sets the starting scenario before any [[landing-micro-model|Micro]] refinement and before the risk correction from the [[sl-model|SL model]].'
 
+const HISTORY_WARMUP_DESCRIPTION_RU: ReactNode =
+    'Разогрев индикаторов — ранний участок истории между стартом сырого архива и первым днём [[train-segment|Train]], где все обязательные признаки уже накопили полное покрытие.\n\nЧто показывает:\n1) В этот период проект уже собирает цены и индикаторы, но эти дни ещё не входят ни в [[train-segment|Train]], ни в [[oos-segment|OOS]].\n2) Эти дни нужны длинным индикаторам, чтобы накопить собственные окна без дыр и неполных хвостов.\n3) Следующий день после разогрева становится первым днём [[train-segment|Train]], а позже за ним уже начинается [[oos-segment|OOS]].\n\nКак читать:\nразогрев — отдельный технический отрезок подготовки данных перед первым днём [[train-segment|Train]].'
+
+const HISTORY_WARMUP_DESCRIPTION_EN: ReactNode =
+    'Indicator warmup is the early part of history between the raw archive start and the first day of [[train-segment|Train]], where all required features already have full coverage.\n\nWhat it shows:\n1) During this period the project is already collecting prices and indicators, but these days do not yet belong to either [[train-segment|Train]] or [[oos-segment|OOS]].\n2) These days are needed so long-horizon indicators can accumulate their own windows without gaps or incomplete tails.\n3) The next day after warmup becomes the first day of [[train-segment|Train]], and [[oos-segment|OOS]] starts later after that.\n\nHow to read it:\nwarmup is a separate technical preparation segment before the first day of [[train-segment|Train]].'
+
 function resolveLocalizedTrainingSegmentDescription(kind: 'train' | 'oos'): ReactNode {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
 
@@ -68,6 +74,11 @@ function resolveLocalizedCurrentPredictionModelStackDescription(): ReactNode {
 function resolveLocalizedCurrentPredictionDailyLayerDescription(): ReactNode {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
     return isEnglish ? CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN : CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU
+}
+
+function resolveLocalizedHistoryWarmupDescription(): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? HISTORY_WARMUP_DESCRIPTION_EN : HISTORY_WARMUP_DESCRIPTION_RU
 }
 
 function resolveLocalizedReportTooltipDescription(descriptionKey: string, ruleId: string, term: string): ReactNode {
@@ -400,6 +411,14 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
             'свежий хвост истории'
         ]
     ),
+    {
+        id: 'history-warmup',
+        pattern: /$^/,
+        title: 'Разогрев индикаторов',
+        description: () => resolveLocalizedHistoryWarmupDescription(),
+        aliases: ['Разогрев индикаторов', 'разогрев индикаторов', 'Indicator warmup', 'indicator warmup', 'Warmup'],
+        priority: 180
+    },
     createLocalizedReportOwnerTooltipRule(
         'landing-baseline-backtest',
         'main.tooltipRules.baselineBacktest',
@@ -691,6 +710,31 @@ function parseExplicitTermMarkupSegments(text: string): ExplicitTermMarkupSegmen
     return segments.length > 0 ? segments : [{ type: 'text', value: text }]
 }
 
+function renderTooltipDisplayLabel(label: string): ReactNode | undefined {
+    if (!label.includes('\n')) {
+        return undefined
+    }
+
+    const lines = label
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+
+    if (lines.length <= 1) {
+        return undefined
+    }
+
+    return (
+        <span className={cls.multilineTermDisplay}>
+            {lines.map((line, index) => (
+                <span key={`${line}-${index}`} className={cls.multilineTermDisplayLine}>
+                    {line}
+                </span>
+            ))}
+        </span>
+    )
+}
+
 function resolveStructuredParagraphBlocks(paragraph: string): StructuredParagraphBlock[] {
     const lines = paragraph.split('\n').filter(line => line.trim().length > 0)
 
@@ -860,6 +904,7 @@ function renderAutolinkedTextSegment(
             <TermTooltip
                 key={`${keyPrefix}-${match.rule.id}-${index}-${match.start}`}
                 term={match.value}
+                displayTerm={renderTooltipDisplayLabel(match.value)}
                 tooltipTitle={match.rule.title}
                 description={() =>
                     buildNestedDescription(match.rule, match.value, excludedRuleIds, recursionDepth, maxRecursionDepth)
@@ -927,6 +972,7 @@ function renderInlineRichText(
                 <TermTooltip
                     key={`explicit-${rule.id}-${keyPrefix}-${segmentKey}`}
                     term={segment.label}
+                    displayTerm={renderTooltipDisplayLabel(segment.label)}
                     tooltipTitle={rule.title}
                     description={() =>
                         buildNestedDescription(rule, segment.label, excludedRuleIds, recursionDepth, maxRecursionDepth)

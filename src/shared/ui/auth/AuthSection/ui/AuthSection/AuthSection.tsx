@@ -17,13 +17,13 @@ export default function AuthSection({ className }: AuthSectionProps) {
                 <LogoutBtn />
             :   <div className={cls.auth}>
                     <Link to='/login'>
-                        <Text type='h2' fz='14px' color='#0064FA'>
+                        <Text type='h2' variant='body-md' color='#0064FA'>
                             {t('section.login', { defaultValue: 'Sign in' })}
                         </Text>
                     </Link>
                     <Text color='#0064FA'>/</Text>
                     <Link to='/registration'>
-                        <Text type='h2' fz='14px' color='#0064FA'>
+                        <Text type='h2' variant='body-md' color='#0064FA'>
                             {t('section.registration', { defaultValue: 'Registration' })}
                         </Text>
                     </Link>

@@ -94,20 +94,49 @@ const RATIO_COLUMN_DEFINITIONS: readonly RatioColumnDefinition[] = [
 ]
 
 function selectMetric(row: PolicyRatiosPerPolicyDto, key: MetricKey): number {
+    const metrics = row.performanceMetrics
     switch (key) {
         case 'totalPnlPct':
-            return row.totalPnlPct
+            return requireMetricNumber(metrics.totalPnlPct, row, 'totalPnlPct')
         case 'sharpe':
-            return row.sharpe
+            return requireMetricNumber(metrics.sharpe, row, 'sharpe')
         case 'sortino':
-            return row.sortino
+            return requireMetricNumber(metrics.sortino, row, 'sortino')
         case 'calmar':
-            return row.calmar
+            return requireMetricNumber(metrics.calmar, row, 'calmar')
         case 'winRatePct':
-            return row.winRatePct
+            return requireMetricNumber(metrics.winRate, row, 'winRate') * 100
         default:
             throw new Error(`Unsupported metric key: ${key}`)
     }
+}
+
+function requireMetricNumber(
+    value: number | null | undefined,
+    row: PolicyRatiosPerPolicyDto,
+    field: string
+): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+            `[backtest-policy-ratios] performanceMetrics.${field} must be a finite number. policy=${row.policyName}, bucket=${row.bucket}.`
+        )
+    }
+
+    return value
+}
+
+function requireMetricBoolean(
+    value: boolean | null | undefined,
+    row: PolicyRatiosPerPolicyDto,
+    field: string
+): boolean {
+    if (typeof value !== 'boolean') {
+        throw new Error(
+            `[backtest-policy-ratios] performanceMetrics.${field} must be a boolean. policy=${row.policyName}, bucket=${row.bucket}.`
+        )
+    }
+
+    return value
 }
 
 function resolveBuckets(report: PolicyRatiosReportDto): string[] {
@@ -248,10 +277,10 @@ export function BacktestPolicyRatiosSection({
                     value: rawValue,
                     tone: resolvePolicyEvaluationTone(row),
                     bucket: row.bucket,
-                    tradesCount: row.tradesCount,
-                    maxDdPct: row.maxDdPct,
-                    winRatePct: row.winRatePct,
-                    hadLiquidation: row.hadLiquidation
+                    tradesCount: requireMetricNumber(row.performanceMetrics.tradesCount, row, 'tradesCount'),
+                    maxDdPct: requireMetricNumber(row.performanceMetrics.maxDdPct, row, 'maxDdPct'),
+                    winRatePct: requireMetricNumber(row.performanceMetrics.winRate, row, 'winRate') * 100,
+                    hadLiquidation: requireMetricBoolean(row.performanceMetrics.hadLiquidation, row, 'hadLiquidation')
                 }
             }),
         [filteredPolicies, metricKey]
@@ -458,16 +487,16 @@ export function BacktestPolicyRatiosSection({
                                                 title={resolvePolicyEvaluationRowTitle(row)}>
                                                 <td>{row.policyName}</td>
                                                 <td>{row.bucket}</td>
-                                                <td>{row.tradesCount}</td>
-                                                <td>{row.totalPnlPct.toFixed(2)}</td>
-                                                <td>{row.maxDdPct.toFixed(2)}</td>
-                                                <td>{row.sharpe.toFixed(2)}</td>
-                                                <td>{row.sortino.toFixed(2)}</td>
-                                                <td>{row.calmar.toFixed(2)}</td>
-                                                <td>{row.winRatePct.toFixed(1)}</td>
-                                                <td>{row.withdrawnUsd.toFixed(0)}</td>
-                                                <td className={row.hadLiquidation ? cls.badLiq : undefined}>
-                                                    {row.hadLiquidation ?
+                                                <td>{requireMetricNumber(row.performanceMetrics.tradesCount, row, 'tradesCount')}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.totalPnlPct, row, 'totalPnlPct').toFixed(2)}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.maxDdPct, row, 'maxDdPct').toFixed(2)}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.sharpe, row, 'sharpe').toFixed(2)}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.sortino, row, 'sortino').toFixed(2)}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.calmar, row, 'calmar').toFixed(2)}</td>
+                                                <td>{(requireMetricNumber(row.performanceMetrics.winRate, row, 'winRate') * 100).toFixed(1)}</td>
+                                                <td>{requireMetricNumber(row.performanceMetrics.withdrawnTotalUsd, row, 'withdrawnTotalUsd').toFixed(0)}</td>
+                                                <td className={requireMetricBoolean(row.performanceMetrics.hadLiquidation, row, 'hadLiquidation') ? cls.badLiq : undefined}>
+                                                    {requireMetricBoolean(row.performanceMetrics.hadLiquidation, row, 'hadLiquidation') ?
                                                         t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })
                                                     :   t('backtestFull.policyRatios.rows.liqNo', { defaultValue: 'no' })}
                                                 </td>

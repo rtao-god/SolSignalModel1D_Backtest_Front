@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '@/shared/configs/config'
 import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { API_ROUTES } from '../routes'
+import { mapPolicyPerformanceMetricsResponse } from '../utils/mapPolicyPerformanceMetrics'
 import { fetchWithTimeout } from './utils/fetchWithTimeout'
 import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 import { normalizeUtcDayKey, normalizeUtcInstant } from '../utils/normalizeDomainTime'
@@ -13,9 +14,11 @@ import {
     type UseQueryResult
 } from '@tanstack/react-query'
 import type {
+    PolicySetupCatalogResponseDto,
     PolicySetupCatalogItemDto,
     PolicySetupCapitalTimelineDto,
     PolicySetupCapitalTimelinePointDto,
+    PolicySetupHistoryBoundaryManifestDto,
     PolicySetupDateRangeDto,
     PolicySetupCandleRangeDto,
     PolicySetupHistoryCandleDto,
@@ -150,18 +153,6 @@ function readNullableNumber(raw: unknown, tag: string): number | null {
     return readNumber(raw, tag)
 }
 
-function readStringArray(raw: unknown, tag: string): string[] {
-    if (!Array.isArray(raw)) {
-        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', tag, 'an array', raw))
-    }
-
-    return raw.map((item, index) => readString(item, `${tag}[${index}]`))
-}
-
-function readResolutionArray(raw: unknown, tag: string): PolicySetupHistoryResolution[] {
-    return readStringArray(raw, tag).map((value, index) => readResolution(value, `${tag}[${index}]`))
-}
-
 function readResolution(raw: unknown, tag: string): PolicySetupHistoryResolution {
     const value = readString(raw, tag)
     if (value !== '1m' && value !== '3h' && value !== '6h') {
@@ -227,6 +218,29 @@ function readCandleRange(raw: unknown, tag: string): PolicySetupCandleRangeDto {
     }
 }
 
+function readBoundaryManifest(raw: unknown, tag: string): PolicySetupHistoryBoundaryManifestDto {
+    const record = asObject(raw, tag)
+    const candleRangesRaw = record.candleRanges
+
+    if (!Array.isArray(candleRangesRaw)) {
+        throw new Error(
+            buildUnexpectedValueErrorMessage('policy-setup-history', `${tag}.candleRanges`, 'an array', candleRangesRaw)
+        )
+    }
+
+    return {
+        historyDayRange: readDateRange(record.historyDayRange, `${tag}.historyDayRange`),
+        candleRanges: candleRangesRaw.map((item, index) => {
+            const rangeRecord = asObject(item, `${tag}.candleRanges[${index}]`)
+
+            return {
+                resolution: readResolution(rangeRecord.resolution, `${tag}.candleRanges[${index}].resolution`),
+                dayRange: readDateRange(rangeRecord.dayRange, `${tag}.candleRanges[${index}].dayRange`)
+            }
+        })
+    }
+}
+
 function readCatalogItem(raw: unknown, tag: string): PolicySetupCatalogItemDto {
     const record = asObject(raw, tag)
 
@@ -241,13 +255,11 @@ function readCatalogItem(raw: unknown, tag: string): PolicySetupCatalogItemDto {
         useAntiDirectionOverlay: readBoolean(record.useAntiDirectionOverlay, `${tag}.useAntiDirectionOverlay`),
         tpSlMode: readTpSlMode(record.tpSlMode, `${tag}.tpSlMode`),
         zonalMode: readZonalMode(record.zonalMode, `${tag}.zonalMode`),
-        tradesCount: readNumber(record.tradesCount, `${tag}.tradesCount`),
         noTradeDaysCount: readNumber(record.noTradeDaysCount, `${tag}.noTradeDaysCount`),
-        totalPnlPct: readNumber(record.totalPnlPct, `${tag}.totalPnlPct`),
-        maxDrawdownPct: readNumber(record.maxDrawdownPct, `${tag}.maxDrawdownPct`),
-        hadLiquidation: readBoolean(record.hadLiquidation, `${tag}.hadLiquidation`),
-        fromDateUtc: readUtcDayKey(record.fromDateUtc, `${tag}.fromDateUtc`),
-        toDateUtc: readUtcDayKey(record.toDateUtc, `${tag}.toDateUtc`)
+        performanceMetrics: mapPolicyPerformanceMetricsResponse(record.performanceMetrics, {
+            owner: 'policy-setup-history',
+            label: `${tag}.performanceMetrics`
+        })
     }
 }
 
@@ -455,12 +467,18 @@ export function parsePolicySetupHistoryPublishedStatusResponse(raw: unknown): Po
     }
 }
 
-export function parsePolicySetupCatalogResponse(raw: unknown): PolicySetupCatalogItemDto[] {
-    if (!Array.isArray(raw)) {
-        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', 'catalog payload', 'an array', raw))
+export function parsePolicySetupCatalogResponse(raw: unknown): PolicySetupCatalogResponseDto {
+    const record = asObject(raw, 'catalog')
+    const itemsRaw = record.items
+
+    if (!Array.isArray(itemsRaw)) {
+        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', 'catalog.items', 'an array', itemsRaw))
     }
 
-    return raw.map((item, index) => readCatalogItem(item, `catalog[${index}]`))
+    return {
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'catalog.boundaryManifest'),
+        items: itemsRaw.map((item, index) => readCatalogItem(item, `catalog.items[${index}]`))
+    }
 }
 
 export function parsePolicySetupLedgerResponse(raw: unknown): PolicySetupLedgerResponseDto {
@@ -473,9 +491,8 @@ export function parsePolicySetupLedgerResponse(raw: unknown): PolicySetupLedgerR
 
     return {
         setup: readCatalogItem(record.setup, 'ledger.setup'),
-        availableRange: readDateRange(record.availableRange, 'ledger.availableRange'),
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'ledger.boundaryManifest'),
         appliedRange: readDateRange(record.appliedRange, 'ledger.appliedRange'),
-        availableResolutions: readResolutionArray(record.availableResolutions, 'ledger.availableResolutions'),
         startCapitalUsd: readNumber(record.startCapitalUsd, 'ledger.startCapitalUsd'),
         balanceCeilingUsd: readNumber(record.balanceCeilingUsd, 'ledger.balanceCeilingUsd'),
         visibleBalanceCeilingUsd: readNumber(record.visibleBalanceCeilingUsd, 'ledger.visibleBalanceCeilingUsd'),
@@ -496,13 +513,13 @@ export function parsePolicySetupCandlesResponse(raw: unknown): PolicySetupCandle
 
     return {
         setupId: readString(record.setupId, 'candles.setupId'),
-        availableRange: readDateRange(record.availableRange, 'candles.availableRange'),
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'candles.boundaryManifest'),
         appliedRange: readCandleRange(record.appliedRange, 'candles.appliedRange'),
         candles: candlesRaw.map((item, index) => readCandle(item, `candles.candles[${index}]`))
     }
 }
 
-export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogItemDto[]> {
+export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogResponseDto> {
     const raw = await fetchJson(
         `${API_BASE_URL}${policySetupCatalogPath}`,
         QUERY_POLICY_REGISTRY.policySetupHistory.catalog.timeoutMs
@@ -579,7 +596,7 @@ export function usePolicySetupHistoryStatusQuery(
     })
 }
 
-export function usePolicySetupCatalogQuery(enabled = true): UseQueryResult<PolicySetupCatalogItemDto[], Error> {
+export function usePolicySetupCatalogQuery(enabled = true): UseQueryResult<PolicySetupCatalogResponseDto, Error> {
     return useQuery({
         queryKey: buildPolicySetupCatalogQueryKey(),
         queryFn: fetchPolicySetupCatalog,

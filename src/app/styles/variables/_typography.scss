@@ -1,9 +1,182 @@
 :root {
     --font-family-main: 'Montserrat', 'Times New Roman', serif;
-    --font-size-m: 16px;
-    --font-line-m: 24px;
+
+    --type-display-size: clamp(48px, 6vw, 72px);
+    --type-display-line: 1;
+    --type-display-weight: 700;
+
+    --type-display-compact-size: clamp(32px, 5vw, 52px);
+    --type-display-compact-line: 1.04;
+    --type-display-compact-weight: 700;
+
+    --type-page-title-size: 32px;
+    --type-page-title-line: 1.15;
+    --type-page-title-weight: 700;
+
+    --type-page-title-compact-size: 24px;
+    --type-page-title-compact-line: 1.12;
+    --type-page-title-compact-weight: 700;
+
+    --type-section-title-size: 20px;
+    --type-section-title-line: 1.4;
+    --type-section-title-weight: 600;
+
+    --type-section-title-compact-size: 18px;
+    --type-section-title-compact-line: 1.35;
+    --type-section-title-compact-weight: 600;
+
+    --type-card-title-size: 15px;
+    --type-card-title-line: 1.4;
+    --type-card-title-weight: 600;
+
+    --type-card-title-strong-size: 16px;
+    --type-card-title-strong-line: 1.35;
+    --type-card-title-strong-weight: 600;
+
+    --type-body-lg-size: 16px;
+    --type-body-lg-line: 1.7;
+    --type-body-lg-weight: 400;
+
+    --type-body-md-size: 14px;
+    --type-body-md-line: 1.6;
+    --type-body-md-weight: 400;
+
+    --type-body-sm-size: 13px;
+    --type-body-sm-line: 1.55;
+    --type-body-sm-weight: 400;
+
+    --type-label-size: 12px;
+    --type-label-line: 1.45;
+    --type-label-weight: 500;
+
+    --type-caption-size: 11px;
+    --type-caption-line: 1.35;
+    --type-caption-weight: 500;
+
+    --type-micro-size: 10px;
+    --type-micro-line: 1.2;
+    --type-micro-weight: 500;
+
+    --type-nav-size: 14px;
+    --type-nav-line: 1.2;
+    --type-nav-weight: 400;
+
+    --type-button-sm-size: 12px;
+    --type-button-sm-line: 1.2;
+    --type-button-sm-weight: 500;
+
+    --type-button-size: 14px;
+    --type-button-line: 1.2;
+    --type-button-weight: 500;
+
+    --type-button-lg-size: 16px;
+    --type-button-lg-line: 1.2;
+    --type-button-lg-weight: 500;
+
+    --type-chip-size: 12px;
+    --type-chip-line: 1.2;
+    --type-chip-weight: 600;
+
+    --type-input-size: 14px;
+    --type-input-line: 1.4;
+    --type-input-weight: 400;
+
+    --type-tooltip-size: 14px;
+    --type-tooltip-line: 1.5;
+    --type-tooltip-weight: 400;
+
+    --type-error-size: 12px;
+    --type-error-line: 1.45;
+    --type-error-weight: 500;
+
+    --type-kpi-size: 18px;
+    --type-kpi-line: 1.3;
+    --type-kpi-weight: 700;
+
+    --type-chart-axis-size: 11px;
+    --type-chart-axis-line: 1.2;
+    --type-chart-axis-weight: 500;
+
+    --type-table-body-size: 12px;
+    --type-table-body-line: 1.5;
+    --type-table-body-weight: 400;
+
+    --type-table-body-simple-size: 13px;
+    --type-table-body-simple-line: 1.5;
+    --type-table-body-simple-weight: 400;
+
+    --type-table-body-dense-size: 11px;
+    --type-table-body-dense-line: 1.45;
+    --type-table-body-dense-weight: 400;
+
+    --type-table-header-size: 11px;
+    --type-table-header-line: 1.25;
+    --type-table-header-weight: 600;
+
+    --type-table-header-simple-size: 12px;
+    --type-table-header-simple-line: 1.25;
+    --type-table-header-simple-weight: 600;
+
+    --type-table-header-dense-size: 10px;
+    --type-table-header-dense-line: 1.2;
+    --type-table-header-dense-weight: 600;
+
+    /* Совместимость со старым слоем. Новая owner-точка — семантические role-токены выше. */
+    --font-size-m: var(--type-body-md-size);
+    --font-line-m: 22px;
     --font-m: var(--font-size-m) / var(--font-line-m) var(--font-family-main);
-    --font-size-l: 24px;
-    --font-line-l: 32px;
+    --font-size-l: var(--type-page-title-size);
+    --font-line-l: 40px;
     --font-l: var(--font-size-l) / var(--font-line-l) var(--font-family-main);
+}
+
+@media (max-width: 1023px) {
+    :root {
+        --type-display-size: clamp(42px, 7vw, 60px);
+        --type-display-compact-size: clamp(30px, 4.8vw, 44px);
+        --type-page-title-size: 30px;
+        --type-page-title-compact-size: 22px;
+        --type-section-title-size: 18px;
+        --type-section-title-compact-size: 17px;
+        --type-kpi-size: 17px;
+    }
+}
+
+@media (max-width: 767px) {
+    :root {
+        --type-display-size: clamp(40px, 8vw, 56px);
+        --type-display-compact-size: clamp(28px, 7vw, 40px);
+        --type-page-title-size: 26px;
+        --type-page-title-compact-size: 20px;
+        --type-section-title-size: 18px;
+        --type-section-title-compact-size: 16px;
+        --type-card-title-size: 14px;
+        --type-card-title-strong-size: 15px;
+        --type-body-lg-size: 15px;
+        --type-body-md-size: 13px;
+        --type-body-sm-size: 12px;
+        --type-label-size: 11px;
+        --type-caption-size: 10px;
+        --type-micro-size: 9px;
+        --type-nav-size: 13px;
+        --type-button-sm-size: 11px;
+        --type-button-size: 13px;
+        --type-button-lg-size: 15px;
+        --type-chip-size: 11px;
+        --type-input-size: 13px;
+        --type-tooltip-size: 13px;
+        --type-error-size: 11px;
+        --type-kpi-size: 16px;
+        --type-chart-axis-size: 10px;
+        --type-table-body-size: 11px;
+        --type-table-body-simple-size: 12px;
+        --type-table-body-dense-size: 10px;
+        --type-table-header-size: 10px;
+        --type-table-header-simple-size: 11px;
+        --type-table-header-dense-size: 9px;
+        --font-size-m: var(--type-body-md-size);
+        --font-line-m: 20px;
+        --font-size-l: var(--type-page-title-size);
+        --font-line-l: 34px;
+    }
 }

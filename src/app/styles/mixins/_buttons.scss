@@ -102,15 +102,21 @@
 
 @mixin button-small {
     padding: 8px;
-    font-size: 12px;
+    font-size: var(--type-button-sm-size);
+    line-height: var(--type-button-sm-line);
+    font-weight: var(--type-button-sm-weight);
 }
 
 @mixin button-medium {
     padding: 10px 20px;
-    font-size: 14px;
+    font-size: var(--type-button-size);
+    line-height: var(--type-button-line);
+    font-weight: var(--type-button-weight);
 }
 
 @mixin button-large {
     padding: 15px 30px;
-    font-size: 16px;
+    font-size: var(--type-button-lg-size);
+    line-height: var(--type-button-lg-line);
+    font-weight: var(--type-button-lg-weight);
 }
