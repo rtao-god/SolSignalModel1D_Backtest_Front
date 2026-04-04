@@ -12,6 +12,7 @@
         "lint": "npm run lint:eslint && npm run lint:prettier",
         "lint:eslint": "eslint \"src/**/*.{ts,tsx}\" --fix",
         "lint:prettier": "prettier --write \"src/**/*.{ts,tsx,scss}\"",
+        "typography:audit": "node ./scripts/typography/check-owner-typography.cjs",
         "i18n:check": "node ./scripts/i18n/check-missing-keys.cjs",
         "i18n:hardcoded": "node ./scripts/i18n/check-hardcoded-new-strings.cjs",
         "i18n:smoke": "node ./scripts/i18n/smoke-ru-en.cjs",

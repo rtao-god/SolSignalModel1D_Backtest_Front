@@ -8,8 +8,8 @@ interface BuildDevApiProxyErrorPayloadArgs {
 
 /**
  * Строит owner-ошибку для dev proxy, когда backend host недоступен.
- * Это не backend envelope, а явный transport-layer ответ Vite, чтобы локальный UI
- * не деградировал до пустого `500 Internal Server Error`.
+ * Это явный transport-layer ответ Vite, чтобы локальный UI не деградировал
+ * до пустого `500 Internal Server Error`, даже когда backend target не отвечает.
  */
 export function buildDevApiProxyErrorPayload(args: BuildDevApiProxyErrorPayloadArgs) {
     const method = args.req.method ?? 'GET'
@@ -24,7 +24,7 @@ export function buildDevApiProxyErrorPayload(args: BuildDevApiProxyErrorPayloadA
         owner: 'frontend.dev-proxy',
         expected: `Vite dev proxy should forward ${method} ${path} to a reachable backend host at ${args.target}.`,
         actual: `${errorCode}: ${errorMessage}`,
-        requiredAction: `Restore the backend host at ${args.target}, or set VITE_DEV_API_PROXY_TARGET to an explicit reachable target if the local launch profile is not the intended API owner.`,
+        requiredAction: `Start a backend host at ${args.target}, or point VITE_DEV_API_PROXY_TARGET to another reachable backend target.`,
         context: {
             method,
             path,
