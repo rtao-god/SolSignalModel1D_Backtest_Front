@@ -3,7 +3,7 @@
 ## Scope
 - Этот файл действует только для фронтенд-проекта `SolSignalModel1D_Backtest_Front/**`.
 - Общие правила для всех задач находятся в `AGENTS.md`.
-- Для backend-задач используй `backend/AGENTS_BACKEND.md`.
+- Для backend-задач используй `backend/SolSignalModel1D_Backtest/AGENTS_BACKEND.md`.
 - Для fullstack-задач читай оба профильных файла и применяй правила в пределах соответствующих директорий.
 
 ## Работа с frontend
