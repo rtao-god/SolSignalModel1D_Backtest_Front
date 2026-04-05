@@ -1,0 +1,30 @@
+export interface PolicyPerformanceMetricsDto {
+    tradesCount?: number | null
+    totalPnlPct?: number | null
+    totalPnlUsd?: number | null
+    maxDdPct?: number | null
+    maxDdNoLiqPct?: number | null
+    mean?: number | null
+    std?: number | null
+    downStd?: number | null
+    sharpe?: number | null
+    sortino?: number | null
+    cagr?: number | null
+    calmar?: number | null
+    winRate?: number | null
+    startCapitalUsd?: number | null
+    equityNowUsd?: number | null
+    withdrawnTotalUsd?: number | null
+    fundingNetUsd?: number | null
+    fundingPaidUsd?: number | null
+    fundingReceivedUsd?: number | null
+    fundingEventCount?: number | null
+    tradesWithFundingCount?: number | null
+    fundingLiquidationCount?: number | null
+    fundingBucketDeathCount?: number | null
+    mixedBucketDeathCount?: number | null
+    hadLiquidation?: boolean | null
+    realLiquidationCount?: number | null
+    accountRuinCount?: number | null
+    balanceDead?: boolean | null
+}

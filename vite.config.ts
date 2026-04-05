@@ -1,34 +1,31 @@
 /// <reference types="vitest/config" />
+import type { Server as HttpProxyServer } from 'http-proxy'
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { UserConfig } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import { plugins, css, alias } from './config'
+import { writeDevApiProxyErrorResponse } from './config/vite/devApiProxy'
+import { resolveDevApiProxyTarget } from './config/vite/devProxyTarget'
+import { resolveFrontendProjectPaths } from './config/vite/projectPaths'
 
-function resolveDevApiProxyTarget(rawTarget: string | undefined): string {
-    const fallback = 'http://localhost:10000'
-    const normalized = rawTarget?.trim().replace(/\/+$/, '').replace(/\/api$/i, '') ?? ''
-    if (!normalized) return fallback
-
-    const withProtocol = /^https?:\/\//i.test(normalized) ? normalized : `http://${normalized}`
-
-    try {
-        new URL(withProtocol)
-        return withProtocol
-    } catch {
-        return fallback
-    }
-}
-
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd(), '')
+export default defineConfig(({ mode }): UserConfig => {
+    const projectPaths = resolveFrontendProjectPaths()
+    const env = loadEnv(mode, projectPaths.rootDir, '')
+    // Dev startup фронта должен быть изолирован от lifecycle backend-а:
+    // Vite поднимается сразу, а target для `/api` задаётся только простым proxy-контрактом.
     const devApiProxyTarget = resolveDevApiProxyTarget(env.VITE_DEV_API_PROXY_TARGET)
 
     return {
+        root: projectPaths.rootDir,
+        envDir: projectPaths.rootDir,
+        cacheDir: projectPaths.viteCacheDir,
         plugins,
         css,
         resolve: alias,
         build: {
             rollupOptions: {
                 output: {
-                    manualChunks(id) {
+                    manualChunks(id: string) {
                         if (!id.includes('node_modules')) {
                             return
                         }
@@ -64,7 +61,21 @@ export default defineConfig(({ mode }) => {
             proxy: {
                 '/api': {
                     target: devApiProxyTarget,
-                    changeOrigin: true
+                    changeOrigin: true,
+                    configure(proxy: HttpProxyServer<IncomingMessage, ServerResponse<IncomingMessage>>) {
+                        proxy.on('error', (
+                            error: Error & { code?: string },
+                            req: IncomingMessage,
+                            res: ServerResponse<IncomingMessage>
+                        ) => {
+                            writeDevApiProxyErrorResponse({
+                                target: devApiProxyTarget,
+                                req,
+                                res,
+                                error
+                            })
+                        })
+                    }
                 }
             }
         },

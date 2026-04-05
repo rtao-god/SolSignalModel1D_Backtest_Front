@@ -18,6 +18,6 @@ describe('lazyPage', () => {
             </ErrorBoundary>
         )
 
-        expect(await screen.findByText('lazy page import failed')).toBeInTheDocument()
+        expect(await screen.findByText(/lazy page import failed/i)).toBeInTheDocument()
     })
 })

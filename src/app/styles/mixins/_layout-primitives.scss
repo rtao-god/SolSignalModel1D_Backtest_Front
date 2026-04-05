@@ -86,20 +86,26 @@
 
 @mixin table-density($density: medium) {
     @if $density == simple {
-        --table-font-size: 13px;
-        --table-header-font-size: 12px;
+        --table-font-size: var(--type-table-body-simple-size);
+        --table-line-height: var(--type-table-body-simple-line);
+        --table-header-font-size: var(--type-table-header-simple-size);
+        --table-header-line-height: var(--type-table-header-simple-line);
         --table-cell-padding-y: 10px;
         --table-cell-padding-x: 12px;
         --table-min-width: 420px;
     } @else if $density == dense {
-        --table-font-size: 12px;
-        --table-header-font-size: 11px;
+        --table-font-size: var(--type-table-body-dense-size);
+        --table-line-height: var(--type-table-body-dense-line);
+        --table-header-font-size: var(--type-table-header-dense-size);
+        --table-header-line-height: var(--type-table-header-dense-line);
         --table-cell-padding-y: 6px;
         --table-cell-padding-x: 8px;
         --table-min-width: 620px;
     } @else {
-        --table-font-size: 12px;
-        --table-header-font-size: 11px;
+        --table-font-size: var(--type-table-body-size);
+        --table-line-height: var(--type-table-body-line);
+        --table-header-font-size: var(--type-table-header-size);
+        --table-header-line-height: var(--type-table-header-line);
         --table-cell-padding-y: 8px;
         --table-cell-padding-x: 10px;
         --table-min-width: 480px;
@@ -120,7 +126,9 @@
     overscroll-behavior-inline: contain;
 }
 
-@mixin data-table-base($min-width: null, $font-size: null, $line-height: null) {
+@mixin data-table-base($min-width: null, $density: medium) {
+    @include table-density($density);
+
     @if $min-width != null {
         --table-min-width: #{$min-width};
     }
@@ -128,8 +136,8 @@
     width: 100%;
     min-width: var(--table-min-width);
     border-collapse: collapse;
-    font-size: if($font-size != null, $font-size, var(--table-font-size));
-    line-height: if($line-height != null, $line-height, var(--table-line-height));
+    font-size: var(--table-font-size);
+    line-height: var(--table-line-height);
 
     th,
     td {
@@ -140,6 +148,8 @@
 
     th {
         font-size: var(--table-header-font-size);
+        line-height: var(--table-header-line-height);
+        font-weight: var(--type-table-header-weight);
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: var(--color-table-column-label);

@@ -12,7 +12,7 @@
     align-items: center;
     gap: 10px 16px;
     @include subtle-surface(10px 14px);
-    font-size: 13px;
+    @include type-table-body;
 }
 
 .scopeControls {
@@ -60,12 +60,12 @@
 .statusLabel {
     margin: 0;
     opacity: 0.82;
-    font-size: 13px;
+    @include type-table-body;
 }
 
 .statusValue {
     margin: 0;
-    font-size: 13px;
+    @include type-table-body;
     font-weight: 500;
     line-height: 1.35;
 }
@@ -77,7 +77,7 @@
     flex-wrap: wrap;
     gap: 8px 18px;
     @include subtle-surface(10px 14px);
-    font-size: 13px;
+    @include type-table-body;
 }
 
 .metaLine {
@@ -105,7 +105,7 @@
 .kindTag {
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    @include type-table-body-dense;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -120,7 +120,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px 24px;
-    font-size: 13px;
+    @include type-table-body;
     opacity: 0.8;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .sectionSubtitle {
-    font-size: 13px;
+    @include type-table-body;
     color: var(--text-muted);
 }
 
@@ -185,12 +185,12 @@
 }
 
 .kvKey {
-    font-size: 13px;
+    @include type-table-body;
     color: var(--text-muted);
 }
 
 .kvValue {
-    font-size: 14px;
+    @include type-table-body;
     font-weight: 500;
     padding: 3px 8px;
     border-radius: 999px;
@@ -232,7 +232,7 @@
 }
 
 .table {
-    @include data-table-base($min-width: 560px, $font-size: 13px);
+    @include data-table-base($min-width: 560px, $density: medium);
 }
 
 .tableHeaderCell {
@@ -269,7 +269,7 @@
     margin-top: 4px;
     padding: 10px 12px;
     border-radius: var(--radius-md);
-    font-size: 12px;
+    @include type-table-body-dense;
     line-height: 1.4;
     background: var(--bg-color-muted);
     border: 1px solid var(--surface-border-subtle);

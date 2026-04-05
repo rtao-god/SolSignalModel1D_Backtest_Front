@@ -25,6 +25,8 @@ import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import {
     buildPublishedReportVariantCompatibleOptions,
     type PublishedReportVariantCatalogDto
@@ -124,7 +126,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'diagnostics-layout-source-endpoint',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -139,7 +147,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse diagnostics query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse diagnostics query.', {
+                source: 'diagnostics-layout-query',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should parse a valid published diagnostics selection from URL params.',
+                requiredAction: 'Inspect diagnostics query params and supported catalog values.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -160,8 +174,15 @@ export default function BacktestDiagnosticsPageLayout({
         [diagnosticsSelectionState.value]
     )
 
-    const sharedSections = useMemo(() => sections.filter(section => !isVariantDiagnosticsSection(section)), [sections])
-    const variantSections = useMemo(() => sections.filter(isVariantDiagnosticsSection), [sections])
+    const normalizedSections = useMemo(() => pruneDuplicatePolicyMarginColumns(sections), [sections])
+    const sharedSections = useMemo(
+        () => normalizedSections.filter(section => !isVariantDiagnosticsSection(section)),
+        [normalizedSections]
+    )
+    const variantSections = useMemo(
+        () => normalizedSections.filter(isVariantDiagnosticsSection),
+        [normalizedSections]
+    )
     const sectionsForView = useMemo(() => [...variantSections, ...sharedSections], [sharedSections, variantSections])
     const effectiveAxisVisibility = useMemo(
         () => ({
@@ -225,7 +246,13 @@ export default function BacktestDiagnosticsPageLayout({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build diagnostics terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build diagnostics terms.', {
+                source: 'diagnostics-layout-terms',
+                domain: 'ui_section',
+                owner: 'backtest-diagnostics-layout',
+                expected: 'Diagnostics layout should build terms from diagnostics sections and shared glossary.',
+                requiredAction: 'Inspect diagnostics sections and shared term resolver.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError
@@ -373,6 +400,7 @@ export default function BacktestDiagnosticsPageLayout({
     const reportStateError =
         (error as Error | null | undefined) ?? generatedAtState.error ?? sourceEndpointState.error ?? null
     const hasReadyReport = Boolean(report && generatedAtState.value && sourceEndpointState.value)
+    const shouldKeepDiagnosticsShellVisible = hasReadyReport || Boolean(reportStateError)
 
     return (
         <div className={rootClassName}>
@@ -413,7 +441,7 @@ export default function BacktestDiagnosticsPageLayout({
                 isLoading={isLoading}
                 isError={Boolean(reportStateError)}
                 error={reportStateError}
-                hasData={hasReadyReport}
+                hasData={shouldKeepDiagnosticsShellVisible}
                 onRetry={onRetry}
                 title={
                     generatedAtState.error ? t('diagnosticsReport.layout.errors.generatedAt.title')
@@ -433,6 +461,8 @@ export default function BacktestDiagnosticsPageLayout({
                 })}
                 logContext={{ source: 'diagnostics-layout-report' }}>
                 {sectionsForView.length === 0 ?
+                    reportStateError ? null
+                    :
                     <Text>{emptyMessage}</Text>
                 :   <>
                         <SectionDataState

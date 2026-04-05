@@ -32,8 +32,8 @@ const SHARED_MEGA_TERM_KEYS = [
 describe('policyBranchMegaTerms parity', () => {
     test('all ru/en terms resolve with non-empty description and tooltip', () => {
         POLICY_BRANCH_MEGA_TERM_KEYS.forEach(key => {
-            const ru = getPolicyBranchMegaTerm(key, { locale: 'ru', tooltipMode: 'draft' })
-            const en = getPolicyBranchMegaTerm(key, { locale: 'en', tooltipMode: 'draft' })
+            const ru = getPolicyBranchMegaTerm(key, { locale: 'ru' })
+            const en = getPolicyBranchMegaTerm(key, { locale: 'en' })
 
             expect(ru.description.trim().length).toBeGreaterThan(0)
             expect(en.description.trim().length).toBeGreaterThan(0)
@@ -44,8 +44,8 @@ describe('policyBranchMegaTerms parity', () => {
 
     test('english description keeps reading/example structure whenever russian has it', () => {
         POLICY_BRANCH_MEGA_TERM_KEYS.filter(key => !SHARED_MEGA_TERM_KEYS.includes(key as never)).forEach(key => {
-            const ru = getPolicyBranchMegaTerm(key, { locale: 'ru', tooltipMode: 'draft' })
-            const en = getPolicyBranchMegaTerm(key, { locale: 'en', tooltipMode: 'draft' })
+            const ru = getPolicyBranchMegaTerm(key, { locale: 'ru' })
+            const en = getPolicyBranchMegaTerm(key, { locale: 'en' })
 
             const ruHasReading = ru.description.includes('Как читать:')
             const enHasReading = en.description.includes('How to read:')
@@ -59,7 +59,7 @@ describe('policyBranchMegaTerms parity', () => {
 
     test('sentinel terms keep full english semantic blocks', () => {
         SENTINEL_KEYS.filter(key => !SHARED_MEGA_TERM_KEYS.includes(key as never)).forEach(key => {
-            const en = getPolicyBranchMegaTerm(key, { locale: 'en', tooltipMode: 'draft' })
+            const en = getPolicyBranchMegaTerm(key, { locale: 'en' })
 
             expect(en.description.includes('How to read:')).toBe(true)
             expect(en.description.includes('Example:')).toBe(true)
@@ -69,7 +69,7 @@ describe('policyBranchMegaTerms parity', () => {
     test('shared mega terms reuse canonical common descriptions in RU and EN', () => {
         ;(['ru', 'en'] as const).forEach(locale => {
             SHARED_MEGA_TERM_KEYS.forEach(key => {
-                expect(getPolicyBranchMegaTerm(key, { locale, tooltipMode: 'draft' }).description).toBe(
+                expect(getPolicyBranchMegaTerm(key, { locale }).description).toBe(
                     resolveCommonReportColumnTooltipOrNull(key, locale)
                 )
             })
@@ -84,11 +84,11 @@ describe('policyBranchMegaTerms parity', () => {
     })
 
     test('mega sentinel texts do not leak raw technical phrasing', () => {
-        const missRu = getPolicyBranchMegaTerm('Miss', { locale: 'ru', tooltipMode: 'draft' })
-        const missEn = getPolicyBranchMegaTerm('Miss', { locale: 'en', tooltipMode: 'draft' })
-        const winRateRu = getPolicyBranchMegaTerm('WinRate%', { locale: 'ru', tooltipMode: 'draft' })
-        const meanRetRu = getPolicyBranchMegaTerm('MeanRet%', { locale: 'ru', tooltipMode: 'draft' })
-        const meanRetEn = getPolicyBranchMegaTerm('MeanRet%', { locale: 'en', tooltipMode: 'draft' })
+        const missRu = getPolicyBranchMegaTerm('Miss', { locale: 'ru' })
+        const missEn = getPolicyBranchMegaTerm('Miss', { locale: 'en' })
+        const winRateRu = getPolicyBranchMegaTerm('WinRate%', { locale: 'ru' })
+        const meanRetRu = getPolicyBranchMegaTerm('MeanRet%', { locale: 'ru' })
+        const meanRetEn = getPolicyBranchMegaTerm('MeanRet%', { locale: 'en' })
 
         expect(missRu.description.includes('[StartDay..EndDay]')).toBe(false)
         expect(missEn.description.includes('[StartDay..EndDay]')).toBe(false)
@@ -103,24 +103,22 @@ describe('policyBranchMegaTerms parity', () => {
     })
 
     test('mega descriptions preserve spaces around explicit tooltip terms and terminal punctuation', () => {
-        const daysRu = getPolicyBranchMegaTerm('Days', { locale: 'ru', tooltipMode: 'draft' })
-        const antiDRu = getPolicyBranchMegaTerm('AntiD%', { locale: 'ru', tooltipMode: 'draft' })
+        const daysRu = getPolicyBranchMegaTerm('Days', { locale: 'ru' })
+        const antiDRu = getPolicyBranchMegaTerm('AntiD%', { locale: 'ru' })
 
         expect(daysRu.description).toContain('не моделируются. [[why-weekends|Почему?]]')
         expect(daysRu.description).not.toContain('не моделируются.[[why-weekends|Почему?]]')
         expect(daysRu.description).not.toContain('[[why-weekends|Почему?]].')
 
-        expect(antiDRu.description).toContain(
-            'в ветке [[branch|ANTI-D]] реально сработал [[anti-direction|anti-direction]].'
-        )
-        expect(antiDRu.description).not.toContain('в ветке[[branch|ANTI-D]]')
+        expect(antiDRu.description).toContain('ветка [[branch|ANTI-D]] реально перевернула направление позиции.')
+        expect(antiDRu.description).not.toContain('ветка[[branch|ANTI-D]]')
         expect(antiDRu.description).not.toContain(']]реально')
-        expect(antiDRu.description).not.toContain('сработал[[anti-direction|anti-direction]]')
+        expect(antiDRu.description).not.toContain('перевернула[[anti-direction|anti-direction]]')
     })
 
     test('stop reason keeps bullet structure and drops generic count example in RU and EN', () => {
-        const stopReasonRu = getPolicyBranchMegaTerm('StopReason', { locale: 'ru', tooltipMode: 'draft' })
-        const stopReasonEn = getPolicyBranchMegaTerm('StopReason', { locale: 'en', tooltipMode: 'draft' })
+        const stopReasonRu = getPolicyBranchMegaTerm('StopReason', { locale: 'ru' })
+        const stopReasonEn = getPolicyBranchMegaTerm('StopReason', { locale: 'en' })
 
         expect(stopReasonRu.description).toContain('- Ликвидация (ранний stop):')
         expect(stopReasonRu.description).toContain('- Ранний stop без ликвидации:')
@@ -133,5 +131,25 @@ describe('policyBranchMegaTerms parity', () => {
         expect(stopReasonEn.description.includes('Example:')).toBe(false)
         expect(stopReasonEn.description.includes('StopReason=120')).toBe(false)
         expect(stopReasonEn.description.includes('selected row')).toBe(false)
+    })
+
+    test('keeps percentile and dynamic admission wording concrete in RU and EN', () => {
+        const levRu = getPolicyBranchMegaTerm('Lev p50 / p90', { locale: 'ru' })
+        const levEn = getPolicyBranchMegaTerm('Lev p50 / p90', { locale: 'en' })
+        const dynRu = getPolicyBranchMegaTerm('DynTP / SL Days', { locale: 'ru' })
+        const dynEn = getPolicyBranchMegaTerm('DynTP / SL Days', { locale: 'en' })
+        const avgMissRu = getPolicyBranchMegaTerm('AvgMiss%', { locale: 'ru' })
+
+        expect(levRu.description).toContain('верхние 10% торговых дней')
+        expect(levRu.description.includes('редко, но регулярно')).toBe(false)
+        expect(levEn.description).toContain('top 10% of trade days')
+
+        expect(dynRu.tooltip).toContain('минимум 30 закрытых сделок и минимум 45% успешных исходов')
+        expect(dynRu.tooltip.includes('обычно меньше общего объёма')).toBe(false)
+        expect(dynEn.tooltip).toContain('at least 30 closed trades and at least 45% successful outcomes')
+        expect(dynEn.tooltip.includes('usually smaller than the full trade volume')).toBe(false)
+
+        expect(avgMissRu.description).toContain('среднюю глубину убыточной сделки')
+        expect(avgMissRu.description.includes('обычно была')).toBe(false)
     })
 })

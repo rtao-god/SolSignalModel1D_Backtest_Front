@@ -43,9 +43,11 @@ export type CapturedMegaZonalModeDto = 'with-zonal' | 'without-zonal'
 export type CapturedMegaMetricVariantDto = 'real' | 'no-biggest-liq-loss'
 export type CapturedMegaBucketDto = 'daily' | 'intraday' | 'delayed' | 'total' | 'total-aggregate'
 export type CapturedMegaTpSlModeDto = 'all' | 'dynamic' | 'static'
+export type BacktestHistorySliceDto = 'full_history' | 'train' | 'oos' | 'recent'
 
 export interface CapturedTableMetadataDto {
     kind: CapturedTableKindDto
+    historySlice?: BacktestHistorySliceDto
     mode?: CapturedMegaModeDto
     tpSlMode?: CapturedMegaTpSlModeDto
     zonalMode?: CapturedMegaZonalModeDto

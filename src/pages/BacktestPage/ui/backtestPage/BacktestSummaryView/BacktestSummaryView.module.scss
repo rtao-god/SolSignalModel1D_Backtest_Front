@@ -21,7 +21,7 @@
     gap: 4px;
 
     & > p {
-        font-size: 14px;
+        @include type-table-header;
         opacity: 0.82;
     }
 }
@@ -37,7 +37,7 @@
     overflow: auto;
 
     h3 {
-        font-size: 15px;
+        @include type-body-lg;
         margin-bottom: 8px;
     }
 }
@@ -45,7 +45,7 @@
 .sectionSubtitle {
     margin-top: -2px;
     margin-bottom: 10px;
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.4;
     opacity: 0.75;
 }
@@ -75,7 +75,7 @@
 
 /* Таблица */
 .table {
-    @include data-table-base($min-width: 640px, $font-size: 14px);
+    @include data-table-base($min-width: 640px, $density: simple);
 }
 
 .table th,
@@ -128,7 +128,7 @@
 /* JSON-фолбэк */
 .rawJson {
     margin-top: 8px;
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.4;
     white-space: pre;
     max-height: 320px;

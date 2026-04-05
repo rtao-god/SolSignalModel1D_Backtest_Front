@@ -1,4 +1,77 @@
 .Text {
     min-width: 0;
     overflow-wrap: break-word;
+    margin: 0;
+}
+
+.Text[data-variant='display'] {
+    @include type-display;
+}
+
+.Text[data-variant='display-compact'] {
+    @include type-display-compact;
+}
+
+.Text[data-variant='page-title'] {
+    @include type-page-title;
+}
+
+.Text[data-variant='page-title-compact'] {
+    @include type-page-title-compact;
+}
+
+.Text[data-variant='section-title'] {
+    @include type-section-title;
+}
+
+.Text[data-variant='section-title-compact'] {
+    @include type-section-title-compact;
+}
+
+.Text[data-variant='card-title'] {
+    @include type-card-title;
+}
+
+.Text[data-variant='card-title-strong'] {
+    @include type-card-title-strong;
+}
+
+.Text[data-variant='body-lg'] {
+    @include type-body-lg;
+}
+
+.Text[data-variant='body-md'] {
+    @include type-body-md;
+}
+
+.Text[data-variant='body-sm'] {
+    @include type-body-sm;
+}
+
+.Text[data-variant='label'] {
+    @include type-label;
+}
+
+.Text[data-variant='caption'] {
+    @include type-caption;
+}
+
+.Text[data-variant='micro'] {
+    @include type-micro;
+}
+
+.Text[data-variant='nav'] {
+    @include type-nav;
+}
+
+.Text[data-variant='tooltip'] {
+    @include type-tooltip;
+}
+
+.Text[data-variant='error'] {
+    @include type-error;
+}
+
+.Text[data-variant='kpi'] {
+    @include type-kpi;
 }

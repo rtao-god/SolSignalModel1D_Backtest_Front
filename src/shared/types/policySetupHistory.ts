@@ -1,3 +1,5 @@
+import type { PolicyPerformanceMetricsDto } from './policyPerformanceMetrics.types'
+
 export type PolicySetupHistoryResolution = '1m' | '3h' | '6h'
 export type PolicySetupHistoryPublishedState = 'fresh' | 'stale' | 'missing' | 'building' | 'failed'
 
@@ -18,13 +20,8 @@ export interface PolicySetupCatalogItemDto {
     useAntiDirectionOverlay: boolean
     tpSlMode: 'all' | 'dynamic' | 'static'
     zonalMode: 'with-zonal' | 'without-zonal'
-    tradesCount: number
     noTradeDaysCount: number
-    totalPnlPct: number
-    maxDrawdownPct: number
-    hadLiquidation: boolean
-    fromDateUtc: string
-    toDateUtc: string
+    performanceMetrics: PolicyPerformanceMetricsDto
 }
 
 export interface PolicySetupDateRangeDto {
@@ -36,6 +33,21 @@ export interface PolicySetupCandleRangeDto {
     fromDateUtc: string
     toDateUtc: string
     resolution: PolicySetupHistoryResolution
+}
+
+export interface PolicySetupResolutionBoundaryDto {
+    resolution: PolicySetupHistoryResolution
+    dayRange: PolicySetupDateRangeDto
+}
+
+export interface PolicySetupHistoryBoundaryManifestDto {
+    historyDayRange: PolicySetupDateRangeDto
+    candleRanges: PolicySetupResolutionBoundaryDto[]
+}
+
+export interface PolicySetupCatalogResponseDto {
+    boundaryManifest: PolicySetupHistoryBoundaryManifestDto
+    items: PolicySetupCatalogItemDto[]
 }
 
 export interface PolicySetupHistoryCandleDto {
@@ -104,9 +116,8 @@ export interface PolicySetupHistoryDayDto {
 
 export interface PolicySetupLedgerResponseDto {
     setup: PolicySetupCatalogItemDto
-    availableRange: PolicySetupDateRangeDto
+    boundaryManifest: PolicySetupHistoryBoundaryManifestDto
     appliedRange: PolicySetupDateRangeDto
-    availableResolutions: PolicySetupHistoryResolution[]
     startCapitalUsd: number
     balanceCeilingUsd: number
     visibleBalanceCeilingUsd: number
@@ -116,7 +127,7 @@ export interface PolicySetupLedgerResponseDto {
 
 export interface PolicySetupCandlesResponseDto {
     setupId: string
-    availableRange: PolicySetupDateRangeDto
+    boundaryManifest: PolicySetupHistoryBoundaryManifestDto
     appliedRange: PolicySetupCandleRangeDto
     candles: PolicySetupHistoryCandleDto[]
 }

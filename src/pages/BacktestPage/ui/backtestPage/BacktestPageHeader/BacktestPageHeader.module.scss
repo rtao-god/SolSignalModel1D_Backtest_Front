@@ -13,7 +13,7 @@
 
     & > p {
         opacity: 0.9;
-        font-size: 15px;
+        @include type-body-lg;
         max-width: 880px;
         line-height: 1.45;
     }
@@ -32,7 +32,7 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(7, 10, 18, 0.98);
     color: rgba(255, 255, 255, 0.92);
-    font-size: 15px;
+    @include type-body-lg;
     transition:
         border-color 0.16s ease,
         box-shadow 0.16s ease;
@@ -45,7 +45,7 @@
 }
 
 .profileDescription {
-    font-size: 14px;
+    @include type-body-md;
     opacity: 0.72;
 }
 

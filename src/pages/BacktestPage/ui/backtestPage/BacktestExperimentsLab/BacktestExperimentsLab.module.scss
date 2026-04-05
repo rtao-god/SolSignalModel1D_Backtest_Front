@@ -1,0 +1,370 @@
+.labCard {
+    padding: 20px;
+    border: 1px solid var(--surface-border-subtle);
+    border-radius: 20px;
+    background: var(--surface-bg-elevated);
+    box-shadow: var(--surface-shadow-sm);
+    color: #e2e8f0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.metaLine {
+    margin-top: 8px;
+    color: var(--text-muted);
+    @include type-caption;
+}
+
+.sectionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.sectionCard {
+    padding: 16px;
+    border: 1px solid var(--surface-border-subtle);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.sectionTitle {
+    margin: 0 0 10px;
+    @include type-section-title-compact;
+    color: #f8fafc;
+}
+
+.sectionText {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+}
+
+.activationRow,
+.field,
+.bundleDetails,
+.runItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.runItem {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.activationRow + .activationRow,
+.runItem + .runItem {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.activationInfo,
+.activationControls,
+.bundleControls,
+.actionsRow,
+.runHeadline,
+.runMetrics {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.activationTitle,
+.fieldLabel,
+.metricLabel {
+    @include type-label;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.activationCurrent,
+.selectionSummary,
+.bundleDetails,
+.metricMeta,
+.runMetrics,
+.emptyState {
+    color: var(--text-muted);
+    @include type-body-md;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.select,
+.textInput {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--surface-border-default);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.84);
+    color: #f8fafc;
+    font: inherit;
+}
+
+.selectionSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.policyGroups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.policyGroupCard {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.48);
+}
+
+.policyGroupTitle {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: #f8fafc;
+    @include type-body-md;
+    font-weight: 700;
+}
+
+.policyGroupCount {
+    color: var(--text-muted);
+    @include type-label;
+}
+
+.policyNames {
+    margin-top: 8px;
+    color: #cbd5e1;
+    @include type-body-sm;
+    line-height: 1.45;
+}
+
+.runsList {
+    display: flex;
+    flex-direction: column;
+}
+
+.runHeadline {
+    color: #f8fafc;
+    @include type-body-md;
+}
+
+.runItemActive {
+    padding: 12px;
+    margin-left: -12px;
+    margin-right: -12px;
+    border-radius: 16px;
+    background: rgba(56, 189, 248, 0.12);
+    border-top-color: transparent;
+}
+
+.successMessage,
+.errorMessage {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    @include type-body-md;
+}
+
+.successMessage {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.24);
+    color: #d1fae5;
+}
+
+.errorMessage {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.24);
+    color: #fecaca;
+}
+
+.resultCard {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(125, 211, 252, 0.2);
+    background: rgba(8, 20, 36, 0.78);
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metricCard {
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.72);
+}
+
+.metricValue {
+    margin-top: 8px;
+    @include type-section-title;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.proofHeader,
+.checkHeadline {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.filterBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.segmentedRow {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.segmentButton {
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.58);
+    color: #cbd5e1;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.segmentButton:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #f8fafc;
+}
+
+.segmentButtonActive {
+    border-color: rgba(56, 189, 248, 0.48);
+    background: rgba(56, 189, 248, 0.16);
+    color: #f8fafc;
+}
+
+.verdictBadge,
+.checkBadge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    @include type-label;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.verdict_pass,
+.check_pass {
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.26);
+    color: #d1fae5;
+}
+
+.verdict_borderline {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.26);
+    color: #fde68a;
+}
+
+.verdict_fail,
+.check_fail {
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.26);
+    color: #fecaca;
+}
+
+.verdict_neutral {
+    background: rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    color: #cbd5e1;
+}
+
+.checksList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkItem,
+.deltaCard {
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.48);
+}
+
+.deltaCard + .deltaCard {
+    margin-top: 12px;
+}
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+.comparisonTable {
+    width: 100%;
+    min-width: 1180px;
+    border-collapse: collapse;
+    @include type-table-body;
+}
+
+.comparisonTable th,
+.comparisonTable td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    vertical-align: top;
+    text-align: left;
+}
+
+.comparisonTable th {
+    color: var(--text-muted);
+    @include type-table-body-dense;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+@media (max-width: 1100px) {
+    .sectionGrid,
+    .metricsGrid,
+    .formGrid,
+    .policyGroups {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

@@ -7,6 +7,8 @@ import type {
 import type { PublishedReportVariantCatalogDto } from '@/shared/api/tanstackQueries/reportVariants'
 export interface ModelStatsPageProps {
     className?: string
+    embedded?: boolean
+    familyFilter?: ModelStatsFamilyFilter | null
 }
 
 export interface ModelStatsTableCardProps {
@@ -22,6 +24,7 @@ export interface ModelStatsModeToggleProps {
 }
 
 export type SegmentKey = 'OOS' | 'TRAIN' | 'FULL' | 'RECENT'
+export type ModelStatsFamilyFilter = 'daily_model' | 'sl_model'
 
 export interface SegmentInfo {
     key: SegmentKey
@@ -51,6 +54,8 @@ export interface SegmentToggleProps {
 
 export interface ModelStatsPageInnerProps {
     className?: string
+    embedded?: boolean
+    familyFilter?: ModelStatsFamilyFilter | null
     data: ReportDocumentDto | null
     variantCatalog: PublishedReportVariantCatalogDto | null
     isLoading: boolean

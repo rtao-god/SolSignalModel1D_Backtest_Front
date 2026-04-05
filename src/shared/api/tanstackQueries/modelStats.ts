@@ -8,6 +8,7 @@ import {
     prefetchPublishedReportVariantCatalog,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from './reportVariants'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const MODEL_STATS_QUERY_KEY = ['ml', 'stats', 'per-model'] as const
 const { path } = API_ROUTES.ml.modelStatsPerModel
@@ -46,7 +47,7 @@ async function fetchModelStatsReport(args?: ModelStatsReportQueryArgs): Promise<
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load model stats report: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load model stats report', resp, text))
     }
 
     const raw = await resp.json()

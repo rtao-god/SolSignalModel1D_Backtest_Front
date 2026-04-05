@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Text } from '@/shared/ui/Text'
+import { formatDateWithLocale } from '@/shared/utils/dateFormat'
 import cls from './ReportTimingSection.module.scss'
 
 export interface ReportTimingRow {
@@ -57,7 +58,7 @@ export function useReportTimingNowMs(): number {
 }
 
 export function formatTimingUtc(value: string, locale: string): string {
-    return new Intl.DateTimeFormat(locale, {
+    return formatDateWithLocale(parseUtcMs(value, 'formatTimingUtc'), locale, {
         year: 'numeric',
         month: 'short',
         day: '2-digit',
@@ -65,7 +66,7 @@ export function formatTimingUtc(value: string, locale: string): string {
         minute: '2-digit',
         hour12: false,
         timeZone: 'UTC'
-    }).format(parseUtcMs(value, 'formatTimingUtc'))
+    })
 }
 
 export function formatTimingExactUtc(value: string, locale: string): string {
@@ -144,7 +145,7 @@ export function ReportTimingSection({
                                         <Text className={cls.rowValue}>{row.value}</Text>
                                     </div>
                                 ))}
-                            </div>
+                        </div>
                         )}
                     </article>
                 ))}

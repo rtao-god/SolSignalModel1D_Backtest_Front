@@ -58,7 +58,7 @@
 .heroStats span,
 .metricLabel,
 .groupLabel {
-    font-size: 12px;
+    @include type-label;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(171, 195, 215, 0.7);

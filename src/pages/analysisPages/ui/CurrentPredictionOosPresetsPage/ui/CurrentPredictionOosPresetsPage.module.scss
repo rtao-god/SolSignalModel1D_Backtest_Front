@@ -1,0 +1,139 @@
+.root {
+    @include product-page-shell(1480px, true, 24px);
+    width: 100%;
+    container-type: inline-size;
+    container-name: current-prediction-oos-presets-page;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 920px;
+}
+
+.heroTitle {
+    @include type-page-title-compact;
+    font-weight: 700;
+    line-height: 1.12;
+    color: #f8fafc;
+}
+
+.heroSubtitle {
+    @include type-body-md;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.controls,
+.chartCard,
+.detailCard {
+    @include subtle-surface(14px 16px);
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.controlHint,
+.metricHint,
+.loadingNote {
+    margin: 0;
+    @include type-label;
+    line-height: 1.55;
+}
+
+.controlHint,
+.metricHint {
+    color: #94a3b8;
+}
+
+.loadingNote {
+    color: #f59e0b;
+}
+
+.summaryGrid,
+.chartGrid,
+.detailGrid {
+    @include responsive-grid(260px, 14px);
+}
+
+.summaryCard,
+.detailItem {
+    @include surface-card(
+        $padding: 16px 18px,
+        $radius: var(--radius-lg),
+        $background: linear-gradient(160deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92)),
+        $border: var(--surface-border-strong),
+        $shadow: var(--surface-shadow-md)
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summaryLabel,
+.detailLabel {
+    @include type-label;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #93c5fd;
+}
+
+.summaryValue,
+.detailValue {
+    @include type-section-title;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.summaryHint,
+.detailHint {
+    @include type-caption;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+.chartGrid,
+.tableSection {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.cardHeader,
+.detailHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.cardTitle {
+    @include type-section-title-compact;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.cardSubtitle {
+    @include type-body-sm;
+    line-height: 1.55;
+    color: #cbd5e1;
+}
+
+@container current-prediction-oos-presets-page (min-width: 1040px) {
+    .chartGrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+}
+
+@container current-prediction-oos-presets-page (max-width: 760px) {
+    .heroTitle,
+    .summaryValue,
+    .detailValue {
+
+    }
+}

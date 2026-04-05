@@ -5,9 +5,12 @@ export interface PfiTableCardProps {
     section: PfiReportSectionDto
     domId: string
     reportKind: 'pfi_per_model' | 'pfi_sl_model'
+    featureDetailRoutePath?: string | null
 }
 
 export interface PfiPageProps {
     className?: string
     family?: PfiQueryFamily
 }
+
+export type PfiPageMode = 'model_quality' | 'feature_impact'

@@ -10,6 +10,7 @@
         "models": "Models",
         "backtest": "Backtest",
         "analysis": "Analysis",
+        "statistics": "Statistics",
         "diagnostics": "Diagnostics",
         "features": "Features",
         "guide": "Knowledge Base",
@@ -22,6 +23,7 @@
         "models": "Models",
         "backtest": "Backtest",
         "analysis": "Analysis",
+        "statistics": "Stats",
         "diagnostics": "Diag",
         "features": "PFI",
         "guide": "Guide",
@@ -33,6 +35,7 @@
         "main": "Main",
         "diagnostics_home": "Diagnostics",
         "analysis_home": "Analysis",
+        "statistics_home": "Statistics",
         "docs": "Docs",
         "explain": "Explain",
         "profile": "Profile",
@@ -54,6 +57,9 @@
         "backtest_diagnostics_daystats": "Day statistics",
         "backtest_policy_branch_mega": "Policy Branch Mega",
         "backtest_confidence_risk": "Confidence statistics",
+        "backtest_sharp_move_stats": "Sharp move statistics",
+        "backtest_btc_weakness_stats": "BTC weakness statistics",
+        "backtest_bounded_parameter_stats": "Bounded parameter statistics",
         "backtest_execution_pipeline": "Execution pipeline",
         "pfi_per_model": "PFI by models",
         "guide": "Knowledge Base",
@@ -132,7 +138,7 @@
             "explain-splits-overview": "Why splits",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "guide_time": {
@@ -206,7 +212,7 @@
             "explain-splits-overview": "Why splits",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "explain_project": {

@@ -13,6 +13,10 @@
     flex-wrap: wrap;
 }
 
+.pageModeControls {
+    margin-bottom: 16px;
+}
+
 .subtitle {
     margin-top: 4px;
     color: var(--text-muted);
@@ -24,7 +28,7 @@
     align-items: flex-end;
     gap: 4px;
 
-    font-size: 12px;
+    @include type-table-body-dense;
     color: var(--text-muted);
 }
 
@@ -79,7 +83,7 @@
 }
 
 .table {
-    @include data-table-base($min-width: 780px, $font-size: 12px);
+    @include data-table-base($min-width: 780px, $density: dense);
 }
 
 .table thead {
@@ -93,13 +97,48 @@
     white-space: nowrap;
 }
 
-.table th:first-child,
-.table td:first-child {
+.table th:nth-child(-n + 3),
+.table td:nth-child(-n + 3) {
     text-align: left;
 }
 
 .table tbody tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.025);
+}
+
+.featureLink {
+    font-weight: 700;
+    color: #93c5fd;
+    text-decoration: underline;
+    text-decoration-color: rgba(147, 197, 253, 0.42);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #dbeafe;
+        text-decoration-color: rgba(219, 234, 254, 0.92);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(147, 197, 253, 0.92);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+}
+
+.featureNameCell {
+    font-weight: 600;
+}
+
+.descriptionCell {
+    min-width: 360px;
+    max-width: 420px;
+    white-space: normal !important;
+}
+
+.descriptionText {
+    display: inline-block;
+    white-space: normal;
+    line-height: 1.45;
 }
 
 /* ===== sortable headers ===== */

@@ -6,6 +6,7 @@ import { ANALYSIS_HOME_CARDS } from '@/pages/analysisPages/ui/shared/analysisHom
 import { DEVELOPER_HOME_CARDS } from '@/pages/developerPages/ui/shared/developerHomeContent'
 import { DIAGNOSTICS_HOME_CARDS } from '@/pages/diagnosticsPages/ui/shared/diagnosticsHomeCards'
 import { GUIDE_HOME_CARDS } from '@/pages/guidePages/ui/shared/guideHomeCards'
+import { STATISTICS_HOME_CARDS } from '@/pages/statisticsPages/ui/shared/statisticsHomeCards'
 import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
 import {
@@ -53,6 +54,7 @@ const PREDICTIONS_ROUTE_IDS = [AppRoute.CURRENT_PREDICTION, AppRoute.CURRENT_PRE
 const MODELS_ROUTE_IDS = [AppRoute.MODELS_STATS, AppRoute.AGGREGATION_STATS] as const
 const BACKTEST_ROUTE_IDS = [AppRoute.BACKTEST_FULL] as const
 const ANALYSIS_ROUTE_IDS = ANALYSIS_HOME_CARDS.map(card => card.route)
+const STATISTICS_ROUTE_IDS = STATISTICS_HOME_CARDS.map(card => card.route)
 const DIAGNOSTICS_ROUTE_IDS = DIAGNOSTICS_HOME_CARDS.map(card => card.route)
 // В about-карте остаются только маршруты, которые реально видимы в общей навигации.
 // PFI_SL_MODEL не имеет видимого пункта в navbar/sidebar, поэтому его нельзя включать в visible atlas.
@@ -67,6 +69,7 @@ export const ABOUT_SECTION_GROUP_ORDER: readonly AboutSectionGroup[] = [
     'models',
     'backtest',
     'analysis',
+    'statistics',
     'diagnostics',
     'features',
     'guide',
@@ -256,6 +259,11 @@ const ABOUT_ROUTE_CATALOG_CONFIG: readonly AboutRouteCatalogEntry[] = [
         blocks: createCuratedBlocks(AppRoute.ANALYSIS_HOME, ['overview', 'sectionCards'])
     },
     {
+        routeId: AppRoute.STATISTICS_HOME,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.STATISTICS_HOME, ['overview', 'sectionCards'])
+    },
+    {
         routeId: AppRoute.BACKTEST_DIAGNOSTICS_RATINGS,
         group: 'analysis',
         blocks: createCuratedBlocks(AppRoute.BACKTEST_DIAGNOSTICS_RATINGS, [
@@ -309,6 +317,78 @@ const ABOUT_ROUTE_CATALOG_CONFIG: readonly AboutRouteCatalogEntry[] = [
             'terms',
             'configBlock',
             'statisticsTables'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_SHARP_MOVE_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_SHARP_MOVE_STATS, [
+            'controls',
+            'reportStatus',
+            'selectedScenario',
+            'comparisonTables'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_BTC_WEAKNESS_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_BTC_WEAKNESS_STATS, [
+            'ownerSummary',
+            'terms',
+            'backtestReport',
+            'liveReport'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_MICRO_OVERLAY_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_MICRO_OVERLAY_STATS, [
+            'ownerSummary',
+            'terms',
+            'backtestReport',
+            'liveReport'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_SL_OVERLAY_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_SL_OVERLAY_STATS, [
+            'ownerSummary',
+            'terms',
+            'backtestReport',
+            'liveReport'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_SL_STRONG_DAY_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_SL_STRONG_DAY_STATS, [
+            'ownerSummary',
+            'terms',
+            'backtestReport',
+            'liveReport'
+        ])
+    },
+    {
+        routeId: AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS,
+        group: 'statistics',
+        blocks: createCuratedBlocks(AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS, [
+            'controls',
+            'selectedParameter',
+            'leaderboard',
+            'modelQuality',
+            'behaviorStats'
+        ])
+    },
+    {
+        routeId: AppRoute.CURRENT_PREDICTION_OOS_PRESETS,
+        group: 'analysis',
+        blocks: createCuratedBlocks(AppRoute.CURRENT_PREDICTION_OOS_PRESETS, [
+            'controls',
+            'summaryCards',
+            'mainCharts',
+            'comparisonTable',
+            'selectedPreset'
         ])
     },
     {
@@ -547,6 +627,12 @@ const MAIN_ATLAS_CHILD_NODES = [
         linkRouteId: AppRoute.ANALYSIS_HOME
     }),
     createGroupNode({
+        id: 'main-statistics',
+        group: 'statistics',
+        childRouteIds: STATISTICS_ROUTE_IDS,
+        linkRouteId: AppRoute.STATISTICS_HOME
+    }),
+    createGroupNode({
         id: 'main-diagnostics',
         group: 'diagnostics',
         childRouteIds: DIAGNOSTICS_ROUTE_IDS,
@@ -588,6 +674,10 @@ const ABOUT_ATLAS_ROOT_CONFIG: readonly AboutAtlasNode[] = [
     createRouteNode(AppRoute.ANALYSIS_HOME, {
         idPrefix: 'root',
         childNodes: createRouteNodes(ANALYSIS_ROUTE_IDS, 'analysis-root-page')
+    }),
+    createRouteNode(AppRoute.STATISTICS_HOME, {
+        idPrefix: 'root',
+        childNodes: createRouteNodes(STATISTICS_ROUTE_IDS, 'statistics-root-page')
     }),
     createRouteNode(AppRoute.GUIDE, {
         idPrefix: 'root',

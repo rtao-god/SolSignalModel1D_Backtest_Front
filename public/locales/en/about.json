@@ -35,6 +35,11 @@
             "title": "Analysis",
             "subtitle": "Rule ratings, confidence slices, day journal, and execution pipeline."
         },
+        "statistics": {
+            "eyebrow": "Parameter and overlay stats",
+            "title": "Statistics",
+            "subtitle": "Dedicated statistics pages with threshold grids, owner rules, and factual overlays."
+        },
         "diagnostics": {
             "eyebrow": "Strategy diagnostics",
             "title": "Diagnostics",
@@ -261,6 +266,19 @@
                 }
             }
         },
+        "statistics_home": {
+            "description": "The statistics home page collects dedicated statistics screens with threshold grids, parameter sweeps, and owner overlays.",
+            "blocks": {
+                "overview": {
+                    "title": "Section overview",
+                    "description": "Hero block with the role of the statistics domain."
+                },
+                "sectionCards": {
+                    "title": "Section cards",
+                    "description": "Grid of links to child statistics screens."
+                }
+            }
+        },
         "backtest_diagnostics_ratings": {
             "description": "Rule ratings show the strongest and weakest configurations inside the selected diagnostic slice.",
             "blocks": {
@@ -371,6 +389,98 @@
                 "statisticsTables": {
                     "title": "Statistics tables",
                     "description": "Risk and accuracy distributions by confidence bucket."
+                }
+            }
+        },
+        "backtest_sharp_move_stats": {
+            "description": "Sharp move statistics shows what happens more often after a strong price impulse: trend continuation or reversal.",
+            "blocks": {
+                "controls": {
+                    "title": "Scenario controls",
+                    "description": "Selection of history scope, signal type, outcome direction, threshold, and horizon."
+                },
+                "reportStatus": {
+                    "title": "Report status",
+                    "description": "Source of the published scenario and its freshness context."
+                },
+                "selectedScenario": {
+                    "title": "Selected scenario",
+                    "description": "Core metrics of the open scenario: hit rate, average move, risk, and signal count."
+                },
+                "comparisonTables": {
+                    "title": "Comparison tables",
+                    "description": "Threshold and horizon ladders plus the leaderboard of the most stable scenarios."
+                }
+            }
+        },
+        "backtest_btc_weakness_stats": {
+            "description": "BTC weakness statistics shows how the shared Bitcoin weakness rule changes the final Solana forecast on backtest data and on factual live journal days.",
+            "blocks": {
+                "ownerSummary": {
+                    "title": "Owner summary",
+                    "description": "Short cards with the active thresholds, trigger share, and accuracy of the owner rule."
+                },
+                "terms": {
+                    "title": "Terms block",
+                    "description": "One shared glossary for backtest and live tables."
+                },
+                "backtestReport": {
+                    "title": "Backtest report",
+                    "description": "Full sweep report with EMA gap, latest BTC drop, long BTC drop, and joint-rule behavior."
+                },
+                "liveReport": {
+                    "title": "Live report",
+                    "description": "Factual report built from the real forecast journal with excluded-day counters and owner-rule behavior."
+                }
+            }
+        },
+        "backtest_bounded_parameter_stats": {
+            "description": "Bounded parameter statistics compares grids of ceilings, floors, and other hard formula bounds by their impact on model quality and on the observed behavior of the bound itself.",
+            "blocks": {
+                "controls": {
+                    "title": "Owner and parameter controls",
+                    "description": "Selection of the bound group and the concrete parameter for the current report."
+                },
+                "selectedParameter": {
+                    "title": "Selected-parameter card",
+                    "description": "Description of the current bound, its default value, the candidate grid, and the count of days outside the grid."
+                },
+                "leaderboard": {
+                    "title": "Value leaderboard",
+                    "description": "Comparison of parameter values by overall rank and model quality."
+                },
+                "modelQuality": {
+                    "title": "Model quality",
+                    "description": "Model-quality tables for every grid point."
+                },
+                "behaviorStats": {
+                    "title": "Bound behavior",
+                    "description": "Frequency of bound hits, observed metric levels, and the resulting formula behavior."
+                }
+            }
+        },
+        "current_prediction_oos_presets": {
+            "description": "The OOS and TRAIN comparison shows how model quality changes when the last evaluation tail of history becomes larger or smaller.",
+            "blocks": {
+                "controls": {
+                    "title": "Mode and metric controls",
+                    "description": "Switches the page composition and the main comparison chart."
+                },
+                "summaryCards": {
+                    "title": "Summary cards",
+                    "description": "Key variants: the best-balanced, the most conservative, and the most profitable evaluation setup."
+                },
+                "mainCharts": {
+                    "title": "Main charts",
+                    "description": "Preset comparison by the selected metric and the risk-versus-result scatter chart."
+                },
+                "comparisonTable": {
+                    "title": "Comparison table",
+                    "description": "Full table for every OOS/Train preset with accuracy, best mode, result, and drawdown."
+                },
+                "selectedPreset": {
+                    "title": "Selected preset card",
+                    "description": "Details of the open evaluation variant: quality, best mode, and internal rankings."
                 }
             }
         },

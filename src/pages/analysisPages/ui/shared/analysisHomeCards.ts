@@ -28,6 +28,10 @@ export const ANALYSIS_HOME_CARDS: readonly AnalysisHomeCardConfig[] = [
         route: AppRoute.BACKTEST_CONFIDENCE_RISK
     },
     {
+        id: 'oosPresetTails',
+        route: AppRoute.CURRENT_PREDICTION_OOS_PRESETS
+    },
+    {
         id: 'realForecastJournal',
         route: AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL
     },

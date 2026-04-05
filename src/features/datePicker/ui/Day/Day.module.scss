@@ -20,7 +20,7 @@
     appearance: none;
     background: transparent;
     color: var(--picker-text);
-    font-size: 13px;
+    @include type-table-body;
     font-weight: 600;
     line-height: 1;
     cursor: pointer;

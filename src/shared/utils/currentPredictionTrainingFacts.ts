@@ -1,10 +1,5 @@
 import type { KeyValueSectionDto, ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
 
-// Эти константы должны совпадать с backend owner-контрактом:
-// PredictionTrainingEngineFactory.HoldoutDays и CurrentPredictionTrainingDefaults.RecentTailScoredRowsLimit.
-export const CURRENT_PREDICTION_SPLIT_HOLDOUT_CALENDAR_DAYS = 120
-export const CURRENT_PREDICTION_RECENT_TAIL_ROWS_LIMIT = 240
-
 export interface CurrentPredictionStructuredTrainingFacts {
     trainingScopeRange: string | null
     trainingRecipe: string | null
@@ -20,8 +15,8 @@ export interface CurrentPredictionStructuredTrainingFacts {
     scoreWindowStartDayKeyUtc: string | null
     scoreWindowEndDayKeyUtc: string | null
     scoreRowsPresenceInTrain: string | null
-    recentTailRowsLimit: number | null
-    recentTailRowsReturned: number | null
+    recentTailDaySharePercent: number | null
+    recentTailDaysReturned: number | null
 }
 
 const TRAINING_ITEM_KEYS = {
@@ -39,8 +34,8 @@ const TRAINING_ITEM_KEYS = {
     scoreWindowStartDayKeyUtc: 'score_window_start_day_key_utc',
     scoreWindowEndDayKeyUtc: 'score_window_end_day_key_utc',
     scoreRowsPresenceInTrain: 'score_rows_presence_in_train',
-    recentTailRowsLimit: 'recent_tail_rows_limit',
-    recentTailRowsReturned: 'recent_tail_rows_returned'
+    recentTailDaySharePercent: 'recent_tail_day_share_percent',
+    recentTailDaysReturned: 'recent_tail_days_returned'
 } as const
 
 function isKeyValueSection(section: ReportSectionDto): section is KeyValueSectionDto {
@@ -100,7 +95,7 @@ export function resolveCurrentPredictionStructuredTrainingFacts(
         scoreWindowStartDayKeyUtc: readTrainingValue(report, TRAINING_ITEM_KEYS.scoreWindowStartDayKeyUtc),
         scoreWindowEndDayKeyUtc: readTrainingValue(report, TRAINING_ITEM_KEYS.scoreWindowEndDayKeyUtc),
         scoreRowsPresenceInTrain: readTrainingValue(report, TRAINING_ITEM_KEYS.scoreRowsPresenceInTrain),
-        recentTailRowsLimit: readTrainingInteger(report, TRAINING_ITEM_KEYS.recentTailRowsLimit),
-        recentTailRowsReturned: readTrainingInteger(report, TRAINING_ITEM_KEYS.recentTailRowsReturned)
+        recentTailDaySharePercent: readTrainingInteger(report, TRAINING_ITEM_KEYS.recentTailDaySharePercent),
+        recentTailDaysReturned: readTrainingInteger(report, TRAINING_ITEM_KEYS.recentTailDaysReturned)
     }
 }

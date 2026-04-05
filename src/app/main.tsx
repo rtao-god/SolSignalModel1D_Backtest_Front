@@ -17,6 +17,7 @@ import { logError } from '@/shared/lib/logging/logError'
 import { ErrorBoundary } from './providers/ErrorBoundary/ErrorBoundary'
 import App from './App'
 import { restorePathFrom404 } from './lib/deepLinkFrom404'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 declare global {
     interface Window {
@@ -93,7 +94,10 @@ if (!rootElement) {
         markApplicationBootstrapped()
         window.__SOLSIGNAL_PREBOOT_FATAL__?.markBootCompleted?.()
     } catch (error) {
-        const safeError = error instanceof Error ? error : new Error(String(error ?? 'Unknown bootstrap error.'))
+        const safeError = normalizeErrorLike(error, 'Unknown bootstrap error.', {
+            source: 'root.render',
+            domain: 'app_runtime'
+        })
         logError(safeError, undefined, {
             source: 'root.render',
             domain: 'app_runtime'

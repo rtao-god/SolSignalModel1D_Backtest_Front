@@ -11,6 +11,7 @@ import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 import GuidePage from './guidePages/ui/GuidePage'
 import AnalysisPage from './analysisPages/ui/AnalysisPage'
 import DiagnosticsPage from './diagnosticsPages/ui/DiagnosticsPage'
+import StatisticsPage from './statisticsPages/ui/StatisticsPage'
 
 function renderHomePage(screenNode: ReactElement, route: string) {
     const queryClient = new QueryClient({
@@ -58,7 +59,7 @@ describe('Top-level home pages overview', () => {
         expect(screen.getByText('Which question opens which screen')).toBeInTheDocument()
         expect(screen.getByText('Normal order of reading analysis')).toBeInTheDocument()
         expect(screen.getByText('Which three layers are collected here')).toBeInTheDocument()
-        expect(screen.getByText('6 pages')).toBeInTheDocument()
+        expect(screen.getByText('8 pages')).toBeInTheDocument()
         expect(screen.getByText('Real Forecast Journal')).toBeInTheDocument()
         expect(screen.getAllByRole('link', { name: 'Section: Policy Branch Mega' }).length).toBeGreaterThan(0)
         expect(container.textContent).not.toContain('[[')
@@ -74,6 +75,23 @@ describe('Top-level home pages overview', () => {
         expect(screen.getByText('Which kinds of causes live here')).toBeInTheDocument()
         expect(screen.getByText('5 pages')).toBeInTheDocument()
         expect(screen.getAllByRole('link', { name: 'Section: Risk and liquidations' }).length).toBeGreaterThan(0)
+        expect(container.textContent).not.toContain('[[')
+    })
+
+    test('renders statistics overview block above statistics cards', () => {
+        const { container } = renderHomePage(<StatisticsPage />, ROUTE_PATH[AppRoute.STATISTICS_HOME])
+
+        expect(screen.getByText('Statistics')).toBeInTheDocument()
+        expect(screen.getByText('How to read the statistics layer')).toBeInTheDocument()
+        expect(screen.getByText('Which question opens which statistics screen')).toBeInTheDocument()
+        expect(screen.getByText('Normal order of reading statistics')).toBeInTheDocument()
+        expect(screen.getByText('Boundary between statistics and neighboring sections')).toBeInTheDocument()
+        expect(screen.getByText('6 pages')).toBeInTheDocument()
+        expect(screen.getByText('BTC weakness statistics')).toBeInTheDocument()
+        expect(screen.getByText('Micro overlay statistics')).toBeInTheDocument()
+        expect(screen.getByText('Trade risk statistics')).toBeInTheDocument()
+        expect(screen.getByText('Strong-day statistics')).toBeInTheDocument()
+        expect(screen.getAllByRole('link', { name: 'Section: BTC weakness statistics' }).length).toBeGreaterThan(0)
         expect(container.textContent).not.toContain('[[')
     })
 })

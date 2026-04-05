@@ -25,7 +25,7 @@
 }
 
 .yearLabel {
-    font-size: 12px;
+    @include type-label;
     font-weight: 600;
     color: var(--picker-text-muted);
     text-transform: uppercase;
@@ -40,7 +40,7 @@
     border-radius: 10px;
     background-color: var(--picker-surface-muted);
     color: var(--picker-text);
-    font-size: 14px;
+    @include type-body-md;
     cursor: pointer;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -77,7 +77,7 @@
     border-radius: 10px;
     background-color: var(--picker-surface-muted);
     color: var(--picker-accent);
-    font-size: 14px;
+    @include type-button-sm;
     font-weight: 600;
     cursor: pointer;
     transition:

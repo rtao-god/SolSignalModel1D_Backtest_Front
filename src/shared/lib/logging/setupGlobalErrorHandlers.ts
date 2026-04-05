@@ -1,4 +1,6 @@
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { logError } from './logError'
+import { buildDetailedErrorDetails } from './logError'
 import { resolveErrorDomain, shouldSurfaceRuntimeError } from './errorDomains'
 import { isLocalizedContentError } from '@/shared/lib/i18n'
 
@@ -7,26 +9,24 @@ let isApplicationBootstrapped = false
 const FATAL_ERROR_OVERLAY_ID = 'app-fatal-error-overlay'
 const RUNTIME_ERROR_BANNER_ID = 'app-runtime-error-banner'
 const boundaryHandledErrors = new WeakSet<Error>()
+const boundaryHandledErrorSignatures = new Map<string, number>()
+const BOUNDARY_HANDLED_SIGNATURE_TTL_MS = 10_000
 
-function buildFatalErrorDetails(error: Error, source: string): string {
-    return `${source}: ${error.name}: ${error.message}`
+function buildBoundaryHandledErrorSignature(error: Error): string {
+    const stackHead = error.stack?.split('\n').slice(0, 3).join('\n') ?? ''
+    return `${error.name}::${error.message}::${stackHead}`
 }
 
-function stringifyUnknownErrorReason(reason: unknown): string {
-    if (typeof reason === 'string' && reason.trim().length > 0) {
-        return reason
-    }
-
-    try {
-        const serialized = JSON.stringify(reason)
-        if (typeof serialized === 'string' && serialized.length > 0) {
-            return serialized
+function pruneExpiredBoundaryHandledErrorSignatures(now: number) {
+    for (const [signature, expiresAt] of boundaryHandledErrorSignatures.entries()) {
+        if (expiresAt <= now) {
+            boundaryHandledErrorSignatures.delete(signature)
         }
-    } catch {
-        // Ошибка сериализации не должна скрывать исходную runtime-причину.
     }
+}
 
-    return String(reason ?? 'Unknown runtime error.')
+function buildFatalErrorDetails(error: Error, source: string): string {
+    return buildDetailedErrorDetails(error, { source })
 }
 
 function buildErrorFromWindowEvent(event: ErrorEvent): Error {
@@ -40,15 +40,40 @@ function buildErrorFromWindowEvent(event: ErrorEvent): Error {
             `${event.filename}${event.lineno ? `:${event.lineno}` : ''}${event.colno ? `:${event.colno}` : ''}`
         :   'unknown source'
 
-    return new Error(`${event.message || 'Unhandled script error.'} (${location})`)
+    return normalizeErrorLike(event.error ?? event.message, 'Unhandled script error.', {
+        source: 'window.onerror',
+        domain: 'app_runtime',
+        owner: 'window.onerror',
+        expected: 'Runtime error event should provide an Error instance or a detailed browser message.',
+        actual: `location=${location}`,
+        requiredAction: 'Inspect the reported script location and throw owner-specific Error instances.',
+        extra: {
+            location,
+            message: event.message || null
+        }
+    })
 }
 
 export function markErrorHandledByBoundary(error: Error): void {
     boundaryHandledErrors.add(error)
+    const now = Date.now()
+    pruneExpiredBoundaryHandledErrorSignatures(now)
+    boundaryHandledErrorSignatures.set(
+        buildBoundaryHandledErrorSignature(error),
+        now + BOUNDARY_HANDLED_SIGNATURE_TTL_MS
+    )
 }
 
 function isBoundaryHandledError(error: Error): boolean {
-    return boundaryHandledErrors.has(error)
+    if (boundaryHandledErrors.has(error)) {
+        return true
+    }
+
+    const now = Date.now()
+    pruneExpiredBoundaryHandledErrorSignatures(now)
+
+    const expiresAt = boundaryHandledErrorSignatures.get(buildBoundaryHandledErrorSignature(error))
+    return typeof expiresAt === 'number' && expiresAt > now
 }
 
 function removeFatalErrorOverlay(): void {
@@ -375,7 +400,15 @@ export function setupGlobalErrorHandlers() {
             return
         }
 
-        const wrappedError = new Error(`Unhandled promise rejection: ${stringifyUnknownErrorReason(reason)}`)
+        const wrappedError = normalizeErrorLike(reason, 'Unhandled promise rejection.', {
+            source: 'unhandledrejection',
+            domain: 'app_runtime',
+            owner: 'window.unhandledrejection',
+            expected: 'Promise rejection should provide an Error instance with owner context.',
+            actual: 'Promise rejected with a non-Error value.',
+            requiredAction: 'Reject promises with Error instances that include owner, expected, actual, and context.',
+            extra: { reason }
+        })
         event.preventDefault()
         scheduleRuntimeErrorSurface(wrappedError, 'unhandledrejection', { reason })
     })

@@ -37,7 +37,7 @@
 }
 
 .brandName {
-    font-size: 14px;
+    @include type-body-md;
     font-weight: 600;
     color: #f5f5f5;
 }
@@ -51,13 +51,13 @@
 }
 
 .textPrimary {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.4;
     color: #e5e7eb;
 }
 
 .textSecondary {
-    font-size: 11px;
+    @include type-caption;
     line-height: 1.4;
     color: #9ca3af;
 }

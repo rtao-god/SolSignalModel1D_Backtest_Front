@@ -23,7 +23,6 @@ export default function BacktestSummaryReportPage({ className }: BacktestSummary
         () => ({
             statusMode: 'actual',
             statusTitle: t('backtestSummary.page.status.publishedTitle'),
-            statusMessage: t('backtestSummary.page.status.publishedMessage'),
             statusLines: [
                 ...(report ?
                     [

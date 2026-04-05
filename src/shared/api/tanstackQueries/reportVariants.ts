@@ -1,13 +1,17 @@
 import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { API_ROUTES } from '../routes'
-import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from './utils/fetchWithTimeout'
+import { fetchWithTimeout } from './utils/fetchWithTimeout'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 export const PUBLISHED_REPORT_VARIANT_FAMILIES = {
     policyBranchMega: 'policy_branch_mega',
     backtestDiagnostics: 'backtest_diagnostics',
     backtestExecutionPipeline: 'backtest_execution_pipeline',
     backtestConfidenceRisk: 'backtest_confidence_risk',
+    backtestSharpMoveStats: 'backtest_sharp_move_stats',
+    backtestBoundedParameterStats: 'backtest_bounded_parameter_stats',
     backtestModelStats: 'backtest_model_stats'
 } as const
 
@@ -52,7 +56,24 @@ interface UsePublishedReportVariantCatalogOptions {
 }
 
 const PUBLISHED_REPORT_VARIANT_CATALOG_QUERY_KEY_BASE = ['reports', 'variants', 'catalog'] as const
+const PUBLISHED_REPORT_VARIANT_SELECTION_QUERY_KEY_BASE = ['reports', 'variants', 'selection'] as const
 const { path } = API_ROUTES.reportVariants.catalogGet
+const { path: selectionPath } = API_ROUTES.reportVariants.selectionGet
+
+interface PublishedReportVariantAxesOwnerDto {
+    family: PublishedReportVariantFamily
+    axes: PublishedReportVariantAxisDto[]
+}
+
+export interface PublishedReportVariantSelectionSnapshotDto {
+    family: PublishedReportVariantFamily
+    sourceReportKind: string
+    sourceReportId: string
+    publishedAtUtc: string
+    variantKey: string
+    selection: Record<string, string>
+    axes: PublishedReportVariantAxisDto[]
+}
 
 function toObject(raw: unknown, label: string): Record<string, unknown> {
     if (!raw || typeof raw !== 'object') {
@@ -146,6 +167,24 @@ function mapPublishedReportVariantCatalog(raw: unknown): PublishedReportVariantC
     }
 }
 
+function mapPublishedReportVariantSelectionSnapshot(raw: unknown): PublishedReportVariantSelectionSnapshotDto {
+    const payload = toObject(raw, 'selectionSnapshot')
+
+    return {
+        family: toRequiredString(payload.family, 'selectionSnapshot.family') as PublishedReportVariantFamily,
+        sourceReportKind: toRequiredString(payload.sourceReportKind, 'selectionSnapshot.sourceReportKind'),
+        sourceReportId: toRequiredString(payload.sourceReportId, 'selectionSnapshot.sourceReportId'),
+        publishedAtUtc: toRequiredString(payload.publishedAtUtc, 'selectionSnapshot.publishedAtUtc'),
+        variantKey: toRequiredString(payload.variantKey, 'selectionSnapshot.variantKey'),
+        selection: toStringRecord(payload.selection, 'selectionSnapshot.selection'),
+        axes: Array.isArray(payload.axes) ?
+            payload.axes.map((item, index) => mapPublishedReportVariantAxis(item, `selectionSnapshot.axes[${index}]`))
+        :   (() => {
+                throw new Error('[report-variants] selectionSnapshot.axes must be an array.')
+            })()
+    }
+}
+
 function normalizeRequestedValue(raw: string | null | undefined): string | null {
     if (typeof raw !== 'string') {
         return null
@@ -155,10 +194,10 @@ function normalizeRequestedValue(raw: string | null | undefined): string | null 
     return normalized ? normalized : null
 }
 
-function getAxisOrThrow(catalog: PublishedReportVariantCatalogDto, axisKey: string): PublishedReportVariantAxisDto {
-    const axis = catalog.axes.find(item => item.key === axisKey)
+function getAxisOrThrow(source: PublishedReportVariantAxesOwnerDto, axisKey: string): PublishedReportVariantAxisDto {
+    const axis = source.axes.find(item => item.key === axisKey)
     if (!axis) {
-        throw new Error(`[report-variants] axis '${axisKey}' is missing in family '${catalog.family}'.`)
+        throw new Error(`[report-variants] axis '${axisKey}' is missing in family '${source.family}'.`)
     }
 
     return axis
@@ -181,19 +220,72 @@ function buildPublishedReportVariantCatalogPath(family: PublishedReportVariantFa
     return `${path}/${encodeURIComponent(family)}`
 }
 
+function normalizeRequestedSelectionEntries(
+    requestedSelection: Record<string, string | null | undefined>
+): Array<[string, string]> {
+    return Object.entries(requestedSelection)
+        .map(([key, value]) => [key.trim(), normalizeRequestedValue(value)] as const)
+        .filter((entry): entry is [string, string] => Boolean(entry[0]) && Boolean(entry[1]))
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+}
+
+export function buildPublishedReportVariantSelectionQueryKey(
+    family: PublishedReportVariantFamily,
+    requestedSelection: Record<string, string | null | undefined>
+) {
+    return [
+        ...PUBLISHED_REPORT_VARIANT_SELECTION_QUERY_KEY_BASE,
+        family,
+        ...normalizeRequestedSelectionEntries(requestedSelection).flatMap(([key, value]) => [key, value])
+    ] as const
+}
+
+function buildPublishedReportVariantSelectionPath(
+    family: PublishedReportVariantFamily,
+    requestedSelection: Record<string, string | null | undefined>
+): string {
+    const params = new URLSearchParams()
+    normalizeRequestedSelectionEntries(requestedSelection).forEach(([key, value]) => {
+        params.set(key, value)
+    })
+
+    const query = params.toString()
+    const basePath = `${selectionPath}/${encodeURIComponent(family)}/selection`
+    return query ? `${basePath}?${query}` : basePath
+}
+
 export async function fetchPublishedReportVariantCatalog(
     family: PublishedReportVariantFamily
 ): Promise<PublishedReportVariantCatalogDto> {
     const response = await fetchWithTimeout(`${API_BASE_URL}${buildPublishedReportVariantCatalogPath(family)}`, {
-        timeoutMs: DEFAULT_FETCH_TIMEOUT_MS
+        timeoutMs: QUERY_POLICY_REGISTRY.reportVariants.catalog.timeoutMs
     })
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`Failed to load report variant catalog: ${response.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load report variant catalog', response, text))
     }
 
     return mapPublishedReportVariantCatalog(await response.json())
+}
+
+export async function fetchPublishedReportVariantSelectionSnapshot(
+    family: PublishedReportVariantFamily,
+    requestedSelection: Record<string, string | null | undefined>
+): Promise<PublishedReportVariantSelectionSnapshotDto> {
+    const response = await fetchWithTimeout(
+        `${API_BASE_URL}${buildPublishedReportVariantSelectionPath(family, requestedSelection)}`,
+        {
+            timeoutMs: QUERY_POLICY_REGISTRY.reportVariants.selection.timeoutMs
+        }
+    )
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load report variant selection snapshot', response, text))
+    }
+
+    return mapPublishedReportVariantSelectionSnapshot(await response.json())
 }
 
 export function usePublishedReportVariantCatalogQuery(
@@ -205,8 +297,24 @@ export function usePublishedReportVariantCatalogQuery(
         queryFn: () => fetchPublishedReportVariantCatalog(family),
         enabled: options?.enabled ?? true,
         retry: false,
-        staleTime: 2 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
+        staleTime: QUERY_POLICY_REGISTRY.reportVariants.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.reportVariants.catalog.gcTimeMs,
+        refetchOnWindowFocus: false
+    })
+}
+
+export function usePublishedReportVariantSelectionQuery(
+    family: PublishedReportVariantFamily,
+    requestedSelection: Record<string, string | null | undefined>,
+    options?: UsePublishedReportVariantCatalogOptions
+): UseQueryResult<PublishedReportVariantSelectionSnapshotDto, Error> {
+    return useQuery({
+        queryKey: buildPublishedReportVariantSelectionQueryKey(family, requestedSelection),
+        queryFn: () => fetchPublishedReportVariantSelectionSnapshot(family, requestedSelection),
+        enabled: options?.enabled ?? true,
+        retry: false,
+        staleTime: QUERY_POLICY_REGISTRY.reportVariants.selection.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.reportVariants.selection.gcTimeMs,
         refetchOnWindowFocus: false
     })
 }
@@ -218,8 +326,21 @@ export async function prefetchPublishedReportVariantCatalog(
     await queryClient.prefetchQuery({
         queryKey: buildPublishedReportVariantCatalogQueryKey(family),
         queryFn: () => fetchPublishedReportVariantCatalog(family),
-        staleTime: 2 * 60 * 1000,
-        gcTime: 15 * 60 * 1000
+        staleTime: QUERY_POLICY_REGISTRY.reportVariants.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.reportVariants.catalog.gcTimeMs
+    })
+}
+
+export async function prefetchPublishedReportVariantSelectionSnapshot(
+    queryClient: QueryClient,
+    family: PublishedReportVariantFamily,
+    requestedSelection: Record<string, string | null | undefined>
+): Promise<void> {
+    await queryClient.prefetchQuery({
+        queryKey: buildPublishedReportVariantSelectionQueryKey(family, requestedSelection),
+        queryFn: () => fetchPublishedReportVariantSelectionSnapshot(family, requestedSelection),
+        staleTime: QUERY_POLICY_REGISTRY.reportVariants.selection.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.reportVariants.selection.gcTimeMs
     })
 }
 
@@ -302,6 +423,13 @@ export function buildPublishedReportVariantCompatibleOptions(
             })
         })
     )
+}
+
+export function getPublishedReportVariantAxisOptionValues(
+    source: PublishedReportVariantAxesOwnerDto,
+    axisKey: string
+): string[] {
+    return getAxisOrThrow(source, axisKey).options.map(option => option.value)
 }
 
 export function hasPublishedReportVariantAxis(

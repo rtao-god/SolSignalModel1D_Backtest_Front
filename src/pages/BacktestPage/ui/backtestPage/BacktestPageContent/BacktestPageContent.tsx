@@ -23,6 +23,7 @@ import { BacktestWhatIfColumn } from '../BacktestWhatIfColumn/BacktestWhatIfColu
 import { BacktestCompareBlock } from '../BacktestCompareBlock/BacktestCompareBlock'
 import { useTranslation } from 'react-i18next'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { BacktestExperimentsLab } from '../BacktestExperimentsLab/BacktestExperimentsLab'
 
 interface BacktestPageContentProps {
     baselineSummary: BacktestSummaryDto | null
@@ -213,38 +214,48 @@ export function BacktestPageContent({
 
     const patchConfidenceRiskNumberField = (field: string, value: number) => {
         updateDraftConfig(prev => {
-            if (!prev.confidenceRisk) {
+            if (!prev.executionProfile.confidenceRisk) {
                 throw new Error(`Cannot patch confidenceRisk.${field}: confidenceRisk is null.`)
             }
 
             return {
                 ...prev,
-                confidenceRisk: {
-                    ...prev.confidenceRisk,
-                    [field]: value
+                executionProfile: {
+                    ...prev.executionProfile,
+                    confidenceRisk: {
+                        ...prev.executionProfile.confidenceRisk,
+                        [field]: value
+                    }
                 }
             }
         })
+    }
+
+    const patchBaselineProfile = (field: 'stopLossPct' | 'takeProfitPct', value: number) => {
+        updateDraftConfig(prev => ({
+            ...prev,
+            executionProfile: {
+                ...prev.executionProfile,
+                baselineProfile: {
+                    ...prev.executionProfile.baselineProfile,
+                    [field]: value
+                }
+            }
+        }))
     }
 
     const handleStopPctChange = (valueStr: string) => {
         const value = parseInputNumber(valueStr)
         if (value === null || value <= 0) return
 
-        updateDraftConfig(prev => ({
-            ...prev,
-            dailyStopPct: value / 100
-        }))
+        patchBaselineProfile('stopLossPct', value / 100)
     }
 
     const handleTpPctChange = (valueStr: string) => {
         const value = parseInputNumber(valueStr)
         if (value === null || value <= 0) return
 
-        updateDraftConfig(prev => ({
-            ...prev,
-            dailyTpPct: value / 100
-        }))
+        patchBaselineProfile('takeProfitPct', value / 100)
     }
 
     const handleConfidenceRiskPctChange = (field: string, valueStr: string) => {
@@ -269,11 +280,11 @@ export function BacktestPageContent({
         const factor = mode === 'tighter' ? 0.95 : 1.05
 
         updateDraftConfig(prev => {
-            if (!prev.confidenceRisk) {
+            if (!prev.executionProfile.confidenceRisk) {
                 throw new Error('Cannot shift dynamic TP/SL: confidenceRisk is null.')
             }
 
-            const confidenceRisk = prev.confidenceRisk
+            const confidenceRisk = prev.executionProfile.confidenceRisk
             const tpMin = clamp(confidenceRisk.tpMultiplierMin * factor, 0.01, 10)
             const tpMax = clamp(confidenceRisk.tpMultiplierMax * factor, tpMin, 10)
             const slMin = clamp(confidenceRisk.slMultiplierMin * factor, 0.01, 10)
@@ -281,12 +292,15 @@ export function BacktestPageContent({
 
             return {
                 ...prev,
-                confidenceRisk: {
-                    ...confidenceRisk,
-                    tpMultiplierMin: tpMin,
-                    tpMultiplierMax: tpMax,
-                    slMultiplierMin: slMin,
-                    slMultiplierMax: slMax
+                executionProfile: {
+                    ...prev.executionProfile,
+                    confidenceRisk: {
+                        ...confidenceRisk,
+                        tpMultiplierMin: tpMin,
+                        tpMultiplierMax: tpMax,
+                        slMultiplierMin: slMin,
+                        slMultiplierMax: slMax
+                    }
                 }
             }
         })
@@ -405,6 +419,8 @@ export function BacktestPageContent({
                 tpSlMode={tpSlMode}
                 onTpSlModeChange={setTpSlMode}
             />
+
+            <BacktestExperimentsLab />
 
             <SectionDataState
                 isLoading={isProfilesLoading && !currentProfile}

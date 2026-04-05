@@ -7,6 +7,12 @@ import { logError } from '@/shared/lib/logging/logError'
 const { useBacktestConfidenceRiskReportQuery } = vi.hoisted(() => ({
     useBacktestConfidenceRiskReportQuery: vi.fn()
 }))
+const { usePublishedReportVariantCatalogQuery } = vi.hoisted(() => ({
+    usePublishedReportVariantCatalogQuery: vi.fn()
+}))
+const { useCurrentPredictionBackfilledTrainingScopeStatsQuery } = vi.hoisted(() => ({
+    useCurrentPredictionBackfilledTrainingScopeStatsQuery: vi.fn()
+}))
 
 vi.mock('@/shared/api/tanstackQueries/backtestConfidenceRisk', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/backtestConfidenceRisk')>()
@@ -17,9 +23,32 @@ vi.mock('@/shared/api/tanstackQueries/backtestConfidenceRisk', async importOrigi
     }
 })
 
-vi.mock('@/shared/lib/logging/logError', () => ({
-    logError: vi.fn()
-}))
+vi.mock('@/shared/api/tanstackQueries/reportVariants', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/reportVariants')>()
+
+    return {
+        ...actual,
+        usePublishedReportVariantCatalogQuery
+    }
+})
+
+vi.mock('@/shared/api/tanstackQueries/currentPrediction', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/currentPrediction')>()
+
+    return {
+        ...actual,
+        useCurrentPredictionBackfilledTrainingScopeStatsQuery
+    }
+})
+
+vi.mock('@/shared/lib/logging/logError', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/lib/logging/logError')>()
+
+    return {
+        ...actual,
+        logError: vi.fn()
+    }
+})
 
 function createQueryResult<T>(overrides: Record<string, unknown> = {}) {
     return {
@@ -105,11 +134,80 @@ function createConfidenceRiskReportData() {
     }
 }
 
+function createVariantCatalog() {
+    return {
+        family: 'backtest_confidence_risk',
+        sourceReportKind: 'backtest_confidence_risk',
+        sourceReportId: 'catalog-1',
+        publishedAtUtc: '2026-03-11T12:00:00.000Z',
+        axes: [
+            {
+                key: 'scope',
+                defaultValue: 'full',
+                options: [
+                    { value: 'full', label: 'Full' },
+                    { value: 'oos', label: 'OOS' },
+                    { value: 'train', label: 'Train' },
+                    { value: 'recent', label: 'Recent' }
+                ]
+            },
+            {
+                key: 'confBucket',
+                defaultValue: 'all',
+                options: [
+                    { value: 'all', label: 'All buckets' },
+                    { value: 'B00', label: 'B00' }
+                ]
+            }
+        ],
+        variants: [
+            {
+                key: 'full-all',
+                selection: {
+                    scope: 'full',
+                    confBucket: 'all'
+                },
+                artifacts: {
+                    report: 'full-all.json'
+                }
+            },
+            {
+                key: 'oos-all',
+                selection: {
+                    scope: 'oos',
+                    confBucket: 'all'
+                },
+                artifacts: {
+                    report: 'oos-all.json'
+                }
+            }
+        ]
+    }
+}
+
 describe('ConfidenceRiskPage', () => {
     beforeEach(async () => {
         await i18nForTests.changeLanguage('en')
         clearLoggedSectionKeys()
         vi.clearAllMocks()
+        usePublishedReportVariantCatalogQuery.mockReturnValue(
+            createQueryResult({
+                data: createVariantCatalog()
+            })
+        )
+        useCurrentPredictionBackfilledTrainingScopeStatsQuery.mockReturnValue(
+            createQueryResult({
+                data: {
+                    fullDays: 1327,
+                    trainDays: 1246,
+                    oosDays: 81,
+                    recentDays: 81,
+                    recentMatchesOos: true,
+                    oosHistoryDaySharePercent: 30,
+                    recentHistoryDaySharePercent: 15
+                }
+            })
+        )
         useBacktestConfidenceRiskReportQuery.mockReturnValue(
             createQueryResult({
                 refetch: vi.fn()

@@ -4,6 +4,8 @@ import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import RouteShellFallback from '../RouteShellFallback/RouteShellFallback'
 import { AppRoute } from '../../config/types'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
+import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
+import { buildModelStatsHeaderSubtitle } from '@/pages/ModelStatsPage/ui/modelStatsUtils'
 
 export interface RouteShellStateProps {
     routeLabelDefault: string
@@ -99,6 +101,30 @@ function PredictionHistoryRouteShellFallback({
     )
 }
 
+function ModelStatsRouteShellFallback({
+    loadingTitle,
+    state,
+    error,
+    resetErrorBoundary
+}: RouteShellStateProps) {
+    const { t, i18n } = useTranslation('reports')
+    const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
+
+    return (
+        <RouteShellFallback
+            title={t('modelStats.inner.header.titleFallback', { defaultValue: 'Model statistics' })}
+            subtitle={buildModelStatsHeaderSubtitle(
+                i18n.resolvedLanguage ?? i18n.language,
+                trainingScopeStatsQuery.data ?? null
+            )}
+            state={state}
+            loadingTitle={loadingTitle}
+            error={error}
+            onRetry={resetErrorBoundary}
+        />
+    )
+}
+
 function AggregationRouteShellFallback({
     loadingTitle,
     state,
@@ -160,12 +186,7 @@ function GenericRouteShellFallback({
 const ROUTE_SHELLS: Partial<Record<AppRoute, ComponentType<RouteShellStateProps>>> = {
     [AppRoute.CURRENT_PREDICTION]: CurrentPredictionRouteShellFallback,
     [AppRoute.CURRENT_PREDICTION_HISTORY]: PredictionHistoryRouteShellFallback,
-    [AppRoute.MODELS_STATS]: createReportsShell(
-        'modelStats.inner.header.titleFallback',
-        'Model statistics',
-        'modelStats.inner.header.subtitle',
-        'Model comparison by the selected data segment and reading mode.'
-    ),
+    [AppRoute.MODELS_STATS]: ModelStatsRouteShellFallback,
     [AppRoute.AGGREGATION_STATS]: AggregationRouteShellFallback,
     [AppRoute.BACKTEST_BASELINE]: createReportsShell(
         'backtestBaseline.header.title',
@@ -237,6 +258,42 @@ const ROUTE_SHELLS: Partial<Record<AppRoute, ComponentType<RouteShellStateProps>
         'confidenceRisk.page.subtitle',
         'Связь confidence, bucket и риска на уровне фактических сделок.'
     ),
+    [AppRoute.BACKTEST_SHARP_MOVE_STATS]: createReportsShell(
+        'sharpMoveStats.page.title',
+        'Sharp move statistics',
+        'sharpMoveStats.page.subtitle',
+        'Сетка сценариев по продолжению и развороту после резкого движения цены.'
+    ),
+    [AppRoute.BACKTEST_BTC_WEAKNESS_STATS]: createReportsShell(
+        'btcWeaknessStats.page.title',
+        'BTC weakness statistics',
+        'btcWeaknessStats.page.subtitle',
+        'Owner-статистика по правилу, которое снимает прогноз роста Solana при одновременной слабости Bitcoin.'
+    ),
+    [AppRoute.BACKTEST_MICRO_OVERLAY_STATS]: createReportsShell(
+        'microOverlayStats.page.title',
+        'Micro overlay statistics',
+        'microOverlayStats.page.subtitle',
+        'Страница показывает, когда микро-модель действительно получает право сдвигать базовый боковой ответ дня.'
+    ),
+    [AppRoute.BACKTEST_SL_OVERLAY_STATS]: createReportsShell(
+        'slOverlayStats.page.title',
+        'Trade risk statistics',
+        'slOverlayStats.page.subtitle',
+        'Страница показывает, когда модель риска сделки сдвигает итоговые вероятности и насколько её сигнал подтверждается фактом SL-first.'
+    ),
+    [AppRoute.BACKTEST_SL_STRONG_DAY_STATS]: createReportsShell(
+        'slStrongDayStats.page.title',
+        'Strong-day statistics',
+        'slStrongDayStats.page.subtitle',
+        'Страница показывает, как правило сильного дня делит историю на слабые, серые и сильные дни перед работой риск-модели сделки.'
+    ),
+    [AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS]: createReportsShell(
+        'boundedParameterStats.page.title',
+        'Bounded parameter statistics',
+        'boundedParameterStats.page.subtitle',
+        'Сравнение ограничивающих параметров по качеству моделей и фактическому поведению ограничителя.'
+    ),
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: createReportsShell(
         'realForecastJournal.page.title',
         'Real Forecast Journal',
@@ -250,10 +307,10 @@ const ROUTE_SHELLS: Partial<Record<AppRoute, ComponentType<RouteShellStateProps>
         'Пошаговый разбор пути от модели до исполнения и учёта результата.'
     ),
     [AppRoute.PFI_PER_MODEL]: createReportsShell(
-        'pfi.page.header.titleFallback',
-        'PFI daily models',
-        'pfi.page.header.subtitle',
-        'Влияние признаков на дневные модели по опубликованным секциям PFI.'
+        'pfi.page.shell.title',
+        'Models',
+        'pfi.page.shell.subtitle',
+        'Страница объединяет качество моделей на исторических срезах и разбор влияния признаков.'
     ),
     [AppRoute.PFI_SL_MODEL]: createReportsShell(
         'pfi.page.header.slTitleFallback',

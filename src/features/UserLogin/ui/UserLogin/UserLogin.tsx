@@ -63,11 +63,11 @@ export default function UserLogin({ className }: LoginFormProps) {
                         {t('login.submit')}
                     </Btn>
                     <div className={cls.register}>
-                        <Text color='#7D7F82' fz='16px' type='p'>
+                        <Text color='#7D7F82' variant='body-lg' type='p'>
                             {t('login.noAccount')}
                         </Text>
                         <Link to='/registration' className={cls.register_text}>
-                            <Text color='#0064FA' fz='16px' type='p'>
+                            <Text color='#0064FA' variant='body-lg' type='p'>
                                 {t('login.registerLink')}
                             </Text>
                         </Link>

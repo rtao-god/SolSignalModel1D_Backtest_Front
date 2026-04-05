@@ -9,7 +9,7 @@
 }
 
 @mixin table-header-cell {
-    @include text-size-body-2;
+    @include type-table-header;
     color: var(--color-text-secondary);
     padding: 8px 16px;
 }

@@ -39,5 +39,33 @@ describe('ReportViewControls', () => {
 
         expect(fullButton.querySelector('[data-term-tooltip-instance-id]')).toBeNull()
         expect(container.querySelectorAll('[data-term-tooltip-instance-id]')).toHaveLength(1)
+        expect(screen.getByText('Option-level tooltip')).toBeInTheDocument()
+    })
+
+    test('hides the selected option hint block when the page disables inline hints', () => {
+        render(
+            <ReportViewControls
+                showSelectedOptionHints={false}
+                groups={[
+                    {
+                        key: 'training-scope',
+                        label: 'Training scope',
+                        infoTooltip: 'Group-level tooltip',
+                        value: 'full',
+                        options: [
+                            {
+                                value: 'full',
+                                label: 'Full',
+                                tooltip: 'Option-level tooltip'
+                            }
+                        ],
+                        onChange: () => undefined
+                    }
+                ]}
+            />
+        )
+
+        expect(screen.queryByText('Option-level tooltip')).not.toBeInTheDocument()
+        expect(screen.getByText('Training scope')).toBeInTheDocument()
     })
 })

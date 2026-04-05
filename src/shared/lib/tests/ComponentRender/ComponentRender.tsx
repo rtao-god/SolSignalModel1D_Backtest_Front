@@ -3,6 +3,7 @@ import { ReactNode } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { I18nextProvider } from 'react-i18next'
 import { StateSchema, StoreProvider } from '@/app/providers/StoreProvider'
+import { ThemeProvider } from '@/app/providers/ThemeProvider'
 import i18nForTests from '@/shared/configs/i18n/i18nForTests'
 
 export interface ComponentRenderPropsOptions {
@@ -14,9 +15,11 @@ export interface ComponentRenderPropsOptions {
 const AllProviders: React.FC<ComponentRenderPropsOptions> = ({ children, route = '/', initialState }) => {
     return (
         <StoreProvider initialState={initialState}>
-            <MemoryRouter initialEntries={[route]}>
-                <I18nextProvider i18n={i18nForTests}>{children}</I18nextProvider>
-            </MemoryRouter>
+            <ThemeProvider>
+                <MemoryRouter initialEntries={[route]}>
+                    <I18nextProvider i18n={i18nForTests}>{children}</I18nextProvider>
+                </MemoryRouter>
+            </ThemeProvider>
         </StoreProvider>
     )
 }

@@ -14,6 +14,35 @@ function isAbortError(error: unknown): boolean {
     )
 }
 
+function resolveRequestTarget(input: RequestInfo | URL): string {
+    if (typeof input === 'string') {
+        return input
+    }
+
+    if (input instanceof URL) {
+        return input.toString()
+    }
+
+    if (typeof Request !== 'undefined' && input instanceof Request) {
+        return input.url
+    }
+
+    return String(input)
+}
+
+function buildTimeoutErrorMessage(input: RequestInfo | URL, timeoutMs: number): string {
+    const target = resolveRequestTarget(input)
+
+    return [
+        '[fetch-timeout] Request timed out.',
+        'owner=frontend.fetch-with-timeout',
+        `expected=HTTP response headers for '${target}' within ${timeoutMs}ms.`,
+        `actual=No response arrived before the timeout deadline for '${target}'.`,
+        'requiredAction=Inspect backend latency, network reachability, and the published-read path for this request.',
+        `context=${JSON.stringify({ timeoutMs, target })}`
+    ].join(' | ')
+}
+
 /**
  * Оборачивает fetch явным timeout, чтобы зависший API не оставлял страницу в бесконечном pending-state.
  * Если caller передал signal, внешний abort сохраняет приоритет и не маскируется как timeout.
@@ -43,7 +72,7 @@ export async function fetchWithTimeout(input: RequestInfo | URL, options?: Fetch
         })
     } catch (error) {
         if (isAbortError(error) && !signal?.aborted) {
-            throw new Error(`Request timed out after ${timeoutMs}ms: ${String(input)}`)
+            throw new Error(buildTimeoutErrorMessage(input, timeoutMs))
         }
 
         throw error

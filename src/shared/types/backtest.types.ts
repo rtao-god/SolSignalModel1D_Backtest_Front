@@ -1,5 +1,6 @@
 import type { PolicyRatiosReportDto } from './policyRatios.types'
 import type { PolicyEvaluationDto } from './policyEvaluation.types'
+import type { PolicyPerformanceMetricsDto } from './policyPerformanceMetrics.types'
 import type { ReportDocumentDto } from './report.types'
 
 export interface BacktestPolicyConfigDto {
@@ -79,13 +80,40 @@ export interface BacktestRiskBudgetConfigDto {
     tiers: BacktestRiskBudgetTierDto[]
 }
 
-export interface BacktestConfigDto {
-    dailyStopPct: number
-    dailyTpPct: number
+export interface TradeExitProfileDto {
+    takeProfitPct: number
+    stopLossPct: number
+}
+
+export interface TradeExitGridLevelDto {
+    id: string
+    name: string
+    profile: TradeExitProfileDto
+}
+
+export interface TradeExitGridDto {
+    id: string
+    name: string
+    defaultLevelId?: string | null
+    levels: TradeExitGridLevelDto[]
+}
+
+export interface ExecutionProfileConfigDto {
+    baselineProfile: TradeExitProfileDto
+    grid: TradeExitGridDto
     confidenceRisk?: BacktestConfidenceRiskConfigDto | null
+}
+
+export interface BacktestConfigDto {
+    calcMode: string
+    executionProfile: ExecutionProfileConfigDto
     riskBudget?: BacktestRiskBudgetConfigDto | null
     reportBucketPolicy?: string
     policies: BacktestPolicyConfigDto[]
+    trainUntilExitDayKeyUtc?: string | null
+    exportDiagnosticsCsv?: boolean
+    diagnosticsExportDir?: string | null
+    diagnosticsTopTradesCount?: number
 }
 
 export type BacktestProfileCategory = 'system' | 'user' | 'scratch' | string
@@ -118,11 +146,7 @@ export interface BacktestPolicySummaryDto {
     policyName: string
     marginMode: string
     useAntiDirectionOverlay: boolean
-    totalPnlPct: number
-    maxDrawdownPct: number
-    hadLiquidation: boolean
-    withdrawnTotal: number
-    tradesCount: number
+    performanceMetrics: PolicyPerformanceMetricsDto
     evaluation: PolicyEvaluationDto | null
 }
 

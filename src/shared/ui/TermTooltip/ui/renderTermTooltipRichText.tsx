@@ -11,6 +11,7 @@ import { matchTermTooltips, normalizeComparableTerm, TermTooltipRegistryEntry } 
 import { buildSafeTermTooltipRegistry, formatTermTooltipRegistryIssue } from '../lib/termTooltipRegistryIntegrity'
 import { resolveTermTooltipDescriptionContent } from '../lib/resolveTermTooltipDescriptionContent'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 type InlineGlossaryRuleDraft = SharedTermTooltipRuleDraft
 
@@ -27,10 +28,10 @@ const OOS_SEGMENT_DESCRIPTION_EN: ReactNode =
     'OOS (out-of-sample) is the later post-split part of history that the model did not see during training.\n\nWhat it shows:\n1) This is the main honest check on newer days inside the current split setup.\n2) The model is first fit on [[train-segment|Train]], then the same fitted version scores only OOS days with no extra retraining.\n3) During inference the realized OOS outcome is not fed into the model directly: probabilities are calculated first, and the real outcome is attached to the report later.\n\nHow to read it:\n1) `OOS` is the main honest evaluation slice.\n2) If [[train-segment|Train]] stays high while OOS is weak, the system looks better on familiar history than it does on fresh data.\n3) That gap is a signal of weak transfer or possible [[leakage|leakage]].'
 
 const SPLIT_BOUNDARIES_DESCRIPTION_RU: ReactNode =
-    'Split-границы — правило, которое делит историю на Train и OOS по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]].\n\nЧто показывает:\nдвижок берёт самый поздний доступный такой день, отматывает назад 120 календарных дней и, если нужно, привязывает границу к каноническому торговому дню. Всё не позже границы попадает в Train, всё позже — в OOS.\n\nКак читать:\nграница считается по дню закрытия, а не по дню входа. Это не даёт дню остаться в Train только потому, что вход был раньше, хотя итог окна закрылся уже по OOS-стороне.'
+    'Split-границы — правило, которое делит историю на Train и OOS по дню, когда окончательно закрывается рабочее окно [[landing-time-horizon|торгового дня]].\n\nЧто показывает:\nдвижок берёт самый поздний доступный такой день, отступает назад на фиксированное календарное окно проверки и, если нужно, привязывает границу к каноническому торговому дню. Всё не позже границы попадает в Train, всё позже — в OOS.\n\nКак читать:\nграница считается по дню закрытия, а не по дню входа. Это не даёт дню остаться в Train только потому, что вход был раньше, хотя итог окна закрылся уже по OOS-стороне.'
 
 const SPLIT_BOUNDARIES_DESCRIPTION_EN: ReactNode =
-    'Split boundaries are the rule that cuts history into Train and OOS by the day when the base daily window is fully closed.\n\nWhat it shows:\nthe engine takes the latest available close day of that window, walks back 120 calendar days, and, if needed, snaps the boundary to the canonical trading day. Anything that closes no later than that boundary stays in Train; anything later goes to OOS.\n\nHow to read it:\nthe cut is based on close day rather than entry day. That prevents a day from staying in Train when the result of that window closes on the OOS side.'
+    'Split boundaries are the rule that cuts history into Train and OOS by the day when the base daily window is fully closed.\n\nWhat it shows:\nthe engine takes the latest available close day of that window, steps back by a fixed calendar validation window, and, if needed, snaps the boundary to the canonical trading day. Anything that closes no later than that boundary stays in Train; anything later goes to OOS.\n\nHow to read it:\nthe cut is based on close day rather than entry day. That prevents a day from staying in Train when the result of that window closes on the OOS side.'
 
 const CURRENT_PREDICTION_MODEL_STACK_DESCRIPTION_RU: ReactNode =
     'Модели текущего прогноза — это не один классификатор, а последовательность слоёв, которые собирают итоговый ответ по шагам.\n\n1) [[current-prediction-daily-layer|Daily]] (Move + Dir) — базовый дневной слой. Он сначала оценивает, будет ли значимое движение, а затем задаёт базовый класс [[landing-day-up|рост]] / [[landing-day-flat|боковик]] / [[landing-day-down|падение]].\n\n2) [[landing-micro-model|Micro]] — уточняющий слой внутри [[landing-day-flat|боковика]]. Он пытается понять, есть ли внутри нейтрального дня слабый уклон вверх или вниз.\n\n3) [[sl-model|SL-модель]] — отдельный risk-слой, который оценивает шанс, что [[tp-sl|stop-loss]] сработает раньше [[tp-sl|take-profit]], и помечает рискованные дни.\n\n4) Total — не отдельная обученная модель, а итоговая сборка Day + Micro + SL, которую дальше читает слой [[policy|торговых правил]].\n\nКак читать:\nесли [[factor|фактор]] ссылается на модель, сначала нужно понять, к какому слою он относится: к базовому направлению дня, к уточнению боковика или к risk-слою.'
@@ -43,6 +44,12 @@ const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU: ReactNode =
 
 const CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN: ReactNode =
     'Daily is the base daily layer in current prediction.\n\nIt first estimates whether a meaningful move is likely, then selects the base day class: UP, FLAT, or DOWN.\n\nThis layer sets the starting scenario before any [[landing-micro-model|Micro]] refinement and before the risk correction from the [[sl-model|SL model]].'
+
+const HISTORY_WARMUP_DESCRIPTION_RU: ReactNode =
+    'Разогрев индикаторов — ранний участок истории между стартом сырого архива и первым днём [[train-segment|Train]], где все обязательные признаки уже накопили полное покрытие.\n\nЧто показывает:\n1) В этот период проект уже собирает цены и индикаторы, но эти дни ещё не входят ни в [[train-segment|Train]], ни в [[oos-segment|OOS]].\n2) Эти дни нужны длинным индикаторам, чтобы накопить собственные окна без дыр и неполных хвостов.\n3) Следующий день после разогрева становится первым днём [[train-segment|Train]], а позже за ним уже начинается [[oos-segment|OOS]].\n\nКак читать:\nразогрев — отдельный технический отрезок подготовки данных перед первым днём [[train-segment|Train]].'
+
+const HISTORY_WARMUP_DESCRIPTION_EN: ReactNode =
+    'Indicator warmup is the early part of history between the raw archive start and the first day of [[train-segment|Train]], where all required features already have full coverage.\n\nWhat it shows:\n1) During this period the project is already collecting prices and indicators, but these days do not yet belong to either [[train-segment|Train]] or [[oos-segment|OOS]].\n2) These days are needed so long-horizon indicators can accumulate their own windows without gaps or incomplete tails.\n3) The next day after warmup becomes the first day of [[train-segment|Train]], and [[oos-segment|OOS]] starts later after that.\n\nHow to read it:\nwarmup is a separate technical preparation segment before the first day of [[train-segment|Train]].'
 
 function resolveLocalizedTrainingSegmentDescription(kind: 'train' | 'oos'): ReactNode {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
@@ -67,6 +74,11 @@ function resolveLocalizedCurrentPredictionModelStackDescription(): ReactNode {
 function resolveLocalizedCurrentPredictionDailyLayerDescription(): ReactNode {
     const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
     return isEnglish ? CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_EN : CURRENT_PREDICTION_DAILY_LAYER_DESCRIPTION_RU
+}
+
+function resolveLocalizedHistoryWarmupDescription(): ReactNode {
+    const isEnglish = i18n.resolvedLanguage?.startsWith('en') ?? i18n.language?.startsWith('en')
+    return isEnglish ? HISTORY_WARMUP_DESCRIPTION_EN : HISTORY_WARMUP_DESCRIPTION_RU
 }
 
 function resolveLocalizedReportTooltipDescription(descriptionKey: string, ruleId: string, term: string): ReactNode {
@@ -399,6 +411,14 @@ const TERM_TOOLTIP_REGISTRY_DRAFT: InlineGlossaryRuleDraft[] = [
             'свежий хвост истории'
         ]
     ),
+    {
+        id: 'history-warmup',
+        pattern: /$^/,
+        title: 'Разогрев индикаторов',
+        description: () => resolveLocalizedHistoryWarmupDescription(),
+        aliases: ['Разогрев индикаторов', 'разогрев индикаторов', 'Indicator warmup', 'indicator warmup', 'Warmup'],
+        priority: 180
+    },
     createLocalizedReportOwnerTooltipRule(
         'landing-baseline-backtest',
         'main.tooltipRules.baselineBacktest',
@@ -690,6 +710,31 @@ function parseExplicitTermMarkupSegments(text: string): ExplicitTermMarkupSegmen
     return segments.length > 0 ? segments : [{ type: 'text', value: text }]
 }
 
+function renderTooltipDisplayLabel(label: string): ReactNode | undefined {
+    if (!label.includes('\n')) {
+        return undefined
+    }
+
+    const lines = label
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+
+    if (lines.length <= 1) {
+        return undefined
+    }
+
+    return (
+        <span className={cls.multilineTermDisplay}>
+            {lines.map((line, index) => (
+                <span key={`${line}-${index}`} className={cls.multilineTermDisplayLine}>
+                    {line}
+                </span>
+            ))}
+        </span>
+    )
+}
+
 function resolveStructuredParagraphBlocks(paragraph: string): StructuredParagraphBlock[] {
     const lines = paragraph.split('\n').filter(line => line.trim().length > 0)
 
@@ -859,6 +904,7 @@ function renderAutolinkedTextSegment(
             <TermTooltip
                 key={`${keyPrefix}-${match.rule.id}-${index}-${match.start}`}
                 term={match.value}
+                displayTerm={renderTooltipDisplayLabel(match.value)}
                 tooltipTitle={match.rule.title}
                 description={() =>
                     buildNestedDescription(match.rule, match.value, excludedRuleIds, recursionDepth, maxRecursionDepth)
@@ -926,6 +972,7 @@ function renderInlineRichText(
                 <TermTooltip
                     key={`explicit-${rule.id}-${keyPrefix}-${segmentKey}`}
                     term={segment.label}
+                    displayTerm={renderTooltipDisplayLabel(segment.label)}
                     tooltipTitle={rule.title}
                     description={() =>
                         buildNestedDescription(rule, segment.label, excludedRuleIds, recursionDepth, maxRecursionDepth)
@@ -1095,7 +1142,13 @@ function collectMatcherFixtureValidationError(): Error | null {
             }
         })
     } catch (error) {
-        matcherFixtureValidationError = error instanceof Error ? error : new Error(String(error))
+        matcherFixtureValidationError = normalizeErrorLike(error, 'Term tooltip matcher fixture validation failed.', {
+            source: 'term-tooltip-matcher-fixtures',
+            domain: 'app_runtime',
+            owner: 'term-tooltip-registry',
+            expected: 'Matcher fixtures should fail with owner-specific Error instances.',
+            requiredAction: 'Inspect the matcher fixture and term tooltip registry rules.'
+        })
         return matcherFixtureValidationError
     }
 
@@ -1306,8 +1359,13 @@ export function renderTermTooltipRichText(text: string, options?: RenderTermTool
             </>
         )
     } catch (error) {
-        const normalizedError =
-            error instanceof Error ? error : new Error(String(error ?? 'Unknown term tooltip error.'))
+        const normalizedError = normalizeErrorLike(error, 'Unknown term tooltip error.', {
+            source: 'term-tooltip-render',
+            domain: 'app_runtime',
+            extra: {
+                text
+            }
+        })
         logError(normalizedError, undefined, {
             source: 'term-tooltip-render',
             domain: 'app_runtime',

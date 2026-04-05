@@ -21,13 +21,13 @@
 }
 
 .title {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     color: #e2e8f0;
 }
 
 .subtitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.5;
     color: #94a3b8;
     max-width: 760px;
@@ -65,7 +65,7 @@
 }
 
 .description {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: #d1d5db;
     white-space: pre-line;

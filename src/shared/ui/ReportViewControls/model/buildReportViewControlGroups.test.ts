@@ -4,6 +4,7 @@ import {
     buildMegaTotalBucketViewControlGroup,
     buildCurrentPredictionHistoryTrainingScopeDescription,
     buildCurrentPredictionLiveTrainingScopeDescription,
+    buildSelectionControlGroup,
     buildModelStatsSegmentControlGroup,
     buildModelStatsViewControlGroup
 } from './buildReportViewControlGroups'
@@ -21,7 +22,8 @@ const MOCK_SPLIT_STATS: CurrentPredictionBackfilledTrainingScopeStats = {
     recentStartDateUtc: '2025-11-19',
     recentEndDateUtc: '2026-03-18',
     recentDays: 81,
-    recentTailRowsLimit: 240,
+    oosHistoryDaySharePercent: 30,
+    recentHistoryDaySharePercent: 15,
     recentMatchesOos: true,
     totalDays: 1327,
     trainShare: 1246 / 1327,
@@ -58,19 +60,19 @@ describe('buildReportViewControlGroups training scope descriptions', () => {
     test('builds exact history-scope description from current split facts', () => {
         const description = normalizeSpaces(buildCurrentPredictionHistoryTrainingScopeDescription(MOCK_SPLIT_STATS))
 
-        expect(description).toContain('На этой странице режим меняет две вещи: на каких днях модель обучалась и какие дни потом попадают в историю.')
+        expect(description).toContain('На этой странице режим меняет две вещи: какой кусок полной истории идёт в обучение и какие дни потом попадают в историю.')
         expect(description).toContain('модель один раз подстраивает [[landing-model-weights|веса модели]]')
         expect(description).toContain('не получает готовый итог этого дня в лоб')
         expect(description).toContain(
-            '[[landing-all-history|Full]] — это режим, где модель берёт всю завершённую историю страницы: 2021 — 2026 (1 620 календарных дней; в расчёт без выходных попадает 1 158 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]).'
+            '[[landing-all-history|Full]] — это режим 100% завершённой истории страницы: 2021 — 2026 (1 620 календарных дней; в расчёт без выходных попадает 1 158 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]). В текущем опубликованном каталоге это 1 327 дней.'
         )
         expect(description).toContain('итог [[landing-time-horizon|торгового дня]]')
         expect(description).toContain('старый прогноз за 2024 год может стать другим')
         expect(description).toContain(
-            '[[landing-oos|OOS]] — это новые дни: 2025 — 2026 (120 календарных дней; в расчёт без выходных попадает 86 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]). Перед ними идёт более ранний [[train-segment|Train]]: 2021 — 2025 (1 500 календарных дней; в расчёт без выходных попадает 1 072 [[landing-time-horizon|торговых дня]]. [[why-weekends|Почему?]]).'
+            '[[landing-oos|OOS]] — это базовый пользовательский хвост новых дней. Правило режима закрепляет за [[landing-oos|OOS]] последние 30% полной истории, а за [[train-segment|Train]] — более ранние 70%. В текущем опубликованном каталоге [[landing-oos|OOS]] сейчас содержит 81 день: 2025 — 2026 (120 календарных дней; в расчёт без выходных попадает 86 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]). Перед ним идёт [[train-segment|Train]] с 1 246 дней: 2021 — 2025 (1 500 календарных дней; в расчёт без выходных попадает 1 072 [[landing-time-horizon|торговых дня]]. [[why-weekends|Почему?]]).'
         )
-        expect(description).toContain('отступает назад на 120 календарных дней')
-        expect(description).toContain('Лимит режима — последние 240 записей [[landing-oos|OOS]].')
+        expect(description).toContain('Процент в описании показывает правило режима, а число дней рядом показывает, сколько опубликованных дней реально попало в этот режим сейчас.')
+        expect(description).toContain('[[landing-recent-tail-history|Recent]] — это не отдельное обучение, а короткий пользовательский хвост новых дней. Правило режима закрепляет за ним последние 15% полной истории. В текущем опубликованном каталоге этот хвост сейчас содержит 81 день:')
         expect(description).toContain('[[landing-recent-tail-history|Recent]] и [[landing-oos|OOS]] совпадают')
         expect(description).toContain('Train diagnostics metrics')
         expect(description).toContain('Worst mistakes (in-sample)')
@@ -105,15 +107,15 @@ describe('buildReportViewControlGroups training scope descriptions', () => {
 
         expect(description).toContain('На live-странице режим меняет не набор карточек, а историю обучения текущей модели.')
         expect(description).toContain(
-            '[[landing-all-history|Full]] на live-странице — это текущий прогноз модели, которая обучена на всей завершённой истории: 2021 — 2026 (1 621 календарный день; в расчёт без выходных попадает 1 159 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]).'
+            '[[landing-all-history|Full]] на live-странице — это текущий прогноз модели, которая обучена на 100% завершённой истории: 2021 — 2026 (1 621 календарный день; в расчёт без выходных попадает 1 159 [[landing-time-horizon|торговых дней]]. [[why-weekends|Почему?]]).'
         )
         expect(description).toContain('Во время live-расчёта факт текущего дня ещё неизвестен')
         expect(description).toContain('в модель попадают только данные текущего дня на момент расчёта')
         expect(description).toContain(
-            '[[landing-oos|OOS]] на live-странице — это текущий прогноз модели, которая сначала обучилась только на [[train-segment|Train]]: 2021 — 2025 (1 501 календарный день; в расчёт без выходных попадает 1 073 [[landing-time-horizon|торговых дня]]. [[why-weekends|Почему?]]), а потом без дообучения считает текущий день за 2026 (1 [[landing-time-horizon|торговый день]]).'
+            '[[landing-oos|OOS]] на live-странице — это текущий прогноз модели, которая сначала обучилась только на [[train-segment|Train]] (70% полной истории): 2021 — 2025 (1 501 календарный день; в расчёт без выходных попадает 1 073 [[landing-time-horizon|торговых дня]]. [[why-weekends|Почему?]]), а потом без дообучения считает текущий день за 2026 (1 [[landing-time-horizon|торговый день]]).'
         )
         expect(description).toContain('Разница между ними не в факте текущего дня')
-        expect(description).toContain('120 календарных дней')
+        expect(description).toContain('более новые 30% полной истории в обучение не входят')
         expect(description).not.toContain('2021-10-11')
         expect(description).not.toContain('2026-03-20')
     })
@@ -123,10 +125,13 @@ describe('buildReportViewControlGroups training scope descriptions', () => {
             value: 'aggregate',
             onChange: () => undefined
         }).infoTooltip
-        const segmentTooltip = buildModelStatsSegmentControlGroup({
-            value: 'OOS',
-            onChange: () => undefined
-        }).infoTooltip
+        const segmentTooltip = normalizeSpaces(
+            buildModelStatsSegmentControlGroup({
+                value: 'OOS',
+                splitStats: MOCK_SPLIT_STATS,
+                onChange: () => undefined
+            }).infoTooltip
+        )
         const viewTooltip = buildModelStatsViewControlGroup({
             value: 'business',
             onChange: () => undefined
@@ -136,7 +141,33 @@ describe('buildReportViewControlGroups training scope descriptions', () => {
         expect(megaTooltip).not.toContain('synthetic')
         expect(segmentTooltip).not.toContain('server-side')
         expect(segmentTooltip).not.toContain('backend')
+        expect(segmentTooltip).toContain('FULL показывает 100% завершённой истории. Сейчас это 1 327 дней.')
+        expect(segmentTooltip).toContain('OOS показывает базовый пользовательский хвост новых дней: 30% полной истории. Сейчас это 81 день.')
         expect(viewTooltip).not.toContain('backend')
         expect(viewTooltip).not.toContain('business, либо technical набор секций')
+    })
+
+    test('builds reusable selection control group without rewriting control contract', () => {
+        const group = buildSelectionControlGroup({
+            key: 'page-mode',
+            label: 'Что показать',
+            value: 'profile',
+            options: [
+                { value: 'profile', label: 'Качество моделей' },
+                { value: 'importance', label: 'Влияние признаков' }
+            ] as const,
+            onChange: () => undefined,
+            ariaLabel: 'Переключатель слоя страницы',
+            infoTooltip: 'Выбор активного слоя страницы.'
+        })
+
+        expect(group.key).toBe('page-mode')
+        expect(group.label).toBe('Что показать')
+        expect(group.value).toBe('profile')
+        expect(group.ariaLabel).toBe('Переключатель слоя страницы')
+        expect(group.options).toEqual([
+            { value: 'profile', label: 'Качество моделей' },
+            { value: 'importance', label: 'Влияние признаков' }
+        ])
     })
 })

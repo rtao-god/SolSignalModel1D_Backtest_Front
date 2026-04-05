@@ -31,9 +31,10 @@
     --chart-min-height: 320px;
     --chart-min-height-compact: 280px;
 
-    --table-font-size: 12px;
-    --table-line-height: 1.5;
-    --table-header-font-size: 11px;
+    --table-font-size: var(--type-table-body-size);
+    --table-line-height: var(--type-table-body-line);
+    --table-header-font-size: var(--type-table-header-size);
+    --table-header-line-height: var(--type-table-header-line);
     --table-cell-padding-y: 8px;
     --table-cell-padding-x: 10px;
     --table-min-width: 420px;

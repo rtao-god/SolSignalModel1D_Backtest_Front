@@ -1,7 +1,8 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { orderPolicyBranchMegaSections } from '@/shared/utils/policyBranchMegaTerms'
+import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
-import { normalizePolicyBranchMegaProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
+import { assertPolicyBranchMegaPrimaryProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
 
 export interface MainBestPolicyRowBundle {
     policy: string
@@ -31,10 +32,12 @@ function columnIndex(columns: string[] | undefined, title: string, tag: string):
 }
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
-    return (sections ?? []).filter(
+    const tableSections = (sections ?? []).filter(
         (section): section is TableSectionDto =>
             Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
     )
+
+    return pruneDuplicatePolicyMarginColumns(tableSections)
 }
 
 function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string): string[] {
@@ -78,9 +81,8 @@ function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string):
 export function buildMainDemoPolicyBranchMegaSections(sections: unknown[]): TableSectionDto[] {
     const tableSections = buildTableSections(sections)
     const orderedSections = orderPolicyBranchMegaSections(tableSections)
-
-    // Карточка лидера не должна расходиться с owner-нормализацией profit-колонок.
-    return normalizePolicyBranchMegaProfitColumns(orderedSections)
+    assertPolicyBranchMegaPrimaryProfitColumns(orderedSections, 'main.demo')
+    return orderedSections
 }
 
 export function resolveMainDemoBestPolicyRows(sections: TableSectionDto[]): MainBestPolicyRowBundle {

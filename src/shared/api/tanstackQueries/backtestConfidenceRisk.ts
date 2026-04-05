@@ -9,6 +9,7 @@ import {
     prefetchPublishedReportVariantCatalog,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from './reportVariants'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const BACKTEST_CONFIDENCE_RISK_QUERY_KEY = ['backtest', 'confidence-risk'] as const
 const { path } = API_ROUTES.backtest.confidenceRiskGet
@@ -84,7 +85,7 @@ async function fetchBacktestConfidenceRiskReport(args?: BacktestConfidenceRiskQu
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load confidence-risk report: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load confidence-risk report', resp, text))
     }
 
     const raw = await resp.json()

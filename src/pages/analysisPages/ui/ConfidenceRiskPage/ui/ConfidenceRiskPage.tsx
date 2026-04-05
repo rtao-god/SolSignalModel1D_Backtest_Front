@@ -22,13 +22,19 @@ import {
     useBacktestConfidenceRiskReportQuery
 } from '@/shared/api/tanstackQueries/backtestConfidenceRisk'
 import {
+    useCurrentPredictionBackfilledTrainingScopeStatsQuery,
+    type CurrentPredictionBackfilledTrainingScopeStats
+} from '@/shared/api/tanstackQueries/currentPrediction'
+import {
     buildPublishedReportVariantCompatibleOptions,
     resolvePublishedReportVariantSelection,
     usePublishedReportVariantCatalogQuery,
     PUBLISHED_REPORT_VARIANT_FAMILIES
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
+import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
@@ -136,12 +142,56 @@ function buildConfidenceRiskTermLookup(
     return lookup
 }
 
-function resolveConfidenceRiskTableTermDescription(key: string, locale: ConfidenceRiskUiLocale): string | null {
+function formatConfidenceRiskScopeDays(value: number, locale: ConfidenceRiskUiLocale): string {
+    const formatted = new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : 'en-US').format(value)
+
+    if (locale !== 'ru') {
+        return `${formatted} days`
+    }
+
+    const absValue = Math.abs(value) % 100
+    const lastDigit = absValue % 10
+
+    if (absValue >= 11 && absValue <= 19) {
+        return `${formatted} дней`
+    }
+
+    if (lastDigit === 1) {
+        return `${formatted} день`
+    }
+
+    if (lastDigit >= 2 && lastDigit <= 4) {
+        return `${formatted} дня`
+    }
+
+    return `${formatted} дней`
+}
+
+function buildConfidenceRiskScopeBreakdown(
+    locale: ConfidenceRiskUiLocale,
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
+): string {
+    if (!splitStats) {
+        return locale === 'ru' ?
+                '1) [[landing-all-history|Full]] = 100% завершённой истории.\n2) [[train-segment|Train]] = более ранние 70% полной истории перед базовым [[landing-oos|OOS]] 30%.\n3) [[landing-oos|OOS]] = последние 30% полной истории.\n4) [[landing-recent-tail-history|Recent]] = последние 15% полной истории внутри [[landing-oos|OOS]] 30%.'
+            :   '1) [[landing-all-history|Full]] = 100% of completed history.\n2) [[train-segment|Train]] = the earlier 70% of full history before the base [[landing-oos|OOS]] 30%.\n3) [[landing-oos|OOS]] = the latest 30% of full history.\n4) [[landing-recent-tail-history|Recent]] = the latest 15% of full history inside [[landing-oos|OOS]] 30%.'
+    }
+
+    return locale === 'ru' ?
+            `1) [[landing-all-history|Full]] = 100% завершённой истории. Сейчас это ${formatConfidenceRiskScopeDays(splitStats.fullDays, locale)}.\n2) [[train-segment|Train]] = более ранние 70% полной истории перед базовым [[landing-oos|OOS]] 30%. Сейчас это ${formatConfidenceRiskScopeDays(splitStats.trainDays, locale)}.\n3) [[landing-oos|OOS]] = последние 30% полной истории. Сейчас это ${formatConfidenceRiskScopeDays(splitStats.oosDays, locale)}.\n4) [[landing-recent-tail-history|Recent]] = последние 15% полной истории внутри [[landing-oos|OOS]] 30%. Сейчас это ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.`
+        :   `1) [[landing-all-history|Full]] = 100% of completed history. This currently contains ${formatConfidenceRiskScopeDays(splitStats.fullDays, locale)}.\n2) [[train-segment|Train]] = the earlier 70% of full history before the base [[landing-oos|OOS]] 30%. This currently contains ${formatConfidenceRiskScopeDays(splitStats.trainDays, locale)}.\n3) [[landing-oos|OOS]] = the latest 30% of full history. This currently contains ${formatConfidenceRiskScopeDays(splitStats.oosDays, locale)}.\n4) [[landing-recent-tail-history|Recent]] = the latest 15% of full history inside [[landing-oos|OOS]] 30%. This currently contains ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.`
+}
+
+function resolveConfidenceRiskTableTermDescription(
+    key: string,
+    locale: ConfidenceRiskUiLocale,
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
+): string | null {
     switch (key) {
         case 'Split':
             return locale === 'ru' ?
-                    'Split — какой срез истории сейчас показан в таблице: FULL, TRAIN, [[landing-oos|OOS]] или RECENT.\n\nЧто показывает:\nFULL даёт весь доступный ряд, TRAIN оставляет только обучающую часть, OOS показывает только новые для модели дни, а RECENT сжимает просмотр до свежего хвоста.\n\nКак читать:\nэтот столбец нужен, чтобы не смешивать в одном выводе обучающие дни и честную проверку на новых данных.\n\nПример:\nесли правило выглядит сильным на TRAIN, но слабеет на OOS, проблема не в bucket, а в переносе на новые данные.'
-                :   'Split is the history slice currently shown in the table: FULL, TRAIN, [[landing-oos|OOS]], or RECENT.\n\nWhat it shows:\nFULL uses the whole available row set, TRAIN keeps only the training segment, OOS keeps only unseen days, and RECENT narrows the view to the latest tail.\n\nHow to read it:\nthis column prevents mixing in-sample history with honest out-of-sample behavior.\n\nExample:\nif a rule looks strong on TRAIN but weakens on OOS, the issue sits in generalization rather than in the bucket itself.'
+                    `Split — какой исторический срез сейчас показан в таблице.\n\nЧто показывает:\n${buildConfidenceRiskScopeBreakdown(locale, splitStats)}\n\nКак читать:\nэтот столбец нужен, чтобы не смешивать обучающую часть, базовый [[landing-oos|OOS]] 30% и короткий хвост [[landing-recent-tail-history|Recent]] 15% в одном выводе.\n\nПример:\nесли правило выглядит сильным на [[train-segment|Train]], но слабеет на [[landing-oos|OOS]], проблема сидит в переносе на новые дни, а не в confidence-bucket.`
+                :   `Split is the history slice currently shown in the table.\n\nWhat it shows:\n${buildConfidenceRiskScopeBreakdown(locale, splitStats)}\n\nHow to read it:\nthis column prevents mixing the training part, the base [[landing-oos|OOS]] 30%, and the short [[landing-recent-tail-history|Recent]] 15% tail in one conclusion.\n\nExample:\nif a rule looks strong on [[train-segment|Train]] but weakens on [[landing-oos|OOS]], the problem sits in transfer to new days rather than in the confidence bucket itself.`
         case 'Bucket':
             return locale === 'ru' ?
                     'Bucket на этой странице означает [[confidence-bucket|confidence-bucket]], а не торговый [[bucket|Bucket]] исполнения.\n\nЧто показывает:\nстрока собирает дни с близким уровнем уверенности модели и считает по этой группе частоту входов, движение цены и достижение базовых TP/SL.\n\nКак читать:\nесли соседние confidence-bucket сильно различаются по WinRate% или MAE/MFE, именно уверенность модели связана с изменением качества входа.\n\nПример:\nbucket B07 и B08 могут лежать рядом по confidence, но уже давать разную частоту достижения тейк-профита.'
@@ -211,7 +261,11 @@ function resolveConfidenceRiskTableTermDescription(key: string, locale: Confiden
     }
 }
 
-function resolveConfidenceRiskConfigTermDescription(key: string, locale: ConfidenceRiskUiLocale): string | null {
+function resolveConfidenceRiskConfigTermDescription(
+    key: string,
+    locale: ConfidenceRiskUiLocale,
+    splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null
+): string | null {
     switch (key) {
         case 'Source':
             return locale === 'ru' ?
@@ -267,12 +321,12 @@ function resolveConfidenceRiskConfigTermDescription(key: string, locale: Confide
                 :   'ApplyToDynamicPolicies tells whether confidence dynamics are also applied to [[policy|Policy]] variants that already adjust risk internally.\n\nWhat it shows:\nit answers whether the outer confidence layer is stacked on top of already dynamic policies or whether such policies are left untouched.\n\nHow to read it:\nwhen the flag is on, final risk can become a combination of internal policy dynamics and the external confidence layer.'
         case 'ExcludedDays':
             return locale === 'ru' ?
-                    'ExcludedDays — сколько дней не попало в выбранный Split, потому что они лежат вне его рабочего окна.\n\nЧто показывает:\nэто не no-trade метрика и не признак плохого качества модели. Это просто дни, которые не относятся к текущему history-срезу.\n\nКак читать:\nполе полезно для понимания того, насколько узким стал Train, OOS или Recent по сравнению с полной историей.'
-                :   'ExcludedDays is how many days were left out of the selected Split because they fall outside its working window.\n\nWhat it shows:\nit is not a no-trade metric and not a quality verdict. It simply counts days that do not belong to the current history slice.\n\nHow to read it:\nthis field helps show how much narrower Train, OOS, or Recent became relative to the full history.'
+                    `ExcludedDays — сколько дней осталось за пределами выбранного Split.\n\nЧто показывает:\n1) Для [[landing-all-history|Full]] это число должно быть равно нулю, потому что режим использует все 100% завершённой истории.\n2) Для [[train-segment|Train]] excluded — это более новые 30%, которые ушли в [[landing-oos|OOS]].\n3) Для [[landing-oos|OOS]] excluded — это более ранние 70%, которые остались в [[train-segment|Train]].\n4) Для [[landing-recent-tail-history|Recent]] excluded — всё, что лежит вне короткого хвоста 15%.\n\nКак читать:\nполе показывает, насколько уже выбранный срез по сравнению с полной историей.${splitStats ? ` Сейчас published Full = ${formatConfidenceRiskScopeDays(splitStats.fullDays, locale)}, Train = ${formatConfidenceRiskScopeDays(splitStats.trainDays, locale)}, OOS = ${formatConfidenceRiskScopeDays(splitStats.oosDays, locale)}, Recent = ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.` : ''}`
+                :   `ExcludedDays is how many days stay outside the selected Split.\n\nWhat it shows:\n1) For [[landing-all-history|Full]] this should be zero because the mode uses all 100% of completed history.\n2) For [[train-segment|Train]] excluded days are the newer 30% that moved into [[landing-oos|OOS]].\n3) For [[landing-oos|OOS]] excluded days are the earlier 70% that stayed in [[train-segment|Train]].\n4) For [[landing-recent-tail-history|Recent]] excluded days are everything outside the short 15% tail.\n\nHow to read it:\nthis field shows how much narrower the selected slice became relative to full history.${splitStats ? ` The current published sizes are Full = ${formatConfidenceRiskScopeDays(splitStats.fullDays, locale)}, Train = ${formatConfidenceRiskScopeDays(splitStats.trainDays, locale)}, OOS = ${formatConfidenceRiskScopeDays(splitStats.oosDays, locale)}, Recent = ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.` : ''}`
         case 'RecentDays':
             return locale === 'ru' ?
-                    'RecentDays — сколько последних дней входит в отдельный recent-срез confidence-статистики.\n\nЧто показывает:\nполе фиксирует размер свежего окна, по которому рассчитывается RECENT без смешивания со всей историей.\n\nКак читать:\nесли RECENT резко расходится с FULL, это значение помогает понять, насколько коротким был свежий хвост наблюдений.'
-                :   'RecentDays is how many latest days are included in the dedicated recent confidence slice.\n\nWhat it shows:\nit fixes the size of the fresh window used for RECENT without mixing it with the whole history.\n\nHow to read it:\nif RECENT diverges sharply from FULL, this value helps explain how short the fresh observation tail really was.'
+                    `RecentDays — сколько дней вошло в короткий пользовательский хвост [[landing-recent-tail-history|Recent]].\n\nЧто показывает:\n1) Это отдельный счётчик для режима последних 15% полной истории внутри более широкого [[landing-oos|OOS]] 30%.\n2) Поле показывает размер свежего окна, по которому считается RECENT без смешивания со всей историей.${splitStats ? `\n3) Сейчас published [[landing-recent-tail-history|Recent]] содержит ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.` : ''}\n\nКак читать:\nесли RECENT резко расходится с [[landing-all-history|Full]] или [[landing-oos|OOS]], это поле помогает понять, насколько коротким был свежий хвост наблюдений.`
+                :   `RecentDays is how many days entered the short user [[landing-recent-tail-history|Recent]] tail.\n\nWhat it shows:\n1) It is a dedicated counter for the latest 15% of full history inside the wider [[landing-oos|OOS]] 30%.\n2) The field fixes the fresh window used by RECENT without mixing it with the whole history.${splitStats ? `\n3) The current published [[landing-recent-tail-history|Recent]] slice contains ${formatConfidenceRiskScopeDays(splitStats.recentDays, locale)}.` : ''}\n\nHow to read it:\nif RECENT diverges sharply from [[landing-all-history|Full]] or [[landing-oos|OOS]], this field helps explain how short the fresh observation tail really was.`
         default:
             return null
     }
@@ -305,10 +359,12 @@ function getConfigTerm(key: string, termsConfigMap: ReadonlyMap<string, Confiden
 }
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
-    return (sections ?? []).filter(
+    const tableSections = (sections ?? []).filter(
         (section): section is TableSectionDto =>
             Array.isArray((section as TableSectionDto).columns) && (section as TableSectionDto).columns!.length > 0
     )
+
+    return pruneDuplicatePolicyMarginColumns(tableSections)
 }
 
 function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
@@ -332,7 +388,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse confidence-risk scope query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse confidence-risk scope query.', {
+                source: 'confidence-risk-scope-query',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should parse a valid training scope from URL params.',
+                requiredAction: 'Inspect confidence-risk scope query and supported scope values.'
+            })
             return {
                 value: DEFAULT_CONFIDENCE_SCOPE,
                 error: safeError
@@ -356,8 +418,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to resolve confidence-risk report variant.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve confidence-risk report variant.', {
+                source: 'confidence-risk-variant',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve a catalog-compatible published report variant.',
+                requiredAction: 'Inspect confidence-risk URL params and published variant catalog.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -376,6 +443,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             enabled: canLoadConfidenceRiskReport
         }
     )
+    const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
     const termsLocale = useMemo(
         () => resolveConfidenceRiskUiLocale(i18n.resolvedLanguage ?? i18n.language),
         [i18n.language, i18n.resolvedLanguage]
@@ -384,9 +452,14 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const tableTerms = useMemo(
         () =>
             TERMS_TABLE_TEMPLATES.map(template =>
-                buildConfidenceRiskTerm(template, termsLocale, resolveConfidenceRiskTableTermDescription, 'table')
+                buildConfidenceRiskTerm(
+                    template,
+                    termsLocale,
+                    (key, locale) => resolveConfidenceRiskTableTermDescription(key, locale, trainingScopeStatsQuery.data ?? null),
+                    'table'
+                )
             ),
-        [termsLocale]
+        [termsLocale, trainingScopeStatsQuery.data]
     )
     const tableTermMap = useMemo(
         () => buildConfidenceRiskTermLookup(tableTerms, term => [term.title, ...term.aliases]),
@@ -396,9 +469,15 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const configTerms = useMemo(
         () =>
             TERMS_CONFIG_TEMPLATES.map(template =>
-                buildConfidenceRiskTerm(template, termsLocale, resolveConfidenceRiskConfigTermDescription, 'config')
+                buildConfidenceRiskTerm(
+                    template,
+                    termsLocale,
+                    (key, locale) =>
+                        resolveConfidenceRiskConfigTermDescription(key, locale, trainingScopeStatsQuery.data ?? null),
+                    'config'
+                )
             ),
-        [termsLocale]
+        [termsLocale, trainingScopeStatsQuery.data]
     )
     const configTermsMap = useMemo(
         () => buildConfidenceRiskTermLookup(configTerms, term => [term.key, ...term.aliases]),
@@ -417,18 +496,23 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
     const scopeMetaState = useMemo(() => {
         try {
             return {
-                value: resolveCurrentPredictionTrainingScopeMeta(effectiveScope),
+                value: resolveCurrentPredictionTrainingScopeMeta(effectiveScope, trainingScopeStatsQuery.data ?? null),
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ? err : new Error('Failed to resolve current prediction training scope metadata.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve current prediction training scope metadata.', {
+                source: 'confidence-risk-scope-meta',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve training scope metadata for the selected scope.',
+                requiredAction: 'Inspect current prediction training scope metadata registry.'
+            })
             return {
                 value: null,
                 error: safeError
             }
         }
-    }, [effectiveScope])
+    }, [effectiveScope, trainingScopeStatsQuery.data])
 
     const sourceEndpointState = useMemo(() => {
         try {
@@ -437,7 +521,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'confidence-risk-source-endpoint',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -456,7 +546,15 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         if (variantCatalogQuery.isError) {
             return {
                 options: [] as ConfidenceBucketOption[],
-                error: variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.')
+                error:
+                    variantCatalogQuery.error ??
+                    normalizeErrorLike(null, 'Failed to load confidence-risk catalog.', {
+                        source: 'confidence-risk-catalog-query',
+                        domain: 'ui_section',
+                        owner: 'confidence-risk-page',
+                        expected: 'Confidence-risk page should receive a published variant catalog or a detailed API error.',
+                        requiredAction: 'Inspect confidence-risk catalog endpoint and response envelope.'
+                    })
             }
         }
 
@@ -481,10 +579,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError =
-                err instanceof Error ?
-                    err
-                :   new Error('Failed to build confidence bucket options for selected scope.')
+            const safeError = normalizeErrorLike(err, 'Failed to build confidence bucket options for selected scope.', {
+                source: 'confidence-risk-bucket-options',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should build compatible confidence bucket options from the published catalog.',
+                requiredAction: 'Inspect bucket option builder and the selected scope/variant.'
+            })
             return {
                 options: [] as ConfidenceBucketOption[],
                 error: safeError
@@ -534,7 +635,13 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
             return { section, error: null }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to validate confidence risk config.')
+            const safeError = normalizeErrorLike(err, 'Failed to validate confidence risk config.', {
+                source: 'confidence-risk-config',
+                domain: 'ui_section',
+                owner: 'confidence-risk-page',
+                expected: 'Confidence-risk page should validate config items against known term metadata.',
+                requiredAction: 'Inspect confidence-risk config section and term registry.'
+            })
             return { section: null as KeyValueSectionDto | null, error: safeError }
         }
     }, [configTermsMap, data, keyValueSections])
@@ -597,7 +704,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         return [
             buildTrainingScopeControlGroup({
                 value: effectiveScope,
-                onChange: handleScopeChange
+                onChange: handleScopeChange,
+                splitStats: trainingScopeStatsQuery.data ?? null
             }),
             buildConfidenceBucketControlGroup({
                 value: confidenceBucketState.value,
@@ -614,6 +722,7 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         handleScopeChange,
         scopeMetaState.error,
         scopeMetaState.value,
+        trainingScopeStatsQuery.data,
     ])
     const controlsError =
         scopeState.error ??
@@ -624,7 +733,16 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         null
     const reportStateError =
         error ??
-        (variantCatalogQuery.isError ? variantCatalogQuery.error ?? new Error('Failed to load confidence-risk catalog.') : null) ??
+        (variantCatalogQuery.isError ?
+            (variantCatalogQuery.error ??
+                normalizeErrorLike(null, 'Failed to load confidence-risk catalog.', {
+                    source: 'confidence-risk-catalog-query',
+                    domain: 'ui_section',
+                    owner: 'confidence-risk-page',
+                    expected: 'Confidence-risk page should receive a published variant catalog or a detailed API error.',
+                    requiredAction: 'Inspect confidence-risk catalog endpoint and response envelope.'
+                }))
+        :   null) ??
         generatedAtState.error ??
         sourceEndpointState.error ??
         null

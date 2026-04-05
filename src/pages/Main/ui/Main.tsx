@@ -22,17 +22,21 @@ import { useTranslation } from 'react-i18next'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { BulletList } from '@/shared/ui/BulletList'
 import { formatDateWithLocale } from '@/shared/utils/dateFormat'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import cls from './Main.module.scss'
 import MainProps from './types'
 import { readMainStringList } from './mainLandingI18n'
 
 const HERO_BULLETS_KEY = 'main.hero.bullets'
 const HERO_SUBTITLE_PARAGRAPHS_KEY = 'main.hero.subtitleParagraphs'
+const WHITE_PAPER_BULLETS_KEY = 'main.whitePaper.bullets'
 const AUDIENCE_BUSINESS_QUESTIONS_KEY = 'main.audience.businessQuestions'
 const REAL_JOURNAL_BULLETS_KEY = 'main.realJournal.bullets'
 const MEGA_TABLE_BULLETS_KEY = 'main.megaTable.bullets'
 const SANDBOX_BULLETS_KEY = 'main.sandbox.bullets'
 const PROOF_SECTION_DOM_ID = 'main-proof'
+// Файл лежит в public, чтобы скачивание работало прямой ссылкой без отдельного backend-роута.
+const WHITE_PAPER_DOWNLOAD_PATH = '/downloads/technical-white-paper.md'
 const WORKFLOW_STEP_IDS = ['forecast', 'archive', 'validate'] as const
 const TOUR_GROUP_DEFS = [
     {
@@ -532,7 +536,13 @@ export default function Main({ className }: MainProps) {
         } catch (error) {
             return {
                 data: null as ReturnType<typeof buildPredictionArchiveProofFacts> | null,
-                error: error instanceof Error ? error : new Error(String(error))
+                error: normalizeErrorLike(error, 'Failed to build archive proof facts.', {
+                    source: 'main-archive-proof',
+                    domain: 'ui_section',
+                    owner: 'main-page',
+                    expected: 'Main page should build archive proof facts from current prediction index.',
+                    requiredAction: 'Inspect archive index payload and proof fact builder.'
+                })
             }
         }
     }, [archiveIndex, locale])
@@ -552,7 +562,13 @@ export default function Main({ className }: MainProps) {
         } catch (error) {
             return {
                 data: null as ReturnType<typeof buildBacktestProofFacts> | null,
-                error: error instanceof Error ? error : new Error(String(error))
+                error: normalizeErrorLike(error, 'Failed to build backtest proof facts.', {
+                    source: 'main-backtest-proof',
+                    domain: 'ui_section',
+                    owner: 'main-page',
+                    expected: 'Main page should build backtest proof facts from summary report.',
+                    requiredAction: 'Inspect backtest summary payload and proof fact builder.'
+                })
             }
         }
     }, [backtestSummaryReport, locale])
@@ -572,7 +588,13 @@ export default function Main({ className }: MainProps) {
         } catch (error) {
             return {
                 data: null as ReturnType<typeof buildRealForecastJournalProofFacts> | null,
-                error: error instanceof Error ? error : new Error(String(error))
+                error: normalizeErrorLike(error, 'Failed to build real forecast journal proof facts.', {
+                    source: 'main-real-journal-proof',
+                    domain: 'ui_section',
+                    owner: 'main-page',
+                    expected: 'Main page should build real journal proof facts from published day list.',
+                    requiredAction: 'Inspect real forecast journal list payload and proof fact builder.'
+                })
             }
         }
     }, [locale, realJournalDayList])
@@ -580,6 +602,7 @@ export default function Main({ className }: MainProps) {
     const realJournalBullets = useMemo(() => readMainStringList(i18n, REAL_JOURNAL_BULLETS_KEY), [i18n])
     const megaTableBullets = useMemo(() => readMainStringList(i18n, MEGA_TABLE_BULLETS_KEY), [i18n])
     const sandboxBullets = useMemo(() => readMainStringList(i18n, SANDBOX_BULLETS_KEY), [i18n])
+    const whitePaperBullets = useMemo(() => readMainStringList(i18n, WHITE_PAPER_BULLETS_KEY), [i18n])
     const archiveProofCardError = useMemo(() => {
         if (!isProofSectionVisible) {
             return null
@@ -782,6 +805,45 @@ export default function Main({ className }: MainProps) {
                             )
                         }}
                     </LocalizedContentBoundary>
+                </div>
+            </section>
+
+            <section className={classNames(cls.sectionSurface, {}, [cls.whitePaperSection])}>
+                <div className={cls.whitePaperContent}>
+                    <div className={cls.whitePaperMain}>
+                        <span className={cls.whitePaperEyebrow}>{t('main.whitePaper.eyebrow')}</span>
+                        <Text type='h2' className={cls.whitePaperTitle}>
+                            {renderMainRichText(t('main.whitePaper.title'))}
+                        </Text>
+                        <Text className={cls.whitePaperSubtitle}>
+                            {renderMainRichText(t('main.whitePaper.subtitle'))}
+                        </Text>
+                        <BulletList
+                            className={cls.whitePaperBulletList}
+                            markerTone='primary'
+                            itemClassName={cls.whitePaperBulletItem}
+                            contentClassName={cls.whitePaperBulletText}
+                            items={whitePaperBullets.map((bullet, index) => ({
+                                key: `white-paper-bullet-${index}`,
+                                content: renderMainRichText(bullet)
+                            }))}
+                        />
+                    </div>
+
+                    <article className={cls.whitePaperActionPanel}>
+                        <Text type='h3' className={cls.whitePaperActionLead}>
+                            {renderMainRichText(t('main.whitePaper.downloadLead'))}
+                        </Text>
+                        <a
+                            href={WHITE_PAPER_DOWNLOAD_PATH}
+                            download='technical-white-paper.md'
+                            className={cls.whitePaperAction}>
+                            {renderMainRichText(t('main.whitePaper.downloadCta'))}
+                        </a>
+                        <Text className={cls.whitePaperActionNote}>
+                            {renderMainRichText(t('main.whitePaper.downloadNote'))}
+                        </Text>
+                    </article>
                 </div>
             </section>
 

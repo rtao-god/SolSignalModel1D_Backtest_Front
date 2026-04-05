@@ -15,7 +15,7 @@ export default function Login({ className }: LoginProps) {
                 <UserLogin />
                 <Row gap={20}>
                     <Line color='#D6E7FF' />
-                    <Text fz='14px' color='#D6E7FF'>
+                    <Text variant='body-md' color='#D6E7FF'>
                         {t('login.divider')}
                     </Text>
                     <Line color='#D6E7FF' />

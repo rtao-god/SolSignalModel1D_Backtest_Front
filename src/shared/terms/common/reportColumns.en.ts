@@ -25,7 +25,7 @@ export const COMMON_CAP_AVG_MIN_MAX_DESCRIPTION_EN =
     'Cap avg / min / max is the average, minimum, and maximum cap fraction that was actually used in executed trades.\n\nThis is not just a configured number. It reflects real capital usage after the cap policy and all risk limits were applied.\n\nHow to read it:\nhigher average and especially higher maximum mean more aggressive capital usage, while the minimum shows how deep the risk layers can cut position size.'
 
 export const COMMON_CAP_P50_P90_DESCRIPTION_EN =
-    'Cap p50 / p90 is the distribution of cap fraction across executed trades.\n\nP50 shows the typical capital share per trade, while p90 shows the upper working tail that the strategy still reaches on more aggressive days.\n\nHow to read it:\nif p90 stands far above p50, the strategy sometimes scales position size materially above its typical level.'
+    'Cap p50 / p90 is the distribution of cap fraction across executed trades.\n\nP50 shows the typical capital share per trade, while p90 is the threshold above which only the top 10% of executed trades remain.\n\nHow to read it:\nif p90 stands far above p50, the top 10% of executed trades use a materially larger position size than the median trade.'
 
 export const COMMON_BUCKET_DESCRIPTION_EN =
     'Bucket is an independent simulation track with its own starting capital, equity curve, and drawdown.\n\nDaily, intraday, and delayed are calculated separately: loss or ruin in one bucket does not spill into another.\n\nPolicy defines entry and risk rules, Branch defines the direction scenario, and Bucket defines execution mechanics together with the separate balance.\n\nRisk layers work on top of that decision and can further cut risk or block entry.\n\nHow to read it:\nBucket answers how the trade is executed and where the balance path is accumulated. It is not the same thing as Policy or Branch.\n\nExample:\na delayed bucket can show a different trade path and a different drawdown curve even under the same Policy and Branch.'
@@ -75,6 +75,9 @@ export const COMMON_HAD_LIQ_DESCRIPTION_EN =
 export const COMMON_WITHDRAWN_DESCRIPTION_EN =
     'Withdrawn$ is profit that was already withdrawn from the trading balance and is therefore no longer sitting inside current equity.\n\nThis metric matters because a strategy can show moderate on-exchange capital while still having already extracted a meaningful amount of money out of the slice.\n\nHow to read it:\nread Withdrawn$ together with TotalPnl%, current bucket capital, and drawdown. A moderate live balance does not mean the slice earned little if a meaningful share of profit was already moved out of trading capital.'
 
+export const COMMON_SUM_FUNDING_NET_USD_DESCRIPTION_EN =
+    'SumFundingNetUsd is the net funding cash result of the selected slice, in USD.\n\nFormula:\ntotal funding received minus total funding paid.\n\nHow to read it:\n1) a positive value means funding added money to the result overall;\n2) a negative value means funding reduced profit or deepened loss;\n3) this column is best read next to the final strategy result to separate the price move from the separate funding cash layer.\n\nExample:\nSumFundingNetUsd = -320 means funding worsened the result by 320 USD overall.'
+
 export const COMMON_SHARPE_DESCRIPTION_EN =
     'Sharpe is the check of how smoothly the strategy earns relative to the full day-to-day noise in results.\n\nWhat it checks:\n1) whether the average daily result is positive;\n2) whether that result swings too hard from day to day.\n\nHow to read it:\n1) a higher Sharpe means the strategy gets more result per unit of total daily noise;\n2) a low Sharpe means the profit path is too uneven or too small for that amount of fluctuation;\n3) a negative Sharpe means the average daily result of the series is already below zero;\n4) comparison is valid only inside the same historical slice.\n\nFormula:\nSharpe = average daily return / standard deviation of daily returns * sqrt(252).\n\nExample:\nif two strategies end with similar [[total-pnl|TotalPnl%]], but one has Sharpe = 1.4 and the other Sharpe = 0.5, the first one reached that result through a much smoother path.'
 
@@ -120,5 +123,6 @@ export const COMMON_REPORT_COLUMN_TOOLTIPS_EN: CommonReportColumnTooltipMap = {
     CAGR: COMMON_CAGR_DESCRIPTION_EN,
     'CAGR%': COMMON_CAGR_DESCRIPTION_EN,
     HadLiq: COMMON_HAD_LIQ_DESCRIPTION_EN,
-    Withdrawn$: COMMON_WITHDRAWN_DESCRIPTION_EN
+    Withdrawn$: COMMON_WITHDRAWN_DESCRIPTION_EN,
+    SumFundingNetUsd: COMMON_SUM_FUNDING_NET_USD_DESCRIPTION_EN
 }

@@ -22,6 +22,25 @@ const STOP_REASON_HEAD_RU: Record<string, string> = {
 }
 
 type ReportCellLocale = 'ru' | 'en'
+type ReportMarginMode = 'cross' | 'isolated' | null | undefined
+
+export type ReportTranslateFn = (key: string, options?: Record<string, unknown>) => string
+
+export interface ReportLiquidationFallbackContext {
+    liqPriceLabel?: string | null
+    leverage: number
+    policyName: string
+    branch: string
+    bucket: string
+    hasDirection?: boolean
+    skipped?: boolean
+    direction?: string | null
+    isSpotPolicy?: boolean
+    margin?: ReportMarginMode
+    notionalUsd?: number | null
+    bucketCapitalUsd?: number | null
+    stakeUsd?: number | null
+}
 
 function resolveReportLocale(language: string | null | undefined): ReportCellLocale {
     const normalized = (language ?? '').trim().toLowerCase()
@@ -39,6 +58,149 @@ function isEndOfDayExitReason(normalizedValue: string): boolean {
 
 export function resolveEndOfDayExitReasonLabel(language: string | null | undefined): string {
     return resolveReportLocale(language) === 'ru' ? '[[eod|Конец дня]]' : '[[eod|End Of Day]]'
+}
+
+function resolveTranslatedText(
+    translate: ReportTranslateFn | undefined,
+    key: string,
+    defaultValue: string
+): string {
+    if (!translate) {
+        return defaultValue
+    }
+
+    const translated = translate(key, { defaultValue })
+    return translated === key ? defaultValue : translated
+}
+
+function isFiniteNumber(value: number | null | undefined): value is number {
+    return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isLongDirection(direction: string | null | undefined): boolean {
+    const normalized = (direction ?? '').trim().toLowerCase()
+    return normalized === 'long' || normalized === 'лонг'
+}
+
+function resolveLiquidationWalletBalance(context: ReportLiquidationFallbackContext): number | null {
+    if (context.margin === 'cross') {
+        return isFiniteNumber(context.bucketCapitalUsd) ? context.bucketCapitalUsd : null
+    }
+
+    if (context.margin === 'isolated') {
+        return isFiniteNumber(context.stakeUsd) ? context.stakeUsd : null
+    }
+
+    if (isFiniteNumber(context.stakeUsd)) {
+        return context.stakeUsd
+    }
+
+    if (isFiniteNumber(context.bucketCapitalUsd)) {
+        return context.bucketCapitalUsd
+    }
+
+    return null
+}
+
+function resolveLiquidationFallbackTranslationKey(context: ReportLiquidationFallbackContext): string {
+    const normalizedLabel = context.liqPriceLabel?.trim().toLowerCase() ?? ''
+
+    if (normalizedLabel === 'no liquidation (1x leverage)') {
+        if (context.leverage > 1.0 + 1e-6) {
+            throw new Error(
+                `[ui] Liquidation 1x label mismatch. leverage=${context.leverage}, policy=${context.policyName}, branch=${context.branch}, bucket=${context.bucket}.`
+            )
+        }
+
+        return 'predictionHistory.tradesTable.liqFallback.leverage1x'
+    }
+
+    if (normalizedLabel === 'no liquidation (bucket balance >= position notional)') {
+        return 'predictionHistory.tradesTable.liqFallback.bucketBalance'
+    }
+
+    if (normalizedLabel === 'no liquidation (margin >= position notional)') {
+        return 'predictionHistory.tradesTable.liqFallback.marginBalance'
+    }
+
+    if (normalizedLabel === 'no liquidation (balance >= position notional)') {
+        return 'predictionHistory.tradesTable.liqFallback.balance'
+    }
+
+    if (normalizedLabel === 'n/a (liquidation price missing)') {
+        return 'predictionHistory.tradesTable.liqFallback.missing'
+    }
+
+    if (context.isSpotPolicy) {
+        if (context.leverage > 1.0 + 1e-6) {
+            throw new Error(
+                `[ui] Spot liquidation fallback expects 1x leverage. leverage=${context.leverage}, policy=${context.policyName}, branch=${context.branch}, bucket=${context.bucket}.`
+            )
+        }
+
+        return 'predictionHistory.tradesTable.liqFallback.leverage1x'
+    }
+
+    if (isLongDirection(context.direction) && isFiniteNumber(context.notionalUsd) && context.notionalUsd > 0) {
+        const walletBalance = resolveLiquidationWalletBalance(context)
+        if (isFiniteNumber(walletBalance) && walletBalance >= context.notionalUsd) {
+            if (context.margin === 'cross') {
+                return 'predictionHistory.tradesTable.liqFallback.bucketBalance'
+            }
+
+            if (context.margin === 'isolated') {
+                return 'predictionHistory.tradesTable.liqFallback.marginBalance'
+            }
+
+            return 'predictionHistory.tradesTable.liqFallback.balance'
+        }
+    }
+
+    return 'predictionHistory.tradesTable.liqFallback.missing'
+}
+
+export function resolveReportLiquidationFallbackLabel(
+    context: ReportLiquidationFallbackContext,
+    language: string | null | undefined,
+    translate?: ReportTranslateFn
+): string {
+    const locale = resolveReportLocale(language)
+    const fallbackByKey: Record<string, string> =
+        locale === 'ru' ?
+            {
+                'predictionHistory.tradesTable.liqFallback.leverage1x':
+                    '[[leverage|Плечо]] 1x в этой сделке — [[position|позиция]] без кредитного плеча, [[liquidation|ликвидация]] недостижима.',
+                'predictionHistory.tradesTable.liqFallback.bucketBalance':
+                    '[[landing-liq-unreachable-bucket|Ликвидация недостижима]].',
+                'predictionHistory.tradesTable.liqFallback.marginBalance':
+                    '[[margin|Маржа]] больше номинала [[position|позиции]], [[liquidation|ликвидация]] недостижима.',
+                'predictionHistory.tradesTable.liqFallback.balance':
+                    'Баланс больше номинала [[position|позиции]], [[liquidation|ликвидация]] недостижима.',
+                'predictionHistory.tradesTable.liqFallback.missing':
+                    '[[liquidation|Ликвидация]] не рассчитана: не хватает данных для расчёта.'
+            }
+        :   {
+                'predictionHistory.tradesTable.liqFallback.leverage1x':
+                    '[[leverage|Leverage]] 1x for this trade means a [[position|position]] without leverage, [[liquidation|liquidation]] is unreachable.',
+                'predictionHistory.tradesTable.liqFallback.bucketBalance':
+                    '[[landing-liq-unreachable-bucket|Liquidation is unreachable]].',
+                'predictionHistory.tradesTable.liqFallback.marginBalance':
+                    '[[margin|Margin]] is above position notional, [[liquidation|liquidation]] is unreachable.',
+                'predictionHistory.tradesTable.liqFallback.balance':
+                    'Balance is above position notional, [[liquidation|liquidation]] is unreachable.',
+                'predictionHistory.tradesTable.liqFallback.missing':
+                    '[[liquidation|Liquidation]] was not computed: missing data for calculation.'
+            }
+
+    const translationKey = resolveLiquidationFallbackTranslationKey(context)
+    const defaultValue = fallbackByKey[translationKey]
+    if (!defaultValue) {
+        throw new Error(
+            `[ui] Liquidation fallback translation default is missing. key=${translationKey}, policy=${context.policyName}, branch=${context.branch}, bucket=${context.bucket}.`
+        )
+    }
+
+    return resolveTranslatedText(translate, translationKey, defaultValue)
 }
 
 function formatLocalizedNumber(
@@ -249,7 +411,12 @@ function localizeStopReasonForRu(rawValue: string): string {
     return `${localizedHead} (${localizedDetails.join(', ')})`
 }
 
-function localizeExitReasonValue(rawValue: string, locale: ReportCellLocale): string | null {
+export function localizeExitReasonLabel(rawValue: string | null | undefined, language: string | null | undefined): string | null {
+    if (rawValue === null || typeof rawValue === 'undefined') {
+        return null
+    }
+
+    const locale = resolveReportLocale(language)
     const normalized = rawValue.trim().toLowerCase()
     if (!normalized) {
         return null
@@ -259,33 +426,45 @@ function localizeExitReasonValue(rawValue: string, locale: ReportCellLocale): st
         return resolveEndOfDayExitReasonLabel(locale)
     }
 
-    if (locale === 'en') {
-        return null
-    }
-
     if (normalized === 'take profit') {
-        return 'Тейк-профит'
+        return locale === 'ru' ? '[[tp-sl|Тейк-профит]]' : '[[tp-sl|Take-profit]]'
     }
     if (normalized === 'stop loss') {
-        return 'Стоп-лосс'
+        return locale === 'ru' ? '[[tp-sl|Стоп-лосс]]' : '[[tp-sl|Stop-loss]]'
     }
     if (normalized === 'liquidation') {
-        return 'Ликвидация'
+        return locale === 'ru' ? '[[liquidation|Ликвидация]]' : '[[liquidation|Liquidation]]'
     }
     if (normalized === 'liquidation (sl disabled)') {
-        return 'Ликвидация (SL выключен)'
+        return (
+            locale === 'ru' ?
+                '[[liquidation|Ликвидация]] ([[tp-sl|SL]] выключен)'
+            :   '[[liquidation|Liquidation]] ([[tp-sl|SL]] disabled)'
+        )
     }
     if (normalized === 'liquidation (sl beyond liquidation price)') {
-        return 'Ликвидация (SL дальше цены ликвидации)'
+        return (
+            locale === 'ru' ?
+                '[[liquidation|Ликвидация]] ([[tp-sl|SL]] дальше цены [[liquidation|ликвидации]])'
+            :   '[[liquidation|Liquidation]] ([[tp-sl|SL]] is beyond the [[liquidation|liquidation]] price)'
+        )
     }
     if (normalized === 'liquidation (sl and liquidation in the same minute)') {
-        return 'Ликвидация (SL и ликвидация в одну минуту)'
+        return (
+            locale === 'ru' ?
+                '[[liquidation|Ликвидация]] ([[tp-sl|SL]] и [[liquidation|ликвидация]] в одну минуту)'
+            :   '[[liquidation|Liquidation]] ([[tp-sl|SL]] and [[liquidation|liquidation]] in the same minute)'
+        )
     }
     if (normalized === 'liquidation (before stop loss)') {
-        return 'Ликвидация (раньше стоп-лосса)'
+        return (
+            locale === 'ru' ?
+                '[[liquidation|Ликвидация]] (раньше [[tp-sl|стоп-лосса]])'
+            :   '[[liquidation|Liquidation]] (before [[tp-sl|stop-loss]])'
+        )
     }
 
-    return null
+    return locale === 'ru' ? rawValue : null
 }
 
 /**
@@ -310,7 +489,7 @@ export function localizeReportCellValue(
     }
 
     if (EXIT_REASON_COLUMN_TITLES.has(normalizedColumnTitle)) {
-        return localizeExitReasonValue(rawValue, locale) ?? rawValue
+        return localizeExitReasonLabel(rawValue, locale) ?? rawValue
     }
 
     if (normalizedColumnTitle === ACCOUNT_RUIN_COLUMN_TITLE) {

@@ -32,6 +32,7 @@ import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
+import { PredictionSliceTimelinePanel } from '@/pages/predictions/ui/shared/PredictionSliceTimeline'
 import { readPredictionPageStringList } from '@/pages/predictions/ui/shared/predictionPageI18n'
 import { CURRENT_PREDICTION_POLICY_COLUMN_KEYS } from '@/shared/utils/reportCanonicalKeys'
 import {
@@ -148,7 +149,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
 
     const rootClassName = classNames(cls.CurrentPredictionPage, {}, [className ?? ''])
     const trainingLabel = resolveTrainingLabel(data)
-    const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope)
+    const currentScopeMeta = resolveCurrentPredictionTrainingScopeMeta(trainingScope, trainingScopeStats)
     const introBullets = useMemo(
         () => readPredictionPageStringList(i18n, 'currentPrediction.page.intro.bullets'),
         [i18n]
@@ -205,10 +206,11 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                 label: t('currentPrediction.page.scopeLabel'),
                 ariaLabel: t('currentPrediction.scope.ariaLabel'),
                 infoTooltip: trainingScopeDescription,
+                splitStats: trainingScopeStats,
                 scopes: ['full', 'oos']
             })
         ],
-        [setTrainingScope, t, trainingScopeDescription, trainingScope]
+        [setTrainingScope, t, trainingScopeDescription, trainingScope, trainingScopeStats]
     )
     const timingStatus = useMemo(
         () =>
@@ -306,6 +308,11 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
             />
 
             <PredictionTrainingScopeDescriptionBlock variant='live' description={trainingScopeDescription} />
+            <PredictionSliceTimelinePanel
+                primaryStats={trainingScopeStats}
+                activeScope={trainingScope}
+                isPrimaryLoading={isLoading}
+            />
 
             <div className={cls.scopePanel}>
                 <ReportViewControls groups={controlGroups} className={cls.scopeControls} />

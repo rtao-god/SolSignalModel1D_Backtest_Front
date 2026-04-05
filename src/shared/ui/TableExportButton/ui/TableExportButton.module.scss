@@ -88,7 +88,7 @@
 
     color: inherit;
     text-align: left;
-    font-size: 12px;
+    @include type-nav;
     line-height: 1.4;
 
     cursor: pointer;

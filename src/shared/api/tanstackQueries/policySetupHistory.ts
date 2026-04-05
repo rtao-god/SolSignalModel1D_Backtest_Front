@@ -1,6 +1,9 @@
 import { API_BASE_URL } from '@/shared/configs/config'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { API_ROUTES } from '../routes'
-import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from './utils/fetchWithTimeout'
+import { mapPolicyPerformanceMetricsResponse } from '../utils/mapPolicyPerformanceMetrics'
+import { fetchWithTimeout } from './utils/fetchWithTimeout'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 import { normalizeUtcDayKey, normalizeUtcInstant } from '../utils/normalizeDomainTime'
 import { buildUnexpectedValueErrorMessage, describeUnexpectedValue } from '@/shared/lib/errors/describeUnexpectedValue'
 import {
@@ -11,9 +14,11 @@ import {
     type UseQueryResult
 } from '@tanstack/react-query'
 import type {
+    PolicySetupCatalogResponseDto,
     PolicySetupCatalogItemDto,
     PolicySetupCapitalTimelineDto,
     PolicySetupCapitalTimelinePointDto,
+    PolicySetupHistoryBoundaryManifestDto,
     PolicySetupDateRangeDto,
     PolicySetupCandleRangeDto,
     PolicySetupHistoryCandleDto,
@@ -30,20 +35,7 @@ const POLICY_SETUP_STATUS_QUERY_KEY = ['backtest', 'policy-setups', 'status'] as
 const POLICY_SETUP_CATALOG_QUERY_KEY = ['backtest', 'policy-setups', 'catalog'] as const
 const POLICY_SETUP_LEDGER_QUERY_KEY = ['backtest', 'policy-setups', 'ledger'] as const
 const POLICY_SETUP_CANDLES_QUERY_KEY = ['backtest', 'policy-setups', 'candles'] as const
-const POLICY_SETUP_STATUS_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_REBUILD_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_CATALOG_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
-const POLICY_SETUP_LEDGER_REQUEST_TIMEOUT_MS = 120_000
-const POLICY_SETUP_CANDLES_REQUEST_TIMEOUT_MS = 60_000
 const POLICY_SETUP_HISTORY_TIME_SCOPE = { scope: 'policy-setup-history' } as const
-const POLICY_SETUP_STATUS_STALE_TIME_MS = 0
-const POLICY_SETUP_STATUS_GC_TIME_MS = 5 * 60 * 1000
-const POLICY_SETUP_CATALOG_STALE_TIME_MS = 5 * 60 * 1000
-const POLICY_SETUP_CATALOG_GC_TIME_MS = 15 * 60 * 1000
-const POLICY_SETUP_LEDGER_STALE_TIME_MS = 2 * 60 * 1000
-const POLICY_SETUP_LEDGER_GC_TIME_MS = 10 * 60 * 1000
-const POLICY_SETUP_CANDLES_STALE_TIME_MS = 2 * 60 * 1000
-const POLICY_SETUP_CANDLES_GC_TIME_MS = 10 * 60 * 1000
 
 const { path: policySetupCatalogPath } = API_ROUTES.backtest.policySetupsCatalogGet
 const { path: policySetupStatusPath } = API_ROUTES.backtest.policySetupStatusGet
@@ -94,13 +86,6 @@ export function buildPolicySetupCandlesQueryKey(
         args?.windowDays ?? null,
         args?.resolution ?? null
     ] as const
-}
-
-interface ApiErrorPayload {
-    error?: string
-    message?: string
-    title?: string
-    detail?: string
 }
 
 function asObject(raw: unknown, tag: string): Record<string, unknown> {
@@ -168,18 +153,6 @@ function readNullableNumber(raw: unknown, tag: string): number | null {
     return readNumber(raw, tag)
 }
 
-function readStringArray(raw: unknown, tag: string): string[] {
-    if (!Array.isArray(raw)) {
-        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', tag, 'an array', raw))
-    }
-
-    return raw.map((item, index) => readString(item, `${tag}[${index}]`))
-}
-
-function readResolutionArray(raw: unknown, tag: string): PolicySetupHistoryResolution[] {
-    return readStringArray(raw, tag).map((value, index) => readResolution(value, `${tag}[${index}]`))
-}
-
 function readResolution(raw: unknown, tag: string): PolicySetupHistoryResolution {
     const value = readString(raw, tag)
     if (value !== '1m' && value !== '3h' && value !== '6h') {
@@ -245,6 +218,29 @@ function readCandleRange(raw: unknown, tag: string): PolicySetupCandleRangeDto {
     }
 }
 
+function readBoundaryManifest(raw: unknown, tag: string): PolicySetupHistoryBoundaryManifestDto {
+    const record = asObject(raw, tag)
+    const candleRangesRaw = record.candleRanges
+
+    if (!Array.isArray(candleRangesRaw)) {
+        throw new Error(
+            buildUnexpectedValueErrorMessage('policy-setup-history', `${tag}.candleRanges`, 'an array', candleRangesRaw)
+        )
+    }
+
+    return {
+        historyDayRange: readDateRange(record.historyDayRange, `${tag}.historyDayRange`),
+        candleRanges: candleRangesRaw.map((item, index) => {
+            const rangeRecord = asObject(item, `${tag}.candleRanges[${index}]`)
+
+            return {
+                resolution: readResolution(rangeRecord.resolution, `${tag}.candleRanges[${index}].resolution`),
+                dayRange: readDateRange(rangeRecord.dayRange, `${tag}.candleRanges[${index}].dayRange`)
+            }
+        })
+    }
+}
+
 function readCatalogItem(raw: unknown, tag: string): PolicySetupCatalogItemDto {
     const record = asObject(raw, tag)
 
@@ -259,13 +255,11 @@ function readCatalogItem(raw: unknown, tag: string): PolicySetupCatalogItemDto {
         useAntiDirectionOverlay: readBoolean(record.useAntiDirectionOverlay, `${tag}.useAntiDirectionOverlay`),
         tpSlMode: readTpSlMode(record.tpSlMode, `${tag}.tpSlMode`),
         zonalMode: readZonalMode(record.zonalMode, `${tag}.zonalMode`),
-        tradesCount: readNumber(record.tradesCount, `${tag}.tradesCount`),
         noTradeDaysCount: readNumber(record.noTradeDaysCount, `${tag}.noTradeDaysCount`),
-        totalPnlPct: readNumber(record.totalPnlPct, `${tag}.totalPnlPct`),
-        maxDrawdownPct: readNumber(record.maxDrawdownPct, `${tag}.maxDrawdownPct`),
-        hadLiquidation: readBoolean(record.hadLiquidation, `${tag}.hadLiquidation`),
-        fromDateUtc: readUtcDayKey(record.fromDateUtc, `${tag}.fromDateUtc`),
-        toDateUtc: readUtcDayKey(record.toDateUtc, `${tag}.toDateUtc`)
+        performanceMetrics: mapPolicyPerformanceMetricsResponse(record.performanceMetrics, {
+            owner: 'policy-setup-history',
+            label: `${tag}.performanceMetrics`
+        })
     }
 }
 
@@ -439,24 +433,7 @@ async function postJson(url: string, timeoutMs: number): Promise<unknown> {
 
 async function buildPolicySetupHistoryRequestError(response: Response): Promise<string> {
     const bodyText = await response.text().catch(() => '')
-    if (!bodyText) {
-        return `[policy-setup-history] request failed: ${response.status} ${response.statusText}.`
-    }
-
-    try {
-        const payload = JSON.parse(bodyText) as ApiErrorPayload
-        const details = [payload.error, payload.message ?? payload.detail ?? payload.title]
-            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-            .join(' | ')
-
-        if (details) {
-            return `[policy-setup-history] request failed: ${response.status} ${details}.`
-        }
-    } catch {
-        // Некорректный JSON не должен ломать отображение исходного текста ошибки.
-    }
-
-    return `[policy-setup-history] request failed: ${response.status} ${bodyText}.`
+    return buildDetailedRequestErrorMessage('policy-setup-history request', response, bodyText)
 }
 
 export function parsePolicySetupHistoryPublishedStatusResponse(raw: unknown): PolicySetupHistoryPublishedStatusDto {
@@ -490,12 +467,18 @@ export function parsePolicySetupHistoryPublishedStatusResponse(raw: unknown): Po
     }
 }
 
-export function parsePolicySetupCatalogResponse(raw: unknown): PolicySetupCatalogItemDto[] {
-    if (!Array.isArray(raw)) {
-        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', 'catalog payload', 'an array', raw))
+export function parsePolicySetupCatalogResponse(raw: unknown): PolicySetupCatalogResponseDto {
+    const record = asObject(raw, 'catalog')
+    const itemsRaw = record.items
+
+    if (!Array.isArray(itemsRaw)) {
+        throw new Error(buildUnexpectedValueErrorMessage('policy-setup-history', 'catalog.items', 'an array', itemsRaw))
     }
 
-    return raw.map((item, index) => readCatalogItem(item, `catalog[${index}]`))
+    return {
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'catalog.boundaryManifest'),
+        items: itemsRaw.map((item, index) => readCatalogItem(item, `catalog.items[${index}]`))
+    }
 }
 
 export function parsePolicySetupLedgerResponse(raw: unknown): PolicySetupLedgerResponseDto {
@@ -508,9 +491,8 @@ export function parsePolicySetupLedgerResponse(raw: unknown): PolicySetupLedgerR
 
     return {
         setup: readCatalogItem(record.setup, 'ledger.setup'),
-        availableRange: readDateRange(record.availableRange, 'ledger.availableRange'),
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'ledger.boundaryManifest'),
         appliedRange: readDateRange(record.appliedRange, 'ledger.appliedRange'),
-        availableResolutions: readResolutionArray(record.availableResolutions, 'ledger.availableResolutions'),
         startCapitalUsd: readNumber(record.startCapitalUsd, 'ledger.startCapitalUsd'),
         balanceCeilingUsd: readNumber(record.balanceCeilingUsd, 'ledger.balanceCeilingUsd'),
         visibleBalanceCeilingUsd: readNumber(record.visibleBalanceCeilingUsd, 'ledger.visibleBalanceCeilingUsd'),
@@ -531,16 +513,16 @@ export function parsePolicySetupCandlesResponse(raw: unknown): PolicySetupCandle
 
     return {
         setupId: readString(record.setupId, 'candles.setupId'),
-        availableRange: readDateRange(record.availableRange, 'candles.availableRange'),
+        boundaryManifest: readBoundaryManifest(record.boundaryManifest, 'candles.boundaryManifest'),
         appliedRange: readCandleRange(record.appliedRange, 'candles.appliedRange'),
         candles: candlesRaw.map((item, index) => readCandle(item, `candles.candles[${index}]`))
     }
 }
 
-export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogItemDto[]> {
+export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogResponseDto> {
     const raw = await fetchJson(
         `${API_BASE_URL}${policySetupCatalogPath}`,
-        POLICY_SETUP_CATALOG_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.catalog.timeoutMs
     )
 
     return parsePolicySetupCatalogResponse(raw)
@@ -549,7 +531,7 @@ export async function fetchPolicySetupCatalog(): Promise<PolicySetupCatalogItemD
 export async function fetchPolicySetupHistoryStatus(): Promise<PolicySetupHistoryPublishedStatusDto> {
     const raw = await fetchJson(
         `${API_BASE_URL}${policySetupStatusPath}`,
-        POLICY_SETUP_STATUS_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.status.timeoutMs
     )
 
     return parsePolicySetupHistoryPublishedStatusResponse(raw)
@@ -558,7 +540,7 @@ export async function fetchPolicySetupHistoryStatus(): Promise<PolicySetupHistor
 export async function triggerPolicySetupHistoryRebuild(): Promise<PolicySetupHistoryPublishedStatusDto> {
     const raw = await postJson(
         `${API_BASE_URL}${policySetupRebuildPath}`,
-        POLICY_SETUP_REBUILD_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.rebuild.timeoutMs
     )
 
     return parsePolicySetupHistoryPublishedStatusResponse(raw)
@@ -570,7 +552,7 @@ export async function fetchPolicySetupLedger(
 ): Promise<PolicySetupLedgerResponseDto> {
     const raw = await fetchJson(
         buildPolicySetupLedgerUrl(setupId, args),
-        POLICY_SETUP_LEDGER_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.ledger.timeoutMs
     )
 
     return parsePolicySetupLedgerResponse(raw)
@@ -582,7 +564,7 @@ export async function fetchPolicySetupCandles(
 ): Promise<PolicySetupCandlesResponseDto> {
     const raw = await fetchJson(
         buildPolicySetupCandlesUrl(setupId, args),
-        POLICY_SETUP_CANDLES_REQUEST_TIMEOUT_MS
+        QUERY_POLICY_REGISTRY.policySetupHistory.candles.timeoutMs
     )
 
     return parsePolicySetupCandlesResponse(raw)
@@ -592,8 +574,8 @@ export async function prefetchPolicySetupCatalog(queryClient: QueryClient): Prom
     await queryClient.prefetchQuery({
         queryKey: buildPolicySetupCatalogQueryKey(),
         queryFn: fetchPolicySetupCatalog,
-        staleTime: POLICY_SETUP_CATALOG_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CATALOG_GC_TIME_MS
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.gcTimeMs
     })
 }
 
@@ -604,20 +586,23 @@ export function usePolicySetupHistoryStatusQuery(
         queryKey: buildPolicySetupHistoryStatusQueryKey(),
         queryFn: fetchPolicySetupHistoryStatus,
         enabled,
-        staleTime: POLICY_SETUP_STATUS_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_STATUS_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.status.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.status.gcTimeMs,
         refetchOnWindowFocus: false,
-        refetchInterval: query => (query.state.data?.state === 'building' ? 3000 : false)
+        refetchInterval: query =>
+            query.state.data?.state === 'building' ?
+                QUERY_POLICY_REGISTRY.policySetupHistory.status.refetchWhileBuildingIntervalMs
+            :   false
     })
 }
 
-export function usePolicySetupCatalogQuery(enabled = true): UseQueryResult<PolicySetupCatalogItemDto[], Error> {
+export function usePolicySetupCatalogQuery(enabled = true): UseQueryResult<PolicySetupCatalogResponseDto, Error> {
     return useQuery({
         queryKey: buildPolicySetupCatalogQueryKey(),
         queryFn: fetchPolicySetupCatalog,
         enabled,
-        staleTime: POLICY_SETUP_CATALOG_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CATALOG_GC_TIME_MS
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.catalog.gcTimeMs
     })
 }
 
@@ -636,8 +621,8 @@ export function usePolicySetupLedgerQuery(
             return fetchPolicySetupLedger(setupId, args)
         },
         enabled: Boolean(setupId) && enabled,
-        staleTime: POLICY_SETUP_LEDGER_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_LEDGER_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.ledger.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.ledger.gcTimeMs,
         refetchOnWindowFocus: false
     })
 }
@@ -657,8 +642,8 @@ export function usePolicySetupCandlesQuery(
             return fetchPolicySetupCandles(setupId, args)
         },
         enabled: Boolean(setupId) && enabled,
-        staleTime: POLICY_SETUP_CANDLES_STALE_TIME_MS,
-        gcTime: POLICY_SETUP_CANDLES_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policySetupHistory.candles.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policySetupHistory.candles.gcTimeMs,
         refetchOnWindowFocus: false
     })
 }

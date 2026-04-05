@@ -50,7 +50,7 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    @include type-table-body;
 }
 
 .table th,
@@ -68,7 +68,7 @@
 
 .rawJson {
     margin-top: 8px;
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.4;
     white-space: pre;
     max-height: 320px;

@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { userActions } from '@/entities/User'
 import { API_BASE_URL } from '@/shared/configs/config'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 interface RegistrationResponse {
     id: number
@@ -29,10 +30,10 @@ export const registrationApi = createApi({
                     const { data } = await queryFulfilled
                     dispatch(userActions.login(data)) // Dispatch login on success
                 } catch (error) {
-                    const normalizedError =
-                        error instanceof Error ? error : (
-                            new Error(String(error ?? 'Unknown registration mutation error.'))
-                        )
+                    const normalizedError = normalizeErrorLike(error, 'Unknown registration mutation error.', {
+                        source: 'registration-mutation',
+                        domain: 'api_transport'
+                    })
 
                     logError(normalizedError, undefined, {
                         source: 'registration-mutation',

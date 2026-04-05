@@ -10,13 +10,13 @@
 }
 
 .heroTitle {
-    font-size: 32px;
+    @include type-page-title;
     font-weight: 700;
 }
 
 .heroSubtitle {
     max-width: 800px;
-    font-size: 16px;
+    @include type-body-lg;
     line-height: 1.6;
     opacity: 0.9;
 }
@@ -32,7 +32,7 @@
     padding: 4px 10px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    font-size: 12px;
+    @include type-label;
     opacity: 0.9;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .sectionsTitle {
-    font-size: 20px;
+    @include type-section-title;
     font-weight: 600;
 }
 
@@ -83,18 +83,18 @@
 }
 
 .cardTitle {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
 }
 
 .cardText {
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.5;
     opacity: 0.9;
 }
 
 .cardHint {
     margin-top: 4px;
-    font-size: 13px;
+    @include type-caption;
     opacity: 0.85;
 }

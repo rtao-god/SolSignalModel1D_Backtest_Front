@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueries } from '@tanstack/react-query'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { BulletList } from '@/shared/ui/BulletList'
 import { TermTooltip, Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
@@ -21,6 +23,10 @@ import {
     resolveMainDemoBestPolicyRows,
     type MainBestPolicyRowBundle
 } from './mainBestPolicySectionModel'
+import {
+    resolvePolicyBranchMegaCurrentBalance,
+    resolvePolicyBranchMegaMetricValue
+} from '@/shared/utils/policyBranchMegaCurrentBalance'
 import cls from './Main.module.scss'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
 
@@ -55,7 +61,7 @@ interface DemoNarrativeSummary {
 
 const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
-    { labelKey: 'bucketNow', termKey: 'BucketNow$', termTitle: 'BucketNow$' },
+    { labelKey: 'bucketNow', termKey: 'OnExch$', termTitle: 'OnExch$' },
     { labelKey: 'maxDd', termKey: 'MaxDD%', termTitle: 'MaxDD%' },
     { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' },
     { labelKey: 'accountRuin', termKey: 'AccRuin', termTitle: 'AccRuin' },
@@ -152,22 +158,7 @@ function resolveMainDemoPolicySummaryKey(
 }
 
 function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): string {
-    for (const item of bundle.sectionRows) {
-        const columns = item.section.columns ?? []
-        const index = columns.indexOf(title)
-        if (index < 0) {
-            continue
-        }
-
-        const value = item.row[index]
-        if (typeof value !== 'string' || value.trim().length === 0) {
-            throw new Error(`[main.demo] metric value is empty for ${title}.`)
-        }
-
-        return value
-    }
-
-    throw new Error(`[main.demo] metric not found in policy branch mega report: ${title}.`)
+    return resolvePolicyBranchMegaMetricValue(bundle.sectionRows, title, `main.demo.metric.${title}`)
 }
 
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
@@ -225,8 +216,8 @@ export default function MainBestPolicySection() {
                             ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
                             part
                         }),
-                    staleTime: 2 * 60 * 1000,
-                    gcTime: 15 * 60 * 1000
+                    staleTime: QUERY_POLICY_REGISTRY.policyBranchMega.staleTimeMs,
+                    gcTime: QUERY_POLICY_REGISTRY.policyBranchMega.gcTimeMs
                 })) ?? []
     })
 
@@ -267,7 +258,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 best: null as MainBestPolicyRowBundle | null,
-                error: err instanceof Error ? err : new Error('Failed to resolve demo configuration.')
+                error: normalizeErrorLike(err, 'Failed to resolve demo configuration.', {
+                    source: 'main-demo-configuration',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should merge published mega parts into one comparable policy set.',
+                    requiredAction: 'Inspect published mega report parts and demo section builder.'
+                })
             }
         }
     }, [reports])
@@ -278,12 +275,13 @@ export default function MainBestPolicySection() {
         }
 
         try {
+            const currentBalanceRaw = resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.meta')
             const startCapital = formatLocalizedCompactUsd(
                 parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'StartCap$'), 'StartCap$'),
                 i18n.language
             )
             const finalBalance = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'BucketNow$'), 'BucketNow$'),
+                parseRequiredNumber(currentBalanceRaw, 'OnExch$'),
                 i18n.language
             )
             const withdrawnProfit = formatLocalizedCompactUsd(
@@ -332,7 +330,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 items: [] as DemoMetaItem[],
-                error: err instanceof Error ? err : new Error('Failed to build demo meta items.')
+                error: normalizeErrorLike(err, 'Failed to build demo meta items.', {
+                    source: 'main-demo-meta',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build meta facts from the resolved best policy.',
+                    requiredAction: 'Inspect demo meta builder and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])
@@ -345,9 +349,9 @@ export default function MainBestPolicySection() {
         try {
             const totalPnlPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl%'), 'TotalPnl%')
             const totalPnlUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl$'), 'TotalPnl$')
-            const bucketNowUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'BucketNow$'),
-                'BucketNow$'
+            const currentBalanceUsd = parseRequiredNumber(
+                resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.summary'),
+                'OnExch$'
             )
             const withdrawnUsd = parseRequiredNumber(
                 resolveMetricValue(bestPolicyState.best, 'Withdrawn$'),
@@ -423,7 +427,7 @@ export default function MainBestPolicySection() {
                         t(policySummaryKey),
                         t('main.demo.summary.capitalFlow', {
                             withdrawnUsd: formatLocalizedCompactUsd(withdrawnUsd, i18n.language),
-                            bucketNowUsd: formatLocalizedCompactUsd(bucketNowUsd, i18n.language)
+                            bucketNowUsd: formatLocalizedCompactUsd(currentBalanceUsd, i18n.language)
                         }),
                         t('main.demo.summary.activity', {
                             days: formatLocalizedNumber(days, i18n.language, {
@@ -492,7 +496,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 data: null as DemoNarrativeSummary | null,
-                error: err instanceof Error ? err : new Error('Failed to build demo summary.')
+                error: normalizeErrorLike(err, 'Failed to build demo summary.', {
+                    source: 'main-demo-summary',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build narrative summary from the resolved best policy.',
+                    requiredAction: 'Inspect demo summary builder and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])
@@ -509,15 +519,16 @@ export default function MainBestPolicySection() {
         try {
             return {
                 items: DEMO_METRIC_DEFINITIONS.map(definition => {
+                    const rawValue =
+                        definition.termKey === 'OnExch$' ?
+                            resolvePolicyBranchMegaCurrentBalance(bestPolicy.sectionRows, 'main.demo.metrics')
+                        :   resolveMetricValue(bestPolicy, definition.termKey)
+
                     return {
                         label: t(`main.demo.metrics.${definition.labelKey}`),
                         termKey: definition.termKey,
                         termTitle: definition.termTitle,
-                        value: localizeReportCellValue(
-                            definition.termKey,
-                            resolveMetricValue(bestPolicy, definition.termKey),
-                            i18n.language
-                        )
+                        value: localizeReportCellValue(definition.termKey, rawValue, i18n.language)
                     }
                 }),
                 error: null as Error | null
@@ -525,7 +536,13 @@ export default function MainBestPolicySection() {
         } catch (err) {
             return {
                 items: [] as Array<{ label: string; termKey: string; termTitle: string; value: string }>,
-                error: err instanceof Error ? err : new Error('Failed to build demo metrics.')
+                error: normalizeErrorLike(err, 'Failed to build demo metrics.', {
+                    source: 'main-demo-metrics',
+                    domain: 'ui_section',
+                    owner: 'main-best-policy-section',
+                    expected: 'Main demo should build metric cards from the resolved best policy.',
+                    requiredAction: 'Inspect demo metric definitions and required best-policy metrics.'
+                })
             }
         }
     }, [bestPolicyState.best, i18n.language, t])

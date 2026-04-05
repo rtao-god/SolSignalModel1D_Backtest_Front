@@ -86,7 +86,7 @@ import {
 
 	Контракты:
 		- Для динамических табов учитываются только валидные table-секции с непустыми колонками.
-		- Для Policy Branch Mega при клике по якорю сохраняется вся query-строка (bucket/metric/tpsl/slmode/zonal), иначе теряется контекст выбранного режима.
+		- Для Policy Branch Mega при клике по якорю сохраняется вся query-строка (history/bucket/metric/tpsl/slmode/zonal), иначе теряется контекст выбранного среза.
 */
 interface SidebarProps {
     className?: string
@@ -126,6 +126,7 @@ const SECTION_ORDER: RouteSection[] = [
     'models',
     'backtest',
     'analysis',
+    'statistics',
     'diagnostics',
     'features',
     'guide',
@@ -138,6 +139,7 @@ const SECTION_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     models: 'Models',
     backtest: 'Backtest',
     analysis: 'Analysis',
+    statistics: 'Statistics',
     diagnostics: 'Diagnostics',
     features: 'Features',
     guide: 'Knowledge Base',
@@ -150,6 +152,7 @@ const SECTION_COMPACT_FALLBACK_TITLES: Partial<Record<RouteSection, string>> = {
     models: 'Models',
     backtest: 'Backtest',
     analysis: 'Analysis',
+    statistics: 'Stats',
     diagnostics: 'Diag',
     features: 'PFI',
     guide: 'Guide',
@@ -188,6 +191,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
     const isExplainRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.EXPLAIN])
     const isDiagnosticsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.DIAGNOSTICS_HOME])
     const isAnalysisRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.ANALYSIS_HOME])
+    const isStatisticsRoute = isRouteBranchMatch(pathname, ROUTE_PATH[AppRoute.STATISTICS_HOME])
     const previousLocationRef = useRef<SidebarLocationSnapshot | null>(null)
 
     useEffect(() => {
@@ -318,6 +322,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
             const isDeveloperItem = section === 'developer'
             const isDiagnosticsItem = section === 'diagnostics'
             const isAnalysisItem = section === 'analysis'
+            const isStatisticsItem = section === 'statistics'
 
             // В специализированных разделах оставляем только их собственные секции меню.
             if (isGuideRoute && !isGuideItem) {
@@ -338,6 +343,9 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
             if (isAnalysisRoute && !isAnalysisItem) {
                 return
             }
+            if (isStatisticsRoute && !isStatisticsItem) {
+                return
+            }
             if (!isDocsRoute && isDocsItem) {
                 return
             }
@@ -354,6 +362,9 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                 return
             }
             if (!isAnalysisRoute && isAnalysisItem) {
+                return
+            }
+            if (!isStatisticsRoute && isStatisticsItem) {
                 return
             }
 
@@ -374,7 +385,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         }
 
         return bySection
-    }, [isGuideRoute, isDeveloperRoute, isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute])
+    }, [isGuideRoute, isDeveloperRoute, isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute, isStatisticsRoute])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())

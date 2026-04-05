@@ -6,6 +6,9 @@ import ExecutionPipelinePage from './ExecutionPipelinePage'
 const { useBacktestExecutionPipelineReportQuery } = vi.hoisted(() => ({
     useBacktestExecutionPipelineReportQuery: vi.fn()
 }))
+const { usePublishedReportVariantCatalogQuery } = vi.hoisted(() => ({
+    usePublishedReportVariantCatalogQuery: vi.fn()
+}))
 
 vi.mock('@/shared/api/tanstackQueries/backtestExecutionPipeline', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/backtestExecutionPipeline')>()
@@ -13,6 +16,15 @@ vi.mock('@/shared/api/tanstackQueries/backtestExecutionPipeline', async importOr
     return {
         ...actual,
         useBacktestExecutionPipelineReportQuery
+    }
+})
+
+vi.mock('@/shared/api/tanstackQueries/reportVariants', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/reportVariants')>()
+
+    return {
+        ...actual,
+        usePublishedReportVariantCatalogQuery
     }
 })
 
@@ -59,8 +71,9 @@ function createExecutionPipelineReport() {
             {
                 sectionKey: 'decision_level',
                 title: 'Decision Level',
-                columns: ['Policy', 'TradeDays'],
-                rows: [['const_2x', '11']],
+                columns: ['Policy', 'Margin', 'TradeDays'],
+                columnKeys: ['policy_name', 'margin_mode', 'trade_days'],
+                rows: [['const_2x Cross', 'Cross', '11']],
                 metadata: {
                     kind: 'unknown',
                     tpSlMode: 'all',
@@ -73,10 +86,84 @@ function createExecutionPipelineReport() {
     }
 }
 
+function createVariantCatalog() {
+    return {
+        family: 'backtest_execution_pipeline',
+        sourceReportKind: 'backtest_execution_pipeline',
+        sourceReportId: 'execution-pipeline-test',
+        publishedAtUtc: '2026-03-11T12:00:00.000Z',
+        axes: [
+            {
+                key: 'bucket',
+                defaultValue: 'daily',
+                options: [
+                    { value: 'daily', label: 'Daily' },
+                    { value: 'intraday', label: 'Intraday' }
+                ]
+            },
+            {
+                key: 'tpsl',
+                defaultValue: 'all',
+                options: [
+                    { value: 'all', label: 'All' },
+                    { value: 'static', label: 'Static' }
+                ]
+            },
+            {
+                key: 'slmode',
+                defaultValue: 'all',
+                options: [
+                    { value: 'all', label: 'All' },
+                    { value: 'no-sl', label: 'No SL' }
+                ]
+            },
+            {
+                key: 'zonal',
+                defaultValue: 'with-zonal',
+                options: [
+                    { value: 'with-zonal', label: 'With zonal' },
+                    { value: 'without-zonal', label: 'Without zonal' }
+                ]
+            }
+        ],
+        variants: [
+            {
+                key: 'default',
+                selection: {
+                    bucket: 'daily',
+                    tpsl: 'all',
+                    slmode: 'all',
+                    zonal: 'with-zonal'
+                },
+                artifacts: { report: 'default-report' }
+            },
+            {
+                key: 'strict-intraday',
+                selection: {
+                    bucket: 'intraday',
+                    tpsl: 'static',
+                    slmode: 'no-sl',
+                    zonal: 'without-zonal'
+                },
+                artifacts: { report: 'strict-intraday-report' }
+            }
+        ]
+    }
+}
+
 describe('ExecutionPipelinePage', () => {
     beforeEach(async () => {
         await i18nForTests.changeLanguage('ru')
         vi.clearAllMocks()
+        usePublishedReportVariantCatalogQuery.mockReturnValue(
+            createQueryResult({
+                data: createVariantCatalog(),
+                isPending: false,
+                isError: false,
+                error: null,
+                refetch: vi.fn()
+            })
+        )
         useBacktestExecutionPipelineReportQuery.mockReturnValue(
             createQueryResult({
                 data: createExecutionPipelineReport()
@@ -105,25 +192,18 @@ describe('ExecutionPipelinePage', () => {
         )
     })
 
-    test('keeps universal controls visible and disables backend fetch when diagnostics query is invalid', () => {
+    test('shows owner error state and disables backend fetch when diagnostics query is invalid', () => {
         render(<ExecutionPipelinePage />, {
             route: '/analysis/execution-pipeline?bucket=broken'
         })
 
-        expect(screen.getByText('Dynamic-risk режим')).toBeInTheDocument()
-        expect(screen.getByText('SL-режим')).toBeInTheDocument()
-        expect(screen.getByText('Бакет сделок')).toBeInTheDocument()
-        expect(screen.getByText('Зональный риск')).toBeInTheDocument()
-
         expect(useBacktestExecutionPipelineReportQuery).toHaveBeenCalledWith(
-            {
-                bucket: 'daily',
-                slMode: 'all',
-                tpSlMode: 'all',
-                zonalMode: 'with-zonal'
-            },
+            undefined,
             { enabled: false }
         )
+
+        expect(screen.getByText('Не удалось загрузить путь расчёта')).toBeInTheDocument()
+        expect(screen.getByText(/unsupported for axis 'bucket'/i)).toBeInTheDocument()
     })
 
     test('renders terms blocks for key-value and table sections', () => {
@@ -133,5 +213,15 @@ describe('ExecutionPipelinePage', () => {
 
         expect(screen.getAllByText('Термины секции')).toHaveLength(3)
         expect(screen.getAllByRole('button', { name: 'Скрыть блок' })).toHaveLength(3)
+    })
+
+    test('hides duplicate margin column when policy name already shows Cross or Isolated', () => {
+        render(<ExecutionPipelinePage />, {
+            route: '/analysis/execution-pipeline'
+        })
+
+        expect(screen.getByText('const_2x Cross')).toBeInTheDocument()
+        expect(screen.queryByRole('columnheader', { name: 'Margin' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Margin')).not.toBeInTheDocument()
     })
 })

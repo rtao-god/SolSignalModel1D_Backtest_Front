@@ -4,6 +4,7 @@ import { useLoginUserMutation } from '@/shared/api/authApi'
 import { userActions } from '@/entities/User'
 import { setError } from '@/features/UserLogin/model/slice/loginSlice'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 export const useLogin = () => {
     const [loginUser, { isLoading }] = useLoginUserMutation()
@@ -16,8 +17,10 @@ export const useLogin = () => {
             dispatch(userActions.login(user))
             navigate('/')
         } catch (error) {
-            const normalizedError =
-                error instanceof Error ? error : new Error(String(error ?? 'Unknown login hook error.'))
+            const normalizedError = normalizeErrorLike(error, 'Unknown login hook error.', {
+                source: 'login-hook',
+                domain: 'api_transport'
+            })
 
             logError(normalizedError, undefined, {
                 source: 'login-hook',

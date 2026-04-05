@@ -66,7 +66,8 @@ export function BacktestConfigEditor({
     onRunPreview
 }: BacktestConfigEditorProps) {
     const { t, i18n } = useTranslation('reports')
-    const confidenceRisk = draftConfig.confidenceRisk
+    const baselineProfile = draftConfig.executionProfile.baselineProfile
+    const confidenceRisk = draftConfig.executionProfile.confidenceRisk
     const tooltipLocale = (i18n.resolvedLanguage ?? i18n.language).startsWith('ru') ? 'ru' : 'en'
     const profileName =
         currentProfile?.name ?? t('backtestFull.configEditor.profileUnnamed', { defaultValue: 'unnamed' })
@@ -103,7 +104,7 @@ export function BacktestConfigEditor({
                     <Input
                         type='number'
                         className={cls.input}
-                        value={formatPct(draftConfig.dailyStopPct)}
+                        value={formatPct(baselineProfile.stopLossPct)}
                         onChange={e => onStopPctChange(e.target.value)}
                     />
                 </label>
@@ -117,7 +118,7 @@ export function BacktestConfigEditor({
                     <Input
                         type='number'
                         className={cls.input}
-                        value={formatPct(draftConfig.dailyTpPct)}
+                        value={formatPct(baselineProfile.takeProfitPct)}
                         onChange={e => onTpPctChange(e.target.value)}
                     />
                 </label>

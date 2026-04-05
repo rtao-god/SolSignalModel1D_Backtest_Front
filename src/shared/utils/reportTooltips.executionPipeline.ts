@@ -41,10 +41,10 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU, {
     ),
     CalcMode: buildRuTooltip(
         'CalcMode',
-        'глобальный режим расчёта позиции, с которым был собран текущий pipeline',
-        'значение приходит из backtest config или из decision-ledger сделки и определяет, по какой схеме движок переводил риск в stake, notional и итоговые ограничения.',
-        'сравнивать строки разных pipeline-отчётов корректно только внутри одного CalcMode. Если режим меняется, меняется и сама механика расчёта размера позиции.',
-        'Пример:\nBudgeted и другой calc mode могут давать одинаковое направление, но разный путь от сигнала до фактического размера риска.'
+        'правило, по которому движок считает итоговую [[position|позицию]]',
+        '1) [[budgeted-calc-mode|Budgeted]]: движок сначала выбирает допустимый денежный риск на одну позицию. Ключевой параметр здесь — [[margin|маржа]]. Она подбирается так, чтобы убыток до [[tp-sl|stop-loss]] укладывался в этот лимит.\n2) [[exchange-like-calc-mode|ExchangeLike]]: движок сразу берёт фиксированную долю текущего капитала [[bucket|бакета]] как маржу сделки.\n3) После этого к марже применяется [[leverage|плечо]], и из неё получается полный размер позиции.',
+        '1) Строки с разным CalcMode напрямую не сравниваются: при одном и том же [[landing-signal|сигнале]] режимы могут открыть разный размер позиции.\n2) Budgeted сильнее завязан на расстояние до stop-loss.\n3) ExchangeLike сильнее завязан на текущий капитал бакета.',
+        'Пример:\nесли два режима видят один и тот же [[landing-signal|сигнал]], Budgeted может открыть меньшую позицию, когда stop-loss стоит далеко и допустимый денежный риск приходится ужимать.'
     ),
     SignalDays: buildRuTooltip(
         'SignalDays',
@@ -144,10 +144,10 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
         ),
     CalcMode: buildEnTooltip(
         'CalcMode',
-        'the global position-calculation mode used to build the current pipeline',
-        'the value comes from backtest config or the decision ledger and controls how the engine translates risk inputs into stake, notional, and related limits.',
-        'pipeline rows are directly comparable only inside the same CalcMode. When the mode changes, the size-building mechanics change as well.',
-        'Example:\na Budgeted run and another calc mode can keep the same direction but still produce a different risk size path.'
+        'the rule that turns the daily decision into the final [[position|position]] size',
+        '1) [[budgeted-calc-mode|Budgeted]]: the engine first chooses the allowed cash risk for one position. The key parameter here is [[margin|margin]]. It is adjusted so the loss up to [[tp-sl|stop-loss]] stays inside that limit.\n2) [[exchange-like-calc-mode|ExchangeLike]]: the engine immediately takes a fixed share of the current [[bucket|bucket]] capital as trade margin.\n3) Then [[leverage|leverage]] is applied on top of that margin, and the full position size appears.',
+        '1) Rows with different CalcMode values should not be compared directly: the same [[landing-signal|signal]] can open a different position size.\n2) Budgeted depends more on the distance to stop-loss.\n3) ExchangeLike depends more on the current bucket capital.',
+        'Example:\nif two modes see the same [[landing-signal|signal]], Budgeted can open a smaller position when stop-loss stands far away and the allowed cash risk has to stay tight.'
     ),
     SignalDays: buildEnTooltip(
         'SignalDays',

@@ -1,0 +1,20 @@
+.root {
+    display: grid;
+    gap: 24px;
+}
+
+.hero {
+    display: grid;
+    gap: 12px;
+}
+
+.controls {
+    // Контейнер держим в общей тёмной палитре страницы:
+    // сами segmented-контролы уже рисуют светлый текст и тёмную кнопку-группу.
+    @include subtle-surface(20px);
+}
+
+.report {
+    display: grid;
+    gap: 16px;
+}

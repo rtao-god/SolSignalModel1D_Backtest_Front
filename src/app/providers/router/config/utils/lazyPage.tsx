@@ -1,7 +1,11 @@
 import { ComponentType, lazy, type LazyExoticComponent } from 'react'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 function normalizeLazyImportError(error: unknown): Error {
-    return error instanceof Error ? error : new Error(String(error ?? 'Unknown lazy page import error.'))
+    return normalizeErrorLike(error, 'Unknown lazy page import error.', {
+        source: 'lazy-page-import',
+        domain: 'route_runtime'
+    })
 }
 
 function createLazyImportErrorComponent<T extends ComponentType<any>>(error: Error): T {

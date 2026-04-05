@@ -15,7 +15,7 @@
 .dateTitle {
     flex: 1;
     color: var(--picker-text);
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 600;
     text-align: center;
     text-transform: capitalize;
@@ -78,7 +78,7 @@
 .weekDay {
     text-align: center;
     color: var(--picker-text-muted);
-    font-size: 12px;
+    @include type-label;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;

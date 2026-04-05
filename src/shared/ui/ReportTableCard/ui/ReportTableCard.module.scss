@@ -22,7 +22,7 @@
 }
 
 .cardSubtitle {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.55;
     color: var(--text-muted);
     max-width: 720px;

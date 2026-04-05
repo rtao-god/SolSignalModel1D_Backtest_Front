@@ -5,7 +5,7 @@ import type {
     RealForecastJournalSnapshotDto
 } from '@/shared/types/realForecastJournal.types'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
-import { buildCombinedPolicyRows, buildConfidenceRiskComparison } from './realForecastJournalPageModel'
+import { buildAggregationComparison, buildCombinedPolicyRows, buildConfidenceRiskComparison } from './realForecastJournalPageModel'
 
 function buildPolicyRow(overrides?: Partial<RealForecastJournalPolicyRowDto>): RealForecastJournalPolicyRowDto {
     return {
@@ -13,6 +13,7 @@ function buildPolicyRow(overrides?: Partial<RealForecastJournalPolicyRowDto>): R
         branch: 'BASE',
         bucket: 'daily',
         margin: 'cross',
+        isSpotPolicy: false,
         isRiskDay: false,
         hasDirection: true,
         skipped: false,
@@ -80,6 +81,7 @@ describe('realForecastJournalPageModel', () => {
     test('buildCombinedPolicyRows keeps immutable session-open rows and adds finalize-only rows explicitly', () => {
         const record: RealForecastJournalDayRecordDto = {
             id: 'real-forecast-2026-03-10',
+            status: 'finalized',
             trainingScope: 'full',
             predictionDateUtc: '2026-03-10',
             capturedAtUtc: '2026-03-10T13:30:00.000Z',
@@ -228,5 +230,93 @@ describe('realForecastJournalPageModel', () => {
             benchmarkWinRate: 0.4
         })
         expect(comparison.live.sampleSize).toBe(2)
+    })
+
+    test('buildAggregationComparison accepts numeric direction labels with text suffix from journal day list', () => {
+        const comparison = buildAggregationComparison(
+            [
+                {
+                    id: 'day-down',
+                    predictionDateUtc: '2026-03-10',
+                    status: 'finalized',
+                    trainingScope: 'oos',
+                    capturedAtUtc: '2026-03-10T13:30:00.000Z',
+                    entryUtc: '2026-03-10T13:30:00.000Z',
+                    exitUtc: '2026-03-10T20:00:00.000Z',
+                    finalizedAtUtc: '2026-03-10T20:15:00.000Z',
+                    predLabelDisplay: '0 (down)',
+                    microDisplay: 'down',
+                    totalUpProbability: 0.2,
+                    totalFlatProbability: 0.1,
+                    totalDownProbability: 0.7,
+                    dayConfidence: 0.72,
+                    microConfidence: 0.64,
+                    actualDirection: 'DOWN',
+                    directionMatched: true
+                }
+            ] satisfies RealForecastJournalDayListItemDto[],
+            {
+                TotalInputRecords: 10,
+                ExcludedCount: 0,
+                Segments: [
+                    {
+                        SegmentName: 'oos',
+                        SegmentLabel: 'OOS benchmark',
+                        FromDateUtc: null,
+                        ToDateUtc: null,
+                        RecordsCount: 10,
+                        Day: {
+                            LayerName: 'Day',
+                            Confusion: [
+                                [1, 0, 0],
+                                [0, 1, 0],
+                                [0, 0, 1]
+                            ],
+                            N: 10,
+                            Correct: 6,
+                            Accuracy: 0.6,
+                            MicroF1: 0.6,
+                            LogLoss: 0.65,
+                            InvalidForLogLoss: 0,
+                            ValidForLogLoss: 10
+                        },
+                        DayMicro: {
+                            LayerName: 'DayMicro',
+                            Confusion: [
+                                [1, 0, 0],
+                                [0, 1, 0],
+                                [0, 0, 1]
+                            ],
+                            N: 10,
+                            Correct: 6,
+                            Accuracy: 0.6,
+                            MicroF1: 0.6,
+                            LogLoss: 0.65,
+                            InvalidForLogLoss: 0,
+                            ValidForLogLoss: 10
+                        },
+                        Total: {
+                            LayerName: 'Total',
+                            Confusion: [
+                                [1, 0, 0],
+                                [0, 1, 0],
+                                [0, 0, 1]
+                            ],
+                            N: 10,
+                            Correct: 6,
+                            Accuracy: 0.6,
+                            MicroF1: 0.6,
+                            LogLoss: 0.65,
+                            InvalidForLogLoss: 0,
+                            ValidForLogLoss: 10
+                        }
+                    }
+                ]
+            },
+            'oos'
+        )
+
+        expect(comparison.live.sampleSize).toBe(1)
+        expect(comparison.live.accuracy).toBe(1)
     })
 })

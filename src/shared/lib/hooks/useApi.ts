@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { buildDetailedRequestErrorMessage } from '@/shared/api/tanstackQueries/utils/requestErrorMessage'
 import { API_BASE_URL } from '../../configs/config'
+import { normalizeErrorLike } from '../errors/normalizeError'
 
 /*
 	useApi — минимальный универсальный fetch-хук для чтения данных по endpoint.
@@ -21,15 +23,26 @@ function useApi<T>(endpoint: string): { data: T | null; isLoading: boolean; erro
         // Хук привязан к endpoint: при его смене выполняем новый запрос.
         const fetchData = async () => {
             setIsLoading(true)
+            setError(null)
             try {
                 const response = await fetch(`${API_BASE_URL}${endpoint}`)
                 if (!response.ok) {
-                    throw new Error('Network response was not ok')
+                    const bodyText = await response.text()
+                    throw new Error(buildDetailedRequestErrorMessage('Failed to load API payload', response, bodyText))
                 }
                 const jsonData = (await response.json()) as T
                 setData(jsonData)
             } catch (error) {
-                setError(error as Error)
+                setError(
+                    normalizeErrorLike(error, 'Unknown API request error.', {
+                        source: 'use-api',
+                        domain: 'ui_section',
+                        owner: 'useApi',
+                        expected: 'API hook should receive a successful JSON payload or a detailed API error.',
+                        requiredAction: 'Inspect the endpoint and request wrapper.',
+                        extra: { endpoint }
+                    })
+                )
             } finally {
                 setIsLoading(false)
             }

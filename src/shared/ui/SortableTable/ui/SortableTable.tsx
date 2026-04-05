@@ -1,7 +1,15 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
 import cls from './SortableTable.module.scss'
-import type { RowEntry, SortDir, SortKind, SortState, TableRow } from '../model/types'
+import type {
+    RowEntry,
+    SortDir,
+    SortKind,
+    SortState,
+    TableRow,
+    TableSortComparator,
+    TableSortValueResolver
+} from '../model/types'
 import {
     defaultDirForColumn,
     effectiveAriaSort,
@@ -13,6 +21,7 @@ import {
 } from '../model/utils'
 import { useTranslation } from 'react-i18next'
 import { logError } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 export type TableDensity = 'simple' | 'medium' | 'dense'
 
@@ -30,6 +39,8 @@ interface SortableTableProps {
     getRowTitle?: (row: TableRow, rowIndex: number) => string | undefined
     getCellClassName?: (value: unknown, rowIndex: number, colIdx: number) => string | undefined
     renderCell?: (value: unknown, rowIndex: number, colIdx: number) => ReactNode
+    getSortValue?: TableSortValueResolver
+    getSortComparator?: TableSortComparator
     onSortedRowsChange?: (rows: TableRow[]) => void
     renderColumnTitle?: (title: string, colIdx: number) => ReactNode
 }
@@ -100,7 +111,11 @@ function safeLoadSortState(key: string, columnsLen: number): SortState | null {
 
         return { colIdx, kind: kind as SortKind }
     } catch (e) {
-        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state load error.'))
+        const normalizedError = normalizeErrorLike(e, 'Unknown sort state load error.', {
+            source: 'sortable-table-sort-load',
+            domain: 'app_runtime',
+            extra: { key }
+        })
 
         logError(normalizedError, undefined, {
             source: 'sortable-table-sort-load',
@@ -119,7 +134,11 @@ function safeSaveSortState(key: string, state: SortState) {
     try {
         window.localStorage.setItem(key, JSON.stringify(state))
     } catch (e) {
-        const normalizedError = e instanceof Error ? e : new Error(String(e ?? 'Unknown sort state save error.'))
+        const normalizedError = normalizeErrorLike(e, 'Unknown sort state save error.', {
+            source: 'sortable-table-sort-save',
+            domain: 'app_runtime',
+            extra: { key }
+        })
 
         logError(normalizedError, undefined, {
             source: 'sortable-table-sort-save',
@@ -144,6 +163,8 @@ export default function SortableTable({
     getRowTitle,
     getCellClassName,
     renderCell,
+    getSortValue,
+    getSortComparator,
     onSortedRowsChange,
     renderColumnTitle
 }: SortableTableProps) {
@@ -172,13 +193,13 @@ export default function SortableTable({
     const defaultDirByColIdx = useMemo(() => {
         const map = new Map<number, SortDir>()
         for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-            const d = defaultDirForColumn(rowEntries, colIdx)
+            const d = defaultDirForColumn(rowEntries, colIdx, getSortValue, getSortComparator)
             if (d) {
                 map.set(colIdx, d)
             }
         }
         return map
-    }, [columns.length, rowEntries])
+    }, [columns.length, getSortComparator, getSortValue, rowEntries])
     useEffect(() => {
         const key = storageKeyFor(storageKey)
         if (!key) {
@@ -229,8 +250,8 @@ export default function SortableTable({
             return rowEntries
         }
 
-        return stableSortByCol(rowEntries, sort.colIdx, resolved)
-    }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx])
+        return stableSortByCol(rowEntries, sort.colIdx, resolved, getSortValue, getSortComparator)
+    }, [rowEntries, sort, isSortColVisible, defaultDirByColIdx, getSortComparator, getSortValue])
 
     const shouldVirtualize =
         virtualizeRows &&

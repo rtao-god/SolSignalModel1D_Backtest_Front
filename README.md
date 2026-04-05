@@ -1,5 +1,23 @@
 # React + TypeScript + Vite
 
+## API contract
+
+- Detailed deploy notes are in [DEPLOY.md](DEPLOY.md).
+
+- Development uses same-origin `/api` and a Vite proxy to the local backend.
+- `npm run dev` starts only the frontend dev server and never builds or auto-starts the backend.
+- `VITE_DEV_API_PROXY_TARGET` sets the backend host for `/api` during local development. The default local target is `http://127.0.0.1:10000`.
+- Production uses an explicit absolute `VITE_API_BASE_URL`, for example `https://.../api`.
+- The frontend does not infer backend hostnames from the current browser origin.
+
+## Local env
+
+- Copy `.env.example` to `.env.local` for local development.
+- `VITE_API_BASE_URL=/api` keeps the frontend on the proxy path.
+- `VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:10000` keeps `/api` on the standard local backend host.
+- Copy `.env.production.example` to `.env.production` for the deployed frontend.
+- `VITE_API_BASE_URL` in production must be an absolute HTTPS URL.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

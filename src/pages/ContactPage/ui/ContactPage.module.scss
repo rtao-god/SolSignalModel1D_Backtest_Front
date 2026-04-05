@@ -27,14 +27,14 @@
 }
 
 .title {
-    font-size: 28px;
+    @include type-page-title-compact;
     font-weight: 600;
     letter-spacing: 0.02em;
 }
 
 .subtitle {
     max-width: 640px;
-    font-size: 14px;
+    @include type-body-md;
     opacity: 0.8;
 }
 
@@ -67,7 +67,7 @@
 
 .avatarInitials {
     font-weight: 600;
-    font-size: 18px;
+    @include type-body-lg;
 }
 
 .profileInfo {
@@ -77,17 +77,17 @@
 }
 
 .profileName {
-    font-size: 18px;
+    @include type-section-title-compact;
     font-weight: 600;
 }
 
 .profileRole {
-    font-size: 13px;
+    @include type-body-sm;
     opacity: 0.85;
 }
 
 .profileNote {
-    font-size: 13px;
+    @include type-body-sm;
     opacity: 0.7;
 }
 
@@ -191,19 +191,19 @@
 }
 
 .cardTitle {
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 600;
 }
 
 .cardDescription {
-    font-size: 13px;
+    @include type-body-sm;
     opacity: 0.8;
 }
 
 .cardLink {
     margin-top: 4px;
     align-self: flex-start;
-    font-size: 13px;
+    @include type-button-sm;
     font-weight: 500;
     text-decoration: none;
     padding: 6px 10px;
@@ -228,7 +228,7 @@
 
 .cardTag {
     margin-top: 2px;
-    font-size: 12px;
+    @include type-label;
     opacity: 0.75;
 }
 
@@ -239,6 +239,6 @@
 }
 
 .footerText {
-    font-size: 12px;
+    @include type-label;
     opacity: 0.7;
 }

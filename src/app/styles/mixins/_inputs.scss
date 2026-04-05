@@ -1,5 +1,5 @@
 @mixin input-primary {
-    @include text-size-body-2;
+    @include type-input;
     color: var(--color-text-primary);
     background-color: var(--inverted-bg-color-input);
     box-shadow: inset 0 0 0px 1000px #0d1117;
@@ -61,5 +61,7 @@
     border-radius: 8px;
     box-shadow: inset 0 0 0 32px #0d1117;
     color: #fff;
-    font-size: 14px;
+    font-size: var(--type-input-size);
+    line-height: var(--type-input-line);
+    font-weight: var(--type-input-weight);
 }

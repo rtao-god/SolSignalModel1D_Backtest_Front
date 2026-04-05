@@ -10,6 +10,7 @@
         "models": "Модели",
         "backtest": "Бэктест",
         "analysis": "Анализ",
+        "statistics": "Статистика",
         "diagnostics": "Диагностика",
         "features": "Фичи",
         "guide": "База знаний",
@@ -22,6 +23,7 @@
         "models": "Модели",
         "backtest": "Бэктест",
         "analysis": "Анализ",
+        "statistics": "Стат.",
         "diagnostics": "Диагн.",
         "features": "PFI",
         "guide": "База",
@@ -33,6 +35,7 @@
         "main": "Главная",
         "diagnostics_home": "Диагностика",
         "analysis_home": "Анализ",
+        "statistics_home": "Статистика",
         "docs": "Документация",
         "explain": "Объяснение",
         "profile": "Профиль",
@@ -54,6 +57,9 @@
         "backtest_diagnostics_daystats": "Дни и типы рынка",
         "backtest_policy_branch_mega": "Стратегии и ветки",
         "backtest_confidence_risk": "Уверенность и риск входа",
+        "backtest_sharp_move_stats": "Резкие движения",
+        "backtest_btc_weakness_stats": "Слабость Bitcoin",
+        "backtest_bounded_parameter_stats": "Статистика ограничителей",
         "backtest_execution_pipeline": "Путь расчёта бэктеста",
         "pfi_per_model": "Важность фич по моделям",
         "guide": "База знаний",
@@ -132,7 +138,7 @@
             "explain-splits-overview": "Зачем сплиты",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "guide_time": {
@@ -206,7 +212,7 @@
             "explain-splits-overview": "Зачем сплиты",
             "explain-splits-train": "Train",
             "explain-splits-oos": "OOS",
-            "explain-splits-recent": "Recent (240d)",
+            "explain-splits-recent": "Recent",
             "explain-splits-full": "Full history"
         },
         "explain_project": {

@@ -6,7 +6,6 @@ export interface CustomInputProps {
     error?: string
     bgcolor?: string
     padding?: string
-    fz?: string
     border?: string
     bt?: string
     br?: string

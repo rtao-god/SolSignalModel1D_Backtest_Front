@@ -19,7 +19,7 @@
 }
 
 .title {
-    font-size: 16px;
+    @include type-card-title;
     font-weight: 500;
 }
 

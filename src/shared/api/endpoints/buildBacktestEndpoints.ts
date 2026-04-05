@@ -9,8 +9,21 @@ import type {
     BacktestProfileCreateDto,
     BacktestProfileUpdateDto
 } from '@/shared/types/backtest.types'
+import type {
+    ExperimentActivationSlot,
+    ExperimentActivationPointerDto,
+    ExperimentActivationUpdateDto,
+    ExperimentBundleCreateDto,
+    ExperimentBundleDto,
+    ExperimentBundleStatusUpdateDto,
+    ExperimentRegistrySnapshotDto,
+    ExperimentSandboxProofDto,
+    ExperimentSandboxProofRequestDto,
+    ExperimentSandboxRunRequestDto,
+    ExperimentSandboxRunResponseDto
+} from '@/shared/types/backtestExperiments.types'
 import type { PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
-import { mapReportResponse } from '../utils/mapReportResponse'
+import { mapPolicyRatiosReportResponse, mapReportResponse } from '../utils/mapReportResponse'
 import type { ApiEndpointBuilder } from '../types'
 import { API_ROUTES } from '../routes'
 
@@ -21,6 +34,12 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
         profilesCreatePost,
         profileGetById,
         profileUpdatePatch,
+        experimentRegistryGet,
+        experimentBundlesPost,
+        experimentBundleStatusPost,
+        experimentActivationPost,
+        experimentSandboxRunPost,
+        experimentSandboxProofGet,
         previewPost,
         previewFullPost,
         comparePost,
@@ -63,6 +82,62 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
                 body: patch
             }),
             invalidatesTags: ['BacktestProfiles']
+        }),
+        getExperimentRegistry: builder.query<ExperimentRegistrySnapshotDto, void>({
+            query: () => ({
+                url: experimentRegistryGet.path,
+                method: experimentRegistryGet.method
+            }),
+            providesTags: ['BacktestProfiles']
+        }),
+        createExperimentBundle: builder.mutation<ExperimentBundleDto, ExperimentBundleCreateDto>({
+            query: body => ({
+                url: experimentBundlesPost.path,
+                method: experimentBundlesPost.method,
+                body
+            }),
+            invalidatesTags: ['BacktestProfiles']
+        }),
+        updateExperimentBundleStatus: builder.mutation<
+            ExperimentBundleDto,
+            { bundleId: string; patch: ExperimentBundleStatusUpdateDto }
+        >({
+            query: ({ bundleId, patch }) => ({
+                url: `${experimentBundleStatusPost.path}/${encodeURIComponent(bundleId)}/status`,
+                method: experimentBundleStatusPost.method,
+                body: patch
+            }),
+            invalidatesTags: ['BacktestProfiles']
+        }),
+        activateExperimentBundle: builder.mutation<
+            ExperimentActivationPointerDto,
+            { slot: ExperimentActivationSlot; body: ExperimentActivationUpdateDto }
+        >({
+            query: ({ slot, body }) => ({
+                url: `${experimentActivationPost.path}/${slot === 'OfflineCurrent' ? 'offline-current' : 'live-current'}`,
+                method: experimentActivationPost.method,
+                body
+            }),
+            invalidatesTags: ['BacktestProfiles']
+        }),
+        runExperimentSandbox: builder.mutation<ExperimentSandboxRunResponseDto, ExperimentSandboxRunRequestDto>({
+            query: body => ({
+                url: experimentSandboxRunPost.path,
+                method: experimentSandboxRunPost.method,
+                body
+            }),
+            invalidatesTags: ['BacktestProfiles']
+        }),
+        getExperimentSandboxProof: builder.query<ExperimentSandboxProofDto, ExperimentSandboxProofRequestDto>({
+            query: ({ runId, scenarioBlockKeys }) => ({
+                url: `${experimentSandboxProofGet.path}/${encodeURIComponent(runId)}/proof`,
+                method: experimentSandboxProofGet.method,
+                params: {
+                    ...(scenarioBlockKeys && scenarioBlockKeys.length > 0 ?
+                        { scenarioBlockKeys: scenarioBlockKeys.join(',') }
+                    :   {})
+                }
+            })
         }),
         previewBacktest: builder.mutation<BacktestSummaryDto, BacktestPreviewRequestDto>({
             query: (body: BacktestPreviewRequestDto) => ({
@@ -116,7 +191,8 @@ export const buildBacktestEndpoints = (builder: ApiEndpointBuilder) => {
                     url: `${policyRatiosGetByProfile.path}/${encodeURIComponent(effectiveId)}`,
                     method: policyRatiosGetByProfile.method
                 }
-            }
+            },
+            transformResponse: mapPolicyRatiosReportResponse
         })
     }
 }

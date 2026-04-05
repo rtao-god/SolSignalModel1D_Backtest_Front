@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { ReportActualStatusCard, ReportTableTermsBlock, Text } from '@/shared/ui'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import {
@@ -25,13 +26,14 @@ import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import PageError from '@/shared/ui/errors/PageError/ui/PageError'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
+import { pruneDuplicatePolicyMarginColumnsInReportSections } from '@/shared/utils/reportPolicyMarginMode'
 import { useTranslation } from 'react-i18next'
 import cls from './ReportDocumentView.module.scss'
 
 export interface ReportDocumentFreshnessInfo {
     statusMode: 'actual' | 'debug'
     statusTitle: string
-    statusMessage: string
+    statusMessage?: string
     statusLagMinutes?: number | null
     statusLines?: Array<{ label: string; value: string }>
 }
@@ -54,6 +56,10 @@ export function ReportDocumentView({
     const { i18n } = useTranslation()
     const rootClassName = classNames(cls.ReportRoot, {}, [className ?? ''])
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
+    const normalizedSections = useMemo(
+        () => pruneDuplicatePolicyMarginColumnsInReportSections(report.sections),
+        [report.sections]
+    )
 
     const generatedAtState = useMemo(() => {
         if (!report.generatedAtUtc) {
@@ -75,7 +81,13 @@ export function ReportDocumentView({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'report-document-view-source-endpoint',
+                domain: 'ui_section',
+                owner: 'report-document-view',
+                expected: 'Report document view should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -86,9 +98,9 @@ export function ReportDocumentView({
     const tableSections = useMemo(
         () =>
             showTableTermsBlock ?
-                (report.sections.filter(section => isTableSection(section)) as TableSectionDto[])
+                (normalizedSections.filter(section => isTableSection(section)) as TableSectionDto[])
             :   ([] as TableSectionDto[]),
-        [report.sections, showTableTermsBlock]
+        [normalizedSections, showTableTermsBlock]
     )
     const termsState = useMemo(() => {
         if (!showTableTermsBlock || tableSections.length === 0) {
@@ -111,7 +123,13 @@ export function ReportDocumentView({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build report terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build report terms.', {
+                source: 'report-document-view-terms',
+                domain: 'ui_section',
+                owner: 'report-document-view',
+                expected: 'Report document view should build terms from published sections and shared glossary.',
+                requiredAction: 'Inspect report sections and report terms resolver for missing owner term metadata.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError
@@ -139,7 +157,7 @@ export function ReportDocumentView({
         )
     }
 
-    const hasSections = Array.isArray(report.sections) && report.sections.length > 0
+    const hasSections = Array.isArray(normalizedSections) && normalizedSections.length > 0
     const hasTableSections = showTableTermsBlock && tableSections.length > 0
     const localizedReportTitle = localizeReportDocumentTitle(report.kind, report.title, reportUiLanguage)
 
@@ -182,7 +200,7 @@ export function ReportDocumentView({
                 )}
 
                 {hasSections ?
-                    report.sections.map((section, index) => (
+                    normalizedSections.map((section, index) => (
                         <SectionRenderer
                             key={index}
                             section={section}

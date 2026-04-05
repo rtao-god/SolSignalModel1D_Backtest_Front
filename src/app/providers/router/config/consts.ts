@@ -7,6 +7,7 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
 
     [AppRoute.DIAGNOSTICS_HOME]: '/diagnostics',
     [AppRoute.ANALYSIS_HOME]: '/analysis',
+    [AppRoute.STATISTICS_HOME]: '/statistics',
 
     [AppRoute.BACKTEST_BASELINE]: '/backtest/baseline',
     [AppRoute.BACKTEST_SUMMARY]: '/backtest/summary',
@@ -22,11 +23,21 @@ export const ROUTE_PATH: Record<AppRoute, string> = {
     [AppRoute.BACKTEST_POLICY_SETUPS]: '/analysis/policy-setups',
     [AppRoute.BACKTEST_POLICY_SETUP_DETAIL]: '/analysis/policy-setups/:setupId',
     [AppRoute.BACKTEST_CONFIDENCE_RISK]: '/analysis/confidence-risk',
+    [AppRoute.BACKTEST_SHARP_MOVE_STATS]: '/statistics/sharp-move-stats',
+    [AppRoute.BACKTEST_BTC_WEAKNESS_STATS]: '/statistics/btc-weakness',
+    [AppRoute.BACKTEST_MICRO_OVERLAY_STATS]: '/statistics/micro-overlay',
+    [AppRoute.BACKTEST_SL_OVERLAY_STATS]: '/statistics/sl-overlay',
+    [AppRoute.BACKTEST_SL_STRONG_DAY_STATS]: '/statistics/sl-strong-day',
+    [AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS]: '/statistics/bounded-parameter-stats',
+    [AppRoute.LEGACY_ANALYSIS_SHARP_MOVE_STATS]: '/analysis/sharp-move-stats',
+    [AppRoute.LEGACY_ANALYSIS_BOUNDED_PARAMETER_STATS]: '/analysis/bounded-parameter-stats',
+    [AppRoute.CURRENT_PREDICTION_OOS_PRESETS]: '/analysis/oos-presets',
     [AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL]: '/analysis/real-forecast-journal',
     [AppRoute.BACKTEST_EXECUTION_PIPELINE]: '/analysis/execution-pipeline',
 
     [AppRoute.PFI_PER_MODEL]: '/features/pfi-per-model',
     [AppRoute.PFI_SL_MODEL]: '/features/pfi-sl',
+    [AppRoute.PFI_PER_MODEL_FEATURE_DETAIL]: '/features/pfi-per-model/feature/:featureId',
 
     [AppRoute.MODELS_STATS]: '/models/stats',
     [AppRoute.AGGREGATION_STATS]: '/models/aggregation',
@@ -68,6 +79,7 @@ export const ROUTE_SECTION_ORDER: RouteSection[] = [
     'models',
     'backtest',
     'analysis',
+    'statistics',
     'diagnostics',
     'features',
     'guide',

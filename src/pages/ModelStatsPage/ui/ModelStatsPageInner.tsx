@@ -16,6 +16,7 @@ import {
     buildPublishedReportVariantCompatibleOptions,
     resolvePublishedReportVariantSelection
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import cls from './ModelStatsPage.module.scss'
 import { ModelStatsTableCard } from './ModelStatsTableCard'
 import type {
@@ -26,10 +27,18 @@ import type {
     TableSection,
     ResolvedSegmentMeta
 } from './modelStatsTypes'
-import { buildGlobalMeta, isTableSection, resolveSegmentMeta, stripSegmentPrefix } from './modelStatsUtils'
+import {
+    buildGlobalMeta,
+    buildModelStatsHeaderSubtitle,
+    filterModelStatsTableSectionsByFamily,
+    isTableSection,
+    resolveSegmentMeta,
+    stripSegmentPrefix
+} from './modelStatsUtils'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 const DEFAULT_MODEL_STATS_SEGMENT: SegmentKey = 'OOS'
 const DEFAULT_MODEL_STATS_VIEW: ViewMode = 'business'
@@ -88,16 +97,19 @@ function mapApiSegmentToUiValue(segment: string): SegmentKey {
 
 export function ModelStatsPageInner({
     className,
+    embedded = false,
+    familyFilter = null,
     data,
     variantCatalog,
     isLoading,
     error,
     onRetry
 }: ModelStatsPageInnerProps) {
-    const { t } = useTranslation('reports')
+    const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
+    const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
 
-    const rootClassName = classNames(cls.ModelStatsPage, {}, [className ?? ''])
+    const rootClassName = classNames(cls.ModelStatsPage, { [cls.embedded]: embedded }, [className ?? ''])
     const allSections = useMemo(() => (data?.sections as ReportSection[] | undefined) ?? [], [data?.sections])
     const globalMetaState = useMemo(() => {
         try {
@@ -106,7 +118,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats global metadata.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats global metadata.', {
+                source: 'model-stats-global-meta',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse global metadata from published report sections.',
+                requiredAction: 'Inspect model-stats report sections and global metadata builder.'
+            })
             return {
                 value: null,
                 error: safeError
@@ -122,7 +140,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats segment query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats segment query.', {
+                source: 'model-stats-segment-query',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse a valid segment query value.',
+                requiredAction: 'Inspect the segment URL param and supported segment values.'
+            })
             return {
                 value: DEFAULT_MODEL_STATS_SEGMENT,
                 error: safeError
@@ -137,7 +161,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to parse model-stats view query.')
+            const safeError = normalizeErrorLike(err, 'Failed to parse model-stats view query.', {
+                source: 'model-stats-view-query',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should parse a valid view query value.',
+                requiredAction: 'Inspect the view URL param and supported view values.'
+            })
             return {
                 value: DEFAULT_MODEL_STATS_VIEW,
                 error: safeError
@@ -166,7 +196,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve model-stats variant.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve model-stats variant.', {
+                source: 'model-stats-variant-selection',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve a catalog-compatible variant from URL params.',
+                requiredAction: 'Inspect published model-stats catalog and URL selection.'
+            })
             return {
                 segment: rawSegmentState.value,
                 view: rawViewState.value,
@@ -197,7 +233,13 @@ export function ModelStatsPageInner({
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to resolve report source endpoint.')
+            const safeError = normalizeErrorLike(err, 'Failed to resolve report source endpoint.', {
+                source: 'model-stats-source-endpoint',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve a non-empty report source endpoint.',
+                requiredAction: 'Inspect API base URL configuration and report source endpoint resolver.'
+            })
             return {
                 value: null as string | null,
                 error: safeError
@@ -205,7 +247,31 @@ export function ModelStatsPageInner({
         }
     }, [])
 
-    const tableSections = useMemo(() => allSections.filter(isTableSection), [allSections]) as TableSection[]
+    const filteredTableSectionsState = useMemo(() => {
+        try {
+            return {
+                value: filterModelStatsTableSectionsByFamily(
+                    allSections.filter(isTableSection) as TableSection[],
+                    familyFilter
+                ),
+                error: null as Error | null
+            }
+        } catch (err) {
+            const safeError = normalizeErrorLike(err, 'Failed to filter model-stats sections by family.', {
+                source: 'model-stats-family-filter',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should resolve visible table sections for the requested model family.',
+                requiredAction: 'Inspect the published model-stats report and family filter contract.',
+                extra: { familyFilter }
+            })
+            return {
+                value: [] as TableSection[],
+                error: safeError
+            }
+        }
+    }, [allSections, familyFilter])
+    const tableSections = filteredTableSectionsState.value
     const keyValueSectionCount = useMemo(
         () =>
             allSections.filter(section => Array.isArray((section as { items?: unknown[] }).items)).length,
@@ -219,18 +285,25 @@ export function ModelStatsPageInner({
                     sections: tableSections,
                     reportKind: 'backtest_model_stats',
                     contextTag: 'model-stats',
-                    resolveSectionTitle: section => stripSegmentPrefix(section.title)
+                    resolveSectionTitle: section => stripSegmentPrefix(section.title),
+                    locale: i18n.resolvedLanguage ?? i18n.language
                 }),
                 error: null as Error | null
             }
         } catch (err) {
-            const safeError = err instanceof Error ? err : new Error('Failed to build model stats terms.')
+            const safeError = normalizeErrorLike(err, 'Failed to build model stats terms.', {
+                source: 'model-stats-terms',
+                domain: 'ui_section',
+                owner: 'model-stats-page',
+                expected: 'Model stats page should build terms from table sections and shared glossary.',
+                requiredAction: 'Inspect model-stats table sections and term resolver.'
+            })
             return {
                 terms: [] as ReportTermItem[],
                 error: safeError
             }
         }
-    }, [tableSections])
+    }, [i18n.language, i18n.resolvedLanguage, tableSections])
 
     const tabs = useMemo(
         () =>
@@ -253,8 +326,15 @@ export function ModelStatsPageInner({
     })
 
     const currentSegmentMeta: ResolvedSegmentMeta | null = useMemo(
-        () => resolveSegmentMeta(segmentState.value, globalMeta, t),
-        [globalMeta, segmentState.value, t]
+        () =>
+            resolveSegmentMeta(
+                segmentState.value,
+                globalMeta,
+                t,
+                i18n.resolvedLanguage ?? i18n.language,
+                trainingScopeStatsQuery.data ?? null
+            ),
+        [globalMeta, i18n.language, i18n.resolvedLanguage, segmentState.value, t, trainingScopeStatsQuery.data]
     )
 
     const controlGroups = useMemo(() => {
@@ -283,6 +363,7 @@ export function ModelStatsPageInner({
 
         const segmentGroup = buildModelStatsSegmentControlGroup({
             value: segmentState.value,
+            splitStats: trainingScopeStatsQuery.data ?? null,
             onChange: next => {
                 if (next === segmentState.value) return
                 const nextParams = new URLSearchParams(searchParams)
@@ -309,12 +390,16 @@ export function ModelStatsPageInner({
             segmentGroup,
             viewGroup
         ]
-    }, [searchParams, segmentState.value, setSearchParams, variantCatalog, viewState.value])
+    }, [searchParams, segmentState.value, setSearchParams, trainingScopeStatsQuery.data, variantCatalog, viewState.value])
 
     const segmentDescription = currentSegmentMeta?.description ?? ''
+    const subtitle = buildModelStatsHeaderSubtitle(
+        i18n.resolvedLanguage ?? i18n.language,
+        trainingScopeStatsQuery.data ?? null
+    )
 
     const controlsError = segmentState.error ?? viewState.error ?? null
-    const reportStateError = error ?? sourceEndpointState.error ?? globalMetaState.error ?? null
+    const reportStateError = error ?? sourceEndpointState.error ?? globalMetaState.error ?? filteredTableSectionsState.error ?? null
     const hasReadyReport = Boolean(data && sourceEndpointState.value)
 
     return (
@@ -322,7 +407,7 @@ export function ModelStatsPageInner({
             <header className={cls.headerRow}>
                 <div className={cls.headerMain}>
                     <Text type='h2'>{data?.title || t('modelStats.inner.header.titleFallback')}</Text>
-                    <Text className={cls.subtitle}>{t('modelStats.inner.header.subtitle')}</Text>
+                    <Text className={cls.subtitle}>{subtitle}</Text>
 
                     <div className={cls.badgesRow}>
                         {currentSegmentMeta && (
@@ -371,7 +456,6 @@ export function ModelStatsPageInner({
                     <ReportActualStatusCard
                         statusMode='actual'
                         statusTitle={t('modelStats.inner.status.publishedTitle')}
-                        statusMessage={t('modelStats.inner.status.publishedMessage')}
                         dataSource={sourceEndpointState.value}
                         reportTitle={data.title}
                         reportId={data.id}

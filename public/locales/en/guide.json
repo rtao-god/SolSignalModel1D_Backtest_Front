@@ -502,7 +502,7 @@
     "explain-splits-overview": "Why splits",
     "explain-splits-train": "Train",
     "explain-splits-oos": "OOS",
-    "explain-splits-recent": "Recent (240d)",
+    "explain-splits-recent": "Recent",
     "explain-splits-full": "Full history",
     "explain-time-overview": "Trading day",
     "explain-time-baseline": "Baseline exit",
@@ -637,7 +637,7 @@
             ],
             [
               "[[branches-minmove-band|MinMove band]]",
-              "0.5%..12%",
+              "from 0.5% to 12%",
               "Filters out days that are too quiet or too extreme."
             ],
             [
@@ -731,7 +731,7 @@
             ],
             [
               "[[splits-recent|Recent]]",
-              "Last 240 trading days in the available history.",
+              "Fresh tail of the available history.",
               "How relevant is the model right now?"
             ],
             [
@@ -809,16 +809,16 @@
         "example": "If [[splits-oos|OOS]] collapses, the first suspects are the history boundary, future data leaking into the input, or a real regime change, not a pretty [[splits-train|Train]] score."
       },
       "recent": {
-        "title": "Recent (last 240 days)",
+        "title": "Recent",
         "paragraphs": [
-          "[[splits-recent|Recent]] shows the model on the last 240 trading days. This slice is about current form, not about the average across the full archive.",
+          "[[splits-recent|Recent]] shows the fresh tail of the available history. This slice is about current form, not about the average across the full archive.",
           "If recent is much weaker than full-history, older history is supporting a nice average while the current market has already changed more than the full sample reveals."
         ],
         "terms": [
           {
             "id": "splits-recent-window",
             "term": "Recent window",
-            "description": "Recent window — The last 240 trading days counted backward from the latest available date.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
+            "description": "Recent window — The fresh tail of the available history used to read current model form separately from the long-horizon average.\n\nWhat it shows:\nthis term is used on the page as a reading anchor for the corresponding mode, metric, or calculation step. It makes visible which part of the logic or data flow is being discussed in the current block.\n\nHow to read it:\nits meaning should be read together with the neighboring paragraph, table, or metric on the page rather than as an isolated label outside context.\n\nExample:\nif the nearby block shows a change in model quality, trade risk, or a time boundary, this term helps identify which layer of the calculation produced that change."
           }
         ],
         "why": "Recent surfaces current degradation before it disappears inside a long average.",

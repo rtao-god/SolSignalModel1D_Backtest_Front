@@ -29,6 +29,12 @@ function resolveRuleDescription(rule: DescriptionRule, locale: ReportUiLocale): 
     return locale === 'ru' ? rule.ru : rule.en
 }
 
+const PFI_REPORT_KINDS = new Set(['pfi_per_model', 'pfi_sl_model', 'pfi_per_model_feature_detail'])
+
+function isPfiReportKind(reportKind: string | undefined): boolean {
+    return reportKind ? PFI_REPORT_KINDS.has(reportKind) : false
+}
+
 const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     {
         match: /^(Общие параметры бэктеста|Backtest summary parameters)/i,
@@ -42,8 +48,8 @@ const BACKTEST_SUMMARY_RULES: DescriptionRule[] = [
     },
     {
         match: /^Policies \(baseline config\)/i,
-        ru: 'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом, плечом и режимом маржи.',
-        en: 'Policy list from the active config (const/risk_aware/ultra_safe/dynamic/spot) with policy type, leverage, and margin mode.'
+        ru: 'Список политик из активного конфига (const/risk_aware/ultra_safe/dynamic/spot) с типом и плечом. Если имя политики уже содержит Cross или Isolated, режим маржи читается из самого имени и не дублируется отдельным столбцом.',
+        en: 'Policy list from the active config (const/risk_aware/ultra_safe/dynamic/spot) with policy type and leverage. When the policy name already contains Cross or Isolated, the margin regime is read from the name itself and is not duplicated in a separate column.'
     },
     {
         match: /^(Политики бэктеста|Backtest policies)/i,
@@ -87,6 +93,11 @@ const CURRENT_PREDICTION_RULES: DescriptionRule[] = [
 
 const MODEL_STATS_RULES: DescriptionRule[] = [
     {
+        match: /^Models overview$/i,
+        ru: 'Сводная таблица по моделям и срезам проверки. Она показывает, какая модель открыта, на каком куске истории посчитан AUC и сколько строк лежит под этой оценкой.',
+        en: 'Overview table by model and evaluation slice. It shows which model is open, on what history slice AUC was measured, and how many rows stand behind that estimate.'
+    },
+    {
         match: /^Daily label summary/i,
         ru: 'Краткое объяснение качества дневной модели по каждому классу (UP/DOWN/FLAT). Полезно, чтобы быстро понять, где модель чаще ошибается.',
         en: 'Compact quality summary for the daily model by class (UP/DOWN/FLAT). Useful for quickly spotting where the model misses most often.'
@@ -128,6 +139,34 @@ const MODEL_STATS_RULES: DescriptionRule[] = [
     }
 ]
 
+const PFI_RULES: DescriptionRule[] = [
+    {
+        match: /^Model quality by section$/i,
+        ru: 'Сравнение общего качества модели по каждой секции и источнику оценки. Этот блок нужен, чтобы понять, на каком наборе данных модель вообще держит сильный прогноз, а где базовое качество уже проседает само по себе.',
+        en: 'Compares overall model quality across sections and score scopes. Use this block to see where the model itself remains strong before interpreting feature-level behavior.'
+    },
+    {
+        match: /^Local feature contribution by section$/i,
+        ru: 'Локальный вклад выбранного признака в сам прогноз модели. Таблица показывает, как часто признак толкает прогноз вверх или вниз и как часто входит в главные причины решения внутри каждой секции.',
+        en: 'Local contribution of the selected feature to the model output. The table shows how often the feature pushes the prediction up or down and how often it becomes one of the main drivers within each section.'
+    },
+    {
+        match: /^Value buckets and prediction quality$/i,
+        ru: 'Разбор признака по диапазонам значений. Здесь видно, какие зоны значения чаще совпадают с сильным прогнозом, где модель переоценивает вероятность и в каких диапазонах вклад признака становится слабее.',
+        en: 'Breakdown of the feature by value ranges. This section shows which ranges align with stronger prediction quality, where probabilities become overstated, and where the feature contribution fades.'
+    },
+    {
+        match: /^PFI by models \(feature detail\)$/i,
+        ru: 'Главная сводка важности признака по моделям и источникам оценки. Здесь видно, насколько сильно перестановка признака портит качество прогноза и как меняется его ранг между секциями.',
+        en: 'Main feature-importance summary across models and score scopes. It shows how much prediction quality drops after permutation and how the feature rank changes across sections.'
+    },
+    {
+        match: /^Top features \(section context\)$/i,
+        ru: 'Контекст соседних признаков внутри той же секции. Блок помогает понять, кто находится рядом с выбранным признаком по рангу и где вокруг него уже есть более сильные или близкие по полезности признаки.',
+        en: 'Section-level peer context for the selected feature. This block shows nearby ranked features and helps reveal where stronger or closely competing neighbors already surround it.'
+    }
+]
+
 const PFI_DESCRIPTION: Record<ReportUiLocale, string> = {
     ru: 'Permutation Feature Importance (PFI) по одной модели: показываем, насколько ухудшается качество (AUC), если перемешать фичу. Чем выше ΔAUC, тем важнее признак. ΔMean и корреляции помогают понять направление влияния.',
     en: 'Permutation Feature Importance (PFI) for a single model: shows quality degradation (AUC drop) when each feature is shuffled. Higher ΔAUC means higher feature importance. ΔMean and correlation fields help interpret directional effect.'
@@ -161,7 +200,12 @@ export function resolveReportSectionDescription(
         }
     }
 
-    if (reportKind === 'pfi_per_model' || reportKind === 'pfi_sl_model') {
+    if (isPfiReportKind(reportKind)) {
+        const withoutPrefix = stripSegmentPrefix(normalized)
+        for (const rule of PFI_RULES) {
+            if (rule.match.test(withoutPrefix)) return resolveRuleDescription(rule, resolvedLocale)
+        }
+
         return PFI_DESCRIPTION[resolvedLocale]
     }
 

@@ -159,14 +159,28 @@ export default function AnalysisPage({ className }: AnalysisPageProps) {
                                         defaultValue:
                                             card.id === 'policyBranchMega' ? 'Policy Branch Mega'
                                             : card.id === 'executionPipeline' ? 'Execution Pipeline'
+                                            : card.id === 'sharpMoveStats' ? 'Sharp move statistics'
+                                            : card.id === 'oosPresetTails' ? 'Сравнение OOS и TRAIN'
                                             : card.id === 'realForecastJournal' ? 'Real Forecast Journal'
                                             : undefined
                                     })}
                                 </Text>
                                 <Text className={cls.cardText}>
-                                    {renderAnalysisText(t(`analysisHome.cards.${card.id}.description`))}
+                                    {renderAnalysisText(
+                                        t(`analysisHome.cards.${card.id}.description`, {
+                                                defaultValue:
+                                                card.id === 'oosPresetTails' ?
+                                                    'Сравнивает варианты OOS от 10% до 70% дней полной истории. Базовый режим для экрана — OOS 30% / TRAIN 70%. Короткий режим — OOS 15% / TRAIN 85%. Расширенный режим отдельно догружает варианты от 75% до 90%.'
+                                                :   undefined
+                                        })
+                                    )}
                                 </Text>
-                                <span className={cls.cardHint}>{t(`analysisHome.cards.${card.id}.hint`)}</span>
+                                <span className={cls.cardHint}>
+                                    {t(`analysisHome.cards.${card.id}.hint`, {
+                                        defaultValue:
+                                            card.id === 'oosPresetTails' ? 'Открыть сравнение OOS и TRAIN' : undefined
+                                    })}
+                                </span>
                             </article>
                         </Link>
                     ))}

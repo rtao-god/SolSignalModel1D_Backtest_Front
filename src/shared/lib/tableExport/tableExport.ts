@@ -1,3 +1,5 @@
+import { resolveTablePdfBodyStyles } from '@/shared/lib/typography/runtimeTokens'
+
 export type TableExportFormat = 'pdf' | 'csv'
 
 export interface TableExportOptions {
@@ -95,10 +97,7 @@ async function exportPdf(columns: string[], rows: Array<Array<unknown>>, fileBas
         body,
         startY: 50,
         theme: 'grid',
-        styles: {
-            fontSize: 8,
-            cellPadding: 4
-        },
+        styles: resolveTablePdfBodyStyles(),
         headStyles: {
             fillColor: [30, 30, 40]
         }

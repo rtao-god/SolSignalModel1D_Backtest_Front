@@ -31,6 +31,10 @@ export const API_ROUTES = {
             path: '/current-prediction/history/page',
             method: 'GET' as const
         },
+        oosPresetAnalysis: {
+            path: '/current-prediction/oos-presets/analysis',
+            method: 'GET' as const
+        },
         historyItems: {
             path: '/current-prediction/history/items',
             method: 'GET' as const
@@ -62,6 +66,10 @@ export const API_ROUTES = {
 
     reportVariants: {
         catalogGet: {
+            path: '/report-variants',
+            method: 'GET' as const
+        },
+        selectionGet: {
             path: '/report-variants',
             method: 'GET' as const
         }
@@ -104,6 +112,30 @@ export const API_ROUTES = {
             path: '/backtest/confidence-risk',
             method: 'GET' as const
         },
+        btcWeaknessStatsGet: {
+            path: '/backtest/btc-weakness-stats',
+            method: 'GET' as const
+        },
+        microOverlayStatsGet: {
+            path: '/backtest/micro-overlay-stats',
+            method: 'GET' as const
+        },
+        slOverlayStatsGet: {
+            path: '/backtest/sl-overlay-stats',
+            method: 'GET' as const
+        },
+        slStrongDayStatsGet: {
+            path: '/backtest/sl-strong-day-stats',
+            method: 'GET' as const
+        },
+        sharpMoveStatsGet: {
+            path: '/backtest/sharp-move-stats',
+            method: 'GET' as const
+        },
+        boundedParameterStatsGet: {
+            path: '/backtest/bounded-parameter-stats',
+            method: 'GET' as const
+        },
         executionPipelineGet: {
             path: '/backtest/execution-pipeline',
             method: 'GET' as const
@@ -123,6 +155,30 @@ export const API_ROUTES = {
         profileUpdatePatch: {
             path: '/backtest/profiles',
             method: 'PATCH' as const
+        },
+        experimentRegistryGet: {
+            path: '/experiments/registry',
+            method: 'GET' as const
+        },
+        experimentBundlesPost: {
+            path: '/experiments/bundles',
+            method: 'POST' as const
+        },
+        experimentBundleStatusPost: {
+            path: '/experiments/bundles',
+            method: 'POST' as const
+        },
+        experimentActivationPost: {
+            path: '/experiments/activations',
+            method: 'POST' as const
+        },
+        experimentSandboxRunPost: {
+            path: '/experiments/sandbox-runs',
+            method: 'POST' as const
+        },
+        experimentSandboxProofGet: {
+            path: '/experiments/sandbox-runs',
+            method: 'GET' as const
         },
         previewPost: {
             path: '/backtest/preview',
@@ -170,9 +226,32 @@ export const API_ROUTES = {
         }
     },
 
+    statistics: {
+        btcWeaknessLiveGet: {
+            path: '/statistics/btc-weakness/live',
+            method: 'GET' as const
+        },
+        microOverlayLiveGet: {
+            path: '/statistics/micro-overlay/live',
+            method: 'GET' as const
+        },
+        slOverlayLiveGet: {
+            path: '/statistics/sl-overlay/live',
+            method: 'GET' as const
+        },
+        slStrongDayLiveGet: {
+            path: '/statistics/sl-strong-day/live',
+            method: 'GET' as const
+        }
+    },
+
     ml: {
         pfiPerModel: {
             path: '/ml/pfi/per-model',
+            method: 'GET' as const
+        },
+        pfiPerModelFeatureDetail: {
+            path: '/ml/pfi/per-model/features',
             method: 'GET' as const
         },
         pfiSlModel: {

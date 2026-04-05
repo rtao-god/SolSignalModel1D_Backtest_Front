@@ -1,66 +1,43 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import {
-    normalizePolicyBranchMegaProfitColumns,
+    assertPolicyBranchMegaPrimaryProfitColumns,
     resolvePolicyBranchMegaPrimaryProfitColumn
 } from '@/shared/utils/policyBranchMegaProfitColumns'
 
 describe('policyBranchMegaProfitColumns', () => {
-    test('renames Wealth% to TotalPnl% when wealth has no separate meaning in shown rows', () => {
-        const sections: TableSectionDto[] = [
-            {
-                title: '=== Policy Branch Mega (WITH SL) [PART 1/4] ===',
-                columns: ['Policy', 'Branch', 'Wealth%', 'Tr'],
-                rows: [['const_2x', 'BASE', '25.00', '12']]
-            },
-            {
-                title: '=== Policy Branch Mega (WITH SL) [PART 2/4] ===',
-                columns: ['Policy', 'Branch', 'OnExch$', 'StartCap$'],
-                rows: [['const_2x', 'BASE', '20000', '20000']]
-            }
-        ]
-
-        const normalized = normalizePolicyBranchMegaProfitColumns(sections)
-
-        expect(normalized[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Tr'])
-        expect(resolvePolicyBranchMegaPrimaryProfitColumn(normalized[0]?.columns ?? [])).toBe('TotalPnl%')
+    test('resolves TotalPnl% as primary profit column when backend already returned it', () => {
+        expect(resolvePolicyBranchMegaPrimaryProfitColumn(['Policy', 'Branch', 'TotalPnl%', 'Tr'])).toBe('TotalPnl%')
     })
 
-    test('drops Wealth% when TotalPnl% already exists and wealth still duplicates it', () => {
-        const sections: TableSectionDto[] = [
-            {
-                title: '=== Policy Branch Mega (WITH SL) [PART 1/4] ===',
-                columns: ['Policy', 'Branch', 'Wealth%', 'TotalPnl%', 'Tr'],
-                rows: [['const_2x', 'BASE', '25.00', '25.00', '12']]
-            },
-            {
-                title: '=== Policy Branch Mega (WITH SL) [PART 2/4] ===',
-                columns: ['Policy', 'Branch', 'OnExch$', 'StartCap$'],
-                rows: [['const_2x', 'BASE', '20000', '20000']]
-            }
-        ]
-
-        const normalized = normalizePolicyBranchMegaProfitColumns(sections)
-
-        expect(normalized[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Tr'])
-        expect(normalized[0]?.rows?.[0]).toEqual(['const_2x', 'BASE', '25.00', '12'])
+    test('resolves Wealth% only when TotalPnl% is absent', () => {
+        expect(resolvePolicyBranchMegaPrimaryProfitColumn(['Policy', 'Branch', 'Wealth%', 'Tr'])).toBe('Wealth%')
     })
 
-    test('keeps Wealth% when active on-exchange balance grows above start capital', () => {
+    test('throws when part1 section has no TotalPnl% column from backend', () => {
         const sections: TableSectionDto[] = [
             {
                 title: '=== Policy Branch Mega (WITH SL) [PART 1/4] ===',
-                columns: ['Policy', 'Branch', 'Wealth%', 'TotalPnl%', 'Tr'],
-                rows: [['const_2x', 'BASE', '25.00', '25.00', '12']]
-            },
-            {
-                title: '=== Policy Branch Mega (WITH SL) [PART 2/4] ===',
-                columns: ['Policy', 'Branch', 'OnExch$', 'StartCap$'],
-                rows: [['const_2x', 'BASE', '24000', '20000']]
+                columns: ['Policy', 'Branch', 'TotalPnl$', 'Tr'],
+                rows: [['const_2x', 'BASE', '5000', '12']]
             }
         ]
 
-        const normalized = normalizePolicyBranchMegaProfitColumns(sections)
+        expect(() => assertPolicyBranchMegaPrimaryProfitColumns(sections, 'policy-branch-mega-page')).toThrow(
+            '[policy-branch-mega-page] mega part1 section is missing TotalPnl%.'
+        )
+    })
 
-        expect(normalized[0]?.columns).toEqual(['Policy', 'Branch', 'Wealth%', 'TotalPnl%', 'Tr'])
+    test('throws when part1 section has no Wealth% column from backend', () => {
+        const sections: TableSectionDto[] = [
+            {
+                title: '=== Policy Branch Mega (WITH SL) [PART 1/4] ===',
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'Tr'],
+                rows: [['const_2x', 'BASE', '5.42', '12']]
+            }
+        ]
+
+        expect(() => assertPolicyBranchMegaPrimaryProfitColumns(sections, 'policy-branch-mega-page')).toThrow(
+            '[policy-branch-mega-page] mega part1 section is missing Wealth%.'
+        )
     })
 })

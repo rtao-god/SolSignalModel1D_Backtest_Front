@@ -8,14 +8,23 @@ import { mapReportResponse } from '../utils/mapReportResponse'
 import { API_ROUTES } from '../routes'
 import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '../../configs/config'
-import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from './utils/fetchWithTimeout'
+import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
+import { fetchWithTimeout } from './utils/fetchWithTimeout'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
+import { resolveAdjacentPartWindow } from '@/shared/lib/reportPartWindow/resolveAdjacentPartWindow'
 import {
+    prefetchPublishedReportVariantSelectionSnapshot,
+    PUBLISHED_REPORT_VARIANT_FAMILIES
+} from './reportVariants'
+import {
+    resolvePolicyBranchMegaHistoryFromQuery,
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaTotalBucketViewFromQuery,
     resolvePolicyBranchMegaMetricFromQuery,
     resolvePolicyBranchMegaSlModeFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery,
     resolvePolicyBranchMegaZonalModeFromQuery,
+    type PolicyBranchMegaHistoryMode,
     type PolicyBranchMegaBucketMode,
     type PolicyBranchMegaTotalBucketView,
     type PolicyBranchMegaMetricMode,
@@ -43,6 +52,7 @@ interface UsePolicyBranchMegaQueryOptions {
 }
 
 export interface PolicyBranchMegaReportQueryArgs {
+    history?: string | null
     bucket?: string | null
     bucketView?: string | null
     metric?: string | null
@@ -55,6 +65,7 @@ export interface PolicyBranchMegaReportQueryArgs {
 type PolicyBranchMegaExplicitSlMode = Exclude<PolicyBranchMegaSlMode, 'all'>
 
 export const DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS: PolicyBranchMegaReportQueryArgs = {
+    history: null,
     bucket: null,
     bucketView: null,
     metric: null,
@@ -63,6 +74,11 @@ export const DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS: PolicyBranchMegaRepor
     zonalMode: null
 }
 
+const POLICY_BRANCH_MEGA_AVAILABLE_HISTORIES: readonly PolicyBranchMegaHistoryMode[] = [
+    'full_history',
+    'oos',
+    'recent'
+]
 const POLICY_BRANCH_MEGA_AVAILABLE_BUCKETS: readonly PolicyBranchMegaBucketMode[] = [
     'daily',
     'intraday',
@@ -75,19 +91,19 @@ const POLICY_BRANCH_MEGA_AVAILABLE_TOTAL_BUCKET_VIEWS: readonly PolicyBranchMega
 ]
 const POLICY_BRANCH_MEGA_AVAILABLE_METRICS: readonly PolicyBranchMegaMetricMode[] = ['real', 'no-biggest-liq-loss']
 const POLICY_BRANCH_MEGA_AVAILABLE_TP_SL: readonly PolicyBranchMegaTpSlMode[] = ['all', 'dynamic', 'static']
-const POLICY_BRANCH_MEGA_AVAILABLE_SL: readonly PolicyBranchMegaExplicitSlMode[] = ['with-sl', 'no-sl']
 const POLICY_BRANCH_MEGA_AVAILABLE_ZONAL: readonly PolicyBranchMegaZonalMode[] = ['with-zonal', 'without-zonal']
 export const POLICY_BRANCH_MEGA_CANONICAL_PARTS = [1, 2, 3, 4] as const
 export const DEFAULT_POLICY_BRANCH_MEGA_BUCKET_MODE: PolicyBranchMegaBucketMode = 'daily'
 export const DEFAULT_POLICY_BRANCH_MEGA_TOTAL_BUCKET_VIEW: PolicyBranchMegaTotalBucketView = 'aggregate'
+export const DEFAULT_POLICY_BRANCH_MEGA_HISTORY_MODE: PolicyBranchMegaHistoryMode = 'full_history'
 export const DEFAULT_POLICY_BRANCH_MEGA_METRIC_MODE: PolicyBranchMegaMetricMode = 'real'
 export const DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE: PolicyBranchMegaTpSlMode = 'all'
 export const DEFAULT_POLICY_BRANCH_MEGA_SL_MODE: PolicyBranchMegaSlMode = 'all'
 export const DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE: PolicyBranchMegaZonalMode = 'with-zonal'
 
-export const POLICY_BRANCH_MEGA_STALE_TIME_MS = 2 * 60 * 1000
-export const POLICY_BRANCH_MEGA_GC_TIME_MS = 15 * 60 * 1000
-export const POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS
+export const POLICY_BRANCH_MEGA_STALE_TIME_MS = QUERY_POLICY_REGISTRY.policyBranchMega.staleTimeMs
+export const POLICY_BRANCH_MEGA_GC_TIME_MS = QUERY_POLICY_REGISTRY.policyBranchMega.gcTimeMs
+export const POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS = QUERY_POLICY_REGISTRY.policyBranchMega.requestTimeoutMs
 
 interface PolicyBranchMegaPartPrefetchOptions {
     queryKey: ReturnType<typeof buildPolicyBranchMegaQueryKey>
@@ -96,8 +112,22 @@ interface PolicyBranchMegaPartPrefetchOptions {
     gcTime: number
 }
 
+interface PolicyBranchMegaPayloadQueryOptions {
+    queryKey: ReturnType<typeof buildPolicyBranchMegaPayloadQueryKey>
+    queryFn: () => Promise<PolicyBranchMegaReportPayloadDto>
+    enabled: boolean
+    retry: false
+    staleTime: number
+    gcTime: number
+    refetchOnWindowFocus: false
+}
+
 function buildPolicyBranchMegaPath(args: PolicyBranchMegaReportQueryArgs | undefined, basePath: string): string {
     const params = new URLSearchParams()
+
+    if (args?.history) {
+        params.set('history', args.history)
+    }
 
     if (args?.bucket) {
         params.set('bucket', args.bucket)
@@ -134,6 +164,7 @@ function buildPolicyBranchMegaPath(args: PolicyBranchMegaReportQueryArgs | undef
 export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_QUERY_KEY_BASE,
+        args?.history ?? null,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -147,6 +178,7 @@ export function buildPolicyBranchMegaQueryKey(args?: PolicyBranchMegaReportQuery
 export function buildPolicyBranchMegaEvaluationQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE,
+        args?.history ?? null,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -160,6 +192,7 @@ export function buildPolicyBranchMegaEvaluationQueryKey(args?: PolicyBranchMegaR
 function buildPolicyBranchMegaReportDocumentQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_REPORT_QUERY_KEY_BASE,
+        args?.history ?? null,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -171,11 +204,12 @@ function buildPolicyBranchMegaReportDocumentQueryKey(args?: PolicyBranchMegaRepo
 }
 
 function buildPolicyBranchMegaPartPrefetchOptions(
+    queryClient: QueryClient,
     args: PolicyBranchMegaReportQueryArgs
 ): PolicyBranchMegaPartPrefetchOptions {
     return {
         queryKey: buildPolicyBranchMegaQueryKey(args),
-        queryFn: () => fetchPolicyBranchMegaReport(args),
+        queryFn: async () => (await loadPolicyBranchMegaReportPayloadAndCache(queryClient, args)).report,
         staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
         gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS
     }
@@ -190,32 +224,13 @@ export function resolvePolicyBranchMegaNeighborParts(
     availableParts: readonly number[],
     activePart: number
 ): number[] {
-    const orderedParts = Array.from(
-        new Set(
-            availableParts.filter(part => Number.isInteger(part) && part > 0)
-        )
-    ).sort((left, right) => left - right)
-
-    if (orderedParts.length === 0) {
-        return [activePart]
-    }
-
-    const activeIndex = orderedParts.indexOf(activePart)
-    if (activeIndex < 0) {
-        const insertionIndex = orderedParts.findIndex(part => part > activePart)
-        const resolvedIndex = insertionIndex >= 0 ? insertionIndex : orderedParts.length - 1
-
-        const fallbackWindow = orderedParts.slice(Math.max(0, resolvedIndex - 1), Math.min(orderedParts.length, resolvedIndex + 2))
-        return Array.from(new Set(fallbackWindow))
-    }
-
-    const windowParts = orderedParts.slice(Math.max(0, activeIndex - 1), Math.min(orderedParts.length, activeIndex + 2))
-    return Array.from(new Set(windowParts))
+    return resolveAdjacentPartWindow(availableParts, activePart, 1)
 }
 
 function buildPolicyBranchMegaPayloadQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_PAYLOAD_QUERY_KEY_BASE,
+        args?.history ?? null,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -229,6 +244,7 @@ function buildPolicyBranchMegaPayloadQueryKey(args?: PolicyBranchMegaReportQuery
 function buildPolicyBranchMegaValidationQueryKey(args?: PolicyBranchMegaReportQueryArgs) {
     return [
         ...POLICY_BRANCH_MEGA_VALIDATION_QUERY_KEY_BASE,
+        args?.history ?? null,
         args?.bucket ?? null,
         args?.bucketView ?? null,
         args?.metric ?? null,
@@ -242,6 +258,7 @@ function buildPolicyBranchMegaValidationQueryKey(args?: PolicyBranchMegaReportQu
 export type PolicyBranchMegaValidationState = 'pending' | 'matched' | 'mismatch' | 'error'
 
 export interface PolicyBranchMegaCapabilitiesDto {
+    availableHistories: PolicyBranchMegaHistoryMode[]
     availableBuckets: PolicyBranchMegaBucketMode[]
     availableParts: number[]
     availableTotalBucketViews: PolicyBranchMegaTotalBucketView[]
@@ -252,6 +269,7 @@ export interface PolicyBranchMegaCapabilitiesDto {
 }
 
 export interface PolicyBranchMegaResolvedQueryDto {
+    history: PolicyBranchMegaHistoryMode
     bucket: PolicyBranchMegaBucketMode
     bucketView: PolicyBranchMegaTotalBucketView
     metric: PolicyBranchMegaMetricMode
@@ -475,6 +493,12 @@ function normalizePolicyBranchMegaPart(part: number | null | undefined): number 
     return part
 }
 
+function resolveOptionalPolicyBranchMegaHistory(
+    raw: string | null | undefined
+): PolicyBranchMegaHistoryMode | null {
+    return raw ? resolvePolicyBranchMegaHistoryFromQuery(raw, POLICY_BRANCH_MEGA_AVAILABLE_HISTORIES[0]) : null
+}
+
 function resolveOptionalPolicyBranchMegaBucket(
     raw: string | null | undefined
 ): PolicyBranchMegaBucketMode | null {
@@ -515,6 +539,7 @@ export function resolvePolicyBranchMegaReportQueryArgs(
     args?: PolicyBranchMegaReportQueryArgs
 ): PolicyBranchMegaReportQueryArgs {
     return {
+        history: resolveOptionalPolicyBranchMegaHistory(args?.history),
         bucket: resolveOptionalPolicyBranchMegaBucket(args?.bucket),
         bucketView: resolveOptionalPolicyBranchMegaBucketView(args?.bucketView),
         metric: resolveOptionalPolicyBranchMegaMetric(args?.metric),
@@ -529,6 +554,10 @@ function mapResolvedPolicyBranchMegaQuery(raw: unknown): PolicyBranchMegaResolve
     const resolution = toObject(raw)
 
     return {
+        history: resolvePolicyBranchMegaHistoryFromQuery(
+            toRequiredString(resolution.history, 'payload.resolvedQuery.history'),
+            POLICY_BRANCH_MEGA_AVAILABLE_HISTORIES[0]
+        ),
         bucket: resolvePolicyBranchMegaBucketFromQuery(
             toRequiredString(resolution.bucket, 'payload.resolvedQuery.bucket'),
             POLICY_BRANCH_MEGA_AVAILABLE_BUCKETS[0]
@@ -597,6 +626,7 @@ function mapPolicyBranchMegaCapabilities(raw: unknown): PolicyBranchMegaCapabili
     }
 
     return {
+        availableHistories: readStringArray('availableHistories') as PolicyBranchMegaHistoryMode[],
         availableBuckets: readStringArray('availableBuckets') as PolicyBranchMegaBucketMode[],
         availableParts: readPositiveIntArray('availableParts'),
         availableTotalBucketViews: readStringArray('availableTotalBucketViews') as PolicyBranchMegaTotalBucketView[],
@@ -611,6 +641,7 @@ function mapPolicyBranchMegaCapabilities(raw: unknown): PolicyBranchMegaCapabili
 
 function toReportQueryArgs(query: PolicyBranchMegaResolvedQueryDto): PolicyBranchMegaReportQueryArgs {
     return {
+        history: query.history,
         bucket: query.bucket,
         bucketView: query.bucket === 'total' ? query.bucketView : null,
         metric: query.metric,
@@ -666,7 +697,7 @@ export async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQ
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load policy branch mega report: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load policy branch mega report', resp, text))
     }
 
     const raw = await resp.json()
@@ -683,7 +714,7 @@ export async function fetchPolicyBranchMegaEvaluationMap(
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load policy branch mega evaluation: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load policy branch mega evaluation', resp, text))
     }
 
     return mapPolicyBranchMegaEvaluationMap(await resp.json())
@@ -700,7 +731,7 @@ export async function fetchPolicyBranchMegaValidation(
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load policy branch mega validation: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load policy branch mega validation', resp, text))
     }
 
     return mapPolicyBranchMegaValidation(await resp.json())
@@ -716,7 +747,7 @@ async function fetchPolicyBranchMegaReportPayload(
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load policy branch mega payload: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load policy branch mega payload', resp, text))
     }
 
     return mapPolicyBranchMegaPayload(await resp.json())
@@ -743,23 +774,32 @@ async function loadPolicyBranchMegaReportPayloadAndCache(
     return payload
 }
 
-export function usePolicyBranchMegaReportQuery(
+export function buildPolicyBranchMegaPayloadQueryOptions(
+    queryClient: QueryClient,
     args: PolicyBranchMegaReportQueryArgs,
     options?: UsePolicyBranchMegaQueryOptions
-): UseQueryResult<PolicyBranchMegaReportPayloadDto, Error> {
-    const queryClient = useQueryClient()
+): PolicyBranchMegaPayloadQueryOptions {
     const requestedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
-    const payloadKey = buildPolicyBranchMegaPayloadQueryKey(requestedArgs)
 
-    return useQuery({
-        queryKey: payloadKey,
+    return {
+        queryKey: buildPolicyBranchMegaPayloadQueryKey(requestedArgs),
         queryFn: () => loadPolicyBranchMegaReportPayloadAndCache(queryClient, requestedArgs),
         enabled: options?.enabled ?? true,
         retry: false,
         staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
         gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
         refetchOnWindowFocus: false
-    })
+    }
+}
+
+export function usePolicyBranchMegaReportQuery(
+    args: PolicyBranchMegaReportQueryArgs,
+    options?: UsePolicyBranchMegaQueryOptions
+): UseQueryResult<PolicyBranchMegaReportPayloadDto, Error> {
+    const queryClient = useQueryClient()
+    const queryOptions = buildPolicyBranchMegaPayloadQueryOptions(queryClient, args, options)
+
+    return useQuery(queryOptions)
 }
 
 export function usePolicyBranchMegaReportDocumentQuery(
@@ -779,7 +819,7 @@ export function usePolicyBranchMegaReportDocumentQuery(
                 return cachedPayload.report
             }
 
-            return fetchPolicyBranchMegaReport(requestedArgs)
+            return (await loadPolicyBranchMegaReportPayloadAndCache(queryClient, requestedArgs)).report
         },
         enabled: options?.enabled ?? true,
         retry: false,
@@ -793,14 +833,13 @@ export async function prefetchPolicyBranchMegaReportPayload(
     queryClient: QueryClient,
     args: PolicyBranchMegaReportQueryArgs
 ): Promise<void> {
-    const requestedArgs = resolvePolicyBranchMegaReportQueryArgs(args)
-    const payloadKey = buildPolicyBranchMegaPayloadQueryKey(requestedArgs)
+    const queryOptions = buildPolicyBranchMegaPayloadQueryOptions(queryClient, args)
 
     await queryClient.prefetchQuery({
-        queryKey: payloadKey,
-        queryFn: () => loadPolicyBranchMegaReportPayloadAndCache(queryClient, requestedArgs),
-        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
-        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS
+        queryKey: queryOptions.queryKey,
+        queryFn: queryOptions.queryFn,
+        staleTime: queryOptions.staleTime,
+        gcTime: queryOptions.gcTime
     })
 }
 
@@ -836,8 +875,25 @@ export async function prefetchPolicyBranchMegaReportParts(
         part: resolvedArgs.part ?? 1
     }
     const payload = await loadPolicyBranchMegaReportPayloadAndCache(queryClient, entryArgs)
+    const canonicalArgs = {
+        ...toReportQueryArgs(payload.resolvedQuery),
+        part: payload.resolvedQuery.part ?? entryArgs.part
+    }
     const availableParts = payload.capabilities.availableParts
     const prefetchTasks: Array<Promise<void>> = []
+
+    prefetchTasks.push(
+        prefetchPublishedReportVariantSelectionSnapshot(queryClient, PUBLISHED_REPORT_VARIANT_FAMILIES.policyBranchMega, {
+            history: canonicalArgs.history ?? null,
+            bucket: canonicalArgs.bucket ?? null,
+            bucketview: canonicalArgs.bucketView ?? null,
+            metric: canonicalArgs.metric ?? null,
+            part: String(canonicalArgs.part),
+            tpsl: canonicalArgs.tpSlMode ?? null,
+            slmode: canonicalArgs.slMode ?? null,
+            zonal: canonicalArgs.zonalMode ?? null
+        })
+    )
 
     // В navigation warmup держим все части доступными, чтобы hash-переходы
     // и быстрый просмотр страницы не зависели от повторного on-demand fetch.
@@ -847,11 +903,11 @@ export async function prefetchPolicyBranchMegaReportParts(
         }
 
         const partArgs = {
-            ...resolvedArgs,
+            ...canonicalArgs,
             part
         }
 
-        prefetchTasks.push(queryClient.prefetchQuery(buildPolicyBranchMegaPartPrefetchOptions(partArgs)))
+        prefetchTasks.push(queryClient.prefetchQuery(buildPolicyBranchMegaPartPrefetchOptions(queryClient, partArgs)))
     }
 
     if (prefetchTasks.length > 0) {
@@ -876,7 +932,7 @@ export function usePolicyBranchMegaReportNavQuery(
                 return cachedPayload.report
             }
 
-            return fetchPolicyBranchMegaReport(resolvedArgs)
+            return (await loadPolicyBranchMegaReportPayloadAndCache(queryClient, resolvedArgs)).report
         },
         initialData: () => {
             const cachedPayload = queryClient.getQueryData<PolicyBranchMegaReportPayloadDto>(payloadKey)
@@ -901,9 +957,12 @@ export function usePolicyBranchMegaValidationQuery(
         queryFn: () => fetchPolicyBranchMegaValidation(resolvedArgs),
         enabled: options?.enabled ?? true,
         retry: false,
-        staleTime: 0,
-        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        staleTime: QUERY_POLICY_REGISTRY.policyBranchMega.validation.staleTimeMs,
+        gcTime: QUERY_POLICY_REGISTRY.policyBranchMega.validation.gcTimeMs,
         refetchOnWindowFocus: false,
-        refetchInterval: query => (query.state.data?.state === 'pending' ? 2000 : false)
+        refetchInterval: query =>
+            query.state.data?.state === 'pending' ?
+                QUERY_POLICY_REGISTRY.policyBranchMega.validation.pendingRefetchIntervalMs
+            :   false
     })
 }

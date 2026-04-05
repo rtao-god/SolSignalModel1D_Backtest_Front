@@ -1,4 +1,13 @@
-import type { ExportCell, RowEntry, SortDir, SortKind, TableRow } from './types'
+import type {
+    ExportCell,
+    RowEntry,
+    SortDir,
+    SortKind,
+    TableRow,
+    TableSortCellContext,
+    TableSortComparator,
+    TableSortValueResolver
+} from './types'
 const NULLISH_TEXT = new Set(['', '—', '-', 'n/a', 'na', 'null', 'undefined'])
 export function isNullish(v: unknown): v is null | undefined {
     return v === null || v === undefined
@@ -12,6 +21,35 @@ export function getCellValue(row: TableRow, colIdx: number): unknown {
     }
     return row[colIdx]
 }
+
+function resolveSortContext(
+    row: TableRow,
+    rowIndex: number,
+    colIdx: number,
+    getSortValue: TableSortValueResolver | undefined
+): TableSortCellContext {
+    const value = getCellValue(row, colIdx)
+    return {
+        row,
+        rowIndex,
+        colIdx,
+        value: getSortValue ? getSortValue(row, rowIndex, colIdx, value) : value
+    }
+}
+
+function compareSortContexts(
+    left: TableSortCellContext,
+    right: TableSortCellContext,
+    getSortComparator: TableSortComparator | undefined
+): number {
+    const customResult = getSortComparator?.(left, right)
+    if (customResult !== null && customResult !== undefined && Number.isFinite(customResult)) {
+        return customResult
+    }
+
+    return compareCells(left.value, right.value)
+}
+
 export function toExportCell(v: unknown): ExportCell {
     if (isNullish(v)) {
         return ''
@@ -119,15 +157,21 @@ export function compareCells(a: unknown, b: unknown): number {
     const bStr = String(b)
     return aStr.localeCompare(bStr, undefined, { numeric: true, sensitivity: 'base' })
 }
-export function stableSortByCol(entries: RowEntry[], colIdx: number, dir: SortDir): RowEntry[] {
+export function stableSortByCol(
+    entries: RowEntry[],
+    colIdx: number,
+    dir: SortDir,
+    getSortValue?: TableSortValueResolver,
+    getSortComparator?: TableSortComparator
+): RowEntry[] {
     const dirMul = dir === 'asc' ? 1 : -1
 
     const withStableIndex = entries.map((e, stableIndex) => ({ e, stableIndex }))
     withStableIndex.sort((x, y) => {
-        const ax = getCellValue(x.e.row, colIdx)
-        const by = getCellValue(y.e.row, colIdx)
+        const left = resolveSortContext(x.e.row, x.e.originalIndex, colIdx, getSortValue)
+        const right = resolveSortContext(y.e.row, y.e.originalIndex, colIdx, getSortValue)
 
-        const cmp = compareCells(ax, by)
+        const cmp = compareSortContexts(left, right, getSortComparator)
         if (cmp !== 0) {
             return cmp * dirMul
         }
@@ -139,41 +183,39 @@ export function stableSortByCol(entries: RowEntry[], colIdx: number, dir: SortDi
 export function orderSignature(entries: RowEntry[]): string {
     return entries.map(e => String(e.originalIndex)).join(',')
 }
-export function hasColumnVariance(entries: RowEntry[], colIdx: number): boolean {
-    const set = new Set<string>()
-    for (const e of entries) {
-        const v = getCellValue(e.row, colIdx)
-        if (isNullish(v)) {
-            continue
-        }
-        if (typeof v === 'number') {
-            set.add(`n:${v}`)
-        } else if (typeof v === 'string') {
-            const n = tryParseNumberFromString(v)
-            set.add(n !== null ? `n:${n}` : `s:${v.trim().toLowerCase()}`)
-        } else {
-            set.add(`s:${String(v).trim().toLowerCase()}`)
-        }
-
-        if (set.size >= 2) {
-            return true
-        }
+export function hasColumnVariance(
+    entries: RowEntry[],
+    colIdx: number,
+    getSortValue?: TableSortValueResolver,
+    getSortComparator?: TableSortComparator
+): boolean {
+    const originalSignature = orderSignature(entries)
+    const ascSignature = orderSignature(stableSortByCol(entries, colIdx, 'asc', getSortValue, getSortComparator))
+    if (ascSignature !== originalSignature) {
+        return true
     }
-    return false
+
+    const descSignature = orderSignature(stableSortByCol(entries, colIdx, 'desc', getSortValue, getSortComparator))
+    return descSignature !== originalSignature
 }
-export function defaultDirForColumn(entries: RowEntry[], colIdx: number): SortDir | null {
-    if (!hasColumnVariance(entries, colIdx)) {
+export function defaultDirForColumn(
+    entries: RowEntry[],
+    colIdx: number,
+    getSortValue?: TableSortValueResolver,
+    getSortComparator?: TableSortComparator
+): SortDir | null {
+    if (!hasColumnVariance(entries, colIdx, getSortValue, getSortComparator)) {
         return null
     }
 
     const orig = orderSignature(entries)
 
-    const asc = orderSignature(stableSortByCol(entries, colIdx, 'asc'))
+    const asc = orderSignature(stableSortByCol(entries, colIdx, 'asc', getSortValue, getSortComparator))
     if (asc === orig) {
         return 'asc'
     }
 
-    const desc = orderSignature(stableSortByCol(entries, colIdx, 'desc'))
+    const desc = orderSignature(stableSortByCol(entries, colIdx, 'desc', getSortValue, getSortComparator))
     if (desc === orig) {
         return 'desc'
     }

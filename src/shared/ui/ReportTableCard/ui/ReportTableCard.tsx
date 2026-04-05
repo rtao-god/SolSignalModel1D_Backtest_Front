@@ -11,6 +11,8 @@ import {
     SortableTable,
     type TableDensity,
     type TableRow,
+    type TableSortComparator,
+    type TableSortValueResolver,
     getCellValue,
     toExportCell,
     tryParseNumberFromString
@@ -31,6 +33,13 @@ interface ReportTableCardProps {
     rowEvaluationMap?: Record<string, PolicyEvaluationDto>
     getRowKey?: (row: TableRow, rowIndex: number) => string | null
     renderCellOverride?: (value: unknown, rowIndex: number, colIdx: number, columnTitle: string) => ReactNode | null
+    getSortValueOverride?: (value: unknown, rowIndex: number, colIdx: number, columnTitle: string) => unknown
+    getSortComparatorOverride?: (
+        left: { value: unknown; row: TableRow; rowIndex: number },
+        right: { value: unknown; row: TableRow; rowIndex: number },
+        colIdx: number,
+        columnTitle: string
+    ) => number | null | undefined
 }
 const EMPTY_TABLE_ROWS: TableRow[] = []
 function parseNumericCell(value: unknown): number | null {
@@ -107,7 +116,9 @@ function ReportTableCard({
     rowEvaluations,
     rowEvaluationMap,
     getRowKey,
-    renderCellOverride
+    renderCellOverride,
+    getSortValueOverride,
+    getSortComparatorOverride
 }: ReportTableCardProps) {
     const { i18n } = useTranslation()
     const sourceRows = rows ?? EMPTY_TABLE_ROWS
@@ -172,6 +183,36 @@ function ReportTableCard({
         return undefined
     }
 
+    const resolveSortValue = useCallback<TableSortValueResolver>(
+        (row, rowIndex, colIdx, value) => {
+            if (!getSortValueOverride) {
+                return value
+            }
+
+            const columnTitle = columns[colIdx] ?? ''
+            const override = getSortValueOverride(value, rowIndex, colIdx, columnTitle)
+            return override ?? value
+        },
+        [columns, getSortValueOverride]
+    )
+
+    const resolveSortComparator = useCallback<TableSortComparator>(
+        (left, right) => {
+            if (!getSortComparatorOverride) {
+                return null
+            }
+
+            const columnTitle = columns[left.colIdx] ?? ''
+            return getSortComparatorOverride(
+                { value: left.value, row: left.row, rowIndex: left.rowIndex },
+                { value: right.value, row: right.row, rowIndex: right.rowIndex },
+                left.colIdx,
+                columnTitle
+            )
+        },
+        [columns, getSortComparatorOverride]
+    )
+
     return (
         <section id={domId} className={classNames(cls.card, {}, [className ?? ''])}>
             <header className={cls.cardHeader}>
@@ -209,6 +250,8 @@ function ReportTableCard({
                 getRowTitle={getRowTitle}
                 getCellClassName={getCellClassName}
                 renderCell={renderLocalizedCell}
+                getSortValue={resolveSortValue}
+                getSortComparator={resolveSortComparator}
                 onSortedRowsChange={setSortedRows}
                 renderColumnTitle={renderColumnTitle}
             />

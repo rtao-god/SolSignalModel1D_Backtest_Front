@@ -58,7 +58,7 @@
     border-radius: 999px;
     opacity: 0;
     color: rgba(232, 240, 247, 0.96);
-    font-size: 12px;
+    @include type-label;
     line-height: 1;
     white-space: nowrap;
     background: rgba(7, 18, 30, 0.94);

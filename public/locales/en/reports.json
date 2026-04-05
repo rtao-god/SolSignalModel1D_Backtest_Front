@@ -19,6 +19,19 @@
             "ctaForecast": "Forecast for today",
             "ctaProof": "Historical simulation"
         },
+        "whitePaper": {
+            "eyebrow": "For specialists",
+            "title": "Technical document on how the project works",
+            "subtitle": "This document describes in detail how the system estimates the direction of Solana coin price for one trading day in advance, which data enters the calculation, and how the result is checked on past dates.",
+            "bullets": [
+                "What exactly the system calculates during one trading day.",
+                "Which data enters the calculation and how the forecast is built from it.",
+                "How the forecast becomes a trading decision and how that result is checked on past dates."
+            ],
+            "downloadLead": "The full technical breakdown is collected in a separate document.",
+            "downloadCta": "Download technical white paper",
+            "downloadNote": "Markdown file."
+        },
         "audience": {
             "eyebrow": "Why it matters for business",
             "title": "Which questions the service answers",
@@ -185,7 +198,7 @@
             "specificity": "Specificity is the share of good base-trade days among all days that the model classified as safe enough to avoid the bad-trade class.\n\nWhat it shows:\nit answers how often the system correctly rejects clearly bad trading days without confusing too many good ones. In diagnostics this matters because the model is judged not only by finding opportunities, but also by avoiding harmful entries.\n\nHow to read it:\nhigh specificity means the model is better at protecting the strategy from obviously bad trade days. Low specificity means the “safe” side still contains too many days that later behave like the bad class.",
             "blameSplit": "Blame split is the attribution layer that assigns a weak result to the dominant failure bucket instead of leaving all bad days in one undifferentiated pile.\n\nWhat it shows:\nit separates whether the problem came from the model itself, from policy restrictions, from execution quality, or from other downstream conditions.\n\nHow to read it:\nthis layer matters because the same weak PnL can come from very different causes. Blame split makes the cause observable, so the next fix targets the real bottleneck instead of the most visible symptom.",
             "hotspots": "Hotspots are the parts of the pipeline where the strategy most often loses quality, accumulates risk, or produces unstable behavior.\n\nWhat it shows:\nthis is not one metric by itself. It is the reading layer that highlights where weak outcomes cluster: model-side, policy-side, execution-side, or data-quality-side.\n\nHow to read it:\nif the same hotspot keeps dominating different tables, the problem is structural rather than accidental. That is usually the place where the next fix gives the highest impact on truthfulness or strategy quality.",
-            "pfi": "PFI (permutation feature importance) measures how much the model loses quality when one feature is intentionally broken or shuffled while the rest stay intact.\n\nWhat it shows:\nPFI does not say that one feature alone “causes” the forecast. It shows how dependent the model is on that feature for keeping its current quality level.\n\nHow to read it:\na high PFI means the model materially degrades without that feature. A near-zero PFI means the feature adds little unique value, even if it still looks intuitive to a human reader.",
+            "pfi": "PFI (Permutation Feature Importance) is a way to check which input signals the model actually needs. The model has many features: price position versus a moving average, speed of movement, volatility, market background, and other observable pieces of market state. PFI breaks one such signal at a time by randomly shuffling it between rows and then checks how much model quality gets worse.\n\nWhat it shows:\nif quality barely changes, that signal adds little to the current model. If quality drops clearly, the model truly used that signal to separate good and bad day scenarios.\n\nHow to read it:\nPFI is not a search for a magic profit button. It is a way to inspect model logic: which input signal the model starts missing when it disappears.\n\nExample:\nif shuffling the feature that tracks price position versus [[ema-indicator|EMA]] hurts quality more than shuffling a sentiment feature, the first signal matters more for this model.",
             "confusionMatrix": "Confusion matrix is the table that compares predicted classes with realized classes for the same evaluation window.\n\nWhat it shows:\nit makes class errors visible by direction: which outcomes are recognized correctly, which ones are confused with each other, and where the model most often overstates or understates a scenario.\n\nHow to read it:\nthis table matters because one headline score can hide asymmetric mistakes. A model may look acceptable overall while still repeatedly confusing one specific class that is critical for trading decisions.",
             "modelMetrics": "Model metrics are the quality measures used to judge whether a forecasting layer is stable, transferable, and worth trusting on new data.\n\nWhat it shows:\nthese metrics are not only about accuracy. They describe calibration, class balance, error structure, and the gap between seen history and unseen evaluation slices.\n\nHow to read it:\nstrong model metrics matter only when they remain coherent across Train, OOS, diagnostics, and backtest behavior. A good score in isolation is weaker evidence than a consistent profile across these layers.",
             "policyBranchMega": "Policy Branch Mega is the full historical table for every [[policy|Policy]] configuration on one long history. It keeps [[branch|BASE / ANTI-D branches]], SL modes, filters, return, drawdown, liquidations, long/short structure, and recovery in one place.\n\nWhat it shows:\nthis page is built for comparing not one isolated strategy idea, but the whole layer of Policy configurations on identical trading days.\n\nHow to read it:\nthis mega table should not be read by TotalPnl% alone. Its purpose is to show which configuration stays robust and which one buys the result with deeper drawdowns, liquidations, stricter filters, or weaker recovery.",
@@ -194,7 +207,7 @@
             "featureImportance": "Feature importance is the layer that ranks which inputs matter most for the model and which ones change the result only marginally.\n\nWhat it shows:\nit does not promise causal truth by itself. It shows where the forecasting pipeline depends most on information content and where removing a feature would change the model least.\n\nHow to read it:\nfeature importance is strongest when it is read together with explain and PFI. If the same feature stays important across those layers, its role in the decision is much more credible than in a single ranking alone.",
             "predictionAggregation": "Prediction aggregation is the step where outputs of several model layers are combined into one final probability view.\n\nWhat it shows:\nthis step collects the daily layer, micro refinement, and risk-aware interpretation into the final scenario ranking that the strategy later consumes.\n\nHow to read it:\naggregation should be read as a structured merge, not as a blind average. If the final answer changes, the useful question is which layer shifted the balance and whether that shift improved robustness or only changed the final label.",
             "allHistory": "Full history is the mode where the model takes the whole completed history up to the latest day whose [[landing-time-horizon|trading day]] outcome is already known, trains on that full range, and then recalculates the whole history with that same trained version.\n\nWhat it shows:\n1) The most fully trained version of the model on the whole available past.\n2) History with no split between [[train-segment|Train]] and [[landing-oos|OOS]].\n3) A mode where the same day may appear both in training and in the repeated forecast pass.\n\nHow to read it:\n1) History first changes only the [[landing-model-weights|model weights]].\n2) During inference the ready-made day outcome is no longer fed into the model: the engine sees only day data, and the realized outcome is attached to the report later.\n3) That is why old full forecasts may change not because the day was memorized directly, but because the refit model changed its weights.\n4) For an honest quality check [[landing-all-history|Full]] should always be compared with [[landing-oos|OOS]].",
-            "recentTailHistory": "Recent tail is not a separate training mode. It is only the freshest end of an already built [[landing-oos|OOS]] slice.\n\nWhat it shows:\n1) The system first builds ordinary [[landing-oos|OOS]] and only then keeps up to the latest 240 OOS records.\n2) If the whole OOS slice is shorter than that limit, the tail becomes the full OOS slice.\n3) This mode isolates what is happening on the most recent days of the honest evaluation.\n\nHow to read it:\n1) The tail is selected from already built OOS records rather than from a new calendar rule.\n2) No new model is trained here and no new prediction pass is launched.\n3) If OOS still looks stable while the tail is already weaker, deterioration starts on the most recent days.",
+            "recentTailHistory": "Recent tail is not a separate training mode. It is only the freshest end of an already built [[landing-oos|OOS]] slice.\n\nWhat it shows:\n1) The system first builds ordinary [[landing-oos|OOS]] and only then keeps a fresh OOS tail within the mode limit.\n2) If the whole OOS slice is shorter than that limit, the tail becomes the full OOS slice.\n3) This mode isolates what is happening on the most recent days of the honest evaluation.\n\nHow to read it:\n1) The tail is selected from already built OOS records rather than from a new calendar rule.\n2) No new model is trained here and no new prediction pass is launched.\n3) If OOS still looks stable while the tail is already weaker, deterioration starts on the most recent days.",
             "baselineBacktest": "Baseline backtest is the reference historical simulation under the main production-like setup used by the project.\n\nWhat it shows:\nit is the default comparison point for new variants, filters, and strategy changes. The point of the baseline is not to be “best”, but to provide a stable anchor for judging whether later modifications really improve the profile.\n\nHow to read it:\nwhen an experimental variant looks better, the right question is not only whether return increased. The comparison must also show what happened to drawdown, liquidation exposure, and recovery difficulty relative to the baseline.",
             "experimentalBacktest": "Experimental backtest is a non-baseline historical simulation used to test a modified rule set, filter, layer, or execution mode against the reference setup.\n\nWhat it shows:\nit exists to answer whether the new idea changes the result for the better or only moves risk into another place.\n\nHow to read it:\nan experimental result should never be judged by one attractive metric in isolation. It must beat or clarify the baseline across both return and risk, otherwise it is just a different profile, not a better one.",
             "modelConfidence": "Model confidence is the strength of the model's belief in the selected scenario for the trading day.\n\nWhat it shows:\nconfidence is not the same thing as guaranteed correctness. It is the internal strength of the probability edge that later controls whether the strategy trades, how strict filters become, and which risk layers are allowed to engage.\n\nHow to read it:\nhigh confidence matters only when history supports it. A strong-looking confidence value without stable behavior in OOS, diagnostics, and backtests is still weak evidence.",
@@ -351,7 +364,7 @@
             "metrics": {
                 "reports": {
                     "label": "Analysis pages",
-                    "value": "7 pages"
+                    "value": "8 pages"
                 },
                 "readingContours": {
                     "label": "Reading angles",
@@ -359,7 +372,7 @@
                 },
                 "relatedContours": {
                     "label": "Neighbor domains",
-                    "value": "2 domains"
+                    "value": "3 domains"
                 }
             },
             "links": {
@@ -368,6 +381,8 @@
                 "policySetups": "Section: Policy setup history",
                 "dayStats": "Section: Day statistics",
                 "confidenceRisk": "Section: Confidence and TP/SL",
+                "sharpMoveStats": "Section: Sharp move statistics",
+                "statisticsHome": "Section: Statistics",
                 "realForecastJournal": "Section: Real Forecast Journal",
                 "executionPipeline": "Section: Execution pipeline",
                 "diagnosticsHome": "Section: Diagnostics",
@@ -429,9 +444,9 @@
                 "boundaries": {
                     "title": "Boundary between analysis and neighboring sections",
                     "bullets": {
-                        "analysisVsDiagnostics": "Analysis answers the question \"what happened in the numbers\". It shows return, [[drawdown|drawdown]], trade structure, and market regimes.",
-                        "analysisVsGuide": "Diagnostics answers the question \"why it happened\". That route starts once the result is already visible but the defect source must be localized.",
-                        "analysisVsDeveloper": "Guide explains terms and rules. Developer shows the internal system structure and report assembly."
+                        "analysisVsStatistics": "Statistics answers the question \"on which thresholds, grids, and shared rules the effect works better or worse\". That route starts when the effect must be measured honestly across full parameter grids or real-day counts.",
+                        "analysisVsDiagnostics": "Diagnostics answers the question \"why it happened\". That route starts once the result is already visible but the defect source must be localized.",
+                        "analysisVsGuide": "Knowledge Base explains terms and reading rules for the surrounding sections."
                     }
                 }
             }
@@ -465,6 +480,21 @@
                 "description": "Bucket statistics by model confidence: TP/SL hit frequency and MFE/MAE dynamics across signal levels. Helps decide where to increase take-profit and where to reduce risk.",
                 "hint": "Confidence and excursion room"
             },
+            "sharpMoveStats": {
+                "title": "Sharp move statistics",
+                "description": "The section checks what the statistics favor after a strong price impulse: trend continuation or a fast reversal.\n\nThe second layer exposes both rise and fall signals, thresholds from 5% to 20%, and horizons from 1 to 30 days. This helps find stable follow-the-trend scenarios and separately measure where the impulse usually runs out of strength.",
+                "hint": "Impulse, continuation, and reversal"
+            },
+            "boundedParameterStats": {
+                "title": "Bounded parameter statistics",
+                "description": "This section compares value grids for parameters that constrain the strategy formula: ceilings, floors, and other hard bounds.\n\nIt shows how model quality changes, how often the bound really fires, and where the best working range sits for the selected parameter.",
+                "hint": "Grid of bounded parameters"
+            },
+            "oosPresetTails": {
+                "title": "OOS and TRAIN comparison",
+                "description": "This section compares how model quality changes when the last evaluation tail of history becomes larger or smaller.\n\nIt shows how the same training setup behaves when different shares of the latest days are left aside for honest post-training evaluation.",
+                "hint": "Share of history reserved for evaluation"
+            },
             "realForecastJournal": {
                 "title": "Real Forecast Journal",
                 "description": "The section compares forecast and realized outcome on real days that appeared after the semi-live contour started.\n\nThe second layer shows where the forecast matched the day result, how quality behaves on new dates, and how close that picture stays to historical expectations.",
@@ -474,6 +504,143 @@
                 "title": "Execution pipeline",
                 "description": "End-to-end report by computation layers: model, decision, execution, accounting, and final aggregation. Useful for step-by-step formula validation and mismatch analysis.",
                 "hint": "Model -> trade -> result"
+            }
+        }
+    },
+    "statisticsHome": {
+        "hero": {
+            "title": "Statistics",
+            "subtitle": "Owner statistics for shared rules and parameter grids of the project. The section shows where a rule works better or worse on full history, how the micro layer and the trade-risk layer change the final forecast, and, when real days already exist, how that effect behaves on factual data."
+        },
+        "overview": {
+            "title": "How to read the statistics layer",
+            "subtitle": "The top block routes the question to the right statistics screen: where to measure the Bitcoin weakness rule, where to inspect the micro layer and trade risk, where to read the strong-day rule, and where to compare full value grids for hard formula bounds.",
+            "metrics": {
+                "reports": {
+                    "label": "Statistics pages",
+                    "value": "6 pages"
+                },
+                "readingContours": {
+                    "label": "Reading topics",
+                    "value": "6 topics"
+                },
+                "relatedContours": {
+                    "label": "Neighbor domains",
+                    "value": "3 domains"
+                }
+            },
+            "links": {
+                "btcWeakness": "Section: BTC weakness statistics",
+                "microOverlay": "Section: Micro overlay statistics",
+                "slOverlay": "Section: Trade risk statistics",
+                "slStrongDay": "Section: Strong-day statistics",
+                "sharpMoveStats": "Section: Sharp move statistics",
+                "boundedParameterStats": "Section: Bounded parameter statistics",
+                "analysisHome": "Section: Analysis",
+                "diagnosticsHome": "Section: Diagnostics",
+                "guideHome": "Section: Knowledge Base"
+            },
+            "factTable": {
+                "title": "Which question opens which statistics screen",
+                "columns": {
+                    "question": "When to open it",
+                    "answer": "What it gives",
+                    "details": "Where to go"
+                },
+                "rows": {
+                    "btcWeakness": {
+                        "question": "The effect of the three Bitcoin weakness signs on the final Solana forecast must be measured",
+                        "answer": "BTC weakness statistics show the working project thresholds, the detailed sweep for each sign, the joint behavior of the full rule, and a separate real-day layer."
+                    },
+                    "microOverlay": {
+                        "question": "The question is when the micro model gains the right to intervene in a day that already stayed sideways in the base layer",
+                        "answer": "Micro overlay statistics show the confidence thresholds, the linear growth of intervention strength, the factual probability shift, and a separate real-day layer."
+                    },
+                    "slOverlay": {
+                        "question": "The question is when the trade-risk model shifts the result and how often high risk really ends with stop-loss before target",
+                        "answer": "Trade risk statistics show the confidence thresholds, the redistribution strength, the top-class clamp, and factual confirmation of the stop-loss-first scenario in history and live days."
+                    },
+                    "slStrongDay": {
+                        "question": "The strong-day rule must be read to see where weak, gray, and strong tradeable days are separated for the trade-risk model",
+                        "answer": "Strong-day statistics show the core MinMove threshold, weak cut, strong cut, gray-zone behavior, and the stop-loss-first gap between weak and strong days."
+                    },
+                    "impulseScenarios": {
+                        "question": "The next move after a strong price impulse must be measured across thresholds and horizons",
+                        "answer": "Sharp move statistics compare continuation and reversal after large rises or falls in the coin price."
+                    },
+                    "formulaBounds": {
+                        "question": "The best working range of a hard bound inside the strategy formula must be found",
+                        "answer": "Bounded parameter statistics show the full value grid, the model-quality leaderboard, and the factual frequency of bound hits."
+                    },
+                    "analysisBridge": {
+                        "question": "The measured statistical effect must be linked back to the full strategy picture",
+                        "answer": "The route returns to Analysis when the effect is already measured and must be compared with the wider return, regime, and stability picture."
+                    }
+                }
+            },
+            "blocks": {
+                "readingOrder": {
+                    "title": "Normal order of reading statistics",
+                    "steps": {
+                        "btcFirst": "Start with BTC weakness when the question is about the project rule that removes an up forecast and moves it into sideways.",
+                        "microThen": "Then open micro-overlay statistics when the base day answer already stayed sideways and the task is to see when the micro model is really allowed to intervene.",
+                        "riskThen": "Then open trade-risk statistics when the task is to measure how much probability mass the risk layer removes and how often high risk really becomes stop-loss first.",
+                        "strongDayThen": "After that open strong-day statistics when the question is how the MinMove rule splits days into weak, gray, and strong slices before the trade-risk model acts.",
+                        "impulseNext": "Then open sharp-move statistics when the question is about what the market usually does after a strong impulse in the coin price.",
+                        "boundsThen": "Open bounded-parameter statistics when the target is a hard formula bound and the task is to find the best working range of its full value grid."
+                    }
+                },
+                "coverage": {
+                    "title": "What this section measures",
+                    "bullets": {
+                        "sharedContracts": "Each page measures one shared project contract rather than a local copy of a formula or threshold.",
+                        "fullGrids": "The page shows the full value grid for the chosen rule or parameter, not a shortened subset of convenient points.",
+                        "factualLayer": "When real forecast days already exist, the page separates historical statistics and factual statistics instead of mixing them together."
+                    }
+                },
+                "boundaries": {
+                    "title": "Boundary between statistics and neighboring sections",
+                    "bullets": {
+                        "statisticsVsAnalysis": "Statistics answers the question \"on which thresholds or grids the rule works better or worse\". Analysis is the next stop once that effect must be compared with the full strategy picture.",
+                        "statisticsVsDiagnostics": "Diagnostics explains why a weak result happened. Statistics explains where the rule or parameter works better or worse before the root cause is decomposed.",
+                        "statisticsVsGuide": "Knowledge Base explains terms and reading rules when the meaning of a metric or scenario must be clarified before interpretation."
+                    }
+                }
+            }
+        },
+        "sections": {
+            "title": "Statistics sections"
+        },
+        "cards": {
+            "btcWeakness": {
+                "title": "BTC weakness statistics",
+                "description": "This page measures how the shared Bitcoin weakness rule changes the final forecast for the Solana coin price.\n\nIt shows the working thresholds, three detailed sweeps, the joint behavior of the full rule, and a separate factual layer from real forecast days.",
+                "hint": "Three weakness signs in one rule"
+            },
+            "microOverlay": {
+                "title": "Micro overlay statistics",
+                "description": "This page measures when the micro model gains the right to intervene in a base day that already stayed sideways and how strongly it really moves the final probabilities.\n\nIt shows the confidence thresholds, the linear strength ramp, the average factual shift, and a separate factual layer from real forecast days.",
+                "hint": "Micro signal versus the base sideways answer"
+            },
+            "slOverlay": {
+                "title": "Trade risk statistics",
+                "description": "This page measures when the trade-risk model starts cutting the confident top class and how well that warning is confirmed by the stop-loss-first scenario.\n\nIt shows the confidence thresholds, redistribution strength, top-class clamp, and a separate factual layer from real forecast days.",
+                "hint": "Probability shift caused by trade risk"
+            },
+            "slStrongDay": {
+                "title": "Strong-day statistics",
+                "description": "This page measures how the strong-day rule splits history into weak, gray, and strong tradeable days before the trade-risk model intervenes.\n\nIt shows the core MinMove threshold, weak cut, strong cut, gray-zone behavior, and the stop-loss-first gap between weak and strong days.",
+                "hint": "Weak cut, strong cut, and the gray zone"
+            },
+            "sharpMoveStats": {
+                "title": "Sharp move statistics",
+                "description": "The section checks what the statistics favor after a strong price impulse: trend continuation or a fast reversal.\n\nThe second layer exposes both rise and fall signals, thresholds from 5% to 20%, and horizons from 1 to 30 days. This helps find stable follow-the-trend scenarios and separately measure where the impulse usually runs out of strength.",
+                "hint": "Impulse, continuation, and reversal"
+            },
+            "boundedParameterStats": {
+                "title": "Bounded parameter statistics",
+                "description": "This section compares value grids for parameters that constrain the strategy formula: ceilings, floors, and other hard bounds.\n\nIt shows how model quality changes, how often the bound really fires, and where the best working range sits for the selected parameter.",
+                "hint": "Grid of bounded parameters"
             }
         }
     },
@@ -504,7 +671,7 @@
                 },
                 "invalidSource": {
                     "title": "Execution pipeline report source is invalid",
-                    "description": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "description": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "invalidSections": {
                     "title": "Execution pipeline report sections are invalid",
@@ -640,25 +807,70 @@
             }
         }
     },
+    "predictionSliceTimeline": {
+        "title": "History slice timeline",
+        "loading": "Loading the history slice timeline...",
+        "subtitle": "The bar shows where [[history-warmup|indicator warmup]] ends, where [[train-segment|TRAIN]] runs, and where [[oos-segment|OOS]] begins. Segment width follows calendar dates, while the cards below show the amount of published history.",
+        "activeSummary": {
+            "full": "The full history range is open now: from {{start}} to {{end}}. It includes both [[train-segment|TRAIN]] and [[oos-segment|OOS]].",
+            "train": "The current open slice is [[train-segment|TRAIN]]: from {{start}} to {{end}}. This is the training part before [[oos-segment|OOS]].",
+            "oos": "The current open slice is [[oos-segment|OOS]]: from {{start}} to {{end}}. This is the evaluation on newer days after [[train-segment|TRAIN]].",
+            "recent": "The current open slice is the [[landing-recent-tail-history|recent tail]] inside [[oos-segment|OOS]]: from {{start}} to {{end}}."
+        },
+        "segments": {
+            "warmup": {
+                "title": "[[history-warmup|Indicator warmup]]",
+                "railLabel": "[[history-warmup|Indicator warmup]]"
+            },
+            "train": {
+                "title": "[[train-segment|TRAIN]] / Training",
+                "railLabel": "[[train-segment|TRAIN]] / Training"
+            },
+            "oos": {
+                "title": "[[oos-segment|OOS]] / Evaluation",
+                "railLabel": "[[oos-segment|OOS]] / Evaluation"
+            },
+            "recent": {
+                "title": "[[landing-recent-tail-history|Recent tail]] inside [[oos-segment|OOS]]"
+            }
+        },
+        "boundaries": {
+            "warmupStart": "Warmup start",
+            "featureReady": "TRAIN start",
+            "oosStart": "OOS start",
+            "end": "Latest day"
+        },
+        "dimensions": {
+            "warmupDisplayTop": "Indicator",
+            "warmupDisplayBottom": "warmup",
+            "train": "[[train-segment|TRAIN]] {{percent}}",
+            "oos": "[[oos-segment|OOS]] {{percent}}",
+            "recent": "[[landing-recent-tail-history|Recent tail]] {{percent}}"
+        },
+        "missing": {
+            "title": "The slice timeline is unavailable",
+            "description": "The page did not receive warmup, TRAIN, and OOS boundaries from the published history stats."
+        }
+    },
     "currentPrediction": {
         "scope": {
             "ariaLabel": "Model training scope",
             "options": {
                 "full": {
                     "label": "Full history",
-                    "hint": "The model is trained on the whole completed history where each day already has a known outcome"
+                    "hint": "100% completed history. The model is trained on the whole finished archive up to the last day whose outcome is already known."
                 },
                 "train": {
                     "label": "Train diagnostics",
-                    "hint": "The training split used for error review, not regular prediction history"
+                    "hint": "Train diagnostics. In the base Train/OOS pair this is the earlier 70% of history before the 30% OOS tail."
                 },
                 "oos": {
                     "label": "OOS evaluation",
-                    "hint": "Only OOS days; the model was trained on the train slice"
+                    "hint": "Base user OOS tail. The rule keeps the latest 30% of full history for OOS and leaves the earlier 70% in Train."
                 },
                 "recent": {
                     "label": "Recent OOS tail",
-                    "hint": "The latest scored OOS slice, not a separate training mode"
+                    "hint": "Short user OOS tail. The rule keeps the latest 15% of full history inside the wider 30% OOS tail."
                 }
             }
         },
@@ -772,8 +984,7 @@
         "page": {
             "errorTitle": "Failed to load backtest summary",
             "status": {
-                "publishedTitle": "ACTUAL: published backtest summary",
-                "publishedMessage": "This page reads the published report directly and does not re-check freshness while opening."
+                "publishedTitle": "ACTUAL: published backtest summary"
             },
             "statusLines": {
                 "keyValueSections": "Key-value sections",
@@ -796,7 +1007,7 @@
             "errors": {
                 "invalidSource": {
                     "title": "Model stats report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Model stats bucket query is invalid",
@@ -821,7 +1032,7 @@
             },
             "header": {
                 "titleFallback": "Model statistics",
-                "subtitle": "Consolidated report on ML-model quality and behavior across train / OOS / full / recent samples. Select segment and report mode first, then inspect detailed metric cards."
+                "subtitle": "Consolidated report on ML-model quality and behavior across four historical slices: Full = 100% of completed history{{fullDaysSuffix}}, Train = the earlier {{trainPercent}} before the base OOS {{oosPercent}}{{trainDaysSuffix}}, OOS = the latest {{oosPercent}} of full history{{oosDaysSuffix}}, Recent = the latest {{recentPercent}} of full history inside OOS {{oosPercent}}{{recentDaysSuffix}}."
             },
             "badges": {
                 "segment": "Segment: {{value}}",
@@ -856,7 +1067,6 @@
             },
             "status": {
                 "publishedTitle": "ACTUAL: published model statistics",
-                "publishedMessage": "This page reads the published report directly and does not re-check freshness while opening.",
                 "oosPresent": "present, records {{value}}",
                 "oosMissing": "absent (train-only mode)"
             },
@@ -869,7 +1079,7 @@
             },
             "control": {
                 "title": "How to read this report",
-                "text": "Segments (OOS / Train / Full / Recent) define which data is used for metrics. \"Business\" mode shows aggregated indicators, while \"Tech\" mode shows detailed confusion matrices and distributions for model analysis."
+                "text": "Segments define which part of full history enters the metrics: Full = 100% of completed history, Train = the earlier 70% before the base OOS 30%, OOS = the latest 30% of full history, Recent = the latest 15% of full history inside OOS 30%. \"Business\" mode shows aggregated indicators, while \"Tech\" mode shows detailed confusion matrices and distributions."
             },
             "terms": {
                 "title": "Model stats terms",
@@ -1317,7 +1527,7 @@
                 },
                 "sourceEndpoint": {
                     "title": "Invalid diagnostics report source",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Invalid bucket query",
@@ -1404,11 +1614,30 @@
     },
     "pfi": {
         "page": {
+            "shell": {
+                "title": "Models",
+                "subtitle": "This page combines model quality across history slices with a separate feature-impact diagnostic layer."
+            },
+            "pageMode": {
+                "label": "What to show",
+                "ariaLabel": "Model page layer selection",
+                "tooltip": "Model quality shows the base behavior of models across history slices.\n\nFeature impact shows how much forecast quality drops when one input feature is damaged.",
+                "options": {
+                    "modelQuality": {
+                        "label": "Model quality",
+                        "tooltip": "Primary page layer. It shows model quality, evaluation coverage, and the gap between training history and newer days."
+                    },
+                    "featureImpact": {
+                        "label": "Feature impact",
+                        "tooltip": "Diagnostic layer. It shows which input features carry the strongest part of forecast quality."
+                    }
+                }
+            },
             "errorTitle": "Failed to load PFI report",
             "errors": {
                 "sourceEndpoint": {
                     "title": "Invalid PFI report source",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Invalid bucket query",
@@ -1442,8 +1671,7 @@
                 "slSubtitle": "Feature-importance report for the SL model and its thresholds. This page contains only SL sections and keeps them separate from daily models."
             },
             "status": {
-                "publishedTitle": "ACTUAL: published PFI report",
-                "publishedMessage": "This page reads the published report directly and does not re-check freshness while opening."
+                "publishedTitle": "ACTUAL: published PFI report"
             },
             "statusLines": {
                 "tableSectionCount": "Model sections in report"
@@ -1479,11 +1707,11 @@
             },
             "trainDiagnosticsIntro": {
                 "title": "What train diagnostics shows",
-                "lead": "Train diagnostics is the mode for reviewing model mistakes inside the training slice.",
+                "lead": "Train diagnostics is the mode for reviewing model mistakes inside the training slice: the earlier {{trainPercent}} of full history{{trainDaysNote}} before the base OOS {{oosPercent}}{{oosDaysNote}}.",
                 "bullets": [
                     "This mode does not pretend to be user-facing prediction history. It surfaces error slices and weak spots on familiar history.",
                     "The section shows worst mistakes, confident mistakes, and borderline days with low decision margin.",
-                    "Honest transfer to new days is still checked through OOS evaluation, while the freshest part of that evaluation lives in the recent OOS tail."
+                    "Honest transfer to new days is still checked through OOS {{oosPercent}}{{oosDaysNote}}, while the freshest part of that evaluation lives in Recent {{recentPercent}}{{recentDaysNote}} inside that OOS {{oosPercent}}."
                 ]
             },
             "emptyIndex": {
@@ -1623,7 +1851,7 @@
             "short": "Short"
         },
         "status": {
-            "captured": "The morning forecast is already fixed. Realized fields remain empty until the New York day closes and the factual data is written.",
+            "captured": "The morning forecast is already fixed. Realized fields remain empty until the New York session closes and the final day data becomes available.",
             "finalized": "The day is already finalized after the New York session (working day) closes. The morning forecast is immutable and the realized outcome is now read-only."
         },
         "timing": {
@@ -1692,7 +1920,7 @@
                 "scheduleDstTerm": "DST",
                 "scheduleDstTooltip": "DST (Daylight Saving Time) is the seasonal clock shift between winter and summer time in New York.\n\nBecause of that shift, the same trading-session opening point appears in different UTC hours during winter and summer.",
                 "schedulePointDstSuffix": ".",
-                "schedulePointFinalize": "Realized fields stay empty until the New York session (working day) closes and candle and indicator sync finishes.",
+                "schedulePointFinalize": "Realized fields stay empty until the New York session closes and the final day data becomes available.",
                 "usefulnessTitle": "Why this page matters",
                 "usefulnessLead": "This block shows how closely real outcomes match the model's historical expectations.",
                 "usefulnessPointSequence": "Only days where the forecast was published first and the market outcome appeared later are collected here.",
@@ -1704,11 +1932,11 @@
             "title": "Captured trading days",
             "subtitle": "The newest day is selected by default. Until the day is finalized after the New York close, factual fields remain empty.",
             "badges": {
-            "captured": "Captured",
-            "finalized": "Finalized",
-            "scheduled": "Scheduled",
-            "missed": "Missed capture",
-            "recovered": "Recovered (manual)"
+                "captured": "Captured",
+                "finalized": "Finalized",
+                "scheduled": "Scheduled",
+                "missed": "Missed capture",
+                "recovered": "Recovered (manual)"
             }
         },
         "summary": {
@@ -1757,7 +1985,7 @@
         "policy": {
             "title": "Policy plan and realized execution",
             "subtitle": "Morning values come from the fixed forecast. Realized fields appear only after the day is finalized. Null values stay explicit instead of being turned into zero.",
-            "empty": "No Policies match the current bucket / SL / branch / margin filters.",
+            "empty": "No published policy rows match the current bucket, branch, and search filters.",
             "buckets": {
                 "daily": "Daily",
                 "intraday": "Intraday",
@@ -1791,7 +2019,7 @@
             },
             "table": {
                 "title": "Published Policies",
-                "description": "The default view opens the daily / with-SL / zonal slice. Switching to “All” shows every published bucket and Policy together.",
+                "description": "The table starts with every published row for the selected day. Bucket, branch, and search only narrow the published set, and margin type is already visible in the policy name.",
                 "sessionOpenPublished": "Published",
                 "columns": {
                     "policy": "Policy",
@@ -1856,7 +2084,7 @@
             "noStopLoss": "No stop-loss",
             "noTakeProfit": "No take-profit",
             "notApplicable": "Not applicable",
-            "pendingFinalize": "Waiting for the New York close and indicator sync",
+            "pendingFinalize": "Day is still open",
             "noDirection": "No direction",
             "noDelta": "Delta becomes available after the close",
             "deltaUnavailable": "No numeric delta",
@@ -1960,7 +2188,7 @@
                 },
                 "invalidSource": {
                     "title": "Confidence risk report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
                 },
                 "bucketQuery": {
                     "title": "Confidence risk bucket query is invalid",
@@ -2016,6 +2244,416 @@
             "confBucketAriaLabel": "Confidence-bucket filter for selected scope"
         }
     },
+    "sharpMoveStats": {
+        "page": {
+            "title": "Sharp move statistics",
+            "subtitle": "The page measures what happens more often after a sharp price move: trend continuation or a fast reversal.\n\nThe second layer presents a scenario grid across rise and fall signals, thresholds from 5% to 20%, and horizons from 1 to 30 days.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_sharp_move_stats is not configured: report metadata is shown without freshness validation."
+            },
+            "loading": "Loading sharp move statistics",
+            "errorTitle": "Failed to load sharp move statistics",
+            "errorMessage": "Check the published variant catalog and the selected scenario parameters."
+        },
+        "controls": {
+            "scope": {
+                "label": "History scope",
+                "tooltip": "History scope is the part of completed history used in this statistics page. Full = 100% completed history, Train = the earlier 70% before the base OOS 30%, OOS = the base user tail of new days at 30% of full history, Recent = the short user tail at 15% inside OOS 30%."
+            },
+            "signal": {
+                "label": "Signal",
+                "tooltip": "Separate modes for a sharp rise and a sharp fall in the coin price.",
+                "options": {
+                    "rise": {
+                        "label": "Rise",
+                        "hint": "The signal fires after a sharp rise in the coin price."
+                    },
+                    "fall": {
+                        "label": "Fall",
+                        "hint": "The signal fires after a sharp fall in the coin price."
+                    }
+                }
+            },
+            "outcome": {
+                "label": "Outcome",
+                "tooltip": "Continuation and reversal are counted as separate patterns.",
+                "options": {
+                    "continuation": {
+                        "label": "Continuation",
+                        "hint": "Shows how often the impulse kept moving in the same direction."
+                    },
+                    "reversal": {
+                        "label": "Reversal",
+                        "hint": "Shows how often the impulse quickly turned in the opposite direction."
+                    }
+                }
+            },
+            "threshold": {
+                "label": "Threshold",
+                "tooltip": "Minimum size of the initial impulse and the target follow-through after the signal."
+            },
+            "horizon": {
+                "label": "Horizon",
+                "tooltip": "How many days after the signal the scenario gets for continuation or reversal."
+            }
+        }
+    },
+    "boundedParameterStats": {
+        "page": {
+            "title": "Bounded parameter statistics",
+            "subtitle": "This page compares the full value grid of one bounded parameter.\n\nIt shows how model quality changes, how often the bound really fires, how many days exceed the top point of the grid, and how the final formula behavior changes.",
+            "status": {
+                "title": "DEBUG: freshness not verified",
+                "message": "Status endpoint for backtest_bounded_parameter_stats is not configured: report metadata is shown without freshness validation."
+            },
+            "loading": "Loading bounded parameter statistics",
+            "errorTitle": "Failed to load bounded parameter statistics",
+            "errorMessage": "Check the published variant catalog and the selected owner/parameter values."
+        },
+        "controls": {
+            "owner": {
+                "label": "Bound group",
+                "tooltip": "Each group keeps only its own bounded parameters and its own formula. This page does not mix different groups together."
+            },
+            "parameter": {
+                "label": "Bounded parameter",
+                "tooltip": "For the selected parameter the page shows the full value grid, the model-quality leaderboard, and the observed frequency of bound hits."
+            }
+        }
+    },
+    "btcWeaknessStats": {
+        "page": {
+            "title": "BTC weakness statistics",
+            "subtitle": "This page shows the project rule that removes an up forecast for the Solana coin price and moves it into sideways when Bitcoin shows three weakness signs at the same time.",
+            "summary": {
+                "title": "Short rule summary",
+                "projectDefaults": "Project thresholds",
+                "backtest": "Historical summary",
+                "live": "Real-day summary",
+                "liveScope": "Real-day coverage"
+            },
+            "status": {
+                "backtestTitle": "ACTUAL: latest published history report",
+                "backtestMessage": "The page shows the latest published Bitcoin-weakness report built on historical days.",
+                "liveTitle": "ACTUAL: live journal snapshot",
+                "liveMessage": "The page shows the current factual report built from the canonical real-forecast journal."
+            },
+            "terms": {
+                "title": "Report table terms",
+                "subtitle": "One glossary is shared by the historical tables and the real-day tables, so the main text can stay focused on interpretation."
+            },
+            "backtestTitle": "Historical statistics",
+            "liveTitle": "Real-day statistics",
+            "loadingBacktest": "Loading historical Bitcoin-weakness statistics",
+            "errorBacktestTitle": "Failed to load historical Bitcoin-weakness statistics",
+            "errorBacktestMessage": "Check the /api/backtest/btc-weakness-stats endpoint and the published report.",
+            "loadingLive": "Loading real-day Bitcoin-weakness statistics",
+            "errorLiveTitle": "Failed to load real-day Bitcoin-weakness statistics",
+            "errorLiveMessage": "Check the /api/statistics/btc-weakness/live endpoint and the real forecast journal."
+        },
+        "terms": {
+            "threshold": {
+                "title": "Threshold",
+                "description": "The value at which one weakness sign starts counting as triggered.",
+                "tooltip": "The value at which one weakness sign starts counting as triggered."
+            },
+            "ownerDefault": {
+                "title": "Project default",
+                "description": "Marks the row that matches the working thresholds used by the project runtime.",
+                "tooltip": "Marks the row that matches the working thresholds used by the project runtime."
+            },
+            "totalDays": {
+                "title": "Total days",
+                "description": "All days that entered the current slice.",
+                "tooltip": "All days that entered the current slice."
+            },
+            "triggerDays": {
+                "title": "Trigger days",
+                "description": "Days where all three weakness signs were true for the current threshold.",
+                "tooltip": "Days where all three weakness signs were true for the current threshold."
+            },
+            "triggerRate": {
+                "title": "Trigger rate",
+                "description": "Share of trigger days inside the full day set.",
+                "tooltip": "Share of trigger days inside the full day set."
+            },
+            "upToFlatDays": {
+                "title": "Up to flat days",
+                "description": "How many times an up forecast was forcibly moved into sideways.",
+                "tooltip": "How many times an up forecast was forcibly moved into sideways."
+            },
+            "forecastAccuracyTotal": {
+                "title": "Forecast accuracy total",
+                "description": "Overall forecast accuracy after the rule was applied to the full set.",
+                "tooltip": "Overall forecast accuracy after the rule was applied to the full set."
+            },
+            "forecastAccuracyTriggerDays": {
+                "title": "Forecast accuracy on trigger days",
+                "description": "Forecast accuracy only on days where the Bitcoin weakness rule actually fired.",
+                "tooltip": "Forecast accuracy only on days where the Bitcoin weakness rule actually fired."
+            },
+            "accuracyDelta": {
+                "title": "Accuracy delta",
+                "description": "Accuracy difference versus the project default or the pre-block baseline.",
+                "tooltip": "Accuracy difference versus the project default or the pre-block baseline."
+            },
+            "actualDownTriggerDays": {
+                "title": "Actual down trigger days",
+                "description": "Trigger days that finished with a fall in the Solana coin price.",
+                "tooltip": "Trigger days that finished with a fall in the Solana coin price."
+            },
+            "actualFlatTriggerDays": {
+                "title": "Actual flat trigger days",
+                "description": "Trigger days that finished with sideways movement in the Solana coin price.",
+                "tooltip": "Trigger days that finished with sideways movement in the Solana coin price."
+            },
+            "actualUpTriggerDays": {
+                "title": "Actual up trigger days",
+                "description": "Trigger days that finished with growth in the Solana coin price.",
+                "tooltip": "Trigger days that finished with growth in the Solana coin price."
+            },
+            "usedDays": {
+                "title": "Used days",
+                "description": "Real journal days that passed the strict completeness filter and entered the factual statistics.",
+                "tooltip": "Real journal days that passed the strict completeness filter and entered the factual statistics."
+            },
+            "finalizedWithFactDays": {
+                "title": "Finalized with fact days",
+                "description": "Journal days where the final factual outcome already exists.",
+                "tooltip": "Journal days where the final factual outcome already exists."
+            },
+            "missingIndicatorsDays": {
+                "title": "Missing indicator days",
+                "description": "Days excluded because Bitcoin indicators were missing at session open.",
+                "tooltip": "Days excluded because Bitcoin indicators were missing at session open."
+            },
+            "missingRawInputsDays": {
+                "title": "Missing raw input days",
+                "description": "Days excluded because the raw PMove or PUpGivenMove inputs were missing.",
+                "tooltip": "Days excluded because the raw PMove or PUpGivenMove inputs were missing."
+            }
+        }
+    },
+    "microOverlayStats": {
+        "page": {
+            "title": "Micro overlay statistics",
+            "subtitle": "This page shows when the micro model gains the right to intervene in a base sideways day answer, how its strength grows, and what factual probability shift it produces on history and live days.",
+            "summary": {
+                "title": "Short rule summary",
+                "projectDefaults": "Project thresholds",
+                "backtest": "Historical summary",
+                "live": "Real-day summary",
+                "liveScope": "Real-day coverage"
+            },
+            "status": {
+                "backtestTitle": "ACTUAL: latest published history report",
+                "backtestMessage": "The page shows the latest published micro-overlay report built on historical days.",
+                "liveTitle": "ACTUAL: live journal snapshot",
+                "liveMessage": "The page shows the current micro-overlay report for live days built from the canonical real-forecast journal."
+            },
+            "terms": {
+                "title": "Report table terms",
+                "subtitle": "One glossary is shared by the historical tables and the real-day tables, so the main text can stay focused on interpretation."
+            },
+            "backtestTitle": "Historical statistics",
+            "liveTitle": "Real-day statistics",
+            "loadingBacktest": "Loading historical micro-overlay statistics",
+            "errorBacktestTitle": "Failed to load historical micro-overlay statistics",
+            "errorBacktestMessage": "Check the /api/backtest/micro-overlay-stats endpoint and the published report.",
+            "loadingLive": "Loading real-day micro-overlay statistics",
+            "errorLiveTitle": "Failed to load real-day micro-overlay statistics",
+            "errorLiveMessage": "Check the /api/statistics/micro-overlay/live endpoint and the real forecast journal."
+        },
+        "terms": {
+            "threshold": {
+                "title": "Threshold",
+                "description": "The value after which the rule starts treating the signal as strong enough to intervene.",
+                "tooltip": "The value after which the rule starts treating the signal as strong enough to intervene."
+            },
+            "projectDefault": {
+                "title": "Project default",
+                "description": "The row with the working runtime thresholds of the project.",
+                "tooltip": "The row with the working runtime thresholds of the project."
+            },
+            "baseFlatDays": {
+                "title": "Base flat days",
+                "description": "Days where the base day answer was already sideways before the micro model stepped in.",
+                "tooltip": "Days where the base day answer was already sideways before the micro model stepped in."
+            },
+            "gatePassedDays": {
+                "title": "Gate-passed days",
+                "description": "Days where micro confidence crossed the working threshold and the signal was allowed to move probabilities.",
+                "tooltip": "Days where micro confidence crossed the working threshold and the signal was allowed to move probabilities."
+            },
+            "microTruthAccuracy": {
+                "title": "Micro-direction accuracy",
+                "description": "How often the micro direction matched the factual outcome on days where the rule really intervened.",
+                "tooltip": "How often the micro direction matched the factual outcome on days where the rule really intervened."
+            },
+            "dayUncertainty": {
+                "title": "Day uncertainty",
+                "description": "The share of probability mass that the base day model still leaves open for the micro layer.",
+                "tooltip": "The share of probability mass that the base day model still leaves open for the micro layer."
+            },
+            "actualImpact": {
+                "title": "Actual impact",
+                "description": "The factual probability mass that the micro layer really moved into the chosen direction.",
+                "tooltip": "The factual probability mass that the micro layer really moved into the chosen direction."
+            },
+            "usedDays": {
+                "title": "Used days",
+                "description": "Real-journal days that passed the strict completeness filter and entered the factual layer.",
+                "tooltip": "Real-journal days that passed the strict completeness filter and entered the factual layer."
+            }
+        }
+    },
+    "slOverlayStats": {
+        "page": {
+            "title": "Trade risk statistics",
+            "subtitle": "This page shows when the trade-risk model starts moving final probabilities, how much mass it removes from the leading class, and how well that signal is confirmed by the stop-loss-first scenario.",
+            "summary": {
+                "title": "Short rule summary",
+                "projectDefaults": "Project thresholds",
+                "backtest": "Historical summary",
+                "live": "Real-day summary",
+                "liveScope": "Real-day coverage"
+            },
+            "status": {
+                "backtestTitle": "ACTUAL: latest published history report",
+                "backtestMessage": "The page shows the latest published trade-risk report built on historical days.",
+                "liveTitle": "ACTUAL: live journal snapshot",
+                "liveMessage": "The page shows the current trade-risk report for live days built from the canonical real-forecast journal."
+            },
+            "terms": {
+                "title": "Report table terms",
+                "subtitle": "One glossary is shared by the historical tables and the real-day tables, so the main text can stay focused on interpretation."
+            },
+            "backtestTitle": "Historical statistics",
+            "liveTitle": "Real-day statistics",
+            "loadingBacktest": "Loading historical trade-risk statistics",
+            "errorBacktestTitle": "Failed to load historical trade-risk statistics",
+            "errorBacktestMessage": "Check the /api/backtest/sl-overlay-stats endpoint and the published report.",
+            "loadingLive": "Loading real-day trade-risk statistics",
+            "errorLiveTitle": "Failed to load real-day trade-risk statistics",
+            "errorLiveMessage": "Check the /api/statistics/sl-overlay/live endpoint and the real forecast journal."
+        },
+        "terms": {
+            "highRiskDays": {
+                "title": "High-risk days",
+                "description": "Days where the trade-risk model crossed the threshold and actually started to move the final probabilities.",
+                "tooltip": "Days where the trade-risk model crossed the threshold and actually started to move the final probabilities."
+            },
+            "slFirstPrecision": {
+                "title": "SL-first precision",
+                "description": "How often stop-loss really came before the target on high-risk days.",
+                "tooltip": "How often stop-loss really came before the target on high-risk days."
+            },
+            "binaryAccuracy": {
+                "title": "Binary accuracy",
+                "description": "Agreement between the high-risk prediction and the factual SL-first versus all other outcomes.",
+                "tooltip": "Agreement between the high-risk prediction and the factual SL-first versus all other outcomes."
+            },
+            "actualImpact": {
+                "title": "Actual impact",
+                "description": "The factual probability mass that the risk layer removed from the leading direction.",
+                "tooltip": "The factual probability mass that the risk layer removed from the leading direction."
+            },
+            "addedToFlat": {
+                "title": "Mass moved into sideways",
+                "description": "The share of removed mass that the risk layer moved into the sideways outcome.",
+                "tooltip": "The share of removed mass that the risk layer moved into the sideways outcome."
+            },
+            "addedToOpposite": {
+                "title": "Mass moved into the opposite direction",
+                "description": "The share of removed mass that the risk layer moved into the opposite direction.",
+                "tooltip": "The share of removed mass that the risk layer moved into the opposite direction."
+            },
+            "topClamp": {
+                "title": "Top-class clamp",
+                "description": "The hard bound that stops a risky day from looking artificially obvious after redistribution.",
+                "tooltip": "The hard bound that stops a risky day from looking artificially obvious after redistribution."
+            },
+            "defaultPathProfile": {
+                "title": "Default TP/SL profile",
+                "description": "The fixed take-profit and stop-loss profile used to check the factual stop-loss-first outcome in history and live days.",
+                "tooltip": "The fixed take-profit and stop-loss profile used to check the factual stop-loss-first outcome in history and live days."
+            }
+        }
+    },
+    "slStrongDayStats": {
+        "page": {
+            "title": "Strong-day statistics",
+            "subtitle": "This page shows how the MinMove rule splits tradeable days into weak, gray, and strong slices before the trade-risk model intervenes and how strongly those slices differ by stop-loss-first frequency.",
+            "summary": {
+                "title": "Short rule summary",
+                "projectDefaults": "Project thresholds",
+                "backtest": "Historical summary",
+                "live": "Real-day summary",
+                "liveScope": "Real-day coverage"
+            },
+            "status": {
+                "backtestTitle": "ACTUAL: latest published history report",
+                "backtestMessage": "The page shows the latest published strong-day report built on historical days.",
+                "liveTitle": "ACTUAL: live journal snapshot",
+                "liveMessage": "The page shows the current strong-day report for live days built from the canonical real-forecast journal."
+            },
+            "terms": {
+                "title": "Report table terms",
+                "subtitle": "One glossary is shared by the historical tables and the real-day tables, so the main text can stay focused on interpretation."
+            },
+            "backtestTitle": "Historical statistics",
+            "liveTitle": "Real-day statistics",
+            "loadingBacktest": "Loading historical strong-day statistics",
+            "errorBacktestTitle": "Failed to load historical strong-day statistics",
+            "errorBacktestMessage": "Check the /api/backtest/sl-strong-day-stats endpoint and the published report.",
+            "loadingLive": "Loading real-day strong-day statistics",
+            "errorLiveTitle": "Failed to load real-day strong-day statistics",
+            "errorLiveMessage": "Check the /api/statistics/sl-strong-day/live endpoint and the real forecast journal."
+        },
+        "terms": {
+            "baseThreshold": {
+                "title": "Base threshold",
+                "description": "The core MinMove value from which the weak, gray, and strong day zones are derived.",
+                "tooltip": "The core MinMove value from which the weak, gray, and strong day zones are derived."
+            },
+            "weakCut": {
+                "title": "Weak cut",
+                "description": "The lower boundary below which the day is weak without extra conditions.",
+                "tooltip": "The lower boundary below which the day is weak without extra conditions."
+            },
+            "strongCut": {
+                "title": "Strong cut",
+                "description": "The upper boundary above which the day is strong without extra conditions.",
+                "tooltip": "The upper boundary above which the day is strong without extra conditions."
+            },
+            "grayZone": {
+                "title": "Gray zone",
+                "description": "The interval between weak cut and strong cut where the final verdict depends on the down regime.",
+                "tooltip": "The interval between weak cut and strong cut where the final verdict depends on the down regime."
+            },
+            "strongSlFirstRate": {
+                "title": "Strong-day SL-first rate",
+                "description": "How often stop-loss came before the target on strong tradeable days.",
+                "tooltip": "How often stop-loss came before the target on strong tradeable days."
+            },
+            "weakSlFirstRate": {
+                "title": "Weak-day SL-first rate",
+                "description": "How often stop-loss came before the target on weak tradeable days.",
+                "tooltip": "How often stop-loss came before the target on weak tradeable days."
+            },
+            "separation": {
+                "title": "Strong-vs-weak separation",
+                "description": "The percentage-point gap between stop-loss-first frequency on strong and weak days.",
+                "tooltip": "The percentage-point gap between stop-loss-first frequency on strong and weak days."
+            },
+            "usedDays": {
+                "title": "Used days",
+                "description": "Real-journal days that passed the strict completeness filter and entered the factual layer.",
+                "tooltip": "Real-journal days that passed the strict completeness filter and entered the factual layer."
+            }
+        }
+    },
     "policyBranchMega": {
         "page": {
             "errorTitle": "Failed to load Policy Branch Mega",
@@ -2045,7 +2683,11 @@
                 },
                 "invalidSource": {
                     "title": "Policy Branch Mega report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL / VITE_DEV_API_PROXY_TARGET."
+                    "message": "API source endpoint is missing or invalid. Check VITE_API_BASE_URL."
+                },
+                "historyQuery": {
+                    "title": "Policy Branch Mega history query is invalid",
+                    "message": "Query parameter \"history\" is invalid. Expected full_history, oos, or recent."
                 },
                 "bucketQuery": {
                     "title": "Policy Branch Mega bucket query is invalid",
@@ -2077,7 +2719,7 @@
                 },
                 "sections": {
                     "title": "Policy Branch Mega sections are missing",
-                    "message": "Report sections for the selected zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently."
+                    "message": "Report sections for the selected history/zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently."
                 },
                 "terms": {
                     "title": "Policy Branch Mega terms are invalid",
@@ -2239,8 +2881,8 @@
                 "simulation": {
                     "title": "What simulation includes",
                     "items": {
-                        "item1": "[[exchange-fees|Exchange fees]]: included ([[round-trip|round-trip]], [[entry-fee|entry fee]] and [[exit-fee|exit fee]]).",
-                        "item2": "Funding: not included, so real exchange result may differ for long-held positions.",
+                        "item1": "[[exchange-fees|Exchange fees]]: included. In the current calculation this is [[entry-fee|entry fee]] 0.04%, [[exit-fee|exit fee]] 0.04%, and [[round-trip|0.08% total fee per trade]].",
+                        "item2": "[[funding|Funding]]: included. If the position lives until a funding timestamp, that cash debit or cash credit is already part of the trade result.",
                         "item3": "[[slippage|Slippage]] / [[price-impact|price impact]]: not included.",
                         "item4Prefix": "Event order inside first-event rule: liquidation → stop-loss → take-profit →"
                     },

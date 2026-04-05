@@ -25,13 +25,13 @@
 
 .title {
     font-weight: 500;
-    font-size: 16px;
+    @include type-card-title;
 }
 
 .subtitle {
     max-width: 560px;
     opacity: 0.8;
-    font-size: 14px;
+    @include type-body-md;
     line-height: 1.4;
 }
 

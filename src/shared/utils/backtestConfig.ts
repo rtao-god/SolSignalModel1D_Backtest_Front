@@ -2,7 +2,11 @@ import type {
     BacktestConfigDto,
     BacktestConfidenceRiskConfigDto,
     BacktestRiskBudgetConfigDto,
-    BacktestRiskBudgetTierDto
+    BacktestRiskBudgetTierDto,
+    ExecutionProfileConfigDto,
+    TradeExitGridDto,
+    TradeExitGridLevelDto,
+    TradeExitProfileDto
 } from '@/shared/types/backtest.types'
 
 function cloneRiskBudgetTier(tier: BacktestRiskBudgetTierDto): BacktestRiskBudgetTierDto {
@@ -73,13 +77,48 @@ function cloneConfidenceRiskConfig(config: BacktestConfidenceRiskConfigDto): Bac
     }
 }
 
+function cloneTradeExitProfile(profile: TradeExitProfileDto): TradeExitProfileDto {
+    return {
+        takeProfitPct: profile.takeProfitPct,
+        stopLossPct: profile.stopLossPct
+    }
+}
+
+function cloneTradeExitGridLevel(level: TradeExitGridLevelDto): TradeExitGridLevelDto {
+    return {
+        id: level.id,
+        name: level.name,
+        profile: cloneTradeExitProfile(level.profile)
+    }
+}
+
+function cloneTradeExitGrid(grid: TradeExitGridDto): TradeExitGridDto {
+    return {
+        id: grid.id,
+        name: grid.name,
+        defaultLevelId: grid.defaultLevelId ?? null,
+        levels: grid.levels.map(cloneTradeExitGridLevel)
+    }
+}
+
+function cloneExecutionProfile(config: ExecutionProfileConfigDto): ExecutionProfileConfigDto {
+    return {
+        baselineProfile: cloneTradeExitProfile(config.baselineProfile),
+        grid: cloneTradeExitGrid(config.grid),
+        confidenceRisk: config.confidenceRisk ? cloneConfidenceRiskConfig(config.confidenceRisk) : null
+    }
+}
+
 export function cloneBacktestConfig(config: BacktestConfigDto): BacktestConfigDto {
     return {
-        dailyStopPct: config.dailyStopPct,
-        dailyTpPct: config.dailyTpPct,
-        confidenceRisk: config.confidenceRisk ? cloneConfidenceRiskConfig(config.confidenceRisk) : null,
+        calcMode: config.calcMode,
+        executionProfile: cloneExecutionProfile(config.executionProfile),
         riskBudget: config.riskBudget ? cloneRiskBudgetConfig(config.riskBudget) : null,
         reportBucketPolicy: config.reportBucketPolicy,
-        policies: config.policies.map(p => ({ ...p }))
+        policies: config.policies.map(p => ({ ...p })),
+        trainUntilExitDayKeyUtc: config.trainUntilExitDayKeyUtc ?? null,
+        exportDiagnosticsCsv: config.exportDiagnosticsCsv ?? false,
+        diagnosticsExportDir: config.diagnosticsExportDir ?? null,
+        diagnosticsTopTradesCount: config.diagnosticsTopTradesCount ?? 0
     }
 }

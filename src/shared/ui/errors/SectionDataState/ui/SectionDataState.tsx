@@ -1,6 +1,7 @@
 import { useEffect, useMemo, type ReactNode } from 'react'
 import classNames from '@/shared/lib/helpers/classNames'
-import { logError, type LogErrorContext } from '@/shared/lib/logging/logError'
+import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { buildDetailedErrorDetails, logError, type LogErrorContext } from '@/shared/lib/logging/logError'
 import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 import { Loader, Text } from '@/shared/ui'
 import cls from './SectionDataState.module.scss'
@@ -25,19 +26,13 @@ function normalizeError(error: unknown): Error | null {
         return null
     }
 
-    if (error instanceof Error) {
-        return error
-    }
-
-    if (typeof error === 'string') {
-        return new Error(error)
-    }
-
-    try {
-        return new Error(JSON.stringify(error))
-    } catch {
-        return new Error(String(error))
-    }
+    return normalizeErrorLike(error, 'Unknown section data error.', {
+        source: 'section-data-state',
+        domain: 'ui_section',
+        owner: 'section-data-state',
+        expected: 'Section data boundary should receive an Error or API envelope with owner context.',
+        requiredAction: 'Inspect the upstream query, loader, or memo wrapper that passed a non-Error failure.'
+    })
 }
 
 function formatErrorDetails(error: unknown): string | null {
@@ -46,18 +41,26 @@ function formatErrorDetails(error: unknown): string | null {
     }
 
     if (typeof error === 'string') {
-        return error
+        return buildDetailedErrorDetails(normalizeErrorLike(error, 'Unknown section data error.', {
+            source: 'section-data-state',
+            domain: 'ui_section',
+            owner: 'section-data-state',
+            expected: 'Section data boundary should receive an Error or API envelope with owner context.',
+            requiredAction: 'Inspect the upstream query, loader, or memo wrapper that passed a string failure.'
+        }))
     }
 
     if (error instanceof Error) {
-        return error.message
+        return buildDetailedErrorDetails(error)
     }
 
-    try {
-        return JSON.stringify(error, null, 2)
-    } catch {
-        return String(error)
-    }
+    return buildDetailedErrorDetails(normalizeErrorLike(error, 'Unknown section data error.', {
+        source: 'section-data-state',
+        domain: 'ui_section',
+        owner: 'section-data-state',
+        expected: 'Section data boundary should receive an Error or API envelope with owner context.',
+        requiredAction: 'Inspect the upstream query, loader, or memo wrapper that passed a non-serializable failure.'
+    }))
 }
 
 function buildLogKey(error: Error, context?: LogErrorContext): string {

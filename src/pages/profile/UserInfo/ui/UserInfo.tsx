@@ -47,10 +47,10 @@ export default function UserInfo({ className }: UserInfoProps) {
                 />
             </div>
             <div className={cls.data}>
-                <Text type='h2' color='#262626' fz='20px'>
+                <Text type='h2' variant='section-title' color='#262626'>
                     {fullUsernameWithInitials}
                 </Text>
-                <Text color='#B1B2B4' fz='14px'>
+                <Text variant='body-md' color='#B1B2B4'>
                     {user?.group?.name ?? ''}
                 </Text>
             </div>

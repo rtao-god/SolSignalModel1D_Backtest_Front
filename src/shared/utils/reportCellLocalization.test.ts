@@ -1,4 +1,8 @@
-import { localizeReportCellValue } from './reportCellLocalization'
+import {
+    localizeExitReasonLabel,
+    localizeReportCellValue,
+    resolveReportLiquidationFallbackLabel
+} from './reportCellLocalization'
 
 describe('reportCellLocalization', () => {
     test('localizes through-end stop reason without redundant no-liquidations suffix for ru locale', () => {
@@ -33,5 +37,33 @@ describe('reportCellLocalization', () => {
         expect(localizeReportCellValue('RecovDays', '-1', 'en')).toBe('Not yet recovered')
         expect(localizeReportCellValue('HadLiq', '1', 'ru')).toBe('Да')
         expect(localizeReportCellValue('HadLiq', '0', 'en')).toBe('No')
+    })
+
+    test('adds shared tooltip markup to localized exit reasons', () => {
+        expect(localizeExitReasonLabel('Take profit', 'ru')).toBe('[[tp-sl|Тейк-профит]]')
+        expect(localizeExitReasonLabel('Stop loss', 'en')).toBe('[[tp-sl|Stop-loss]]')
+        expect(localizeExitReasonLabel('Liquidation', 'ru')).toBe('[[liquidation|Ликвидация]]')
+    })
+
+    test('resolves liquidation fallback for spot rows without duplicating page-local logic', () => {
+        expect(
+            resolveReportLiquidationFallbackLabel(
+                {
+                    leverage: 1,
+                    policyName: 'spot_fixed1pct',
+                    branch: 'BASE',
+                    bucket: 'daily',
+                    hasDirection: true,
+                    skipped: false,
+                    direction: 'LONG',
+                    isSpotPolicy: true,
+                    margin: 'isolated',
+                    notionalUsd: 100,
+                    bucketCapitalUsd: 1000,
+                    stakeUsd: 100
+                },
+                'ru'
+            )
+        ).toContain('ликвидация')
     })
 })

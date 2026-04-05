@@ -1,5 +1,7 @@
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import type { BacktestSummaryDto, BacktestBaselineSnapshotDto } from '@/shared/types/backtest.types'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
+import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
 import { normalizeCurrentPredictionDateUtc } from '@/shared/utils/currentPredictionDate'
 import { mapBacktestBaselineSnapshotResponse, mapReportResponse } from '../utils/mapReportResponse'
 import { ApiEndpointBuilder } from '../types'
@@ -28,6 +30,7 @@ export interface CurrentPredictionHistoryItemDto {
     report: ReportDocumentDto
 }
 export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
+    indicatorWarmupStartDateUtc: string
     fullStartDateUtc: string
     fullEndDateUtc: string
     fullDays: number
@@ -40,13 +43,93 @@ export interface CurrentPredictionBackfilledTrainingScopeStatsDto {
     recentStartDateUtc: string
     recentEndDateUtc: string
     recentDays: number
-    recentTailRowsLimit: number
+    oosHistoryDaySharePercent: number
+    recentHistoryDaySharePercent: number
     recentMatchesOos: boolean
     totalDays: number
     trainShare: number
     oosShare: number
     lastTrainDateUtc: string
     firstOosDateUtc: string
+    oosPresetCatalog?: CurrentPredictionOosPresetCatalogDto | null
+}
+export interface CurrentPredictionOosPresetEntryDto {
+    key: string
+    isFullOos: boolean
+    isExtended: boolean
+    isDefaultPrimary: boolean
+    isDefaultSecondary: boolean
+    requestedDaySharePercent: number
+    requestedDayShare: number
+    targetDayCount: number
+    selectedTradeCount: number
+    selectedTradeShare: number
+    selectedDays: number
+    selectedDayShare: number
+    daysWithTrades: number
+    daysWithoutTrades: number
+    startPredictionDateUtc: string
+    endPredictionDateUtc: string
+}
+export interface CurrentPredictionOosPresetCatalogDto {
+    publishedAtUtc: string
+    historyTotalTrades: number
+    historyTotalDays: number
+    historyStartDateUtc: string
+    historyEndDateUtc: string
+    fullOosPresetKey: string
+    defaultPrimaryPresetKey: string
+    defaultSecondaryPresetKey: string
+    entries: CurrentPredictionOosPresetEntryDto[]
+}
+export interface CurrentPredictionOosPresetAnalysisRowDto {
+    key: string
+    isFullOos: boolean
+    isExtended: boolean
+    isDefaultPrimary: boolean
+    isDefaultSecondary: boolean
+    requestedDaySharePercent: number
+    requestedDayShare: number
+    targetDayCount: number
+    selectedTradeCount: number
+    selectedTradeShare: number
+    selectedDays: number
+    selectedDayShare: number
+    trainDays: number
+    trainDayShare: number
+    daysWithTrades: number
+    daysWithoutTrades: number
+    startPredictionDateUtc: string
+    endPredictionDateUtc: string
+    evaluatedDays: number
+    correctPredictions: number
+    wrongPredictions: number
+    accuracyPct: number
+    averageConfidencePct: number
+    averageActualOutcomeProbabilityPct: number
+    averageDecisionMarginPct: number
+    bestPolicyName: string | null
+    bestPolicyBranch: string | null
+    bestPolicyBucket: string | null
+    bestPolicyMarginMode: string | null
+    bestPolicyMetrics: PolicyPerformanceMetricsDto | null
+    bestPolicyEvaluation: PolicyEvaluationDto | null
+    balancedScore: number
+    conservativeScore: number
+    aggressiveScore: number
+}
+export interface CurrentPredictionOosPresetAnalysisDto {
+    mode: string
+    publishedAtUtc: string
+    oosHistoryDaySharePercent: number
+    historyTotalTrades: number
+    historyTotalDays: number
+    historyStartDateUtc: string
+    historyEndDateUtc: string
+    balancedRecommendationKey: string | null
+    conservativeRecommendationKey: string | null
+    aggressiveRecommendationKey: string | null
+    rows: CurrentPredictionOosPresetAnalysisRowDto[]
 }
 /**
  * Published-read metadata для live current prediction.

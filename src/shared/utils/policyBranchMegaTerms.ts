@@ -137,7 +137,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'Lev p50 / p90',
         title: 'Lev p50 / p90',
         description:
-            'Распределение плеча по торговым дням: p50 (медиана, «обычное» значение) и p90 (высокий уровень, который стратегия достигает редко, но регулярно). Помогает видеть, насколько часто стратегия уходит в агрессивное плечо.',
+            'Распределение плеча по торговым дням: p50 — медиана, а p90 — граница, выше которой остаются только верхние 10% торговых дней по плечу. Колонка показывает, насколько далеко верхний риск-хвост уходит от типичного уровня плеча.',
     },
     'Cap avg / min / max': {
         key: 'Cap avg / min / max',
@@ -165,7 +165,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'AvgStake%',
         title: 'AvgStake%',
         description:
-            'AvgStake% + AvgStake$ — средний размер залога (маржи) на одну сделку.\n\nПоказатель отражает, какой суммой стратегия обычно рискует в одной позиции до применения плеча.\n\nРазница только в единицах измерения: AvgStake% показывает долю от [[start-cap|стартового капитала]] в процентах, AvgStake$ показывает ту же величину в долларах.',
+            'AvgStake% + AvgStake$ — средний размер залога (маржи) на одну сделку.\n\nПоказатель отражает, какой суммой стратегия в среднем рискует в одной позиции до применения плеча.\n\nРазница только в единицах измерения: AvgStake% показывает долю от [[start-cap|стартового капитала]] в процентах, AvgStake$ показывает ту же величину в долларах.',
     },
     AvgStake$: {
         key: 'AvgStake$',
@@ -281,11 +281,29 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'TotalPnl$ — денежный итог выбранного среза.\n\nФормула:\nTotalPnl$ = ([[current-balance|текущий баланс]] + [[withdrawn-profit|выведенная прибыль]]) - [[start-cap|стартовый капитал]].\n\nЧто показывает:\n1) это абсолютный результат в деньгах, а не процент;\n2) плюс означает прибыль, минус — убыток.\n\nКак читать:\n1) колонка нужна, когда важен не только относительный процент, но и реальный денежный масштаб эффекта;\n2) сравнение между строками корректно только вместе со [[start-cap|стартовым капиталом]], иначе одинаковый процент может скрывать разный денежный размер результата.',
     },
+    'Comm$': {
+        key: 'Comm$',
+        title: 'Comm$',
+        description:
+            'Comm$ — суммарные [[exchange-fees|биржевые комиссии]] по всем сделкам этой строки.\n\nФормула:\nсумма всех комиссий на вход и выход по сделкам выбранного среза.\n\nКак читать:\nчем выше значение, тем больше валового результата стратегия отдала в издержки исполнения.',
+    },
+    'Comm%': {
+        key: 'Comm%',
+        title: 'Comm%',
+        description:
+            'Comm% — доля суммарных комиссий от [[start-cap|стартового капитала]].\n\nФормула:\nComm$ / [[start-cap|StartCap$]] * 100.\n\nКак читать:\nметрика показывает, какую часть стартовой базы стратегия сожгла только на торговых издержках, даже до анализа прибыли и просадки.',
+    },
     BucketNow$: {
         key: 'BucketNow$',
         title: 'BucketNow$',
         description:
             'Текущий реальный баланс выбранного бакета после всех сделок, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nДля [[bucket-daily|daily]] / [[bucket-intraday|intraday]] / [[bucket-delayed|delayed]] это локальный баланс бакета.\n\nДля [[bucket-total-aggregate|aggregate]] — сумма по всем бакетам.',
+    },
+    AvgBalance$: {
+        key: 'AvgBalance$',
+        title: 'AvgBalance$',
+        description:
+            'Среднее число денег у этой Policy за весь период в долларах.\n\nФормула считается по каждому календарному дню от StartDay до EndDay с переносом последнего значения на дни без сделок.\n\nВ метрику входит весь [[visible-balance|видимый баланс]]: деньги в работе плюс уже выведенная прибыль.\n\nКак читать:\nэта колонка показывает типичный денежный уровень стратегии по ходу периода, а не только финальную точку.',
     },
     'MaxDD%': {
         key: 'MaxDD%',
@@ -339,7 +357,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'AvgMiss%',
         title: 'AvgMiss%',
         description:
-            'Средний NetReturnPct только по сделкам, где NetReturnPct < 0.\n\nМетрика показывает, насколько глубокой обычно была убыточная сделка по проценту к использованной марже.\n\nЕсли убыточных сделок нет, выводится "—".',
+            'Средний NetReturnPct только по сделкам, где NetReturnPct < 0.\n\nМетрика показывает среднюю глубину убыточной сделки по проценту к использованной марже.\n\nЕсли убыточных сделок нет, выводится "—".',
     },
     'Expectancy%': {
         key: 'Expectancy%',
@@ -393,7 +411,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'PSR>0%',
         title: 'PSR>0%',
         description:
-            'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах 0..100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
+            'Probabilistic Sharpe Ratio против порога true SR > 0.\n\nМетрика использует observed non-annualized Sharpe, длину серии, RetSkew и RetKurt и отвечает на вопрос: какова вероятность, что истинный Sharpe действительно выше нуля.\n\nПользователю выводится в процентах от 0 до 100. Если серия слишком короткая или без разброса, метрика не определяется и выводится как "—".',
     },
     'MinTRL95 SR>0': {
         key: 'MinTRL95 SR>0',
@@ -435,7 +453,7 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         key: 'OnExch$',
         title: 'OnExch$',
         description:
-            'OnExch$ — капитал, который после выбранного среза остаётся в рынке, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nВ [[bucket-total-aggregate|aggregate]] это сумма по всем бакетам.\n\nВ одном бакете число часто совпадает с [[bucket-now|BucketNow$]], но здесь акцент на той части капитала, которая ещё остаётся в работе.',
+            'OnExch$ — активный капитал, который после выбранного среза остаётся в рынке, без учёта [[withdrawn-profit|выведенной прибыли]].\n\nВ [[bucket-total-aggregate|aggregate]] это сумма по всем бакетам.\n\nВ mega-контракте это та же текущая активная сумма, что и [[bucket-now|BucketNow$]]; отличие только в том, что part2 показывает её рядом со [[start-cap|StartCap$]] и [[withdrawn-profit|Withdrawn$]] как денежную структуру результата.',
     },
     HadLiq: {
         key: 'HadLiq',
@@ -485,6 +503,12 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         description:
             'Суммарный NetPnL в долларах только по сделкам с принудительным EndOfDay-выходом. Показывает вклад EOD-сделок в общий денежный результат.',
     },
+    'EODExitPnl%': {
+        key: 'EODExitPnl%',
+        title: 'EODExitPnl%',
+        description:
+            'EODExitPnl% — денежный итог сделок с принудительным EndOfDay-выходом в процентах от [[start-cap|стартового капитала]].\n\nФормула:\nEODExit$ / [[start-cap|StartCap$]] * 100.\n\nКак читать:\nметрика показывает, сколько процентов стартовой базы принесли или забрали именно сделки, которые дотянули до закрытия по времени.',
+    },
     'EODExit_AvgRet%': {
         key: 'EODExit_AvgRet%',
         title: 'EODExit_AvgRet%',
@@ -514,6 +538,54 @@ const TERMS: Record<string, PolicyBranchMegaTermDraft> = {
         title: 'LiqBeforeSL$',
         description:
             'Суммарный денежный результат только по сделкам, где [[liquidation|ликвидация]] произошла раньше SL. Чем сильнее отрицательное значение, тем дороже для стратегии обходится ситуация, в которой защита не успела сработать.',
+    },
+    FundingTr: {
+        key: 'FundingTr',
+        title: 'FundingTr',
+        description:
+            'FundingTr — сколько сделок вообще затронули funding-платежи. Сделка считается один раз, если внутри неё был хотя бы один funding-event.\n\nКолонка отвечает на вопрос, насколько широко funding участвовал в торговле этой [[policy|Policy]], даже если в одной сделке funding списывался или начислялся несколько раз.',
+    },
+    FundingEv: {
+        key: 'FundingEv',
+        title: 'FundingEv',
+        description:
+            'FundingEv — суммарное число отдельных funding-событий по всем сделкам строки.\n\nОдна сделка может дать несколько funding-checkpoint, поэтому FundingEv может быть больше FundingTr.\n\nКолонка нужна, чтобы отделить “funding коснулся нескольких сделок” от “funding часто срабатывал внутри этих сделок”.',
+    },
+    'FundingNet$': {
+        key: 'FundingNet$',
+        title: 'FundingNet$',
+        description:
+            'FundingNet$ — чистый денежный итог funding по всей строке.\n\nФормула:\nFundingRecv$ - FundingPaid$, уже в фактическом net-результате сделок.\n\nКак читать:\nположительное значение означает, что funding в сумме добавил денег, отрицательное — что funding съел часть прибыли или усилил убыток.',
+    },
+    'FundingPaid$': {
+        key: 'FundingPaid$',
+        title: 'FundingPaid$',
+        description:
+            'FundingPaid$ — сколько долларов стратегия суммарно заплатила funding.\n\nЗначение всегда неотрицательное и показывает именно выплаты, без зачёта входящих начислений.\n\nКолонка нужна, чтобы видеть валовый расход funding отдельно от чистого результата FundingNet$.',
+    },
+    'FundingRecv$': {
+        key: 'FundingRecv$',
+        title: 'FundingRecv$',
+        description:
+            'FundingRecv$ — сколько долларов стратегия суммарно получила funding.\n\nЗначение всегда неотрицательное и показывает именно входящие начисления, без зачёта выплат.\n\nКолонка читается вместе с FundingPaid$ и FundingNet$, чтобы видеть структуру funding-денежного потока.',
+    },
+    FundingLiq_n: {
+        key: 'FundingLiq_n',
+        title: 'FundingLiq_n',
+        description:
+            'FundingLiq_n — сколько ликвидаций произошло именно на funding-checkpoint, а не из-за обычного ценового касания уровня [[liquidation|ликвидации]].\n\nЭто уже аварийный сценарий: funding сам по себе дожал позицию до принудительного закрытия.',
+    },
+    FundingDeath_n: {
+        key: 'FundingDeath_n',
+        title: 'FundingDeath_n',
+        description:
+            'FundingDeath_n — сколько раз рабочий капитал бакета был доведён до смерти именно накопившимися funding-списаниями.\n\nКолонка считает эпизоды с причиной FundingDrain: funding здесь уже влияет не на косметику PnL, а на выживание капитала.',
+    },
+    FundingMixedDeath_n: {
+        key: 'FundingMixedDeath_n',
+        title: 'FundingMixedDeath_n',
+        description:
+            'FundingMixedDeath_n — сколько раз бакет умирал по смешанной причине, где funding был одной из причин вместе с обычным ценовым убытком.\n\nКолонка отделяет чисто funding-смерть FundingDeath_n от смешанного сценария, где funding усилил уже плохой ценовой путь.',
     },
     'BalMin%': {
         key: 'BalMin%',
@@ -929,13 +1001,13 @@ function resolveTermReadingHintOrDefault(key: string): string {
         return 'слишком широкий SL увеличивает убыток на сделку; слишком узкий резко снижает долю успешных сделок.'
     }
     if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
-        return 'обычно меньше общего объёма, потому что [[dynamic-tp-sl|DYNAMIC risk]] требует подтверждённой статистики по [[confidence-bucket|confidence-bucket]].'
+        return 'меньше общего объёма во все дни, где [[dynamic-tp-sl|DYNAMIC risk]] не проходит пороги допуска по [[confidence-bucket|confidence-bucket]]: минимум 30 закрытых сделок и минимум 45% успешных исходов.'
     }
     if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
         return 'это owner-диагностика допуска dynamic-слоя по дням, а не доходность и не число сделок.'
     }
     if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
-        return 'если сделок [[static-tp-sl|STATIC base]] резко больше, чем [[dynamic-tp-sl|DYNAMIC risk]], значит dynamic-оверлей редко проходит условия допуска в этом периоде.'
+        return 'если сделок [[static-tp-sl|STATIC base]] резко больше, чем [[dynamic-tp-sl|DYNAMIC risk]], значит много дней в этом периоде не проходят пороги допуска dynamic-оверлея: 30 закрытых сделок и 45% успешных исходов в [[confidence-bucket|confidence-bucket]].'
     }
     if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
         return 'вклад [[dynamic-tp-sl|DYNAMIC risk]] и [[static-tp-sl|STATIC base]] оценивается совместно: так видно, какой режим реально даёт результат.'
@@ -970,13 +1042,16 @@ function resolveTermReadingHintOrDefault(key: string): string {
     }
     if (
         key === 'TotalPnl%' ||
+        key === 'Comm$' ||
+        key === 'Comm%' ||
         key === 'BucketNow$' ||
+        key === 'AvgBalance$' ||
         key === 'OnExch$' ||
         key === 'Withdrawn$' ||
         key === 'OnExch%' ||
         key === 'Wealth%'
     ) {
-        return 'интерпретация идёт связкой: TotalPnl% — это главный итог прибыли, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а Wealth% имеет отдельный смысл только там, где рабочий баланс реально растёт внутри периода.'
+        return 'интерпретация идёт связкой: TotalPnl% — это главный итог прибыли, BucketNow$ — финальная активная сумма, AvgBalance$ — типичный денежный уровень по всему периоду, OnExch% и OnExch$ — что ещё осталось в рынке, Withdrawn$ — что уже выведено, а Wealth% имеет отдельный смысл только там, где рабочий баланс реально растёт внутри периода.'
     }
     if (key === 'StartCap$') {
         return 'это база масштаба; проценты корректно сравнивать между стратегиями, а доллары — только при одинаковом стартовом капитале.'
@@ -1000,13 +1075,22 @@ function resolveTermReadingHintOrDefault(key: string): string {
     ) {
         return 'желательно 0 или близко к 0; рост требует пересмотра плеча, доли капитала и уровней SL.'
     }
+    if (key === 'FundingTr' || key === 'FundingEv') {
+        return 'эти две колонки лучше читать вместе: FundingTr показывает, сколько сделок вообще затронул funding, а FundingEv — насколько часто funding срабатывал внутри них.'
+    }
+    if (key === 'FundingNet$' || key === 'FundingPaid$' || key === 'FundingRecv$') {
+        return 'смысл появляется только связкой: одинаковый FundingNet$ может получаться из очень разной структуры выплат и начислений.'
+    }
+    if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
+        return 'лучший сценарий — 0. Любое ненулевое значение означает, что funding уже влияет на аварийный риск и выживание капитала, а не только на размер PnL.'
+    }
     if (key === 'LiqBeforeSL$') {
         return 'сильный минус означает, что случаи “ликвидация раньше SL” дорого обходятся бизнесу.'
     }
     if (key === 'EODExit_n' || key === 'EODExit%') {
         return 'рост означает, что сделка чаще закрывается в конце окна, а не по TP/SL; это меняет профиль риска и качества выходов.'
     }
-    if (key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'если метрика стабильно отрицательная, режим EOD чаще ухудшает итог, чем помогает.'
     }
     if (RECOVERY_KEYS.has(key)) {
@@ -1076,13 +1160,13 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
         return 'An excessively wide SL increases loss per trade; an excessively tight SL sharply reduces the share of successful trades.'
     }
     if (key === 'DynTP / SL Days' || key === 'DynTP / SL Tr') {
-        return 'These values are usually smaller than the full trade volume because [[dynamic-tp-sl|DYNAMIC risk]] requires confirmed statistics inside [[confidence-bucket|confidence-bucket]].'
+        return 'These values stay below the full trade volume on every day where [[dynamic-tp-sl|DYNAMIC risk]] fails the [[confidence-bucket|confidence-bucket]] admission thresholds: at least 30 closed trades and at least 45% successful outcomes.'
     }
     if (key === 'DynGate OK' || key === 'DynGate <Conf' || key === 'DynGate <Samples' || key === 'DynGate <WinRate') {
         return 'This is owner-level admission diagnostics for the dynamic layer by day, not return and not trade count.'
     }
     if (key === 'StatTP / SL Days' || key === 'StatTP / SL Tr') {
-        return 'If [[static-tp-sl|STATIC base]] trade count is much larger than [[dynamic-tp-sl|DYNAMIC risk]], the dynamic overlay rarely passes admission conditions in this period.'
+        return 'If [[static-tp-sl|STATIC base]] trade count is much larger than [[dynamic-tp-sl|DYNAMIC risk]], many days in this period fail the dynamic overlay thresholds: 30 closed trades and 45% successful outcomes inside the [[confidence-bucket|confidence-bucket]].'
     }
     if (key === 'DynTP / SL PnL%' || key === 'StatTP / SL PnL%') {
         return 'The contribution of [[dynamic-tp-sl|DYNAMIC risk]] and [[static-tp-sl|STATIC base]] must be read together to see which mode actually drives the result.'
@@ -1117,13 +1201,16 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     }
     if (
         key === 'TotalPnl%' ||
+        key === 'Comm$' ||
+        key === 'Comm%' ||
         key === 'BucketNow$' ||
+        key === 'AvgBalance$' ||
         key === 'OnExch$' ||
         key === 'Withdrawn$' ||
         key === 'OnExch%' ||
         key === 'Wealth%'
     ) {
-        return 'Interpret them together: TotalPnl% is the main profit result, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and Wealth% becomes separately useful only where the working balance can really grow inside the period.'
+        return 'Interpret them together: TotalPnl% is the main profit result, BucketNow$ is the final active balance, AvgBalance$ is the typical money level across the whole period, OnExch% and OnExch$ show what still remains in the market, Withdrawn$ shows what was already taken out, and Wealth% becomes separately useful only where the working balance can really grow inside the period.'
     }
     if (key === 'StartCap$') {
         return 'This is the scale baseline: percentages can be compared between strategies, but dollar amounts only when start capital is the same.'
@@ -1147,13 +1234,22 @@ function resolveEnglishTermReadingHintOrDefault(key: string): string {
     ) {
         return 'Preferably these values stay at 0 or near 0; growth here calls for leverage, capital fraction, and SL revision.'
     }
+    if (key === 'FundingTr' || key === 'FundingEv') {
+        return 'Read these together: FundingTr shows how many trades were touched by funding at all, while FundingEv shows how often funding fired inside those trades.'
+    }
+    if (key === 'FundingNet$' || key === 'FundingPaid$' || key === 'FundingRecv$') {
+        return 'The meaning appears only as a set: the same FundingNet$ can come from very different combinations of paid and received funding.'
+    }
+    if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
+        return 'Best case is 0. Any non-zero value means funding is already affecting tail risk and capital survival, not just cosmetic PnL.'
+    }
     if (key === 'LiqBeforeSL$') {
         return 'A large negative value means “liquidation before SL” events are expensive for the business.'
     }
     if (key === 'EODExit_n' || key === 'EODExit%') {
         return 'Higher values mean trades reach end-of-window closure more often instead of exiting by TP/SL; that changes both risk profile and exit quality.'
     }
-    if (key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'If this metric is consistently negative, EndOfDay behavior harms the final result more often than it helps.'
     }
     if (RECOVERY_KEYS.has(key)) {
@@ -1302,6 +1398,9 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62 000 означает текущий капитал бакета после всех закрытых сделок.'
     }
+    if (key === 'AvgBalance$') {
+        return 'AvgBalance$=54 000 означает, что по календарным дням периода у Policy в среднем было около 54 000 долларов visible balance.'
+    }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% означает, что в худшей точке капитал падал на 41% от локального максимума.'
     }
@@ -1342,7 +1441,7 @@ function resolveTermExampleHintOrNull(key: string): string | null {
         return 'MeanRet%=0.35 означает, что средняя дневная доходность серии составила +0.35%.'
     }
     if (key === 'StdRet%') {
-        return 'StdRet%=1.8 означает, что дневная доходность обычно отклонялась примерно на 1.8 п.п. от своего среднего.'
+        return 'StdRet%=1.8 означает, что дневная доходность отклонялась примерно на 1.8 [[percentage-points|п.п.]] от своего среднего.'
     }
     if (key === 'DownStd%') {
         return 'DownStd%=1.1 означает, что типичный разброс именно у убыточных дней был около 1.1 п.п.'
@@ -1365,7 +1464,19 @@ function resolveTermExampleHintOrNull(key: string): string | null {
     if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
         return 'RealLiqLoss%>0 означает, что strict liquidation уже съела измеримую часть стартового капитала.'
     }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'FundingTr' || key === 'FundingEv') {
+        return 'FundingTr=18 и FundingEv=54 означают, что funding затронул 18 сделок и суммарно сработал 54 раза внутри них.'
+    }
+    if (key === 'FundingNet$' || key === 'FundingPaid$' || key === 'FundingRecv$') {
+        return 'FundingNet$=-320 при FundingPaid$=470 и FundingRecv$=150 означает, что funding в сумме отнял у результата 320 долларов.'
+    }
+    if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
+        return 'FundingLiq_n=2 означает два принудительных закрытия, где позицию добил именно funding-checkpoint.'
+    }
+    if (key === 'Comm$' || key === 'Comm%') {
+        return 'Comm%=0.9 означает, что биржевые комиссии забрали 0.9% стартового капитала в этом срезе.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 означает, что 42% сделок закрылись по времени в конце окна, а не по TP/SL.'
     }
     if (
@@ -1466,6 +1577,9 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'BucketNow$') {
         return 'BucketNow$=62,000 means the current bucket capital after all closed trades.'
     }
+    if (key === 'AvgBalance$') {
+        return 'AvgBalance$=54,000 means the Policy had about $54,000 of visible balance on an average calendar day of the period.'
+    }
     if (key === 'MaxDD%' || key === 'MaxDD_NoLiq%' || key === 'MaxDD_Active% / Days' || key === 'MaxDD_Ratio%') {
         return 'MaxDD=41% means capital fell 41% from the local peak at the worst point.'
     }
@@ -1506,7 +1620,7 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
         return 'MeanRet%=0.35 means the average daily return of the series was +0.35%.'
     }
     if (key === 'StdRet%') {
-        return 'StdRet%=1.8 means daily return usually deviated by about 1.8 p.p. from its mean.'
+        return 'StdRet%=1.8 means daily return deviated by about 1.8 p.p. from its mean.'
     }
     if (key === 'DownStd%') {
         return 'DownStd%=1.1 means the typical spread of losing days was about 1.1 p.p.'
@@ -1529,7 +1643,19 @@ function resolveEnglishTermExampleHintOrNull(key: string): string | null {
     if (key === 'RealLiqLoss$' || key === 'RealLiqLoss%') {
         return 'RealLiqLoss%>0 means strict liquidation already consumed a measurable share of start capital.'
     }
-    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExit_AvgRet%') {
+    if (key === 'FundingTr' || key === 'FundingEv') {
+        return 'FundingTr=18 and FundingEv=54 mean funding touched 18 trades and fired 54 times inside them in total.'
+    }
+    if (key === 'FundingNet$' || key === 'FundingPaid$' || key === 'FundingRecv$') {
+        return 'FundingNet$=-320 with FundingPaid$=470 and FundingRecv$=150 means funding reduced the result by 320 USD overall.'
+    }
+    if (key === 'FundingLiq_n' || key === 'FundingDeath_n' || key === 'FundingMixedDeath_n') {
+        return 'FundingLiq_n=2 means there were two forced exits where funding checkpoint itself finished the position.'
+    }
+    if (key === 'Comm$' || key === 'Comm%') {
+        return 'Comm%=0.9 means exchange fees consumed 0.9% of the starting capital in this slice.'
+    }
+    if (key === 'EODExit_n' || key === 'EODExit%' || key === 'EODExit$' || key === 'EODExitPnl%' || key === 'EODExit_AvgRet%') {
         return 'EODExit%=42 means 42% of trades were closed by time at end of window, not by TP/SL.'
     }
     if (
@@ -1628,7 +1754,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description: 'Average, minimum, and maximum leverage used on trade days.',
     },
     'Lev p50 / p90': {
-        description: 'Leverage distribution quantiles on trade days: median (p50) and upper tail (p90).',
+        description:
+            'Leverage distribution on trade days: p50 is the median, while p90 is the threshold above which only the top 10% of trade days remain by leverage. This shows how far the upper risk tail moves away from the typical leverage level.',
     },
     'Cap avg / min / max': {
         description: COMMON_CAP_AVG_MIN_MAX_DESCRIPTION_EN,
@@ -1703,8 +1830,20 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description:
             'TotalPnl$ is the money result of the selected slice.\n\nFormula:\nTotalPnl$ = ([[current-balance|current balance]] + [[withdrawn-profit|withdrawn profit]]) - [[start-cap|starting capital]].\n\nWhat it shows:\n1) this is the absolute result in money, not a percentage;\n2) positive means profit, negative means loss.\n\nHow to read it:\n1) the column matters when the business needs the real dollar scale of the effect, not only relative return;\n2) comparison across rows is only fair together with [[start-cap|starting capital]], because the same percentage can hide very different money size.',
     },
+    'Comm$': {
+        description:
+            'Comm$ is the total [[exchange-fees|exchange fee]] cost across all trades of the row.\n\nFormula:\nsum of every entry and exit fee charged inside the selected slice.\n\nHow to read it:\na larger value means more of the gross edge was given back to execution costs before it could reach capital.',
+    },
+    'Comm%': {
+        description:
+            'Comm% is the share of total commissions relative to [[start-cap|starting capital]].\n\nFormula:\nComm$ / [[start-cap|StartCap$]] * 100.\n\nHow to read it:\nthis shows how much of the starting base was burned by trading costs alone, before profit and drawdown are interpreted.',
+    },
     BucketNow$: {
         description: 'Current capital of selected bucket after all closed trades.',
+    },
+    AvgBalance$: {
+        description:
+            'Average amount of money held by this Policy across the whole period, in USD. Computed day by day from StartDay to EndDay with carry-forward on days without trades, and includes both money still in work and already withdrawn profit.',
     },
     'MaxDD%': {
         description:
@@ -1783,7 +1922,8 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
         description: 'Total withdrawn profit in USD.',
     },
     OnExch$: {
-        description: 'Capital still on exchange in USD.',
+        description:
+            'Active capital still on exchange in USD, excluding withdrawn profit.\n\nInside the mega contract this is the same current active balance as BucketNow$; part 2 keeps it next to StartCap$ and Withdrawn$ so the money structure of the result stays readable.',
     },
     StartCap$: {
         description: 'Start capital baseline in USD for this Policy.',
@@ -1821,6 +1961,9 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     EODExit$: {
         description: 'Sum of NetPnl$ for EndOfDay exits only.',
     },
+    'EODExitPnl%': {
+        description: 'Share of EndOfDay exit money result relative to StartCap$: EODExit$ / StartCap$ * 100.',
+    },
     'EODExit_AvgRet%': {
         description: 'Average NetRet% for EndOfDay exits only.',
     },
@@ -1835,6 +1978,38 @@ const POLICY_BRANCH_MEGA_MANUAL_EN: Record<string, PolicyBranchMegaManualTransla
     },
     LiqBeforeSL$: {
         description: 'Total NetPnl$ of trades where liquidation happened before SL.',
+    },
+    FundingTr: {
+        description:
+            'FundingTr is the number of trades that had at least one funding payment or funding receipt inside the trade lifecycle.\n\nA trade is counted once even if funding fired multiple times inside it.',
+    },
+    FundingEv: {
+        description:
+            'FundingEv is the total count of individual funding events across all trades in the row.\n\nOne trade can contribute several funding checkpoints, so FundingEv can be larger than FundingTr.',
+    },
+    'FundingNet$': {
+        description:
+            'FundingNet$ is the net funding cash result of the row.\n\nIt equals total received funding minus total paid funding and shows whether funding added money or drained money overall.',
+    },
+    'FundingPaid$': {
+        description:
+            'FundingPaid$ is the gross amount of funding paid by the strategy, in USD.\n\nIt stays non-negative and shows outgoing funding only, without netting against incoming funding.',
+    },
+    'FundingRecv$': {
+        description:
+            'FundingRecv$ is the gross amount of funding received by the strategy, in USD.\n\nIt stays non-negative and shows incoming funding only, without netting against outgoing funding.',
+    },
+    FundingLiq_n: {
+        description:
+            'FundingLiq_n counts liquidations where the liquidation trigger was the funding checkpoint itself, not the ordinary price-path touch of the liquidation level.',
+    },
+    FundingDeath_n: {
+        description:
+            'FundingDeath_n counts bucket-death episodes where accumulated funding drain itself exhausted the working bucket capital.',
+    },
+    FundingMixedDeath_n: {
+        description:
+            'FundingMixedDeath_n counts mixed bucket-death episodes where funding was one of the causes together with the ordinary price loss path.',
     },
     'BalMin%': {
         description: 'Lowest active equity reached on the 1m price path, as % of StartCap$.',

@@ -13,7 +13,7 @@
     backdrop-filter: blur(20px);
 
     h2 {
-        font-size: 16px;
+        @include type-table-body;
         font-weight: 600;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -39,7 +39,7 @@
     align-items: baseline;
     gap: 4px;
 
-    font-size: 14px;
+    @include type-body-md;
 }
 
 .metricLabel {

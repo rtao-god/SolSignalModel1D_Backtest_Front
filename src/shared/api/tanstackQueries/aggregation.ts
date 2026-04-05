@@ -2,6 +2,7 @@ import { useQuery, type QueryClient, type UseQueryResult } from '@tanstack/react
 import type { AggregationMetricsSnapshotDto, AggregationProbsSnapshotDto } from '@/shared/types/aggregation.types'
 import { API_BASE_URL } from '../../configs/config'
 import { API_ROUTES } from '../routes'
+import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
 
 const { aggregationProbs, aggregationMetrics } = API_ROUTES.backtest
 const AGGREGATION_PROBS_QUERY_KEY = ['aggregation', 'probs'] as const
@@ -12,7 +13,7 @@ async function fetchAggregationProbs(): Promise<AggregationProbsSnapshotDto> {
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load aggregation probs: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load aggregation probs', resp, text))
     }
 
     return (await resp.json()) as AggregationProbsSnapshotDto
@@ -23,7 +24,7 @@ async function fetchAggregationMetrics(): Promise<AggregationMetricsSnapshotDto>
 
     if (!resp.ok) {
         const text = await resp.text().catch(() => '')
-        throw new Error(`Failed to load aggregation metrics: ${resp.status} ${text}`)
+        throw new Error(buildDetailedRequestErrorMessage('Failed to load aggregation metrics', resp, text))
     }
 
     return (await resp.json()) as AggregationMetricsSnapshotDto

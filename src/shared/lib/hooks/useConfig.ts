@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { buildDetailedRequestErrorMessage } from '@/shared/api/tanstackQueries/utils/requestErrorMessage'
 import { API_BASE_URL } from '../../configs/config'
+import { normalizeErrorLike } from '../errors/normalizeError'
 
 interface Notification {
     title: string
@@ -17,10 +19,12 @@ function useConfig(endpoint: string): { config: Config | null; isLoading: boolea
 
     useEffect(() => {
         setIsLoading(true)
+        setError(null)
         fetch(`${API_BASE_URL}${endpoint}`)
-            .then(response => {
+            .then(async response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok')
+                    const bodyText = await response.text()
+                    throw new Error(buildDetailedRequestErrorMessage('Failed to load config payload', response, bodyText))
                 }
                 return response.json()
             })
@@ -30,11 +34,16 @@ function useConfig(endpoint: string): { config: Config | null; isLoading: boolea
                 return data
             })
             .catch((err: unknown) => {
-                if (err instanceof Error) {
-                    setError(err)
-                } else {
-                    setError(new Error('An unknown error occurred'))
-                }
+                setError(
+                    normalizeErrorLike(err, 'Unknown config request error.', {
+                        source: 'use-config',
+                        domain: 'ui_section',
+                        owner: 'useConfig',
+                        expected: 'Config hook should receive a successful JSON payload or a detailed API error.',
+                        requiredAction: 'Inspect the config endpoint and request wrapper.',
+                        extra: { endpoint }
+                    })
+                )
                 setIsLoading(false)
             })
     }, [endpoint])

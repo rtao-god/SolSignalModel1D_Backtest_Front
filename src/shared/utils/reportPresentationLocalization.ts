@@ -1,9 +1,15 @@
 type ReportUiLocale = 'ru' | 'en'
+
+const PFI_REPORT_KINDS = new Set(['pfi_per_model', 'pfi_sl_model', 'pfi_per_model_feature_detail'])
 type DiagnosticsSectionTitleVariant = 'full' | 'compact'
 
 function resolveReportUiLocale(language: string | null | undefined): ReportUiLocale {
     const normalized = (language ?? '').trim().toLowerCase()
     return normalized.startsWith('ru') ? 'ru' : 'en'
+}
+
+function isPfiReportKind(reportKind: string | undefined): boolean {
+    return reportKind ? PFI_REPORT_KINDS.has(reportKind) : false
 }
 
 function normalizeValue(value: string | undefined | null): string {
@@ -356,7 +362,7 @@ function localizeBacktestDiagnosticsCompactTitleForRu(rawTitle: string): string 
     }
 
     if (/^Policy Branch Split \(Train\/Out-of-sample/i.test(normalized)) {
-        return 'Policy по Train / OOS'
+        return 'Policy по Train 70% / OOS 30%'
     }
 
     if (/^RiskDays: BASE vs ANTI-D/i.test(normalized)) {
@@ -461,7 +467,7 @@ function localizeBacktestDiagnosticsSectionTitleForRu(rawTitle: string): string 
     }
 
     if (/^Policy Branch Split \(Train\/Out-of-sample/i.test(normalized)) {
-        return 'Разделение policy по Train / OOS'
+        return 'Разделение policy по Train 70% / OOS 30%'
     }
 
     if (/^RiskDays: BASE vs ANTI-D/i.test(normalized)) {
@@ -563,7 +569,7 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Train window end (UTC)': 'Конец train-окна (UTC)',
     'Score window start (UTC)': 'Начало окна прогноза (UTC)',
     'Score window end (UTC)': 'Конец окна прогноза (UTC)',
-    'Uses train/OOS split': 'Использует split train/OOS',
+    'Uses train/OOS split': 'Использует базовую пару Train 70% / OOS 30%',
     'Score rows presence in train': 'Пересечение окна прогноза с обучением',
     'Recent tail rows limit': 'Лимит строк свежего хвоста',
     'Recent tail rows returned': 'Строк свежего хвоста в отчёте',
@@ -603,16 +609,74 @@ const CURRENT_PREDICTION_KEY_LABEL_RU: Record<string, string> = {
     'Predicted outcome': 'Прогноз модели',
     'Actual outcome': 'Фактический исход',
     Correct: 'Верно',
+    Type: 'Тип фактора',
+    Name: 'Название фактора',
+    Description: 'Человеческое описание',
+    Value: 'Число',
     'Confidence, %': 'Уверенность, %',
     'Actual outcome probability, %': 'Вероятность фактического исхода, %',
     'Error score, %': 'Сила ошибки, %',
     'Decision margin, %': 'Запас решения, %',
+    Family: 'Семейство моделей',
+    Scope: 'Срез проверки',
+    ModelKey: 'Ключ модели',
+    Model: 'Модель',
+    BaselineAuc: 'Базовый AUC',
+    EvalRows: 'Строк проверки',
+    EvalPos: 'Положительных строк',
+    EvalNeg: 'Отрицательных строк',
     Reason: 'Причина',
-    Type: 'Тип',
-    Name: 'Имя',
-    Description: 'Описание',
-    Value: 'Значение',
-    Rank: 'Ранг'
+    Rank: 'Порядок'
+}
+
+const PFI_COLUMN_TITLE_RU: Record<string, string> = {
+    Index: 'Индекс',
+    'Feature description': 'Человеческое описание',
+    FeatureDescription: 'Человеческое описание',
+    FeatureName: 'Имя признака',
+    'ImportanceAuc (abs ΔAUC)': 'Важность (ΔAUC)',
+    'ImportanceAuc (abs ΔAUC, p.p.)': 'Важность (ΔAUC, п.п.)',
+    'Importance (ΔAUC, p.p.)': 'Важность (ΔAUC, п.п.)',
+    'ΔAUC (p.p.)': 'ΔAUC (п.п.)',
+    'DeltaAuc (baseline - perm)': 'ΔAUC (baseline - perm)',
+    'DeltaAuc (baseline - perm, p.p.)': 'ΔAUC (baseline - perm, п.п.)',
+    'MeanPos (Label=1)': 'Среднее в классе 1',
+    'MeanNeg (Label=0)': 'Среднее в классе 0',
+    'ΔMean (1-0)': 'Разница средних (1-0)',
+    'MeanPos - MeanNeg': 'Разница средних (1-0)',
+    'Corr(score)': 'Корреляция с баллом модели',
+    'CorrScore (Pearson)': 'Корреляция с баллом модели',
+    'Corr(label)': 'Корреляция с фактом',
+    'CorrLabel (Pearson)': 'Корреляция с фактом',
+    'Baseline AUC': 'Базовый AUC',
+    'Eval support (pos/neg)': 'Строки проверки (pos/neg)',
+    'Support (pos/neg)': 'Строки проверки (pos/neg)',
+    'CountPos / CountNeg': 'Строки проверки (pos/neg)',
+    'Binary eval support (CountPos / CountNeg)': 'Строки проверки (pos/neg)',
+    Scope: 'Срез',
+    Feature: 'Соседний признак',
+    'Pos share, %': 'Доля положительного класса, %',
+    'TPR @ FPR 5%, %': 'TPR при FPR 5%, %',
+    'TPR @ FPR 10%, %': 'TPR при FPR 10%, %',
+    'Precision @ Top 10%, %': 'Precision в top 10%, %',
+    'Precision @ Top 20%, %': 'Precision в top 20%, %',
+    'Mean calibration gap (p.p.)': 'Средний сдвиг калибровки (п.п.)',
+    'Mean |contribution|': 'Средний |вклад|',
+    'Mean contribution': 'Средний вклад',
+    'Positive contribution, %': 'Положительный вклад, %',
+    'Negative contribution, %': 'Отрицательный вклад, %',
+    'Top 1 reason, %': 'Топ-1 причина, %',
+    'Top 3 reasons, %': 'Топ-3 причины, %',
+    Bucket: 'Бакет значений',
+    Rows: 'Строк',
+    'Rows, %': 'Строк, %',
+    'Avg value': 'Среднее значение',
+    'Value range': 'Диапазон значений',
+    'Positive class, %': 'Положительный класс, %',
+    'Avg probability, %': 'Средняя вероятность, %',
+    'Calibration gap (p.p.)': 'Сдвиг калибровки (п.п.)',
+    'Avg score': 'Средний балл',
+    'Avg contribution': 'Средний вклад'
 }
 
 function localizeDirectionWord(word: string): string {
@@ -678,26 +742,26 @@ function localizeTrainingWindowScope(scope: string): string {
     const normalized = normalizeValue(scope).toLowerCase()
 
     if (normalized.startsWith('train diagnostics')) {
-        return 'Диагностика train'
+        return 'Train 70%'
     }
 
     if (normalized.startsWith('oos evaluation')) {
-        return 'Честная OOS-оценка'
+        return 'OOS 30%'
     }
 
     if (normalized.startsWith('recent oos tail')) {
-        return 'Свежий OOS-хвост'
+        return 'Короткий OOS-хвост 15%'
     }
 
     switch (normalized) {
         case 'full':
-            return 'Полная история'
+            return 'Полная история 100%'
         case 'train':
-            return 'Обучающая история'
+            return 'Train 70%'
         case 'oos':
-            return 'Новые данные после обучения'
+            return 'OOS 30%'
         case 'recent':
-            return 'Свежий рабочий отрезок'
+            return 'Короткий OOS-хвост 15%'
         default:
             return scope
     }
@@ -708,9 +772,9 @@ function localizeTrainingRecipeValue(rawValue: string): string {
 
     switch (normalized) {
         case 'full_history_retrospective_refit':
-            return 'Полное переобучение на всей завершённой истории'
+            return 'Полное переобучение на 100% завершённой истории'
         case 'split_train_oos':
-            return 'Split train/OOS: модель обучена на train и считает только OOS'
+            return 'Базовая пара Train 70% / OOS 30%'
         default:
             return rawValue
     }
@@ -723,13 +787,13 @@ function localizePredictionSemanticsValue(rawValue: string): string {
         case 'mutable_retrospective_full':
             return 'Ретроспективный полный режим: прошлые прогнозы могут меняться после пересчёта'
         case 'full_history_snapshot_forecast':
-            return 'Прогноз на новый день после полного обучения на завершённой истории'
+            return 'Прогноз на новый день после полного обучения на 100% завершённой истории'
         case 'oos_scored_by_train':
-            return 'Честная OOS-оценка: показаны только OOS-дни, модель обучена на train'
+            return 'OOS 30%: показаны только новые дни после Train 70%'
         case 'oos_scored_by_train_recent_tail':
-            return 'Свежий OOS-хвост: показаны только последние scored OOS-строки'
+            return 'Короткий OOS-хвост 15%: показан только самый свежий хвост внутри OOS 30%'
         case 'train_diagnostics_in_sample':
-            return 'Диагностика train: in-sample разбор ошибок и уверенности'
+            return 'Диагностика Train 70%: разбор ошибок на обучающей части'
         default:
             return rawValue
     }
@@ -740,11 +804,11 @@ function localizeViewModeValue(rawValue: string): string {
 
     switch (normalized) {
         case 'full_history':
-            return 'Полная история'
+            return 'Полная история 100%'
         case 'oos_evaluation':
-            return 'Честная OOS-оценка'
+            return 'OOS 30%'
         case 'train_diagnostics':
-            return 'Диагностика train'
+            return 'Train 70%'
         default:
             return rawValue
     }
@@ -757,7 +821,7 @@ function localizeDisplaySliceModeValue(rawValue: string): string {
         case 'all':
             return 'Весь доступный диапазон'
         case 'recent_tail':
-            return 'Свежий хвост scored rows'
+            return 'Короткий хвост 15%'
         default:
             return rawValue
     }
@@ -1054,6 +1118,12 @@ export function localizeReportSectionTitle(
         return BACKTEST_EXECUTION_PIPELINE_SECTION_TITLE_RU[rawTitle] ?? rawTitle
     }
 
+    if (reportKind === 'backtest_model_stats') {
+        if (rawTitle === 'Models overview') {
+            return 'Обзор моделей'
+        }
+    }
+
     return rawTitle
 }
 
@@ -1112,6 +1182,14 @@ export function localizeReportColumnTitle(
 
     if (reportKind?.startsWith('current_prediction')) {
         return CURRENT_PREDICTION_KEY_LABEL_RU[rawColumnTitle] ?? rawColumnTitle
+    }
+
+    if (reportKind === 'backtest_model_stats') {
+        return CURRENT_PREDICTION_KEY_LABEL_RU[rawColumnTitle] ?? rawColumnTitle
+    }
+
+    if (isPfiReportKind(reportKind)) {
+        return PFI_COLUMN_TITLE_RU[rawColumnTitle] ?? rawColumnTitle
     }
 
     return rawColumnTitle

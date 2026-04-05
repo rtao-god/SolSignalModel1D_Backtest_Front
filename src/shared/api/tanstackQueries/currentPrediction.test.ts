@@ -47,7 +47,8 @@ describe('currentPrediction published payload queries', () => {
                         recentStartDateUtc: '2025-11-21',
                         recentEndDateUtc: '2026-03-21',
                         recentDays: 81,
-                        recentTailRowsLimit: 240,
+                        oosHistoryDaySharePercent: 30,
+                        recentHistoryDaySharePercent: 15,
                         recentMatchesOos: true,
                         totalDays: 1112,
                         trainShare: 0.927,
@@ -69,7 +70,7 @@ describe('currentPrediction published payload queries', () => {
         expect(payload.report.id).toBe('current-live')
         expect(payload.publication?.publishedPredictionDateUtc).toBe('2026-03-23')
         expect(payload.publication?.isTargetPredictionDatePublished).toBe(false)
-        expect(payload.trainingScopeStats?.recentTailRowsLimit).toBe(240)
+        expect(payload.trainingScopeStats?.recentHistoryDaySharePercent).toBe(15)
         expect(payload.trainingScopeStats?.firstOosDateUtc).toBe('2025-11-21')
     })
 
@@ -162,7 +163,8 @@ describe('currentPrediction published payload queries', () => {
                         recentStartDateUtc: '2025-11-21',
                         recentEndDateUtc: '2026-03-21',
                         recentDays: 81,
-                        recentTailRowsLimit: 240,
+                        oosHistoryDaySharePercent: 30,
+                        recentHistoryDaySharePercent: 15,
                         recentMatchesOos: true,
                         totalDays: 1112,
                         trainShare: 0.927,

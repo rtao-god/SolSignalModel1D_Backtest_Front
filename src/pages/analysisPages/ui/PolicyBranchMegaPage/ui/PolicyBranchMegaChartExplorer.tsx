@@ -899,7 +899,6 @@ export default function PolicyBranchMegaChartExplorer({
                             border='1px solid rgba(148, 163, 184, 0.24)'
                             padding='8px 12px'
                             borderRadius='12px'
-                            fz='13px'
                         />
                     </label>
                 </div>

@@ -21,13 +21,13 @@
 }
 
 .title {
-    font-size: 20px;
+    @include type-section-title;
     font-weight: 700;
     color: #f8fafc;
 }
 
 .subtitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.6;
     color: #cbd5e1;
 }
@@ -44,7 +44,7 @@
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     background: rgba(15, 23, 42, 0.72);
-    font-size: 12px;
+    @include type-label;
     line-height: 1.2;
     color: #e2e8f0;
 }
@@ -75,7 +75,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12px;
+    @include type-label;
     line-height: 1.35;
     color: #cbd5e1;
 }
@@ -87,7 +87,7 @@
     border: 1px solid rgba(148, 163, 184, 0.24);
     background: rgba(2, 6, 23, 0.78);
     color: #f8fafc;
-    font-size: 13px;
+    @include type-button-sm;
     outline: none;
     transition:
         border-color 150ms ease,
@@ -105,7 +105,7 @@
 }
 
 .metricHint {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.5;
     color: #94a3b8;
 }
@@ -140,13 +140,13 @@
 }
 
 .cardTitle {
-    font-size: 15px;
+    @include type-card-title;
     font-weight: 650;
     color: #f8fafc;
 }
 
 .cardSubtitle {
-    font-size: 12px;
+    @include type-label;
     line-height: 1.55;
     color: #94a3b8;
     max-width: 720px;
@@ -163,7 +163,7 @@
     border-radius: 999px;
     background: rgba(15, 23, 42, 0.75);
     border: 1px solid rgba(148, 163, 184, 0.18);
-    font-size: 11px;
+    @include type-caption;
     color: #cbd5e1;
 }
 
@@ -181,13 +181,13 @@
 }
 
 .detailTitle {
-    font-size: 18px;
+    @include type-section-title-compact;
     font-weight: 700;
     color: #f8fafc;
 }
 
 .detailSubTitle {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: #cbd5e1;
 }
@@ -203,7 +203,7 @@
     border-radius: 999px;
     background: rgba(30, 41, 59, 0.82);
     border: 1px solid rgba(148, 163, 184, 0.2);
-    font-size: 12px;
+    @include type-label;
     color: #f8fafc;
 }
 
@@ -245,7 +245,7 @@
 }
 
 .detailSectionTitle {
-    font-size: 14px;
+    @include type-body-md;
     font-weight: 650;
     color: #e2e8f0;
 }
@@ -264,13 +264,13 @@
 }
 
 .detailItemLabel {
-    font-size: 11px;
+    @include type-caption;
     line-height: 1.35;
     color: #94a3b8;
 }
 
 .detailItemValue {
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.45;
     color: #f8fafc;
     word-break: break-word;
@@ -281,7 +281,7 @@
     border-radius: var(--radius-xl);
     border: 1px dashed var(--surface-border-strong);
     background: var(--bg-color-muted);
-    font-size: 13px;
+    @include type-body-sm;
     line-height: 1.55;
     color: #cbd5e1;
 }

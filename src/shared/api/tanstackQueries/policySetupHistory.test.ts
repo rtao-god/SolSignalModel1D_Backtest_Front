@@ -7,33 +7,56 @@ import {
 
 describe('policySetupHistory parser', () => {
     test('maps catalog payload with UtcDayKey object-form dates', () => {
-        const parsed = parsePolicySetupCatalogResponse([
-            {
-                setupId: 'ps-const-2x-cross-cross-anti-d-daily-with-sl-all-with-zonal-2dcb605d0684',
-                displayLabel: 'const_2x_cross | Cross | ANTI-D | daily | WITH SL | all | with-zonal',
-                policyName: 'const_2x_cross',
-                marginMode: 'Cross',
-                branch: 'ANTI-D',
-                bucket: 'daily',
-                useStopLoss: true,
-                useAntiDirectionOverlay: true,
-                tpSlMode: 'all',
-                zonalMode: 'with-zonal',
-                tradesCount: 528,
-                noTradeDaysCount: 406,
-                totalPnlPct: -11.8,
-                maxDrawdownPct: 12.83,
-                hadLiquidation: false,
-                fromDateUtc: { isoDate: '2021-10-11' },
-                toDateUtc: { year: 2026, month: 3, day: 18 }
-            }
-        ])
+        const parsed = parsePolicySetupCatalogResponse({
+            boundaryManifest: {
+                historyDayRange: {
+                    fromDateUtc: { isoDate: '2021-10-11' },
+                    toDateUtc: { year: 2026, month: 3, day: 18 }
+                },
+                candleRanges: [
+                    {
+                        resolution: '3h',
+                        dayRange: {
+                            fromDateUtc: { isoDate: '2021-10-11' },
+                            toDateUtc: { year: 2026, month: 3, day: 18 }
+                        }
+                    }
+                ]
+            },
+            items: [
+                {
+                    setupId: 'ps-const-2x-cross-cross-anti-d-daily-with-sl-all-with-zonal-2dcb605d0684',
+                    displayLabel: 'const_2x_cross | Cross | ANTI-D | daily | WITH SL | all | with-zonal',
+                    policyName: 'const_2x_cross',
+                    marginMode: 'Cross',
+                    branch: 'ANTI-D',
+                    bucket: 'daily',
+                    useStopLoss: true,
+                    useAntiDirectionOverlay: true,
+                    tpSlMode: 'all',
+                    zonalMode: 'with-zonal',
+                    noTradeDaysCount: 406,
+                    performanceMetrics: {
+                        tradesCount: 528,
+                        totalPnlPct: -11.8,
+                        maxDdPct: 12.83,
+                        hadLiquidation: false
+                    }
+                }
+            ]
+        })
 
-        expect(parsed).toEqual([
+        expect(parsed.boundaryManifest.historyDayRange.fromDateUtc).toBe('2021-10-11')
+        expect(parsed.boundaryManifest.historyDayRange.toDateUtc).toBe('2026-03-18')
+        expect(parsed.items).toEqual([
             expect.objectContaining({
                 policyName: 'const_2x_cross',
-                fromDateUtc: '2021-10-11',
-                toDateUtc: '2026-03-18'
+                performanceMetrics: expect.objectContaining({
+                    tradesCount: 528,
+                    totalPnlPct: -11.8,
+                    maxDdPct: 12.83,
+                    hadLiquidation: false
+                })
             })
         ])
     })
@@ -77,23 +100,40 @@ describe('policySetupHistory parser', () => {
                 useAntiDirectionOverlay: true,
                 tpSlMode: 'all',
                 zonalMode: 'with-zonal',
-                tradesCount: 528,
                 noTradeDaysCount: 406,
-                totalPnlPct: -11.8,
-                maxDrawdownPct: 12.83,
-                hadLiquidation: false,
-                fromDateUtc: { isoDate: '2021-10-11' },
-                toDateUtc: { isoDate: '2026-03-18' }
+                performanceMetrics: {
+                    tradesCount: 528,
+                    totalPnlPct: -11.8,
+                    maxDdPct: 12.83,
+                    hadLiquidation: false
+                }
             },
-            availableRange: {
-                fromDateUtc: { year: 2021, month: 10, day: 11 },
-                toDateUtc: { year: 2026, month: 3, day: 18 }
+            boundaryManifest: {
+                historyDayRange: {
+                    fromDateUtc: { year: 2021, month: 10, day: 11 },
+                    toDateUtc: { year: 2026, month: 3, day: 18 }
+                },
+                candleRanges: [
+                    {
+                        resolution: '1m',
+                        dayRange: {
+                            fromDateUtc: { year: 2021, month: 10, day: 11 },
+                            toDateUtc: { year: 2026, month: 3, day: 18 }
+                        }
+                    },
+                    {
+                        resolution: '3h',
+                        dayRange: {
+                            fromDateUtc: { year: 2021, month: 10, day: 11 },
+                            toDateUtc: { year: 2026, month: 3, day: 18 }
+                        }
+                    }
+                ]
             },
             appliedRange: {
                 fromDateUtc: { value: '2026-01-01' },
                 toDateUtc: { value: '2026-03-13' }
             },
-            availableResolutions: ['1m', '3h', '6h'],
             startCapitalUsd: 20000,
             balanceCeilingUsd: 20000,
             visibleBalanceCeilingUsd: 25123.45,
@@ -165,8 +205,8 @@ describe('policySetupHistory parser', () => {
             ]
         })
 
-        expect(parsed.setup.fromDateUtc).toBe('2021-10-11')
-        expect(parsed.availableRange.fromDateUtc).toBe('2021-10-11')
+        expect(parsed.boundaryManifest.historyDayRange.fromDateUtc).toBe('2021-10-11')
+        expect(parsed.boundaryManifest.candleRanges[0].resolution).toBe('1m')
         expect(parsed.appliedRange.toDateUtc).toBe('2026-03-13')
         expect(parsed.days[0]).toMatchObject({
             tradingDayUtc: '2026-03-10',
@@ -193,9 +233,20 @@ describe('policySetupHistory parser', () => {
     test('maps candles payload with .NET object-form utc values across range and candles', () => {
         const parsed = parsePolicySetupCandlesResponse({
             setupId: 'ps-const-2x-cross-cross-anti-d-daily-with-sl-all-with-zonal-2dcb605d0684',
-            availableRange: {
-                fromDateUtc: { year: 2021, month: 10, day: 11 },
-                toDateUtc: { year: 2026, month: 3, day: 18 }
+            boundaryManifest: {
+                historyDayRange: {
+                    fromDateUtc: { year: 2021, month: 10, day: 11 },
+                    toDateUtc: { year: 2026, month: 3, day: 18 }
+                },
+                candleRanges: [
+                    {
+                        resolution: '3h',
+                        dayRange: {
+                            fromDateUtc: { year: 2021, month: 10, day: 11 },
+                            toDateUtc: { year: 2026, month: 3, day: 18 }
+                        }
+                    }
+                ]
             },
             appliedRange: {
                 fromDateUtc: { value: '2026-01-01' },
@@ -213,7 +264,7 @@ describe('policySetupHistory parser', () => {
             ]
         })
 
-        expect(parsed.availableRange.fromDateUtc).toBe('2021-10-11')
+        expect(parsed.boundaryManifest.historyDayRange.fromDateUtc).toBe('2021-10-11')
         expect(parsed.appliedRange.toDateUtc).toBe('2026-03-13')
         expect(parsed.appliedRange.resolution).toBe('3h')
         expect(parsed.candles[0].openTimeUtc).toBe('2026-03-10T12:00:00.000Z')
@@ -223,15 +274,25 @@ describe('policySetupHistory parser', () => {
         expect(() =>
             parsePolicySetupLedgerResponse({
                 setup: null,
-                availableRange: {
-                    fromDateUtc: { year: 2021, month: 10, day: 11 },
-                    toDateUtc: { year: 2026, month: 3, day: 18 }
+                boundaryManifest: {
+                    historyDayRange: {
+                        fromDateUtc: { year: 2021, month: 10, day: 11 },
+                        toDateUtc: { year: 2026, month: 3, day: 18 }
+                    },
+                    candleRanges: [
+                        {
+                            resolution: '3h',
+                            dayRange: {
+                                fromDateUtc: { year: 2021, month: 10, day: 11 },
+                                toDateUtc: { year: 2026, month: 3, day: 18 }
+                            }
+                        }
+                    ]
                 },
                 appliedRange: {
                     fromDateUtc: { value: '2026-01-01' },
                     toDateUtc: { value: '2026-03-13' }
                 },
-                availableResolutions: ['3h'],
                 startCapitalUsd: 20000,
                 balanceCeilingUsd: 20000,
                 visibleBalanceCeilingUsd: 20000,
@@ -248,5 +309,42 @@ describe('policySetupHistory parser', () => {
                 days: []
             })
         ).toThrowError('[policy-setup-history] ledger.setup expected an object, received null.')
+    })
+
+    test('throws detailed field context when setup performance metrics are missing', () => {
+        expect(() =>
+            parsePolicySetupCatalogResponse({
+                boundaryManifest: {
+                    historyDayRange: {
+                        fromDateUtc: { isoDate: '2021-10-11' },
+                        toDateUtc: { year: 2026, month: 3, day: 18 }
+                    },
+                    candleRanges: [
+                        {
+                            resolution: '3h',
+                            dayRange: {
+                                fromDateUtc: { isoDate: '2021-10-11' },
+                                toDateUtc: { year: 2026, month: 3, day: 18 }
+                            }
+                        }
+                    ]
+                },
+                items: [
+                    {
+                        setupId: 'broken',
+                        displayLabel: 'broken',
+                        policyName: 'broken',
+                        marginMode: 'Cross',
+                        branch: 'BASE',
+                        bucket: 'daily',
+                        useStopLoss: true,
+                        useAntiDirectionOverlay: false,
+                        tpSlMode: 'all',
+                        zonalMode: 'with-zonal',
+                        noTradeDaysCount: 0
+                    }
+                ]
+            })
+        ).toThrowError('[policy-setup-history] catalog.items[0].performanceMetrics must be an object.')
     })
 })

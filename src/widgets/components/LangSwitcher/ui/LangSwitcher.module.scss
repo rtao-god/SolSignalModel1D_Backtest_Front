@@ -19,7 +19,7 @@ button.Lang_switcher[data-lang] {
 }
 
 .Lang_switcherCode {
-    font-size: 12px;
+    @include type-label;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -51,7 +51,7 @@ button.Lang_switcher[data-lang] {
     }
 
     .Lang_switcherCode {
-        font-size: 11px;
+
         letter-spacing: 0.07em;
     }
 }
@@ -73,7 +73,7 @@ button.Lang_switcher[data-lang] {
     }
 
     .Lang_switcherCode {
-        font-size: 10px;
+
         letter-spacing: 0.06em;
     }
 }
@@ -87,7 +87,7 @@ button.Lang_switcher[data-lang] {
     }
 
     .Lang_switcherCode {
-        font-size: 9px;
+
         letter-spacing: 0.05em;
     }
 }
