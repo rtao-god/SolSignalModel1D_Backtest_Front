@@ -400,6 +400,7 @@ export default function BacktestDiagnosticsPageLayout({
     const reportStateError =
         (error as Error | null | undefined) ?? generatedAtState.error ?? sourceEndpointState.error ?? null
     const hasReadyReport = Boolean(report && generatedAtState.value && sourceEndpointState.value)
+    const shouldKeepDiagnosticsShellVisible = hasReadyReport || Boolean(reportStateError)
 
     return (
         <div className={rootClassName}>
@@ -440,7 +441,7 @@ export default function BacktestDiagnosticsPageLayout({
                 isLoading={isLoading}
                 isError={Boolean(reportStateError)}
                 error={reportStateError}
-                hasData={hasReadyReport}
+                hasData={shouldKeepDiagnosticsShellVisible}
                 onRetry={onRetry}
                 title={
                     generatedAtState.error ? t('diagnosticsReport.layout.errors.generatedAt.title')
@@ -460,6 +461,8 @@ export default function BacktestDiagnosticsPageLayout({
                 })}
                 logContext={{ source: 'diagnostics-layout-report' }}>
                 {sectionsForView.length === 0 ?
+                    reportStateError ? null
+                    :
                     <Text>{emptyMessage}</Text>
                 :   <>
                         <SectionDataState

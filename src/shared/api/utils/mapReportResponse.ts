@@ -102,6 +102,17 @@ function toRequiredBoolean(value: unknown, label: string): boolean {
     return parsed
 }
 
+// Backend metadata enum-ы приходят из разных сериализаторов: часть отчётов уже публикуется в kebab_case,
+// а часть — в PascalCase без разделителей. UI normalizer обязан свести их к одному каноничному виду до parser-ветвления.
+function normalizeEnumToken(value: string): string {
+    return value
+        .trim()
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+        .replace(/[\s_]+/g, '-')
+        .toLowerCase()
+}
+
 function mapPolicyEvaluationReasonResponse(raw: unknown, label: string): PolicyEvaluationReasonDto {
     const payload = toObject(raw, label)
 
@@ -174,7 +185,7 @@ function parseTableKind(raw: unknown, label: string): CapturedTableKindDto {
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'unknown') return 'unknown'
         if (normalized === 'policy-branch-mega') return 'policy-branch-mega'
         if (normalized === 'top-trades') return 'top-trades'
@@ -191,7 +202,7 @@ function parseMegaMode(raw: unknown, label: string): CapturedMegaModeDto {
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'all') return 'all'
         if (normalized === 'with-sl') return 'with-sl'
         if (normalized === 'no-sl') return 'no-sl'
@@ -209,8 +220,8 @@ function parseBacktestHistorySlice(raw: unknown, label: string): BacktestHistory
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
-        if (normalized === 'full_history') return 'full_history'
+        const normalized = normalizeEnumToken(raw)
+        if (normalized === 'full-history') return 'full_history'
         if (normalized === 'train') return 'train'
         if (normalized === 'oos') return 'oos'
         if (normalized === 'recent') return 'recent'
@@ -227,7 +238,7 @@ function parseMegaTpSlMode(raw: unknown, label: string): CapturedMegaTpSlModeDto
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'all') return 'all'
         if (normalized === 'dynamic') return 'dynamic'
         if (normalized === 'static') return 'static'
@@ -243,7 +254,7 @@ function parseMegaZonalMode(raw: unknown, label: string): CapturedMegaZonalModeD
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'with-zonal') {
             return 'with-zonal'
         }
@@ -262,7 +273,7 @@ function parseMegaMetricVariant(raw: unknown, label: string): CapturedMegaMetric
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'real') return 'real'
         if (normalized === 'no-biggest-liq-loss') {
             return 'no-biggest-liq-loss'
@@ -282,7 +293,7 @@ function parseMegaBucket(raw: unknown, label: string): CapturedMegaBucketDto {
     }
 
     if (typeof raw === 'string') {
-        const normalized = raw.trim().toLowerCase()
+        const normalized = normalizeEnumToken(raw)
         if (normalized === 'daily') return 'daily'
         if (normalized === 'intraday') return 'intraday'
         if (normalized === 'delayed') return 'delayed'
