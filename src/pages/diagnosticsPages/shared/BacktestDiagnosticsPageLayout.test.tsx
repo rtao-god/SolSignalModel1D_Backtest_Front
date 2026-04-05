@@ -90,4 +90,26 @@ describe('BacktestDiagnosticsPageLayout', () => {
         expect(screen.getByText('Зональный риск')).toBeInTheDocument()
         expect(screen.getByText('Лучшие сделки по доходности, %')).toBeInTheDocument()
     })
+
+    test('keeps page shell visible when report request failed before report payload was mapped', async () => {
+        await i18nForTests.changeLanguage('ru')
+
+        render(
+            <BacktestDiagnosticsPageLayout
+                report={null}
+                sections={[]}
+                pageTitle='Guardrail'
+                pageSubtitle='Guardrail subtitle'
+                emptyMessage='No diagnostics'
+                errorTitle='Diagnostics error'
+                error={new Error('Unsupported zonal mode')}
+            />
+        )
+
+        expect(screen.getByText('Guardrail')).toBeVisible()
+        expect(screen.getByText('Guardrail subtitle')).toBeVisible()
+        expect(screen.getByText('Diagnostics error')).toBeVisible()
+        expect(screen.getByText(/Unsupported zonal mode/)).toBeVisible()
+        expect(screen.queryByText('No diagnostics')).not.toBeInTheDocument()
+    })
 })
