@@ -37,7 +37,7 @@ import {
 } from './modelStatsUtils'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 
 const DEFAULT_MODEL_STATS_SEGMENT: SegmentKey = 'OOS'
@@ -404,104 +404,107 @@ export function ModelStatsPageInner({
 
     return (
         <div className={rootClassName}>
-            <header className={cls.headerRow}>
-                <div className={cls.headerMain}>
-                    <Text type='h2'>{data?.title || t('modelStats.inner.header.titleFallback')}</Text>
-                    <Text className={cls.subtitle}>{subtitle}</Text>
+            <PageDataState
+                shell={
+                    <>
+                        <header className={cls.headerRow}>
+                            <div className={cls.headerMain}>
+                                <Text type='h2'>{data?.title || t('modelStats.inner.header.titleFallback')}</Text>
+                                <Text className={cls.subtitle}>{subtitle}</Text>
 
-                    <div className={cls.badgesRow}>
-                        {currentSegmentMeta && (
-                            <span className={cls.badge}>
-                                {t('modelStats.inner.badges.segment', { value: currentSegmentMeta.label })}
-                            </span>
-                        )}
+                                <div className={cls.badgesRow}>
+                                    {currentSegmentMeta && (
+                                        <span className={cls.badge}>
+                                            {t('modelStats.inner.badges.segment', { value: currentSegmentMeta.label })}
+                                        </span>
+                                    )}
 
-                        <span className={cls.badge}>
-                            {t('modelStats.inner.badges.modeLabel')}{' '}
-                            {viewState.value === 'business' ?
-                                t('modelStats.inner.badges.modeBusiness')
-                            :   t('modelStats.inner.badges.modeTechnical')}
-                        </span>
+                                    <span className={cls.badge}>
+                                        {t('modelStats.inner.badges.modeLabel')}{' '}
+                                        {viewState.value === 'business' ?
+                                            t('modelStats.inner.badges.modeBusiness')
+                                        :   t('modelStats.inner.badges.modeTechnical')}
+                                    </span>
 
-                        {globalMeta?.runKind && (
-                            <span className={cls.badge}>
-                                {t('modelStats.inner.badges.runKind', { value: globalMeta.runKind })}
-                            </span>
-                        )}
-                    </div>
+                                    {globalMeta?.runKind && (
+                                        <span className={cls.badge}>
+                                            {t('modelStats.inner.badges.runKind', { value: globalMeta.runKind })}
+                                        </span>
+                                    )}
+                                </div>
 
-                    <ReportViewControls groups={controlGroups} />
-                    {controlsError && (
-                        <SectionDataState
-                            isError
-                            error={controlsError}
-                            hasData={false}
-                            title={
-                                segmentState.error ?
-                                    t('modelStats.inner.errors.bucketQuery.title')
-                                :   t('modelStats.inner.errors.metricQuery.title')
-                            }
-                            description={
-                                segmentState.error ?
-                                    t('modelStats.inner.errors.bucketQuery.message')
-                                :   t('modelStats.inner.errors.metricQuery.message')
-                            }
-                            logContext={{ source: 'model-stats-controls' }}>
-                            {null}
-                        </SectionDataState>
-                    )}
-                </div>
+                                <ReportViewControls groups={controlGroups} />
+                                {controlsError && (
+                                    <PageSectionDataState
+                                        isError
+                                        error={controlsError}
+                                        hasData={false}
+                                        title={
+                                            segmentState.error ?
+                                                t('modelStats.inner.errors.bucketQuery.title')
+                                            :   t('modelStats.inner.errors.metricQuery.title')
+                                        }
+                                        description={
+                                            segmentState.error ?
+                                                t('modelStats.inner.errors.bucketQuery.message')
+                                            :   t('modelStats.inner.errors.metricQuery.message')
+                                        }
+                                        logContext={{ source: 'model-stats-controls' }}>
+                                        {null}
+                                    </PageSectionDataState>
+                                )}
+                            </div>
 
-                {data && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        statusTitle={t('modelStats.inner.status.publishedTitle')}
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={data.title}
-                        reportId={data.id}
-                        reportKind={data.kind}
-                        generatedAtUtc={data.generatedAtUtc}
-                        statusLines={[
-                            ...(globalMeta?.runKind ?
-                                [{ label: t('modelStats.inner.statusLines.runKind'), value: globalMeta.runKind }]
-                            :   []),
-                            ...(globalMeta ?
-                                [
-                                    {
-                                        label: t('modelStats.inner.statusLines.oos'),
-                                        value:
-                                            globalMeta.hasOos ?
-                                                t('modelStats.inner.status.oosPresent', {
-                                                    value: globalMeta.oosRecordsCount
-                                                })
-                                            :   t('modelStats.inner.status.oosMissing')
-                                    }
-                                ]
-                            :   []),
-                            ...(globalMeta ?
-                                [
-                                    {
-                                        label: t('modelStats.inner.statusLines.trainRecent'),
-                                        value: `${globalMeta.trainRecordsCount} / ${globalMeta.recentRecordsCount} (${globalMeta.recentDays} d)`
-                                    }
-                                ]
-                            :   []),
-                            {
-                                label: t('modelStats.inner.statusLines.keyValueSections'),
-                                value: String(keyValueSectionCount)
-                            },
-                            {
-                                label: t('modelStats.inner.statusLines.tableSections'),
-                                value: String(tableSections.length)
-                            }
-                        ]}
-                    />
-                )}
-            </header>
+                            {data && sourceEndpointState.value && (
+                                <ReportActualStatusCard
+                                    statusMode='actual'
+                                    statusTitle={t('modelStats.inner.status.publishedTitle')}
+                                    dataSource={sourceEndpointState.value}
+                                    reportTitle={data.title}
+                                    reportId={data.id}
+                                    reportKind={data.kind}
+                                    generatedAtUtc={data.generatedAtUtc}
+                                    statusLines={[
+                                        ...(globalMeta?.runKind ?
+                                            [{ label: t('modelStats.inner.statusLines.runKind'), value: globalMeta.runKind }]
+                                        :   []),
+                                        ...(globalMeta ?
+                                            [
+                                                {
+                                                    label: t('modelStats.inner.statusLines.oos'),
+                                                    value:
+                                                        globalMeta.hasOos ?
+                                                            t('modelStats.inner.status.oosPresent', {
+                                                                value: globalMeta.oosRecordsCount
+                                                            })
+                                                        :   t('modelStats.inner.status.oosMissing')
+                                                }
+                                            ]
+                                        :   []),
+                                        ...(globalMeta ?
+                                            [
+                                                {
+                                                    label: t('modelStats.inner.statusLines.trainRecent'),
+                                                    value: `${globalMeta.trainRecordsCount} / ${globalMeta.recentRecordsCount} (${globalMeta.recentDays} d)`
+                                                }
+                                            ]
+                                        :   []),
+                                        {
+                                            label: t('modelStats.inner.statusLines.keyValueSections'),
+                                            value: String(keyValueSectionCount)
+                                        },
+                                        {
+                                            label: t('modelStats.inner.statusLines.tableSections'),
+                                            value: String(tableSections.length)
+                                        }
+                                    ]}
+                                />
+                            )}
+                        </header>
 
-            {segmentDescription && <Text className={cls.segmentSubtitle}>{segmentDescription}</Text>}
-
-            <SectionDataState
+                        {segmentDescription && <Text className={cls.segmentSubtitle}>{segmentDescription}</Text>}
+                    </>
+                }
                 isLoading={isLoading}
                 isError={Boolean(reportStateError)}
                 error={reportStateError}
@@ -515,7 +518,7 @@ export function ModelStatsPageInner({
                 description={sourceEndpointState.error ? t('modelStats.inner.errors.invalidSource.message') : undefined}
                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                 logContext={{ source: 'model-stats-report' }}>
-                <SectionDataState
+                <PageSectionDataState
                     isError={Boolean(tableTermsState.error)}
                     error={tableTermsState.error}
                     hasData={!tableTermsState.error}
@@ -549,8 +552,8 @@ export function ModelStatsPageInner({
                             onNext={handleNext}
                         />
                     )}
-                </SectionDataState>
-            </SectionDataState>
+                </PageSectionDataState>
+            </PageDataState>
         </div>
     )
 }

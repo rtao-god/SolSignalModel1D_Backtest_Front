@@ -23,7 +23,7 @@ import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/util
 import { resolveReportColumnTooltip } from '@/shared/utils/reportTooltips'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import { localizeReportSectionCompactTitle } from '@/shared/utils/reportPresentationLocalization'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
@@ -404,40 +404,41 @@ export default function BacktestDiagnosticsPageLayout({
 
     return (
         <div className={rootClassName}>
-            <header className={cls.header}>
-                <div className={cls.headerMain}>
-                    <Text type='h1'>{pageTitle}</Text>
-                    <Text className={cls.subtitle}>{pageSubtitle}</Text>
-                    <ReportViewControls groups={controlGroups} />
-                    {diagnosticsSelectionState.error && (
-                        <SectionDataState
-                            className={cls.headerState}
-                            isError
-                            error={diagnosticsSelectionState.error}
-                            hasData={false}
-                            title={t('diagnosticsReport.layout.errors.tpSlQuery.title')}
-                            description={t('diagnosticsReport.layout.errors.tpSlQuery.message')}
-                            logContext={{ source: 'diagnostics-layout-controls' }}>
-                            {null}
-                        </SectionDataState>
-                    )}
-                </div>
+            <PageDataState
+                shell={
+                    <header className={cls.header}>
+                        <div className={cls.headerMain}>
+                            <Text type='h1'>{pageTitle}</Text>
+                            <Text className={cls.subtitle}>{pageSubtitle}</Text>
+                            <ReportViewControls groups={controlGroups} />
+                            {diagnosticsSelectionState.error && (
+                                <PageSectionDataState
+                                    className={cls.headerState}
+                                    isError
+                                    error={diagnosticsSelectionState.error}
+                                    hasData={false}
+                                    title={t('diagnosticsReport.layout.errors.tpSlQuery.title')}
+                                    description={t('diagnosticsReport.layout.errors.tpSlQuery.message')}
+                                    logContext={{ source: 'diagnostics-layout-controls' }}>
+                                    {null}
+                                </PageSectionDataState>
+                            )}
+                        </div>
 
-                {hasReadyReport && report && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        statusTitle={t('diagnosticsReport.layout.status.title')}
-                        statusMessage={t('diagnosticsReport.layout.status.message')}
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={report.title}
-                        reportId={report.id}
-                        reportKind={report.kind}
-                        generatedAtUtc={report.generatedAtUtc}
-                    />
-                )}
-            </header>
-
-            <SectionDataState
+                        {hasReadyReport && report && sourceEndpointState.value && (
+                            <ReportActualStatusCard
+                                statusMode='actual'
+                                statusTitle={t('diagnosticsReport.layout.status.title')}
+                                statusMessage={t('diagnosticsReport.layout.status.message')}
+                                dataSource={sourceEndpointState.value}
+                                reportTitle={report.title}
+                                reportId={report.id}
+                                reportKind={report.kind}
+                                generatedAtUtc={report.generatedAtUtc}
+                            />
+                        )}
+                    </header>
+                }
                 isLoading={isLoading}
                 isError={Boolean(reportStateError)}
                 error={reportStateError}
@@ -465,7 +466,7 @@ export default function BacktestDiagnosticsPageLayout({
                     :
                     <Text>{emptyMessage}</Text>
                 :   <>
-                        <SectionDataState
+                        <PageSectionDataState
                             isError={Boolean(termsState.error)}
                             error={termsState.error}
                             hasData={!termsState.error}
@@ -480,7 +481,7 @@ export default function BacktestDiagnosticsPageLayout({
                                 enhanceDomainTerms
                                 className={cls.termsBlock}
                             />
-                        </SectionDataState>
+                        </PageSectionDataState>
 
                         {variantSections.length > 0 && (
                             <div className={cls.tableGrid}>
@@ -588,7 +589,7 @@ export default function BacktestDiagnosticsPageLayout({
                         )}
                     </>
                 }
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

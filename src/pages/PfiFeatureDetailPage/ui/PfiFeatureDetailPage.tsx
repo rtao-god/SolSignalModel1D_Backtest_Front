@@ -14,7 +14,7 @@ import type { PfiFeatureDetailScoreScopeKeyDto, PfiFeatureHistoryRangeKeyDto } f
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
 import { renderTermTooltipRichText, renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import {
     ReportActualStatusCard,
     ReportTableTermsBlock,
@@ -463,32 +463,35 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
 
     return (
         <div className={classNames(cls.PfiFeatureDetailPage, {}, [className ?? ''])}>
-            <header className={cls.headerRow}>
-                <div>
-                    <Text type='h2'>{reportTitle}</Text>
-                    <Text className={cls.subtitle}>{reportSubtitle}</Text>
-                </div>
+            <PageDataState
+                shell={
+                    <>
+                        <header className={cls.headerRow}>
+                            <div>
+                                <Text type='h2'>{reportTitle}</Text>
+                                <Text className={cls.subtitle}>{reportSubtitle}</Text>
+                            </div>
 
-                {report && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={reportTitle}
-                        reportId={report.id}
-                        reportKind={report.kind}
-                        generatedAtUtc={report.generatedAtUtc}
-                        statusLines={statusLines}
-                    />
-                )}
-            </header>
+                            {report && sourceEndpointState.value && (
+                                <ReportActualStatusCard
+                                    statusMode='actual'
+                                    dataSource={sourceEndpointState.value}
+                                    reportTitle={reportTitle}
+                                    reportId={report.id}
+                                    reportKind={report.kind}
+                                    generatedAtUtc={report.generatedAtUtc}
+                                    statusLines={statusLines}
+                                />
+                            )}
+                        </header>
 
-            {hasFeatureId && (
-                <section className={cls.pageControlsCard}>
-                    <ReportViewControls groups={controlGroups} />
-                </section>
-            )}
-
-            <SectionDataState
+                        {hasFeatureId && (
+                            <section className={cls.pageControlsCard}>
+                                <ReportViewControls groups={controlGroups} />
+                            </section>
+                        )}
+                    </>
+                }
                 isLoading={isLoading}
                 isError={Boolean(effectiveError)}
                 error={effectiveError}
@@ -498,7 +501,7 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
                 loadingText='Загрузка отчёта'
                 logContext={{ source: 'pfi-feature-detail-report' }}>
                 {report && (
-                    <SectionDataState
+                    <PageSectionDataState
                         isError={Boolean(termsState.error)}
                         error={termsState.error}
                         hasData={!termsState.error}
@@ -548,9 +551,9 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
                                 ))}
                             </div>
                         </>
-                    </SectionDataState>
+                    </PageSectionDataState>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

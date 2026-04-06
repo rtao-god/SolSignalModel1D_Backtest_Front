@@ -18,7 +18,7 @@ import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButto
 import { SortableTable, type TableRow, getCellValue, toExportCell } from '@/shared/ui/SortableTable'
 import { renderTermTooltipTitle } from '@/shared/ui/TermTooltip'
 import { Link } from '@/shared/ui/Link'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import type { PfiReportSectionDto } from '@/shared/types/pfi.types'
 import {
     ReportActualStatusCard,
@@ -305,97 +305,96 @@ function PfiDiagnosticsPanel({ family }: PfiDiagnosticsPanelProps) {
     })
 
     return (
-        <>
-            <header className={cls.headerRow}>
-                <div>
-                    <Text type='h2'>{reportTitle}</Text>
-                    <Text className={cls.subtitle}>
-                        {t(viewConfig.subtitleKey, {
-                            defaultValue: viewConfig.subtitleDefault
-                        })}
-                    </Text>
-                </div>
-                {report && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        statusTitle={t('pfi.page.status.publishedTitle')}
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={reportTitle}
-                        reportId={report.id}
-                        reportKind={report.kind}
-                        generatedAtUtc={report.generatedAtUtc}
-                        statusLines={[
-                            {
-                                label: t('pfi.page.statusLines.tableSectionCount'),
-                                value: String(tableSections.length)
-                            }
-                        ]}
-                    />
-                )}
-            </header>
-
-            <SectionDataState
-                isLoading={isLoading}
-                isError={Boolean(error)}
-                error={error}
-                hasData={Boolean(report)}
+        <PageDataState
+            shell={
+                <header className={cls.headerRow}>
+                    <div>
+                        <Text type='h2'>{reportTitle}</Text>
+                        <Text className={cls.subtitle}>
+                            {t(viewConfig.subtitleKey, {
+                                defaultValue: viewConfig.subtitleDefault
+                            })}
+                        </Text>
+                    </div>
+                    {report && sourceEndpointState.value && (
+                        <ReportActualStatusCard
+                            statusMode='actual'
+                            statusTitle={t('pfi.page.status.publishedTitle')}
+                            dataSource={sourceEndpointState.value}
+                            reportTitle={reportTitle}
+                            reportId={report.id}
+                            reportKind={report.kind}
+                            generatedAtUtc={report.generatedAtUtc}
+                            statusLines={[
+                                {
+                                    label: t('pfi.page.statusLines.tableSectionCount'),
+                                    value: String(tableSections.length)
+                                }
+                            ]}
+                        />
+                    )}
+                </header>
+            }
+            isLoading={isLoading}
+            isError={Boolean(error)}
+            error={error}
+            hasData={Boolean(report)}
+            onRetry={refetch}
+            title={t('pfi.page.errorTitle')}
+            loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+            logContext={{ source: 'pfi-page-report' }}>
+            <PageSectionDataState
+                isError={Boolean(termsState.error)}
+                error={termsState.error}
+                hasData={!termsState.error}
+                title={t('pfi.page.errors.terms.title')}
+                description={t('pfi.page.errors.terms.message')}
                 onRetry={refetch}
-                title={t('pfi.page.errorTitle')}
-                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
-                logContext={{ source: 'pfi-page-report' }}>
-                <SectionDataState
-                    isError={Boolean(termsState.error)}
-                    error={termsState.error}
-                    hasData={!termsState.error}
-                    title={t('pfi.page.errors.terms.title')}
-                    description={t('pfi.page.errors.terms.message')}
-                    onRetry={refetch}
-                    logContext={{ source: 'pfi-page-terms' }}>
-                    {tableSections.length === 0 ?
-                        <div>
-                            <Text type='h2'>{t('pfi.page.empty.title')}</Text>
-                            <Text>{t('pfi.page.empty.description')}</Text>
+                logContext={{ source: 'pfi-page-terms' }}>
+                {tableSections.length === 0 ?
+                    <div>
+                        <Text type='h2'>{t('pfi.page.empty.title')}</Text>
+                        <Text>{t('pfi.page.empty.description')}</Text>
+                    </div>
+                :   <>
+                        <ReportTableTermsBlock
+                            terms={termsState.terms}
+                            title={t('pfi.page.terms.title')}
+                            subtitle={t('pfi.page.terms.subtitle')}
+                            className={cls.pageTermsBlock}
+                        />
+
+                        <div className={cls.tablesGrid}>
+                            {tableSections.map((section, index) => {
+                                const tab = tabs[index]
+                                const domId = tab?.anchor ?? `pfi-model-${index + 1}`
+
+                                return (
+                                    <PfiTableCard
+                                        key={section.sectionKey}
+                                        section={section}
+                                        domId={domId}
+                                        reportKind={viewConfig.routeReportKind}
+                                        featureDetailRoutePath={featureDetailRoutePath}
+                                    />
+                                )
+                            })}
                         </div>
-                    :   <>
-                            <ReportTableTermsBlock
-                                terms={termsState.terms}
-                                title={t('pfi.page.terms.title')}
-                                subtitle={t('pfi.page.terms.subtitle')}
-                                className={cls.pageTermsBlock}
+
+                        {tabs.length > 1 && (
+                            <SectionPager
+                                sections={tabs}
+                                currentIndex={currentIndex}
+                                canPrev={canPrev}
+                                canNext={canNext}
+                                onPrev={handlePrev}
+                                onNext={handleNext}
                             />
-
-                            <div className={cls.tablesGrid}>
-                                {tableSections.map((section, index) => {
-                                    const tab = tabs[index]
-                                    const domId = tab?.anchor ?? `pfi-model-${index + 1}`
-
-                                    return (
-                                        <PfiTableCard
-                                            key={section.sectionKey}
-                                            section={section}
-                                            domId={domId}
-                                            reportKind={viewConfig.routeReportKind}
-                                            featureDetailRoutePath={featureDetailRoutePath}
-                                        />
-                                    )
-                                })}
-                            </div>
-
-                            {tabs.length > 1 && (
-                                <SectionPager
-                                    sections={tabs}
-                                    currentIndex={currentIndex}
-                                    canPrev={canPrev}
-                                    canNext={canNext}
-                                    onPrev={handlePrev}
-                                    onNext={handleNext}
-                                />
-                            )}
-                        </>
-                    }
-                </SectionDataState>
-            </SectionDataState>
-        </>
+                        )}
+                    </>
+                }
+            </PageSectionDataState>
+        </PageDataState>
     )
 }
 

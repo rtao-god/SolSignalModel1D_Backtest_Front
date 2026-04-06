@@ -50,7 +50,7 @@ import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import { useLocale } from '@/shared/lib/i18n'
 import type { PredictionHistoryPageProps } from './types'
 import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
@@ -953,116 +953,130 @@ function PredictionHistoryPageInner({
 
     return (
         <div className={rootClassName}>
-            <header className={cls.header}>
-                <div className={cls.headerMain}>
-                    <Text type='h1'>
-                        {isTrainDiagnosticsMode ?
-                            t('predictionHistory.page.trainDiagnosticsTitle')
-                        :   t('predictionHistory.page.title')}
-                    </Text>
-                    <span className={cls.headerTag}>{historyTag}</span>
-                </div>
+            <PageDataState
+                shell={
+                    <>
+                        <header className={cls.header}>
+                            <div className={cls.headerMain}>
+                                <Text type='h1'>
+                                    {isTrainDiagnosticsMode ?
+                                        t('predictionHistory.page.trainDiagnosticsTitle')
+                                    :   t('predictionHistory.page.title')}
+                                </Text>
+                                <span className={cls.headerTag}>{historyTag}</span>
+                            </div>
 
-                <div className={cls.headerMeta}>
-                    <span>{t('predictionHistory.page.meta.totalBuilt', { value: totalBuiltLabel })}</span>
-                    <span>{t('predictionHistory.page.meta.missingInRange', { value: missingBuiltLabel })}</span>
-                    <span>{t('predictionHistory.page.meta.currentlyVisible', { value: filteredCount })}</span>
-                    <span>
-                        {t('predictionHistory.page.meta.loadWindow', { value: selectedHistoryWindowMeta.label })}
-                    </span>
-                    <span>{t('predictionHistory.page.meta.trainingScope', { value: currentScopeMeta.label })}</span>
-                    {trainingScope === 'oos' && selectedOosPresetEntry && (
-                        <span>
-                            {t('predictionHistory.page.meta.oosPreset', {
-                                defaultValue: 'Проверочный хвост: {{value}}',
-                                value:
-                                    oosPresetCatalog ?
-                                        buildOosPresetShortLabel(oosPresetCatalog, selectedOosPresetEntry, i18n.language)
-                                    :   `OOS ${selectedOosPresetEntry.requestedDaySharePercent}%`
-                            })}
-                        </span>
-                    )}
-                    <span>
-                        {t('predictionHistory.page.meta.trainingModel', {
-                            value: trainingLabel ?? t('predictionHistory.page.meta.trainingModelFallback')
-                        })}
-                    </span>
-                </div>
-            </header>
+                            <div className={cls.headerMeta}>
+                                <span>{t('predictionHistory.page.meta.totalBuilt', { value: totalBuiltLabel })}</span>
+                                <span>{t('predictionHistory.page.meta.missingInRange', { value: missingBuiltLabel })}</span>
+                                <span>{t('predictionHistory.page.meta.currentlyVisible', { value: filteredCount })}</span>
+                                <span>
+                                    {t('predictionHistory.page.meta.loadWindow', { value: selectedHistoryWindowMeta.label })}
+                                </span>
+                                <span>{t('predictionHistory.page.meta.trainingScope', { value: currentScopeMeta.label })}</span>
+                                {trainingScope === 'oos' && selectedOosPresetEntry && (
+                                    <span>
+                                        {t('predictionHistory.page.meta.oosPreset', {
+                                            defaultValue: 'Проверочный хвост: {{value}}',
+                                            value:
+                                                oosPresetCatalog ?
+                                                    buildOosPresetShortLabel(
+                                                        oosPresetCatalog,
+                                                        selectedOosPresetEntry,
+                                                        i18n.language
+                                                    )
+                                                :   `OOS ${selectedOosPresetEntry.requestedDaySharePercent}%`
+                                        })}
+                                    </span>
+                                )}
+                                <span>
+                                    {t('predictionHistory.page.meta.trainingModel', {
+                                        value: trainingLabel ?? t('predictionHistory.page.meta.trainingModelFallback')
+                                    })}
+                                </span>
+                            </div>
+                        </header>
 
-            {/* История должна сначала объяснять, зачем нужен этот архив, а уже потом открывать фильтры, даты и карточки отчётов. */}
-            <PredictionPageIntro
+                        {/* История должна сначала объяснять, зачем нужен этот архив, а уже потом открывать фильтры, даты и карточки отчётов. */}
+                        <PredictionPageIntro
+                            title={
+                                isTrainDiagnosticsMode ?
+                                    t('predictionHistory.page.trainDiagnosticsIntro.title')
+                                :   t('predictionHistory.page.intro.title')
+                            }
+                            lead={
+                                isTrainDiagnosticsMode ?
+                                    t('predictionHistory.page.trainDiagnosticsIntro.lead', trainDiagnosticsInterpolation)
+                                :   t('predictionHistory.page.intro.lead')
+                            }
+                            bullets={isTrainDiagnosticsMode ? trainDiagnosticsIntroBullets : introBullets}
+                            renderText={renderIntroText}
+                        />
+
+                        <PredictionTrainingScopeDescriptionBlock variant='history' description={trainingScopeDescription} />
+                        <PredictionSliceTimelinePanel
+                            primaryStats={trainingScopeStats}
+                            activeScope={trainingScope}
+                            isPrimaryLoading={isHistoryPageLoading}
+                        />
+
+                        <section className={cls.filters}>
+                            <div className={cls.controlsPanel}>
+                                <ReportViewControls groups={controlGroups} className={cls.filtersControls} />
+                                <Text type='p' className={cls.controlHint}>
+                                    {currentScopeMeta.hint}
+                                </Text>
+                                {trainingScope === 'oos' && selectedOosPresetEntry && (
+                                    <Text type='p' className={cls.controlHint}>
+                                        {oosPresetCatalog ?
+                                            buildOosPresetSummary(
+                                                oosPresetCatalog,
+                                                selectedOosPresetEntry,
+                                                i18n.language
+                                            )
+                                        :   `Сейчас открыт пользовательский OOS-хвост ${selectedOosPresetEntry.requestedDaySharePercent}%.`}
+                                    </Text>
+                                )}
+                            </div>
+
+                            <div className={cls.filtersRow}>
+                                <DatePicker
+                                    className={cls.datePicker}
+                                    minSelectableDate={historyMinSelectableDate ?? undefined}
+                                />
+                                <div className={cls.filtersInfo}>
+                                    <Text type='p'>{t('predictionHistory.filters.dateRange.description')}</Text>
+                                    {fromDate && toDate && (
+                                        <Text type='p' className={cls.filtersRangeSummary}>
+                                            {t('predictionHistory.filters.dateRange.current', { fromDate, toDate })}
+                                        </Text>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                }
+                isLoading={isHistoryPageLoading}
+                isError={Boolean(historyPageError)}
+                error={historyPageError}
+                hasData={Boolean(historyPage)}
+                onRetry={onHistoryPageRetry}
                 title={
-                    isTrainDiagnosticsMode ?
-                        t('predictionHistory.page.trainDiagnosticsIntro.title')
-                    :   t('predictionHistory.page.intro.title')
+                    historyPageError ?
+                        t('predictionHistory.page.indexErrorTitle', { reportSet: HISTORY_SET })
+                    :   t('predictionHistory.page.emptyIndex.title')
                 }
-                lead={
-                    isTrainDiagnosticsMode ?
-                        t('predictionHistory.page.trainDiagnosticsIntro.lead', trainDiagnosticsInterpolation)
-                    :   t('predictionHistory.page.intro.lead')
-                }
-                bullets={isTrainDiagnosticsMode ? trainDiagnosticsIntroBullets : introBullets}
-                renderText={renderIntroText}
-            />
-
-            <PredictionTrainingScopeDescriptionBlock variant='history' description={trainingScopeDescription} />
-            <PredictionSliceTimelinePanel
-                primaryStats={trainingScopeStats}
-                activeScope={trainingScope}
-                isPrimaryLoading={isHistoryPageLoading}
-            />
-
-            <section className={cls.filters}>
-                <div className={cls.controlsPanel}>
-                    <ReportViewControls groups={controlGroups} className={cls.filtersControls} />
-                    <Text type='p' className={cls.controlHint}>
-                        {currentScopeMeta.hint}
-                    </Text>
-                    {trainingScope === 'oos' && selectedOosPresetEntry && (
-                        <Text type='p' className={cls.controlHint}>
-                            {oosPresetCatalog ?
-                                buildOosPresetSummary(oosPresetCatalog, selectedOosPresetEntry, i18n.language)
-                            :   `Сейчас открыт пользовательский OOS-хвост ${selectedOosPresetEntry.requestedDaySharePercent}%.`}
-                        </Text>
-                    )}
-                </div>
-
-                <div className={cls.filtersRow}>
-                    <DatePicker className={cls.datePicker} minSelectableDate={historyMinSelectableDate ?? undefined} />
-                    <div className={cls.filtersInfo}>
-                        <Text type='p'>{t('predictionHistory.filters.dateRange.description')}</Text>
-                        {fromDate && toDate && (
-                            <Text type='p' className={cls.filtersRangeSummary}>
-                                {t('predictionHistory.filters.dateRange.current', { fromDate, toDate })}
-                            </Text>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            <section className={cls.content}>
-                <SectionDataState
-                    isLoading={isHistoryPageLoading}
-                    isError={Boolean(historyPageError)}
-                    error={historyPageError}
-                    hasData={Boolean(historyPage)}
-                    onRetry={onHistoryPageRetry}
-                    title={
-                        historyPageError ?
-                            t('predictionHistory.page.indexErrorTitle', { reportSet: HISTORY_SET })
-                        :   t('predictionHistory.page.emptyIndex.title')
+                description={historyPageError ? undefined : t('predictionHistory.page.emptyIndex.description')}
+                loadingText={t('predictionHistory.page.loadingTitle')}
+                logContext={{
+                    source: 'prediction-history-page',
+                    extra: {
+                        reportSet: HISTORY_SET,
+                        trainingScope,
+                        historyWindow: selectedHistoryWindowMeta.value
                     }
-                    description={historyPageError ? undefined : t('predictionHistory.page.emptyIndex.description')}
-                    loadingText={t('predictionHistory.page.loadingTitle')}
-                    logContext={{
-                        source: 'prediction-history-page',
-                        extra: {
-                            reportSet: HISTORY_SET,
-                            trainingScope,
-                            historyWindow: selectedHistoryWindowMeta.value
-                        }
-                    }}>
+                }}>
+                <section className={cls.content}>
                     {filteredCount === 0 && <Text type='p'>{t('predictionHistory.content.empty')}</Text>}
 
                     {filteredCount > 0 && (
@@ -1138,8 +1152,8 @@ function PredictionHistoryPageInner({
                             />
                         </>
                     )}
-                </SectionDataState>
-            </section>
+                </section>
+            </PageDataState>
         </div>
     )
 }

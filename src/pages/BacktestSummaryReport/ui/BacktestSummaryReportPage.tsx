@@ -7,7 +7,7 @@ import {
     type ReportDocumentFreshnessInfo
 } from '@/shared/ui/ReportDocumentView/ui/ReportDocumentView'
 import { useBacktestBaselineSummaryReportQuery } from '@/shared/api/tanstackQueries/backtest'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { useTranslation } from 'react-i18next'
 import { useMemo } from 'react'
 import type { KeyValueSectionDto, TableSectionDto } from '@/shared/types/report.types'
@@ -57,33 +57,34 @@ export default function BacktestSummaryReportPage({ className }: BacktestSummary
 
     return (
         <div className={rootClassName}>
-            <header className={cls.header}>
-                <Text type='h1'>{pageTitle}</Text>
-                {report && (
-                    <>
-                        <Text>{t('backtestSummary.page.reportId', { id: report.id })}</Text>
-                        <Text>{t('backtestSummary.page.reportKind', { kind: report.kind })}</Text>
-                        <Text>
-                            {t('backtestSummary.page.generatedUtc', {
-                                generatedUtc: (() => {
-                                    const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
-                                    return generatedUtc ?
-                                            generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC')
-                                        :   '—'
-                                })()
-                            })}
-                        </Text>
-                        <Text>
-                            {t('backtestSummary.page.generatedLocal', {
-                                generatedLocal:
-                                    report.generatedAtUtc ? new Date(report.generatedAtUtc).toLocaleString() : '—'
-                            })}
-                        </Text>
-                    </>
-                )}
-            </header>
-
-            <SectionDataState
+            <PageDataState
+                shell={
+                    <header className={cls.header}>
+                        <Text type='h1'>{pageTitle}</Text>
+                        {report && (
+                            <>
+                                <Text>{t('backtestSummary.page.reportId', { id: report.id })}</Text>
+                                <Text>{t('backtestSummary.page.reportKind', { kind: report.kind })}</Text>
+                                <Text>
+                                    {t('backtestSummary.page.generatedUtc', {
+                                        generatedUtc: (() => {
+                                            const generatedUtc = report.generatedAtUtc ? new Date(report.generatedAtUtc) : null
+                                            return generatedUtc ?
+                                                    generatedUtc.toISOString().replace('T', ' ').replace('Z', ' UTC')
+                                                :   '—'
+                                        })()
+                                    })}
+                                </Text>
+                                <Text>
+                                    {t('backtestSummary.page.generatedLocal', {
+                                        generatedLocal:
+                                            report.generatedAtUtc ? new Date(report.generatedAtUtc).toLocaleString() : '—'
+                                    })}
+                                </Text>
+                            </>
+                        )}
+                    </header>
+                }
                 isLoading={isLoading}
                 isError={isError}
                 error={error}
@@ -97,7 +98,7 @@ export default function BacktestSummaryReportPage({ className }: BacktestSummary
                         <ReportDocumentView report={report} freshness={documentFreshness} />
                     </div>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

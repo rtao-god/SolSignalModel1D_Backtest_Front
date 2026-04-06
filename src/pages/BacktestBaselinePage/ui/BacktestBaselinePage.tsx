@@ -7,7 +7,7 @@ import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import { useBacktestBaselineSnapshotQuery } from '@/shared/api/tanstackQueries/backtest'
 import type { BacktestBaselinePageProps } from './types'
 import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 
 const renderTooltip = (term: string, description?: string) =>
@@ -71,9 +71,8 @@ export default function BacktestBaselinePage({ className }: BacktestBaselinePage
 
     return (
         <div className={rootClassName}>
-            <Header snapshot={data ?? null} />
-
-            <SectionDataState
+            <PageDataState
+                shell={<Header snapshot={data ?? null} />}
                 isLoading={isLoading}
                 isError={isError}
                 error={error}
@@ -88,7 +87,7 @@ export default function BacktestBaselinePage({ className }: BacktestBaselinePage
                         <PoliciesTable policies={data.policies ?? []} />
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

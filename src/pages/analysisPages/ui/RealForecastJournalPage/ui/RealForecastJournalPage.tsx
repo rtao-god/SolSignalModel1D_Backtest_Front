@@ -69,7 +69,7 @@ import {
 } from '@/shared/utils/reportCellLocalization'
 import cls from './RealForecastJournalPage.module.scss'
 import type { RealForecastJournalPageProps } from './types'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import { buildReportTermsFromReferences } from '@/shared/utils/reportTerms'
 
 const DEFAULT_COMPARISON_SOURCE: RealForecastJournalComparisonSource = 'aggregation'
@@ -1579,129 +1579,132 @@ function RealForecastJournalPageContent({
 
     return (
         <div className={rootClassName}>
-            <header className={cls.hero}>
-                <div className={cls.heroMain}>
-                    <Text type='h1' className={cls.heroTitle}>
-                        {t('realForecastJournal.page.title', {
-                            defaultValue: 'Real forecast journal and realized day outcome'
-                        })}
-                    </Text>
-                    <Text className={cls.heroSubtitle}>
-                        {t('realForecastJournal.page.subtitle', {
-                            defaultValue:
-                                'This page shows the fixed morning forecast for each real trading day, the current state of the open day, the realized outcome after the New York session (working day) closes, and the comparison of this live sample with historical statistics.'
-                        })}
-                    </Text>
-                    <div className={cls.heroNotes}>
-                        <SectionNote
-                            title={t('realForecastJournal.page.notes.causalityTitle', {
-                                defaultValue: 'Why this page exists'
-                            })}
-                            lead={t('realForecastJournal.page.notes.causalityLead', {
-                                defaultValue:
-                                    'The page keeps the morning forecast and then adds the realized outcome for that same trading day.'
-                            })}
-                            items={buildCausalityNoteItems(t)}
-                        />
-                        <SectionNote
-                            title={t('realForecastJournal.page.notes.scheduleTitle', {
-                                defaultValue: 'Timing contract'
-                            })}
-                            lead={t('realForecastJournal.page.notes.scheduleLead', {
-                                defaultValue: 'This block uses only UTC as the public timing reference.'
-                            })}
-                            items={buildScheduleNoteItems(t)}
-                        />
-                        <SectionNote
-                            title={t('realForecastJournal.page.notes.usefulnessTitle', {
-                                defaultValue: 'Why this page matters'
-                            })}
-                            lead={t('realForecastJournal.page.notes.usefulnessLead', {
-                                defaultValue:
-                                    "This block shows how closely real outcomes match the model's historical expectations."
-                            })}
-                            items={buildUsefulnessNoteItems(t)}
-                        />
-                    </div>
-                </div>
-            </header>
+            <PageDataState
+                shell={
+                    <>
+                        <header className={cls.hero}>
+                            <div className={cls.heroMain}>
+                                <Text type='h1' className={cls.heroTitle}>
+                                    {t('realForecastJournal.page.title', {
+                                        defaultValue: 'Real forecast journal and realized day outcome'
+                                    })}
+                                </Text>
+                                <Text className={cls.heroSubtitle}>
+                                    {t('realForecastJournal.page.subtitle', {
+                                        defaultValue:
+                                            'This page shows the fixed morning forecast for each real trading day, the current state of the open day, the realized outcome after the New York session (working day) closes, and the comparison of this live sample with historical statistics.'
+                                    })}
+                                </Text>
+                                <div className={cls.heroNotes}>
+                                    <SectionNote
+                                        title={t('realForecastJournal.page.notes.causalityTitle', {
+                                            defaultValue: 'Why this page exists'
+                                        })}
+                                        lead={t('realForecastJournal.page.notes.causalityLead', {
+                                            defaultValue:
+                                                'The page keeps the morning forecast and then adds the realized outcome for that same trading day.'
+                                        })}
+                                        items={buildCausalityNoteItems(t)}
+                                    />
+                                    <SectionNote
+                                        title={t('realForecastJournal.page.notes.scheduleTitle', {
+                                            defaultValue: 'Timing contract'
+                                        })}
+                                        lead={t('realForecastJournal.page.notes.scheduleLead', {
+                                            defaultValue: 'This block uses only UTC as the public timing reference.'
+                                        })}
+                                        items={buildScheduleNoteItems(t)}
+                                    />
+                                    <SectionNote
+                                        title={t('realForecastJournal.page.notes.usefulnessTitle', {
+                                            defaultValue: 'Why this page matters'
+                                        })}
+                                        lead={t('realForecastJournal.page.notes.usefulnessLead', {
+                                            defaultValue:
+                                                "This block shows how closely real outcomes match the model's historical expectations."
+                                        })}
+                                        items={buildUsefulnessNoteItems(t)}
+                                    />
+                                </div>
+                            </div>
+                        </header>
 
-            <RealForecastJournalTimingSection locale={locale} opsStatusQuery={opsStatusQuery} />
+                        <RealForecastJournalTimingSection locale={locale} opsStatusQuery={opsStatusQuery} />
 
-            <section className={cls.dayStripSection}>
-                <div className={cls.sectionHeader}>
-                    <Text type='h2' className={cls.sectionTitle}>
-                        {t('realForecastJournal.days.title', { defaultValue: 'Captured trading days' })}
-                    </Text>
-                    <Text className={cls.sectionSubtitle}>
-                        {t('realForecastJournal.days.subtitle', {
-                            defaultValue:
-                                'Newest day is selected by default. Morning forecast rows keep realized fields empty until the journal finalizer runs after the NY close.'
-                        })}
-                    </Text>
-                </div>
-                {isDayListLoading ?
-                    <SectionDataState
-                        isLoading
-                        hasData={false}
-                        title={t('realForecastJournal.page.errorTitle', {
-                            defaultValue: 'Failed to load the real forecast journal'
-                        })}
-                        loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}>
-                        {null}
-                    </SectionDataState>
-                : dayListError ?
-                    <SectionDataState
-                        isError
-                        error={dayListError}
-                        hasData={false}
-                        onRetry={onRetry}
-                        title={t('realForecastJournal.page.errorTitle', {
-                            defaultValue: 'Failed to load the real forecast journal'
-                        })}
-                        logContext={{ source: 'real-forecast-journal-day-list' }}>
-                        {null}
-                    </SectionDataState>
-                : dayList.length === 0 ?
-                    <div className={cls.sectionError}>
-                        <Text type='h3'>
-                            {t('realForecastJournal.page.emptyTitle', {
-                                defaultValue: 'No captured trading days yet'
-                            })}
-                        </Text>
-                        <Text>
-                            {t('realForecastJournal.page.empty', {
-                                defaultValue:
-                                    'The journal will start filling once the first immutable morning forecast is captured.'
-                            })}
-                        </Text>
-                    </div>
-                :   <div className={cls.dayStrip}>
-                        {dayList.map(day => {
-                            const isActive = day.predictionDateUtc === selectedDate
-                            return (
-                                <button
-                                    key={day.id}
-                                    type='button'
-                                    className={classNames(cls.dayButton, { [cls.dayButtonActive]: isActive }, [])}
-                                    onClick={() => {
-                                        const nextParams = new URLSearchParams(searchParams)
-                                        nextParams.set('date', day.predictionDateUtc)
-                                        setSearchParams(nextParams, { replace: true })
-                                    }}>
-                                    <span className={cls.dayDate}>{day.predictionDateUtc}</span>
-                                    <span className={cls.dayStatus}>{resolveDayStatusBadge(day.status, t)}</span>
-                                    <span className={cls.dayDirection}>
-                                        {localizeForecastDisplay(day.predLabelDisplay, t)}
-                                    </span>
-                                </button>
-                            )
-                        })}
-                    </div>
+                        <section className={cls.dayStripSection}>
+                            <div className={cls.sectionHeader}>
+                                <Text type='h2' className={cls.sectionTitle}>
+                                    {t('realForecastJournal.days.title', { defaultValue: 'Captured trading days' })}
+                                </Text>
+                                <Text className={cls.sectionSubtitle}>
+                                    {t('realForecastJournal.days.subtitle', {
+                                        defaultValue:
+                                            'Newest day is selected by default. Morning forecast rows keep realized fields empty until the journal finalizer runs after the NY close.'
+                                    })}
+                                </Text>
+                            </div>
+                            {isDayListLoading ?
+                                <PageSectionDataState
+                                    isLoading
+                                    hasData={false}
+                                    title={t('realForecastJournal.page.errorTitle', {
+                                        defaultValue: 'Failed to load the real forecast journal'
+                                    })}
+                                    loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}>
+                                    {null}
+                                </PageSectionDataState>
+                            : dayListError ?
+                                <PageSectionDataState
+                                    isError
+                                    error={dayListError}
+                                    hasData={false}
+                                    onRetry={onRetry}
+                                    title={t('realForecastJournal.page.errorTitle', {
+                                        defaultValue: 'Failed to load the real forecast journal'
+                                    })}
+                                    logContext={{ source: 'real-forecast-journal-day-list' }}>
+                                    {null}
+                                </PageSectionDataState>
+                            : dayList.length === 0 ?
+                                <div className={cls.sectionError}>
+                                    <Text type='h3'>
+                                        {t('realForecastJournal.page.emptyTitle', {
+                                            defaultValue: 'No captured trading days yet'
+                                        })}
+                                    </Text>
+                                    <Text>
+                                        {t('realForecastJournal.page.empty', {
+                                            defaultValue:
+                                                'The journal will start filling once the first immutable morning forecast is captured.'
+                                        })}
+                                    </Text>
+                                </div>
+                            :   <div className={cls.dayStrip}>
+                                    {dayList.map(day => {
+                                        const isActive = day.predictionDateUtc === selectedDate
+                                        return (
+                                            <button
+                                                key={day.id}
+                                                type='button'
+                                                className={classNames(cls.dayButton, { [cls.dayButtonActive]: isActive }, [])}
+                                                onClick={() => {
+                                                    const nextParams = new URLSearchParams(searchParams)
+                                                    nextParams.set('date', day.predictionDateUtc)
+                                                    setSearchParams(nextParams, { replace: true })
+                                                }}>
+                                                <span className={cls.dayDate}>{day.predictionDateUtc}</span>
+                                                <span className={cls.dayStatus}>{resolveDayStatusBadge(day.status, t)}</span>
+                                                <span className={cls.dayDirection}>
+                                                    {localizeForecastDisplay(day.predLabelDisplay, t)}
+                                                </span>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            }
+                        </section>
+                    </>
                 }
-            </section>
-
-            <SectionDataState
                 isLoading={isSelectedRecordLoading}
                 isError={Boolean(selectedDayError)}
                 error={selectedDayError}
@@ -2017,7 +2020,7 @@ function RealForecastJournalPageContent({
                         </section>
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
 
             <RealForecastJournalComparisonSection
                 locale={locale}

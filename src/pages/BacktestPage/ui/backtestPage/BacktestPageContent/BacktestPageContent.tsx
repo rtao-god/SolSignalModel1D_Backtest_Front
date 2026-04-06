@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import cls from './BacktestPageContent.module.scss'
-import { Text } from '@/shared/ui'
 import type {
     BacktestCompareResponseDto,
     BacktestConfigDto,
@@ -22,7 +21,7 @@ import { BacktestBaselineColumn } from '../BacktestBaselineColumn/BacktestBaseli
 import { BacktestWhatIfColumn } from '../BacktestWhatIfColumn/BacktestWhatIfColumn'
 import { BacktestCompareBlock } from '../BacktestCompareBlock/BacktestCompareBlock'
 import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { BacktestExperimentsLab } from '../BacktestExperimentsLab/BacktestExperimentsLab'
 
 interface BacktestPageContentProps {
@@ -412,17 +411,20 @@ export function BacktestPageContent({
 
     return (
         <div className={cls.content}>
-            <BacktestPageHeader
-                profiles={profiles}
-                currentProfile={currentProfile}
-                onProfileChange={setSelectedProfileId}
-                tpSlMode={tpSlMode}
-                onTpSlModeChange={setTpSlMode}
-            />
+            <PageDataState
+                shell={
+                    <>
+                        <BacktestPageHeader
+                            profiles={profiles}
+                            currentProfile={currentProfile}
+                            onProfileChange={setSelectedProfileId}
+                            tpSlMode={tpSlMode}
+                            onTpSlModeChange={setTpSlMode}
+                        />
 
-            <BacktestExperimentsLab />
-
-            <SectionDataState
+                        <BacktestExperimentsLab />
+                    </>
+                }
                 isLoading={isProfilesLoading && !currentProfile}
                 isError={Boolean(interactiveContentError)}
                 error={interactiveContentError ? new Error(interactiveContentError) : null}
@@ -510,7 +512,7 @@ export function BacktestPageContent({
                         />
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

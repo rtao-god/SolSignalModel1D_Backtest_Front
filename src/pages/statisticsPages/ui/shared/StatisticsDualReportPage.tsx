@@ -2,7 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import classNames from '@/shared/lib/helpers/classNames'
 import type { ReportDocumentDto } from '@/shared/types/report.types'
 import { ReportDocumentView, ReportTableTermsBlock, Text } from '@/shared/ui'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import type { StatisticsProvidedTerm, StatisticsSummaryCard } from './statisticsReportPageHelpers'
 import cls from './StatisticsDualReportPage.module.scss'
 
@@ -35,7 +35,7 @@ function renderReportPane(pane: StatisticsReportPane) {
             <Text type='h2' className={cls.blockTitle}>
                 {pane.title}
             </Text>
-            <SectionDataState
+            <PageSectionDataState
                 hasData={Boolean(pane.query.data)}
                 isLoading={pane.query.isLoading}
                 isError={Boolean(pane.query.error)}
@@ -57,7 +57,7 @@ function renderReportPane(pane: StatisticsReportPane) {
                         showTableTermsBlock={false}
                     />
                 )}
-            </SectionDataState>
+            </PageSectionDataState>
         </section>
     )
 }

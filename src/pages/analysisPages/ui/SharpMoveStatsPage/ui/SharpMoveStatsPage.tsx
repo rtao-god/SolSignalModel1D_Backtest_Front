@@ -15,7 +15,7 @@ import {
 } from '@/shared/api/tanstackQueries/backtestSharpMoveStats'
 import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import {
     ReportDocumentView,
     ReportViewControls,
@@ -344,43 +344,46 @@ Recent = короткий пользовательский хвост 15% вну
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])} data-tooltip-boundary>
-            <section className={cls.hero}>
-                <Text type='h1'>
-                    {t('sharpMoveStats.page.title', { defaultValue: 'Статистика резких движений' })}
-                </Text>
-                <Text>
-                    {renderTermTooltipRichText(
-                        t('sharpMoveStats.page.subtitle', {
-                            defaultValue:
-                                'Страница проверяет, что чаще происходит после резкого импульса цены монеты: продолжение тренда или быстрый разворот. Сетка сразу считает рост и падение, пороги от 5% до 20% и горизонты от 1 до 30 дней.'
-                        })
-                    )}
-                </Text>
-            </section>
+            <PageDataState
+                shell={
+                    <>
+                        <section className={cls.hero}>
+                            <Text type='h1'>
+                                {t('sharpMoveStats.page.title', { defaultValue: 'Статистика резких движений' })}
+                            </Text>
+                            <Text>
+                                {renderTermTooltipRichText(
+                                    t('sharpMoveStats.page.subtitle', {
+                                        defaultValue:
+                                            'Страница проверяет, что чаще происходит после резкого импульса цены монеты: продолжение тренда или быстрый разворот. Сетка сразу считает рост и падение, пороги от 5% до 20% и горизонты от 1 до 30 дней.'
+                                    })
+                                )}
+                            </Text>
+                        </section>
 
-            <section className={cls.controls}>
-                <ReportViewControls groups={controlGroups} />
-            </section>
-
-            <section className={cls.report}>
-                <SectionDataState
-                    hasData={Boolean(reportQuery.data)}
-                    isLoading={variantCatalogQuery.isLoading || reportQuery.isLoading}
-                    isError={Boolean(pageError)}
-                    error={pageError}
-                    loadingText={t('sharpMoveStats.page.loading', {
-                        defaultValue: 'Загружаю статистику резких движений'
-                    })}
-                    title={t('sharpMoveStats.page.errorTitle', {
-                        defaultValue: 'Не удалось загрузить статистику резких движений'
-                    })}
-                    description={t('sharpMoveStats.page.errorMessage', {
-                        defaultValue: 'Проверь published variant catalog и выбранные параметры сценария.'
-                    })}
-                    onRetry={() => {
-                        void variantCatalogQuery.refetch()
-                        void reportQuery.refetch()
-                    }}>
+                        <section className={cls.controls}>
+                            <ReportViewControls groups={controlGroups} />
+                        </section>
+                    </>
+                }
+                hasData={Boolean(reportQuery.data)}
+                isLoading={variantCatalogQuery.isLoading || reportQuery.isLoading}
+                isError={Boolean(pageError)}
+                error={pageError}
+                loadingText={t('sharpMoveStats.page.loading', {
+                    defaultValue: 'Загружаю статистику резких движений'
+                })}
+                title={t('sharpMoveStats.page.errorTitle', {
+                    defaultValue: 'Не удалось загрузить статистику резких движений'
+                })}
+                description={t('sharpMoveStats.page.errorMessage', {
+                    defaultValue: 'Проверь published variant catalog и выбранные параметры сценария.'
+                })}
+                onRetry={() => {
+                    void variantCatalogQuery.refetch()
+                    void reportQuery.refetch()
+                }}>
+                <section className={cls.report}>
                     {reportQuery.data && (
                         <ReportDocumentView
                             report={reportQuery.data}
@@ -388,8 +391,8 @@ Recent = короткий пользовательский хвост 15% вну
                             showTableTermsBlock={false}
                         />
                     )}
-                </SectionDataState>
-            </section>
+                </section>
+            </PageDataState>
         </div>
     )
 }

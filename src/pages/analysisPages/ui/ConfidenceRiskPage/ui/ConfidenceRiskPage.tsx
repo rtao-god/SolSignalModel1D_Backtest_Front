@@ -37,7 +37,7 @@ import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint
 import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import cls from './ConfidenceRiskPage.module.scss'
 import type { ConfidenceRiskPageProps } from './types'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 
 interface ConfidenceRiskTerm {
     key: string
@@ -750,172 +750,181 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
 
     return (
         <div className={rootClassName}>
-            <header className={cls.hero}>
-                <div>
-                    <Text type='h1' className={cls.heroTitle}>
-                        {t('confidenceRisk.page.title')}
-                    </Text>
-                    <Text className={cls.heroSubtitle}>{t('confidenceRisk.page.subtitle')}</Text>
+            <PageDataState
+                shell={
+                    <>
+                        <header className={cls.hero}>
+                            <div>
+                                <Text type='h1' className={cls.heroTitle}>
+                                    {t('confidenceRisk.page.title')}
+                                </Text>
+                                <Text className={cls.heroSubtitle}>{t('confidenceRisk.page.subtitle')}</Text>
 
-                    <ReportViewControls groups={controlGroups} />
-                    {scopeMetaState.value && <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>}
-                    {controlsError && (
-                        <SectionDataState
-                            className={cls.termsBlock}
-                            isError
-                            error={controlsError}
-                            hasData={false}
-                            title={
-                                scopeState.error ? t('confidenceRisk.page.errors.scopeQuery.title')
-                                : scopeMetaState.error ?
-                                    t('confidenceRisk.page.errors.scopeMeta.title')
-                                : confidenceBucketOptionsState.error ?
-                                    t('confidenceRisk.page.errors.bucketOptions.title')
-                                :   t('confidenceRisk.page.errors.confBucketQuery.title')
-                            }
-                            description={
-                                scopeState.error ? t('confidenceRisk.page.errors.scopeQuery.message')
-                                : scopeMetaState.error ?
-                                    t('confidenceRisk.page.errors.scopeMeta.message')
-                                : confidenceBucketOptionsState.error ?
-                                    t('confidenceRisk.page.errors.bucketOptions.message')
-                                :   t('confidenceRisk.page.errors.confBucketQuery.message')
-                            }
-                            logContext={{ source: 'confidence-risk-controls' }}>
-                            {null}
-                        </SectionDataState>
-                    )}
-                </div>
-
-                {hasReadyReport && data && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        statusTitle={t('confidenceRisk.page.status.title')}
-                        statusMessage={t('confidenceRisk.page.status.message')}
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={data.title}
-                        reportId={data.id}
-                        reportKind={data.kind}
-                        generatedAtUtc={data.generatedAtUtc}
-                    />
-                )}
-            </header>
-
-            <section className={cls.sectionBlock}>
-                <ReportTableTermsBlock
-                    terms={tableTerms}
-                    subtitle={t('confidenceRisk.page.termsSubtitle')}
-                    enhanceDomainTerms
-                    className={cls.termsBlock}
-                />
-            </section>
-
-            {!controlsError && (
-                <SectionDataState
-                    isLoading={variantCatalogQuery.isPending || isLoading}
-                    isError={Boolean(isError || reportStateError)}
-                    error={reportStateError}
-                    hasData={hasReadyReport}
-                    onRetry={handleRetry}
-                    title={
-                        generatedAtState.error ? t('confidenceRisk.page.errors.invalidGeneratedAt.title')
-                        : sourceEndpointState.error ?
-                            t('confidenceRisk.page.errors.invalidSource.title')
-                        :   t('confidenceRisk.page.errorTitle')
-                    }
-                    description={
-                        generatedAtState.error ? t('confidenceRisk.page.errors.invalidGeneratedAt.message')
-                        : sourceEndpointState.error ?
-                            t('confidenceRisk.page.errors.invalidSource.message')
-                        :   undefined
-                    }
-                    loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
-                    logContext={{
-                        source: 'confidence-risk-report',
-                        extra: { scope: effectiveScope, confBucket: rawConfidenceBucketQuery }
-                    }}>
-                    {data && (
-                        <>
-                            <SectionDataState
-                                isError={Boolean(configState.error)}
-                                error={configState.error}
-                                hasData={!configState.error}
-                                onRetry={handleRetry}
-                                title={t('confidenceRisk.page.errors.config.title')}
-                                description={t('confidenceRisk.page.errors.config.message')}
-                                logContext={{ source: 'confidence-risk-config' }}>
-                                {configState.section && (
-                                    <section className={cls.configBlock}>
-                                        <div className={cls.configHeader}>
-                                            <Text type='h3' className={cls.configTitle}>
-                                                {t('confidenceRisk.page.config.title')}
-                                            </Text>
-                                            <Text className={cls.configSubtitle}>
-                                                {t('confidenceRisk.page.config.subtitle')}
-                                            </Text>
-                                        </div>
-                                        <div className={cls.configGrid}>
-                                            {(configState.section.items ?? []).map(item => {
-                                                const term = getConfigTerm(item.key, configTermsMap)
-                                                return (
-                                                    <div key={item.key} className={cls.configItem}>
-                                                        <div className={cls.configKeyRow}>
-                                                            <TermTooltip
-                                                                term={term.title}
-                                                                description={enrichTermTooltipDescription(
-                                                                    term.tooltip,
-                                                                    {
-                                                                        term: term.title,
-                                                                        excludeTerms: [term.title],
-                                                                        excludeRuleTitles: [term.title]
-                                                                    }
-                                                                )}
-                                                                type='span'
-                                                            />
-                                                            <Text className={cls.configValue}>{item.value}</Text>
-                                                        </div>
-                                                        <Text className={cls.configDescription}>
-                                                            {renderTermTooltipRichText(term.description, {
-                                                                excludeTerms: [term.title],
-                                                                excludeRuleTitles: [term.title]
-                                                            })}
-                                                        </Text>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </section>
+                                <ReportViewControls groups={controlGroups} />
+                                {scopeMetaState.value && <Text className={cls.scopeHint}>{scopeMetaState.value.hint}</Text>}
+                                {controlsError && (
+                                    <PageSectionDataState
+                                        className={cls.termsBlock}
+                                        isError
+                                        error={controlsError}
+                                        hasData={false}
+                                        title={
+                                            scopeState.error ? t('confidenceRisk.page.errors.scopeQuery.title')
+                                            : scopeMetaState.error ?
+                                                t('confidenceRisk.page.errors.scopeMeta.title')
+                                            : confidenceBucketOptionsState.error ?
+                                                t('confidenceRisk.page.errors.bucketOptions.title')
+                                            :   t('confidenceRisk.page.errors.confBucketQuery.title')
+                                        }
+                                        description={
+                                            scopeState.error ? t('confidenceRisk.page.errors.scopeQuery.message')
+                                            : scopeMetaState.error ?
+                                                t('confidenceRisk.page.errors.scopeMeta.message')
+                                            : confidenceBucketOptionsState.error ?
+                                                t('confidenceRisk.page.errors.bucketOptions.message')
+                                            :   t('confidenceRisk.page.errors.confBucketQuery.message')
+                                        }
+                                        logContext={{ source: 'confidence-risk-controls' }}>
+                                        {null}
+                                    </PageSectionDataState>
                                 )}
-                            </SectionDataState>
+                            </div>
 
-                            <section className={cls.sectionBlock}>
-                                {tableSections.length === 0 ?
-                                    <Text>{t('confidenceRisk.page.emptyTable')}</Text>
-                                :   tableSections.map((section, index) => {
-                                        const domId = `confidence-risk-${index + 1}`
-                                        const title =
-                                            section.title ||
-                                            t('confidenceRisk.page.tableTitleFallback', { index: index + 1 })
+                            {hasReadyReport && data && sourceEndpointState.value && (
+                                <ReportActualStatusCard
+                                    statusMode='actual'
+                                    statusTitle={t('confidenceRisk.page.status.title')}
+                                    statusMessage={t('confidenceRisk.page.status.message')}
+                                    dataSource={sourceEndpointState.value}
+                                    reportTitle={data.title}
+                                    reportId={data.id}
+                                    reportKind={data.kind}
+                                    generatedAtUtc={data.generatedAtUtc}
+                                />
+                            )}
+                        </header>
 
-                                        return (
-                                            <ReportTableCard
-                                                key={`${section.title}-${index}`}
-                                                title={title}
-                                                description={t('confidenceRisk.page.tableDescription')}
-                                                columns={section.columns ?? []}
-                                                rows={section.rows ?? []}
-                                                rowEvaluations={section.rowEvaluations ?? []}
-                                                domId={domId}
-                                                renderColumnTitle={renderColumnTitle}
-                                            />
-                                        )
-                                    })
-                                }
-                            </section>
-                        </>
-                    )}
-                </SectionDataState>
-            )}
+                        <section className={cls.sectionBlock}>
+                            <ReportTableTermsBlock
+                                terms={tableTerms}
+                                subtitle={t('confidenceRisk.page.termsSubtitle')}
+                                enhanceDomainTerms
+                                className={cls.termsBlock}
+                            />
+                        </section>
+                    </>
+                }
+                isLoading={false}
+                isError={false}
+                hasData
+                title={t('confidenceRisk.page.title')}>
+                {!controlsError && (
+                    <PageSectionDataState
+                        isLoading={variantCatalogQuery.isPending || isLoading}
+                        isError={Boolean(isError || reportStateError)}
+                        error={reportStateError}
+                        hasData={hasReadyReport}
+                        onRetry={handleRetry}
+                        title={
+                            generatedAtState.error ? t('confidenceRisk.page.errors.invalidGeneratedAt.title')
+                            : sourceEndpointState.error ?
+                                t('confidenceRisk.page.errors.invalidSource.title')
+                            :   t('confidenceRisk.page.errorTitle')
+                        }
+                        description={
+                            generatedAtState.error ? t('confidenceRisk.page.errors.invalidGeneratedAt.message')
+                            : sourceEndpointState.error ?
+                                t('confidenceRisk.page.errors.invalidSource.message')
+                            :   undefined
+                        }
+                        loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                        logContext={{
+                            source: 'confidence-risk-report',
+                            extra: { scope: effectiveScope, confBucket: rawConfidenceBucketQuery }
+                        }}>
+                        {data && (
+                            <>
+                                <PageSectionDataState
+                                    isError={Boolean(configState.error)}
+                                    error={configState.error}
+                                    hasData={!configState.error}
+                                    onRetry={handleRetry}
+                                    title={t('confidenceRisk.page.errors.config.title')}
+                                    description={t('confidenceRisk.page.errors.config.message')}
+                                    logContext={{ source: 'confidence-risk-config' }}>
+                                    {configState.section && (
+                                        <section className={cls.configBlock}>
+                                            <div className={cls.configHeader}>
+                                                <Text type='h3' className={cls.configTitle}>
+                                                    {t('confidenceRisk.page.config.title')}
+                                                </Text>
+                                                <Text className={cls.configSubtitle}>
+                                                    {t('confidenceRisk.page.config.subtitle')}
+                                                </Text>
+                                            </div>
+                                            <div className={cls.configGrid}>
+                                                {(configState.section.items ?? []).map(item => {
+                                                    const term = getConfigTerm(item.key, configTermsMap)
+                                                    return (
+                                                        <div key={item.key} className={cls.configItem}>
+                                                            <div className={cls.configKeyRow}>
+                                                                <TermTooltip
+                                                                    term={term.title}
+                                                                    description={enrichTermTooltipDescription(
+                                                                        term.tooltip,
+                                                                        {
+                                                                            term: term.title,
+                                                                            excludeTerms: [term.title],
+                                                                            excludeRuleTitles: [term.title]
+                                                                        }
+                                                                    )}
+                                                                    type='span'
+                                                                />
+                                                                <Text className={cls.configValue}>{item.value}</Text>
+                                                            </div>
+                                                            <Text className={cls.configDescription}>
+                                                                {renderTermTooltipRichText(term.description, {
+                                                                    excludeTerms: [term.title],
+                                                                    excludeRuleTitles: [term.title]
+                                                                })}
+                                                            </Text>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </section>
+                                    )}
+                                </PageSectionDataState>
+
+                                <section className={cls.sectionBlock}>
+                                    {tableSections.length === 0 ?
+                                        <Text>{t('confidenceRisk.page.emptyTable')}</Text>
+                                    :   tableSections.map((section, index) => {
+                                            const domId = `confidence-risk-${index + 1}`
+                                            const title =
+                                                section.title ||
+                                                t('confidenceRisk.page.tableTitleFallback', { index: index + 1 })
+
+                                            return (
+                                                <ReportTableCard
+                                                    key={`${section.title}-${index}`}
+                                                    title={title}
+                                                    description={t('confidenceRisk.page.tableDescription')}
+                                                    columns={section.columns ?? []}
+                                                    rows={section.rows ?? []}
+                                                    rowEvaluations={section.rowEvaluations ?? []}
+                                                    domId={domId}
+                                                    renderColumnTitle={renderColumnTitle}
+                                                />
+                                            )
+                                        })
+                                    }
+                                </section>
+                            </>
+                        )}
+                    </PageSectionDataState>
+                )}
+            </PageDataState>
         </div>
     )
 }

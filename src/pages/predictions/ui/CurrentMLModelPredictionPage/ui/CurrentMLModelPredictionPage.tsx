@@ -28,7 +28,7 @@ import type {
     TableSectionDto
 } from '@/shared/types/report.types'
 import { useTranslation } from 'react-i18next'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
@@ -299,29 +299,32 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
 
     return (
         <div className={rootClassName}>
-            {/* Вводный блок рендерится до data-state, чтобы смысл экрана был виден даже при ошибке загрузки live-отчёта. */}
-            <PredictionPageIntro
-                title={t('currentPrediction.page.intro.title')}
-                lead={t('currentPrediction.page.intro.lead')}
-                bullets={introBullets}
-                renderText={renderIntroText}
-            />
+            <PageDataState
+                shell={
+                    <>
+                        {/* Вводный блок рендерится до data-state, чтобы смысл экрана был виден даже при ошибке загрузки live-отчёта. */}
+                        <PredictionPageIntro
+                            title={t('currentPrediction.page.intro.title')}
+                            lead={t('currentPrediction.page.intro.lead')}
+                            bullets={introBullets}
+                            renderText={renderIntroText}
+                        />
 
-            <PredictionTrainingScopeDescriptionBlock variant='live' description={trainingScopeDescription} />
-            <PredictionSliceTimelinePanel
-                primaryStats={trainingScopeStats}
-                activeScope={trainingScope}
-                isPrimaryLoading={isLoading}
-            />
+                        <PredictionTrainingScopeDescriptionBlock variant='live' description={trainingScopeDescription} />
+                        <PredictionSliceTimelinePanel
+                            primaryStats={trainingScopeStats}
+                            activeScope={trainingScope}
+                            isPrimaryLoading={isLoading}
+                        />
 
-            <div className={cls.scopePanel}>
-                <ReportViewControls groups={controlGroups} className={cls.scopeControls} />
-                <Text type='p' className={cls.scopeHint}>
-                    {currentScopeMeta.hint}
-                </Text>
-            </div>
-
-            <SectionDataState
+                        <div className={cls.scopePanel}>
+                            <ReportViewControls groups={controlGroups} className={cls.scopeControls} />
+                            <Text type='p' className={cls.scopeHint}>
+                                {currentScopeMeta.hint}
+                            </Text>
+                        </div>
+                    </>
+                }
                 isLoading={isLoading}
                 isError={isError}
                 error={error}
@@ -403,7 +406,7 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
                         </SectionErrorBoundary>
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

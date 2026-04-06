@@ -13,7 +13,7 @@ import {
     useBacktestBoundedParameterStatsReportQuery
 } from '@/shared/api/tanstackQueries/backtestBoundedParameterStats'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { ReportDocumentView, ReportViewControls, Text, type ReportViewControlGroup } from '@/shared/ui'
 import cls from './BoundedParameterStatsPage.module.scss'
 import type { BoundedParameterStatsPageProps } from './types'
@@ -146,41 +146,46 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])} data-tooltip-boundary>
-            <section className={cls.hero}>
-                <Text type='h1'>
-                    {t('boundedParameterStats.page.title', { defaultValue: 'Статистика ограничивающих параметров' })}
-                </Text>
-                <Text>
-                    {t('boundedParameterStats.page.subtitle', {
-                        defaultValue:
-                            'Страница сравнивает сетку значений для одного ограничивающего параметра и показывает, как меняется качество моделей, частота срабатывания ограничения и итоговое поведение формулы.'
-                    })}
-                </Text>
-            </section>
+            <PageDataState
+                shell={
+                    <>
+                        <section className={cls.hero}>
+                            <Text type='h1'>
+                                {t('boundedParameterStats.page.title', {
+                                    defaultValue: 'Статистика ограничивающих параметров'
+                                })}
+                            </Text>
+                            <Text>
+                                {t('boundedParameterStats.page.subtitle', {
+                                    defaultValue:
+                                        'Страница сравнивает сетку значений для одного ограничивающего параметра и показывает, как меняется качество моделей, частота срабатывания ограничения и итоговое поведение формулы.'
+                                })}
+                            </Text>
+                        </section>
 
-            <section className={cls.controls}>
-                <ReportViewControls groups={controlGroups} />
-            </section>
-
-            <section className={cls.report}>
-                <SectionDataState
-                    hasData={Boolean(reportQuery.data)}
-                    isLoading={variantCatalogQuery.isLoading || reportQuery.isLoading}
-                    isError={Boolean(pageError)}
-                    error={pageError}
-                    loadingText={t('boundedParameterStats.page.loading', {
-                        defaultValue: 'Загружаю статистику ограничивающих параметров'
-                    })}
-                    title={t('boundedParameterStats.page.errorTitle', {
-                        defaultValue: 'Не удалось загрузить статистику ограничивающих параметров'
-                    })}
-                    description={t('boundedParameterStats.page.errorMessage', {
-                        defaultValue: 'Проверь published variant catalog и выбранные owner/parameter значения.'
-                    })}
-                    onRetry={() => {
-                        void variantCatalogQuery.refetch()
-                        void reportQuery.refetch()
-                    }}>
+                        <section className={cls.controls}>
+                            <ReportViewControls groups={controlGroups} />
+                        </section>
+                    </>
+                }
+                hasData={Boolean(reportQuery.data)}
+                isLoading={variantCatalogQuery.isLoading || reportQuery.isLoading}
+                isError={Boolean(pageError)}
+                error={pageError}
+                loadingText={t('boundedParameterStats.page.loading', {
+                    defaultValue: 'Загружаю статистику ограничивающих параметров'
+                })}
+                title={t('boundedParameterStats.page.errorTitle', {
+                    defaultValue: 'Не удалось загрузить статистику ограничивающих параметров'
+                })}
+                description={t('boundedParameterStats.page.errorMessage', {
+                    defaultValue: 'Проверь published variant catalog и выбранные owner/parameter значения.'
+                })}
+                onRetry={() => {
+                    void variantCatalogQuery.refetch()
+                    void reportQuery.refetch()
+                }}>
+                <section className={cls.report}>
                     {reportQuery.data && (
                         <ReportDocumentView
                             report={reportQuery.data}
@@ -188,8 +193,8 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
                             showTableTermsBlock={false}
                         />
                     )}
-                </SectionDataState>
-            </section>
+                </section>
+            </PageDataState>
         </div>
     )
 }

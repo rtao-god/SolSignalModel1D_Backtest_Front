@@ -26,7 +26,7 @@ import {
     resolveBacktestDiagnosticsSearchSelection
 } from '@/shared/utils/backtestDiagnosticsQuery'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { localizeReportSectionTitle } from '@/shared/utils/reportPresentationLocalization'
 import { pruneDuplicatePolicyMarginColumn } from '@/shared/utils/reportPolicyMarginMode'
@@ -434,30 +434,31 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
 
     return (
         <div className={rootClassName}>
-            <header className={cls.hero}>
-                <div>
-                    <Text type='h1' className={cls.heroTitle}>
-                        {t('executionPipeline.page.title')}
-                    </Text>
-                    <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
-                    <ReportViewControls groups={controlGroups} className={cls.controls} />
-                </div>
+            <PageDataState
+                shell={
+                    <header className={cls.hero}>
+                        <div>
+                            <Text type='h1' className={cls.heroTitle}>
+                                {t('executionPipeline.page.title')}
+                            </Text>
+                            <Text className={cls.heroSubtitle}>{t('executionPipeline.page.subtitle')}</Text>
+                            <ReportViewControls groups={controlGroups} className={cls.controls} />
+                        </div>
 
-                {hasReadyReport && data && sourceEndpointState.value && (
-                    <ReportActualStatusCard
-                        statusMode='actual'
-                        statusTitle={t('executionPipeline.page.status.title')}
-                        statusMessage={t('executionPipeline.page.status.description')}
-                        dataSource={sourceEndpointState.value}
-                        reportTitle={data.title}
-                        reportId={data.id}
-                        reportKind={data.kind}
-                        generatedAtUtc={data.generatedAtUtc}
-                    />
-                )}
-            </header>
-
-            <SectionDataState
+                        {hasReadyReport && data && sourceEndpointState.value && (
+                            <ReportActualStatusCard
+                                statusMode='actual'
+                                statusTitle={t('executionPipeline.page.status.title')}
+                                statusMessage={t('executionPipeline.page.status.description')}
+                                dataSource={sourceEndpointState.value}
+                                reportTitle={data.title}
+                                reportId={data.id}
+                                reportKind={data.kind}
+                                generatedAtUtc={data.generatedAtUtc}
+                            />
+                        )}
+                    </header>
+                }
                 isLoading={variantCatalogQuery.isPending || isLoading}
                 isError={Boolean(isError || reportStateError)}
                 error={reportStateError}
@@ -478,7 +479,7 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                 logContext={{ source: 'execution-pipeline-page' }}>
                 {data && (
-                    <SectionDataState
+                    <PageSectionDataState
                         isError={Boolean(parsedSectionsState.error)}
                         error={parsedSectionsState.error}
                         hasData={Boolean(parsedSectionsState.value)}
@@ -585,9 +586,9 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
                                 </section>
                             </>
                         )}
-                    </SectionDataState>
+                    </PageSectionDataState>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

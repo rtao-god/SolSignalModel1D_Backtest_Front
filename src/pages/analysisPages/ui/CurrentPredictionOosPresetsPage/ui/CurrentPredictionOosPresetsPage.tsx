@@ -12,7 +12,7 @@ import {
     type ReportMetricScatterDatum,
     type ReportViewControlGroup
 } from '@/shared/ui'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import type { TableRow } from '@/shared/ui/SortableTable'
 import {
     type CurrentPredictionOosPresetAnalysis,
@@ -343,31 +343,34 @@ export default function CurrentPredictionOosPresetsPage({ className }: CurrentPr
 
     return (
         <div className={classNames(cls.root, {}, [className ?? ''])} data-tooltip-boundary>
-            <section className={cls.hero}>
-                <Text type='h1' className={cls.heroTitle}>
-                    {t('currentPredictionOosPresets.page.title', {
-                        defaultValue: 'Сравнение OOS и TRAIN по доле последних дней'
-                    })}
-                </Text>
-                <Text className={cls.heroSubtitle}>
-                    {t('currentPredictionOosPresets.page.subtitle', {
-                        defaultValue:
-                            'Страница сравнивает, как меняется качество модели при разном размере OOS: OOS получает последние дни для отдельной проверки, а TRAIN получает остальную историю для обучения.'
-                    })}
-                </Text>
-            </section>
+            <PageDataState
+                shell={
+                    <>
+                        <section className={cls.hero}>
+                            <Text type='h1' className={cls.heroTitle}>
+                                {t('currentPredictionOosPresets.page.title', {
+                                    defaultValue: 'Сравнение OOS и TRAIN по доле последних дней'
+                                })}
+                            </Text>
+                            <Text className={cls.heroSubtitle}>
+                                {t('currentPredictionOosPresets.page.subtitle', {
+                                    defaultValue:
+                                        'Страница сравнивает, как меняется качество модели при разном размере OOS: OOS получает последние дни для отдельной проверки, а TRAIN получает остальную историю для обучения.'
+                                })}
+                            </Text>
+                        </section>
 
-            <section className={cls.controls}>
-                <ReportViewControls groups={controls} />
-                <Text className={cls.controlHint}>
-                    {t('currentPredictionOosPresets.page.controlHint', {
-                        defaultValue:
-                            'Экран открывает уже готовые сравнения. При открытии страницы ничего заново не пересчитывается.'
-                    })}
-                </Text>
-            </section>
-
-            <SectionDataState
+                        <section className={cls.controls}>
+                            <ReportViewControls groups={controls} />
+                            <Text className={cls.controlHint}>
+                                {t('currentPredictionOosPresets.page.controlHint', {
+                                    defaultValue:
+                                        'Экран открывает уже готовые сравнения. При открытии страницы ничего заново не пересчитывается.'
+                                })}
+                            </Text>
+                        </section>
+                    </>
+                }
                 hasData={Boolean(analysis)}
                 isLoading={baseQuery.isLoading && !baseQuery.data}
                 isError={Boolean(error)}
@@ -540,7 +543,7 @@ export default function CurrentPredictionOosPresetsPage({ className }: CurrentPr
                         )}
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

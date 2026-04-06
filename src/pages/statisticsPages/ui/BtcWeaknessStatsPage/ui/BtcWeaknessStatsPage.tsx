@@ -5,7 +5,7 @@ import { useBacktestBtcWeaknessStatsReportQuery } from '@/shared/api/tanstackQue
 import { useStatisticsBtcWeaknessLiveReportQuery } from '@/shared/api/tanstackQueries/statisticsBtcWeaknessLive'
 import type { KeyValueItemDto, KeyValueSectionDto, ReportDocumentDto, ReportSectionDto } from '@/shared/types/report.types'
 import { ReportDocumentView, ReportTableTermsBlock, Text } from '@/shared/ui'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import type { BtcWeaknessProvidedTerm, SummaryCard, SummaryCardLine } from './types'
 import cls from './BtcWeaknessStatsPage.module.scss'
 
@@ -184,109 +184,120 @@ export default function BtcWeaknessStatsPage() {
 
     return (
         <div className={classNames(cls.root, {}, [])} data-tooltip-boundary>
-            <section className={cls.hero}>
-                <Text type='h1'>{t('btcWeaknessStats.page.title', { defaultValue: 'Bitcoin weakness statistics' })}</Text>
-                <Text>
-                    {t('btcWeaknessStats.page.subtitle', {
-                        defaultValue:
-                            'The page shows the project rule that removes an up forecast for the Solana coin price and moves it into sideways when Bitcoin shows three weakness signs at the same time.'
-                    })}
-                </Text>
-            </section>
+            <PageDataState
+                shell={
+                    <>
+                        <section className={cls.hero}>
+                            <Text type='h1'>
+                                {t('btcWeaknessStats.page.title', { defaultValue: 'Bitcoin weakness statistics' })}
+                            </Text>
+                            <Text>
+                                {t('btcWeaknessStats.page.subtitle', {
+                                    defaultValue:
+                                        'The page shows the project rule that removes an up forecast for the Solana coin price and moves it into sideways when Bitcoin shows three weakness signs at the same time.'
+                                })}
+                            </Text>
+                        </section>
 
-            {summaryCards.length > 0 && (
-                <section className={cls.block}>
-                    <Text type='h2' className={cls.blockTitle}>
-                        {t('btcWeaknessStats.page.summary.title', { defaultValue: 'Short project summary' })}
-                    </Text>
-                    <div className={cls.summaryGrid}>
-                        {summaryCards.map(card => (
-                            <article key={card.id} className={cls.summaryCard}>
-                                <Text className={cls.summaryTitle}>{card.title}</Text>
-                                <div className={cls.summaryList}>
-                                    {card.lines.map(line => (
-                                        <div key={`${card.id}:${line.label}`} className={cls.summaryRow}>
-                                            <span className={cls.summaryLabel}>{line.label}</span>
-                                            <span className={cls.summaryValue}>{line.value}</span>
-                                        </div>
+                        {summaryCards.length > 0 && (
+                            <section className={cls.block}>
+                                <Text type='h2' className={cls.blockTitle}>
+                                    {t('btcWeaknessStats.page.summary.title', { defaultValue: 'Short project summary' })}
+                                </Text>
+                                <div className={cls.summaryGrid}>
+                                    {summaryCards.map(card => (
+                                        <article key={card.id} className={cls.summaryCard}>
+                                            <Text className={cls.summaryTitle}>{card.title}</Text>
+                                            <div className={cls.summaryList}>
+                                                {card.lines.map(line => (
+                                                    <div key={`${card.id}:${line.label}`} className={cls.summaryRow}>
+                                                        <span className={cls.summaryLabel}>{line.label}</span>
+                                                        <span className={cls.summaryValue}>{line.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </article>
                                     ))}
                                 </div>
-                            </article>
-                        ))}
-                    </div>
+                            </section>
+                        )}
+
+                        <section className={cls.block}>
+                            <ReportTableTermsBlock
+                                className={cls.termsBlock}
+                                title={t('btcWeaknessStats.page.terms.title', { defaultValue: 'Table terms' })}
+                                subtitle={t('btcWeaknessStats.page.terms.subtitle', {
+                                    defaultValue:
+                                        'One glossary is shared by the historical tables and the real-day tables, so the main page text can stay focused on interpretation.'
+                                })}
+                                terms={terms}
+                                collapsible
+                            />
+                        </section>
+                    </>
+                }
+                hasData={Boolean(backtestQuery.data || liveQuery.data)}
+                isLoading={false}
+                isError={false}
+                title={t('btcWeaknessStats.page.title', { defaultValue: 'Bitcoin weakness statistics' })}>
+                <section className={cls.block}>
+                    <Text type='h2' className={cls.blockTitle}>
+                        {t('btcWeaknessStats.page.backtestTitle', { defaultValue: 'Historical statistics' })}
+                    </Text>
+                    <PageSectionDataState
+                        hasData={Boolean(backtestQuery.data)}
+                        isLoading={backtestQuery.isLoading}
+                        isError={Boolean(backtestQuery.error)}
+                        error={backtestQuery.error ?? null}
+                        loadingText={t('btcWeaknessStats.page.loadingBacktest', {
+                            defaultValue: 'Loading historical Bitcoin-weakness statistics'
+                        })}
+                        title={t('btcWeaknessStats.page.errorBacktestTitle', {
+                            defaultValue: 'Failed to load historical Bitcoin-weakness statistics'
+                        })}
+                        description={t('btcWeaknessStats.page.errorBacktestMessage', {
+                            defaultValue: 'Check the /api/backtest/btc-weakness-stats endpoint and the published report.'
+                        })}
+                        onRetry={() => {
+                            void backtestQuery.refetch()
+                        }}>
+                        {backtestQuery.data && (
+                            <ReportDocumentView
+                                report={backtestQuery.data}
+                                freshness={backtestFreshness}
+                                showTableTermsBlock={false}
+                            />
+                        )}
+                    </PageSectionDataState>
                 </section>
-            )}
 
-            <section className={cls.block}>
-                <ReportTableTermsBlock
-                    className={cls.termsBlock}
-                    title={t('btcWeaknessStats.page.terms.title', { defaultValue: 'Table terms' })}
-                    subtitle={t('btcWeaknessStats.page.terms.subtitle', {
-                        defaultValue:
-                            'One glossary is shared by the historical tables and the real-day tables, so the main page text can stay focused on interpretation.'
-                    })}
-                    terms={terms}
-                    collapsible
-                />
-            </section>
-
-            <section className={cls.block}>
-                <Text type='h2' className={cls.blockTitle}>
-                    {t('btcWeaknessStats.page.backtestTitle', { defaultValue: 'Historical statistics' })}
-                </Text>
-                <SectionDataState
-                    hasData={Boolean(backtestQuery.data)}
-                    isLoading={backtestQuery.isLoading}
-                    isError={Boolean(backtestQuery.error)}
-                    error={backtestQuery.error ?? null}
-                    loadingText={t('btcWeaknessStats.page.loadingBacktest', {
-                        defaultValue: 'Loading historical Bitcoin-weakness statistics'
-                    })}
-                    title={t('btcWeaknessStats.page.errorBacktestTitle', {
-                        defaultValue: 'Failed to load historical Bitcoin-weakness statistics'
-                    })}
-                    description={t('btcWeaknessStats.page.errorBacktestMessage', {
-                        defaultValue: 'Check the /api/backtest/btc-weakness-stats endpoint and the published report.'
-                    })}
-                    onRetry={() => {
-                        void backtestQuery.refetch()
-                    }}>
-                    {backtestQuery.data && (
-                        <ReportDocumentView
-                            report={backtestQuery.data}
-                            freshness={backtestFreshness}
-                            showTableTermsBlock={false}
-                        />
-                    )}
-                </SectionDataState>
-            </section>
-
-            <section className={cls.block}>
-                <Text type='h2' className={cls.blockTitle}>
-                    {t('btcWeaknessStats.page.liveTitle', { defaultValue: 'Real-day statistics' })}
-                </Text>
-                <SectionDataState
-                    hasData={Boolean(liveQuery.data)}
-                    isLoading={liveQuery.isLoading}
-                    isError={Boolean(liveQuery.error)}
-                    error={liveQuery.error ?? null}
-                    loadingText={t('btcWeaknessStats.page.loadingLive', {
-                        defaultValue: 'Loading real-day Bitcoin-weakness statistics'
-                    })}
-                    title={t('btcWeaknessStats.page.errorLiveTitle', {
-                        defaultValue: 'Failed to load real-day Bitcoin-weakness statistics'
-                    })}
-                    description={t('btcWeaknessStats.page.errorLiveMessage', {
-                        defaultValue: 'Check the /api/statistics/btc-weakness/live endpoint and the real forecast journal.'
-                    })}
-                    onRetry={() => {
-                        void liveQuery.refetch()
-                    }}>
-                    {liveQuery.data && (
-                        <ReportDocumentView report={liveQuery.data} freshness={liveFreshness} showTableTermsBlock={false} />
-                    )}
-                </SectionDataState>
-            </section>
+                <section className={cls.block}>
+                    <Text type='h2' className={cls.blockTitle}>
+                        {t('btcWeaknessStats.page.liveTitle', { defaultValue: 'Real-day statistics' })}
+                    </Text>
+                    <PageSectionDataState
+                        hasData={Boolean(liveQuery.data)}
+                        isLoading={liveQuery.isLoading}
+                        isError={Boolean(liveQuery.error)}
+                        error={liveQuery.error ?? null}
+                        loadingText={t('btcWeaknessStats.page.loadingLive', {
+                            defaultValue: 'Loading real-day Bitcoin-weakness statistics'
+                        })}
+                        title={t('btcWeaknessStats.page.errorLiveTitle', {
+                            defaultValue: 'Failed to load real-day Bitcoin-weakness statistics'
+                        })}
+                        description={t('btcWeaknessStats.page.errorLiveMessage', {
+                            defaultValue: 'Check the /api/statistics/btc-weakness/live endpoint and the real forecast journal.'
+                        })}
+                        onRetry={() => {
+                            void liveQuery.refetch()
+                        }}>
+                        {liveQuery.data && (
+                            <ReportDocumentView report={liveQuery.data} freshness={liveFreshness} showTableTermsBlock={false} />
+                        )}
+                    </PageSectionDataState>
+                </section>
+            </PageDataState>
         </div>
     )
 }

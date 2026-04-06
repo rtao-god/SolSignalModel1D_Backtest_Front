@@ -106,7 +106,7 @@ import {
     resolvePolicySetupCellStateForMegaRow,
     resolvePolicySetupLinkAlertSummaryForMegaRows
 } from '../model/policyBranchMegaPolicySetupLink'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 
 function buildTableSections(sections: unknown[]): TableSectionDto[] {
     const tableSections = (sections ?? []).filter(
@@ -1815,7 +1815,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                     <div className={cls.sectionBlock}>
                         <div id={termsDomId}>
                             {termsState.error ?
-                                <SectionDataState
+                                <PageSectionDataState
                                     isError
                                     error={termsState.error}
                                     hasData={false}
@@ -1830,7 +1830,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                         }
                                     }}>
                                     {null}
-                                </SectionDataState>
+                                </PageSectionDataState>
                             : termsState.terms.length > 0 ?
                                 <ReportTableTermsBlock
                                     terms={termsState.terms.map(term => ({
@@ -2349,124 +2349,171 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
     return (
         <div className={rootClassName}>
-            {renderHeader()}
+            <PageDataState
+                shell={
+                    <>
+                        {renderHeader()}
 
-            {partCatalogAlertState && (
-                <section className={cls.validationAlert} role='alert' aria-live='polite'>
-                    <div className={cls.validationAlertHeader}>
-                        <Text type='h4' className={cls.validationAlertTitle}>
-                            {partCatalogAlertState.title}
-                        </Text>
-                    </div>
-                    <Text className={cls.validationAlertText}>{partCatalogAlertState.description}</Text>
-                    <Text className={cls.validationAlertDetail}>{partCatalogAlertState.detail}</Text>
-                </section>
-            )}
+                        {partCatalogAlertState && (
+                            <section className={cls.validationAlert} role='alert' aria-live='polite'>
+                                <div className={cls.validationAlertHeader}>
+                                    <Text type='h4' className={cls.validationAlertTitle}>
+                                        {partCatalogAlertState.title}
+                                    </Text>
+                                </div>
+                                <Text className={cls.validationAlertText}>{partCatalogAlertState.description}</Text>
+                                <Text className={cls.validationAlertDetail}>{partCatalogAlertState.detail}</Text>
+                            </section>
+                        )}
 
-            {validationAlertState && !isValidationAlertDismissed && (
-                <section className={cls.validationAlert} role='alert' aria-live='polite'>
-                    <div className={cls.validationAlertHeader}>
-                        <Text type='h4' className={cls.validationAlertTitle}>
-                            {validationAlertState.title}
-                        </Text>
-                        <button
-                            type='button'
-                            className={cls.validationAlertDismiss}
-                            onClick={() => setDismissedValidationKey(validationAlertState.key)}>
-                            {t('policyBranchMega.page.validation.dismiss')}
-                        </button>
-                    </div>
-                    <Text className={cls.validationAlertText}>{validationAlertState.description}</Text>
-                    {validationAlertState.detail && (
-                        <Text className={cls.validationAlertDetail}>{validationAlertState.detail}</Text>
-                    )}
-                </section>
-            )}
+                        {validationAlertState && !isValidationAlertDismissed && (
+                            <section className={cls.validationAlert} role='alert' aria-live='polite'>
+                                <div className={cls.validationAlertHeader}>
+                                    <Text type='h4' className={cls.validationAlertTitle}>
+                                        {validationAlertState.title}
+                                    </Text>
+                                    <button
+                                        type='button'
+                                        className={cls.validationAlertDismiss}
+                                        onClick={() => setDismissedValidationKey(validationAlertState.key)}>
+                                        {t('policyBranchMega.page.validation.dismiss')}
+                                    </button>
+                                </div>
+                                <Text className={cls.validationAlertText}>{validationAlertState.description}</Text>
+                                {validationAlertState.detail && (
+                                    <Text className={cls.validationAlertDetail}>{validationAlertState.detail}</Text>
+                                )}
+                            </section>
+                        )}
 
-            {controlsErrorState && (
-                <SectionDataState
-                    isError
-                    error={controlsErrorState.error}
-                    hasData={false}
-                    onRetry={refetch}
-                    title={controlsErrorState.title}
-                    description={controlsErrorState.description}
-                    logContext={{ source: 'policy-branch-mega-controls' }}>
-                    {null}
-                </SectionDataState>
-            )}
+                        {controlsErrorState && (
+                            <PageSectionDataState
+                                isError
+                                error={controlsErrorState.error}
+                                hasData={false}
+                                onRetry={refetch}
+                                title={controlsErrorState.title}
+                                description={controlsErrorState.description}
+                                logContext={{ source: 'policy-branch-mega-controls' }}>
+                                {null}
+                            </PageSectionDataState>
+                        )}
 
-            <section className={cls.overviewBlock} id={MEGA_OVERVIEW_DOM_ID}>
-                <Text type='h3' className={cls.overviewTitle}>
-                    {t('policyBranchMega.page.overview.whatIsReport.title')}
-                </Text>
-                <ul className={cls.overviewList}>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item1'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item2'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item3'))}</li>
-                </ul>
+                        <section className={cls.overviewBlock} id={MEGA_OVERVIEW_DOM_ID}>
+                            <Text type='h3' className={cls.overviewTitle}>
+                                {t('policyBranchMega.page.overview.whatIsReport.title')}
+                            </Text>
+                            <ul className={cls.overviewList}>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item1'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item2'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.whatIsReport.items.item3'))}
+                                </li>
+                            </ul>
 
-                <Text type='h4' className={cls.overviewSubTitle}>
-                    {t('policyBranchMega.page.overview.comparison.title')}
-                </Text>
-                <ul className={cls.overviewList}>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.policy'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.branch'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.slMode'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.tpSlMode'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.zonal'))}</li>
-                    <li>
-                        {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.metricView'))}
-                    </li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.bucket'))}</li>
-                </ul>
+                            <Text type='h4' className={cls.overviewSubTitle}>
+                                {t('policyBranchMega.page.overview.comparison.title')}
+                            </Text>
+                            <ul className={cls.overviewList}>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.policy'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.branch'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.slMode'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.tpSlMode'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.zonal'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(
+                                        t('policyBranchMega.page.overview.comparison.items.metricView')
+                                    )}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.comparison.items.bucket'))}
+                                </li>
+                            </ul>
 
-                <Text type='h4' className={cls.overviewSubTitle}>
-                    {t('policyBranchMega.page.overview.reading.title')}
-                </Text>
-                <ul className={cls.overviewList}>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item1'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item2'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item3'))}</li>
-                </ul>
+                            <Text type='h4' className={cls.overviewSubTitle}>
+                                {t('policyBranchMega.page.overview.reading.title')}
+                            </Text>
+                            <ul className={cls.overviewList}>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item1'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item2'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.reading.items.item3'))}
+                                </li>
+                            </ul>
 
-                <Text type='h4' className={cls.overviewSubTitle}>
-                    {t('policyBranchMega.page.overview.basics.title')}
-                </Text>
-                <ul className={cls.overviewList}>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item1'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item2'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item3'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item4'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item5'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item6'))}</li>
-                </ul>
+                            <Text type='h4' className={cls.overviewSubTitle}>
+                                {t('policyBranchMega.page.overview.basics.title')}
+                            </Text>
+                            <ul className={cls.overviewList}>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item1'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item2'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item3'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item4'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item5'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.basics.items.item6'))}
+                                </li>
+                            </ul>
 
-                <Text type='h4' className={cls.overviewSubTitle}>
-                    {t('policyBranchMega.page.overview.simulation.title')}
-                </Text>
-                <ul className={cls.overviewList}>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item1'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item2'))}</li>
-                    <li>{renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item3'))}</li>
-                    <li>
-                        {t('policyBranchMega.page.overview.simulation.items.item4Prefix')}{' '}
-                        <TermTooltip
-                            term='EndOfDay'
-                            description={() =>
-                                enrichTermTooltipDescription(
-                                    t('policyBranchMega.page.overview.simulation.endOfDayTooltip'),
-                                    { term: 'EndOfDay' }
-                                )
-                            }
-                            type='span'
-                        />
-                        .
-                    </li>
-                </ul>
-            </section>
-
-            <SectionDataState
+                            <Text type='h4' className={cls.overviewSubTitle}>
+                                {t('policyBranchMega.page.overview.simulation.title')}
+                            </Text>
+                            <ul className={cls.overviewList}>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item1'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item2'))}
+                                </li>
+                                <li>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.overview.simulation.items.item3'))}
+                                </li>
+                                <li>
+                                    {t('policyBranchMega.page.overview.simulation.items.item4Prefix')}{' '}
+                                    <TermTooltip
+                                        term='EndOfDay'
+                                        description={() =>
+                                            enrichTermTooltipDescription(
+                                                t('policyBranchMega.page.overview.simulation.endOfDayTooltip'),
+                                                { term: 'EndOfDay' }
+                                            )
+                                        }
+                                        type='span'
+                                    />
+                                    .
+                                </li>
+                            </ul>
+                        </section>
+                    </>
+                }
                 isLoading={isLoading}
                 isError={Boolean(isError || reportAreaErrorState)}
                 error={error ?? reportAreaErrorState?.error}
@@ -2483,7 +2530,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                         : effectiveDisplayMode === 'table' && pageTabs.length === 0 && tableRenderedSectionsState.entries.length === 0 ?
                             <Text>{t('policyBranchMega.page.emptyColumns')}</Text>
                         : effectiveDisplayMode === 'chart' ?
-                            <SectionDataState
+                            <PageSectionDataState
                                 isLoading={loadedPartReportsState.chartIsLoading}
                                 isError={Boolean(chartModelState.error)}
                                 error={chartModelState.error}
@@ -2499,7 +2546,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                         translate={(key, options) => t(key, options)}
                                     />
                                 )}
-                            </SectionDataState>
+                            </PageSectionDataState>
                         :   <>
                                 <div className={cls.sectionsGrid}>
                                     {tableRenderedSectionsState.entries.map(renderTableSectionEntry)}
@@ -2519,7 +2566,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                         )}
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

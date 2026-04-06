@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import classNames from '@/shared/lib/helpers/classNames'
 import { Btn, Text } from '@/shared/ui'
 import { BulletList } from '@/shared/ui/BulletList'
-import { SectionDataState } from '@/shared/ui/errors/SectionDataState'
+import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import {
@@ -611,25 +611,28 @@ export default function PolicySetupsPage() {
     if (!setupId) {
         return (
             <div className={cls.root}>
-                <section className={cls.hero}>
-                    <Text type='h1' className={cls.heroTitle}>
-                        Policy setup history
-                    </Text>
-                    <Text className={cls.heroSubtitle}>
-                        Отдельная витрина для полных торговых конфигураций: свечи SOL, дневные блоки, исполнение TP/SL и кривая баланса.
-                    </Text>
-                </section>
+                <PageDataState
+                    shell={
+                        <>
+                            <section className={cls.hero}>
+                                <Text type='h1' className={cls.heroTitle}>
+                                    Policy setup history
+                                </Text>
+                                <Text className={cls.heroSubtitle}>
+                                    Отдельная витрина для полных торговых конфигураций: свечи SOL, дневные блоки, исполнение TP/SL и кривая баланса.
+                                </Text>
+                            </section>
 
-                {publishedStatus && publishedStatus.state !== 'fresh' && (
-                    <PublishedStatusPanel
-                        status={publishedStatus}
-                        onRebuild={() => void handlePublishedRebuild()}
-                        isRebuildPending={rebuildMutation.isPending}
-                        rebuildError={rebuildMutation.error}
-                    />
-                )}
-
-                <SectionDataState
+                            {publishedStatus && publishedStatus.state !== 'fresh' && (
+                                <PublishedStatusPanel
+                                    status={publishedStatus}
+                                    onRebuild={() => void handlePublishedRebuild()}
+                                    isRebuildPending={rebuildMutation.isPending}
+                                    rebuildError={rebuildMutation.error}
+                                />
+                            )}
+                        </>
+                    }
                     isLoading={catalogQuery.isLoading}
                     isError={catalogQuery.isError}
                     error={catalogQuery.error}
@@ -677,7 +680,7 @@ export default function PolicySetupsPage() {
                             </RouterLink>
                         ))}
                     </div>
-                </SectionDataState>
+                </PageDataState>
             </div>
         )
     }
@@ -695,123 +698,126 @@ export default function PolicySetupsPage() {
 
     return (
         <div className={cls.root}>
-            <RouterLink to={catalogPath} className={cls.backLink}>
-                ← Back to catalog
-            </RouterLink>
+            <PageDataState
+                shell={
+                    <>
+                        <RouterLink to={catalogPath} className={cls.backLink}>
+                            ← Back to catalog
+                        </RouterLink>
 
-            <section className={cls.detailHero}>
-                <div>
-                    <Text type='h1' className={cls.heroTitle}>
-                        {resolvedSetup?.displayLabel ?? setupId}
-                    </Text>
-                    <Text className={cls.heroSubtitle}>
-                        History only, UTC only, daily bucket. Первый релиз страницы показывает closed history без live-дня.
-                    </Text>
-                </div>
-                {resolvedSetup &&
-                    <div className={cls.heroStats}>
-                        <div>
-                            <span>Trade days</span>
-                            <strong>{requireSetupMetricNumber(resolvedSetup, 'tradesCount')}</strong>
-                        </div>
-                        <div>
-                            <span>No-trade days</span>
-                            <strong>{resolvedSetup.noTradeDaysCount}</strong>
-                        </div>
-                        <div>
-                            <span>PnL / DD</span>
-                            <strong>
-                                {requireSetupMetricNumber(resolvedSetup, 'totalPnlPct').toFixed(2)}% / {requireSetupMetricNumber(resolvedSetup, 'maxDdPct').toFixed(2)}%
-                            </strong>
-                        </div>
-                    </div>}
-            </section>
+                        <section className={cls.detailHero}>
+                            <div>
+                                <Text type='h1' className={cls.heroTitle}>
+                                    {resolvedSetup?.displayLabel ?? setupId}
+                                </Text>
+                                <Text className={cls.heroSubtitle}>
+                                    History only, UTC only, daily bucket. Первый релиз страницы показывает closed history без live-дня.
+                                </Text>
+                            </div>
+                            {resolvedSetup &&
+                                <div className={cls.heroStats}>
+                                    <div>
+                                        <span>Trade days</span>
+                                        <strong>{requireSetupMetricNumber(resolvedSetup, 'tradesCount')}</strong>
+                                    </div>
+                                    <div>
+                                        <span>No-trade days</span>
+                                        <strong>{resolvedSetup.noTradeDaysCount}</strong>
+                                    </div>
+                                    <div>
+                                        <span>PnL / DD</span>
+                                        <strong>
+                                            {requireSetupMetricNumber(resolvedSetup, 'totalPnlPct').toFixed(2)}% / {requireSetupMetricNumber(resolvedSetup, 'maxDdPct').toFixed(2)}%
+                                        </strong>
+                                    </div>
+                                </div>}
+                        </section>
 
-            {publishedStatus && publishedStatus.state !== 'fresh' && (
-                <PublishedStatusPanel
-                    status={publishedStatus}
-                    onRebuild={() => void handlePublishedRebuild()}
-                    isRebuildPending={rebuildMutation.isPending}
-                    rebuildError={rebuildMutation.error}
-                />
-            )}
-
-            <section className={cls.toolbar}>
-                <div className={cls.controlGroup}>
-                    <span className={cls.groupLabel}>Range</span>
-                    <div className={cls.chips}>
-                        {RANGE_PRESETS.map(preset => (
-                            <button
-                                key={preset.id}
-                                type='button'
-                                className={classNames(cls.chip, { [cls.chipActive]: rangePreset === preset.id })}
-                                onClick={() => updateSearch('range', preset.id === 'all' ? null : preset.id)}>
-                                {preset.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className={cls.controlGroup}>
-                    <span className={cls.groupLabel}>Resolution</span>
-                    <div className={cls.chips}>
-                        {(['3h', '6h'] as const).map(value => (
-                            <button
-                                key={value}
-                                type='button'
-                                className={classNames(cls.chip, { [cls.chipActive]: resolution === value })}
-                                onClick={() => updateSearch('resolution', value === '3h' ? null : value)}>
-                                {value}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className={cls.controlGroup}>
-                    <span className={cls.groupLabel}>Balance</span>
-                    <div className={cls.chips}>
-                        {(['pane', 'overlay'] as const).map(value => (
-                            <button
-                                key={value}
-                                type='button'
-                                className={classNames(cls.chip, { [cls.chipActive]: balanceView === value })}
-                                onClick={() => updateSearch('balanceView', value)}>
-                                {value === 'pane' ? 'Отдельный блок' : 'Поверх цены'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className={cls.controlGroup}>
-                    <span className={cls.groupLabel}>Lines</span>
-                    <div className={cls.chips}>
-                        {(['subtle', 'strong'] as const).map(value => (
-                            <button
-                                key={value}
-                                type='button'
-                                className={classNames(cls.chip, { [cls.chipActive]: lineVisibilityMode === value })}
-                                onClick={() => updateSearch('lineMode', value === 'strong' ? null : value)}>
-                                {value === 'strong' ? 'Явные линии' : 'Мягкие линии'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className={cls.toggles}>
-                    {toggleItems.map(toggle => (
-                        <label key={toggle.key} className={cls.toggle}>
-                            <input
-                                type='checkbox'
-                                checked={toggle.checked}
-                                onChange={event => updateFlagSearch(toggle.key, event.target.checked)}
+                        {publishedStatus && publishedStatus.state !== 'fresh' && (
+                            <PublishedStatusPanel
+                                status={publishedStatus}
+                                onRebuild={() => void handlePublishedRebuild()}
+                                isRebuildPending={rebuildMutation.isPending}
+                                rebuildError={rebuildMutation.error}
                             />
-                            <span>{toggle.label}</span>
-                        </label>
-                    ))}
-                </div>
-            </section>
+                        )}
 
-            <SectionDataState
+                        <section className={cls.toolbar}>
+                            <div className={cls.controlGroup}>
+                                <span className={cls.groupLabel}>Range</span>
+                                <div className={cls.chips}>
+                                    {RANGE_PRESETS.map(preset => (
+                                        <button
+                                            key={preset.id}
+                                            type='button'
+                                            className={classNames(cls.chip, { [cls.chipActive]: rangePreset === preset.id })}
+                                            onClick={() => updateSearch('range', preset.id === 'all' ? null : preset.id)}>
+                                            {preset.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={cls.controlGroup}>
+                                <span className={cls.groupLabel}>Resolution</span>
+                                <div className={cls.chips}>
+                                    {(['3h', '6h'] as const).map(value => (
+                                        <button
+                                            key={value}
+                                            type='button'
+                                            className={classNames(cls.chip, { [cls.chipActive]: resolution === value })}
+                                            onClick={() => updateSearch('resolution', value === '3h' ? null : value)}>
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={cls.controlGroup}>
+                                <span className={cls.groupLabel}>Balance</span>
+                                <div className={cls.chips}>
+                                    {(['pane', 'overlay'] as const).map(value => (
+                                        <button
+                                            key={value}
+                                            type='button'
+                                            className={classNames(cls.chip, { [cls.chipActive]: balanceView === value })}
+                                            onClick={() => updateSearch('balanceView', value)}>
+                                            {value === 'pane' ? 'Отдельный блок' : 'Поверх цены'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={cls.controlGroup}>
+                                <span className={cls.groupLabel}>Lines</span>
+                                <div className={cls.chips}>
+                                    {(['subtle', 'strong'] as const).map(value => (
+                                        <button
+                                            key={value}
+                                            type='button'
+                                            className={classNames(cls.chip, { [cls.chipActive]: lineVisibilityMode === value })}
+                                            onClick={() => updateSearch('lineMode', value === 'strong' ? null : value)}>
+                                            {value === 'strong' ? 'Явные линии' : 'Мягкие линии'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={cls.toggles}>
+                                {toggleItems.map(toggle => (
+                                    <label key={toggle.key} className={cls.toggle}>
+                                        <input
+                                            type='checkbox'
+                                            checked={toggle.checked}
+                                            onChange={event => updateFlagSearch(toggle.key, event.target.checked)}
+                                        />
+                                        <span>{toggle.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </section>
+                    </>
+                }
                 isLoading={!resolvedLedger && (ledgerQuery.isLoading || candlesQuery.isLoading)}
                 isError={!resolvedLedger && (ledgerQuery.isError || candlesQuery.isError)}
                 error={ledgerQuery.error ?? candlesQuery.error}
@@ -877,7 +883,7 @@ export default function PolicySetupsPage() {
                         :   <div className={cls.notFoundBox}>Свечной слой загружается отдельно от дневного журнала.</div>}
                     </>
                 )}
-            </SectionDataState>
+            </PageDataState>
         </div>
     )
 }

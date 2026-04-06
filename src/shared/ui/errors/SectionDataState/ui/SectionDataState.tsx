@@ -6,7 +6,7 @@ import { ErrorBlock } from '../../ErrorBlock/ui/ErrorBlock'
 import { Loader, Text } from '@/shared/ui'
 import cls from './SectionDataState.module.scss'
 
-interface SectionDataStateProps {
+export interface SectionDataStateProps {
     className?: string
     isLoading?: boolean
     isError?: boolean
