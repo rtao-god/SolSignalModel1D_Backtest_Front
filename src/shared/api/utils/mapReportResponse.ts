@@ -22,6 +22,15 @@ import type {
     PolicyEvaluationThresholdsDto
 } from '@/shared/types/policyEvaluation.types'
 import { mapPolicyPerformanceMetricsResponse } from './mapPolicyPerformanceMetrics'
+import {
+    reportHistorySliceCodec,
+    reportMegaBucketCodec,
+    reportMegaMetricVariantCodec,
+    reportMegaModeCodec,
+    reportMegaTpSlModeCodec,
+    reportMegaZonalModeCodec,
+    reportTableKindCodec
+} from '@/shared/api/contracts/reportWireEnumCodec'
 
 function toString(value: unknown, label: string): string {
     if (value === null || typeof value === 'undefined') {
@@ -102,17 +111,6 @@ function toRequiredBoolean(value: unknown, label: string): boolean {
     return parsed
 }
 
-// Backend metadata enum-ы приходят из разных сериализаторов: часть отчётов уже публикуется в kebab_case,
-// а часть — в PascalCase без разделителей. UI normalizer обязан свести их к одному каноничному виду до parser-ветвления.
-function normalizeEnumToken(value: string): string {
-    return value
-        .trim()
-        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase()
-}
-
 function mapPolicyEvaluationReasonResponse(raw: unknown, label: string): PolicyEvaluationReasonDto {
     const payload = toObject(raw, label)
 
@@ -178,132 +176,31 @@ function mapPolicyEvaluationResponse(raw: unknown, label: string): PolicyEvaluat
 }
 
 function parseTableKind(raw: unknown, label: string): CapturedTableKindDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'unknown'
-        if (raw === 1) return 'policy-branch-mega'
-        if (raw === 2) return 'top-trades'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'unknown') return 'unknown'
-        if (normalized === 'policy-branch-mega') return 'policy-branch-mega'
-        if (normalized === 'top-trades') return 'top-trades'
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportTableKindCodec.parse(raw, label)
 }
 
 function parseMegaMode(raw: unknown, label: string): CapturedMegaModeDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'with-sl'
-        if (raw === 1) return 'no-sl'
-        if (raw === 2) return 'all'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'all') return 'all'
-        if (normalized === 'with-sl') return 'with-sl'
-        if (normalized === 'no-sl') return 'no-sl'
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportMegaModeCodec.parse(raw, label)
 }
 
 function parseBacktestHistorySlice(raw: unknown, label: string): BacktestHistorySliceDto {
-    if (typeof raw === 'number') {
-        if (raw === 1) return 'full_history'
-        if (raw === 2) return 'train'
-        if (raw === 3) return 'oos'
-        if (raw === 4) return 'recent'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'full-history') return 'full_history'
-        if (normalized === 'train') return 'train'
-        if (normalized === 'oos') return 'oos'
-        if (normalized === 'recent') return 'recent'
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportHistorySliceCodec.parse(raw, label)
 }
 
 function parseMegaTpSlMode(raw: unknown, label: string): CapturedMegaTpSlModeDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'all'
-        if (raw === 1) return 'dynamic'
-        if (raw === 2) return 'static'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'all') return 'all'
-        if (normalized === 'dynamic') return 'dynamic'
-        if (normalized === 'static') return 'static'
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportMegaTpSlModeCodec.parse(raw, label)
 }
 
 function parseMegaZonalMode(raw: unknown, label: string): CapturedMegaZonalModeDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'with-zonal'
-        if (raw === 1) return 'without-zonal'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'with-zonal') {
-            return 'with-zonal'
-        }
-        if (normalized === 'without-zonal') {
-            return 'without-zonal'
-        }
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportMegaZonalModeCodec.parse(raw, label)
 }
 
 function parseMegaMetricVariant(raw: unknown, label: string): CapturedMegaMetricVariantDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'real'
-        if (raw === 1) return 'no-biggest-liq-loss'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'real') return 'real'
-        if (normalized === 'no-biggest-liq-loss') {
-            return 'no-biggest-liq-loss'
-        }
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportMegaMetricVariantCodec.parse(raw, label)
 }
 
 function parseMegaBucket(raw: unknown, label: string): CapturedMegaBucketDto {
-    if (typeof raw === 'number') {
-        if (raw === 0) return 'daily'
-        if (raw === 1) return 'intraday'
-        if (raw === 2) return 'delayed'
-        if (raw === 3) return 'total-aggregate'
-        if (raw === 4) return 'total'
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = normalizeEnumToken(raw)
-        if (normalized === 'daily') return 'daily'
-        if (normalized === 'intraday') return 'intraday'
-        if (normalized === 'delayed') return 'delayed'
-        if (normalized === 'total') return 'total'
-        if (normalized === 'total-aggregate') {
-            return 'total-aggregate'
-        }
-    }
-
-    throw new Error(`[ui] ${label} has unsupported value: ${String(raw)}.`)
+    return reportMegaBucketCodec.parse(raw, label)
 }
 
 function parsePositiveInt(raw: unknown, label: string): number {
@@ -322,24 +219,6 @@ function parsePositiveInt(raw: unknown, label: string): number {
     }
 
     throw new Error(`[ui] ${label} must be a positive integer. value=${String(raw)}.`)
-}
-
-function parseNonNegativeInt(raw: unknown, label: string): number {
-    if (typeof raw === 'number' && Number.isFinite(raw) && Number.isInteger(raw) && raw >= 0) {
-        return raw
-    }
-
-    if (typeof raw === 'string') {
-        const normalized = raw.trim()
-        if (normalized.length > 0) {
-            const parsed = Number(normalized)
-            if (Number.isFinite(parsed) && Number.isInteger(parsed) && parsed >= 0) {
-                return parsed
-            }
-        }
-    }
-
-    throw new Error(`[ui] ${label} must be a non-negative integer. value=${String(raw)}.`)
 }
 
 function mapBacktestPolicySummaryResponse(raw: unknown, label: string): BacktestPolicySummaryDto {
