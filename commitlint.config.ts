@@ -15,7 +15,8 @@ const Configuration: UserConfig = {
                 'docs', // Add or Update Documentation
                 'style', // Code style changes (formatting, missing semi-colons, etc.)
                 'refactor', // Improve code structure or code formatting. Code refactoring without changing functionality.
-                'test', // Adding or updating tests
+                'test', // Only changes to existing test files (per .codex/Git/GIT_COMMIT_RULES.md Tests vs New tests)
+                'new-tests', // Only new test files, no edits to existing tests (maps to GIT_COMMIT_RULES `New tests`)
                 'revert', // Reverts a previous commit
                 'config', // Changes to configuration files
                 'deps', // Dependency updates
