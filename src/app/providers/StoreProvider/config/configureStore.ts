@@ -1,4 +1,5 @@
 import { dateReducer } from '@/entities/date'
+import { modeReducer } from '@/entities/mode'
 import { Reducer, configureStore, ReducersMapObject } from '@reduxjs/toolkit'
 import { createReducerManager } from './reducerManager'
 import { ReduxStoreWithManager, StateSchema } from './StateSchema'
@@ -16,6 +17,7 @@ export default function createReduxStore(initialState?: StateSchema, asyncReduce
         [api.reducerPath]: api.reducer,
         [authApi.reducerPath]: authApi.reducer,
         [registrationApi.reducerPath]: registrationApi.reducer,
+        mode: modeReducer,
         date: dateReducer,
         user: userReducer,
         registration: registrationReducer,

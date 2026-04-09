@@ -22,13 +22,15 @@ const reportWireEnumLiterals = [
 
 const pageBoundaryArchitecturePlugin = {
     rules: {
-        'require-page-data-state-root-with-section-boundary': {
+        'require-page-shell-boundary': {
             meta: {
                 type: 'problem'
             },
             create(context) {
                 let sectionImportNode = null
-                let hasPageDataState = false
+                let sectionJsxNode = null
+                let hasPageDataStateImport = false
+                let hasPageDataStateJsx = false
 
                 return {
                     ImportDeclaration(node) {
@@ -46,16 +48,37 @@ const pageBoundaryArchitecturePlugin = {
                             }
 
                             if (spec.imported.name === 'PageDataState') {
-                                hasPageDataState = true
+                                hasPageDataStateImport = true
                             }
                         }
                     },
+                    JSXOpeningElement(node) {
+                        if (node.name.type !== 'JSXIdentifier') {
+                            return
+                        }
+
+                        if (node.name.name === 'PageDataState') {
+                            hasPageDataStateJsx = true
+                        }
+
+                        if (node.name.name === 'PageSectionDataState') {
+                            sectionJsxNode ??= node
+                        }
+                    },
                     'Program:exit'() {
-                        if (sectionImportNode && !hasPageDataState) {
+                        if (sectionImportNode && !hasPageDataStateImport) {
                             context.report({
                                 node: sectionImportNode,
                                 message:
                                     'Route page files must import PageDataState when they import PageSectionDataState: use PageDataState as the root boundary (shell + page-level fetch) and PageSectionDataState only for nested sections.'
+                            })
+                        }
+
+                        if (sectionJsxNode && !hasPageDataStateJsx) {
+                            context.report({
+                                node: sectionJsxNode,
+                                message:
+                                    'PageSectionDataState cannot be the outer route boundary. Mount PageDataState at the page root and keep PageSectionDataState only for nested sections.'
                             })
                         }
                     }
@@ -117,7 +140,7 @@ export default tseslint.config(
             'page-boundary-architecture': pageBoundaryArchitecturePlugin
         },
         rules: {
-            'page-boundary-architecture/require-page-data-state-root-with-section-boundary': 'error',
+            'page-boundary-architecture/require-page-shell-boundary': 'error',
             'no-restricted-imports': [
                 'error',
                 {

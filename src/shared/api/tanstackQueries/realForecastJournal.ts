@@ -67,21 +67,17 @@ function toObject(value: unknown, label: string): Record<string, unknown> {
     return value as Record<string, unknown>
 }
 
-function readRequiredField(raw: Record<string, unknown>, label: string, ...keys: string[]): unknown {
-    for (const key of keys) {
-        if (Object.prototype.hasOwnProperty.call(raw, key)) {
-            return raw[key]
-        }
+function readRequiredField(raw: Record<string, unknown>, label: string, key: string): unknown {
+    if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        return raw[key]
     }
 
     throw new Error(`[real-forecast-journal] ${label} is missing.`)
 }
 
-function readOptionalField(raw: Record<string, unknown>, ...keys: string[]): unknown {
-    for (const key of keys) {
-        if (Object.prototype.hasOwnProperty.call(raw, key)) {
-            return raw[key]
-        }
+function readOptionalField(raw: Record<string, unknown>, key: string): unknown {
+    if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        return raw[key]
     }
 
     return undefined
@@ -113,13 +109,6 @@ function toFiniteNumber(value: unknown, label: string): number {
         return value
     }
 
-    if (typeof value === 'string' && value.trim()) {
-        const parsed = Number(value)
-        if (Number.isFinite(parsed)) {
-            return parsed
-        }
-    }
-
     throw new Error(`[real-forecast-journal] ${label} must be a finite number.`)
 }
 
@@ -132,25 +121,12 @@ function toOptionalFiniteNumberOrNull(value: unknown): number | null {
         return value
     }
 
-    if (typeof value === 'string' && value.trim()) {
-        const parsed = Number(value)
-        if (Number.isFinite(parsed)) {
-            return parsed
-        }
-    }
-
     throw new Error('[real-forecast-journal] optional numeric field has unsupported value.')
 }
 
 function toBoolean(value: unknown, label: string): boolean {
     if (typeof value === 'boolean') {
         return value
-    }
-
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'true') return true
-        if (normalized === 'false') return false
     }
 
     throw new Error(`[real-forecast-journal] ${label} must be boolean-like.`)
@@ -165,101 +141,78 @@ function toOptionalBooleanOrNull(value: unknown): boolean | null {
         return value
     }
 
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'true') return true
-        if (normalized === 'false') return false
-    }
-
     throw new Error('[real-forecast-journal] optional boolean field has unsupported value.')
 }
 
 function normalizeUtcDayKey(value: unknown, label: string): string {
+    if (typeof value !== 'string') {
+        throw new Error(`[real-forecast-journal] ${label} must be an ISO day string.`)
+    }
+
     return normalizeDomainUtcDayKey(value, label, REAL_FORECAST_JOURNAL_TIME_SCOPE)
 }
 
 function normalizeUtcInstant(value: unknown, label: string): string {
+    if (typeof value !== 'string') {
+        throw new Error(`[real-forecast-journal] ${label} must be an ISO timestamp string.`)
+    }
+
     return normalizeDomainUtcInstant(value, label, REAL_FORECAST_JOURNAL_TIME_SCOPE)
 }
 
 function resolveTrainingScope(value: unknown): CurrentPredictionTrainingScope {
-    if (typeof value === 'number') {
-        if (value === 0) return 'train'
-        if (value === 1) return 'full'
-        if (value === 2) return 'oos'
-        if (value === 3) return 'recent'
-    }
-
     if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'train') return 'train'
-        if (normalized === 'full') return 'full'
-        if (normalized === 'oos') return 'oos'
-        if (normalized === 'recent') return 'recent'
+        if (value === 'train') return 'train'
+        if (value === 'full') return 'full'
+        if (value === 'oos') return 'oos'
+        if (value === 'recent') return 'recent'
     }
 
     throw new Error(`[real-forecast-journal] unsupported training scope: ${String(value)}.`)
 }
 
 function resolveStatus(value: unknown): RealForecastJournalDayStatus {
-    if (typeof value === 'number') {
-        if (value === 0) return 'scheduled'
-        if (value === 1) return 'captured'
-        if (value === 2) return 'finalized'
-        if (value === 3) return 'missed_capture'
-        if (value === 4) return 'recovered_exception'
-    }
-
     if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'scheduled') return 'scheduled'
-        if (normalized === 'captured') return 'captured'
-        if (normalized === 'finalized') return 'finalized'
-        if (normalized === 'missed_capture') return 'missed_capture'
-        if (normalized === 'recovered_exception') return 'recovered_exception'
+        if (value === 'scheduled') return 'scheduled'
+        if (value === 'captured') return 'captured'
+        if (value === 'finalized') return 'finalized'
+        if (value === 'missed_capture') return 'missed_capture'
+        if (value === 'recovered_exception') return 'recovered_exception'
     }
 
     throw new Error(`[real-forecast-journal] unsupported journal status: ${String(value)}.`)
 }
 
 function resolveOpsHealth(value: unknown): RealForecastJournalOpsHealthStatus {
-    if (typeof value === 'number') {
-        if (value === 0) return 'starting'
-        if (value === 1) return 'healthy'
-        if (value === 2) return 'degraded'
-    }
-
     if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'starting') return 'starting'
-        if (normalized === 'healthy') return 'healthy'
-        if (normalized === 'degraded') return 'degraded'
+        if (value === 'healthy') return 'healthy'
+        if (value === 'degraded') return 'degraded'
     }
 
     throw new Error(`[real-forecast-journal] unsupported ops health status: ${String(value)}.`)
 }
 
 function resolveLiveRowStatus(value: unknown): RealForecastJournalLiveRowStatus {
-    if (typeof value === 'number') {
-        if (value === 0) return 'not-tracked'
-        if (value === 1) return 'open'
-        if (value === 2) return 'take-profit-hit'
-        if (value === 3) return 'stop-loss-hit'
-        if (value === 4) return 'liquidation-hit'
-        if (value === 5) return 'end-of-day'
-    }
-
     if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'nottracked' || normalized === 'not-tracked') return 'not-tracked'
-        if (normalized === 'open') return 'open'
-        if (normalized === 'takeprofithit' || normalized === 'take-profit-hit') return 'take-profit-hit'
-        if (normalized === 'stoplosshit' || normalized === 'stop-loss-hit') return 'stop-loss-hit'
-        if (normalized === 'liquidationhit' || normalized === 'liquidation-hit') return 'liquidation-hit'
-        if (normalized === 'endofday' || normalized === 'end-of-day') return 'end-of-day'
+        if (value === 'not-tracked') return 'not-tracked'
+        if (value === 'open') return 'open'
+        if (value === 'take-profit-hit') return 'take-profit-hit'
+        if (value === 'stop-loss-hit') return 'stop-loss-hit'
+        if (value === 'liquidation-hit') return 'liquidation-hit'
+        if (value === 'end-of-day') return 'end-of-day'
     }
 
     throw new Error(`[real-forecast-journal] unsupported live row status: ${String(value)}.`)
+}
+
+function resolveDirectionToken(value: unknown, label: string): 'UP' | 'FLAT' | 'DOWN' {
+    if (typeof value === 'string') {
+        if (value === 'UP') return 'UP'
+        if (value === 'FLAT') return 'FLAT'
+        if (value === 'DOWN') return 'DOWN'
+    }
+
+    throw new Error(`[real-forecast-journal] unsupported direction token for ${label}: ${String(value)}.`)
 }
 
 function resolveMarginModeOrNull(value: unknown): RealForecastJournalMarginMode | null {
@@ -267,36 +220,30 @@ function resolveMarginModeOrNull(value: unknown): RealForecastJournalMarginMode 
         return null
     }
 
-    if (typeof value === 'number') {
-        if (value === 0) return 'cross'
-        if (value === 1) return 'isolated'
-    }
-
     if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'cross') return 'cross'
-        if (normalized === 'isolated') return 'isolated'
+        if (value === 'cross') return 'cross'
+        if (value === 'isolated') return 'isolated'
     }
 
     throw new Error(`[real-forecast-journal] unsupported margin mode: ${String(value)}.`)
 }
 
 function resolvePolicyBucket(value: unknown, label: string): RealForecastJournalPolicyBucket {
-    const normalized = toNonEmptyString(value, label).toLowerCase()
-    if (normalized === 'daily') return 'daily'
-    if (normalized === 'intraday') return 'intraday'
-    if (normalized === 'delayed') return 'delayed'
+    const raw = toNonEmptyString(value, label)
+    if (raw === 'daily') return 'daily'
+    if (raw === 'intraday') return 'intraday'
+    if (raw === 'delayed') return 'delayed'
 
-    throw new Error(`[real-forecast-journal] unsupported policy bucket: ${normalized}.`)
+    throw new Error(`[real-forecast-journal] unsupported policy bucket: ${raw}.`)
 }
 
 function mapProbability(value: unknown, label: string): RealForecastJournalProbabilityDto {
     const raw = toObject(value, label)
 
     return {
-        up: toFiniteNumber(readRequiredField(raw, `${label}.up`, 'up', 'Up'), `${label}.up`),
-        flat: toFiniteNumber(readRequiredField(raw, `${label}.flat`, 'flat', 'Flat'), `${label}.flat`),
-        down: toFiniteNumber(readRequiredField(raw, `${label}.down`, 'down', 'Down'), `${label}.down`)
+        up: toFiniteNumber(readRequiredField(raw, `${label}.up`, 'up'), `${label}.up`),
+        flat: toFiniteNumber(readRequiredField(raw, `${label}.flat`, 'flat'), `${label}.flat`),
+        down: toFiniteNumber(readRequiredField(raw, `${label}.down`, 'down'), `${label}.down`)
     }
 }
 
@@ -309,20 +256,20 @@ function mapActualDayOrNull(value: unknown, label: string): RealForecastJournalA
 
     return {
         trueLabel: toFiniteNumber(
-            readRequiredField(raw, `${label}.trueLabel`, 'trueLabel', 'TrueLabel'),
+            readRequiredField(raw, `${label}.trueLabel`, 'trueLabel'),
             `${label}.trueLabel`
         ),
-        entry: toFiniteNumber(readRequiredField(raw, `${label}.entry`, 'entry', 'Entry'), `${label}.entry`),
+        entry: toFiniteNumber(readRequiredField(raw, `${label}.entry`, 'entry'), `${label}.entry`),
         maxHigh24: toFiniteNumber(
-            readRequiredField(raw, `${label}.maxHigh24`, 'maxHigh24', 'MaxHigh24'),
+            readRequiredField(raw, `${label}.maxHigh24`, 'maxHigh24'),
             `${label}.maxHigh24`
         ),
         minLow24: toFiniteNumber(
-            readRequiredField(raw, `${label}.minLow24`, 'minLow24', 'MinLow24'),
+            readRequiredField(raw, `${label}.minLow24`, 'minLow24'),
             `${label}.minLow24`
         ),
-        close24: toFiniteNumber(readRequiredField(raw, `${label}.close24`, 'close24', 'Close24'), `${label}.close24`),
-        minMove: toFiniteNumber(readRequiredField(raw, `${label}.minMove`, 'minMove', 'MinMove'), `${label}.minMove`)
+        close24: toFiniteNumber(readRequiredField(raw, `${label}.close24`, 'close24'), `${label}.close24`),
+        minMove: toFiniteNumber(readRequiredField(raw, `${label}.minMove`, 'minMove'), `${label}.minMove`)
     }
 }
 
@@ -330,40 +277,38 @@ function mapPolicyRow(value: unknown, index: number): RealForecastJournalPolicyR
     const raw = toObject(value, `policyRows[${index}]`)
 
     return {
-        policyName: toNonEmptyString(readRequiredField(raw, 'policyName', 'policyName', 'PolicyName'), 'policyName'),
-        branch: toNonEmptyString(readRequiredField(raw, 'branch', 'branch', 'Branch'), 'branch'),
-        bucket: resolvePolicyBucket(readRequiredField(raw, 'bucket', 'bucket', 'Bucket'), 'bucket'),
-        margin: resolveMarginModeOrNull(readOptionalField(raw, 'margin', 'Margin')),
-        isSpotPolicy: toBoolean(readRequiredField(raw, 'isSpotPolicy', 'isSpotPolicy', 'IsSpotPolicy'), 'isSpotPolicy'),
-        isRiskDay: toBoolean(readRequiredField(raw, 'isRiskDay', 'isRiskDay', 'IsRiskDay'), 'isRiskDay'),
-        hasDirection: toBoolean(readRequiredField(raw, 'hasDirection', 'hasDirection', 'HasDirection'), 'hasDirection'),
-        skipped: toBoolean(readRequiredField(raw, 'skipped', 'skipped', 'Skipped'), 'skipped'),
-        direction: toNonEmptyString(readRequiredField(raw, 'direction', 'direction', 'Direction'), 'direction'),
-        leverage: toFiniteNumber(readRequiredField(raw, 'leverage', 'leverage', 'Leverage'), 'leverage'),
-        entry: toFiniteNumber(readRequiredField(raw, 'entry', 'entry', 'Entry'), 'entry'),
-        slPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'slPct', 'SlPct')),
-        tpPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'tpPct', 'TpPct')),
-        slPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'slPrice', 'SlPrice')),
-        tpPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'tpPrice', 'TpPrice')),
-        notionalUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'notionalUsd', 'NotionalUsd')),
-        positionQty: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'positionQty', 'PositionQty')),
-        liqPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'liqPrice', 'LiqPrice')),
-        liqDistPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'liqDistPct', 'LiqDistPct')),
-        bucketCapitalUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'bucketCapitalUsd', 'BucketCapitalUsd')),
-        stakeUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakeUsd', 'StakeUsd')),
-        stakePct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakePct', 'StakePct')),
-        exitPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPrice', 'ExitPrice')),
+        policyName: toNonEmptyString(readRequiredField(raw, 'policyName', 'policyName'), 'policyName'),
+        branch: toNonEmptyString(readRequiredField(raw, 'branch', 'branch'), 'branch'),
+        bucket: resolvePolicyBucket(readRequiredField(raw, 'bucket', 'bucket'), 'bucket'),
+        margin: resolveMarginModeOrNull(readOptionalField(raw, 'margin')),
+        isSpotPolicy: toBoolean(readRequiredField(raw, 'isSpotPolicy', 'isSpotPolicy'), 'isSpotPolicy'),
+        isRiskDay: toBoolean(readRequiredField(raw, 'isRiskDay', 'isRiskDay'), 'isRiskDay'),
+        hasDirection: toBoolean(readRequiredField(raw, 'hasDirection', 'hasDirection'), 'hasDirection'),
+        skipped: toBoolean(readRequiredField(raw, 'skipped', 'skipped'), 'skipped'),
+        direction: toNonEmptyString(readRequiredField(raw, 'direction', 'direction'), 'direction'),
+        leverage: toFiniteNumber(readRequiredField(raw, 'leverage', 'leverage'), 'leverage'),
+        entry: toFiniteNumber(readRequiredField(raw, 'entry', 'entry'), 'entry'),
+        slPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'slPct')),
+        tpPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'tpPct')),
+        slPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'slPrice')),
+        tpPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'tpPrice')),
+        notionalUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'notionalUsd')),
+        positionQty: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'positionQty')),
+        liqPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'liqPrice')),
+        liqDistPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'liqDistPct')),
+        bucketCapitalUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'bucketCapitalUsd')),
+        stakeUsd: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakeUsd')),
+        stakePct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'stakePct')),
+        exitPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPrice')),
         exitReason: toOptionalStringOrNull(
-            readRequiredField(raw, 'exitReason', 'exitReason', 'ExitReason')
+            readRequiredField(raw, 'exitReason', 'exitReason')
         ),
-        exitPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPnlPct', 'ExitPnlPct')),
+        exitPnlPct: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'exitPnlPct')),
         performanceMetrics: mapPolicyPerformanceMetricsOrNull(
-            readOptionalField(raw, 'performanceMetrics', 'PerformanceMetrics'),
+            readOptionalField(raw, 'performanceMetrics'),
             {
                 owner: 'real-forecast-journal',
-                label: `policyRows[${index}].performanceMetrics`,
-                allowPascalCase: true,
-                allowStringPrimitives: true
+                label: `policyRows[${index}].performanceMetrics`
             }
         )
     }
@@ -372,59 +317,59 @@ function mapPolicyRow(value: unknown, index: number): RealForecastJournalPolicyR
 function mapSnapshot(value: unknown, label: string): RealForecastJournalSnapshotDto {
     const raw = toObject(value, label)
 
-    const rawPolicyRows = readRequiredField(raw, `${label}.policyRows`, 'policyRows', 'PolicyRows')
+    const rawPolicyRows = readRequiredField(raw, `${label}.policyRows`, 'policyRows')
     if (!Array.isArray(rawPolicyRows)) {
         throw new Error(`[real-forecast-journal] ${label}.policyRows must be an array.`)
     }
 
     return {
         generatedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.generatedAtUtc`, 'generatedAtUtc', 'GeneratedAtUtc'),
+            readRequiredField(raw, `${label}.generatedAtUtc`, 'generatedAtUtc'),
             `${label}.generatedAtUtc`
         ),
         predictionDateUtc: normalizeUtcDayKey(
-            readRequiredField(raw, `${label}.predictionDateUtc`, 'predictionDateUtc', 'PredictionDateUtc'),
+            readRequiredField(raw, `${label}.predictionDateUtc`, 'predictionDateUtc'),
             `${label}.predictionDateUtc`
         ),
         asOfUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.asOfUtc`, 'asOfUtc', 'AsOfUtc'),
+            readRequiredField(raw, `${label}.asOfUtc`, 'asOfUtc'),
             `${label}.asOfUtc`
         ),
         dataCutoffUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.dataCutoffUtc`, 'dataCutoffUtc', 'DataCutoffUtc'),
+            readRequiredField(raw, `${label}.dataCutoffUtc`, 'dataCutoffUtc'),
             `${label}.dataCutoffUtc`
         ),
         entryUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.entryUtc`, 'entryUtc', 'EntryUtc'),
+            readRequiredField(raw, `${label}.entryUtc`, 'entryUtc'),
             `${label}.entryUtc`
         ),
         exitUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.exitUtc`, 'exitUtc', 'ExitUtc'),
+            readRequiredField(raw, `${label}.exitUtc`, 'exitUtc'),
             `${label}.exitUtc`
         ),
         predLabel: toFiniteNumber(
-            readRequiredField(raw, `${label}.predLabel`, 'predLabel', 'PredLabel'),
+            readRequiredField(raw, `${label}.predLabel`, 'predLabel'),
             `${label}.predLabel`
         ),
         predLabelDisplay: toNonEmptyString(
-            readRequiredField(raw, `${label}.predLabelDisplay`, 'predLabelDisplay', 'PredLabelDisplay'),
+            readRequiredField(raw, `${label}.predLabelDisplay`, 'predLabelDisplay'),
             `${label}.predLabelDisplay`
         ),
         microDisplay: toNonEmptyString(
-            readRequiredField(raw, `${label}.microDisplay`, 'microDisplay', 'MicroDisplay'),
+            readRequiredField(raw, `${label}.microDisplay`, 'microDisplay'),
             `${label}.microDisplay`
         ),
-        pTotal: mapProbability(readRequiredField(raw, `${label}.pTotal`, 'pTotal', 'PTotal'), `${label}.pTotal`),
-        confDay: toFiniteNumber(readRequiredField(raw, `${label}.confDay`, 'confDay', 'ConfDay'), `${label}.confDay`),
+        pTotal: mapProbability(readRequiredField(raw, `${label}.pTotal`, 'pTotal'), `${label}.pTotal`),
+        confDay: toFiniteNumber(readRequiredField(raw, `${label}.confDay`, 'confDay'), `${label}.confDay`),
         confMicro: toFiniteNumber(
-            readRequiredField(raw, `${label}.confMicro`, 'confMicro', 'ConfMicro'),
+            readRequiredField(raw, `${label}.confMicro`, 'confMicro'),
             `${label}.confMicro`
         ),
-        entry: toFiniteNumber(readRequiredField(raw, `${label}.entry`, 'entry', 'Entry'), `${label}.entry`),
-        minMove: toFiniteNumber(readRequiredField(raw, `${label}.minMove`, 'minMove', 'MinMove'), `${label}.minMove`),
-        reason: toNonEmptyString(readRequiredField(raw, `${label}.reason`, 'reason', 'Reason'), `${label}.reason`),
-        previewNote: toOptionalStringOrNull(readOptionalField(raw, 'previewNote', 'PreviewNote')),
-        actualDay: mapActualDayOrNull(readOptionalField(raw, 'actualDay', 'ActualDay'), `${label}.actualDay`),
+        entry: toFiniteNumber(readRequiredField(raw, `${label}.entry`, 'entry'), `${label}.entry`),
+        minMove: toFiniteNumber(readRequiredField(raw, `${label}.minMove`, 'minMove'), `${label}.minMove`),
+        reason: toNonEmptyString(readRequiredField(raw, `${label}.reason`, 'reason'), `${label}.reason`),
+        previewNote: toOptionalStringOrNull(readOptionalField(raw, 'previewNote')),
+        actualDay: mapActualDayOrNull(readOptionalField(raw, 'actualDay'), `${label}.actualDay`),
         policyRows: rawPolicyRows.map((item, index) => mapPolicyRow(item, index))
     }
 }
@@ -433,41 +378,41 @@ function mapIndicatorValue(value: unknown, index: number): RealForecastJournalIn
     const raw = toObject(value, `indicatorItems[${index}]`)
 
     return {
-        key: toNonEmptyString(readRequiredField(raw, 'key', 'key', 'Key'), 'indicator.key'),
-        group: toNonEmptyString(readRequiredField(raw, 'group', 'group', 'Group'), 'indicator.group'),
-        label: toNonEmptyString(readRequiredField(raw, 'label', 'label', 'Label'), 'indicator.label'),
-        numericValue: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'numericValue', 'NumericValue')),
+        key: toNonEmptyString(readRequiredField(raw, 'key', 'key'), 'indicator.key'),
+        group: toNonEmptyString(readRequiredField(raw, 'group', 'group'), 'indicator.group'),
+        label: toNonEmptyString(readRequiredField(raw, 'label', 'label'), 'indicator.label'),
+        numericValue: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'numericValue')),
         displayValue: toNonEmptyString(
-            readRequiredField(raw, 'displayValue', 'displayValue', 'DisplayValue'),
+            readRequiredField(raw, 'displayValue', 'displayValue'),
             'indicator.displayValue'
         ),
-        unit: toOptionalStringOrNull(readOptionalField(raw, 'unit', 'Unit'))
+        unit: toOptionalStringOrNull(readOptionalField(raw, 'unit'))
     }
 }
 
 function mapIndicatorSnapshot(value: unknown, label: string): RealForecastJournalIndicatorSnapshotDto {
     const raw = toObject(value, label)
-    const rawItems = readRequiredField(raw, `${label}.items`, 'items', 'Items')
+    const rawItems = readRequiredField(raw, `${label}.items`, 'items')
     if (!Array.isArray(rawItems)) {
         throw new Error(`[real-forecast-journal] ${label}.items must be an array.`)
     }
 
     return {
-        phase: toNonEmptyString(readRequiredField(raw, `${label}.phase`, 'phase', 'Phase'), `${label}.phase`),
+        phase: toNonEmptyString(readRequiredField(raw, `${label}.phase`, 'phase'), `${label}.phase`),
         anchorUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.anchorUtc`, 'anchorUtc', 'AnchorUtc'),
+            readRequiredField(raw, `${label}.anchorUtc`, 'anchorUtc'),
             `${label}.anchorUtc`
         ),
         featureBarOpenUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.featureBarOpenUtc`, 'featureBarOpenUtc', 'FeatureBarOpenUtc'),
+            readRequiredField(raw, `${label}.featureBarOpenUtc`, 'featureBarOpenUtc'),
             `${label}.featureBarOpenUtc`
         ),
         featureBarCloseUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.featureBarCloseUtc`, 'featureBarCloseUtc', 'FeatureBarCloseUtc'),
+            readRequiredField(raw, `${label}.featureBarCloseUtc`, 'featureBarCloseUtc'),
             `${label}.featureBarCloseUtc`
         ),
         indicatorDayUtc: normalizeUtcDayKey(
-            readRequiredField(raw, `${label}.indicatorDayUtc`, 'indicatorDayUtc', 'IndicatorDayUtc'),
+            readRequiredField(raw, `${label}.indicatorDayUtc`, 'indicatorDayUtc'),
             `${label}.indicatorDayUtc`
         ),
         items: rawItems.map((item, index) => mapIndicatorValue(item, index))
@@ -483,17 +428,17 @@ function mapFinalizeRecordOrNull(value: unknown): RealForecastJournalFinalizeRec
 
     return {
         finalizedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, 'finalizedAtUtc', 'finalizedAtUtc', 'FinalizedAtUtc'),
+            readRequiredField(raw, 'finalizedAtUtc', 'finalizedAtUtc'),
             'finalizedAtUtc'
         ),
         forecastHash: toNonEmptyString(
-            readRequiredField(raw, 'forecastHash', 'forecastHash', 'ForecastHash'),
+            readRequiredField(raw, 'forecastHash', 'forecastHash'),
             'forecastHash'
         ),
-        snapshot: mapSnapshot(readRequiredField(raw, 'snapshot', 'snapshot', 'Snapshot'), 'finalize.snapshot'),
-        report: mapReportResponse(readRequiredField(raw, 'report', 'report', 'Report')),
+        snapshot: mapSnapshot(readRequiredField(raw, 'snapshot', 'snapshot'), 'finalize.snapshot'),
+        report: mapReportResponse(readRequiredField(raw, 'report', 'report')),
         endOfDayIndicators: mapIndicatorSnapshot(
-            readRequiredField(raw, 'endOfDayIndicators', 'endOfDayIndicators', 'EndOfDayIndicators'),
+            readRequiredField(raw, 'endOfDayIndicators', 'endOfDayIndicators'),
             'endOfDayIndicators'
         )
     }
@@ -501,108 +446,122 @@ function mapFinalizeRecordOrNull(value: unknown): RealForecastJournalFinalizeRec
 
 function mapDayListItem(value: unknown, index: number): RealForecastJournalDayListItemDto {
     const raw = toObject(value, `dayList[${index}]`)
-    const status = resolveStatus(readRequiredField(raw, 'status', 'status', 'Status'))
+    const status = resolveStatus(readRequiredField(raw, 'status', 'status'))
+    const predictedDirection = (() => {
+        const rawValue = readOptionalField(raw, 'predictedDirection')
+        return rawValue === null || typeof rawValue === 'undefined'
+            ? null
+            : resolveDirectionToken(rawValue, 'predictedDirection')
+    })()
+
+    if (
+        predictedDirection === null &&
+        (status === 'captured' || status === 'finalized' || status === 'recovered_exception')
+    ) {
+        throw new Error(`[real-forecast-journal] predictedDirection is required for status=${status}.`)
+    }
 
     return {
-        id: toNonEmptyString(readRequiredField(raw, 'id', 'id', 'Id'), 'id'),
+        id: toNonEmptyString(readRequiredField(raw, 'id', 'id'), 'id'),
         predictionDateUtc: normalizeUtcDayKey(
-            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
+            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc'),
             'predictionDateUtc'
         ),
         status,
-        trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope', 'TrainingScope')),
+        trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope')),
         capturedAtUtc: (() => {
-            const rawValue = readOptionalField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc')
+            const rawValue = readOptionalField(raw, 'capturedAtUtc')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : normalizeUtcInstant(rawValue, 'capturedAtUtc')
         })(),
-        entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc', 'EntryUtc'), 'entryUtc'),
-        exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc', 'ExitUtc'), 'exitUtc'),
+        entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc'), 'entryUtc'),
+        exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc'), 'exitUtc'),
         finalizedAtUtc: (() => {
-            const rawValue = readOptionalField(raw, 'finalizedAtUtc', 'FinalizedAtUtc')
+            const rawValue = readOptionalField(raw, 'finalizedAtUtc')
             return rawValue === null || typeof rawValue === 'undefined' ?
                     null
                 :   normalizeUtcInstant(rawValue, 'finalizedAtUtc')
         })(),
+        predictedDirection,
         predLabelDisplay: (() => {
-            const rawValue = readOptionalField(raw, 'predLabelDisplay', 'predLabelDisplay', 'PredLabelDisplay')
+            const rawValue = readOptionalField(raw, 'predLabelDisplay')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : toNonEmptyString(rawValue, 'predLabelDisplay')
         })(),
         microDisplay: (() => {
-            const rawValue = readOptionalField(raw, 'microDisplay', 'microDisplay', 'MicroDisplay')
+            const rawValue = readOptionalField(raw, 'microDisplay')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : toNonEmptyString(rawValue, 'microDisplay')
         })(),
         totalUpProbability: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'totalUpProbability', 'totalUpProbability', 'TotalUpProbability')
+            readOptionalField(raw, 'totalUpProbability')
         ),
         totalFlatProbability: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'totalFlatProbability', 'totalFlatProbability', 'TotalFlatProbability')
+            readOptionalField(raw, 'totalFlatProbability')
         ),
         totalDownProbability: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'totalDownProbability', 'totalDownProbability', 'TotalDownProbability')
+            readOptionalField(raw, 'totalDownProbability')
         ),
         dayConfidence: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'dayConfidence', 'dayConfidence', 'DayConfidence')
+            readOptionalField(raw, 'dayConfidence')
         ),
         microConfidence: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'microConfidence', 'microConfidence', 'MicroConfidence')
+            readOptionalField(raw, 'microConfidence')
         ),
         actualDirection: (() => {
-            const rawValue = readOptionalField(raw, 'actualDirection', 'ActualDirection')
+            const rawValue = readOptionalField(raw, 'actualDirection')
             return rawValue === null || typeof rawValue === 'undefined' ?
                     null
-                :   (toNonEmptyString(rawValue, 'actualDirection').toUpperCase() as 'UP' | 'FLAT' | 'DOWN')
+                :   resolveDirectionToken(rawValue, 'actualDirection')
         })(),
-        directionMatched: toOptionalBooleanOrNull(readOptionalField(raw, 'directionMatched', 'DirectionMatched'))
+        directionMatched: toOptionalBooleanOrNull(readOptionalField(raw, 'directionMatched'))
     }
 }
 
 function mapDayRecord(value: unknown): RealForecastJournalDayRecordDto {
     const raw = toObject(value, 'realForecastJournalDay')
-    const status = resolveStatus(readRequiredField(raw, 'status', 'status', 'Status'))
+    const status = resolveStatus(readRequiredField(raw, 'status', 'status'))
 
     return {
-        id: toNonEmptyString(readRequiredField(raw, 'id', 'id', 'Id'), 'id'),
+        id: toNonEmptyString(readRequiredField(raw, 'id', 'id'), 'id'),
         status,
-        trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope', 'TrainingScope')),
+        trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope')),
         predictionDateUtc: normalizeUtcDayKey(
-            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
+            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc'),
             'predictionDateUtc'
         ),
         capturedAtUtc: (() => {
-            const rawValue = readOptionalField(raw, 'capturedAtUtc', 'capturedAtUtc', 'CapturedAtUtc')
+            const rawValue = readOptionalField(raw, 'capturedAtUtc')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : normalizeUtcInstant(rawValue, 'capturedAtUtc')
         })(),
-        entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc', 'EntryUtc'), 'entryUtc'),
-        exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc', 'ExitUtc'), 'exitUtc'),
+        entryUtc: normalizeUtcInstant(readRequiredField(raw, 'entryUtc', 'entryUtc'), 'entryUtc'),
+        exitUtc: normalizeUtcInstant(readRequiredField(raw, 'exitUtc', 'exitUtc'), 'exitUtc'),
         forecastHash: (() => {
-            const rawValue = readOptionalField(raw, 'forecastHash', 'forecastHash', 'ForecastHash')
+            const rawValue = readOptionalField(raw, 'forecastHash')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : toNonEmptyString(rawValue, 'forecastHash')
         })(),
         forecastSnapshot: (() => {
-            const rawValue = readOptionalField(raw, 'forecastSnapshot', 'forecastSnapshot', 'ForecastSnapshot')
+            const rawValue = readOptionalField(raw, 'forecastSnapshot')
             return rawValue === null || typeof rawValue === 'undefined'
                 ? null
                 : mapSnapshot(rawValue, 'forecastSnapshot')
         })(),
         forecastReport: (() => {
-            const rawValue = readOptionalField(raw, 'forecastReport', 'forecastReport', 'ForecastReport')
+            const rawValue = readOptionalField(raw, 'forecastReport')
             return rawValue === null || typeof rawValue === 'undefined' ? null : mapReportResponse(rawValue)
         })(),
         sessionOpenIndicators: (() => {
-            const rawValue = readOptionalField(raw, 'sessionOpenIndicators', 'sessionOpenIndicators', 'SessionOpenIndicators')
+            const rawValue = readOptionalField(raw, 'sessionOpenIndicators')
             return rawValue === null || typeof rawValue === 'undefined' ? null : mapIndicatorSnapshot(rawValue, 'sessionOpenIndicators')
         })(),
-        finalize: mapFinalizeRecordOrNull(readOptionalField(raw, 'finalize', 'Finalize'))
+        finalize: mapFinalizeRecordOrNull(readOptionalField(raw, 'finalize'))
     }
 }
 
@@ -615,11 +574,11 @@ function mapOpsCheckpointOrNull(value: unknown, label: string): RealForecastJour
 
     return {
         predictionDateUtc: normalizeUtcDayKey(
-            readRequiredField(raw, `${label}.predictionDateUtc`, 'predictionDateUtc', 'PredictionDateUtc'),
+            readRequiredField(raw, `${label}.predictionDateUtc`, 'predictionDateUtc'),
             `${label}.predictionDateUtc`
         ),
         occurredAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, `${label}.occurredAtUtc`, 'occurredAtUtc', 'OccurredAtUtc'),
+            readRequiredField(raw, `${label}.occurredAtUtc`, 'occurredAtUtc'),
             `${label}.occurredAtUtc`
         )
     }
@@ -628,96 +587,94 @@ function mapOpsCheckpointOrNull(value: unknown, label: string): RealForecastJour
 function mapOpsStatus(value: unknown): RealForecastJournalOpsStatusDto {
     const raw = toObject(value, 'realForecastJournalOpsStatus')
 
-    const mapOptionalUtcInstant = (field: string, pascalField: string): string | null => {
-        const rawValue = readOptionalField(raw, field, pascalField)
+    const mapOptionalUtcInstant = (field: string): string | null => {
+        const rawValue = readOptionalField(raw, field)
         return rawValue === null || typeof rawValue === 'undefined' ? null : normalizeUtcInstant(rawValue, field)
     }
 
-    const mapOptionalUtcDay = (field: string, pascalField: string): string | null => {
-        const rawValue = readOptionalField(raw, field, pascalField)
+    const mapOptionalUtcDay = (field: string): string | null => {
+        const rawValue = readOptionalField(raw, field)
         return rawValue === null || typeof rawValue === 'undefined' ? null : normalizeUtcDayKey(rawValue, field)
     }
 
     return {
-        health: resolveOpsHealth(readRequiredField(raw, 'health', 'health', 'Health')),
+        health: resolveOpsHealth(readRequiredField(raw, 'health', 'health')),
         statusReason: toNonEmptyString(
-            readRequiredField(raw, 'statusReason', 'statusReason', 'StatusReason'),
+            readRequiredField(raw, 'statusReason', 'statusReason'),
             'statusReason'
         ),
         checkedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, 'checkedAtUtc', 'checkedAtUtc', 'CheckedAtUtc'),
+            readRequiredField(raw, 'checkedAtUtc', 'checkedAtUtc'),
             'checkedAtUtc'
         ),
         pollIntervalSeconds: toFiniteNumber(
-            readRequiredField(raw, 'pollIntervalSeconds', 'pollIntervalSeconds', 'PollIntervalSeconds'),
+            readRequiredField(raw, 'pollIntervalSeconds', 'pollIntervalSeconds'),
             'pollIntervalSeconds'
         ),
-        workerStartedAtUtc: mapOptionalUtcInstant('workerStartedAtUtc', 'WorkerStartedAtUtc'),
-        lastLoopStartedAtUtc: mapOptionalUtcInstant('lastLoopStartedAtUtc', 'LastLoopStartedAtUtc'),
-        lastLoopCompletedAtUtc: mapOptionalUtcInstant('lastLoopCompletedAtUtc', 'LastLoopCompletedAtUtc'),
+        workerStartedAtUtc: mapOptionalUtcInstant('workerStartedAtUtc'),
+        lastLoopStartedAtUtc: mapOptionalUtcInstant('lastLoopStartedAtUtc'),
+        lastLoopCompletedAtUtc: mapOptionalUtcInstant('lastLoopCompletedAtUtc'),
         workerHeartbeatStale: toBoolean(
-            readRequiredField(raw, 'workerHeartbeatStale', 'workerHeartbeatStale', 'WorkerHeartbeatStale'),
+            readRequiredField(raw, 'workerHeartbeatStale', 'workerHeartbeatStale'),
             'workerHeartbeatStale'
         ),
         consecutiveFailureCount: toFiniteNumber(
-            readRequiredField(raw, 'consecutiveFailureCount', 'consecutiveFailureCount', 'ConsecutiveFailureCount'),
+            readRequiredField(raw, 'consecutiveFailureCount', 'consecutiveFailureCount'),
             'consecutiveFailureCount'
         ),
-        lastFailureAtUtc: mapOptionalUtcInstant('lastFailureAtUtc', 'LastFailureAtUtc'),
-        lastFailureStage: toOptionalStringOrNull(readOptionalField(raw, 'lastFailureStage', 'LastFailureStage')),
-        lastFailureMessage: toOptionalStringOrNull(readOptionalField(raw, 'lastFailureMessage', 'LastFailureMessage')),
+        lastFailureAtUtc: mapOptionalUtcInstant('lastFailureAtUtc'),
+        lastFailureStage: toOptionalStringOrNull(readOptionalField(raw, 'lastFailureStage')),
+        lastFailureMessage: toOptionalStringOrNull(readOptionalField(raw, 'lastFailureMessage')),
         lastSuccessfulCapture: mapOpsCheckpointOrNull(
-            readOptionalField(raw, 'lastSuccessfulCapture', 'LastSuccessfulCapture'),
+            readOptionalField(raw, 'lastSuccessfulCapture'),
             'lastSuccessfulCapture'
         ),
         lastSuccessfulFinalize: mapOpsCheckpointOrNull(
-            readOptionalField(raw, 'lastSuccessfulFinalize', 'LastSuccessfulFinalize'),
+            readOptionalField(raw, 'lastSuccessfulFinalize'),
             'lastSuccessfulFinalize'
         ),
         activeRecordCount: toFiniteNumber(
-            readRequiredField(raw, 'activeRecordCount', 'activeRecordCount', 'ActiveRecordCount'),
+            readRequiredField(raw, 'activeRecordCount', 'activeRecordCount'),
             'activeRecordCount'
         ),
         archiveRecordCount: toFiniteNumber(
-            readRequiredField(raw, 'archiveRecordCount', 'archiveRecordCount', 'ArchiveRecordCount'),
+            readRequiredField(raw, 'archiveRecordCount', 'archiveRecordCount'),
             'archiveRecordCount'
         ),
-        expectedCaptureDayUtc: mapOptionalUtcDay('expectedCaptureDayUtc', 'ExpectedCaptureDayUtc'),
-        expectedCaptureEntryUtc: mapOptionalUtcInstant('expectedCaptureEntryUtc', 'ExpectedCaptureEntryUtc'),
+        expectedCaptureDayUtc: mapOptionalUtcDay('expectedCaptureDayUtc'),
+        expectedCaptureEntryUtc: mapOptionalUtcInstant('expectedCaptureEntryUtc'),
         expectedCaptureDayStatus: (() => {
-            const rawValue = readOptionalField(raw, 'expectedCaptureDayStatus', 'ExpectedCaptureDayStatus')
+            const rawValue = readOptionalField(raw, 'expectedCaptureDayStatus')
             return rawValue === null || typeof rawValue === 'undefined' ? null : resolveStatus(rawValue)
         })(),
-        nextCaptureDayUtc: mapOptionalUtcDay('nextCaptureDayUtc', 'NextCaptureDayUtc'),
-        nextCaptureEntryUtc: mapOptionalUtcInstant('nextCaptureEntryUtc', 'NextCaptureEntryUtc'),
+        nextCaptureDayUtc: mapOptionalUtcDay('nextCaptureDayUtc'),
+        nextCaptureEntryUtc: mapOptionalUtcInstant('nextCaptureEntryUtc'),
         captureWindowClosed: toBoolean(
-            readRequiredField(raw, 'captureWindowClosed', 'captureWindowClosed', 'CaptureWindowClosed'),
+            readRequiredField(raw, 'captureWindowClosed', 'captureWindowClosed'),
             'captureWindowClosed'
         ),
         hasRecordForExpectedCaptureDay: toBoolean(
             readRequiredField(
                 raw,
                 'hasRecordForExpectedCaptureDay',
-                'hasRecordForExpectedCaptureDay',
-                'HasRecordForExpectedCaptureDay'
+                'hasRecordForExpectedCaptureDay'
             ),
             'hasRecordForExpectedCaptureDay'
         ),
         captureOverdue: toBoolean(
-            readRequiredField(raw, 'captureOverdue', 'captureOverdue', 'CaptureOverdue'),
+            readRequiredField(raw, 'captureOverdue', 'captureOverdue'),
             'captureOverdue'
         ),
-        activePendingDayUtc: mapOptionalUtcDay('activePendingDayUtc', 'ActivePendingDayUtc'),
-        activePendingExitUtc: mapOptionalUtcInstant('activePendingExitUtc', 'ActivePendingExitUtc'),
+        activePendingDayUtc: mapOptionalUtcDay('activePendingDayUtc'),
+        activePendingExitUtc: mapOptionalUtcInstant('activePendingExitUtc'),
         activePendingFinalizeDueUtc: mapOptionalUtcInstant(
-            'activePendingFinalizeDueUtc',
-            'ActivePendingFinalizeDueUtc'
+            'activePendingFinalizeDueUtc'
         ),
         readyToFinalizeCount: toFiniteNumber(
-            readRequiredField(raw, 'readyToFinalizeCount', 'readyToFinalizeCount', 'ReadyToFinalizeCount'),
+            readRequiredField(raw, 'readyToFinalizeCount', 'readyToFinalizeCount'),
             'readyToFinalizeCount'
         ),
-        oldestReadyToFinalizeDayUtc: mapOptionalUtcDay('oldestReadyToFinalizeDayUtc', 'OldestReadyToFinalizeDayUtc')
+        oldestReadyToFinalizeDayUtc: mapOptionalUtcDay('oldestReadyToFinalizeDayUtc')
     }
 }
 
@@ -725,57 +682,56 @@ function mapLiveRowObservation(value: unknown, index: number): RealForecastJourn
     const raw = toObject(value, `liveRows[${index}]`)
 
     return {
-        rowKey: toNonEmptyString(readRequiredField(raw, 'rowKey', 'rowKey', 'RowKey'), 'rowKey'),
-        policyName: toNonEmptyString(readRequiredField(raw, 'policyName', 'policyName', 'PolicyName'), 'policyName'),
-        branch: toNonEmptyString(readRequiredField(raw, 'branch', 'branch', 'Branch'), 'branch'),
-        bucket: toNonEmptyString(readRequiredField(raw, 'bucket', 'bucket', 'Bucket'), 'bucket'),
-        status: resolveLiveRowStatus(readRequiredField(raw, 'status', 'status', 'Status')),
+        rowKey: toNonEmptyString(readRequiredField(raw, 'rowKey', 'rowKey'), 'rowKey'),
+        policyName: toNonEmptyString(readRequiredField(raw, 'policyName', 'policyName'), 'policyName'),
+        branch: toNonEmptyString(readRequiredField(raw, 'branch', 'branch'), 'branch'),
+        bucket: toNonEmptyString(readRequiredField(raw, 'bucket', 'bucket'), 'bucket'),
+        status: resolveLiveRowStatus(readRequiredField(raw, 'status', 'status')),
         eventTimeUtc: (() => {
-            const rawValue = readOptionalField(raw, 'eventTimeUtc', 'EventTimeUtc')
+            const rawValue = readOptionalField(raw, 'eventTimeUtc')
             return rawValue === null || typeof rawValue === 'undefined' ?
                     null
                 :   normalizeUtcInstant(rawValue, 'eventTimeUtc')
         })(),
-        eventPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'eventPrice', 'EventPrice')),
+        eventPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'eventPrice')),
         latestClosedMinuteOpenUtc: (() => {
-            const rawValue = readOptionalField(raw, 'latestClosedMinuteOpenUtc', 'LatestClosedMinuteOpenUtc')
+            const rawValue = readOptionalField(raw, 'latestClosedMinuteOpenUtc')
             return rawValue === null || typeof rawValue === 'undefined' ?
                     null
                 :   normalizeUtcInstant(rawValue, 'latestClosedMinuteOpenUtc')
         })(),
         observedHighPrice: toOptionalFiniteNumberOrNull(
-            readOptionalField(raw, 'observedHighPrice', 'ObservedHighPrice')
+            readOptionalField(raw, 'observedHighPrice')
         ),
-        observedLowPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'observedLowPrice', 'ObservedLowPrice'))
+        observedLowPrice: toOptionalFiniteNumberOrNull(readOptionalField(raw, 'observedLowPrice'))
     }
 }
 
 function mapLiveStatus(value: unknown): RealForecastJournalLiveStatusDto {
     const raw = toObject(value, 'realForecastJournalLiveStatus')
-    const rawRows = readRequiredField(raw, 'rows', 'rows', 'Rows')
+    const rawRows = readRequiredField(raw, 'rows', 'rows')
     if (!Array.isArray(rawRows)) {
         throw new Error('[real-forecast-journal] rows must be an array.')
     }
 
     return {
         predictionDateUtc: normalizeUtcDayKey(
-            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc', 'PredictionDateUtc'),
+            readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc'),
             'predictionDateUtc'
         ),
         checkedAtUtc: normalizeUtcInstant(
-            readRequiredField(raw, 'checkedAtUtc', 'checkedAtUtc', 'CheckedAtUtc'),
+            readRequiredField(raw, 'checkedAtUtc', 'checkedAtUtc'),
             'checkedAtUtc'
         ),
         currentPrice: toFiniteNumber(
-            readRequiredField(raw, 'currentPrice', 'currentPrice', 'CurrentPrice'),
+            readRequiredField(raw, 'currentPrice', 'currentPrice'),
             'currentPrice'
         ),
         currentPriceObservedAtUtc: normalizeUtcInstant(
             readRequiredField(
                 raw,
                 'currentPriceObservedAtUtc',
-                'currentPriceObservedAtUtc',
-                'CurrentPriceObservedAtUtc'
+                'currentPriceObservedAtUtc'
             ),
             'currentPriceObservedAtUtc'
         ),
@@ -783,8 +739,7 @@ function mapLiveStatus(value: unknown): RealForecastJournalLiveStatusDto {
             readRequiredField(
                 raw,
                 'minuteObservationStartUtc',
-                'minuteObservationStartUtc',
-                'MinuteObservationStartUtc'
+                'minuteObservationStartUtc'
             ),
             'minuteObservationStartUtc'
         ),
@@ -792,8 +747,7 @@ function mapLiveStatus(value: unknown): RealForecastJournalLiveStatusDto {
             readRequiredField(
                 raw,
                 'minuteObservationThroughUtc',
-                'minuteObservationThroughUtc',
-                'MinuteObservationThroughUtc'
+                'minuteObservationThroughUtc'
             ),
             'minuteObservationThroughUtc'
         ),
@@ -965,3 +919,4 @@ export async function prefetchRealForecastJournalDayList(queryClient: QueryClien
         queryFn: () => fetchRealForecastJournalDayList()
     })
 }
+

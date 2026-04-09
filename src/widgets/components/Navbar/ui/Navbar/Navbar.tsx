@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import cls from './Navbar.module.scss'
 import classNames from '@/shared/lib/helpers/classNames'
 import NavbarProps from './types'
-import { LangSwitcher } from '@/widgets/components'
+import { LangSwitcher, ModeSelector } from '@/widgets/components'
 import { Btn, Link } from '@/shared/ui'
 import { NAVBAR_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { AppRoute } from '@/app/providers/router/config/types'
@@ -141,6 +141,7 @@ function Navbar({ className, showSidebarToggle, onSidebarToggleClick }: NavbarPr
                 [className ?? '']
             )}>
             <div ref={controlsRef} className={cls.controls}>
+                <ModeSelector />
                 <LangSwitcher />
             </div>
             <div className={cls.linksWrapper}>

@@ -42,6 +42,7 @@ import {
     DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE,
     DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE,
     buildPolicyBranchMegaPayloadQueryOptions,
+    usePolicyBranchMegaModeMoneySummaryQuery,
     type PolicyBranchMegaReportPayloadDto,
     usePolicyBranchMegaEvaluationQuery,
     usePolicyBranchMegaReportNavQuery,
@@ -138,6 +139,77 @@ function parseFiniteNumberOrNull(raw: string | undefined): number | null {
     return value
 }
 
+function formatModeMoneyInteger(value: number | null, language: string): string {
+    if (value === null) {
+        return '—'
+    }
+
+    return new Intl.NumberFormat(language, {
+        maximumFractionDigits: 0
+    }).format(value)
+}
+
+function formatModeMoneyDecimal(value: number | null, language: string, maximumFractionDigits = 2): string {
+    if (value === null) {
+        return '—'
+    }
+
+    return new Intl.NumberFormat(language, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits
+    }).format(value)
+}
+
+function formatModeMoneyPercent(value: number | null, language: string): string {
+    if (value === null) {
+        return '—'
+    }
+
+    return `${formatModeMoneyDecimal(value, language, 2)}%`
+}
+
+function resolveModeMoneySummarySourceKindLabel(
+    sourceKind: string,
+    translate: (key: string) => string
+): string {
+    if (sourceKind === 'canonical_strategy') {
+        return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.canonicalStrategy')
+    }
+
+    if (sourceKind === 'policy_universe_best_policy') {
+        return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.policyUniverseBestPolicy')
+    }
+
+    if (sourceKind === 'not_published') {
+        return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.notPublished')
+    }
+
+    if (sourceKind === 'not_available') {
+        return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.notAvailable')
+    }
+
+    return sourceKind
+}
+
+function resolveModeMoneySummaryStatusLabel(
+    status: string,
+    translate: (key: string) => string
+): string {
+    if (status === 'available') {
+        return translate('policyBranchMega.page.modeMoneySummary.statuses.available')
+    }
+
+    if (status === 'not_published') {
+        return translate('policyBranchMega.page.modeMoneySummary.statuses.notPublished')
+    }
+
+    if (status === 'missing_artifacts') {
+        return translate('policyBranchMega.page.modeMoneySummary.statuses.missingArtifacts')
+    }
+
+    return status
+}
+
 // В diagnostics route передаются только risk-query параметры, поэтому metric/bucketview
 // исключаются, а bucket секции подставляется явно.
 function buildBacktestDiagnosticsLink(
@@ -157,6 +229,7 @@ const MEGA_ROW_KEY_SEPARATOR = '\u001e'
 const MEGA_PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
 const MEGA_MODE_TAG_REGEX = /\bWITH SL\b|\bNO SL\b/gi
 const MEGA_OVERVIEW_DOM_ID = 'policy-branch-mega-overview'
+const MEGA_MODE_MONEY_SUMMARY_DOM_ID = 'policy-branch-mega-mode-money-summary'
 const BUCKET_SPECIFIC_COLUMN_VISIBILITY = new Map<string, Set<PolicyBranchMegaBucketMode>>([
     ['DailyTP%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
     ['DailySL%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
@@ -1147,6 +1220,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             enabled: Boolean(primaryReport)
         })
     const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
+    const modeMoneySummaryQuery = usePolicyBranchMegaModeMoneySummaryQuery({ enabled: true })
     const primaryEvaluationRows = primaryEvaluation?.rows ?? null
     const effectiveSelectionKey = useMemo(
         () =>
@@ -2322,6 +2396,63 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         visibleSectionEntriesState.error
     ])
 
+    const modeMoneySummaryTable = useMemo(() => {
+        const summary = modeMoneySummaryQuery.data
+        if (!summary) {
+            return null
+        }
+
+        const columns = [
+            t('policyBranchMega.page.modeMoneySummary.columns.mode'),
+            t('policyBranchMega.page.modeMoneySummary.columns.slice'),
+            t('policyBranchMega.page.modeMoneySummary.columns.source'),
+            t('policyBranchMega.page.modeMoneySummary.columns.status'),
+            t('policyBranchMega.page.modeMoneySummary.columns.execution'),
+            t('policyBranchMega.page.modeMoneySummary.columns.days'),
+            t('policyBranchMega.page.modeMoneySummary.columns.trades'),
+            t('policyBranchMega.page.modeMoneySummary.columns.positiveDays'),
+            t('policyBranchMega.page.modeMoneySummary.columns.zeroDays'),
+            t('policyBranchMega.page.modeMoneySummary.columns.negativeDays'),
+            t('policyBranchMega.page.modeMoneySummary.columns.technicalAccuracy'),
+            t('policyBranchMega.page.modeMoneySummary.columns.businessAccuracy'),
+            t('policyBranchMega.page.modeMoneySummary.columns.totalReturn'),
+            t('policyBranchMega.page.modeMoneySummary.columns.maxDrawdown'),
+            t('policyBranchMega.page.modeMoneySummary.columns.sharpe'),
+            t('policyBranchMega.page.modeMoneySummary.columns.sourcePath')
+        ]
+
+        const rows = summary.rows.map(row => {
+            const sourceLabel = resolveModeMoneySummarySourceKindLabel(row.moneySourceKind, key => t(key))
+            const statusLabel = resolveModeMoneySummaryStatusLabel(row.sourceStatus, key => t(key))
+            const statusText =
+                row.sourceStatus === 'available' ? statusLabel : `${statusLabel}: ${row.statusMessage}`
+
+            return [
+                row.modeLabel,
+                row.sliceLabel,
+                sourceLabel,
+                statusText,
+                row.executionDescriptor,
+                formatModeMoneyInteger(row.completedDayCount, i18n.language),
+                formatModeMoneyInteger(row.tradeCount, i18n.language),
+                formatModeMoneyInteger(row.positiveReturnDayCount, i18n.language),
+                formatModeMoneyInteger(row.zeroReturnDayCount, i18n.language),
+                formatModeMoneyInteger(row.negativeReturnDayCount, i18n.language),
+                formatModeMoneyPercent(row.technicalAccuracyPct, i18n.language),
+                formatModeMoneyPercent(row.businessAccuracyPct, i18n.language),
+                formatModeMoneyPercent(row.compoundedReturnPct, i18n.language),
+                formatModeMoneyPercent(row.maxDrawdownPct, i18n.language),
+                formatModeMoneyDecimal(row.sharpeAnnualized, i18n.language, 3),
+                row.sourceLocationHint
+            ]
+        })
+
+        return {
+            columns,
+            rows
+        }
+    }, [i18n.language, modeMoneySummaryQuery.data, t])
+
     const renderHeader = () => (
         <header className={cls.hero}>
             <div>
@@ -2511,6 +2642,57 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                     .
                                 </li>
                             </ul>
+                        </section>
+
+                        <section className={cls.sectionBlock} id={MEGA_MODE_MONEY_SUMMARY_DOM_ID}>
+                            <div className={cls.overviewBlock}>
+                                <Text type='h3' className={cls.overviewTitle}>
+                                    {t('policyBranchMega.page.modeMoneySummary.title')}
+                                </Text>
+                                <Text className={cls.overviewText}>
+                                    {renderTermTooltipRichText(t('policyBranchMega.page.modeMoneySummary.description'))}
+                                </Text>
+                                <ul className={cls.overviewList}>
+                                    <li>
+                                        {renderTermTooltipRichText(
+                                            t('policyBranchMega.page.modeMoneySummary.notes.item1')
+                                        )}
+                                    </li>
+                                    <li>
+                                        {renderTermTooltipRichText(
+                                            t('policyBranchMega.page.modeMoneySummary.notes.item2')
+                                        )}
+                                    </li>
+                                    <li>
+                                        {renderTermTooltipRichText(
+                                            t('policyBranchMega.page.modeMoneySummary.notes.item3')
+                                        )}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <PageSectionDataState
+                                isLoading={modeMoneySummaryQuery.isLoading}
+                                isError={Boolean(modeMoneySummaryQuery.error)}
+                                error={modeMoneySummaryQuery.error}
+                                hasData={Boolean(modeMoneySummaryTable && modeMoneySummaryTable.rows.length > 0)}
+                                onRetry={() => void modeMoneySummaryQuery.refetch()}
+                                title={t('policyBranchMega.page.modeMoneySummary.errors.title')}
+                                description={t('policyBranchMega.page.modeMoneySummary.errors.message')}
+                                loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
+                                logContext={{ source: 'policy-branch-mega-mode-money-summary' }}>
+                                {modeMoneySummaryTable ?
+                                    <ReportTableCard
+                                        title={t('policyBranchMega.page.modeMoneySummary.tableTitle')}
+                                        description={t('policyBranchMega.page.modeMoneySummary.tableDescription')}
+                                        columns={modeMoneySummaryTable.columns}
+                                        rows={modeMoneySummaryTable.rows}
+                                        domId={`${MEGA_MODE_MONEY_SUMMARY_DOM_ID}-table`}
+                                        tableMaxHeight='min(72vh, 640px)'
+                                        virtualizeRows
+                                    />
+                                :   <Text>{t('policyBranchMega.page.modeMoneySummary.empty')}</Text>}
+                            </PageSectionDataState>
                         </section>
                     </>
                 }

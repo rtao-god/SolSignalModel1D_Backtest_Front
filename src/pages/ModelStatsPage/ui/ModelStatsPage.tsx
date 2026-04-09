@@ -9,8 +9,11 @@ import type { ModelStatsPageProps } from './modelStatsTypes'
 import { ModelStatsPageInner } from './ModelStatsPageInner'
 import { useSearchParams } from 'react-router-dom'
 import { useCallback, useMemo } from 'react'
+import { useSelector } from 'react-redux'
+import { selectActiveMode } from '@/entities/mode'
+import { WalkForwardModeModelStatsPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 
-export default function ModelStatsPage({ className, embedded = false, familyFilter = null }: ModelStatsPageProps) {
+function FixedSplitModelStatsPage({ className, embedded = false, familyFilter = null }: ModelStatsPageProps) {
     const [searchParams] = useSearchParams()
     const variantCatalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestModelStats)
     const variantResolutionState = useMemo(() => {
@@ -81,4 +84,14 @@ export default function ModelStatsPage({ className, embedded = false, familyFilt
             onRetry={handleRetry}
         />
     )
+}
+
+export default function ModelStatsPage(props: ModelStatsPageProps) {
+    const activeMode = useSelector(selectActiveMode)
+
+    if (activeMode !== 'directional_fixed_split') {
+        return <WalkForwardModeModelStatsPanel className={props.className} mode={activeMode} />
+    }
+
+    return <FixedSplitModelStatsPage {...props} />
 }

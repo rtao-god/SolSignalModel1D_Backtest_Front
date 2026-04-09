@@ -128,18 +128,13 @@ interface AggregationSegmentCandidate {
     segmentName?: unknown
     segmentLabel?: unknown
     total?: unknown
-    Total?: unknown
 }
 
 interface AggregationTotalCandidate {
     accuracy?: unknown
-    Accuracy?: unknown
     microF1?: unknown
-    MicroF1?: unknown
     logLoss?: unknown
-    LogLoss?: unknown
     n?: unknown
-    N?: unknown
 }
 
 interface ConfidenceRiskConfig {
@@ -198,11 +193,9 @@ function toObject(value: unknown, label: string): Record<string, unknown> {
     return value as Record<string, unknown>
 }
 
-function readRequiredField(raw: Record<string, unknown>, label: string, ...keys: string[]): unknown {
-    for (const key of keys) {
-        if (Object.prototype.hasOwnProperty.call(raw, key)) {
-            return raw[key]
-        }
+function readRequiredField(raw: Record<string, unknown>, label: string, key: string): unknown {
+    if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        return raw[key]
     }
 
     throw new Error(`[real-forecast-journal] ${label} is missing.`)
@@ -216,23 +209,6 @@ function resolveScope(value: string): CurrentPredictionTrainingScope {
     if (normalized === 'full') return 'full'
 
     throw new Error(`[real-forecast-journal] unsupported scope: ${value}.`)
-}
-
-function resolveDirection(value: string): RealForecastJournalDirection {
-    const normalized = value.trim().toUpperCase()
-    const wrappedLabelMatch = normalized.match(/\((UP|FLAT|DOWN)\)/)
-    if (wrappedLabelMatch) {
-        return wrappedLabelMatch[1] as RealForecastJournalDirection
-    }
-
-    if (normalized === 'UP') return 'UP'
-    if (normalized === 'FLAT') return 'FLAT'
-    if (normalized === 'DOWN') return 'DOWN'
-    if (normalized === '2') return 'UP'
-    if (normalized === '1') return 'FLAT'
-    if (normalized === '0') return 'DOWN'
-
-    throw new Error(`[real-forecast-journal] unsupported direction: ${value}.`)
 }
 
 function directionToProbability(
@@ -573,26 +549,25 @@ function collectFinalizedDays(dayList: RealForecastJournalDayListItemDto[]): Liv
             (
                 item
             ): item is RealForecastJournalDayListItemDto & {
+                predictedDirection: RealForecastJournalDirection
                 actualDirection: RealForecastJournalDirection
                 directionMatched: boolean
-                predLabelDisplay: string
                 totalUpProbability: number
                 totalFlatProbability: number
                 totalDownProbability: number
                 dayConfidence: number
             } =>
                 item.status === 'finalized' &&
+                item.predictedDirection !== null &&
                 item.actualDirection !== null &&
                 item.directionMatched !== null &&
-                item.predLabelDisplay !== null &&
                 item.totalUpProbability !== null &&
                 item.totalFlatProbability !== null &&
                 item.totalDownProbability !== null &&
                 item.dayConfidence !== null
         )
         .map(item => {
-            const predictedDirection = resolveDirection(item.predLabelDisplay)
-            const assignedProbability = directionToProbability(predictedDirection, item)
+            const assignedProbability = directionToProbability(item.predictedDirection, item)
             if (!(assignedProbability > 0 && assignedProbability <= 1)) {
                 throw new Error(
                     `[real-forecast-journal] assigned probability is outside (0, 1]. date=${item.predictionDateUtc}.`
@@ -601,7 +576,7 @@ function collectFinalizedDays(dayList: RealForecastJournalDayListItemDto[]): Liv
 
             return {
                 predictionDateUtc: item.predictionDateUtc,
-                predictedDirection,
+                predictedDirection: item.predictedDirection,
                 actualDirection: item.actualDirection,
                 matched: item.directionMatched,
                 assignedProbability,
@@ -642,8 +617,7 @@ export function resolveAggregationBenchmark(
     metrics: AggregationMetricsSnapshotDto,
     scope: CurrentPredictionTrainingScope
 ): RealForecastJournalAggregationBenchmark {
-    const rawSegments =
-        (metrics as { segments?: unknown; Segments?: unknown }).segments ?? (metrics as { Segments?: unknown }).Segments
+    const rawSegments = (metrics as { segments?: unknown }).segments
     if (!Array.isArray(rawSegments)) {
         throw new Error('[real-forecast-journal] aggregation metrics segments are missing.')
     }
@@ -652,9 +626,8 @@ export function resolveAggregationBenchmark(
         .map(candidate => toObject(candidate, 'aggregation.segment'))
         .find(
             candidate =>
-                resolveAggregationSegmentName(
-                    String(readRequiredField(candidate, 'segmentName', 'segmentName', 'SegmentName'))
-                ) === scope
+                resolveAggregationSegmentName(String(readRequiredField(candidate, 'segmentName', 'segmentName'))) ===
+                scope
         )
 
     if (!segment) {
@@ -662,29 +635,23 @@ export function resolveAggregationBenchmark(
     }
 
     const segmentCandidate = segment as AggregationSegmentCandidate
-    const totalCandidate = toObject(
-        segmentCandidate.total ?? segmentCandidate.Total,
-        'aggregation.segment.total'
-    ) as AggregationTotalCandidate
+    const totalCandidate = toObject(segmentCandidate.total, 'aggregation.segment.total') as AggregationTotalCandidate
 
     return {
-        label: toNonEmptyString(
-            readRequiredField(segment, 'segmentLabel', 'segmentLabel', 'SegmentLabel'),
-            'segmentLabel'
-        ),
+        label: toNonEmptyString(readRequiredField(segment, 'segmentLabel', 'segmentLabel'), 'segmentLabel'),
         accuracy: toFiniteNumber(
-            readRequiredField(totalCandidate as Record<string, unknown>, 'Accuracy', 'accuracy', 'Accuracy'),
+            readRequiredField(totalCandidate as Record<string, unknown>, 'accuracy', 'accuracy'),
             'Accuracy'
         ),
         microF1: toFiniteNumber(
-            readRequiredField(totalCandidate as Record<string, unknown>, 'MicroF1', 'microF1', 'MicroF1'),
+            readRequiredField(totalCandidate as Record<string, unknown>, 'microF1', 'microF1'),
             'MicroF1'
         ),
         logLoss: toFiniteNumber(
-            readRequiredField(totalCandidate as Record<string, unknown>, 'LogLoss', 'logLoss', 'LogLoss'),
+            readRequiredField(totalCandidate as Record<string, unknown>, 'logLoss', 'logLoss'),
             'LogLoss'
         ),
-        sampleSize: toInteger(readRequiredField(totalCandidate as Record<string, unknown>, 'N', 'n', 'N'), 'N')
+        sampleSize: toInteger(readRequiredField(totalCandidate as Record<string, unknown>, 'n', 'n'), 'N')
     }
 }
 

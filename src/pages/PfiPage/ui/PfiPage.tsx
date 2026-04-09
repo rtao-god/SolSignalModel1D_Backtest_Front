@@ -32,6 +32,9 @@ import {
 import ModelStatsPage from '@/pages/ModelStatsPage'
 import cls from './PfiPage.module.scss'
 import type { PfiPageMode, PfiPageProps, PfiTableCardProps } from './types'
+import { useSelector } from 'react-redux'
+import { selectActiveMode } from '@/entities/mode'
+import { WalkForwardModePfiPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 
 const PFI_FEATURE_DESCRIPTION_COLUMN_KEY = 'feature_description'
 const PFI_BUSINESS_COLUMN_KEYS = ['index', 'feature_description', 'name', 'importance_auc', 'delta_mean', 'corr_score', 'support']
@@ -398,7 +401,7 @@ function PfiDiagnosticsPanel({ family }: PfiDiagnosticsPanelProps) {
     )
 }
 
-export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
+function FixedSplitPfiPage({ className, family = 'daily' }: PfiPageProps) {
     const { t } = useTranslation('reports')
     const [pageMode, setPageMode] = useState<PfiPageMode>('model_quality')
     const familyFilter = family === 'daily' ? 'daily_model' : 'sl_model'
@@ -441,4 +444,14 @@ export default function PfiPage({ className, family = 'daily' }: PfiPageProps) {
             :   <PfiDiagnosticsPanel family={family} />}
         </div>
     )
+}
+
+export default function PfiPage(props: PfiPageProps) {
+    const activeMode = useSelector(selectActiveMode)
+
+    if (activeMode !== 'directional_fixed_split') {
+        return <WalkForwardModePfiPanel className={props.className} mode={activeMode} family={props.family} />
+    }
+
+    return <FixedSplitPfiPage {...props} />
 }

@@ -1,0 +1,86 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.subtitle {
+    color: var(--text-secondary, #6b7280);
+    max-width: 900px;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 160px;
+}
+
+.controlLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.controlInput {
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 10px;
+    background: var(--bg-soft, #fff);
+    padding: 10px 12px;
+    font: inherit;
+    color: inherit;
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.metricCard {
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96));
+}
+
+.metricLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.metricValue {
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.noteCard {
+    border: 1px dashed var(--border-color, #d1d5db);
+    border-radius: 14px;
+    padding: 18px;
+    background: var(--bg-soft, #fff);
+}

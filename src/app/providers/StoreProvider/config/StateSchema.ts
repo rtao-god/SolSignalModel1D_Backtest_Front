@@ -6,8 +6,14 @@ import { authApi } from '@/shared/api/authApi'
 import { api } from '@/shared/api'
 import { registrationApi } from '@/shared/lib/hooks'
 import { Reducer, AnyAction, ReducersMapObject, EnhancedStore } from '@reduxjs/toolkit'
+import type { ModeId } from '@/entities/mode'
+
+export interface ModeSchema {
+    activeMode: ModeId
+}
 
 export interface StateSchema {
+    mode: ModeSchema
     date: DateSchema
     user: UserSchema
     registration: RegistrationSchema

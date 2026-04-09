@@ -108,6 +108,10 @@ export const API_ROUTES = {
             path: '/backtest/policy-branch-mega/validation',
             method: 'GET' as const
         },
+        policyBranchMegaModeMoneySummaryGet: {
+            path: '/backtest/policy-branch-mega/mode-money-summary',
+            method: 'GET' as const
+        },
         confidenceRiskGet: {
             path: '/backtest/confidence-risk',
             method: 'GET' as const
@@ -260,6 +264,75 @@ export const API_ROUTES = {
         },
         modelStatsPerModel: {
             path: '/ml/stats/per-model',
+            method: 'GET' as const
+        }
+    },
+
+    modes: {
+        registry: {
+            path: '/modes',
+            method: 'GET' as const
+        }
+    },
+
+    tbmNative: {
+        history: {
+            path: '/tbm-native/history',
+            method: 'GET' as const
+        },
+        modelStats: {
+            path: '/tbm-native/model-stats',
+            method: 'GET' as const
+        },
+        aggregation: {
+            path: '/tbm-native/aggregation',
+            method: 'GET' as const
+        },
+        validation: {
+            path: '/tbm-native/validation',
+            method: 'GET' as const
+        },
+        pfi: {
+            path: '/tbm-native/pfi',
+            method: 'GET' as const
+        },
+        folds: {
+            path: '/tbm-native/folds',
+            method: 'GET' as const
+        }
+    },
+
+    directionalWalkForward: {
+        current: {
+            path: '/directional-walkforward/current',
+            method: 'GET' as const
+        },
+        history: {
+            path: '/directional-walkforward/history',
+            method: 'GET' as const
+        },
+        modelStats: {
+            path: '/directional-walkforward/model-stats',
+            method: 'GET' as const
+        },
+        aggregation: {
+            path: '/directional-walkforward/aggregation',
+            method: 'GET' as const
+        },
+        validation: {
+            path: '/directional-walkforward/validation',
+            method: 'GET' as const
+        },
+        pfiPerModel: {
+            path: '/directional-walkforward/pfi-per-model',
+            method: 'GET' as const
+        },
+        pfiSlModel: {
+            path: '/directional-walkforward/pfi-sl-model',
+            method: 'GET' as const
+        },
+        folds: {
+            path: '/directional-walkforward/folds',
             method: 'GET' as const
         }
     }

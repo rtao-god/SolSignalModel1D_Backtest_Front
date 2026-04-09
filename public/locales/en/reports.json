@@ -2660,6 +2660,51 @@
             "title": "Policy Branch Mega",
             "subtitle": "Comparative report for all [[policy|Policy]] configurations on one long history: [[branch|BASE / ANTI-D branches]], SL modes, filters, and final risk/return metrics. The page is built to select not just the highest return, but the most robust setup.\n\nThe second layer shows return, drawdown, liquidations, recovery, and the [[position|LONG]] / [[position|SHORT]] contribution.",
             "noDataPlaceholder": "no data",
+            "modeMoneySummary": {
+                "title": "Money by mode",
+                "description": "This owner block makes it possible to read how much the published modes actually earn and which exact money source stands behind each number next to the classic [[landing-policy-branch-mega|Policy Branch Mega]] table.",
+                "tableTitle": "Cross-mode money comparison",
+                "tableDescription": "This table joins published fixed-split money rows with TBM Native and Directional Walk-Forward.",
+                "empty": "No rows are available for the cross-mode money summary yet.",
+                "notes": {
+                    "item1": "Directional Fixed-Split rows do not show one canonical mode strategy. They show the top published daily [[policy|Policy]] inside the corresponding slice.",
+                    "item2": "TBM Native and Directional Walk-Forward rows use one canonical daily mode strategy and are read from the owner series in `walkforward-raw`.",
+                    "item3": "The Directional Fixed-Split train row currently publishes only quality diagnostics. When money is absent, the table shows `not published` explicitly instead of inventing a number."
+                },
+                "errors": {
+                    "title": "Mode money summary is unavailable",
+                    "message": "Failed to load the owner money summary for fixed-split, TBM Native, and Directional Walk-Forward."
+                },
+                "sourceKinds": {
+                    "canonicalStrategy": "Canonical mode strategy",
+                    "policyUniverseBestPolicy": "Top published daily Policy",
+                    "notPublished": "Money is not published",
+                    "notAvailable": "Money source unavailable"
+                },
+                "statuses": {
+                    "available": "Published",
+                    "notPublished": "Not published",
+                    "missingArtifacts": "Artifacts missing"
+                },
+                "columns": {
+                    "mode": "Mode",
+                    "slice": "Slice",
+                    "source": "Money source",
+                    "status": "Status",
+                    "execution": "Execution / policy",
+                    "days": "Days",
+                    "trades": "Trades",
+                    "positiveDays": "+ Days",
+                    "zeroDays": "0 Days",
+                    "negativeDays": "- Days",
+                    "technicalAccuracy": "TechAcc, %",
+                    "businessAccuracy": "BizAcc, %",
+                    "totalReturn": "Return, %",
+                    "maxDrawdown": "MaxDD, %",
+                    "sharpe": "Sharpe",
+                    "sourcePath": "Verification path"
+                }
+            },
             "metricDiff": {
                 "noRows": "REAL/NO BIGGEST LIQ LOSS: no comparable Policy configurations for the selected bucket.",
                 "noChanges": "REAL/NO BIGGEST LIQ LOSS: Policy configurations are identical in the selected bucket (liquidations do not affect this slice).",

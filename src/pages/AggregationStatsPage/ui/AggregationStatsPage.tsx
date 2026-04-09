@@ -8,6 +8,9 @@ import cls from './AggregationStatsPage.module.scss'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { useSelector } from 'react-redux'
+import { selectActiveMode } from '@/entities/mode'
+import { WalkForwardModeAggregationPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 
 function formatUtcDayKeyLabel(value: unknown): string {
     if (!value || typeof value !== 'object') {
@@ -26,7 +29,7 @@ function formatUtcDayKeyLabel(value: unknown): string {
     return rawValue === undefined || rawValue === null ? '—' : String(rawValue)
 }
 
-export default function AggregationStatsPage({ className }: AggregationStatsPageProps) {
+function FixedSplitAggregationStatsPage({ className }: AggregationStatsPageProps) {
     const { t } = useTranslation('reports')
     const probsQuery = useAggregationProbsQuery()
     const metricsQuery = useAggregationMetricsQuery()
@@ -111,6 +114,16 @@ export default function AggregationStatsPage({ className }: AggregationStatsPage
             </PageDataState>
         </div>
     )
+}
+
+export default function AggregationStatsPage(props: AggregationStatsPageProps) {
+    const activeMode = useSelector(selectActiveMode)
+
+    if (activeMode !== 'directional_fixed_split') {
+        return <WalkForwardModeAggregationPanel className={props.className} mode={activeMode} />
+    }
+
+    return <FixedSplitAggregationStatsPage {...props} />
 }
 
 function normalizeProbsSnapshot(input: AggregationProbsSnapshotDto | undefined | null): {

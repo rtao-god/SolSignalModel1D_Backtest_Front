@@ -2660,6 +2660,51 @@
             "title": "Policy Branch Mega",
             "subtitle": "Страница сравнивает все конфигурации [[policy|Policy]] на одной длинной истории: [[branch|ветки BASE / ANTI-D]], режимы SL, фильтры и итоговые метрики риска и доходности. Она помогает выбрать не просто самую доходную, а самую устойчивую схему.\n\nВо втором слое таблица показывает доходность, просадку, ликвидации, восстановление и вклад [[position|LONG]] / [[position|SHORT]].",
             "noDataPlaceholder": "нет данных",
+            "modeMoneySummary": {
+                "title": "Деньги по режимам",
+                "description": "Этот owner-блок нужен, чтобы рядом с классической [[landing-policy-branch-mega|Policy Branch Mega]] видеть, сколько реально зарабатывают опубликованные режимы и из какого именно источника денег это число взято.",
+                "tableTitle": "Сравнение денег по режимам",
+                "tableDescription": "В одной таблице собраны published fixed-split money rows, TBM Native и Directional Walk-Forward.",
+                "empty": "Для кросс-режимной денежной сводки пока нет строк.",
+                "notes": {
+                    "item1": "Строки Directional Fixed-Split показывают не одну каноническую стратегию режима, а лучшую опубликованную дневную [[policy|Policy]] внутри соответствующего среза.",
+                    "item2": "Строки TBM Native и Directional Walk-Forward используют одну каноническую дневную стратегию режима и читаются по owner series из `walkforward-raw`.",
+                    "item3": "Train-строка Directional Fixed-Split пока публикует только диагностику качества. Если денег нет, это честно показано как `not published`, а не замещено догадкой."
+                },
+                "errors": {
+                    "title": "Денежная сводка режимов недоступна",
+                    "message": "Не удалось загрузить owner-сводку денег для fixed-split, TBM Native и Directional Walk-Forward."
+                },
+                "sourceKinds": {
+                    "canonicalStrategy": "Каноническая стратегия режима",
+                    "policyUniverseBestPolicy": "Лучшая опубликованная дневная Policy",
+                    "notPublished": "Деньги не публикуются",
+                    "notAvailable": "Источник денег недоступен"
+                },
+                "statuses": {
+                    "available": "Опубликовано",
+                    "notPublished": "Не публикуется",
+                    "missingArtifacts": "Нет артефактов"
+                },
+                "columns": {
+                    "mode": "Режим",
+                    "slice": "Срез",
+                    "source": "Источник денег",
+                    "status": "Статус",
+                    "execution": "Исполнение / policy",
+                    "days": "Дней",
+                    "trades": "Сделок",
+                    "positiveDays": "+ Дней",
+                    "zeroDays": "0 Дней",
+                    "negativeDays": "- Дней",
+                    "technicalAccuracy": "TechAcc, %",
+                    "businessAccuracy": "BizAcc, %",
+                    "totalReturn": "Итог, %",
+                    "maxDrawdown": "MaxDD, %",
+                    "sharpe": "Sharpe",
+                    "sourcePath": "Путь проверки"
+                }
+            },
             "metricDiff": {
                 "noRows": "REAL/NO BIGGEST LIQ LOSS: нет сопоставимых Policy-конфигураций для сравнения в выбранном бакете.",
                 "noChanges": "REAL/NO BIGGEST LIQ LOSS: Policy-конфигурации в выбранном бакете совпадают (ликвидации не влияют на этот срез).",

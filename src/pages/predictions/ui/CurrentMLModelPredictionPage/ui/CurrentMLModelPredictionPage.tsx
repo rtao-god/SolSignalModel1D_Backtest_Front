@@ -30,6 +30,9 @@ import type {
 import { useTranslation } from 'react-i18next'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { useSelector } from 'react-redux'
+import { selectActiveMode } from '@/entities/mode'
+import { WalkForwardModeCurrentPredictionPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
 import { PredictionSliceTimelinePanel } from '@/pages/predictions/ui/shared/PredictionSliceTimeline'
@@ -137,7 +140,7 @@ function sanitizeCurrentPredictionReport(report: ReportDocumentDto): ReportDocum
     }
 }
 
-export default function CurrentMLModelPredictionPage({ className }: CurrentMLModelPredictionProps) {
+function DirectionalFixedSplitCurrentPredictionPage({ className }: CurrentMLModelPredictionProps) {
     const { t, i18n } = useTranslation('reports')
     const [trainingScope, setTrainingScope] = useState<CurrentPredictionTrainingScope>('full')
     const nowMs = useReportTimingNowMs()
@@ -409,4 +412,14 @@ export default function CurrentMLModelPredictionPage({ className }: CurrentMLMod
             </PageDataState>
         </div>
     )
+}
+
+export default function CurrentMLModelPredictionPage(props: CurrentMLModelPredictionProps) {
+    const activeMode = useSelector(selectActiveMode)
+
+    if (activeMode !== 'directional_fixed_split') {
+        return <WalkForwardModeCurrentPredictionPanel className={props.className} mode={activeMode} />
+    }
+
+    return <DirectionalFixedSplitCurrentPredictionPage {...props} />
 }

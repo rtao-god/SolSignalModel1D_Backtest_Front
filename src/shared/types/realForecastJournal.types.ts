@@ -11,7 +11,7 @@ export type RealForecastJournalDayStatus =
 export type RealForecastJournalDirection = 'UP' | 'FLAT' | 'DOWN'
 export type RealForecastJournalPolicyBucket = 'daily' | 'intraday' | 'delayed'
 export type RealForecastJournalMarginMode = 'cross' | 'isolated'
-export type RealForecastJournalOpsHealthStatus = 'starting' | 'healthy' | 'degraded'
+export type RealForecastJournalOpsHealthStatus = 'healthy' | 'degraded'
 export type RealForecastJournalLiveRowStatus =
     | 'not-tracked'
     | 'open'
@@ -158,6 +158,7 @@ export interface RealForecastJournalDayListItemDto {
     entryUtc: string
     exitUtc: string
     finalizedAtUtc: string | null
+    predictedDirection: RealForecastJournalDirection | null
     predLabelDisplay: string | null
     microDisplay: string | null
     totalUpProbability: number | null

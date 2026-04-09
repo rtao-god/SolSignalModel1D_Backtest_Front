@@ -38,10 +38,13 @@ const POLICY_BRANCH_MEGA_REPORT_QUERY_KEY_BASE = ['backtest', 'policy-branch-meg
 const POLICY_BRANCH_MEGA_EVALUATION_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'evaluation'] as const
 const POLICY_BRANCH_MEGA_PAYLOAD_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'payload'] as const
 const POLICY_BRANCH_MEGA_VALIDATION_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'validation'] as const
+const POLICY_BRANCH_MEGA_MODE_MONEY_SUMMARY_QUERY_KEY_BASE =
+    ['backtest', 'policy-branch-mega', 'mode-money-summary'] as const
 const { path } = API_ROUTES.backtest.policyBranchMegaGet
 const { path: payloadPath } = API_ROUTES.backtest.policyBranchMegaPayloadGet
 const { path: evaluationPath } = API_ROUTES.backtest.policyBranchMegaEvaluationGet
 const { path: validationPath } = API_ROUTES.backtest.policyBranchMegaValidationGet
+const { path: modeMoneySummaryPath } = API_ROUTES.backtest.policyBranchMegaModeMoneySummaryGet
 
 interface UsePolicyBranchMegaNavOptions {
     enabled: boolean
@@ -255,6 +258,10 @@ function buildPolicyBranchMegaValidationQueryKey(args?: PolicyBranchMegaReportQu
     ] as const
 }
 
+function buildPolicyBranchMegaModeMoneySummaryQueryKey() {
+    return POLICY_BRANCH_MEGA_MODE_MONEY_SUMMARY_QUERY_KEY_BASE
+}
+
 export type PolicyBranchMegaValidationState = 'pending' | 'matched' | 'mismatch' | 'error'
 
 export interface PolicyBranchMegaCapabilitiesDto {
@@ -294,6 +301,39 @@ export interface PolicyBranchMegaValidationDto {
     diagnosticsId: string | null
     requestedAtUtc: string | null
     checkedAtUtc: string | null
+}
+
+export interface PolicyBranchMegaModeMoneySummaryRowDto {
+    modeKey: string
+    modeLabel: string
+    sliceKey: string
+    sliceLabel: string
+    moneySourceKind: string
+    sourceStatus: string
+    statusMessage: string
+    executionDescriptor: string
+    comparabilityNote: string
+    completedDayCount: number | null
+    tradeCount: number | null
+    positiveReturnDayCount: number | null
+    zeroReturnDayCount: number | null
+    negativeReturnDayCount: number | null
+    technicalAccuracyPct: number | null
+    businessAccuracyPct: number | null
+    compoundedReturnPct: number | null
+    maxDrawdownPct: number | null
+    sharpeAnnualized: number | null
+    sourceArtifactKind: string
+    sourceArtifactId: string
+    sourceLocationHint: string
+    policyName: string | null
+    policyBranch: string | null
+    policyMarginMode: string | null
+}
+
+export interface PolicyBranchMegaModeMoneySummaryDto {
+    generatedAtUtc: string
+    rows: PolicyBranchMegaModeMoneySummaryRowDto[]
 }
 
 function toObject(raw: unknown): Record<string, unknown> {
@@ -689,6 +729,54 @@ function mapPolicyBranchMegaPayload(raw: unknown): PolicyBranchMegaReportPayload
     }
 }
 
+function mapPolicyBranchMegaModeMoneySummaryRow(
+    raw: unknown,
+    index: number
+): PolicyBranchMegaModeMoneySummaryRowDto {
+    const payload = toObject(raw)
+    const label = `modeMoneySummary.rows[${index}]`
+
+    return {
+        modeKey: toRequiredString(payload.modeKey, `${label}.modeKey`),
+        modeLabel: toRequiredString(payload.modeLabel, `${label}.modeLabel`),
+        sliceKey: toRequiredString(payload.sliceKey, `${label}.sliceKey`),
+        sliceLabel: toRequiredString(payload.sliceLabel, `${label}.sliceLabel`),
+        moneySourceKind: toRequiredString(payload.moneySourceKind, `${label}.moneySourceKind`),
+        sourceStatus: toRequiredString(payload.sourceStatus, `${label}.sourceStatus`),
+        statusMessage: toRequiredString(payload.statusMessage, `${label}.statusMessage`),
+        executionDescriptor: toRequiredString(payload.executionDescriptor, `${label}.executionDescriptor`),
+        comparabilityNote: toRequiredString(payload.comparabilityNote, `${label}.comparabilityNote`),
+        completedDayCount: toNullableInteger(payload.completedDayCount, `${label}.completedDayCount`),
+        tradeCount: toNullableInteger(payload.tradeCount, `${label}.tradeCount`),
+        positiveReturnDayCount: toNullableInteger(payload.positiveReturnDayCount, `${label}.positiveReturnDayCount`),
+        zeroReturnDayCount: toNullableInteger(payload.zeroReturnDayCount, `${label}.zeroReturnDayCount`),
+        negativeReturnDayCount: toNullableInteger(payload.negativeReturnDayCount, `${label}.negativeReturnDayCount`),
+        technicalAccuracyPct: toNullableNumber(payload.technicalAccuracyPct, `${label}.technicalAccuracyPct`),
+        businessAccuracyPct: toNullableNumber(payload.businessAccuracyPct, `${label}.businessAccuracyPct`),
+        compoundedReturnPct: toNullableNumber(payload.compoundedReturnPct, `${label}.compoundedReturnPct`),
+        maxDrawdownPct: toNullableNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
+        sharpeAnnualized: toNullableNumber(payload.sharpeAnnualized, `${label}.sharpeAnnualized`),
+        sourceArtifactKind: toRequiredString(payload.sourceArtifactKind, `${label}.sourceArtifactKind`),
+        sourceArtifactId: toRequiredString(payload.sourceArtifactId, `${label}.sourceArtifactId`),
+        sourceLocationHint: toRequiredString(payload.sourceLocationHint, `${label}.sourceLocationHint`),
+        policyName: toOptionalStringOrNull(payload.policyName, `${label}.policyName`),
+        policyBranch: toOptionalStringOrNull(payload.policyBranch, `${label}.policyBranch`),
+        policyMarginMode: toOptionalStringOrNull(payload.policyMarginMode, `${label}.policyMarginMode`)
+    }
+}
+
+function mapPolicyBranchMegaModeMoneySummary(raw: unknown): PolicyBranchMegaModeMoneySummaryDto {
+    const payload = toObject(raw)
+    if (!Array.isArray(payload.rows)) {
+        throw new Error('[policy-branch-mega] modeMoneySummary.rows must be an array.')
+    }
+
+    return {
+        generatedAtUtc: toRequiredString(payload.generatedAtUtc, 'modeMoneySummary.generatedAtUtc'),
+        rows: payload.rows.map((row, index) => mapPolicyBranchMegaModeMoneySummaryRow(row, index))
+    }
+}
+
 export async function fetchPolicyBranchMegaReport(args?: PolicyBranchMegaReportQueryArgs): Promise<ReportDocumentDto> {
     const reportPath = buildPolicyBranchMegaPath(args, path)
     const resp = await fetchWithTimeout(`${API_BASE_URL}${reportPath}`, {
@@ -735,6 +823,22 @@ export async function fetchPolicyBranchMegaValidation(
     }
 
     return mapPolicyBranchMegaValidation(await resp.json())
+}
+
+export async function fetchPolicyBranchMegaModeMoneySummary(): Promise<PolicyBranchMegaModeMoneySummaryDto> {
+    const resp = await fetchWithTimeout(`${API_BASE_URL}${modeMoneySummaryPath}`, {
+        cache: 'no-store',
+        timeoutMs: POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS
+    })
+
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(
+            buildDetailedRequestErrorMessage('Failed to load policy branch mega mode money summary', resp, text)
+        )
+    }
+
+    return mapPolicyBranchMegaModeMoneySummary(await resp.json())
 }
 
 async function fetchPolicyBranchMegaReportPayload(
@@ -964,5 +1068,19 @@ export function usePolicyBranchMegaValidationQuery(
             query.state.data?.state === 'pending' ?
                 QUERY_POLICY_REGISTRY.policyBranchMega.validation.pendingRefetchIntervalMs
             :   false
+    })
+}
+
+export function usePolicyBranchMegaModeMoneySummaryQuery(
+    options?: UsePolicyBranchMegaQueryOptions
+): UseQueryResult<PolicyBranchMegaModeMoneySummaryDto, Error> {
+    return useQuery({
+        queryKey: buildPolicyBranchMegaModeMoneySummaryQueryKey(),
+        queryFn: fetchPolicyBranchMegaModeMoneySummary,
+        enabled: options?.enabled ?? true,
+        retry: false,
+        staleTime: POLICY_BRANCH_MEGA_STALE_TIME_MS,
+        gcTime: POLICY_BRANCH_MEGA_GC_TIME_MS,
+        refetchOnWindowFocus: false
     })
 }
