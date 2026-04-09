@@ -154,6 +154,7 @@ describe('realForecastJournalPageModel', () => {
                     entryUtc: '2026-03-10T13:30:00.000Z',
                     exitUtc: '2026-03-10T20:00:00.000Z',
                     finalizedAtUtc: '2026-03-10T20:15:00.000Z',
+                    predictedDirection: 'UP',
                     predLabelDisplay: 'UP',
                     microDisplay: 'not used',
                     totalUpProbability: 0.72,
@@ -173,6 +174,7 @@ describe('realForecastJournalPageModel', () => {
                     entryUtc: '2026-03-11T13:30:00.000Z',
                     exitUtc: '2026-03-11T20:00:00.000Z',
                     finalizedAtUtc: '2026-03-11T20:15:00.000Z',
+                    predictedDirection: 'UP',
                     predLabelDisplay: 'UP',
                     microDisplay: 'not used',
                     totalUpProbability: 0.83,
@@ -232,7 +234,7 @@ describe('realForecastJournalPageModel', () => {
         expect(comparison.live.sampleSize).toBe(2)
     })
 
-    test('buildAggregationComparison accepts numeric direction labels with text suffix from journal day list', () => {
+    test('buildAggregationComparison uses machine predicted direction from journal day list', () => {
         const comparison = buildAggregationComparison(
             [
                 {
@@ -244,6 +246,7 @@ describe('realForecastJournalPageModel', () => {
                     entryUtc: '2026-03-10T13:30:00.000Z',
                     exitUtc: '2026-03-10T20:00:00.000Z',
                     finalizedAtUtc: '2026-03-10T20:15:00.000Z',
+                    predictedDirection: 'DOWN',
                     predLabelDisplay: '0 (down)',
                     microDisplay: 'down',
                     totalUpProbability: 0.2,
@@ -256,59 +259,59 @@ describe('realForecastJournalPageModel', () => {
                 }
             ] satisfies RealForecastJournalDayListItemDto[],
             {
-                TotalInputRecords: 10,
-                ExcludedCount: 0,
-                Segments: [
+                totalInputRecords: 10,
+                excludedCount: 0,
+                segments: [
                     {
-                        SegmentName: 'oos',
-                        SegmentLabel: 'OOS benchmark',
-                        FromDateUtc: null,
-                        ToDateUtc: null,
-                        RecordsCount: 10,
-                        Day: {
-                            LayerName: 'Day',
-                            Confusion: [
+                        segmentName: 'oos',
+                        segmentLabel: 'OOS benchmark',
+                        fromDateUtc: null,
+                        toDateUtc: null,
+                        recordsCount: 10,
+                        day: {
+                            layerName: 'Day',
+                            confusion: [
                                 [1, 0, 0],
                                 [0, 1, 0],
                                 [0, 0, 1]
                             ],
-                            N: 10,
-                            Correct: 6,
-                            Accuracy: 0.6,
-                            MicroF1: 0.6,
-                            LogLoss: 0.65,
-                            InvalidForLogLoss: 0,
-                            ValidForLogLoss: 10
+                            n: 10,
+                            correct: 6,
+                            accuracy: 0.6,
+                            microF1: 0.6,
+                            logLoss: 0.65,
+                            invalidForLogLoss: 0,
+                            validForLogLoss: 10
                         },
-                        DayMicro: {
-                            LayerName: 'DayMicro',
-                            Confusion: [
+                        dayMicro: {
+                            layerName: 'DayMicro',
+                            confusion: [
                                 [1, 0, 0],
                                 [0, 1, 0],
                                 [0, 0, 1]
                             ],
-                            N: 10,
-                            Correct: 6,
-                            Accuracy: 0.6,
-                            MicroF1: 0.6,
-                            LogLoss: 0.65,
-                            InvalidForLogLoss: 0,
-                            ValidForLogLoss: 10
+                            n: 10,
+                            correct: 6,
+                            accuracy: 0.6,
+                            microF1: 0.6,
+                            logLoss: 0.65,
+                            invalidForLogLoss: 0,
+                            validForLogLoss: 10
                         },
-                        Total: {
-                            LayerName: 'Total',
-                            Confusion: [
+                        total: {
+                            layerName: 'Total',
+                            confusion: [
                                 [1, 0, 0],
                                 [0, 1, 0],
                                 [0, 0, 1]
                             ],
-                            N: 10,
-                            Correct: 6,
-                            Accuracy: 0.6,
-                            MicroF1: 0.6,
-                            LogLoss: 0.65,
-                            InvalidForLogLoss: 0,
-                            ValidForLogLoss: 10
+                            n: 10,
+                            correct: 6,
+                            accuracy: 0.6,
+                            microF1: 0.6,
+                            logLoss: 0.65,
+                            invalidForLogLoss: 0,
+                            validForLogLoss: 10
                         }
                     }
                 ]
@@ -318,5 +321,127 @@ describe('realForecastJournalPageModel', () => {
 
         expect(comparison.live.sampleSize).toBe(1)
         expect(comparison.live.accuracy).toBe(1)
+    })
+
+    test('buildAggregationComparison rejects legacy PascalCase aggregation payload', () => {
+        expect(() =>
+            buildAggregationComparison(
+                [
+                    {
+                        id: 'day-oos',
+                        predictionDateUtc: '2026-03-10',
+                        status: 'finalized',
+                        trainingScope: 'oos',
+                        capturedAtUtc: '2026-03-10T13:30:00.000Z',
+                        entryUtc: '2026-03-10T13:30:00.000Z',
+                        exitUtc: '2026-03-10T20:00:00.000Z',
+                        finalizedAtUtc: '2026-03-10T20:15:00.000Z',
+                        predictedDirection: 'UP',
+                        predLabelDisplay: 'UP',
+                        microDisplay: 'up',
+                        totalUpProbability: 0.72,
+                        totalFlatProbability: 0.08,
+                        totalDownProbability: 0.2,
+                        dayConfidence: 0.72,
+                        microConfidence: 0.64,
+                        actualDirection: 'UP',
+                        directionMatched: true
+                    }
+                ] satisfies RealForecastJournalDayListItemDto[],
+                {
+                    TotalInputRecords: 10,
+                    ExcludedCount: 0,
+                    Segments: [
+                        {
+                            SegmentName: 'oos',
+                            SegmentLabel: 'OOS benchmark',
+                            Total: {
+                                Accuracy: 0.6,
+                                MicroF1: 0.6,
+                                LogLoss: 0.65,
+                                N: 10
+                            }
+                        }
+                    ]
+                } as never,
+                'oos'
+            )
+        ).toThrow('[real-forecast-journal] aggregation metrics segments are missing.')
+    })
+
+    test('buildAggregationComparison rejects finalized day without machine predicted direction', () => {
+        expect(() =>
+            buildAggregationComparison(
+                [
+                    {
+                        id: 'day-down',
+                        predictionDateUtc: '2026-03-10',
+                        status: 'finalized',
+                        trainingScope: 'oos',
+                        capturedAtUtc: '2026-03-10T13:30:00.000Z',
+                        entryUtc: '2026-03-10T13:30:00.000Z',
+                        exitUtc: '2026-03-10T20:00:00.000Z',
+                        finalizedAtUtc: '2026-03-10T20:15:00.000Z',
+                        predictedDirection: null,
+                        predLabelDisplay: 'DOWN',
+                        microDisplay: 'down',
+                        totalUpProbability: 0.2,
+                        totalFlatProbability: 0.1,
+                        totalDownProbability: 0.7,
+                        dayConfidence: 0.72,
+                        microConfidence: 0.64,
+                        actualDirection: 'DOWN',
+                        directionMatched: true
+                    }
+                ] satisfies RealForecastJournalDayListItemDto[],
+                {
+                    totalInputRecords: 10,
+                    excludedCount: 0,
+                    segments: [
+                        {
+                            segmentName: 'oos',
+                            segmentLabel: 'OOS benchmark',
+                            fromDateUtc: null,
+                            toDateUtc: null,
+                            recordsCount: 10,
+                            day: {
+                                layerName: 'Day',
+                                confusion: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                n: 10,
+                                correct: 6,
+                                accuracy: 0.6,
+                                microF1: 0.6,
+                                logLoss: 0.65,
+                                invalidForLogLoss: 0,
+                                validForLogLoss: 10
+                            },
+                            dayMicro: {
+                                layerName: 'DayMicro',
+                                confusion: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                n: 10,
+                                correct: 6,
+                                accuracy: 0.6,
+                                microF1: 0.6,
+                                logLoss: 0.65,
+                                invalidForLogLoss: 0,
+                                validForLogLoss: 10
+                            },
+                            total: {
+                                layerName: 'Total',
+                                confusion: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                n: 10,
+                                correct: 6,
+                                accuracy: 0.6,
+                                microF1: 0.6,
+                                logLoss: 0.65,
+                                invalidForLogLoss: 0,
+                                validForLogLoss: 10
+                            }
+                        }
+                    ]
+                },
+                'oos'
+            )
+        ).toThrow('[real-forecast-journal] live summary requires at least one finalized day.')
     })
 })

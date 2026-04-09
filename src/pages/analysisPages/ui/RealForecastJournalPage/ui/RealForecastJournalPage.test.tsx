@@ -231,6 +231,7 @@ function createDayList() {
             entryUtc: '2026-03-10T14:30:00.000Z',
             exitUtc: '2026-03-11T20:00:00.000Z',
             finalizedAtUtc: '2026-03-11T20:30:00.000Z',
+            predictedDirection: 'UP',
             predLabelDisplay: 'UP',
             microDisplay: 'up',
             totalUpProbability: 0.72,
@@ -291,34 +292,34 @@ function createOpsStatus() {
 
 function createAggregationMetrics() {
     const layer = {
-        LayerName: 'Total',
-        Confusion: [
+        layerName: 'Total',
+        confusion: [
             [1, 0, 0],
             [0, 1, 0],
             [0, 0, 1]
         ],
-        N: 10,
-        Correct: 6,
-        Accuracy: 0.6,
-        MicroF1: 0.6,
-        LogLoss: 0.65,
-        InvalidForLogLoss: 0,
-        ValidForLogLoss: 10
+        n: 10,
+        correct: 6,
+        accuracy: 0.6,
+        microF1: 0.6,
+        logLoss: 0.65,
+        invalidForLogLoss: 0,
+        validForLogLoss: 10
     }
 
     return {
-        TotalInputRecords: 10,
-        ExcludedCount: 0,
-        Segments: [
+        totalInputRecords: 10,
+        excludedCount: 0,
+        segments: [
             {
-                SegmentName: 'oos',
-                SegmentLabel: 'OOS benchmark',
-                FromDateUtc: null,
-                ToDateUtc: null,
-                RecordsCount: 10,
-                Day: layer,
-                DayMicro: layer,
-                Total: layer
+                segmentName: 'oos',
+                segmentLabel: 'OOS benchmark',
+                fromDateUtc: null,
+                toDateUtc: null,
+                recordsCount: 10,
+                day: layer,
+                dayMicro: layer,
+                total: layer
             }
         ]
     }
