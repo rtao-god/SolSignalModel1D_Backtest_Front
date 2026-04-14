@@ -11,6 +11,7 @@ import {
     ReportActualStatusCard,
     ReportTableTermsBlock,
     ReportViewControls,
+    type ReportViewControlGroup,
     TermTooltip,
     Text,
     buildMegaHistoryControlGroup,
@@ -42,6 +43,7 @@ import {
     DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE,
     DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE,
     buildPolicyBranchMegaPayloadQueryOptions,
+    type PolicyBranchMegaPredictionQualityMetricDto,
     usePolicyBranchMegaModeMoneySummaryQuery,
     type PolicyBranchMegaReportPayloadDto,
     usePolicyBranchMegaEvaluationQuery,
@@ -139,33 +141,120 @@ function parseFiniteNumberOrNull(raw: string | undefined): number | null {
     return value
 }
 
-function formatModeMoneyInteger(value: number | null, language: string): string {
-    if (value === null) {
-        return '—'
+function requireModeMoneyNumber(value: number, label: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+            `[policy-branch-mega] mode-money metric is invalid during render. owner=mode-money-summary; expected=finite ${label}; actual=${String(value)}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+        )
+    }
+
+    return value
+}
+
+function formatModeMoneyInteger(value: number, language: string, label: string): string {
+    const resolved = requireModeMoneyNumber(value, label)
+    if (!Number.isInteger(resolved)) {
+        throw new Error(
+            `[policy-branch-mega] mode-money metric is not an integer during render. owner=mode-money-summary; expected=integer ${label}; actual=${resolved}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+        )
     }
 
     return new Intl.NumberFormat(language, {
         maximumFractionDigits: 0
-    }).format(value)
+    }).format(resolved)
 }
 
-function formatModeMoneyDecimal(value: number | null, language: string, maximumFractionDigits = 2): string {
-    if (value === null) {
-        return '—'
-    }
+function formatModeMoneyDecimal(
+    value: number,
+    language: string,
+    label: string,
+    maximumFractionDigits = 2
+): string {
+    const resolved = requireModeMoneyNumber(value, label)
 
     return new Intl.NumberFormat(language, {
         minimumFractionDigits: 0,
         maximumFractionDigits
-    }).format(value)
+    }).format(resolved)
 }
 
-function formatModeMoneyPercent(value: number | null, language: string): string {
-    if (value === null) {
-        return '—'
+function formatModeMoneyPercent(value: number, language: string, label: string): string {
+    return `${formatModeMoneyDecimal(value, language, label, 2)}%`
+}
+
+function formatModeMoneyUsd(value: number, language: string, label: string): string {
+    const resolved = requireModeMoneyNumber(value, label)
+
+    return new Intl.NumberFormat(language, {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(resolved)
+}
+
+function formatModeMoneyDate(value: string, label: string): string {
+    if (!value.trim()) {
+        throw new Error(
+            `[policy-branch-mega] mode-money row is missing trading date during render. owner=mode-money-summary; expected=non-empty ${label}; actual=empty; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+        )
     }
 
-    return `${formatModeMoneyDecimal(value, language, 2)}%`
+    return value
+}
+
+function resolveModeMoneyPredictionQualityLabel(
+    metricKey: string,
+    translate: (key: string) => string
+): string {
+    switch (metricKey) {
+        case 'technical_accuracy_pct':
+            return translate('policyBranchMega.page.modeMoneySummary.predictionQuality.technicalAccuracy')
+        case 'business_accuracy_pct':
+            return translate('policyBranchMega.page.modeMoneySummary.predictionQuality.businessAccuracy')
+        case 'timing_late_correct_count':
+            return translate('policyBranchMega.page.modeMoneySummary.predictionQuality.lateCorrectDays')
+        case 'timing_late_pending_count':
+            return translate('policyBranchMega.page.modeMoneySummary.predictionQuality.latePendingDays')
+        case 'tbm_hit_rate_pct':
+            return translate('policyBranchMega.page.modeMoneySummary.predictionQuality.tbmHitRate')
+        default:
+            throw new Error(
+                `[policy-branch-mega] mode-money prediction-quality metric is not supported by the UI. owner=mode-money-summary; expected=known metric key; actual=${metricKey}; requiredAction=extend the owner table presentation intentionally instead of rendering an unknown metric blindly.`
+            )
+    }
+}
+
+// Producer already resolves the domain semantics of technical/business/timing metrics.
+// UI only localizes stable metric keys and formats the declared unit without inventing new rules.
+function formatModeMoneyPredictionQuality(
+    metrics: PolicyBranchMegaPredictionQualityMetricDto[],
+    language: string,
+    translate: (key: string) => string
+): string {
+    if (!Array.isArray(metrics) || metrics.length === 0) {
+        throw new Error(
+            '[policy-branch-mega] mode-money prediction-quality metrics are empty during render. owner=mode-money-summary; expected=non-empty metrics list; actual=empty; requiredAction=fix API mapper or rebuild mode money summary artifacts.'
+        )
+    }
+
+    return metrics
+        .map(metric => {
+            const label = resolveModeMoneyPredictionQualityLabel(metric.metricKey, translate)
+            const value =
+                metric.unit === 'percent' ?
+                    formatModeMoneyPercent(metric.value, language, `predictionQualityMetrics.${metric.metricKey}`)
+                : metric.unit === 'count' ?
+                    formatModeMoneyInteger(metric.value, language, `predictionQualityMetrics.${metric.metricKey}`)
+                :   (() => {
+                        throw new Error(
+                            `[policy-branch-mega] mode-money prediction-quality metric has unsupported unit during render. owner=mode-money-summary; expected=percent|count; actual=${metric.unit}; context=metricKey=${metric.metricKey}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+                        )
+                    })()
+
+            return `${label}: ${value}`
+        })
+        .join(' | ')
 }
 
 function resolveModeMoneySummarySourceKindLabel(
@@ -230,6 +319,47 @@ const MEGA_PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
 const MEGA_MODE_TAG_REGEX = /\bWITH SL\b|\bNO SL\b/gi
 const MEGA_OVERVIEW_DOM_ID = 'policy-branch-mega-overview'
 const MEGA_MODE_MONEY_SUMMARY_DOM_ID = 'policy-branch-mega-mode-money-summary'
+type ModeMoneySummaryViewMode = 'compact' | 'expanded'
+type ModeMoneySummaryColumnKey =
+    | 'mode'
+    | 'slice'
+    | 'source'
+    | 'status'
+    | 'fromDate'
+    | 'toDate'
+    | 'execution'
+    | 'days'
+    | 'trades'
+    | 'predictionQuality'
+    | 'totalReturn'
+    | 'totalPnlUsd'
+    | 'startCapitalUsd'
+    | 'equityNowUsd'
+    | 'withdrawnUsd'
+    | 'fundingNetUsd'
+    | 'maxDrawdown'
+    | 'sharpe'
+    | 'realLiquidations'
+    | 'accountRuins'
+    | 'sourcePath'
+const MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS = new Set<ModeMoneySummaryColumnKey>([
+    'mode',
+    'slice',
+    'fromDate',
+    'toDate',
+    'source',
+    'status',
+    'execution',
+    'days',
+    'predictionQuality',
+    'totalReturn',
+    'totalPnlUsd',
+    'equityNowUsd',
+    'maxDrawdown',
+    'sharpe',
+    'realLiquidations',
+    'accountRuins'
+])
 const BUCKET_SPECIFIC_COLUMN_VISIBILITY = new Map<string, Set<PolicyBranchMegaBucketMode>>([
     ['DailyTP%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
     ['DailySL%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
@@ -940,6 +1070,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
     const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
+    // Это локальный способ чтения уже загруженной таблицы; он не меняет owner-данные,
+    // поэтому состояние не пишется в URL рядом с настоящими report-осями.
+    const [modeMoneySummaryView, setModeMoneySummaryView] = useState<ModeMoneySummaryViewMode>('compact')
     const [dismissedValidationKey, setDismissedValidationKey] = useState<string | null>(null)
 
     const historyState = useMemo(() => {
@@ -1134,7 +1267,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
 
         const values = getPublishedReportVariantAxisOptionValues(variantSelectionQuery.data, 'history').filter(
             (value): value is PolicyBranchMegaHistoryMode =>
-                value === 'full_history' || value === 'oos' || value === 'recent'
+                value === 'full_history' || value === 'train' || value === 'oos' || value === 'recent'
         )
 
         return values.length > 0 ? values : [DEFAULT_POLICY_BRANCH_MEGA_HISTORY_MODE]
@@ -2396,62 +2529,138 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         visibleSectionEntriesState.error
     ])
 
+    const modeMoneySummaryViewGroup = useMemo<ReportViewControlGroup<ModeMoneySummaryViewMode>>(
+        () => ({
+            key: 'mode-money-summary-view',
+            label: t('policyBranchMega.page.modeMoneySummary.view.label'),
+            value: modeMoneySummaryView,
+            onChange: next => setModeMoneySummaryView(next),
+            options: [
+                {
+                    value: 'compact',
+                    label: t('policyBranchMega.page.modeMoneySummary.view.compact.label'),
+                    tooltip: t('policyBranchMega.page.modeMoneySummary.view.compact.hint')
+                },
+                {
+                    value: 'expanded',
+                    label: t('policyBranchMega.page.modeMoneySummary.view.expanded.label'),
+                    tooltip: t('policyBranchMega.page.modeMoneySummary.view.expanded.hint')
+                }
+            ]
+        }),
+        [modeMoneySummaryView, t]
+    )
+
     const modeMoneySummaryTable = useMemo(() => {
         const summary = modeMoneySummaryQuery.data
         if (!summary) {
             return null
         }
 
-        const columns = [
-            t('policyBranchMega.page.modeMoneySummary.columns.mode'),
-            t('policyBranchMega.page.modeMoneySummary.columns.slice'),
-            t('policyBranchMega.page.modeMoneySummary.columns.source'),
-            t('policyBranchMega.page.modeMoneySummary.columns.status'),
-            t('policyBranchMega.page.modeMoneySummary.columns.execution'),
-            t('policyBranchMega.page.modeMoneySummary.columns.days'),
-            t('policyBranchMega.page.modeMoneySummary.columns.trades'),
-            t('policyBranchMega.page.modeMoneySummary.columns.positiveDays'),
-            t('policyBranchMega.page.modeMoneySummary.columns.zeroDays'),
-            t('policyBranchMega.page.modeMoneySummary.columns.negativeDays'),
-            t('policyBranchMega.page.modeMoneySummary.columns.technicalAccuracy'),
-            t('policyBranchMega.page.modeMoneySummary.columns.businessAccuracy'),
-            t('policyBranchMega.page.modeMoneySummary.columns.totalReturn'),
-            t('policyBranchMega.page.modeMoneySummary.columns.maxDrawdown'),
-            t('policyBranchMega.page.modeMoneySummary.columns.sharpe'),
-            t('policyBranchMega.page.modeMoneySummary.columns.sourcePath')
-        ]
+        const columnDefinitions = [
+            { key: 'mode', label: t('policyBranchMega.page.modeMoneySummary.columns.mode') },
+            { key: 'slice', label: t('policyBranchMega.page.modeMoneySummary.columns.slice') },
+            { key: 'fromDate', label: t('policyBranchMega.page.modeMoneySummary.columns.fromDate') },
+            { key: 'toDate', label: t('policyBranchMega.page.modeMoneySummary.columns.toDate') },
+            { key: 'source', label: t('policyBranchMega.page.modeMoneySummary.columns.source') },
+            { key: 'status', label: t('policyBranchMega.page.modeMoneySummary.columns.status') },
+            { key: 'execution', label: t('policyBranchMega.page.modeMoneySummary.columns.execution') },
+            { key: 'days', label: t('policyBranchMega.page.modeMoneySummary.columns.days') },
+            { key: 'trades', label: t('policyBranchMega.page.modeMoneySummary.columns.trades') },
+            {
+                key: 'predictionQuality',
+                label: t('policyBranchMega.page.modeMoneySummary.columns.predictionQuality')
+            },
+            { key: 'totalReturn', label: t('policyBranchMega.page.modeMoneySummary.columns.totalReturn') },
+            { key: 'totalPnlUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.totalPnlUsd') },
+            {
+                key: 'startCapitalUsd',
+                label: t('policyBranchMega.page.modeMoneySummary.columns.startCapitalUsd')
+            },
+            { key: 'equityNowUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.equityNowUsd') },
+            { key: 'withdrawnUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.withdrawnUsd') },
+            { key: 'fundingNetUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.fundingNetUsd') },
+            { key: 'maxDrawdown', label: t('policyBranchMega.page.modeMoneySummary.columns.maxDrawdown') },
+            { key: 'sharpe', label: t('policyBranchMega.page.modeMoneySummary.columns.sharpe') },
+            {
+                key: 'realLiquidations',
+                label: t('policyBranchMega.page.modeMoneySummary.columns.realLiquidations')
+            },
+            { key: 'accountRuins', label: t('policyBranchMega.page.modeMoneySummary.columns.accountRuins') },
+            { key: 'sourcePath', label: t('policyBranchMega.page.modeMoneySummary.columns.sourcePath') }
+        ] satisfies Array<{ key: ModeMoneySummaryColumnKey; label: string }>
+
+        const visibleColumns =
+            modeMoneySummaryView === 'compact' ?
+                columnDefinitions.filter(column => MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS.has(column.key))
+            :   columnDefinitions
 
         const rows = summary.rows.map(row => {
             const sourceLabel = resolveModeMoneySummarySourceKindLabel(row.moneySourceKind, key => t(key))
             const statusLabel = resolveModeMoneySummaryStatusLabel(row.sourceStatus, key => t(key))
             const statusText =
                 row.sourceStatus === 'available' ? statusLabel : `${statusLabel}: ${row.statusMessage}`
+            const metrics = row.moneyMetrics
+            const valuesByColumn: Record<ModeMoneySummaryColumnKey, string> = {
+                mode: row.modeLabel,
+                slice: row.sliceLabel,
+                fromDate: formatModeMoneyDate(row.tradingStartDateUtc, 'tradingStartDateUtc'),
+                toDate: formatModeMoneyDate(row.tradingEndDateUtc, 'tradingEndDateUtc'),
+                source: sourceLabel,
+                status: statusText,
+                execution: row.executionDescriptor,
+                days: formatModeMoneyInteger(row.completedDayCount, i18n.language, 'completedDayCount'),
+                trades: formatModeMoneyInteger(row.tradeCount, i18n.language, 'tradeCount'),
+                predictionQuality: formatModeMoneyPredictionQuality(
+                    row.predictionQualityMetrics,
+                    i18n.language,
+                    key => t(key)
+                ),
+                totalReturn: formatModeMoneyPercent(metrics.totalPnlPct, i18n.language, 'moneyMetrics.totalPnlPct'),
+                totalPnlUsd: formatModeMoneyUsd(metrics.totalPnlUsd, i18n.language, 'moneyMetrics.totalPnlUsd'),
+                startCapitalUsd: formatModeMoneyUsd(
+                    metrics.startCapitalUsd,
+                    i18n.language,
+                    'moneyMetrics.startCapitalUsd'
+                ),
+                equityNowUsd: formatModeMoneyUsd(
+                    metrics.equityNowUsd,
+                    i18n.language,
+                    'moneyMetrics.equityNowUsd'
+                ),
+                withdrawnUsd: formatModeMoneyUsd(
+                    metrics.withdrawnTotalUsd,
+                    i18n.language,
+                    'moneyMetrics.withdrawnTotalUsd'
+                ),
+                fundingNetUsd: formatModeMoneyUsd(
+                    metrics.fundingNetUsd,
+                    i18n.language,
+                    'moneyMetrics.fundingNetUsd'
+                ),
+                maxDrawdown: formatModeMoneyPercent(row.maxDrawdownPct, i18n.language, 'maxDrawdownPct'),
+                sharpe: formatModeMoneyDecimal(metrics.sharpe, i18n.language, 'moneyMetrics.sharpe', 3),
+                realLiquidations: formatModeMoneyInteger(
+                    metrics.realLiquidationCount,
+                    i18n.language,
+                    'moneyMetrics.realLiquidationCount'
+                ),
+                accountRuins: formatModeMoneyInteger(
+                    metrics.accountRuinCount,
+                    i18n.language,
+                    'moneyMetrics.accountRuinCount'
+                ),
+                sourcePath: row.sourceLocationHint
+            }
 
-            return [
-                row.modeLabel,
-                row.sliceLabel,
-                sourceLabel,
-                statusText,
-                row.executionDescriptor,
-                formatModeMoneyInteger(row.completedDayCount, i18n.language),
-                formatModeMoneyInteger(row.tradeCount, i18n.language),
-                formatModeMoneyInteger(row.positiveReturnDayCount, i18n.language),
-                formatModeMoneyInteger(row.zeroReturnDayCount, i18n.language),
-                formatModeMoneyInteger(row.negativeReturnDayCount, i18n.language),
-                formatModeMoneyPercent(row.technicalAccuracyPct, i18n.language),
-                formatModeMoneyPercent(row.businessAccuracyPct, i18n.language),
-                formatModeMoneyPercent(row.compoundedReturnPct, i18n.language),
-                formatModeMoneyPercent(row.maxDrawdownPct, i18n.language),
-                formatModeMoneyDecimal(row.sharpeAnnualized, i18n.language, 3),
-                row.sourceLocationHint
-            ]
+            return visibleColumns.map(column => valuesByColumn[column.key])
         })
 
         return {
-            columns,
+            columns: visibleColumns.map(column => column.label),
             rows
         }
-    }, [i18n.language, modeMoneySummaryQuery.data, t])
+    }, [i18n.language, modeMoneySummaryQuery.data, modeMoneySummaryView, t])
 
     const renderHeader = () => (
         <header className={cls.hero}>
@@ -2668,6 +2877,11 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                             t('policyBranchMega.page.modeMoneySummary.notes.item3')
                                         )}
                                     </li>
+                                    <li>
+                                        {renderTermTooltipRichText(
+                                            t('policyBranchMega.page.modeMoneySummary.notes.item4')
+                                        )}
+                                    </li>
                                 </ul>
                             </div>
 
@@ -2682,15 +2896,18 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                                 logContext={{ source: 'policy-branch-mega-mode-money-summary' }}>
                                 {modeMoneySummaryTable ?
-                                    <ReportTableCard
-                                        title={t('policyBranchMega.page.modeMoneySummary.tableTitle')}
-                                        description={t('policyBranchMega.page.modeMoneySummary.tableDescription')}
-                                        columns={modeMoneySummaryTable.columns}
-                                        rows={modeMoneySummaryTable.rows}
-                                        domId={`${MEGA_MODE_MONEY_SUMMARY_DOM_ID}-table`}
-                                        tableMaxHeight='min(72vh, 640px)'
-                                        virtualizeRows
-                                    />
+                                    <>
+                                        <ReportViewControls groups={[modeMoneySummaryViewGroup]} />
+                                        <ReportTableCard
+                                            title={t('policyBranchMega.page.modeMoneySummary.tableTitle')}
+                                            description={t('policyBranchMega.page.modeMoneySummary.tableDescription')}
+                                            columns={modeMoneySummaryTable.columns}
+                                            rows={modeMoneySummaryTable.rows}
+                                            domId={`${MEGA_MODE_MONEY_SUMMARY_DOM_ID}-table`}
+                                            tableMaxHeight='min(72vh, 640px)'
+                                            virtualizeRows
+                                        />
+                                    </>
                                 :   <Text>{t('policyBranchMega.page.modeMoneySummary.empty')}</Text>}
                             </PageSectionDataState>
                         </section>

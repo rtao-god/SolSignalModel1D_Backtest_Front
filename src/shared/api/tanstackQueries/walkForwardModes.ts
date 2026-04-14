@@ -2,11 +2,12 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { API_BASE_URL } from '@/shared/configs/config'
 import { API_ROUTES } from '@/shared/api/routes'
 import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
-import type { ModeId } from '@/entities/mode'
+import type { WalkForwardModeId, WalkForwardReportSliceId } from '@/entities/mode'
+import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
+import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
+import type { PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
 
-export type WalkForwardModeId = Extract<ModeId, 'tbm_native' | 'directional_walkforward'>
 export type WalkForwardSlice = 'all' | 'recent_240d' | 'selected_fold'
-export type WalkForwardFreshness = 'overall' | 'fresh_only' | 'stale_only'
 
 export interface WalkForwardFoldMetadataDto {
     foldId: string
@@ -21,6 +22,7 @@ export interface WalkForwardFoldMetadataDto {
 
 export interface TbmNativeHistoryDayItemDto {
     dayKey: string
+    reportSlice: WalkForwardReportSliceId
     foldMetadata: WalkForwardFoldMetadataDto
     predictionOriginId: string
     dataCutoffUtc: string
@@ -113,7 +115,7 @@ export interface TbmNativeSliceSummaryCardDto {
 }
 
 export interface TbmNativeStatisticsCardDto {
-    freshness: string
+    slice: WalkForwardReportSliceId
     classSummary: TbmNativeClassSummaryEntryDto[]
     confusionMatrix: TbmNativeConfusionMatrixEntryDto[]
     calibration: TbmNativeCalibrationBinDto[]
@@ -125,7 +127,7 @@ export interface TbmNativeModelStatsPageDto {
 }
 
 export interface TbmNativeProbabilityAggregationEntryDto {
-    slice: string
+    slice: WalkForwardReportSliceId
     avgProbabilityPositive: number
     avgProbabilityNeutral: number
     avgProbabilityNegative: number
@@ -154,6 +156,7 @@ export interface TbmNativeStrategyOutcomeBucketDto {
 
 export interface TbmNativeAggregationSectionDto {
     sectionName: string
+    slice: WalkForwardReportSliceId
     probabilityEntries: TbmNativeProbabilityAggregationEntryDto[]
     predictionVsActualConfusion: TbmNativePredictionVsActualConfusionEntryDto[]
     calibrationSummary: TbmNativeCalibrationSummaryEntryDto[]
@@ -172,7 +175,7 @@ export interface TbmNativePfiEntryDto {
 }
 
 export interface TbmNativePfiSectionDto {
-    freshness: string
+    slice: WalkForwardReportSliceId
     entries: TbmNativePfiEntryDto[]
 }
 
@@ -223,6 +226,7 @@ export interface WalkForwardFoldGateDiagnosticsDto {
 
 export interface DirectionalWalkForwardHistoryDayItemDto {
     dayKey: string
+    reportSlice: WalkForwardReportSliceId
     foldMetadata: WalkForwardFoldMetadataDto
     predictionOriginId: string
     dataCutoffUtc: string
@@ -294,7 +298,7 @@ export interface DirectionalWalkForwardCurrentDto extends DirectionalWalkForward
 
 export interface DirectionalWalkForwardPerModelMetricEntryDto {
     modelName: string
-    slice: string
+    slice: WalkForwardReportSliceId
     sampleCount: number
     accuracy: number
     microF1: number
@@ -309,7 +313,7 @@ export interface DirectionalWalkForwardConfusionMatrixEntryDto {
 }
 
 export interface DirectionalWalkForwardSlMetricEntryDto {
-    slice: string
+    slice: WalkForwardReportSliceId
     sampleCount: number
     accuracy: number
     logLoss: number
@@ -351,7 +355,7 @@ export interface DirectionalWalkForwardBusinessStatisticsSectionDto {
 }
 
 export interface DirectionalWalkForwardStatisticsCardDto {
-    freshness: string
+    slice: WalkForwardReportSliceId
     technical: DirectionalWalkForwardTechnicalStatisticsSectionDto
     business: DirectionalWalkForwardBusinessStatisticsSectionDto
     sliceSummary: DirectionalWalkForwardSliceSummaryCardDto
@@ -399,6 +403,7 @@ export interface DirectionalWalkForwardLatestDaysBucketDto {
 
 export interface DirectionalWalkForwardAggregationSectionDto {
     sectionName: string
+    slice: WalkForwardReportSliceId
     layerProbabilities: DirectionalWalkForwardLayerProbabilityEntryDto[]
     layerMetrics: DirectionalWalkForwardLayerMetricEntryDto[]
     businessMetrics: DirectionalWalkForwardBusinessAggregationMetricsDto
@@ -418,7 +423,7 @@ export interface DirectionalWalkForwardPfiEntryDto {
 }
 
 export interface DirectionalWalkForwardPfiSectionDto {
-    freshness: string
+    slice: WalkForwardReportSliceId
     entries: DirectionalWalkForwardPfiEntryDto[]
 }
 
@@ -435,10 +440,82 @@ export interface DirectionalWalkForwardPfiSlPageDto {
     slices: DirectionalWalkForwardPfiSectionDto[]
 }
 
+export interface BestPolicyScoreComponentDto {
+    key: string
+    label: string
+    value: number
+}
+
+export interface BestPolicyScoreDto {
+    value: number
+    formula: string
+    components: BestPolicyScoreComponentDto[]
+}
+
+export interface BestPolicySliceDto {
+    scopeKey: string
+    scopeLabel: string
+}
+
+export interface BestPolicyContractDto {
+    bucket: string
+    slice: BestPolicySliceDto
+    marginMode: string
+    policyName: string
+    policyBranch: string
+    shortDescription: string
+    metrics: PolicyPerformanceMetricsDto
+    evaluation: PolicyEvaluationDto
+    score: BestPolicyScoreDto
+}
+
+export interface BestPolicyPerMarginModeDto {
+    cross?: BestPolicyContractDto | null
+    isolated?: BestPolicyContractDto | null
+}
+
+export interface BestPolicyArtifactDto {
+    id: string
+    generatedAtUtc: string
+    bucket: string
+    slice: BestPolicySliceDto
+    perMarginMode: BestPolicyPerMarginModeDto
+}
+
+export interface TbmNativeMoneySliceDto {
+    sliceKey: string
+    slice: WalkForwardReportSliceId
+    policySummary: {
+        signalDays: number
+    }
+    policyRatios: PolicyRatiosReportDto
+    bestPolicy: BestPolicyArtifactDto
+}
+
+export interface TbmNativeMoneyPageDto {
+    policyArtifactsVersion: number
+    slices: TbmNativeMoneySliceDto[]
+}
+
+export interface DirectionalWalkForwardMoneySliceDto {
+    sliceKey: string
+    slice: WalkForwardReportSliceId
+    policySummary: {
+        signalDays: number
+    }
+    policyRatios: PolicyRatiosReportDto
+    bestPolicy: BestPolicyArtifactDto
+}
+
+export interface DirectionalWalkForwardMoneyPageDto {
+    policyArtifactsVersion: number
+    slices: DirectionalWalkForwardMoneySliceDto[]
+}
+
 export interface WalkForwardHistoryQueryArgs {
     slice?: WalkForwardSlice
     selectedFoldId?: string | null
-    freshness?: WalkForwardFreshness
+    reportSlice?: WalkForwardReportSliceId
     fromDate?: string | null
     toDate?: string | null
 }
@@ -475,14 +552,14 @@ function buildHistoryPath(basePath: string, args?: WalkForwardHistoryQueryArgs):
     return `${basePath}${buildQueryString({
         slice: args?.slice,
         selectedFoldId: args?.selectedFoldId ?? null,
-        freshness: args?.freshness,
+        reportSlice: args?.reportSlice,
         fromDate: args?.fromDate ?? null,
         toDate: args?.toDate ?? null
     })}`
 }
 
-function buildFreshnessPath(basePath: string, freshness?: WalkForwardFreshness): string {
-    return `${basePath}${buildQueryString({ freshness: freshness ?? 'overall' })}`
+function buildReportSlicePath(basePath: string, reportSlice?: WalkForwardReportSliceId): string {
+    return `${basePath}${buildQueryString({ reportSlice: reportSlice ?? 'overall' })}`
 }
 
 export function useTbmNativeHistoryQuery(
@@ -490,8 +567,20 @@ export function useTbmNativeHistoryQuery(
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeHistoryPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.freshness ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
+        queryKey: ['walk-forward', 'tbm-native', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.reportSlice ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
         queryFn: () => fetchJson<TbmNativeHistoryPageDto>(buildHistoryPath(API_ROUTES.tbmNative.history.path, args)),
+        enabled: options?.enabled ?? true,
+        retry: false
+    })
+}
+
+export function useTbmNativeMoneyQuery(
+    reportSlice: WalkForwardReportSliceId,
+    options?: WalkForwardQueryOptions
+): UseQueryResult<TbmNativeMoneyPageDto, Error> {
+    return useQuery({
+        queryKey: ['walk-forward', 'tbm-native', 'money', reportSlice],
+        queryFn: () => fetchJson<TbmNativeMoneyPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.money.path, reportSlice)),
         enabled: options?.enabled ?? true,
         retry: false
     })
@@ -516,36 +605,36 @@ export function useTbmNativeValidationQuery(options?: WalkForwardQueryOptions): 
 }
 
 export function useTbmNativeModelStatsQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeModelStatsPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'model-stats', freshness],
-        queryFn: () => fetchJson<TbmNativeModelStatsPageDto>(buildFreshnessPath(API_ROUTES.tbmNative.modelStats.path, freshness)),
+        queryKey: ['walk-forward', 'tbm-native', 'model-stats', reportSlice],
+        queryFn: () => fetchJson<TbmNativeModelStatsPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.modelStats.path, reportSlice)),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativeAggregationQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeAggregationSummaryDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'aggregation', freshness],
-        queryFn: () => fetchJson<TbmNativeAggregationSummaryDto>(buildFreshnessPath(API_ROUTES.tbmNative.aggregation.path, freshness)),
+        queryKey: ['walk-forward', 'tbm-native', 'aggregation', reportSlice],
+        queryFn: () => fetchJson<TbmNativeAggregationSummaryDto>(buildReportSlicePath(API_ROUTES.tbmNative.aggregation.path, reportSlice)),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativePfiQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativePfiPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'pfi', freshness],
-        queryFn: () => fetchJson<TbmNativePfiPageDto>(buildFreshnessPath(API_ROUTES.tbmNative.pfi.path, freshness)),
+        queryKey: ['walk-forward', 'tbm-native', 'pfi', reportSlice],
+        queryFn: () => fetchJson<TbmNativePfiPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.pfi.path, reportSlice)),
         enabled: options?.enabled ?? true,
         retry: false
     })
@@ -556,7 +645,7 @@ export function useDirectionalWalkForwardHistoryQuery(
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardHistoryPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.freshness ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
+        queryKey: ['walk-forward', 'directional-walkforward', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.reportSlice ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardHistoryPageDto>(
                 buildHistoryPath(API_ROUTES.directionalWalkForward.history.path, args)
@@ -572,6 +661,21 @@ export function useDirectionalWalkForwardCurrentQuery(
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'current'],
         queryFn: () => fetchJson<DirectionalWalkForwardCurrentDto>(API_ROUTES.directionalWalkForward.current.path),
+        enabled: options?.enabled ?? true,
+        retry: false
+    })
+}
+
+export function useDirectionalWalkForwardMoneyQuery(
+    reportSlice: WalkForwardReportSliceId,
+    options?: WalkForwardQueryOptions
+): UseQueryResult<DirectionalWalkForwardMoneyPageDto, Error> {
+    return useQuery({
+        queryKey: ['walk-forward', 'directional-walkforward', 'money', reportSlice],
+        queryFn: () =>
+            fetchJson<DirectionalWalkForwardMoneyPageDto>(
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.money.path, reportSlice)
+            ),
         enabled: options?.enabled ?? true,
         retry: false
     })
@@ -601,14 +705,14 @@ export function useDirectionalWalkForwardValidationQuery(
 }
 
 export function useDirectionalWalkForwardModelStatsQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardModelStatsPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'model-stats', freshness],
+        queryKey: ['walk-forward', 'directional-walkforward', 'model-stats', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardModelStatsPageDto>(
-                buildFreshnessPath(API_ROUTES.directionalWalkForward.modelStats.path, freshness)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.modelStats.path, reportSlice)
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -616,14 +720,14 @@ export function useDirectionalWalkForwardModelStatsQuery(
 }
 
 export function useDirectionalWalkForwardAggregationQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardAggregationSummaryDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'aggregation', freshness],
+        queryKey: ['walk-forward', 'directional-walkforward', 'aggregation', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardAggregationSummaryDto>(
-                buildFreshnessPath(API_ROUTES.directionalWalkForward.aggregation.path, freshness)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.aggregation.path, reportSlice)
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -631,14 +735,14 @@ export function useDirectionalWalkForwardAggregationQuery(
 }
 
 export function useDirectionalWalkForwardPfiPerModelQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardPfiPerModelPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'pfi-per-model', freshness],
+        queryKey: ['walk-forward', 'directional-walkforward', 'pfi-per-model', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardPfiPerModelPageDto>(
-                buildFreshnessPath(API_ROUTES.directionalWalkForward.pfiPerModel.path, freshness)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiPerModel.path, reportSlice)
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -646,14 +750,14 @@ export function useDirectionalWalkForwardPfiPerModelQuery(
 }
 
 export function useDirectionalWalkForwardPfiSlModelQuery(
-    freshness: WalkForwardFreshness,
+    reportSlice: WalkForwardReportSliceId,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardPfiSlPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'pfi-sl-model', freshness],
+        queryKey: ['walk-forward', 'directional-walkforward', 'pfi-sl-model', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardPfiSlPageDto>(
-                buildFreshnessPath(API_ROUTES.directionalWalkForward.pfiSlModel.path, freshness)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiSlModel.path, reportSlice)
             ),
         enabled: options?.enabled ?? true,
         retry: false

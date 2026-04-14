@@ -5,6 +5,7 @@ export {
     renderTermTooltipRichText,
     resolveRegisteredTermTooltipRuleIdsByExactLabel,
     resolveRegisteredTermTooltipRuleById,
-    resolveRegisteredTermTooltipTitle
+    resolveRegisteredTermTooltipTitle,
+    stripExplicitTermMarkup
 } from './ui/renderTermTooltipRichText'
 export { enrichTermTooltipDescription } from './lib/enrichTermTooltipDescription'

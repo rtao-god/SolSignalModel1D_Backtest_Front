@@ -729,7 +729,7 @@ const MEGA_TOTAL_BUCKET_VIEW_DESCRIPTION =
 
 function buildMegaHistorySliceDescription(splitStats?: CurrentPredictionBackfilledTrainingScopeStats | null): string {
     if (!splitStats) {
-        return 'Срез истории — выбор участка backtest-истории для расчёта таблицы.\n\nВся история:\nстраница использует 100% доступного диапазона.\n\nOOS:\nстраница оставляет базовый хвост новых дней. Правило этого режима — последние 30% полной истории. Дополняющая обучающая часть Train занимает более ранние 70% полной истории.\n\nХвост OOS:\nстраница оставляет только короткий пользовательский хвост внутри OOS. Правило этого режима — последние 15% полной истории.\n\nКак читать:\nсравнение OOS 30% и короткого хвоста 15% показывает, держится ли результат на самом свежем участке новой истории.'
+        return 'Срез истории — выбор участка backtest-истории для расчёта таблицы.\n\nВся история:\nстраница использует 100% доступного диапазона.\n\nTrain:\nстраница использует более раннюю обучающую часть истории перед базовым OOS.\n\nOOS:\nстраница оставляет базовый хвост новых дней. Правило этого режима — последние 30% полной истории.\n\nХвост OOS:\nстраница оставляет только короткий пользовательский хвост внутри OOS. Правило этого режима — последние 15% полной истории.\n\nКак читать:\nсравнение Train, OOS и короткого хвоста показывает, где результат держится на новых днях, а где остаётся только на знакомой истории.'
     }
 
     const trainPercent = resolveComplementTrainingScopePercent(splitStats.oosHistoryDaySharePercent)
@@ -740,13 +740,16 @@ function buildMegaHistorySliceDescription(splitStats?: CurrentPredictionBackfill
 страница использует 100% доступного диапазона. Сейчас это ${formatTrainingScopeCount(splitStats.fullDays, 'день', 'дня', 'дней')}.
 
 OOS:
-страница оставляет базовый хвост новых дней. Правило этого режима — последние ${formatTrainingScopePercent(splitStats.oosHistoryDaySharePercent)} полной истории. Сейчас это ${formatTrainingScopeCount(splitStats.oosDays, 'день', 'дня', 'дней')}. Дополняющая обучающая часть Train занимает более ранние ${formatTrainingScopePercent(trainPercent)}: ${formatTrainingScopeCount(splitStats.trainDays, 'день', 'дня', 'дней')}.
+страница оставляет базовый хвост новых дней. Правило этого режима — последние ${formatTrainingScopePercent(splitStats.oosHistoryDaySharePercent)} полной истории. Сейчас это ${formatTrainingScopeCount(splitStats.oosDays, 'день', 'дня', 'дней')}.
+
+Train:
+страница оставляет более раннюю обучающую часть перед OOS. Сейчас это ${formatTrainingScopePercent(trainPercent)} полной истории и ${formatTrainingScopeCount(splitStats.trainDays, 'день', 'дня', 'дней')}.
 
 Хвост OOS:
 страница оставляет только короткий пользовательский хвост внутри OOS. Правило этого режима — последние ${formatTrainingScopePercent(splitStats.recentHistoryDaySharePercent)} полной истории. Сейчас это ${formatTrainingScopeCount(splitStats.recentDays, 'день', 'дня', 'дней')}.
 
 Как читать:
-сравнение OOS ${formatTrainingScopePercent(splitStats.oosHistoryDaySharePercent)} и короткого хвоста ${formatTrainingScopePercent(splitStats.recentHistoryDaySharePercent)} показывает, держится ли результат на самом свежем участке новой истории.`
+сравнение Train, OOS ${formatTrainingScopePercent(splitStats.oosHistoryDaySharePercent)} и короткого хвоста ${formatTrainingScopePercent(splitStats.recentHistoryDaySharePercent)} показывает, где результат держится на новых днях, а где остаётся только на знакомой истории.`
 }
 
 const PREDICTION_HISTORY_WINDOW_ONE_YEAR_DESCRIPTION =
@@ -784,10 +787,11 @@ export function buildMegaHistoryControlGroup({
     availableValues,
     splitStats
 }: BuildMegaHistoryControlGroupArgs): ReportViewControlGroup<PolicyBranchMegaHistoryMode> {
-    const defaultHistoryValues: PolicyBranchMegaHistoryMode[] = ['full_history', 'oos', 'recent']
+    const defaultHistoryValues: PolicyBranchMegaHistoryMode[] = ['full_history', 'train', 'oos', 'recent']
     const allowedValues = new Set<PolicyBranchMegaHistoryMode>(availableValues ?? defaultHistoryValues)
     const allOptions: Array<{ value: PolicyBranchMegaHistoryMode; label: string }> = [
         { value: 'full_history', label: 'Вся история' },
+        { value: 'train', label: 'Train' },
         { value: 'oos', label: 'OOS' },
         { value: 'recent', label: 'Хвост OOS' }
     ]

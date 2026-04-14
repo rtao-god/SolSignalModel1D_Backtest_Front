@@ -1,7 +1,7 @@
 import { CSSProperties, memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Text } from '@/shared/ui/Text'
-import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { renderTermTooltipRichText, stripExplicitTermMarkup } from '@/shared/ui/TermTooltip'
 import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButton'
 import classNames from '@/shared/lib/helpers/classNames'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
@@ -128,7 +128,7 @@ function ReportTableCard({
         setSortedRows(prevRows => (prevRows === sourceRows ? prevRows : sourceRows))
     }, [sourceRows])
 
-    const exportColumns = columns
+    const exportColumns = useMemo(() => columns.map(stripExplicitTermMarkup), [columns])
 
     const rowsForExport = sortedRows.length > 0 ? sortedRows : sourceRows
 
@@ -213,6 +213,17 @@ function ReportTableCard({
         [columns, getSortComparatorOverride]
     )
 
+    const renderReportColumnTitle = useCallback(
+        (title: string, colIdx: number) => {
+            if (renderColumnTitle) {
+                return renderColumnTitle(title, colIdx)
+            }
+
+            return shouldRenderTermRichText(title) ? renderTermTooltipRichText(title) : title
+        },
+        [renderColumnTitle]
+    )
+
     return (
         <section id={domId} className={classNames(cls.card, {}, [className ?? ''])}>
             <header className={cls.cardHeader}>
@@ -253,7 +264,7 @@ function ReportTableCard({
                 getSortValue={resolveSortValue}
                 getSortComparator={resolveSortComparator}
                 onSortedRowsChange={setSortedRows}
-                renderColumnTitle={renderColumnTitle}
+                renderColumnTitle={renderReportColumnTitle}
             />
         </section>
     )

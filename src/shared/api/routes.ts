@@ -276,6 +276,10 @@ export const API_ROUTES = {
     },
 
     tbmNative: {
+        money: {
+            path: '/tbm-native/money',
+            method: 'GET' as const
+        },
         history: {
             path: '/tbm-native/history',
             method: 'GET' as const
@@ -305,6 +309,10 @@ export const API_ROUTES = {
     directionalWalkForward: {
         current: {
             path: '/directional-walkforward/current',
+            method: 'GET' as const
+        },
+        money: {
+            path: '/directional-walkforward/money',
             method: 'GET' as const
         },
         history: {

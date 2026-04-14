@@ -1,6 +1,10 @@
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
 import { AppRoute } from '@/app/providers/router/config/types'
 import type { PolicyRowEvaluationMapDto } from '@/shared/types/policyEvaluation.types'
+import {
+    buildPolicyBranchMegaRowKey,
+    resolvePolicyBranchMegaRenderedRowKey
+} from '@/shared/utils/policyBranchMegaRowKey'
 
 export interface PolicySetupCellState {
     detailPath: string | null
@@ -19,25 +23,7 @@ export function resolveMegaRenderedRowKey(
     row: readonly unknown[] | null | undefined,
     columns: readonly string[]
 ): string | null {
-    if (!row || !columns || columns.length === 0) {
-        return null
-    }
-
-    const policyIdx = columns.indexOf('Policy')
-    const branchIdx = columns.indexOf('Branch')
-    if (policyIdx < 0 || branchIdx < 0) {
-        return null
-    }
-
-    const policy = String(row[policyIdx] ?? '').trim()
-    const branch = String(row[branchIdx] ?? '').trim()
-    if (!policy || !branch) {
-        return null
-    }
-
-    const slModeIdx = columns.indexOf('SL Mode')
-    const slModeLabel = slModeIdx >= 0 ? String(row[slModeIdx] ?? '').trim() || null : null
-    return buildMegaRowKey(policy, branch, slModeLabel)
+    return resolvePolicyBranchMegaRenderedRowKey(row, columns)
 }
 
 /**
@@ -132,14 +118,6 @@ export function resolvePolicySetupLinkAlertSummaryForMegaRows(args: {
         sampleDetails: missingDetails.slice(0, 3),
         error: null
     }
-}
-
-function buildMegaRowKey(policy: string, branch: string, slModeLabel: string | null): string {
-    if (slModeLabel === null) {
-        return `${policy}\u001e${branch}`
-    }
-
-    return `${policy}\u001e${branch}\u001e${slModeLabel}`
 }
 
 function buildMegaRowAlertLabel(

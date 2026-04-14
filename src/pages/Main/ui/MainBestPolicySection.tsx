@@ -8,9 +8,9 @@ import { TermTooltip, Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import {
-    fetchPolicyBranchMegaReport,
+    fetchPolicyBranchMegaReportPayload,
     POLICY_BRANCH_MEGA_CANONICAL_PARTS,
-    usePolicyBranchMegaReportDocumentQuery
+    usePolicyBranchMegaReportQuery
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import {
     getPolicyBranchMegaTerm,
@@ -24,7 +24,6 @@ import {
     type MainBestPolicyRowBundle
 } from './mainBestPolicySectionModel'
 import {
-    resolvePolicyBranchMegaCurrentBalance,
     resolvePolicyBranchMegaMetricValue
 } from '@/shared/utils/policyBranchMegaCurrentBalance'
 import cls from './Main.module.scss'
@@ -81,6 +80,32 @@ function parseRequiredNumber(rawValue: string, metricTitle: string): number {
     }
 
     return parsed
+}
+
+function resolveRequiredPolicyMetricNumber(
+    value: number | null | undefined,
+    metricTitle: string
+): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`[main.demo] ${metricTitle} is missing in owner PolicyPerformanceMetricsDto.`)
+    }
+
+    return value
+}
+
+function resolveRequiredPolicyMetricBoolean(
+    value: boolean | null | undefined,
+    metricTitle: string
+): boolean {
+    if (typeof value !== 'boolean') {
+        throw new Error(`[main.demo] ${metricTitle} is missing in owner PolicyPerformanceMetricsDto.`)
+    }
+
+    return value
+}
+
+function convertFractionToPercent(value: number | null | undefined, metricTitle: string): number {
+    return resolveRequiredPolicyMetricNumber(value, metricTitle) * 100
 }
 
 function formatLocalizedNumber(value: number, locale: string, options?: Intl.NumberFormatOptions): string {
@@ -161,6 +186,40 @@ function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): str
     return resolvePolicyBranchMegaMetricValue(bundle.sectionRows, title, `main.demo.metric.${title}`)
 }
 
+function resolveCanonicalMetricRawValue(bundle: MainBestPolicyRowBundle, title: string): string | null {
+    const metrics = bundle.moneyMetrics
+
+    switch (title) {
+        case 'TotalPnl%':
+            return String(resolveRequiredPolicyMetricNumber(metrics.totalPnlPct, 'totalPnlPct'))
+        case 'TotalPnl$':
+            return String(resolveRequiredPolicyMetricNumber(metrics.totalPnlUsd, 'totalPnlUsd'))
+        case 'StartCap$':
+            return String(resolveRequiredPolicyMetricNumber(metrics.startCapitalUsd, 'startCapitalUsd'))
+        case 'OnExch$':
+        case 'BucketNow$':
+            return String(resolveRequiredPolicyMetricNumber(metrics.equityNowUsd, 'equityNowUsd'))
+        case 'Withdrawn$':
+            return String(resolveRequiredPolicyMetricNumber(metrics.withdrawnTotalUsd, 'withdrawnTotalUsd'))
+        case 'MaxDD%':
+            return String(resolveRequiredPolicyMetricNumber(metrics.maxDdPct, 'maxDdPct'))
+        case 'HadLiq':
+            return resolveRequiredPolicyMetricBoolean(metrics.hadLiquidation, 'hadLiquidation') ? 'Yes' : 'No'
+        case 'AccRuin':
+            return String(resolveRequiredPolicyMetricNumber(metrics.accountRuinCount, 'accountRuinCount'))
+        case 'WinRate%':
+            return String(convertFractionToPercent(metrics.winRate, 'winRate'))
+        case 'MeanRet%':
+            return String(convertFractionToPercent(metrics.mean, 'mean'))
+        case 'Sharpe':
+            return String(resolveRequiredPolicyMetricNumber(metrics.sharpe, 'sharpe'))
+        case 'Tr':
+            return String(resolveRequiredPolicyMetricNumber(metrics.tradesCount, 'tradesCount'))
+        default:
+            return null
+    }
+}
+
 function renderPolicyBranchMegaTermTooltip(termKey: string, termTitle: string, locale: PolicyBranchMegaTermLocale) {
     const term = getPolicyBranchMegaTerm(termKey, { locale })
 
@@ -198,21 +257,21 @@ export default function MainBestPolicySection() {
         []
     )
     const {
-        data: primaryReport,
+        data: primaryPayload,
         isError: isPrimaryError,
         error: primaryError,
         isLoading: isPrimaryLoading
-    } = usePolicyBranchMegaReportDocumentQuery(primaryQueryArgs, { enabled: true })
-    // Мини-демо на главной опирается на канонический набор частей 1..4.
-    // Этот блок не должен вытягивать payload-контракт только ради списка частей.
+    } = usePolicyBranchMegaReportQuery(primaryQueryArgs, { enabled: true })
+    // Мини-демо на главной должно читать те же owner-artifacts, что и mega-страница:
+    // published report sections + canonical money_metrics payload по тем же частям 1..4.
     const remainingPartQueries = useQueries({
         queries:
             POLICY_BRANCH_MEGA_CANONICAL_PARTS
                 .filter(part => part !== 1)
                 .map(part => ({
-                    queryKey: ['main', 'demo', 'policy-branch-mega', part] as const,
+                    queryKey: ['main', 'demo', 'policy-branch-mega', 'payload', part] as const,
                     queryFn: () =>
-                        fetchPolicyBranchMegaReport({
+                        fetchPolicyBranchMegaReportPayload({
                             ...MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY,
                             part
                         }),
@@ -222,28 +281,28 @@ export default function MainBestPolicySection() {
     })
 
     const reports = useMemo(() => {
-        if (!primaryReport) {
+        if (!primaryPayload) {
             return []
         }
 
-        const resolvedReports = [primaryReport]
+        const resolvedReports = [primaryPayload.report]
         for (const query of remainingPartQueries) {
             if (!query.data) {
                 return []
             }
 
-            resolvedReports.push(query.data)
+            resolvedReports.push(query.data.report)
         }
 
         return resolvedReports
-    }, [primaryReport, remainingPartQueries])
+    }, [primaryPayload, remainingPartQueries])
 
     const isError = isPrimaryError || remainingPartQueries.some(query => query.isError)
     const error = primaryError ?? remainingPartQueries.find(query => query.error)?.error ?? null
     const isLoading = isPrimaryLoading || remainingPartQueries.some(query => query.isLoading || query.isFetching)
 
     const bestPolicyState = useMemo(() => {
-        if (reports.length === 0) {
+        if (reports.length === 0 || !primaryPayload) {
             return { best: null as MainBestPolicyRowBundle | null, error: null as Error | null }
         }
 
@@ -252,7 +311,7 @@ export default function MainBestPolicySection() {
             // потому что нужные метрики распределены по part-срезам отчёта.
             const sections = buildMainDemoPolicyBranchMegaSections(reports.flatMap(report => report.sections ?? []))
             return {
-                best: resolveMainDemoBestPolicyRows(sections),
+                best: resolveMainDemoBestPolicyRows(sections, primaryPayload.moneyMetrics.rows),
                 error: null as Error | null
             }
         } catch (err) {
@@ -267,7 +326,7 @@ export default function MainBestPolicySection() {
                 })
             }
         }
-    }, [reports])
+    }, [primaryPayload, reports])
 
     const demoMetaState = useMemo(() => {
         if (!bestPolicyState.best) {
@@ -275,21 +334,21 @@ export default function MainBestPolicySection() {
         }
 
         try {
-            const currentBalanceRaw = resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.meta')
+            const moneyMetrics = bestPolicyState.best.moneyMetrics
             const startCapital = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'StartCap$'), 'StartCap$'),
+                resolveRequiredPolicyMetricNumber(moneyMetrics.startCapitalUsd, 'startCapitalUsd'),
                 i18n.language
             )
             const finalBalance = formatLocalizedCompactUsd(
-                parseRequiredNumber(currentBalanceRaw, 'OnExch$'),
+                resolveRequiredPolicyMetricNumber(moneyMetrics.equityNowUsd, 'equityNowUsd'),
                 i18n.language
             )
             const withdrawnProfit = formatLocalizedCompactUsd(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Withdrawn$'), 'Withdrawn$'),
+                resolveRequiredPolicyMetricNumber(moneyMetrics.withdrawnTotalUsd, 'withdrawnTotalUsd'),
                 i18n.language
             )
             const totalTrades = formatLocalizedNumber(
-                parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr'),
+                resolveRequiredPolicyMetricNumber(moneyMetrics.tradesCount, 'tradesCount'),
                 i18n.language,
                 { minimumFractionDigits: 0, maximumFractionDigits: 0 }
             )
@@ -347,25 +406,17 @@ export default function MainBestPolicySection() {
         }
 
         try {
-            const totalPnlPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl%'), 'TotalPnl%')
-            const totalPnlUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'TotalPnl$'), 'TotalPnl$')
-            const currentBalanceUsd = parseRequiredNumber(
-                resolvePolicyBranchMegaCurrentBalance(bestPolicyState.best.sectionRows, 'main.demo.summary'),
-                'OnExch$'
-            )
-            const withdrawnUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'Withdrawn$'),
-                'Withdrawn$'
-            )
-            const startCapitalUsd = parseRequiredNumber(
-                resolveMetricValue(bestPolicyState.best, 'StartCap$'),
-                'StartCap$'
-            )
+            const moneyMetrics = bestPolicyState.best.moneyMetrics
+            const totalPnlPct = resolveRequiredPolicyMetricNumber(moneyMetrics.totalPnlPct, 'totalPnlPct')
+            const totalPnlUsd = resolveRequiredPolicyMetricNumber(moneyMetrics.totalPnlUsd, 'totalPnlUsd')
+            const currentBalanceUsd = resolveRequiredPolicyMetricNumber(moneyMetrics.equityNowUsd, 'equityNowUsd')
+            const withdrawnUsd = resolveRequiredPolicyMetricNumber(moneyMetrics.withdrawnTotalUsd, 'withdrawnTotalUsd')
+            const startCapitalUsd = resolveRequiredPolicyMetricNumber(moneyMetrics.startCapitalUsd, 'startCapitalUsd')
             const days = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Days'), 'Days')
-            const trades = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'Tr'), 'Tr')
+            const trades = resolveRequiredPolicyMetricNumber(moneyMetrics.tradesCount, 'tradesCount')
             const noTradePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'NoTrade%'), 'NoTrade%')
-            const winRatePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'WinRate%'), 'WinRate%')
-            const maxDdPct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'MaxDD%'), 'MaxDD%')
+            const winRatePct = convertFractionToPercent(moneyMetrics.winRate, 'winRate')
+            const maxDdPct = resolveRequiredPolicyMetricNumber(moneyMetrics.maxDdPct, 'maxDdPct')
             const capitalAfterDrawdownUsd = startCapitalUsd * (1 - maxDdPct / 100)
             const avgStakePct = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake%'), 'AvgStake%')
             const avgStakeUsd = parseRequiredNumber(resolveMetricValue(bestPolicyState.best, 'AvgStake$'), 'AvgStake$')
@@ -377,7 +428,6 @@ export default function MainBestPolicySection() {
                 resolveMetricValue(bestPolicyState.best, 'DailySL%'),
                 'DailySL%'
             )
-            const hadLiqValue = resolveMetricValue(bestPolicyState.best, 'HadLiq').trim().toLowerCase()
             const policySummaryKey = resolveMainDemoPolicySummaryKey(bestPolicyState.best.policy)
             const periodStart = localizeReportCellValue(
                 'StartDay',
@@ -391,12 +441,10 @@ export default function MainBestPolicySection() {
             )
 
             let liquidationSentenceKey: 'main.demo.summary.liquidationsNo' | 'main.demo.summary.liquidationsYes'
-            if (hadLiqValue === 'no') {
+            if (!resolveRequiredPolicyMetricBoolean(moneyMetrics.hadLiquidation, 'hadLiquidation')) {
                 liquidationSentenceKey = 'main.demo.summary.liquidationsNo'
-            } else if (hadLiqValue === 'yes') {
-                liquidationSentenceKey = 'main.demo.summary.liquidationsYes'
             } else {
-                throw new Error(`[main.demo] HadLiq must be "yes" or "no". value=${hadLiqValue}.`)
+                liquidationSentenceKey = 'main.demo.summary.liquidationsYes'
             }
 
             const tradesPerDay = trades / days
@@ -520,9 +568,8 @@ export default function MainBestPolicySection() {
             return {
                 items: DEMO_METRIC_DEFINITIONS.map(definition => {
                     const rawValue =
-                        definition.termKey === 'OnExch$' ?
-                            resolvePolicyBranchMegaCurrentBalance(bestPolicy.sectionRows, 'main.demo.metrics')
-                        :   resolveMetricValue(bestPolicy, definition.termKey)
+                        resolveCanonicalMetricRawValue(bestPolicy, definition.termKey) ??
+                        resolveMetricValue(bestPolicy, definition.termKey)
 
                     return {
                         label: t(`main.demo.metrics.${definition.labelKey}`),

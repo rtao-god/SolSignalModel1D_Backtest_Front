@@ -2664,12 +2664,24 @@
                 "title": "Money by mode",
                 "description": "This owner block makes it possible to read how much the published modes actually earn and which exact money source stands behind each number next to the classic [[landing-policy-branch-mega|Policy Branch Mega]] table.",
                 "tableTitle": "Cross-mode money comparison",
-                "tableDescription": "This table joins published fixed-split money rows with TBM Native and Directional Walk-Forward.",
+                "tableDescription": "This table joins Directional Fixed-Split money for Train / Full / OOS, TBM Native, and Directional Walk-Forward.",
                 "empty": "No rows are available for the cross-mode money summary yet.",
+                "view": {
+                    "label": "Table view",
+                    "compact": {
+                        "label": "Compact",
+                        "hint": "Keeps only the core money and quality columns."
+                    },
+                    "expanded": {
+                        "label": "Expanded",
+                        "hint": "Shows the full published money and verification columns."
+                    }
+                },
                 "notes": {
                     "item1": "Directional Fixed-Split rows do not show one canonical mode strategy. They show the top published daily [[policy|Policy]] inside the corresponding slice.",
-                    "item2": "TBM Native and Directional Walk-Forward rows use one canonical daily mode strategy and are read from the owner series in `walkforward-raw`.",
-                    "item3": "The Directional Fixed-Split train row currently publishes only quality diagnostics. When money is absent, the table shows `not published` explicitly instead of inventing a number."
+                    "item2": "TBM Native and Directional Walk-Forward rows use the top published [[policy|Policy]] from their own policy family. TBM Native uses the [[bucket-delayed|delayed bucket]], while Directional Walk-Forward uses the [[bucket-daily|daily bucket]].",
+                    "item3": "Directional Fixed-Split Train / Full / OOS slices are read from the published [[landing-policy-branch-mega|Policy Branch Mega]], so percent and dollar values use one money contract.",
+                    "item4": "The prediction-quality column shows whether the mode matched the true direction of the day, passed the business rule, and saw the move confirmed on the next day. Money columns describe the result of the top published [[policy|Policy]] inside that same mode. The numbers belong to one mode, but they are not the same trading row."
                 },
                 "errors": {
                     "title": "Mode money summary is unavailable",
@@ -2677,32 +2689,45 @@
                 },
                 "sourceKinds": {
                     "canonicalStrategy": "Canonical mode strategy",
-                    "policyUniverseBestPolicy": "Top published daily Policy",
+                    "policyUniverseBestPolicy": "Top published [[policy|Policy]]",
                     "notPublished": "Money is not published",
                     "notAvailable": "Money source unavailable"
                 },
                 "statuses": {
                     "available": "Published",
                     "notPublished": "Not published",
-                    "missingArtifacts": "Artifacts missing"
+                    "missingArtifacts": "Artifacts missing",
+                    "noEligiblePolicy": "No eligible [[policy|Policy]]"
                 },
                 "columns": {
                     "mode": "Mode",
                     "slice": "Slice",
                     "source": "Money source",
                     "status": "Status",
+                    "fromDate": "From",
+                    "toDate": "To",
                     "execution": "Execution / policy",
                     "days": "Days",
                     "trades": "Trades",
-                    "positiveDays": "+ Days",
-                    "zeroDays": "0 Days",
-                    "negativeDays": "- Days",
-                    "technicalAccuracy": "TechAcc, %",
-                    "businessAccuracy": "BizAcc, %",
+                    "predictionQuality": "Prediction quality",
                     "totalReturn": "Return, %",
+                    "totalPnlUsd": "PnL, $",
+                    "startCapitalUsd": "Start cap, $",
+                    "equityNowUsd": "Equity now, $",
+                    "withdrawnUsd": "Withdrawn, $",
+                    "fundingNetUsd": "Funding net, $",
                     "maxDrawdown": "MaxDD, %",
                     "sharpe": "Sharpe",
+                    "realLiquidations": "Real liq",
+                    "accountRuins": "Account ruin",
                     "sourcePath": "Verification path"
+                },
+                "predictionQuality": {
+                    "technicalAccuracy": "True-direction match",
+                    "businessAccuracy": "Business-rule match",
+                    "lateCorrectDays": "Confirmed on the next day",
+                    "latePendingDays": "Next day still open",
+                    "tbmHitRate": "TBM forecast match"
                 }
             },
             "metricDiff": {
@@ -2732,7 +2757,7 @@
                 },
                 "historyQuery": {
                     "title": "Policy Branch Mega history query is invalid",
-                    "message": "Query parameter \"history\" is invalid. Expected full_history, oos, or recent."
+                    "message": "Query parameter \"history\" is invalid. Expected full_history, train, oos, or recent."
                 },
                 "bucketQuery": {
                     "title": "Policy Branch Mega bucket query is invalid",

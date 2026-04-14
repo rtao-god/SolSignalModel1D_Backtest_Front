@@ -644,7 +644,7 @@ function stripBulletListMarker(line: string): string {
     return line.replace(/^(?:[-*•])\s+/, '').trim()
 }
 
-function stripExplicitTermMarkup(text: string): string {
+export function stripExplicitTermMarkup(text: string): string {
     return parseExplicitTermMarkupSegments(normalizeBrokenExplicitTermMarkup(text))
         .map(segment => (segment.type === 'term' ? segment.label : segment.value))
         .join('')

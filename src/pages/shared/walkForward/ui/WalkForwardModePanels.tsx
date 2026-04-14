@@ -1,12 +1,20 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { ReportTableCard } from '@/shared/ui/ReportTableCard'
 import { Text } from '@/shared/ui'
+import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import type { TableRow } from '@/shared/ui/SortableTable'
 import classNames from '@/shared/lib/helpers/classNames'
+import {
+    getDefaultModeReportSlice,
+    getModeReportSlices,
+    type WalkForwardModeId,
+    type WalkForwardReportSliceId
+} from '@/entities/mode'
 import type { PfiQueryFamily } from '@/shared/api/tanstackQueries/pfi'
 import {
     useDirectionalWalkForwardCurrentQuery,
+    useDirectionalWalkForwardMoneyQuery,
     useDirectionalWalkForwardAggregationQuery,
     useDirectionalWalkForwardFoldsQuery,
     useDirectionalWalkForwardHistoryQuery,
@@ -17,11 +25,12 @@ import {
     useTbmNativeAggregationQuery,
     useTbmNativeFoldsQuery,
     useTbmNativeHistoryQuery,
+    useTbmNativeMoneyQuery,
     useTbmNativeModelStatsQuery,
     useTbmNativePfiQuery,
     useTbmNativeValidationQuery,
-    type WalkForwardFreshness,
-    type WalkForwardModeId,
+    type BestPolicyContractDto,
+    type BestPolicyPerMarginModeDto,
     type WalkForwardSlice
 } from '@/shared/api/tanstackQueries/walkForwardModes'
 import cls from './WalkForwardModePanels.module.scss'
@@ -47,6 +56,46 @@ function formatProbability(value: number): string {
     return Number.isFinite(value) ? value.toFixed(4) : '—'
 }
 
+function requireMoneyNumber(value: number | null | undefined, fieldName: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`[walk-forward-money] required finite money metric is missing or invalid. field=${fieldName}, actual=${String(value)}.`)
+    }
+
+    return value
+}
+
+function formatRequiredMoneyNumber(value: number | null | undefined, fieldName: string): string {
+    return requireMoneyNumber(value, fieldName).toLocaleString('en-US')
+}
+
+function formatRequiredMetricPercent(value: number | null | undefined, fieldName: string): string {
+    return `${requireMoneyNumber(value, fieldName).toFixed(2)}%`
+}
+
+function formatRequiredMetricNumber(value: number | null | undefined, fieldName: string, digits = 2): string {
+    return requireMoneyNumber(value, fieldName).toFixed(digits)
+}
+
+function formatRequiredMoneyUsd(value: number | null | undefined, fieldName: string): string {
+    return requireMoneyNumber(value, fieldName).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+}
+
+function formatRequiredBoolean(value: boolean | null | undefined, fieldName: string): string {
+    if (typeof value !== 'boolean') {
+        throw new Error(`[walk-forward-money] required boolean money metric is missing or invalid. field=${fieldName}, actual=${String(value)}.`)
+    }
+
+    return value ? 'Yes' : 'No'
+}
+
+function requireMoneyString(value: string | null | undefined, fieldName: string): string {
+    if (!value?.trim()) {
+        throw new Error(`[walk-forward-money] required money field is missing or invalid. field=${fieldName}, actual=${String(value)}.`)
+    }
+
+    return value
+}
+
 function formatEnumLabel(value: string | null | undefined): string {
     if (!value) {
         return '—'
@@ -57,7 +106,33 @@ function formatEnumLabel(value: string | null | undefined): string {
         .replace(/([a-z])([A-Z])/g, '$1 $2')
 }
 
-function MetricCard({ label, value }: { label: string; value: ReactNode }) {
+function resolveBestPolicyContract(perMarginMode: BestPolicyPerMarginModeDto | null | undefined): BestPolicyContractDto | null {
+    const cross = perMarginMode?.cross ?? null
+    const isolated = perMarginMode?.isolated ?? null
+
+    if (!cross) {
+        return isolated
+    }
+
+    if (!isolated) {
+        return cross
+    }
+
+    return cross.score.value >= isolated.score.value ? cross : isolated
+}
+
+function resolveMoneySliceByReportSlice<TSlice extends { slice: WalkForwardReportSliceId }>(
+    slices: TSlice[] | null | undefined,
+    reportSlice: WalkForwardReportSliceId
+): TSlice | null {
+    if (!slices || slices.length === 0) {
+        return null
+    }
+
+    return slices.find(slice => slice.slice === reportSlice) ?? null
+}
+
+function MetricCard({ label, value }: { label: ReactNode; value: ReactNode }) {
     return (
         <div className={cls.metricCard}>
             <div className={cls.metricLabel}>{label}</div>
@@ -66,23 +141,38 @@ function MetricCard({ label, value }: { label: string; value: ReactNode }) {
     )
 }
 
-function FreshnessControls({
-    freshness,
-    onFreshnessChange
+function useWalkForwardReportSlice(mode: WalkForwardModeId) {
+    const [reportSlice, setReportSlice] = useState<WalkForwardReportSliceId>(getDefaultModeReportSlice(mode))
+
+    useEffect(() => {
+        setReportSlice(getDefaultModeReportSlice(mode))
+    }, [mode])
+
+    return [reportSlice, setReportSlice] as const
+}
+
+// Owner-каталог режимов и их срезов живёт в entities/mode, поэтому UI не держит локальный список slice-опций.
+function ReportSliceControls({
+    mode,
+    reportSlice,
+    onReportSliceChange
 }: {
-    freshness: WalkForwardFreshness
-    onFreshnessChange: (value: WalkForwardFreshness) => void
+    mode: WalkForwardModeId
+    reportSlice: WalkForwardReportSliceId
+    onReportSliceChange: (value: WalkForwardReportSliceId) => void
 }) {
     return (
         <label className={cls.control}>
-            <span className={cls.controlLabel}>Freshness</span>
+            <span className={cls.controlLabel}>Slice</span>
             <select
                 className={cls.controlInput}
-                value={freshness}
-                onChange={event => onFreshnessChange(event.target.value as WalkForwardFreshness)}>
-                <option value='overall'>Overall</option>
-                <option value='fresh_only'>Fresh only</option>
-                <option value='stale_only'>Stale only</option>
+                value={reportSlice}
+                onChange={event => onReportSliceChange(event.target.value as WalkForwardReportSliceId)}>
+                {getModeReportSlices(mode).map(slice => (
+                    <option key={slice.key} value={slice.key}>
+                        {slice.label}
+                    </option>
+                ))}
             </select>
         </label>
     )
@@ -90,21 +180,21 @@ function FreshnessControls({
 
 export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
     const [slice, setSlice] = useState<WalkForwardSlice>('all')
-    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
+    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
     const [selectedFoldId, setSelectedFoldId] = useState<string>('')
     const [fromDate, setFromDate] = useState<string>('')
     const [toDate, setToDate] = useState<string>('')
 
     const tbmHistoryQuery = useTbmNativeHistoryQuery({
         slice,
-        freshness,
+        reportSlice,
         selectedFoldId: slice === 'selected_fold' ? selectedFoldId : null,
         fromDate,
         toDate
     }, { enabled: mode === 'tbm_native' })
     const directionalHistoryQuery = useDirectionalWalkForwardHistoryQuery({
         slice,
-        freshness,
+        reportSlice,
         selectedFoldId: slice === 'selected_fold' ? selectedFoldId : null,
         fromDate,
         toDate
@@ -194,7 +284,7 @@ export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
                                     <option value='selected_fold'>Selected fold</option>
                                 </select>
                             </label>
-                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                             {slice === 'selected_fold' && (
                                 <label className={cls.control}>
                                     <span className={cls.controlLabel}>Fold</span>
@@ -257,10 +347,10 @@ export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
 }
 
 export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
-    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
+    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
     const [viewMode, setViewMode] = useState<'technical' | 'business'>('technical')
-    const tbmStatsQuery = useTbmNativeModelStatsQuery(freshness, { enabled: mode === 'tbm_native' })
-    const directionalStatsQuery = useDirectionalWalkForwardModelStatsQuery(freshness, { enabled: mode === 'directional_walkforward' })
+    const tbmStatsQuery = useTbmNativeModelStatsQuery(reportSlice, { enabled: mode === 'tbm_native' })
+    const directionalStatsQuery = useDirectionalWalkForwardModelStatsQuery(reportSlice, { enabled: mode === 'directional_walkforward' })
     const tbmValidationQuery = useTbmNativeValidationQuery({ enabled: mode === 'tbm_native' })
     const directionalValidationQuery = useDirectionalWalkForwardValidationQuery({ enabled: mode === 'directional_walkforward' })
     const statsQuery = mode === 'tbm_native' ? tbmStatsQuery : directionalStatsQuery
@@ -272,9 +362,9 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
                 shell={
                     <div className={cls.header}>
                         <Text type='h2'>{mode === 'tbm_native' ? 'TBM Native model stats' : 'Directional Walk-Forward model stats'}</Text>
-                        <Text className={cls.subtitle}>Published stats cards for the selected mode and freshness slice.</Text>
+                        <Text className={cls.subtitle}>Published stats cards for the selected mode and report slice.</Text>
                         <div className={cls.controls}>
-                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                             {mode === 'directional_walkforward' && (
                                 <label className={cls.control}>
                                     <span className={cls.controlLabel}>View</span>
@@ -311,24 +401,24 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
                 <div className={cls.stack}>
                     {mode === 'tbm_native' ?
                         tbmStatsQuery.data?.cards.map(card => (
-                            <div key={card.freshness} className={cls.stack}>
-                                <ReportTableCard title={`Class summary · ${card.freshness}`} domId={`tbm-class-${card.freshness}`} columns={['Class', 'Samples', 'Hits', 'Hit rate', 'Misses']} rows={card.classSummary.map(row => [row.class, row.sampleCount, row.hitCount, formatPercent(row.hitRate), row.missCount])} />
-                                <ReportTableCard title={`Confusion matrix · ${card.freshness}`} domId={`tbm-confusion-${card.freshness}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={card.confusionMatrix.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
-                                <ReportTableCard title={`Calibration · ${card.freshness}`} domId={`tbm-calibration-${card.freshness}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={card.calibration.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
+                            <div key={card.slice} className={cls.stack}>
+                                <ReportTableCard title={`Class summary · ${formatEnumLabel(card.slice)}`} domId={`tbm-class-${card.slice}`} columns={['Class', 'Samples', 'Hits', 'Hit rate', 'Misses']} rows={card.classSummary.map(row => [row.class, row.sampleCount, row.hitCount, formatPercent(row.hitRate), row.missCount])} />
+                                <ReportTableCard title={`Confusion matrix · ${formatEnumLabel(card.slice)}`} domId={`tbm-confusion-${card.slice}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={card.confusionMatrix.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
+                                <ReportTableCard title={`Calibration · ${formatEnumLabel(card.slice)}`} domId={`tbm-calibration-${card.slice}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={card.calibration.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
                             </div>
                         ))
                     :   directionalStatsQuery.data?.cards.map(card => (
-                            <div key={card.freshness} className={cls.stack}>
+                            <div key={card.slice} className={cls.stack}>
                                 {viewMode === 'technical' ?
                                     <>
-                                        <ReportTableCard title={`Per-model metrics · ${card.freshness}`} domId={`dwf-metrics-${card.freshness}`} columns={['Model', 'Slice', 'Samples', 'Accuracy', 'Micro F1', 'Log loss']} rows={card.technical.perModelMetrics.map(row => [row.modelName, row.slice, row.sampleCount, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
-                                        <ReportTableCard title={`Directional confusion · ${card.freshness}`} domId={`dwf-confusion-${card.freshness}`} columns={['Actual', 'Predicted Down', 'Predicted Flat', 'Predicted Up']} rows={card.technical.directionalConfusionMatrix.map(row => [row.actualClass, row.countDown, row.countFlat, row.countUp])} />
-                                        <ReportTableCard title={`SL metrics · ${card.freshness}`} domId={`dwf-sl-${card.freshness}`} columns={['Slice', 'Samples', 'Accuracy', 'Log loss', 'AUC']} rows={card.technical.slMetrics.map(row => [row.slice, row.sampleCount, formatProbability(row.accuracy), formatProbability(row.logLoss), formatProbability(row.auc)])} />
+                                        <ReportTableCard title={`Per-model metrics · ${formatEnumLabel(card.slice)}`} domId={`dwf-metrics-${card.slice}`} columns={['Model', 'Slice', 'Samples', 'Accuracy', 'Micro F1', 'Log loss']} rows={card.technical.perModelMetrics.map(row => [row.modelName, formatEnumLabel(row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
+                                        <ReportTableCard title={`Directional confusion · ${formatEnumLabel(card.slice)}`} domId={`dwf-confusion-${card.slice}`} columns={['Actual', 'Predicted Down', 'Predicted Flat', 'Predicted Up']} rows={card.technical.directionalConfusionMatrix.map(row => [row.actualClass, row.countDown, row.countFlat, row.countUp])} />
+                                        <ReportTableCard title={`SL metrics · ${formatEnumLabel(card.slice)}`} domId={`dwf-sl-${card.slice}`} columns={['Slice', 'Samples', 'Accuracy', 'Log loss', 'AUC']} rows={card.technical.slMetrics.map(row => [formatEnumLabel(row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.logLoss), formatProbability(row.auc)])} />
                                     </>
                                 :   <>
-                                        <ReportTableCard title={`Technical verdicts · ${card.freshness}`} domId={`dwf-tech-verdicts-${card.freshness}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.technicalVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
-                                        <ReportTableCard title={`Business verdicts · ${card.freshness}`} domId={`dwf-business-verdicts-${card.freshness}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.businessVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
-                                        <ReportTableCard title={`Timing verdicts · ${card.freshness}`} domId={`dwf-timing-verdicts-${card.freshness}`} columns={['Timing', 'Count', 'Rate']} rows={card.business.timingVerdicts.map(row => [formatEnumLabel(row.timingVerdict), row.count, formatPercent(row.rate)])} />
+                                        <ReportTableCard title={`Technical verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-tech-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.technicalVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
+                                        <ReportTableCard title={`Business verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-business-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.businessVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
+                                        <ReportTableCard title={`Timing verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-timing-verdicts-${card.slice}`} columns={['Timing', 'Count', 'Rate']} rows={card.business.timingVerdicts.map(row => [formatEnumLabel(row.timingVerdict), row.count, formatPercent(row.rate)])} />
                                     </>}
                             </div>
                         ))}
@@ -339,9 +429,9 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
 }
 
 export function WalkForwardModeAggregationPanel({ className, mode }: BaseProps) {
-    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
-    const tbmAggregationQuery = useTbmNativeAggregationQuery(freshness, { enabled: mode === 'tbm_native' })
-    const directionalAggregationQuery = useDirectionalWalkForwardAggregationQuery(freshness, { enabled: mode === 'directional_walkforward' })
+    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
+    const tbmAggregationQuery = useTbmNativeAggregationQuery(reportSlice, { enabled: mode === 'tbm_native' })
+    const directionalAggregationQuery = useDirectionalWalkForwardAggregationQuery(reportSlice, { enabled: mode === 'directional_walkforward' })
     const aggregationQuery = mode === 'tbm_native' ? tbmAggregationQuery : directionalAggregationQuery
 
     return (
@@ -352,7 +442,7 @@ export function WalkForwardModeAggregationPanel({ className, mode }: BaseProps) 
                         <Text type='h2'>{mode === 'tbm_native' ? 'TBM Native aggregation' : 'Directional Walk-Forward aggregation'}</Text>
                         <Text className={cls.subtitle}>Published aggregation slices for the selected mode.</Text>
                         <div className={cls.controls}>
-                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                         </div>
                     </div>
                 }
@@ -445,6 +535,130 @@ export function WalkForwardModePfiPanel({ className, mode, family = 'daily' }: P
     )
 }
 
+export function WalkForwardModeMoneyPanel({ className, mode }: BaseProps) {
+    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
+    const tbmMoneyQuery = useTbmNativeMoneyQuery(freshness, { enabled: mode === 'tbm_native' })
+    const directionalMoneyQuery = useDirectionalWalkForwardMoneyQuery(freshness, { enabled: mode === 'directional_walkforward' })
+    const moneyQuery = mode === 'tbm_native' ? tbmMoneyQuery : directionalMoneyQuery
+    const moneySlice = resolveMoneySliceByFreshness(moneyQuery.data?.slices ?? null, freshness)
+    const bestPolicy = resolveBestPolicyContract(moneySlice?.bestPolicy.perMarginMode)
+
+    return (
+        <div className={classNames(cls.page, {}, [className ?? ''])}>
+            <PageDataState
+                shell={
+                    <div className={cls.header}>
+                        <Text type='h2'>{mode === 'tbm_native' ? 'TBM Native money' : 'Directional Walk-Forward money'}</Text>
+                        <Text className={cls.subtitle}>
+                            {renderTermTooltipRichText('Published [[policy|best policy]], comparison table and full capital metrics for the selected mode.')}
+                        </Text>
+                        <div className={cls.controls}>
+                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                        </div>
+                        {bestPolicy && (
+                            <div className={cls.metricsGrid}>
+                                <MetricCard label={renderTermTooltipRichText('Best [[policy|policy]]')} value={bestPolicy.policyName} />
+                                <MetricCard label={renderTermTooltipRichText('[[branch|Branch]]')} value={bestPolicy.policyBranch} />
+                                <MetricCard label={renderTermTooltipRichText('[[total-pnl|Total return]]')} value={formatRequiredMetricPercent(bestPolicy.metrics.totalPnlPct, 'bestPolicy.metrics.totalPnlPct')} />
+                                <MetricCard label={renderTermTooltipRichText('[[total-pnl|Total PnL USD]]')} value={formatRequiredMoneyUsd(bestPolicy.metrics.totalPnlUsd, 'bestPolicy.metrics.totalPnlUsd')} />
+                                <MetricCard label={renderTermTooltipRichText('[[drawdown|Max drawdown]]')} value={formatRequiredMetricPercent(bestPolicy.metrics.maxDdPct, 'bestPolicy.metrics.maxDdPct')} />
+                                <MetricCard label={renderTermTooltipRichText('[[sharpe-ratio|Sharpe]]')} value={formatRequiredMetricNumber(bestPolicy.metrics.sharpe, 'bestPolicy.metrics.sharpe')} />
+                                <MetricCard label={renderTermTooltipRichText('[[trade-count|Trades]]')} value={formatRequiredMoneyNumber(bestPolicy.metrics.tradesCount, 'bestPolicy.metrics.tradesCount')} />
+                                <MetricCard label={renderTermTooltipRichText('[[start-cap|Start capital]]')} value={formatRequiredMoneyUsd(bestPolicy.metrics.startCapitalUsd, 'bestPolicy.metrics.startCapitalUsd')} />
+                                <MetricCard label={renderTermTooltipRichText('[[current-balance|Equity now]]')} value={formatRequiredMoneyUsd(bestPolicy.metrics.equityNowUsd, 'bestPolicy.metrics.equityNowUsd')} />
+                                <MetricCard label={renderTermTooltipRichText('[[funding|Funding net]]')} value={formatRequiredMoneyUsd(bestPolicy.metrics.fundingNetUsd, 'bestPolicy.metrics.fundingNetUsd')} />
+                            </div>
+                        )}
+                    </div>
+                }
+                isLoading={moneyQuery.isLoading}
+                isError={moneyQuery.isError}
+                error={moneyQuery.error ?? null}
+                hasData={Boolean(moneySlice)}
+                onRetry={() => void moneyQuery.refetch()}
+                title='Money report unavailable'
+                loadingText='Loading money report'>
+                {moneySlice && (
+                    <div className={cls.stack}>
+                        {bestPolicy ?
+                            <>
+                                <ReportTableCard
+                                    title='Best policy'
+                                    domId={`wf-money-best-policy-${mode}`}
+                                    columns={['[[policy|Policy]]', '[[branch|Branch]]', '[[bucket|Bucket]]', 'Slice', 'Score', 'Evaluation', '[[trade-count|Trades]]', '[[total-pnl|Total return]]', '[[total-pnl|Total PnL USD]]', '[[drawdown|MaxDD]]', '[[win-rate|Win rate]]']}
+                                    rows={[[
+                                        bestPolicy.policyName,
+                                        bestPolicy.policyBranch,
+                                        bestPolicy.bucket,
+                                        bestPolicy.slice.scopeLabel,
+                                        formatRequiredMetricNumber(bestPolicy.score.value, 'bestPolicy.score.value', 4),
+                                        requireMoneyString(bestPolicy.evaluation.status, 'bestPolicy.evaluation.status'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.tradesCount, 'bestPolicy.metrics.tradesCount'),
+                                        formatRequiredMetricPercent(bestPolicy.metrics.totalPnlPct, 'bestPolicy.metrics.totalPnlPct'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.totalPnlUsd, 'bestPolicy.metrics.totalPnlUsd'),
+                                        formatRequiredMetricPercent(bestPolicy.metrics.maxDdPct, 'bestPolicy.metrics.maxDdPct'),
+                                        formatRequiredMetricPercent(bestPolicy.metrics.winRate != null ? bestPolicy.metrics.winRate * 100 : null, 'bestPolicy.metrics.winRate')
+                                    ]]}
+                                />
+                                <ReportTableCard
+                                    title='Capital and funding'
+                                    domId={`wf-money-capital-${mode}`}
+                                    columns={['[[start-cap|Start capital]]', '[[current-balance|Equity now]]', '[[withdrawn-profit|Withdrawn]]', '[[funding|Funding net]]', '[[funding|Funding paid]]', '[[funding|Funding received]]', '[[funding|Funding events]]', '[[funding|Trades with funding]]']}
+                                    rows={[[
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.startCapitalUsd, 'bestPolicy.metrics.startCapitalUsd'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.equityNowUsd, 'bestPolicy.metrics.equityNowUsd'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.withdrawnTotalUsd, 'bestPolicy.metrics.withdrawnTotalUsd'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.fundingNetUsd, 'bestPolicy.metrics.fundingNetUsd'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.fundingPaidUsd, 'bestPolicy.metrics.fundingPaidUsd'),
+                                        formatRequiredMoneyUsd(bestPolicy.metrics.fundingReceivedUsd, 'bestPolicy.metrics.fundingReceivedUsd'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.fundingEventCount, 'bestPolicy.metrics.fundingEventCount'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.tradesWithFundingCount, 'bestPolicy.metrics.tradesWithFundingCount')
+                                    ]]}
+                                />
+                                <ReportTableCard
+                                    title='Liquidation and account health'
+                                    domId={`wf-money-risk-${mode}`}
+                                    columns={['[[liquidation|Had liquidation]]', '[[liquidation|Real liquidations]]', '[[liquidation|Funding liquidations]]', '[[funding|Funding]] [[bucket|bucket]] deaths', 'Mixed [[bucket|bucket]] deaths', '[[account-ruin|Account ruin count]]', '[[account-ruin|Balance dead]]']}
+                                    rows={[[
+                                        formatRequiredBoolean(bestPolicy.metrics.hadLiquidation, 'bestPolicy.metrics.hadLiquidation'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.realLiquidationCount, 'bestPolicy.metrics.realLiquidationCount'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.fundingLiquidationCount, 'bestPolicy.metrics.fundingLiquidationCount'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.fundingBucketDeathCount, 'bestPolicy.metrics.fundingBucketDeathCount'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.mixedBucketDeathCount, 'bestPolicy.metrics.mixedBucketDeathCount'),
+                                        formatRequiredMoneyNumber(bestPolicy.metrics.accountRuinCount, 'bestPolicy.metrics.accountRuinCount'),
+                                        formatRequiredBoolean(bestPolicy.metrics.balanceDead, 'bestPolicy.metrics.balanceDead')
+                                    ]]}
+                                />
+                            </>
+                        :   <div className={cls.noteCard}>
+                                <Text type='h3'>No eligible best policy</Text>
+                                <Text className={cls.subtitle}>
+                                    {renderTermTooltipRichText('The selected slice has no eligible [[policy|policy]] after the [[trade-count|trade count]] and [[drawdown|drawdown]] [[filters|filters]]. The [[policy|policy]] ratios table still shows every simulated policy.')}
+                                </Text>
+                            </div>
+                        }
+                        <ReportTableCard
+                            title='Policy ratios'
+                            domId={`wf-money-ratios-${mode}`}
+                            columns={['[[policy|Policy]]', 'Evaluation', '[[trade-count|Trades]]', '[[total-pnl|Total return]]', '[[total-pnl|Total PnL USD]]', '[[drawdown|MaxDD]]', '[[sharpe-ratio|Sharpe]]', '[[win-rate|Win rate]]']}
+                            rows={moneySlice.policyRatios.policies.map(policy => [
+                                policy.policyName,
+                                requireMoneyString(policy.evaluation?.status, `${policy.policyName}.evaluation.status`),
+                                formatRequiredMoneyNumber(policy.performanceMetrics.tradesCount, `${policy.policyName}.performanceMetrics.tradesCount`),
+                                formatRequiredMetricPercent(policy.performanceMetrics.totalPnlPct, `${policy.policyName}.performanceMetrics.totalPnlPct`),
+                                formatRequiredMoneyUsd(policy.performanceMetrics.totalPnlUsd, `${policy.policyName}.performanceMetrics.totalPnlUsd`),
+                                formatRequiredMetricPercent(policy.performanceMetrics.maxDdPct, `${policy.policyName}.performanceMetrics.maxDdPct`),
+                                formatRequiredMetricNumber(policy.performanceMetrics.sharpe, `${policy.policyName}.performanceMetrics.sharpe`),
+                                formatRequiredMetricPercent(policy.performanceMetrics.winRate != null ? policy.performanceMetrics.winRate * 100 : null, `${policy.policyName}.performanceMetrics.winRate`)
+                            ])}
+                        />
+                    </div>
+                )}
+            </PageDataState>
+        </div>
+    )
+}
+
 export function WalkForwardModeCurrentPredictionPanel({ className, mode }: BaseProps) {
     const directionalCurrentQuery = useDirectionalWalkForwardCurrentQuery({ enabled: mode === 'directional_walkforward' })
 
@@ -454,7 +668,7 @@ export function WalkForwardModeCurrentPredictionPanel({ className, mode }: BaseP
                 <div className={cls.noteCard}>
                     <Text type='h2'>TBM Native</Text>
                     <Text className={cls.subtitle}>
-                        This page remains specific to the Directional Fixed-Split live snapshot. Use History, Model Statistics, Aggregation and PFI for TBM Native.
+                        TBM Native does not have a live current snapshot. This route shows the money surface for the latest published walk-forward artifacts instead.
                     </Text>
                 </div>
             </div>

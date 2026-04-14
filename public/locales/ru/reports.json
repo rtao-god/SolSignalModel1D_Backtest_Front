@@ -2664,12 +2664,24 @@
                 "title": "Деньги по режимам",
                 "description": "Этот owner-блок нужен, чтобы рядом с классической [[landing-policy-branch-mega|Policy Branch Mega]] видеть, сколько реально зарабатывают опубликованные режимы и из какого именно источника денег это число взято.",
                 "tableTitle": "Сравнение денег по режимам",
-                "tableDescription": "В одной таблице собраны published fixed-split money rows, TBM Native и Directional Walk-Forward.",
+                "tableDescription": "В одной таблице собраны деньги Directional Fixed-Split по срезам Train / Full / OOS, TBM Native и Directional Walk-Forward.",
                 "empty": "Для кросс-режимной денежной сводки пока нет строк.",
+                "view": {
+                    "label": "Вид таблицы",
+                    "compact": {
+                        "label": "Коротко",
+                        "hint": "Оставляет только основные денежные и качественные столбцы."
+                    },
+                    "expanded": {
+                        "label": "Полно",
+                        "hint": "Показывает все опубликованные денежные и служебные столбцы."
+                    }
+                },
                 "notes": {
                     "item1": "Строки Directional Fixed-Split показывают не одну каноническую стратегию режима, а лучшую опубликованную дневную [[policy|Policy]] внутри соответствующего среза.",
-                    "item2": "Строки TBM Native и Directional Walk-Forward используют одну каноническую дневную стратегию режима и читаются по owner series из `walkforward-raw`.",
-                    "item3": "Train-строка Directional Fixed-Split пока публикует только диагностику качества. Если денег нет, это честно показано как `not published`, а не замещено догадкой."
+                    "item2": "Строки TBM Native и Directional Walk-Forward используют лучшую опубликованную [[policy|Policy]] из своего набора политик. TBM Native считается через [[bucket-delayed|delayed bucket]], а Directional Walk-Forward — через [[bucket-daily|daily bucket]].",
+                    "item3": "Срезы Train / Full / OOS для Directional Fixed-Split читаются из опубликованной [[landing-policy-branch-mega|Policy Branch Mega]], поэтому проценты и доллары считаются одним денежным контрактом.",
+                    "item4": "Колонка качества прогноза собирает, попал ли режим в истинное направление дня, прошёл ли бизнесовый допуск и подтвердилось ли движение на следующий день. Денежные колонки показывают результат лучшей опубликованной [[policy|Policy]] внутри этого же режима. Эти числа связаны одним режимом, но не являются одной и той же торговой строкой."
                 },
                 "errors": {
                     "title": "Денежная сводка режимов недоступна",
@@ -2677,32 +2689,45 @@
                 },
                 "sourceKinds": {
                     "canonicalStrategy": "Каноническая стратегия режима",
-                    "policyUniverseBestPolicy": "Лучшая опубликованная дневная Policy",
+                    "policyUniverseBestPolicy": "Лучшая опубликованная [[policy|Policy]]",
                     "notPublished": "Деньги не публикуются",
                     "notAvailable": "Источник денег недоступен"
                 },
                 "statuses": {
                     "available": "Опубликовано",
                     "notPublished": "Не публикуется",
-                    "missingArtifacts": "Нет артефактов"
+                    "missingArtifacts": "Нет артефактов",
+                    "noEligiblePolicy": "Нет [[policy|Policy]] после [[filters|фильтров]]"
                 },
                 "columns": {
                     "mode": "Режим",
                     "slice": "Срез",
                     "source": "Источник денег",
                     "status": "Статус",
+                    "fromDate": "С даты",
+                    "toDate": "По дату",
                     "execution": "Исполнение / policy",
                     "days": "Дней",
                     "trades": "Сделок",
-                    "positiveDays": "+ Дней",
-                    "zeroDays": "0 Дней",
-                    "negativeDays": "- Дней",
-                    "technicalAccuracy": "TechAcc, %",
-                    "businessAccuracy": "BizAcc, %",
+                    "predictionQuality": "Качество прогноза",
                     "totalReturn": "Итог, %",
+                    "totalPnlUsd": "PnL, $",
+                    "startCapitalUsd": "Старт, $",
+                    "equityNowUsd": "Equity now, $",
+                    "withdrawnUsd": "Withdrawn, $",
+                    "fundingNetUsd": "Funding net, $",
                     "maxDrawdown": "MaxDD, %",
                     "sharpe": "Sharpe",
+                    "realLiquidations": "Real liq",
+                    "accountRuins": "Account ruin",
                     "sourcePath": "Путь проверки"
+                },
+                "predictionQuality": {
+                    "technicalAccuracy": "Совпадение с истинным направлением",
+                    "businessAccuracy": "Совпадение по бизнес-правилу",
+                    "lateCorrectDays": "Движение подтвердилось на следующий день",
+                    "latePendingDays": "Следующий день ещё не закрыт",
+                    "tbmHitRate": "Совпадение прогноза TBM"
                 }
             },
             "metricDiff": {
@@ -2732,7 +2757,7 @@
                 },
                 "historyQuery": {
                     "title": "Policy Branch Mega history query is invalid",
-                    "message": "Query parameter \"history\" is invalid. Expected full_history, oos, or recent."
+                    "message": "Query parameter \"history\" is invalid. Expected full_history, train, oos, or recent."
                 },
                 "bucketQuery": {
                     "title": "Policy Branch Mega bucket query is invalid",

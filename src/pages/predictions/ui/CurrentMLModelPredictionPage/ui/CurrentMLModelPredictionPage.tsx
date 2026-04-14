@@ -32,7 +32,10 @@ import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { useSelector } from 'react-redux'
 import { selectActiveMode } from '@/entities/mode'
-import { WalkForwardModeCurrentPredictionPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
+import {
+    WalkForwardModeCurrentPredictionPanel,
+    WalkForwardModeMoneyPanel
+} from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
 import { PredictionSliceTimelinePanel } from '@/pages/predictions/ui/shared/PredictionSliceTimeline'
@@ -417,8 +420,17 @@ function DirectionalFixedSplitCurrentPredictionPage({ className }: CurrentMLMode
 export default function CurrentMLModelPredictionPage(props: CurrentMLModelPredictionProps) {
     const activeMode = useSelector(selectActiveMode)
 
-    if (activeMode !== 'directional_fixed_split') {
-        return <WalkForwardModeCurrentPredictionPanel className={props.className} mode={activeMode} />
+    if (activeMode === 'tbm_native') {
+        return <WalkForwardModeMoneyPanel className={props.className} mode={activeMode} />
+    }
+
+    if (activeMode === 'directional_walkforward') {
+        return (
+            <div className={classNames(cls.CurrentPredictionPage, {}, [props.className ?? ''])}>
+                <WalkForwardModeCurrentPredictionPanel mode={activeMode} />
+                <WalkForwardModeMoneyPanel mode={activeMode} />
+            </div>
+        )
     }
 
     return <DirectionalFixedSplitCurrentPredictionPage {...props} />

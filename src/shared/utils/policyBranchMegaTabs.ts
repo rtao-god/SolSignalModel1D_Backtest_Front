@@ -27,7 +27,7 @@ export interface PolicyBranchMegaAnchorTarget {
 
 export type PolicyBranchMegaBucketMode = 'daily' | 'intraday' | 'delayed' | 'total'
 export type PolicyBranchMegaTotalBucketView = 'aggregate' | 'separate'
-export type PolicyBranchMegaHistoryMode = 'full_history' | 'oos' | 'recent'
+export type PolicyBranchMegaHistoryMode = 'full_history' | 'train' | 'oos' | 'recent'
 export type PolicyBranchMegaMetricMode = 'real' | 'no-biggest-liq-loss'
 export type PolicyBranchMegaTpSlMode = 'all' | 'dynamic' | 'static'
 export type PolicyBranchMegaSlMode = 'all' | 'with-sl' | 'no-sl'
@@ -37,6 +37,7 @@ const HISTORY_QUERY_ALIASES: Record<string, PolicyBranchMegaHistoryMode> = {
     full: 'full_history',
     'full-history': 'full_history',
     full_history: 'full_history',
+    train: 'train',
     oos: 'oos',
     recent: 'recent',
     'oos-tail': 'recent',
@@ -218,6 +219,7 @@ export function resolvePolicyBranchMegaBucketLabel(bucket: PolicyBranchMegaBucke
 
 export function resolvePolicyBranchMegaHistoryLabel(history: PolicyBranchMegaHistoryMode): string {
     if (history === 'full_history') return 'Вся история'
+    if (history === 'train') return 'Train'
     if (history === 'oos') return 'OOS'
     return 'Хвост OOS'
 }

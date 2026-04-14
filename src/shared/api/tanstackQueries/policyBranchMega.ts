@@ -11,6 +11,7 @@ import { API_BASE_URL } from '../../configs/config'
 import { QUERY_POLICY_REGISTRY } from '@/shared/configs/queryPolicies'
 import { fetchWithTimeout } from './utils/fetchWithTimeout'
 import { buildDetailedRequestErrorMessage } from './utils/requestErrorMessage'
+import { mapPolicyPerformanceMetricsResponse } from '../utils/mapPolicyPerformanceMetrics'
 import { resolveAdjacentPartWindow } from '@/shared/lib/reportPartWindow/resolveAdjacentPartWindow'
 import {
     prefetchPublishedReportVariantSelectionSnapshot,
@@ -32,6 +33,7 @@ import {
     type PolicyBranchMegaTpSlMode,
     type PolicyBranchMegaZonalMode
 } from '@/shared/utils/policyBranchMegaTabs'
+import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
 
 const POLICY_BRANCH_MEGA_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega'] as const
 const POLICY_BRANCH_MEGA_REPORT_QUERY_KEY_BASE = ['backtest', 'policy-branch-mega', 'report'] as const
@@ -79,6 +81,7 @@ export const DEFAULT_POLICY_BRANCH_MEGA_REPORT_QUERY_ARGS: PolicyBranchMegaRepor
 
 const POLICY_BRANCH_MEGA_AVAILABLE_HISTORIES: readonly PolicyBranchMegaHistoryMode[] = [
     'full_history',
+    'train',
     'oos',
     'recent'
 ]
@@ -289,8 +292,17 @@ export interface PolicyBranchMegaResolvedQueryDto {
 export interface PolicyBranchMegaReportPayloadDto {
     report: ReportDocumentDto
     evaluation: PolicyRowEvaluationMapDto | null
+    moneyMetrics: PolicyRowMoneyMetricsMapDto
     capabilities: PolicyBranchMegaCapabilitiesDto
     resolvedQuery: PolicyBranchMegaResolvedQueryDto
+}
+
+export interface PolicyRowMoneyMetricsMapDto {
+    rows: Record<string, PolicyPerformanceMetricsDto>
+}
+
+export type CompletePolicyPerformanceMetricsDto = {
+    [K in keyof PolicyPerformanceMetricsDto]-?: NonNullable<PolicyPerformanceMetricsDto[K]>
 }
 
 export interface PolicyBranchMegaValidationDto {
@@ -313,25 +325,31 @@ export interface PolicyBranchMegaModeMoneySummaryRowDto {
     statusMessage: string
     executionDescriptor: string
     comparabilityNote: string
-    completedDayCount: number | null
-    tradeCount: number | null
-    positiveReturnDayCount: number | null
-    zeroReturnDayCount: number | null
-    negativeReturnDayCount: number | null
-    technicalAccuracyPct: number | null
-    businessAccuracyPct: number | null
-    compoundedReturnPct: number | null
-    maxDrawdownPct: number | null
-    sharpeAnnualized: number | null
+    tradingStartDateUtc: string
+    tradingEndDateUtc: string
+    completedDayCount: number
+    tradeCount: number
+    predictionQualityMetrics: PolicyBranchMegaPredictionQualityMetricDto[]
+    moneyMetrics: CompletePolicyPerformanceMetricsDto
+    maxDrawdownPct: number
     sourceArtifactKind: string
     sourceArtifactId: string
     sourceLocationHint: string
-    policyName: string | null
-    policyBranch: string | null
-    policyMarginMode: string | null
+    policyName: string
+    policyBranch: string
+}
+
+export type PolicyBranchMegaPredictionQualityMetricUnit = 'percent' | 'count'
+
+export interface PolicyBranchMegaPredictionQualityMetricDto {
+    metricKey: string
+    metricLabel: string
+    value: number
+    unit: PolicyBranchMegaPredictionQualityMetricUnit
 }
 
 export interface PolicyBranchMegaModeMoneySummaryDto {
+    schemaVersion: string
     generatedAtUtc: string
     rows: PolicyBranchMegaModeMoneySummaryRowDto[]
 }
@@ -419,6 +437,99 @@ function toNullableBoolean(raw: unknown, label: string): boolean | null {
     }
 
     throw new Error(`[policy-branch-mega] ${label} must be a boolean or null.`)
+}
+
+function toRequiredNumber(raw: unknown, label: string): number {
+    const parsed = toNullableNumber(raw, label)
+    if (parsed === null) {
+        throw new Error(
+            `[policy-branch-mega] required mode-money metric is missing. owner=mode-money-summary; expected=finite ${label}; actual=null; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return parsed
+}
+
+function toRequiredInteger(raw: unknown, label: string): number {
+    const parsed = toNullableInteger(raw, label)
+    if (parsed === null) {
+        throw new Error(
+            `[policy-branch-mega] required mode-money metric is missing. owner=mode-money-summary; expected=integer ${label}; actual=null; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return parsed
+}
+
+function requireAvailableModeMoneySourceStatus(raw: unknown, label: string): string {
+    const status = toRequiredString(raw, label)
+    if (status !== 'available') {
+        throw new Error(
+            `[policy-branch-mega] mode-money row has non-available status. owner=mode-money-summary; expected=available row with complete policy metrics; actual=${status}; context=${label}; requiredAction=fix producer instead of rendering an incomplete money row.`
+        )
+    }
+
+    return status
+}
+
+function requireModeMoneyPolicyText(raw: unknown, label: string): string {
+    return toRequiredString(raw, label)
+}
+
+const MODE_MONEY_SUMMARY_SCHEMA_VERSION = 'mode-money-comparison-summary-v3-2026-04-14'
+
+function toPredictionQualityMetricUnit(
+    raw: unknown,
+    label: string
+): PolicyBranchMegaPredictionQualityMetricUnit {
+    const unit = toRequiredString(raw, label)
+    if (unit === 'percent' || unit === 'count') {
+        return unit
+    }
+
+    throw new Error(
+        `[policy-branch-mega] ${label} has unsupported prediction-quality unit. owner=mode-money-summary; expected=percent|count; actual=${unit}; requiredAction=fix producer instead of extending the consumer parser.`
+    )
+}
+
+function mapPredictionQualityMetrics(
+    raw: unknown,
+    label: string
+): PolicyBranchMegaPredictionQualityMetricDto[] {
+    if (!Array.isArray(raw)) {
+        throw new Error(
+            `[policy-branch-mega] ${label} must be an array. owner=mode-money-summary; expected=non-empty predictionQualityMetrics list; actual=${String(raw)}; requiredAction=rebuild mode money summary artifacts from the owner producer.`
+        )
+    }
+
+    if (raw.length === 0) {
+        throw new Error(
+            `[policy-branch-mega] ${label} must be non-empty. owner=mode-money-summary; expected=at least one prediction quality metric; actual=0; requiredAction=rebuild mode money summary artifacts from the owner producer.`
+        )
+    }
+
+    return raw.map((item, index) => {
+        const payload = toObject(item)
+        const itemLabel = `${label}[${index}]`
+
+        return {
+            metricKey: toRequiredString(payload.metricKey, `${itemLabel}.metricKey`),
+            metricLabel: toRequiredString(payload.metricLabel, `${itemLabel}.metricLabel`),
+            value: toRequiredNumber(payload.value, `${itemLabel}.value`),
+            unit: toPredictionQualityMetricUnit(payload.unit, `${itemLabel}.unit`)
+        }
+    })
+}
+
+function requireModeMoneySummarySchemaVersion(raw: unknown): string {
+    const schemaVersion = toRequiredString(raw, 'modeMoneySummary.schemaVersion')
+    if (schemaVersion !== MODE_MONEY_SUMMARY_SCHEMA_VERSION) {
+        throw new Error(
+            `[policy-branch-mega] mode-money summary schema version mismatch. owner=mode-money-summary; expected=${MODE_MONEY_SUMMARY_SCHEMA_VERSION}; actual=${schemaVersion}; requiredAction=rebuild backend artifacts and frontend against the same owner contract version.`
+        )
+    }
+
+    return schemaVersion
 }
 
 function mapPolicyEvaluationReasonResponse(raw: unknown, label: string) {
@@ -518,6 +629,176 @@ function mapPolicyBranchMegaEvaluationMap(raw: unknown): PolicyRowEvaluationMapD
     return {
         profileId: toRequiredString(payload.profileId, 'evaluation.profileId'),
         rows
+    }
+}
+
+function mapPolicyBranchMegaMoneyMetricsMap(raw: unknown): PolicyRowMoneyMetricsMapDto {
+    const payload = toObject(raw)
+    const rowsRaw = toObject(payload.rows)
+    const rows: Record<string, PolicyPerformanceMetricsDto> = {}
+
+    Object.entries(rowsRaw).forEach(([rowKey, rowValue]) => {
+        const normalizedRowKey = rowKey.trim()
+        if (!normalizedRowKey) {
+            throw new Error('[policy-branch-mega] moneyMetrics.rows contains empty row key.')
+        }
+
+        rows[normalizedRowKey] = mapPolicyPerformanceMetricsResponse(rowValue, {
+            owner: 'policy-branch-mega',
+            label: `moneyMetrics.rows.${normalizedRowKey}`
+        })
+    })
+
+    return { rows }
+}
+
+function requireFinitePolicyMetric(
+    value: number | null | undefined,
+    label: string
+): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is missing or invalid. owner=mode-money-summary; expected=finite ${label}; actual=${String(value)}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return value
+}
+
+function requirePositivePolicyMetric(
+    value: number | null | undefined,
+    label: string
+): number {
+    const resolved = requireFinitePolicyMetric(value, label)
+    if (resolved <= 0) {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is not positive. owner=mode-money-summary; expected=${label} > 0; actual=${resolved}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return resolved
+}
+
+function requireNonNegativePolicyMetric(
+    value: number | null | undefined,
+    label: string
+): number {
+    const resolved = requireFinitePolicyMetric(value, label)
+    if (resolved < 0) {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is negative. owner=mode-money-summary; expected=${label} >= 0; actual=${resolved}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return resolved
+}
+
+function requirePositivePolicyInteger(
+    value: number | null | undefined,
+    label: string
+): number {
+    const resolved = requireFinitePolicyMetric(value, label)
+    if (!Number.isInteger(resolved) || resolved <= 0) {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is not a positive integer. owner=mode-money-summary; expected=${label} positive integer; actual=${resolved}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return resolved
+}
+
+function requireNonNegativePolicyInteger(
+    value: number | null | undefined,
+    label: string
+): number {
+    const resolved = requireFinitePolicyMetric(value, label)
+    if (!Number.isInteger(resolved) || resolved < 0) {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is not a non-negative integer. owner=mode-money-summary; expected=${label} non-negative integer; actual=${resolved}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return resolved
+}
+
+function requirePolicyBoolean(
+    value: boolean | null | undefined,
+    label: string
+): boolean {
+    if (typeof value !== 'boolean') {
+        throw new Error(
+            `[policy-branch-mega] required policy money metric is missing or invalid. owner=mode-money-summary; expected=boolean ${label}; actual=${String(value)}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+        )
+    }
+
+    return value
+}
+
+function mapRequiredModeMoneyPolicyMetrics(
+    raw: unknown,
+    label: string
+): CompletePolicyPerformanceMetricsDto {
+    const metrics = mapPolicyPerformanceMetricsResponse(raw, {
+        owner: 'policy-branch-mega',
+        label
+    })
+
+    return {
+        tradesCount: requirePositivePolicyInteger(metrics.tradesCount, `${label}.tradesCount`),
+        totalPnlPct: requireFinitePolicyMetric(metrics.totalPnlPct, `${label}.totalPnlPct`),
+        totalPnlUsd: requireFinitePolicyMetric(metrics.totalPnlUsd, `${label}.totalPnlUsd`),
+        maxDdPct: requireFinitePolicyMetric(metrics.maxDdPct, `${label}.maxDdPct`),
+        maxDdNoLiqPct: requireFinitePolicyMetric(metrics.maxDdNoLiqPct, `${label}.maxDdNoLiqPct`),
+        mean: requireFinitePolicyMetric(metrics.mean, `${label}.mean`),
+        std: requireFinitePolicyMetric(metrics.std, `${label}.std`),
+        downStd: requireFinitePolicyMetric(metrics.downStd, `${label}.downStd`),
+        sharpe: requireFinitePolicyMetric(metrics.sharpe, `${label}.sharpe`),
+        sortino: requireFinitePolicyMetric(metrics.sortino, `${label}.sortino`),
+        cagr: requireFinitePolicyMetric(metrics.cagr, `${label}.cagr`),
+        calmar: requireFinitePolicyMetric(metrics.calmar, `${label}.calmar`),
+        winRate: requireFinitePolicyMetric(metrics.winRate, `${label}.winRate`),
+        startCapitalUsd: requirePositivePolicyMetric(metrics.startCapitalUsd, `${label}.startCapitalUsd`),
+        equityNowUsd: requireNonNegativePolicyMetric(metrics.equityNowUsd, `${label}.equityNowUsd`),
+        withdrawnTotalUsd: requireNonNegativePolicyMetric(
+            metrics.withdrawnTotalUsd,
+            `${label}.withdrawnTotalUsd`
+        ),
+        fundingNetUsd: requireFinitePolicyMetric(metrics.fundingNetUsd, `${label}.fundingNetUsd`),
+        fundingPaidUsd: requireNonNegativePolicyMetric(metrics.fundingPaidUsd, `${label}.fundingPaidUsd`),
+        fundingReceivedUsd: requireNonNegativePolicyMetric(
+            metrics.fundingReceivedUsd,
+            `${label}.fundingReceivedUsd`
+        ),
+        fundingEventCount: requireNonNegativePolicyInteger(
+            metrics.fundingEventCount,
+            `${label}.fundingEventCount`
+        ),
+        tradesWithFundingCount: requireNonNegativePolicyInteger(
+            metrics.tradesWithFundingCount,
+            `${label}.tradesWithFundingCount`
+        ),
+        fundingLiquidationCount: requireNonNegativePolicyInteger(
+            metrics.fundingLiquidationCount,
+            `${label}.fundingLiquidationCount`
+        ),
+        fundingBucketDeathCount: requireNonNegativePolicyInteger(
+            metrics.fundingBucketDeathCount,
+            `${label}.fundingBucketDeathCount`
+        ),
+        mixedBucketDeathCount: requireNonNegativePolicyInteger(
+            metrics.mixedBucketDeathCount,
+            `${label}.mixedBucketDeathCount`
+        ),
+        hadLiquidation: requirePolicyBoolean(metrics.hadLiquidation, `${label}.hadLiquidation`),
+        realLiquidationCount: requireNonNegativePolicyInteger(
+            metrics.realLiquidationCount,
+            `${label}.realLiquidationCount`
+        ),
+        accountRuinCount: requireNonNegativePolicyInteger(
+            metrics.accountRuinCount,
+            `${label}.accountRuinCount`
+        ),
+        balanceDead: requirePolicyBoolean(metrics.balanceDead, `${label}.balanceDead`)
     }
 }
 
@@ -724,6 +1005,7 @@ function mapPolicyBranchMegaPayload(raw: unknown): PolicyBranchMegaReportPayload
             payload.evaluation === null || typeof payload.evaluation === 'undefined' ?
                 null
             :   mapPolicyBranchMegaEvaluationMap(payload.evaluation),
+        moneyMetrics: mapPolicyBranchMegaMoneyMetricsMap(payload.moneyMetrics),
         capabilities: mapPolicyBranchMegaCapabilities(payload.capabilities),
         resolvedQuery: mapResolvedPolicyBranchMegaQuery(payload.resolvedQuery)
     }
@@ -742,26 +1024,25 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
         sliceKey: toRequiredString(payload.sliceKey, `${label}.sliceKey`),
         sliceLabel: toRequiredString(payload.sliceLabel, `${label}.sliceLabel`),
         moneySourceKind: toRequiredString(payload.moneySourceKind, `${label}.moneySourceKind`),
-        sourceStatus: toRequiredString(payload.sourceStatus, `${label}.sourceStatus`),
+        sourceStatus: requireAvailableModeMoneySourceStatus(payload.sourceStatus, `${label}.sourceStatus`),
         statusMessage: toRequiredString(payload.statusMessage, `${label}.statusMessage`),
         executionDescriptor: toRequiredString(payload.executionDescriptor, `${label}.executionDescriptor`),
         comparabilityNote: toRequiredString(payload.comparabilityNote, `${label}.comparabilityNote`),
-        completedDayCount: toNullableInteger(payload.completedDayCount, `${label}.completedDayCount`),
-        tradeCount: toNullableInteger(payload.tradeCount, `${label}.tradeCount`),
-        positiveReturnDayCount: toNullableInteger(payload.positiveReturnDayCount, `${label}.positiveReturnDayCount`),
-        zeroReturnDayCount: toNullableInteger(payload.zeroReturnDayCount, `${label}.zeroReturnDayCount`),
-        negativeReturnDayCount: toNullableInteger(payload.negativeReturnDayCount, `${label}.negativeReturnDayCount`),
-        technicalAccuracyPct: toNullableNumber(payload.technicalAccuracyPct, `${label}.technicalAccuracyPct`),
-        businessAccuracyPct: toNullableNumber(payload.businessAccuracyPct, `${label}.businessAccuracyPct`),
-        compoundedReturnPct: toNullableNumber(payload.compoundedReturnPct, `${label}.compoundedReturnPct`),
-        maxDrawdownPct: toNullableNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
-        sharpeAnnualized: toNullableNumber(payload.sharpeAnnualized, `${label}.sharpeAnnualized`),
+        tradingStartDateUtc: toRequiredString(payload.tradingStartDateUtc, `${label}.tradingStartDateUtc`),
+        tradingEndDateUtc: toRequiredString(payload.tradingEndDateUtc, `${label}.tradingEndDateUtc`),
+        completedDayCount: toRequiredInteger(payload.completedDayCount, `${label}.completedDayCount`),
+        tradeCount: toRequiredInteger(payload.tradeCount, `${label}.tradeCount`),
+        predictionQualityMetrics: mapPredictionQualityMetrics(
+            payload.predictionQualityMetrics,
+            `${label}.predictionQualityMetrics`
+        ),
+        moneyMetrics: mapRequiredModeMoneyPolicyMetrics(payload.moneyMetrics, `${label}.moneyMetrics`),
+        maxDrawdownPct: toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`),
         sourceArtifactKind: toRequiredString(payload.sourceArtifactKind, `${label}.sourceArtifactKind`),
         sourceArtifactId: toRequiredString(payload.sourceArtifactId, `${label}.sourceArtifactId`),
         sourceLocationHint: toRequiredString(payload.sourceLocationHint, `${label}.sourceLocationHint`),
-        policyName: toOptionalStringOrNull(payload.policyName, `${label}.policyName`),
-        policyBranch: toOptionalStringOrNull(payload.policyBranch, `${label}.policyBranch`),
-        policyMarginMode: toOptionalStringOrNull(payload.policyMarginMode, `${label}.policyMarginMode`)
+        policyName: requireModeMoneyPolicyText(payload.policyName, `${label}.policyName`),
+        policyBranch: requireModeMoneyPolicyText(payload.policyBranch, `${label}.policyBranch`)
     }
 }
 
@@ -772,6 +1053,7 @@ function mapPolicyBranchMegaModeMoneySummary(raw: unknown): PolicyBranchMegaMode
     }
 
     return {
+        schemaVersion: requireModeMoneySummarySchemaVersion(payload.schemaVersion),
         generatedAtUtc: toRequiredString(payload.generatedAtUtc, 'modeMoneySummary.generatedAtUtc'),
         rows: payload.rows.map((row, index) => mapPolicyBranchMegaModeMoneySummaryRow(row, index))
     }
@@ -841,7 +1123,7 @@ export async function fetchPolicyBranchMegaModeMoneySummary(): Promise<PolicyBra
     return mapPolicyBranchMegaModeMoneySummary(await resp.json())
 }
 
-async function fetchPolicyBranchMegaReportPayload(
+export async function fetchPolicyBranchMegaReportPayload(
     args: PolicyBranchMegaReportQueryArgs
 ): Promise<PolicyBranchMegaReportPayloadDto> {
     const requestPath = buildPolicyBranchMegaPath(args, payloadPath)

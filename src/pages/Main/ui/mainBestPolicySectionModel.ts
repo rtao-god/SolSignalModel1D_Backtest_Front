@@ -1,21 +1,51 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
+import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
 import { orderPolicyBranchMegaSections } from '@/shared/utils/policyBranchMegaTerms'
 import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
-import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 import { assertPolicyBranchMegaPrimaryProfitColumns } from '@/shared/utils/policyBranchMegaProfitColumns'
+import { resolvePolicyBranchMegaRenderedRowKey } from '@/shared/utils/policyBranchMegaRowKey'
 
 export interface MainBestPolicyRowBundle {
     policy: string
     branch: string
+    rowKey: string
     totalPnlPct: number
+    moneyMetrics: PolicyPerformanceMetricsDto
     sectionRows: Array<{
         section: TableSectionDto
         row: string[]
     }>
 }
 
-function buildPolicyBranchKey(policy: string, branch: string): string {
-    return `${policy}::${branch}`
+type PolicyRowMoneyMetricsRows = Record<string, PolicyPerformanceMetricsDto>
+
+function resolveRequiredRowKey(row: string[], section: TableSectionDto, tag: string): string {
+    const rowKey = resolvePolicyBranchMegaRenderedRowKey(row, section.columns ?? [])
+    if (!rowKey) {
+        throw new Error(`[main.demo] ${tag} Policy entry is missing canonical row key.`)
+    }
+
+    return rowKey
+}
+
+function resolveRequiredMoneyMetrics(
+    moneyMetricsRows: PolicyRowMoneyMetricsRows,
+    rowKey: string
+): PolicyPerformanceMetricsDto {
+    const metrics = moneyMetricsRows[rowKey]
+    if (!metrics) {
+        throw new Error(`[main.demo] owner money metrics are missing for ${rowKey}.`)
+    }
+
+    return metrics
+}
+
+function resolveRequiredTotalPnlPct(metrics: PolicyPerformanceMetricsDto, rowKey: string): number {
+    if (typeof metrics.totalPnlPct !== 'number' || !Number.isFinite(metrics.totalPnlPct)) {
+        throw new Error(`[main.demo] owner totalPnlPct is missing for ${rowKey}.`)
+    }
+
+    return metrics.totalPnlPct
 }
 
 function columnIndex(columns: string[] | undefined, title: string, tag: string): number {
@@ -43,22 +73,16 @@ function buildTableSections(sections: unknown[]): TableSectionDto[] {
 function resolveRowByPolicy(section: TableSectionDto, key: string, tag: string): string[] {
     const columns = section.columns ?? []
     const rows = section.rows ?? []
-    const policyIdx = columnIndex(columns, 'Policy', tag)
-    const branchIdx = columnIndex(columns, 'Branch', tag)
+    columnIndex(columns, 'Policy', tag)
+    columnIndex(columns, 'Branch', tag)
     const rowsByKey = new Map<string, string[]>()
 
     for (const row of rows) {
-        if (!row || row.length <= Math.max(policyIdx, branchIdx)) {
+        if (!row) {
             throw new Error(`[main.demo] ${tag} Policy entry is malformed.`)
         }
 
-        const policy = row[policyIdx] ?? ''
-        const branch = row[branchIdx] ?? ''
-        if (!policy || !branch) {
-            throw new Error(`[main.demo] ${tag} Policy entry is missing Policy or Branch.`)
-        }
-
-        const rowKey = buildPolicyBranchKey(policy, branch)
+        const rowKey = resolveRequiredRowKey(row, section, tag)
         if (rowsByKey.has(rowKey)) {
             throw new Error(`[main.demo] ${tag} has duplicate Policy entry for ${rowKey}.`)
         }
@@ -85,9 +109,16 @@ export function buildMainDemoPolicyBranchMegaSections(sections: unknown[]): Tabl
     return orderedSections
 }
 
-export function resolveMainDemoBestPolicyRows(sections: TableSectionDto[]): MainBestPolicyRowBundle {
+export function resolveMainDemoBestPolicyRows(
+    sections: TableSectionDto[],
+    moneyMetricsRows: PolicyRowMoneyMetricsRows
+): MainBestPolicyRowBundle {
     if (!sections || sections.length === 0) {
         throw new Error('[main.demo] policy branch mega sections are empty.')
+    }
+
+    if (!moneyMetricsRows || Object.keys(moneyMetricsRows).length === 0) {
+        throw new Error('[main.demo] owner money metrics rows are empty.')
     }
 
     const anchorSection = sections.find(section => (section.columns ?? []).includes('TotalPnl%'))
@@ -103,29 +134,31 @@ export function resolveMainDemoBestPolicyRows(sections: TableSectionDto[]): Main
 
     const policyIdx = columnIndex(anchorColumns, 'Policy', 'anchor')
     const branchIdx = columnIndex(anchorColumns, 'Branch', 'anchor')
-    const totalPnlIdx = columnIndex(anchorColumns, 'TotalPnl%', 'anchor')
+    columnIndex(anchorColumns, 'TotalPnl%', 'anchor')
 
     let bestRow: string[] | null = null
+    let bestRowKey: string | null = null
+    let bestMoneyMetrics: PolicyPerformanceMetricsDto | null = null
     let bestTotal = -Infinity
 
     for (const row of anchorRows) {
-        if (!row || row.length <= totalPnlIdx) {
+        if (!row) {
             throw new Error('[main.demo] Policy Branch Mega anchor Policy entry is malformed.')
         }
 
-        const totalRaw = row[totalPnlIdx]
-        const totalParsed = typeof totalRaw === 'string' ? tryParseNumberFromString(totalRaw) : null
-        if (totalParsed === null) {
-            throw new Error(`[main.demo] TotalPnl% is not a number: ${totalRaw}.`)
-        }
+        const rowKey = resolveRequiredRowKey(row, anchorSection, 'anchor')
+        const moneyMetrics = resolveRequiredMoneyMetrics(moneyMetricsRows, rowKey)
+        const totalParsed = resolveRequiredTotalPnlPct(moneyMetrics, rowKey)
 
         if (bestRow === null || totalParsed > bestTotal) {
             bestRow = row
+            bestRowKey = rowKey
+            bestMoneyMetrics = moneyMetrics
             bestTotal = totalParsed
         }
     }
 
-    if (!bestRow) {
+    if (!bestRow || !bestRowKey || !bestMoneyMetrics) {
         throw new Error('[main.demo] Failed to resolve best Policy.')
     }
 
@@ -135,15 +168,15 @@ export function resolveMainDemoBestPolicyRows(sections: TableSectionDto[]): Main
         throw new Error('[main.demo] Best Policy is missing Policy or Branch.')
     }
 
-    const key = buildPolicyBranchKey(policyName, branchName)
-
     return {
         policy: policyName,
         branch: branchName,
+        rowKey: bestRowKey,
         totalPnlPct: bestTotal,
+        moneyMetrics: bestMoneyMetrics,
         sectionRows: sections.map((section, index) => ({
             section,
-            row: section === anchorSection ? bestRow : resolveRowByPolicy(section, key, `section-${index + 1}`)
+            row: section === anchorSection ? bestRow : resolveRowByPolicy(section, bestRowKey, `section-${index + 1}`)
         }))
     }
 }

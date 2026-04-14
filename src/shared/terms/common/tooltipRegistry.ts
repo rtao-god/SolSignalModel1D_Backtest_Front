@@ -43,6 +43,7 @@ import {
     TOTAL_PNL_DESCRIPTION,
     TP_SL_DESCRIPTION,
     TRADE_COUNT_DESCRIPTION,
+    WIN_RATE_DESCRIPTION,
     WEALTH_PCT_DESCRIPTION,
     WHY_BUCKET_DESCRIPTION,
     WHY_FIRST_EVENT_DESCRIPTION,
@@ -508,6 +509,15 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
         description: TRADE_COUNT_DESCRIPTION,
         aliases: ['Tr', 'trade count', 'число сделок', 'количество сделок'],
         priority: 175,
+        scope: 'common'
+    },
+    {
+        id: 'win-rate',
+        pattern: /win[-\s]?rate|дол(?:я|ю)\s+успешн(?:ых|ой)\s+сдел/i,
+        title: 'Win rate',
+        description: WIN_RATE_DESCRIPTION,
+        aliases: ['Win rate', 'win-rate'],
+        priority: 176,
         scope: 'common'
     },
     {
