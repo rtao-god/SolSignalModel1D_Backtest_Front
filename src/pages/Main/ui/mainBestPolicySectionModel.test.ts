@@ -1,10 +1,32 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
+import { buildPolicyBranchMegaRowKey } from '@/shared/utils/policyBranchMegaRowKey'
 import {
     buildMainDemoPolicyBranchMegaSections,
     resolveMainDemoBestPolicyRows
 } from './mainBestPolicySectionModel'
 
 describe('mainBestPolicySectionModel', () => {
+    function createMoneyMetricsRows(entries: Array<{ policy: string; branch: string; totalPnlPct: number }>) {
+        return Object.fromEntries(
+            entries.map(entry => [
+                buildPolicyBranchMegaRowKey(entry.policy, entry.branch, null),
+                {
+                    totalPnlPct: entry.totalPnlPct,
+                    totalPnlUsd: entry.totalPnlPct * 1000,
+                    startCapitalUsd: 20000,
+                    equityNowUsd: 25000,
+                    withdrawnTotalUsd: 15000,
+                    tradesCount: 7,
+                    maxDdPct: 6.76,
+                    sharpe: 1.18,
+                    winRate: 0.542,
+                    hadLiquidation: false,
+                    accountRuinCount: 0
+                }
+            ])
+        )
+    }
+
     test('uses owner-provided TotalPnl% before resolving the anchor policy row', () => {
         const sections: TableSectionDto[] = [
             {
@@ -26,12 +48,19 @@ describe('mainBestPolicySectionModel', () => {
         ]
 
         const preparedSections = buildMainDemoPolicyBranchMegaSections(sections)
-        const bestPolicy = resolveMainDemoBestPolicyRows(preparedSections)
+        const bestPolicy = resolveMainDemoBestPolicyRows(
+            preparedSections,
+            createMoneyMetricsRows([
+                { policy: 'const_2x', branch: 'BASE', totalPnlPct: 12.5 },
+                { policy: 'const_3x', branch: 'BASE', totalPnlPct: 25.0 }
+            ])
+        )
 
         expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'])
         expect(bestPolicy.policy).toBe('const_3x')
         expect(bestPolicy.branch).toBe('BASE')
         expect(bestPolicy.totalPnlPct).toBe(25)
+        expect(bestPolicy.rowKey).toBe(buildPolicyBranchMegaRowKey('const_3x', 'BASE', null))
     })
 
     test('keeps the merged policy row readable across neighboring parts', () => {
@@ -55,7 +84,13 @@ describe('mainBestPolicySectionModel', () => {
         ]
 
         const normalizedSections = buildMainDemoPolicyBranchMegaSections(sections)
-        const bestPolicy = resolveMainDemoBestPolicyRows(normalizedSections)
+        const bestPolicy = resolveMainDemoBestPolicyRows(
+            normalizedSections,
+            createMoneyMetricsRows([
+                { policy: 'const_2x', branch: 'BASE', totalPnlPct: 12.5 },
+                { policy: 'const_3x', branch: 'BASE', totalPnlPct: 25.0 }
+            ])
+        )
         const riskSection = bestPolicy.sectionRows.find(item => (item.section.columns ?? []).includes('HadLiq'))
 
         expect(riskSection?.row[riskSection.section.columns!.indexOf('HadLiq')]).toBe('Yes')
@@ -114,7 +149,10 @@ describe('mainBestPolicySectionModel', () => {
         ]
 
         const normalizedSections = buildMainDemoPolicyBranchMegaSections(sections)
-        const bestPolicy = resolveMainDemoBestPolicyRows(normalizedSections)
+        const bestPolicy = resolveMainDemoBestPolicyRows(
+            normalizedSections,
+            createMoneyMetricsRows([{ policy: 'const_3x', branch: 'BASE', totalPnlPct: 25.0 }])
+        )
 
         const readValue = (title: string): string | null => {
             const matched = bestPolicy.sectionRows.find(item => (item.section.columns ?? []).includes(title))
@@ -132,5 +170,6 @@ describe('mainBestPolicySectionModel', () => {
         expect(readValue('DailyTP%')).toBe('1.20/1.00')
         expect(readValue('DailySL%')).toBe('0.70/0.80')
         expect(readValue('Sharpe')).toBe('1.18')
+        expect(bestPolicy.moneyMetrics.totalPnlUsd).toBe(25000)
     })
 })

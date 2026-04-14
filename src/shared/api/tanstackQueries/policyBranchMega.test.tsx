@@ -89,8 +89,42 @@ function createPolicyBranchMegaPayload() {
             profileId: 'policy-branch-mega-test',
             rows: {}
         },
+        moneyMetrics: {
+            rows: {
+                'const_2x\u001eBASE': {
+                    tradesCount: 4,
+                    totalPnlPct: 1,
+                    totalPnlUsd: 100,
+                    maxDdPct: 2,
+                    maxDdNoLiqPct: 2,
+                    mean: 0.01,
+                    std: 0.02,
+                    downStd: 0.01,
+                    sharpe: 1.2,
+                    sortino: 1.5,
+                    cagr: 0.12,
+                    calmar: 0.8,
+                    winRate: 0.55,
+                    startCapitalUsd: 20000,
+                    equityNowUsd: 20100,
+                    withdrawnTotalUsd: 0,
+                    fundingNetUsd: 0,
+                    fundingPaidUsd: 0,
+                    fundingReceivedUsd: 0,
+                    fundingEventCount: 0,
+                    tradesWithFundingCount: 0,
+                    fundingLiquidationCount: 0,
+                    fundingBucketDeathCount: 0,
+                    mixedBucketDeathCount: 0,
+                    hadLiquidation: false,
+                    realLiquidationCount: 0,
+                    accountRuinCount: 0,
+                    balanceDead: false
+                }
+            }
+        },
         capabilities: {
-            availableHistories: ['full_history', 'oos', 'recent'],
+            availableHistories: ['full_history', 'train', 'oos', 'recent'],
             availableBuckets: ['daily'],
             availableParts: [1, 2, 3, 4],
             availableTotalBucketViews: ['aggregate'],
