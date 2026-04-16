@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/app/providers/ErrorBoundary/ErrorBoundary'
 import { logError } from '@/shared/lib/logging/logError'
 import { buildRouteNavLabelI18nKey } from '../../config/i18nKeys'
 import { resolveRouteShellFallback } from './routeShellFallbacks'
+import { ModeScopedRouteElement } from '../ModeScopedRouteElement/ModeScopedRouteElement'
 
 export default function AppRouter() {
     const { t } = useTranslation()
@@ -28,6 +29,17 @@ export default function AppRouter() {
                 t(buildRouteNavLabelI18nKey(route.id), { defaultValue: routeLabelDefault })
             :   routeLabelDefault
         const ShellFallback = resolveRouteShellFallback(route.id)
+
+        const routeElement =
+            route.modePageKey ?
+                (
+                    <ModeScopedRouteElement
+                        routeLabel={localizedRouteLabel}
+                        pageKey={route.modePageKey}
+                        fixedSplitElement={route.element}
+                    />
+                )
+            :   route.element
 
         return (
             <ErrorBoundary
@@ -57,7 +69,7 @@ export default function AppRouter() {
                             state='loading'
                         />
                     }>
-                    {route.element}
+                    {routeElement}
                 </Suspense>
             </ErrorBoundary>
         )

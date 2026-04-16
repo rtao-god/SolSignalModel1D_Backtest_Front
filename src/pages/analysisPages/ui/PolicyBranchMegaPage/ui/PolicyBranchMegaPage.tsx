@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
@@ -43,6 +44,7 @@ import {
     DEFAULT_POLICY_BRANCH_MEGA_TP_SL_MODE,
     DEFAULT_POLICY_BRANCH_MEGA_ZONAL_MODE,
     buildPolicyBranchMegaPayloadQueryOptions,
+    type PolicyBranchMegaModeMoneySummaryRowDto,
     type PolicyBranchMegaPredictionQualityMetricDto,
     usePolicyBranchMegaModeMoneySummaryQuery,
     type PolicyBranchMegaReportPayloadDto,
@@ -52,8 +54,17 @@ import {
 } from '@/shared/api/tanstackQueries/policyBranchMega'
 import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
 import {
+    getModePageBindingDescriptor,
+    getDefaultModeReportSlice,
+    getModeReportSlices,
+    tryGetModeRegistryMode,
+    tryGetModeReportSliceDescriptor,
+    selectActiveMode,
+    type ReportSliceId
+} from '@/entities/mode'
+import { useModeRegistryQuery } from '@/shared/api/tanstackQueries/modeRegistry'
+import {
     getPublishedReportVariantAxisOptionValues,
-    PUBLISHED_REPORT_VARIANT_FAMILIES,
     usePublishedReportVariantSelectionQuery
 } from '@/shared/api/tanstackQueries/reportVariants'
 import {
@@ -203,6 +214,21 @@ function formatModeMoneyDate(value: string, label: string): string {
     return value
 }
 
+function requireAvailableModeMoneyMetricsForRender(
+    row: PolicyBranchMegaModeMoneySummaryRowDto
+) {
+    if (row.moneyMetrics === null || row.maxDrawdownPct === null) {
+        throw new Error(
+            `[policy-branch-mega] available money columns requested for a row without money metrics. owner=mode-money-summary; expected=available row with moneyMetrics and maxDrawdownPct; actual=sourceStatus=${row.sourceStatus}; context=modeKey=${row.modeKey}, sliceKey=${row.sliceKey}; requiredAction=fix table column routing or rebuild mode money summary artifacts.`
+        )
+    }
+
+    return {
+        metrics: row.moneyMetrics,
+        maxDrawdownPct: row.maxDrawdownPct
+    }
+}
+
 function resolveModeMoneyPredictionQualityLabel(
     metricKey: string,
     translate: (key: string) => string
@@ -269,6 +295,10 @@ function resolveModeMoneySummarySourceKindLabel(
         return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.policyUniverseBestPolicy')
     }
 
+    if (sourceKind === 'diagnostic_slice') {
+        return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.diagnosticSlice')
+    }
+
     if (sourceKind === 'not_published') {
         return translate('policyBranchMega.page.modeMoneySummary.sourceKinds.notPublished')
     }
@@ -288,6 +318,10 @@ function resolveModeMoneySummaryStatusLabel(
         return translate('policyBranchMega.page.modeMoneySummary.statuses.available')
     }
 
+    if (status === 'diagnostic') {
+        return translate('policyBranchMega.page.modeMoneySummary.statuses.diagnostic')
+    }
+
     if (status === 'not_published') {
         return translate('policyBranchMega.page.modeMoneySummary.statuses.notPublished')
     }
@@ -297,6 +331,108 @@ function resolveModeMoneySummaryStatusLabel(
     }
 
     return status
+}
+
+function resolveModeMoneySummaryModeLabel(
+    modeRegistry: ReturnType<typeof useModeRegistryQuery>['data'] | null | undefined,
+    modeKey: PolicyBranchMegaModeMoneySummaryRowDto['modeKey']
+): string {
+    if (!modeRegistry) {
+        return modeKey
+    }
+
+    return tryGetModeRegistryMode(modeRegistry, modeKey)?.displayName ?? modeKey
+}
+
+function resolveModeMoneySummarySliceLabel(
+    modeRegistry: ReturnType<typeof useModeRegistryQuery>['data'] | null | undefined,
+    row: Pick<PolicyBranchMegaModeMoneySummaryRowDto, 'modeKey' | 'sliceKey'>
+): string {
+    if (!modeRegistry) {
+        return row.sliceKey
+    }
+
+    return tryGetModeReportSliceDescriptor(modeRegistry, row.modeKey, row.sliceKey)?.displayLabel ?? row.sliceKey
+}
+
+function resolveModeMoneyDiagnosticMetricLabel(
+    metricKey: string,
+    translate: (key: string) => string
+): string {
+    switch (metricKey) {
+        case 'diagnostic_completed_days_count':
+            return translate('policyBranchMega.page.modeMoneySummary.diagnostics.metrics.completedDays')
+        case 'diagnostic_policy_rows_count':
+            return translate('policyBranchMega.page.modeMoneySummary.diagnostics.metrics.policyRows')
+        case 'diagnostic_policy_rows_with_trades_count':
+            return translate('policyBranchMega.page.modeMoneySummary.diagnostics.metrics.policyRowsWithTrades')
+        case 'diagnostic_top_candidate_trades_count':
+            return translate('policyBranchMega.page.modeMoneySummary.diagnostics.metrics.topCandidateTrades')
+        case 'diagnostic_required_best_policy_trades_count':
+            return translate('policyBranchMega.page.modeMoneySummary.diagnostics.metrics.requiredBestPolicyTrades')
+        default:
+            throw new Error(
+                `[policy-branch-mega] mode-money diagnostic metric is not supported by the UI. owner=mode-money-summary; expected=known diagnostic metric key; actual=${metricKey}; requiredAction=extend the diagnostic table intentionally instead of rendering an unknown metric blindly.`
+            )
+    }
+}
+
+function resolveModeMoneyDiagnosticMessage(
+    row: PolicyBranchMegaModeMoneySummaryRowDto,
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string {
+    const diagnostic = row.diagnostic
+    if (!diagnostic) {
+        throw new Error(
+            `[policy-branch-mega] diagnostic mode-money row has no diagnostic payload during render. owner=mode-money-summary; expected=diagnostic block; actual=null; context=modeKey=${row.modeKey}, sliceKey=${row.sliceKey}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+        )
+    }
+
+    if (diagnostic.diagnosticKind === 'stale_slice_not_comparable') {
+        return row.completedDayCount === 0 ?
+                translate('policyBranchMega.page.modeMoneySummary.diagnostics.staleNoDays')
+            :   translate('policyBranchMega.page.modeMoneySummary.diagnostics.staleNotComparable', {
+                    tradeCount: row.tradeCount
+                })
+    }
+
+    throw new Error(
+        `[policy-branch-mega] mode-money diagnostic kind is not supported by the UI. owner=mode-money-summary; expected=stale_slice_not_comparable; actual=${diagnostic.diagnosticKind}; requiredAction=extend the diagnostic renderer intentionally instead of showing raw backend text.`
+    )
+}
+
+function formatModeMoneyDiagnostic(
+    row: PolicyBranchMegaModeMoneySummaryRowDto,
+    language: string,
+    translate: (key: string, options?: Record<string, unknown>) => string
+): string {
+    const diagnostic = row.diagnostic
+    if (!diagnostic || diagnostic.metrics.length === 0) {
+        throw new Error(
+            `[policy-branch-mega] diagnostic mode-money row has no diagnostic metrics during render. owner=mode-money-summary; expected=non-empty diagnostic metrics; actual=empty; context=modeKey=${row.modeKey}, sliceKey=${row.sliceKey}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+        )
+    }
+
+    const message = resolveModeMoneyDiagnosticMessage(row, translate)
+    const metrics = diagnostic.metrics
+        .map(metric => {
+            const label = resolveModeMoneyDiagnosticMetricLabel(metric.metricKey, key => translate(key))
+            const value =
+                metric.unit === 'percent' ?
+                    formatModeMoneyPercent(metric.value, language, `diagnostic.metrics.${metric.metricKey}`)
+                : metric.unit === 'count' ?
+                    formatModeMoneyInteger(metric.value, language, `diagnostic.metrics.${metric.metricKey}`)
+                :   (() => {
+                        throw new Error(
+                            `[policy-branch-mega] mode-money diagnostic metric has unsupported unit during render. owner=mode-money-summary; expected=percent|count; actual=${metric.unit}; context=metricKey=${metric.metricKey}; requiredAction=fix API mapper or rebuild mode money summary artifacts.`
+                        )
+                    })()
+
+            return `${label}: ${value}`
+        })
+        .join(' | ')
+
+    return `${message} | ${metrics}`
 }
 
 // В diagnostics route передаются только risk-query параметры, поэтому metric/bucketview
@@ -331,6 +467,7 @@ type ModeMoneySummaryColumnKey =
     | 'days'
     | 'trades'
     | 'predictionQuality'
+    | 'diagnostics'
     | 'totalReturn'
     | 'totalPnlUsd'
     | 'startCapitalUsd'
@@ -359,6 +496,19 @@ const MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS = new Set<ModeMoneySummaryColumnKey
     'sharpe',
     'realLiquidations',
     'accountRuins'
+])
+const MODE_MONEY_SUMMARY_DIAGNOSTIC_COLUMN_KEYS = new Set<ModeMoneySummaryColumnKey>([
+    'mode',
+    'slice',
+    'fromDate',
+    'toDate',
+    'source',
+    'status',
+    'execution',
+    'days',
+    'trades',
+    'diagnostics',
+    'sourcePath'
 ])
 const BUCKET_SPECIFIC_COLUMN_VISIBILITY = new Map<string, Set<PolicyBranchMegaBucketMode>>([
     ['DailyTP%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
@@ -1065,15 +1215,50 @@ function buildPreparedPolicyBranchMegaSectionEntries(
     })
 }
 
-export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
+function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps) {
     const { t, i18n } = useTranslation('reports')
+    const activeMode = useSelector(selectActiveMode)
+    const modeCatalogQuery = useModeRegistryQuery()
+    const modeRegistry = modeCatalogQuery.data ?? null
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
     const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
     // Это локальный способ чтения уже загруженной таблицы; он не меняет owner-данные,
     // поэтому состояние не пишется в URL рядом с настоящими report-осями.
     const [modeMoneySummaryView, setModeMoneySummaryView] = useState<ModeMoneySummaryViewMode>('compact')
+    const [modeMoneySummarySlice, setModeMoneySummarySlice] = useState<ReportSliceId | null>(null)
     const [dismissedValidationKey, setDismissedValidationKey] = useState<string | null>(null)
+    const variantBindingState = useMemo(() => {
+        if (!modeRegistry) {
+            return {
+                familyKey: null as string | null,
+                error: null as Error | null
+            }
+        }
+
+        try {
+            const binding = getModePageBindingDescriptor(modeRegistry, 'policy_branch_mega', 'directional_fixed_split')
+            if (!binding.publishedReportFamilyKey) {
+                throw new Error('[policy-branch-mega] fixed-split route binding is missing published report family.')
+            }
+
+            return {
+                familyKey: binding.publishedReportFamilyKey,
+                error: null as Error | null
+            }
+        } catch (error) {
+            return {
+                familyKey: null as string | null,
+                error: normalizeErrorLike(error, 'Failed to resolve policy-branch-mega route binding.', {
+                    source: 'policy-branch-mega-binding',
+                    domain: 'ui_section',
+                    owner: 'policy-branch-mega-page',
+                    expected: 'The fixed-split Policy Branch Mega route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for policy_branch_mega.'
+                })
+            }
+        }
+    }, [modeRegistry])
 
     const historyState = useMemo(() => {
         try {
@@ -1238,7 +1423,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     const isChartSupported = !isSeparateAllBucketsSelection
     const effectiveDisplayMode = isChartSupported ? displayMode : 'table'
     const variantSelectionQuery = usePublishedReportVariantSelectionQuery(
-        PUBLISHED_REPORT_VARIANT_FAMILIES.policyBranchMega,
+        variantBindingState.familyKey ?? '__missing_mode_family__',
         {
             history: effectiveSelection.history,
             bucket: effectiveSelection.bucket,
@@ -1248,6 +1433,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             tpsl: effectiveSelection.tpSlMode,
             slmode: effectiveSelection.slMode,
             zonal: effectiveSelection.zonalMode
+        },
+        {
+            enabled: Boolean(variantBindingState.familyKey) && !variantBindingState.error
         }
     )
     const normalizedAvailableParts = useMemo(() => {
@@ -1410,7 +1598,8 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
     )
 
     const partCatalogAlertState = useMemo(() => {
-        if (!variantSelectionQuery.error) {
+        const detailError = variantBindingState.error ?? variantSelectionQuery.error
+        if (!detailError) {
             return null
         }
 
@@ -1418,9 +1607,9 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             title: 'Каталог частей mega-таблицы недоступен',
             description:
                 'Текущий опубликованный срез открыт, но общий каталог частей не загрузился. Без него страница не может гарантировать соседние блоки и фоновую загрузку следующей части.',
-            detail: variantSelectionQuery.error.message
+            detail: detailError.message
         }
-    }, [variantSelectionQuery.error])
+    }, [variantBindingState.error, variantSelectionQuery.error])
 
     useEffect(() => {
         if (!resolvedQuery) {
@@ -2551,6 +2740,64 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
         [modeMoneySummaryView, t]
     )
 
+    const modeMoneySummaryAvailableSlices = useMemo(() => {
+        const summary = modeMoneySummaryQuery.data
+        if (!summary || !modeRegistry) {
+            return []
+        }
+
+        const availableSliceKeys = new Set(
+            summary.rows
+                .filter(row => row.modeKey === activeMode)
+                .map(row => row.sliceKey)
+        )
+
+        return getModeReportSlices(modeRegistry, activeMode).filter(slice => availableSliceKeys.has(slice.key))
+    }, [activeMode, modeMoneySummaryQuery.data, modeRegistry])
+
+    useEffect(() => {
+        if (!modeRegistry || modeMoneySummaryAvailableSlices.length === 0) {
+            return
+        }
+
+        const defaultSlice = getDefaultModeReportSlice(modeRegistry, activeMode)
+        const fallbackSlice =
+            modeMoneySummaryAvailableSlices.find(slice => slice.key === defaultSlice)?.key
+            ?? modeMoneySummaryAvailableSlices[0].key
+
+        setModeMoneySummarySlice(current =>
+            modeMoneySummaryAvailableSlices.some(slice => slice.key === current)
+                ? current
+                : fallbackSlice
+        )
+    }, [activeMode, modeMoneySummaryAvailableSlices, modeRegistry])
+
+    const modeMoneySummarySliceGroup = useMemo<ReportViewControlGroup<ReportSliceId> | null>(
+        () =>
+            modeMoneySummarySlice ?
+                {
+                    key: 'mode-money-summary-slice',
+                    label: t('policyBranchMega.page.modeMoneySummary.slice.label', { defaultValue: 'Slice' }),
+                    value: modeMoneySummarySlice,
+                    onChange: next => setModeMoneySummarySlice(next),
+                    options: modeMoneySummaryAvailableSlices.map(slice => ({
+                        value: slice.key,
+                        label: slice.displayLabel,
+                        tooltip: slice.description
+                    }))
+                }
+            :   null,
+        [modeMoneySummaryAvailableSlices, modeMoneySummarySlice, t]
+    )
+
+    const modeMoneySummaryControlGroups = useMemo(
+        () =>
+            modeMoneySummaryAvailableSlices.length > 0 && modeMoneySummarySliceGroup ?
+                [modeMoneySummaryViewGroup, modeMoneySummarySliceGroup]
+            :   [modeMoneySummaryViewGroup],
+        [modeMoneySummaryAvailableSlices.length, modeMoneySummarySliceGroup, modeMoneySummaryViewGroup]
+    )
+
     const modeMoneySummaryTable = useMemo(() => {
         const summary = modeMoneySummaryQuery.data
         if (!summary) {
@@ -2571,6 +2818,7 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                 key: 'predictionQuality',
                 label: t('policyBranchMega.page.modeMoneySummary.columns.predictionQuality')
             },
+            { key: 'diagnostics', label: t('policyBranchMega.page.modeMoneySummary.columns.diagnostics') },
             { key: 'totalReturn', label: t('policyBranchMega.page.modeMoneySummary.columns.totalReturn') },
             { key: 'totalPnlUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.totalPnlUsd') },
             {
@@ -2590,77 +2838,100 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             { key: 'sourcePath', label: t('policyBranchMega.page.modeMoneySummary.columns.sourcePath') }
         ] satisfies Array<{ key: ModeMoneySummaryColumnKey; label: string }>
 
+        const filteredRows = summary.rows.filter(
+            row => row.modeKey === activeMode && row.sliceKey === modeMoneySummarySlice
+        )
+        const hasDiagnosticRows = filteredRows.some(row => row.sourceStatus === 'diagnostic')
         const visibleColumns =
-            modeMoneySummaryView === 'compact' ?
+            hasDiagnosticRows ? columnDefinitions.filter(column => MODE_MONEY_SUMMARY_DIAGNOSTIC_COLUMN_KEYS.has(column.key))
+            : modeMoneySummaryView === 'compact' ?
                 columnDefinitions.filter(column => MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS.has(column.key))
             :   columnDefinitions
 
-        const rows = summary.rows.map(row => {
+        const rows = filteredRows.map(row => {
             const sourceLabel = resolveModeMoneySummarySourceKindLabel(row.moneySourceKind, key => t(key))
             const statusLabel = resolveModeMoneySummaryStatusLabel(row.sourceStatus, key => t(key))
+            const modeLabel = resolveModeMoneySummaryModeLabel(modeRegistry, row.modeKey)
+            const sliceLabel = resolveModeMoneySummarySliceLabel(modeRegistry, row)
             const statusText =
-                row.sourceStatus === 'available' ? statusLabel : `${statusLabel}: ${row.statusMessage}`
-            const metrics = row.moneyMetrics
-            const valuesByColumn: Record<ModeMoneySummaryColumnKey, string> = {
-                mode: row.modeLabel,
-                slice: row.sliceLabel,
-                fromDate: formatModeMoneyDate(row.tradingStartDateUtc, 'tradingStartDateUtc'),
-                toDate: formatModeMoneyDate(row.tradingEndDateUtc, 'tradingEndDateUtc'),
-                source: sourceLabel,
-                status: statusText,
-                execution: row.executionDescriptor,
-                days: formatModeMoneyInteger(row.completedDayCount, i18n.language, 'completedDayCount'),
-                trades: formatModeMoneyInteger(row.tradeCount, i18n.language, 'tradeCount'),
-                predictionQuality: formatModeMoneyPredictionQuality(
+                row.sourceStatus === 'available' ? statusLabel
+                : row.sourceStatus === 'diagnostic' ? statusLabel
+                : `${statusLabel}: ${row.statusMessage}`
+            const valuesByColumn: Record<ModeMoneySummaryColumnKey, () => string> = {
+                mode: () => modeLabel,
+                slice: () => sliceLabel,
+                fromDate: () => formatModeMoneyDate(row.tradingStartDateUtc, 'tradingStartDateUtc'),
+                toDate: () => formatModeMoneyDate(row.tradingEndDateUtc, 'tradingEndDateUtc'),
+                source: () => sourceLabel,
+                status: () => statusText,
+                execution: () => row.executionDescriptor,
+                days: () => formatModeMoneyInteger(row.completedDayCount, i18n.language, 'completedDayCount'),
+                trades: () => formatModeMoneyInteger(row.tradeCount, i18n.language, 'tradeCount'),
+                predictionQuality: () => formatModeMoneyPredictionQuality(
                     row.predictionQualityMetrics,
                     i18n.language,
                     key => t(key)
                 ),
-                totalReturn: formatModeMoneyPercent(metrics.totalPnlPct, i18n.language, 'moneyMetrics.totalPnlPct'),
-                totalPnlUsd: formatModeMoneyUsd(metrics.totalPnlUsd, i18n.language, 'moneyMetrics.totalPnlUsd'),
-                startCapitalUsd: formatModeMoneyUsd(
-                    metrics.startCapitalUsd,
-                    i18n.language,
-                    'moneyMetrics.startCapitalUsd'
-                ),
-                equityNowUsd: formatModeMoneyUsd(
-                    metrics.equityNowUsd,
-                    i18n.language,
-                    'moneyMetrics.equityNowUsd'
-                ),
-                withdrawnUsd: formatModeMoneyUsd(
-                    metrics.withdrawnTotalUsd,
-                    i18n.language,
-                    'moneyMetrics.withdrawnTotalUsd'
-                ),
-                fundingNetUsd: formatModeMoneyUsd(
-                    metrics.fundingNetUsd,
-                    i18n.language,
-                    'moneyMetrics.fundingNetUsd'
-                ),
-                maxDrawdown: formatModeMoneyPercent(row.maxDrawdownPct, i18n.language, 'maxDrawdownPct'),
-                sharpe: formatModeMoneyDecimal(metrics.sharpe, i18n.language, 'moneyMetrics.sharpe', 3),
-                realLiquidations: formatModeMoneyInteger(
-                    metrics.realLiquidationCount,
-                    i18n.language,
-                    'moneyMetrics.realLiquidationCount'
-                ),
-                accountRuins: formatModeMoneyInteger(
-                    metrics.accountRuinCount,
-                    i18n.language,
-                    'moneyMetrics.accountRuinCount'
-                ),
-                sourcePath: row.sourceLocationHint
+                diagnostics: () => formatModeMoneyDiagnostic(row, i18n.language, (key, options) => t(key, options)),
+                totalReturn: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyPercent(metrics.totalPnlPct, i18n.language, 'moneyMetrics.totalPnlPct')
+                },
+                totalPnlUsd: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyUsd(metrics.totalPnlUsd, i18n.language, 'moneyMetrics.totalPnlUsd')
+                },
+                startCapitalUsd: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyUsd(metrics.startCapitalUsd, i18n.language, 'moneyMetrics.startCapitalUsd')
+                },
+                equityNowUsd: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyUsd(metrics.equityNowUsd, i18n.language, 'moneyMetrics.equityNowUsd')
+                },
+                withdrawnUsd: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyUsd(metrics.withdrawnTotalUsd, i18n.language, 'moneyMetrics.withdrawnTotalUsd')
+                },
+                fundingNetUsd: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyUsd(metrics.fundingNetUsd, i18n.language, 'moneyMetrics.fundingNetUsd')
+                },
+                maxDrawdown: () => {
+                    const { maxDrawdownPct } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyPercent(maxDrawdownPct, i18n.language, 'maxDrawdownPct')
+                },
+                sharpe: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyDecimal(metrics.sharpe, i18n.language, 'moneyMetrics.sharpe', 3)
+                },
+                realLiquidations: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyInteger(
+                        metrics.realLiquidationCount,
+                        i18n.language,
+                        'moneyMetrics.realLiquidationCount'
+                    )
+                },
+                accountRuins: () => {
+                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    return formatModeMoneyInteger(
+                        metrics.accountRuinCount,
+                        i18n.language,
+                        'moneyMetrics.accountRuinCount'
+                    )
+                },
+                sourcePath: () => row.sourceLocationHint
             }
 
-            return visibleColumns.map(column => valuesByColumn[column.key])
+            return visibleColumns.map(column => valuesByColumn[column.key]())
         })
 
         return {
             columns: visibleColumns.map(column => column.label),
             rows
         }
-    }, [i18n.language, modeMoneySummaryQuery.data, modeMoneySummaryView, t])
+    }, [activeMode, i18n.language, modeMoneySummaryQuery.data, modeMoneySummarySlice, modeMoneySummaryView, t])
 
     const renderHeader = () => (
         <header className={cls.hero}>
@@ -2886,18 +3157,21 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
                             </div>
 
                             <PageSectionDataState
-                                isLoading={modeMoneySummaryQuery.isLoading}
-                                isError={Boolean(modeMoneySummaryQuery.error)}
-                                error={modeMoneySummaryQuery.error}
+                                isLoading={modeCatalogQuery.isLoading || modeMoneySummaryQuery.isLoading}
+                                isError={Boolean(modeCatalogQuery.error || modeMoneySummaryQuery.error)}
+                                error={modeCatalogQuery.error ?? modeMoneySummaryQuery.error}
                                 hasData={Boolean(modeMoneySummaryTable && modeMoneySummaryTable.rows.length > 0)}
-                                onRetry={() => void modeMoneySummaryQuery.refetch()}
+                                onRetry={() => {
+                                    void modeCatalogQuery.refetch()
+                                    void modeMoneySummaryQuery.refetch()
+                                }}
                                 title={t('policyBranchMega.page.modeMoneySummary.errors.title')}
                                 description={t('policyBranchMega.page.modeMoneySummary.errors.message')}
                                 loadingText={t('errors:ui.pageDataBoundary.loading', { defaultValue: 'Loading data' })}
                                 logContext={{ source: 'policy-branch-mega-mode-money-summary' }}>
                                 {modeMoneySummaryTable ?
                                     <>
-                                        <ReportViewControls groups={[modeMoneySummaryViewGroup]} />
+                                        <ReportViewControls groups={modeMoneySummaryControlGroups} />
                                         <ReportTableCard
                                             title={t('policyBranchMega.page.modeMoneySummary.tableTitle')}
                                             description={t('policyBranchMega.page.modeMoneySummary.tableDescription')}
@@ -2968,4 +3242,8 @@ export default function PolicyBranchMegaPage({ className }: PolicyBranchMegaPage
             </PageDataState>
         </div>
     )
+}
+
+export default function PolicyBranchMegaPage(props: PolicyBranchMegaPageProps) {
+    return <FixedSplitPolicyBranchMegaPage {...props} />
 }

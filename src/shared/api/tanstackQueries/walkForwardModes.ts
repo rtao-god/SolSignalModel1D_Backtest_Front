@@ -454,7 +454,6 @@ export interface BestPolicyScoreDto {
 
 export interface BestPolicySliceDto {
     scopeKey: string
-    scopeLabel: string
 }
 
 export interface BestPolicyContractDto {
@@ -483,7 +482,6 @@ export interface BestPolicyArtifactDto {
 }
 
 export interface TbmNativeMoneySliceDto {
-    sliceKey: string
     slice: WalkForwardReportSliceId
     policySummary: {
         signalDays: number
@@ -498,7 +496,6 @@ export interface TbmNativeMoneyPageDto {
 }
 
 export interface DirectionalWalkForwardMoneySliceDto {
-    sliceKey: string
     slice: WalkForwardReportSliceId
     policySummary: {
         signalDays: number

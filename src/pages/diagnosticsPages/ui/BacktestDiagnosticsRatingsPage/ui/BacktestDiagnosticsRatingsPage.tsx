@@ -13,9 +13,10 @@ import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPag
         - Сосредоточиться на лучших/худших сделках и днях.
         - Быстро находить «что работает» и «что ломает PnL».
 */
-export default function BacktestDiagnosticsRatingsPage() {
+function FixedSplitBacktestDiagnosticsRatingsPage() {
     const { t } = useTranslation('reports')
     const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        'diagnostics_ratings',
         BACKTEST_DIAGNOSTICS_QUERY_SCOPES.ratingsPage
     )
 
@@ -43,4 +44,8 @@ export default function BacktestDiagnosticsRatingsPage() {
             onRetry={refetch}
         />
     )
+}
+
+export default function BacktestDiagnosticsRatingsPage() {
+    return <FixedSplitBacktestDiagnosticsRatingsPage />
 }

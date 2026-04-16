@@ -6,7 +6,6 @@ import {
     buildPublishedReportVariantCompatibleOptions,
     resolvePublishedReportVariantSelection,
     usePublishedReportVariantCatalogQuery,
-    PUBLISHED_REPORT_VARIANT_FAMILIES,
     type PublishedReportVariantCatalogDto
 } from '@/shared/api/tanstackQueries/reportVariants'
 import {
@@ -14,6 +13,7 @@ import {
     type BacktestSharpMoveStatsQueryArgs
 } from '@/shared/api/tanstackQueries/backtestSharpMoveStats'
 import { useCurrentPredictionBackfilledTrainingScopeStatsQuery } from '@/shared/api/tanstackQueries/currentPrediction'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import {
@@ -155,10 +155,27 @@ function resolveAxisOptions(
     })
 }
 
-export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProps) {
+function FixedSplitSharpMoveStatsPage({ className }: SharpMoveStatsPageProps) {
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
-    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestSharpMoveStats)
+    const bindingState = useModePageBindingState('sharp_move_stats', 'directional_fixed_split', 'sharp-move-stats-page')
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Sharp-move route binding is missing published report family.', {
+                    source: 'sharp-move-stats-binding',
+                    domain: 'ui_section',
+                    owner: 'sharp-move-stats-page',
+                    expected: 'The fixed-split sharp-move route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for sharp_move_stats.'
+                })
+            :   null,
+        [bindingState.binding, variantFamilyKey]
+    )
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
     const trainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
 
     const selectionState = useMemo(() => {
@@ -197,7 +214,12 @@ export default function SharpMoveStatsPage({ className }: SharpMoveStatsPageProp
     const effectiveSelection = selectionState.value?.selection ?? null
     const queryArgs = useMemo(() => buildSharpMoveStatsQueryArgs(effectiveSelection), [effectiveSelection])
     const reportQuery = useBacktestSharpMoveStatsReportQuery(queryArgs, {
-        enabled: Boolean(effectiveSelection) && !variantCatalogQuery.isError && !selectionState.error
+        enabled:
+            Boolean(effectiveSelection) &&
+            !variantCatalogQuery.isError &&
+            !selectionState.error &&
+            !bindingState.error &&
+            !variantFamilyError
     })
     const scopeInfoTooltip = useMemo(() => {
         const splitStats = trainingScopeStatsQuery.data
@@ -327,7 +349,13 @@ Recent = короткий пользовательский хвост 15% вну
         ]
     }, [effectiveSelection, scopeInfoTooltip, t, trainingScopeStatsQuery.data, updateAxis, variantCatalogQuery.data])
 
-    const pageError = selectionState.error ?? variantCatalogQuery.error ?? reportQuery.error ?? null
+    const pageError =
+        bindingState.error ??
+        variantFamilyError ??
+        selectionState.error ??
+        variantCatalogQuery.error ??
+        reportQuery.error ??
+        null
     const freshness = useMemo(
         () => ({
             statusMode: 'debug' as const,
@@ -380,6 +408,7 @@ Recent = короткий пользовательский хвост 15% вну
                     defaultValue: 'Проверь published variant catalog и выбранные параметры сценария.'
                 })}
                 onRetry={() => {
+                    bindingState.refetch()
                     void variantCatalogQuery.refetch()
                     void reportQuery.refetch()
                 }}>
@@ -395,4 +424,8 @@ Recent = короткий пользовательский хвост 15% вну
             </PageDataState>
         </div>
     )
+}
+
+export default function SharpMoveStatsPage(props: SharpMoveStatsPageProps) {
+    return <FixedSplitSharpMoveStatsPage {...props} />
 }

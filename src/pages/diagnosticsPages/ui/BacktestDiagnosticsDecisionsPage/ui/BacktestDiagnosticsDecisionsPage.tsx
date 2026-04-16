@@ -19,6 +19,7 @@ import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPag
 export default function BacktestDiagnosticsDecisionsPage() {
     const { t } = useTranslation('reports')
     const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        'diagnostics_decisions',
         BACKTEST_DIAGNOSTICS_QUERY_SCOPES.decisionsPage
     )
 

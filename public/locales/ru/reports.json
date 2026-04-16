@@ -2664,7 +2664,7 @@
                 "title": "Деньги по режимам",
                 "description": "Этот owner-блок нужен, чтобы рядом с классической [[landing-policy-branch-mega|Policy Branch Mega]] видеть, сколько реально зарабатывают опубликованные режимы и из какого именно источника денег это число взято.",
                 "tableTitle": "Сравнение денег по режимам",
-                "tableDescription": "В одной таблице собраны деньги Directional Fixed-Split по срезам Train / Full / OOS, TBM Native и Directional Walk-Forward.",
+                "tableDescription": "В одной таблице собраны деньги Directional Fixed-Split по срезам Train / Full / OOS, TBM Native и Directional Walk-Forward. Диагностические срезы показывают проверку запасной старой модели без денежных колонок.",
                 "empty": "Для кросс-режимной денежной сводки пока нет строк.",
                 "view": {
                     "label": "Вид таблицы",
@@ -2690,11 +2690,13 @@
                 "sourceKinds": {
                     "canonicalStrategy": "Каноническая стратегия режима",
                     "policyUniverseBestPolicy": "Лучшая опубликованная [[policy|Policy]]",
+                    "diagnosticSlice": "Диагностический срез",
                     "notPublished": "Деньги не публикуются",
                     "notAvailable": "Источник денег недоступен"
                 },
                 "statuses": {
                     "available": "Опубликовано",
+                    "diagnostic": "Только диагностика",
                     "notPublished": "Не публикуется",
                     "missingArtifacts": "Нет артефактов",
                     "noEligiblePolicy": "Нет [[policy|Policy]] после [[filters|фильтров]]"
@@ -2710,6 +2712,7 @@
                     "days": "Дней",
                     "trades": "Сделок",
                     "predictionQuality": "Качество прогноза",
+                    "diagnostics": "Диагностика",
                     "totalReturn": "Итог, %",
                     "totalPnlUsd": "PnL, $",
                     "startCapitalUsd": "Старт, $",
@@ -2728,6 +2731,17 @@
                     "lateCorrectDays": "Движение подтвердилось на следующий день",
                     "latePendingDays": "Следующий день ещё не закрыт",
                     "tbmHitRate": "Совпадение прогноза TBM"
+                },
+                "diagnostics": {
+                    "staleNoDays": "Дней с запасной старой моделью нет. Срез опубликован, чтобы явно подтвердить наличие обязательного среза отчёта.",
+                    "staleNotComparable": "Этот срез со старой запасной моделью только диагностический: самая активная строка дала {{tradeCount}} сделок, поэтому она не смешивается с обычными денежными срезами.",
+                    "metrics": {
+                        "completedDays": "Закрытых дней",
+                        "policyRows": "Строк политик",
+                        "policyRowsWithTrades": "Строк со сделками",
+                        "topCandidateTrades": "Сделок у самой активной строки",
+                        "requiredBestPolicyTrades": "Минимум сделок для обычного денежного среза"
+                    }
                 }
             },
             "metricDiff": {

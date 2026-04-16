@@ -8,9 +8,6 @@ import cls from './AggregationStatsPage.module.scss'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
-import { useSelector } from 'react-redux'
-import { selectActiveMode } from '@/entities/mode'
-import { WalkForwardModeAggregationPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 
 function formatUtcDayKeyLabel(value: unknown): string {
     if (!value || typeof value !== 'object') {
@@ -117,12 +114,6 @@ function FixedSplitAggregationStatsPage({ className }: AggregationStatsPageProps
 }
 
 export default function AggregationStatsPage(props: AggregationStatsPageProps) {
-    const activeMode = useSelector(selectActiveMode)
-
-    if (activeMode !== 'directional_fixed_split') {
-        return <WalkForwardModeAggregationPanel className={props.className} mode={activeMode} />
-    }
-
     return <FixedSplitAggregationStatsPage {...props} />
 }
 

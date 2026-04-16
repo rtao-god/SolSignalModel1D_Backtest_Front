@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import classNames from '@/shared/lib/helpers/classNames'
 import {
     buildPublishedReportVariantCompatibleOptions,
-    PUBLISHED_REPORT_VARIANT_FAMILIES,
     resolvePublishedReportVariantSelection,
     usePublishedReportVariantCatalogQuery
 } from '@/shared/api/tanstackQueries/reportVariants'
@@ -12,6 +11,7 @@ import {
     type BacktestBoundedParameterStatsQueryArgs,
     useBacktestBoundedParameterStatsReportQuery
 } from '@/shared/api/tanstackQueries/backtestBoundedParameterStats'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { ReportDocumentView, ReportViewControls, Text, type ReportViewControlGroup } from '@/shared/ui'
@@ -34,12 +34,31 @@ function buildBoundedParameterStatsQueryArgs(
     }
 }
 
-export default function BoundedParameterStatsPage({ className }: BoundedParameterStatsPageProps) {
+function FixedSplitBoundedParameterStatsPage({ className }: BoundedParameterStatsPageProps) {
     const { t } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
-    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(
-        PUBLISHED_REPORT_VARIANT_FAMILIES.backtestBoundedParameterStats
+    const bindingState = useModePageBindingState(
+        'bounded_parameter_stats',
+        'directional_fixed_split',
+        'bounded-parameter-stats-page'
     )
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Bounded parameter route binding is missing published report family.', {
+                    source: 'bounded-parameter-stats-binding',
+                    domain: 'ui_section',
+                    owner: 'bounded-parameter-stats-page',
+                    expected: 'The fixed-split bounded-parameter route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for bounded_parameter_stats.'
+                })
+            :   null,
+        [bindingState.binding, variantFamilyKey]
+    )
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
 
     const selectionState = useMemo(() => {
         if (!variantCatalogQuery.data) {
@@ -74,7 +93,12 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
     const effectiveSelection = selectionState.value?.selection ?? null
     const queryArgs = useMemo(() => buildBoundedParameterStatsQueryArgs(effectiveSelection), [effectiveSelection])
     const reportQuery = useBacktestBoundedParameterStatsReportQuery(queryArgs, {
-        enabled: Boolean(effectiveSelection) && !variantCatalogQuery.isError && !selectionState.error
+        enabled:
+            Boolean(effectiveSelection) &&
+            !variantCatalogQuery.isError &&
+            !selectionState.error &&
+            !bindingState.error &&
+            !variantFamilyError
     })
 
     const updateAxis = useCallback((axisKey: (typeof BOUNDED_PARAMETER_AXIS_ORDER)[number], nextValue: string) => {
@@ -129,7 +153,13 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
         ]
     }, [effectiveSelection, t, updateAxis, variantCatalogQuery.data])
 
-    const pageError = selectionState.error ?? variantCatalogQuery.error ?? reportQuery.error ?? null
+    const pageError =
+        bindingState.error ??
+        variantFamilyError ??
+        selectionState.error ??
+        variantCatalogQuery.error ??
+        reportQuery.error ??
+        null
     const freshness = useMemo(
         () => ({
             statusMode: 'debug' as const,
@@ -182,6 +212,7 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
                     defaultValue: 'Проверь published variant catalog и выбранные owner/parameter значения.'
                 })}
                 onRetry={() => {
+                    bindingState.refetch()
                     void variantCatalogQuery.refetch()
                     void reportQuery.refetch()
                 }}>
@@ -197,4 +228,8 @@ export default function BoundedParameterStatsPage({ className }: BoundedParamete
             </PageDataState>
         </div>
     )
+}
+
+export default function BoundedParameterStatsPage(props: BoundedParameterStatsPageProps) {
+    return <FixedSplitBoundedParameterStatsPage {...props} />
 }

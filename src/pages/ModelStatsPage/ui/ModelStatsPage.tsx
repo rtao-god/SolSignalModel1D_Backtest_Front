@@ -1,21 +1,35 @@
 import { useModelStatsReportQuery } from '@/shared/api/tanstackQueries/modelStats'
 import {
-    PUBLISHED_REPORT_VARIANT_FAMILIES,
     resolvePublishedReportVariantSelection,
     usePublishedReportVariantCatalogQuery
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import type { ModelStatsPageProps } from './modelStatsTypes'
 import { ModelStatsPageInner } from './ModelStatsPageInner'
 import { useSearchParams } from 'react-router-dom'
 import { useCallback, useMemo } from 'react'
-import { useSelector } from 'react-redux'
-import { selectActiveMode } from '@/entities/mode'
-import { WalkForwardModeModelStatsPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 
 function FixedSplitModelStatsPage({ className, embedded = false, familyFilter = null }: ModelStatsPageProps) {
     const [searchParams] = useSearchParams()
-    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestModelStats)
+    const bindingState = useModePageBindingState('model_stats', 'directional_fixed_split', 'model-stats-page')
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Model stats route binding is missing published report family.', {
+                    source: 'model-stats-page-binding',
+                    domain: 'ui_section',
+                    owner: 'model-stats-page',
+                    expected: 'The fixed-split model stats route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for model_stats.'
+                })
+            :   null,
+        [bindingState.binding, variantFamilyKey]
+    )
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
     const variantResolutionState = useMemo(() => {
         if (!variantCatalogQuery.data) {
             return {
@@ -52,10 +66,17 @@ function FixedSplitModelStatsPage({ className, embedded = false, familyFilter = 
             view: variantResolutionState.value?.selection.view ?? null
         },
         {
-            enabled: Boolean(variantCatalogQuery.data) && !variantCatalogQuery.isError && !variantResolutionState.error
+            enabled:
+                Boolean(variantCatalogQuery.data) &&
+                !variantCatalogQuery.isError &&
+                !variantResolutionState.error &&
+                !bindingState.error &&
+                !variantFamilyError
         }
     )
     const mergedError =
+        bindingState.error ??
+        variantFamilyError ??
         (variantCatalogQuery.isError ?
             (variantCatalogQuery.error ??
                 normalizeErrorLike(null, 'Failed to load model-stats catalog.', {
@@ -68,9 +89,10 @@ function FixedSplitModelStatsPage({ className, embedded = false, familyFilter = 
         :   null) ??
         (isError ? error : null)
     const handleRetry = useCallback(() => {
+        bindingState.refetch()
         void variantCatalogQuery.refetch()
         void refetch()
-    }, [refetch, variantCatalogQuery])
+    }, [bindingState, refetch, variantCatalogQuery])
 
     return (
         <ModelStatsPageInner
@@ -87,11 +109,5 @@ function FixedSplitModelStatsPage({ className, embedded = false, familyFilter = 
 }
 
 export default function ModelStatsPage(props: ModelStatsPageProps) {
-    const activeMode = useSelector(selectActiveMode)
-
-    if (activeMode !== 'directional_fixed_split') {
-        return <WalkForwardModeModelStatsPanel className={props.className} mode={activeMode} />
-    }
-
     return <FixedSplitModelStatsPage {...props} />
 }

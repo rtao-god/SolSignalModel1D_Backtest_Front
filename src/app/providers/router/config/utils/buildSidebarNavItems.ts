@@ -8,6 +8,7 @@ export const buildSidebarNavItems = (routes: AppRouteConfig[]): SidebarNavItem[]
             path: route.path,
             label: route.nav!.label,
             section: route.nav?.section,
-            order: route.nav?.order ?? 0
+            order: route.nav?.order ?? 0,
+            modePageKey: route.modePageKey
         }))
         .sort((a, b) => a.order - b.order)

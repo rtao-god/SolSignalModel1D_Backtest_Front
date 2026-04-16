@@ -7,6 +7,7 @@ import { BulletList } from '@/shared/ui/BulletList'
 import { TermTooltip, Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
+import { formatDateWithLocale } from '@/shared/utils/dateFormat'
 import {
     fetchPolicyBranchMegaReportPayload,
     POLICY_BRANCH_MEGA_CANONICAL_PARTS,
@@ -24,7 +25,7 @@ import {
     type MainBestPolicyRowBundle
 } from './mainBestPolicySectionModel'
 import {
-    resolvePolicyBranchMegaMetricValue
+    resolvePolicyBranchMegaMetricRawValue
 } from '@/shared/utils/policyBranchMegaCurrentBalance'
 import cls from './Main.module.scss'
 import { MAIN_DEMO_POLICY_BRANCH_MEGA_QUERY } from './mainPolicyBranchMegaQuery'
@@ -183,7 +184,27 @@ function resolveMainDemoPolicySummaryKey(
 }
 
 function resolveMetricValue(bundle: MainBestPolicyRowBundle, title: string): string {
-    return resolvePolicyBranchMegaMetricValue(bundle.sectionRows, title, `main.demo.metric.${title}`)
+    return resolvePolicyBranchMegaMetricRawValue(bundle.sectionRows, title, `main.demo.metric.${title}`)
+}
+
+function formatLocalizedDateMetric(rawValue: string, locale: string, metricTitle: string): string {
+    const normalizedValue = rawValue.trim()
+    if (!normalizedValue) {
+        throw new Error(`[main.demo] ${metricTitle} is empty.`)
+    }
+
+    const isoValue = normalizedValue.includes('T') ? normalizedValue : `${normalizedValue}T00:00:00Z`
+    const parsed = new Date(isoValue)
+    if (Number.isNaN(parsed.getTime())) {
+        throw new Error(`[main.demo] ${metricTitle} is not a valid date value: ${rawValue}.`)
+    }
+
+    return formatDateWithLocale(parsed, locale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC'
+    })
 }
 
 function resolveCanonicalMetricRawValue(bundle: MainBestPolicyRowBundle, title: string): string | null {
@@ -357,18 +378,18 @@ export default function MainBestPolicySection() {
                 items: [
                     {
                         label: t('main.demo.meta.periodStart'),
-                        value: localizeReportCellValue(
-                            'StartDay',
+                        value: formatLocalizedDateMetric(
                             resolveMetricValue(bestPolicyState.best, 'StartDay'),
-                            i18n.language
+                            i18n.language,
+                            'StartDay'
                         )
                     },
                     {
                         label: t('main.demo.meta.periodEnd'),
-                        value: localizeReportCellValue(
-                            'EndDay',
+                        value: formatLocalizedDateMetric(
                             resolveMetricValue(bestPolicyState.best, 'EndDay'),
-                            i18n.language
+                            i18n.language,
+                            'EndDay'
                         )
                     },
                     {
@@ -429,15 +450,15 @@ export default function MainBestPolicySection() {
                 'DailySL%'
             )
             const policySummaryKey = resolveMainDemoPolicySummaryKey(bestPolicyState.best.policy)
-            const periodStart = localizeReportCellValue(
-                'StartDay',
+            const periodStart = formatLocalizedDateMetric(
                 resolveMetricValue(bestPolicyState.best, 'StartDay'),
-                i18n.language
+                i18n.language,
+                'StartDay'
             )
-            const periodEnd = localizeReportCellValue(
-                'EndDay',
+            const periodEnd = formatLocalizedDateMetric(
                 resolveMetricValue(bestPolicyState.best, 'EndDay'),
-                i18n.language
+                i18n.language,
+                'EndDay'
             )
 
             let liquidationSentenceKey: 'main.demo.summary.liquidationsNo' | 'main.demo.summary.liquidationsYes'

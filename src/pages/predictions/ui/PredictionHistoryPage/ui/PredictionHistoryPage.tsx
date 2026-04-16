@@ -52,8 +52,6 @@ import type { PredictionHistoryPageProps } from './types'
 import { useTranslation } from 'react-i18next'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
-import { selectActiveMode } from '@/entities/mode'
-import { WalkForwardModeHistoryPanel } from '@/pages/shared/walkForward/ui/WalkForwardModePanels'
 import { PredictionPageIntro } from '@/pages/predictions/ui/shared/PredictionPageIntro/PredictionPageIntro'
 import { PredictionTrainingScopeDescriptionBlock } from '@/pages/predictions/ui/shared/PredictionTrainingScopeDescriptionBlock'
 import { PredictionSliceTimelinePanel } from '@/pages/predictions/ui/shared/PredictionSliceTimeline'
@@ -1756,11 +1754,5 @@ function PredictionHistoryPageWithBoundary(props: PredictionHistoryPageProps) {
 }
 
 export default function PredictionHistoryPage(props: PredictionHistoryPageProps) {
-    const activeMode = useSelector(selectActiveMode)
-
-    if (activeMode !== 'directional_fixed_split') {
-        return <WalkForwardModeHistoryPanel className={props.className} mode={activeMode} />
-    }
-
     return <PredictionHistoryPageWithBoundary {...props} />
 }

@@ -15,8 +15,7 @@ export const PUBLISHED_REPORT_VARIANT_FAMILIES = {
     backtestModelStats: 'backtest_model_stats'
 } as const
 
-export type PublishedReportVariantFamily =
-    (typeof PUBLISHED_REPORT_VARIANT_FAMILIES)[keyof typeof PUBLISHED_REPORT_VARIANT_FAMILIES]
+export type PublishedReportVariantFamily = string
 
 export interface PublishedReportVariantOptionDto {
     value: string

@@ -215,7 +215,7 @@ function PfiFeatureDetailTableCard({
     )
 }
 
-export default function PfiFeatureDetailPage({ className }: { className?: string }) {
+function FixedSplitPfiFeatureDetailPage({ className }: { className?: string }) {
     const { i18n } = useTranslation()
     const params = useParams()
     const [searchParams, setSearchParams] = useSearchParams()
@@ -556,4 +556,8 @@ export default function PfiFeatureDetailPage({ className }: { className?: string
             </PageDataState>
         </div>
     )
+}
+
+export default function PfiFeatureDetailPage(props: { className?: string }) {
+    return <FixedSplitPfiFeatureDetailPage {...props} />
 }

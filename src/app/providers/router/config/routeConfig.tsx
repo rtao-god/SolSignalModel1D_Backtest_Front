@@ -180,6 +180,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.CURRENT_PREDICTION,
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION],
         element: <CurrentMLModelPredictionPage />,
+        modePageKey: 'current_prediction',
         layout: 'app',
         loadingTitle: 'Loading current prediction',
         nav: {
@@ -193,6 +194,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.CURRENT_PREDICTION_HISTORY,
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_HISTORY],
         element: <PredictionHistoryPage />,
+        modePageKey: 'prediction_history',
         layout: 'app',
         loadingTitle: 'Loading prediction history',
         nav: {
@@ -206,6 +208,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.MODELS_STATS,
         path: ROUTE_PATH[AppRoute.MODELS_STATS],
         element: <ModelStatsPage />,
+        modePageKey: 'model_stats',
         layout: 'app',
         loadingTitle: 'Loading model statistics',
         nav: {
@@ -219,6 +222,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.AGGREGATION_STATS,
         path: ROUTE_PATH[AppRoute.AGGREGATION_STATS],
         element: <AggregationStatsPage />,
+        modePageKey: 'aggregation_stats',
         layout: 'app',
         loadingTitle: 'Loading prediction aggregation',
         nav: {
@@ -271,6 +275,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_RATINGS,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_RATINGS],
         element: <BacktestDiagnosticsRatingsPage />,
+        modePageKey: 'diagnostics_ratings',
         layout: 'app',
         loadingTitle: 'Loading backtest ratings',
         nav: {
@@ -284,6 +289,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS],
         element: <BacktestDiagnosticsPage />,
+        modePageKey: 'diagnostics_backtest',
         layout: 'app',
         loadingTitle: 'Loading risk and liquidations diagnostics',
         nav: {
@@ -297,6 +303,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_GUARDRAIL],
         element: <BacktestDiagnosticsGuardrailPage />,
+        modePageKey: 'diagnostics_guardrail',
         layout: 'app',
         loadingTitle: 'Loading guardrail diagnostics',
         nav: {
@@ -310,6 +317,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DECISIONS],
         element: <BacktestDiagnosticsDecisionsPage />,
+        modePageKey: 'diagnostics_decisions',
         layout: 'app',
         loadingTitle: 'Loading decision analysis',
         nav: {
@@ -323,6 +331,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_HOTSPOTS],
         element: <BacktestDiagnosticsHotspotsPage />,
+        modePageKey: 'diagnostics_hotspots',
         layout: 'app',
         loadingTitle: 'Loading hotspots diagnostics',
         nav: {
@@ -336,6 +345,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_OTHER,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_OTHER],
         element: <BacktestDiagnosticsOtherPage />,
+        modePageKey: 'diagnostics_other',
         layout: 'app',
         loadingTitle: 'Loading additional diagnostics',
         nav: {
@@ -349,6 +359,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS,
         path: ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS_DAYSTATS],
         element: <BacktestDiagnosticsDayStatsPage />,
+        modePageKey: 'diagnostics_day_stats',
         layout: 'app',
         loadingTitle: 'Loading day statistics',
         nav: {
@@ -362,6 +373,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_POLICY_BRANCH_MEGA,
         path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_BRANCH_MEGA],
         element: <PolicyBranchMegaPage />,
+        modePageKey: 'policy_branch_mega',
         layout: 'app',
         loadingTitle: 'Loading Policy Branch Mega',
         nav: {
@@ -375,6 +387,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_POLICY_SETUPS,
         path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUPS],
         element: <PolicySetupsPage />,
+        modePageKey: 'policy_setups',
         layout: 'app',
         loadingTitle: 'Loading policy setup history',
         nav: {
@@ -388,6 +401,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_POLICY_SETUP_DETAIL,
         path: ROUTE_PATH[AppRoute.BACKTEST_POLICY_SETUP_DETAIL],
         element: <PolicySetupsPage />,
+        modePageKey: 'policy_setups',
         layout: 'app',
         loadingTitle: 'Loading policy setup'
     },
@@ -395,6 +409,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_CONFIDENCE_RISK,
         path: ROUTE_PATH[AppRoute.BACKTEST_CONFIDENCE_RISK],
         element: <ConfidenceRiskPage />,
+        modePageKey: 'confidence_risk',
         layout: 'app',
         loadingTitle: 'Loading confidence statistics',
         nav: {
@@ -408,6 +423,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_SHARP_MOVE_STATS,
         path: ROUTE_PATH[AppRoute.BACKTEST_SHARP_MOVE_STATS],
         element: <SharpMoveStatsPage />,
+        modePageKey: 'sharp_move_stats',
         layout: 'app',
         loadingTitle: 'Loading sharp move statistics',
         nav: {
@@ -473,6 +489,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS,
         path: ROUTE_PATH[AppRoute.BACKTEST_BOUNDED_PARAMETER_STATS],
         element: <BoundedParameterStatsPage />,
+        modePageKey: 'bounded_parameter_stats',
         layout: 'app',
         loadingTitle: 'Loading bounded parameter statistics',
         nav: {
@@ -486,6 +503,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.CURRENT_PREDICTION_OOS_PRESETS,
         path: ROUTE_PATH[AppRoute.CURRENT_PREDICTION_OOS_PRESETS],
         element: <CurrentPredictionOosPresetsPage />,
+        modePageKey: 'current_prediction_oos_presets',
         layout: 'app',
         loadingTitle: 'Loading OOS preset tails',
         nav: {
@@ -499,6 +517,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL,
         path: ROUTE_PATH[AppRoute.ANALYSIS_REAL_FORECAST_JOURNAL],
         element: <RealForecastJournalPage />,
+        modePageKey: 'real_forecast_journal',
         layout: 'app',
         loadingTitle: 'Loading real forecast journal',
         nav: {
@@ -512,6 +531,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.BACKTEST_EXECUTION_PIPELINE,
         path: ROUTE_PATH[AppRoute.BACKTEST_EXECUTION_PIPELINE],
         element: <ExecutionPipelinePage />,
+        modePageKey: 'execution_pipeline',
         layout: 'app',
         loadingTitle: 'Loading execution pipeline',
         nav: {
@@ -525,6 +545,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.PFI_PER_MODEL,
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL],
         element: <PfiPage family='daily' />,
+        modePageKey: 'pfi_per_model',
         layout: 'app',
         loadingTitle: 'Loading model analysis',
         nav: {
@@ -538,6 +559,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.PFI_PER_MODEL_FEATURE_DETAIL,
         path: ROUTE_PATH[AppRoute.PFI_PER_MODEL_FEATURE_DETAIL],
         element: <PfiFeatureDetailPage />,
+        modePageKey: 'pfi_feature_detail',
         layout: 'app',
         loadingTitle: 'Загрузка описания признака'
     },
@@ -545,6 +567,7 @@ export const ROUTE_CONFIG: AppRouteConfig[] = [
         id: AppRoute.PFI_SL_MODEL,
         path: ROUTE_PATH[AppRoute.PFI_SL_MODEL],
         element: <PfiPage family='sl' />,
+        modePageKey: 'pfi_sl_model',
         layout: 'app',
         loadingTitle: 'Loading SL-model PFI report',
         nav: {

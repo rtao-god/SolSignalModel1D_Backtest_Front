@@ -28,9 +28,9 @@ import {
 import {
     buildPublishedReportVariantCompatibleOptions,
     resolvePublishedReportVariantSelection,
-    usePublishedReportVariantCatalogQuery,
-    PUBLISHED_REPORT_VARIANT_FAMILIES
+    usePublishedReportVariantCatalogQuery
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import type { CurrentPredictionTrainingScope } from '@/shared/api/endpoints/reportEndpoints'
 import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint'
@@ -373,14 +373,29 @@ function buildKeyValueSections(sections: unknown[]): KeyValueSectionDto[] {
     )
 }
 
-export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
+function FixedSplitConfidenceRiskPage({ className }: ConfidenceRiskPageProps) {
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
     const rawScopeQuery = searchParams.get('scope')
     const rawConfidenceBucketQuery = searchParams.get('confBucket')
-    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(
-        PUBLISHED_REPORT_VARIANT_FAMILIES.backtestConfidenceRisk
+    const bindingState = useModePageBindingState('confidence_risk', 'directional_fixed_split', 'confidence-risk-page')
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Confidence-risk route binding is missing published report family.', {
+                    source: 'confidence-risk-binding',
+                    domain: 'ui_section',
+                    owner: 'confidence-risk-page',
+                    expected: 'The fixed-split confidence-risk route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for confidence_risk.'
+                })
+            :   null,
+        [bindingState.binding, variantFamilyKey]
     )
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
     const scopeState = useMemo(() => {
         try {
             return {
@@ -432,7 +447,11 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         }
     }, [rawConfidenceBucketQuery, rawScopeQuery, scopeState.error, variantCatalogQuery.data])
     const canLoadConfidenceRiskReport =
-        Boolean(variantCatalogQuery.data) && !variantCatalogQuery.isError && !variantResolutionState.error
+        Boolean(variantCatalogQuery.data) &&
+        !variantCatalogQuery.isError &&
+        !variantResolutionState.error &&
+        !bindingState.error &&
+        !variantFamilyError
     const { data, isLoading, isError, error, refetch } = useBacktestConfidenceRiskReportQuery(
         {
             scope: canLoadConfidenceRiskReport ? variantResolutionState.value?.selection.scope ?? null : null,
@@ -692,9 +711,10 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         [confidenceBucketState.value, searchParams, setSearchParams]
     )
     const handleRetry = useCallback(() => {
+        bindingState.refetch()
         void variantCatalogQuery.refetch()
         void refetch()
-    }, [refetch, variantCatalogQuery])
+    }, [bindingState, refetch, variantCatalogQuery])
 
     const controlGroups = useMemo(() => {
         if (scopeMetaState.error || !scopeMetaState.value || confidenceBucketOptionsState.error) {
@@ -725,6 +745,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         trainingScopeStatsQuery.data,
     ])
     const controlsError =
+        bindingState.error ??
+        variantFamilyError ??
         scopeState.error ??
         variantResolutionState.error ??
         scopeMetaState.error ??
@@ -732,6 +754,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
         confidenceBucketState.error ??
         null
     const reportStateError =
+        bindingState.error ??
+        variantFamilyError ??
         error ??
         (variantCatalogQuery.isError ?
             (variantCatalogQuery.error ??
@@ -927,4 +951,8 @@ export default function ConfidenceRiskPage({ className }: ConfidenceRiskPageProp
             </PageDataState>
         </div>
     )
+}
+
+export default function ConfidenceRiskPage(props: ConfidenceRiskPageProps) {
+    return <FixedSplitConfidenceRiskPage {...props} />
 }

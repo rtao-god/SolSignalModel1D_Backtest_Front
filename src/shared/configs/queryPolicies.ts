@@ -61,6 +61,11 @@ export const QUERY_POLICY_REGISTRY = {
             gcTimeMs: 15 * 60 * 1000
         }
     },
+    modeRegistry: {
+        timeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
+        staleTimeMs: 5 * 60 * 1000,
+        gcTimeMs: 15 * 60 * 1000
+    },
     policyBranchMega: {
         requestTimeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
         staleTimeMs: 2 * 60 * 1000,

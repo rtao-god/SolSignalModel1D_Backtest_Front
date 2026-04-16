@@ -230,7 +230,7 @@ function formatPercentValue(rawValue: string, locale: ReportCellLocale): string 
 
     const fractionDigits = extractFractionDigits(rawValue, 4)
     return `${formatLocalizedNumber(numericValue, locale, {
-        minimumFractionDigits: fractionDigits,
+        minimumFractionDigits: 0,
         maximumFractionDigits: fractionDigits
     })}%`
 }

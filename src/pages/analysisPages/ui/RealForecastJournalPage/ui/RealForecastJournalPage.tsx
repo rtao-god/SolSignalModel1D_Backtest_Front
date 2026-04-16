@@ -42,7 +42,8 @@ import type {
     RealForecastJournalLiveRowObservationDto,
     RealForecastJournalLiveStatusDto,
     RealForecastJournalOpsStatusDto,
-    RealForecastJournalPolicyBucket
+    RealForecastJournalPolicyBucket,
+    RealForecastJournalRunKind
 } from '@/shared/types/realForecastJournal.types'
 import {
     buildAggregationComparison,
@@ -78,6 +79,7 @@ const DEFAULT_BUCKET_FILTER: RealForecastJournalPolicyBucket | 'total' = 'total'
 const DEFAULT_BRANCH_FILTER: RealForecastJournalBranchFilter = 'all'
 const DEFAULT_POLICY_SEARCH: RealForecastJournalPolicySearchValue = ''
 const DEFAULT_INDICATOR_GROUP: RealForecastJournalIndicatorGroupFilter = 'all'
+const DEFAULT_FORECAST_RUN_KIND: RealForecastJournalRunKind = 'main'
 
 function resolveJournalTermsBlockTitle(locale: RealForecastJournalTermsLocale): string {
     return locale === 'ru' ? 'Термины секции' : 'Section terms'
@@ -132,6 +134,14 @@ function resolveComparisonScope(raw: string | null): CurrentPredictionTrainingSc
     if (normalized === 'recent') return 'recent'
     if (normalized === 'full') return 'full'
     throw new Error(`[real-forecast-journal] unsupported comparison scope query value: ${raw}.`)
+}
+
+function resolveForecastRunKind(raw: string | null): RealForecastJournalRunKind {
+    if (!raw) return DEFAULT_FORECAST_RUN_KIND
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'main') return 'main'
+    if (normalized === 'preliminary') return 'preliminary'
+    throw new Error(`[real-forecast-journal] unsupported forecast run kind query value: ${raw}.`)
 }
 
 function resolveSelectedDate(
@@ -609,6 +619,35 @@ function buildIndicatorGroupControlGroup(
     }
 }
 
+function resolveForecastRunKindLabel(runKind: RealForecastJournalRunKind, t: TranslateFn): string {
+    if (runKind === 'main') {
+        return t('realForecastJournal.forecastRunKind.main', { defaultValue: 'Main forecasts' })
+    }
+
+    return t('realForecastJournal.forecastRunKind.preliminary', { defaultValue: 'Preliminary forecasts' })
+}
+
+function buildForecastRunKindControlGroup(
+    value: RealForecastJournalRunKind,
+    onChange: (next: RealForecastJournalRunKind) => void,
+    t: TranslateFn
+): ReportViewControlGroup<RealForecastJournalRunKind> {
+    return {
+        key: 'real-forecast-run-kind',
+        label: t('realForecastJournal.forecastRunKind.label', { defaultValue: 'Forecast type' }),
+        infoTooltip: t('realForecastJournal.forecastRunKind.tooltip', {
+            defaultValue:
+                'Main forecasts are captured at the regular working-day opening time. Preliminary forecasts are captured earlier by the same calendar and are measured separately, so their statistics are not mixed with the main sample.'
+        }),
+        value,
+        options: [
+            { value: 'main', label: resolveForecastRunKindLabel('main', t) },
+            { value: 'preliminary', label: resolveForecastRunKindLabel('preliminary', t) }
+        ],
+        onChange
+    }
+}
+
 function buildPolicyTableColumns(t: TranslateFn, includeLiveColumns: boolean): string[] {
     const columns: string[] = [
         t('realForecastJournal.policy.table.columns.policy', { defaultValue: 'Policy' }),
@@ -929,11 +968,13 @@ function buildCausalityNoteItems(t: TranslateFn): ReactNode[] {
 
 function buildScheduleNoteItems(t: TranslateFn): ReactNode[] {
     return [
-        t('realForecastJournal.page.notes.schedulePointWinter', {
-            defaultValue: 'Winter capture time: 14:30 UTC.'
+        t('realForecastJournal.page.notes.schedulePointMain', {
+            defaultValue:
+                'The main forecast follows the scheduled opening time of the New York trading session.'
         }),
-        t('realForecastJournal.page.notes.schedulePointSummer', {
-            defaultValue: 'Summer capture time: 13:30 UTC.'
+        t('realForecastJournal.page.notes.schedulePointPreliminary', {
+            defaultValue:
+                'The earlier forecast for the same trading day uses the earlier scheduled window before the session opens.'
         }),
         <>
             {t('realForecastJournal.page.notes.schedulePointDstPrefix', {
@@ -1026,13 +1067,19 @@ function buildNextCaptureRows(
             status.lastSuccessfulCapture.predictionDateUtc !== status.expectedCaptureDayUtc)
 
     const dayUtc = expectedPending ? status.expectedCaptureDayUtc : status.nextCaptureDayUtc
-    const entryUtc = expectedPending ? status.expectedCaptureEntryUtc : status.nextCaptureEntryUtc
+    const targetUtc = expectedPending ? status.expectedCaptureTargetUtc : status.nextCaptureTargetUtc
 
-    if (!dayUtc || !entryUtc) {
+    if (!dayUtc || !targetUtc) {
         throw new Error('[real-forecast-journal] next capture timing is missing in ops status payload.')
     }
 
     return [
+        {
+            label: t('realForecastJournal.timing.nextCapture.rows.runKind', {
+                defaultValue: 'Forecast type'
+            }),
+            value: resolveForecastRunKindLabel(status.runKind, t)
+        },
         {
             label: t('realForecastJournal.timing.nextCapture.rows.day', { defaultValue: 'Trading day' }),
             value: dayUtc
@@ -1041,7 +1088,7 @@ function buildNextCaptureRows(
             label: t('realForecastJournal.timing.nextCapture.rows.exactTime', {
                 defaultValue: 'Scheduled capture'
             }),
-            value: formatTimingExactUtc(entryUtc, locale)
+            value: formatTimingExactUtc(targetUtc, locale)
         }
     ]
 }
@@ -1053,7 +1100,7 @@ function resolveNextCaptureTargetUtc(status: RealForecastJournalOpsStatusDto): s
         (!status.lastSuccessfulCapture ||
             status.lastSuccessfulCapture.predictionDateUtc !== status.expectedCaptureDayUtc)
 
-    return expectedPending ? status.expectedCaptureEntryUtc : status.nextCaptureEntryUtc
+    return expectedPending ? status.expectedCaptureTargetUtc : status.nextCaptureTargetUtc
 }
 
 function buildActiveFinalizeRows(
@@ -1264,6 +1311,22 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
             }
         }
     }, [searchParams])
+    const forecastRunKindState = useMemo(() => {
+        try {
+            return { value: resolveForecastRunKind(searchParams.get('runKind')), error: null as Error | null }
+        } catch (error) {
+            return {
+                value: DEFAULT_FORECAST_RUN_KIND,
+                error: normalizeErrorLike(error, 'Failed to parse real forecast journal forecast type.', {
+                    source: 'real-forecast-journal-run-kind',
+                    domain: 'ui_section',
+                    owner: 'real-forecast-journal-page',
+                    expected: 'Real forecast journal page should parse a valid forecast type from URL params.',
+                    requiredAction: 'Inspect runKind query and supported values.'
+                })
+            }
+        }
+    }, [searchParams])
 
     const [bucketFilter, setBucketFilter] = useState<RealForecastJournalPolicyBucket | 'total'>(DEFAULT_BUCKET_FILTER)
     const [branchFilter, setBranchFilter] = useState<RealForecastJournalBranchFilter>(DEFAULT_BRANCH_FILTER)
@@ -1272,8 +1335,11 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
         useState<RealForecastJournalIndicatorGroupFilter>(DEFAULT_INDICATOR_GROUP)
     const [isDetailedOpen, setIsDetailedOpen] = useState(false)
 
-    const dayListQuery = useRealForecastJournalDayListQuery()
-    const opsStatusQuery = useRealForecastJournalOpsStatusQuery()
+    const dayListQuery = useRealForecastJournalDayListQuery(
+        { runKind: forecastRunKindState.value },
+        { enabled: forecastRunKindState.error === null }
+    )
+    const opsStatusQuery = useRealForecastJournalOpsStatusQuery({ runKind: forecastRunKindState.value })
     const aggregationMetricsQuery = useAggregationMetricsQuery()
     const confidenceRiskQuery = useBacktestConfidenceRiskReportQuery({ scope: comparisonScopeState.value })
     const backfilledTrainingScopeStatsQuery = useCurrentPredictionBackfilledTrainingScopeStatsQuery()
@@ -1281,7 +1347,9 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
         () => resolveSelectedDate(dayListQuery.data, searchParams.get('date')),
         [dayListQuery.data, searchParams]
     )
-    const selectedDayArgs = selectedDate ? { dateUtc: selectedDate } : undefined
+    const selectedDayArgs = selectedDate ?
+        { dateUtc: selectedDate, runKind: forecastRunKindState.value }
+    :   undefined
     const selectedDayQuery = useRealForecastJournalDayQuery(selectedDayArgs, { enabled: Boolean(selectedDayArgs) })
     const liveStatusQuery = useRealForecastJournalLiveStatusQuery(selectedDayArgs, {
         enabled: Boolean(selectedDayArgs && selectedDayQuery.data && !selectedDayQuery.data.finalize)
@@ -1307,9 +1375,11 @@ function RealForecastJournalPageInner({ className }: RealForecastJournalPageProp
             locale={locale}
             searchParams={searchParams}
             setSearchParams={setSearchParams}
+            forecastRunKind={forecastRunKindState.value}
+            forecastRunKindError={forecastRunKindState.error}
             dayList={dayListQuery.data ?? []}
             isDayListLoading={dayListQuery.isLoading}
-            dayListError={dayListQuery.isError ? dayListQuery.error : null}
+            dayListError={forecastRunKindState.error ?? (dayListQuery.isError ? dayListQuery.error : null)}
             onRetry={() => {
                 void dayListQuery.refetch()
                 void opsStatusQuery.refetch()
@@ -1353,6 +1423,8 @@ interface RealForecastJournalPageContentProps {
     locale: string
     searchParams: URLSearchParams
     setSearchParams: ReturnType<typeof useSearchParams>[1]
+    forecastRunKind: RealForecastJournalRunKind
+    forecastRunKindError: Error | null
     dayList: RealForecastJournalDayListItemDto[]
     isDayListLoading: boolean
     dayListError: unknown
@@ -1386,6 +1458,8 @@ function RealForecastJournalPageContent({
     locale,
     searchParams,
     setSearchParams,
+    forecastRunKind,
+    forecastRunKindError,
     dayList,
     isDayListLoading,
     dayListError,
@@ -1491,6 +1565,21 @@ function RealForecastJournalPageContent({
         () => [buildIndicatorGroupControlGroup(indicatorGroupOptions, indicatorGroup, onIndicatorGroupChange, t)],
         [indicatorGroup, indicatorGroupOptions, onIndicatorGroupChange, t]
     )
+    const forecastRunKindControlGroups = useMemo(
+        () => [
+            buildForecastRunKindControlGroup(
+                forecastRunKind,
+                next => {
+                    const nextParams = new URLSearchParams(searchParams)
+                    nextParams.set('runKind', next)
+                    nextParams.delete('date')
+                    setSearchParams(nextParams, { replace: true })
+                },
+                t
+            )
+        ],
+        [forecastRunKind, searchParams, setSearchParams, t]
+    )
     const comparisonControlGroups = [
         buildComparisonSourceControlGroup(
             comparisonSource,
@@ -1514,6 +1603,7 @@ function RealForecastJournalPageContent({
     ]
 
     const selectedDayError =
+        forecastRunKindError ??
         selectedRecordError ??
         (!selectedDay || !selectedRecord ?
             new Error('[real-forecast-journal] selected day is missing from index or payload.')
@@ -1639,10 +1729,15 @@ function RealForecastJournalPageContent({
                                 <Text className={cls.sectionSubtitle}>
                                     {t('realForecastJournal.days.subtitle', {
                                         defaultValue:
-                                            'Newest day is selected by default. Morning forecast rows keep realized fields empty until the journal finalizer runs after the NY close.'
+                                            'Newest day is selected by default. Main and preliminary forecasts are loaded as separate journal samples, so their realized statistics are not mixed.'
                                     })}
                                 </Text>
                             </div>
+                            <ReportViewControls
+                                groups={forecastRunKindControlGroups}
+                                className={cls.controls}
+                                showSelectedOptionHints={false}
+                            />
                             {isDayListLoading ?
                                 <PageSectionDataState
                                     isLoading

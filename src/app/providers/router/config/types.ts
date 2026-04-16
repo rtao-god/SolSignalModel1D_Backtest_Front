@@ -1,4 +1,5 @@
 import type { RouteProps } from 'react-router'
+import type { ModePageKey } from '@/entities/mode'
 export enum AppRoute {
     MAIN = 'MAIN',
     CURRENT_PREDICTION = 'CURRENT_PREDICTION',
@@ -103,6 +104,7 @@ export type AppRouteConfig = RouteProps & {
     nav?: RouteNavMeta
     layout?: RouteLayout
     loadingTitle?: string
+    modePageKey?: ModePageKey
 }
 export interface SidebarNavItem {
     id: AppRoute
@@ -110,6 +112,7 @@ export interface SidebarNavItem {
     label: string
     section?: RouteSection
     order: number
+    modePageKey?: ModePageKey
 }
 export interface NavbarNavItem {
     id: AppRoute

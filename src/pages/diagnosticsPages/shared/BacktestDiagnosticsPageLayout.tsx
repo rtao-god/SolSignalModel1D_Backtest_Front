@@ -73,7 +73,7 @@ function hasDiagnosticsAxis(sections: TableSectionDto[], axis: 'tpSlMode' | 'zon
     })
 }
 
-export default function BacktestDiagnosticsPageLayout({
+function FixedSplitBacktestDiagnosticsPageLayout({
     report,
     sections,
     pageTitle,
@@ -592,4 +592,8 @@ export default function BacktestDiagnosticsPageLayout({
             </PageDataState>
         </div>
     )
+}
+
+export default function BacktestDiagnosticsPageLayout(props: BacktestDiagnosticsPageLayoutProps) {
+    return <FixedSplitBacktestDiagnosticsPageLayout {...props} />
 }

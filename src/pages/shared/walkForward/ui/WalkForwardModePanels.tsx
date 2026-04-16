@@ -8,10 +8,15 @@ import classNames from '@/shared/lib/helpers/classNames'
 import {
     getDefaultModeReportSlice,
     getModeReportSlices,
+    tryGetModeReportSliceDescriptor,
+    type ModeSurfaceKey,
+    type ModeRegistryDto,
+    type ModeRegistrySliceDescriptor,
     type WalkForwardModeId,
     type WalkForwardReportSliceId
 } from '@/entities/mode'
 import type { PfiQueryFamily } from '@/shared/api/tanstackQueries/pfi'
+import { useModeRegistryQuery } from '@/shared/api/tanstackQueries/modeRegistry'
 import {
     useDirectionalWalkForwardCurrentQuery,
     useDirectionalWalkForwardMoneyQuery,
@@ -33,6 +38,8 @@ import {
     type BestPolicyPerMarginModeDto,
     type WalkForwardSlice
 } from '@/shared/api/tanstackQueries/walkForwardModes'
+import { SectionErrorBoundary } from '@/shared/ui/errors/SectionErrorBoundary/ui/SectionErrorBoundary'
+import { ErrorBlock } from '@/shared/ui/errors/ErrorBlock/ui/ErrorBlock'
 import cls from './WalkForwardModePanels.module.scss'
 
 interface BaseProps {
@@ -43,6 +50,8 @@ interface BaseProps {
 interface PfiProps extends BaseProps {
     family?: PfiQueryFamily
 }
+
+const FALLBACK_WALK_FORWARD_REPORT_SLICE: WalkForwardReportSliceId = 'overall'
 
 function formatNumber(value: number): string {
     return Number.isFinite(value) ? value.toLocaleString('en-US') : '—'
@@ -132,6 +141,19 @@ function resolveMoneySliceByReportSlice<TSlice extends { slice: WalkForwardRepor
     return slices.find(slice => slice.slice === reportSlice) ?? null
 }
 
+function formatReportSliceLabel(
+    modeRegistry: ModeRegistryDto | null,
+    mode: WalkForwardModeId,
+    reportSlice: string
+): string {
+    if (!modeRegistry) {
+        return reportSlice
+    }
+
+    const descriptor = tryGetModeReportSliceDescriptor(modeRegistry, mode, reportSlice)
+    return descriptor?.displayLabel ?? reportSlice
+}
+
 function MetricCard({ label, value }: { label: ReactNode; value: ReactNode }) {
     return (
         <div className={cls.metricCard}>
@@ -141,26 +163,84 @@ function MetricCard({ label, value }: { label: ReactNode; value: ReactNode }) {
     )
 }
 
-function useWalkForwardReportSlice(mode: WalkForwardModeId) {
-    const [reportSlice, setReportSlice] = useState<WalkForwardReportSliceId>(getDefaultModeReportSlice(mode))
-
-    useEffect(() => {
-        setReportSlice(getDefaultModeReportSlice(mode))
-    }, [mode])
-
-    return [reportSlice, setReportSlice] as const
+function WalkForwardRenderSectionBoundary({
+    name,
+    resetKeys,
+    children
+}: {
+    name: string
+    resetKeys: unknown[]
+    children: ReactNode
+}) {
+    return (
+        <SectionErrorBoundary
+            name={name}
+            resetKeys={resetKeys}
+            fallback={({ error, reset }) => (
+                <ErrorBlock
+                    className={cls.sectionFallback}
+                    compact
+                    code='WF'
+                    title='One report block is unavailable'
+                    description='Only this block failed. Mode and slice controls remain available.'
+                    details={error.message}
+                    onRetry={reset}
+                />
+            )}>
+            {children}
+        </SectionErrorBoundary>
+    )
 }
 
-// Owner-каталог режимов и их срезов живёт в entities/mode, поэтому UI не держит локальный список slice-опций.
+function resolveRequestedWalkForwardReportSlice(reportSlice: WalkForwardReportSliceId | null): WalkForwardReportSliceId {
+    return reportSlice ?? FALLBACK_WALK_FORWARD_REPORT_SLICE
+}
+
+function useWalkForwardReportSlice(mode: WalkForwardModeId) {
+    const modeCatalogQuery = useModeRegistryQuery()
+    const modeRegistry = modeCatalogQuery.data ?? null
+    const availableSlices = useMemo<readonly ModeRegistrySliceDescriptor<WalkForwardModeId, WalkForwardReportSliceId>[]>(
+        () =>
+            modeRegistry ?
+                getModeReportSlices(modeRegistry, mode) as readonly ModeRegistrySliceDescriptor<WalkForwardModeId, WalkForwardReportSliceId>[]
+            :   [],
+        [mode, modeRegistry]
+    )
+    const [reportSlice, setReportSlice] = useState<WalkForwardReportSliceId | null>(null)
+
+    useEffect(() => {
+        if (!modeRegistry || availableSlices.length === 0) {
+            return
+        }
+
+        const defaultSlice = getDefaultModeReportSlice(modeRegistry, mode) as WalkForwardReportSliceId
+        setReportSlice(current =>
+            current && availableSlices.some(slice => slice.key === current) ? current : defaultSlice
+        )
+    }, [availableSlices, mode, modeRegistry])
+
+    return {
+        modeCatalogQuery,
+        modeRegistry,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } as const
+}
+
 function ReportSliceControls({
-    mode,
+    slices,
     reportSlice,
     onReportSliceChange
 }: {
-    mode: WalkForwardModeId
-    reportSlice: WalkForwardReportSliceId
+    slices: readonly ModeRegistrySliceDescriptor<WalkForwardModeId, WalkForwardReportSliceId>[]
+    reportSlice: WalkForwardReportSliceId | null
     onReportSliceChange: (value: WalkForwardReportSliceId) => void
 }) {
+    if (!reportSlice || slices.length === 0) {
+        return null
+    }
+
     return (
         <label className={cls.control}>
             <span className={cls.controlLabel}>Slice</span>
@@ -168,9 +248,9 @@ function ReportSliceControls({
                 className={cls.controlInput}
                 value={reportSlice}
                 onChange={event => onReportSliceChange(event.target.value as WalkForwardReportSliceId)}>
-                {getModeReportSlices(mode).map(slice => (
+                {slices.map(slice => (
                     <option key={slice.key} value={slice.key}>
-                        {slice.label}
+                        {slice.displayLabel}
                     </option>
                 ))}
             </select>
@@ -180,25 +260,31 @@ function ReportSliceControls({
 
 export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
     const [slice, setSlice] = useState<WalkForwardSlice>('all')
-    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
+    const {
+        modeCatalogQuery,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } = useWalkForwardReportSlice(mode)
+    const requestedReportSlice = resolveRequestedWalkForwardReportSlice(reportSlice)
     const [selectedFoldId, setSelectedFoldId] = useState<string>('')
     const [fromDate, setFromDate] = useState<string>('')
     const [toDate, setToDate] = useState<string>('')
 
     const tbmHistoryQuery = useTbmNativeHistoryQuery({
         slice,
-        reportSlice,
+        reportSlice: requestedReportSlice,
         selectedFoldId: slice === 'selected_fold' ? selectedFoldId : null,
         fromDate,
         toDate
-    }, { enabled: mode === 'tbm_native' })
+    }, { enabled: mode === 'tbm_native' && reportSlice !== null })
     const directionalHistoryQuery = useDirectionalWalkForwardHistoryQuery({
         slice,
-        reportSlice,
+        reportSlice: requestedReportSlice,
         selectedFoldId: slice === 'selected_fold' ? selectedFoldId : null,
         fromDate,
         toDate
-    }, { enabled: mode === 'directional_walkforward' })
+    }, { enabled: mode === 'directional_walkforward' && reportSlice !== null })
     const tbmFoldsQuery = useTbmNativeFoldsQuery({ enabled: mode === 'tbm_native' })
     const directionalFoldsQuery = useDirectionalWalkForwardFoldsQuery({ enabled: mode === 'directional_walkforward' })
 
@@ -284,7 +370,7 @@ export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
                                     <option value='selected_fold'>Selected fold</option>
                                 </select>
                             </label>
-                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
+                            <ReportSliceControls slices={availableSlices} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                             {slice === 'selected_fold' && (
                                 <label className={cls.control}>
                                     <span className={cls.controlLabel}>Fold</span>
@@ -330,11 +416,12 @@ export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
                         )}
                     </div>
                 }
-                isLoading={historyQuery.isLoading || foldsQuery.isLoading}
-                isError={Boolean(historyQuery.error || foldsQuery.error)}
-                error={historyQuery.error ?? foldsQuery.error ?? null}
+                isLoading={modeCatalogQuery.isLoading || historyQuery.isLoading || foldsQuery.isLoading}
+                isError={Boolean(modeCatalogQuery.error || historyQuery.error || foldsQuery.error)}
+                error={modeCatalogQuery.error ?? historyQuery.error ?? foldsQuery.error ?? null}
                 hasData={Boolean(historyTable)}
                 onRetry={() => {
+                    void modeCatalogQuery.refetch()
                     void historyQuery.refetch()
                     void foldsQuery.refetch()
                 }}
@@ -347,10 +434,17 @@ export function WalkForwardModeHistoryPanel({ className, mode }: BaseProps) {
 }
 
 export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
-    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
+    const {
+        modeCatalogQuery,
+        modeRegistry,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } = useWalkForwardReportSlice(mode)
+    const requestedReportSlice = resolveRequestedWalkForwardReportSlice(reportSlice)
     const [viewMode, setViewMode] = useState<'technical' | 'business'>('technical')
-    const tbmStatsQuery = useTbmNativeModelStatsQuery(reportSlice, { enabled: mode === 'tbm_native' })
-    const directionalStatsQuery = useDirectionalWalkForwardModelStatsQuery(reportSlice, { enabled: mode === 'directional_walkforward' })
+    const tbmStatsQuery = useTbmNativeModelStatsQuery(requestedReportSlice, { enabled: mode === 'tbm_native' && reportSlice !== null })
+    const directionalStatsQuery = useDirectionalWalkForwardModelStatsQuery(requestedReportSlice, { enabled: mode === 'directional_walkforward' && reportSlice !== null })
     const tbmValidationQuery = useTbmNativeValidationQuery({ enabled: mode === 'tbm_native' })
     const directionalValidationQuery = useDirectionalWalkForwardValidationQuery({ enabled: mode === 'directional_walkforward' })
     const statsQuery = mode === 'tbm_native' ? tbmStatsQuery : directionalStatsQuery
@@ -364,7 +458,7 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
                         <Text type='h2'>{mode === 'tbm_native' ? 'TBM Native model stats' : 'Directional Walk-Forward model stats'}</Text>
                         <Text className={cls.subtitle}>Published stats cards for the selected mode and report slice.</Text>
                         <div className={cls.controls}>
-                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
+                            <ReportSliceControls slices={availableSlices} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                             {mode === 'directional_walkforward' && (
                                 <label className={cls.control}>
                                     <span className={cls.controlLabel}>View</span>
@@ -388,11 +482,12 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
                         )}
                     </div>
                 }
-                isLoading={statsQuery.isLoading || validationQuery.isLoading}
-                isError={Boolean(statsQuery.error || validationQuery.error)}
-                error={statsQuery.error ?? validationQuery.error ?? null}
+                isLoading={modeCatalogQuery.isLoading || statsQuery.isLoading || validationQuery.isLoading}
+                isError={Boolean(modeCatalogQuery.error || statsQuery.error || validationQuery.error)}
+                error={modeCatalogQuery.error ?? statsQuery.error ?? validationQuery.error ?? null}
                 hasData={Boolean(statsQuery.data)}
                 onRetry={() => {
+                    void modeCatalogQuery.refetch()
                     void statsQuery.refetch()
                     void validationQuery.refetch()
                 }}
@@ -401,26 +496,30 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
                 <div className={cls.stack}>
                     {mode === 'tbm_native' ?
                         tbmStatsQuery.data?.cards.map(card => (
-                            <div key={card.slice} className={cls.stack}>
-                                <ReportTableCard title={`Class summary · ${formatEnumLabel(card.slice)}`} domId={`tbm-class-${card.slice}`} columns={['Class', 'Samples', 'Hits', 'Hit rate', 'Misses']} rows={card.classSummary.map(row => [row.class, row.sampleCount, row.hitCount, formatPercent(row.hitRate), row.missCount])} />
-                                <ReportTableCard title={`Confusion matrix · ${formatEnumLabel(card.slice)}`} domId={`tbm-confusion-${card.slice}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={card.confusionMatrix.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
-                                <ReportTableCard title={`Calibration · ${formatEnumLabel(card.slice)}`} domId={`tbm-calibration-${card.slice}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={card.calibration.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
-                            </div>
+                            <WalkForwardRenderSectionBoundary key={card.slice} name={`walk-forward.model-stats.${mode}.${card.slice}`} resetKeys={[mode, viewMode, card.slice, reportSlice]}>
+                                <div className={cls.stack}>
+                                    <ReportTableCard title={`Class summary · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`tbm-class-${card.slice}`} columns={['Class', 'Samples', 'Hits', 'Hit rate', 'Misses']} rows={card.classSummary.map(row => [row.class, row.sampleCount, row.hitCount, formatPercent(row.hitRate), row.missCount])} />
+                                    <ReportTableCard title={`Confusion matrix · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`tbm-confusion-${card.slice}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={card.confusionMatrix.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
+                                    <ReportTableCard title={`Calibration · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`tbm-calibration-${card.slice}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={card.calibration.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
+                                </div>
+                            </WalkForwardRenderSectionBoundary>
                         ))
                     :   directionalStatsQuery.data?.cards.map(card => (
-                            <div key={card.slice} className={cls.stack}>
-                                {viewMode === 'technical' ?
-                                    <>
-                                        <ReportTableCard title={`Per-model metrics · ${formatEnumLabel(card.slice)}`} domId={`dwf-metrics-${card.slice}`} columns={['Model', 'Slice', 'Samples', 'Accuracy', 'Micro F1', 'Log loss']} rows={card.technical.perModelMetrics.map(row => [row.modelName, formatEnumLabel(row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
-                                        <ReportTableCard title={`Directional confusion · ${formatEnumLabel(card.slice)}`} domId={`dwf-confusion-${card.slice}`} columns={['Actual', 'Predicted Down', 'Predicted Flat', 'Predicted Up']} rows={card.technical.directionalConfusionMatrix.map(row => [row.actualClass, row.countDown, row.countFlat, row.countUp])} />
-                                        <ReportTableCard title={`SL metrics · ${formatEnumLabel(card.slice)}`} domId={`dwf-sl-${card.slice}`} columns={['Slice', 'Samples', 'Accuracy', 'Log loss', 'AUC']} rows={card.technical.slMetrics.map(row => [formatEnumLabel(row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.logLoss), formatProbability(row.auc)])} />
-                                    </>
-                                :   <>
-                                        <ReportTableCard title={`Technical verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-tech-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.technicalVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
-                                        <ReportTableCard title={`Business verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-business-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.businessVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
-                                        <ReportTableCard title={`Timing verdicts · ${formatEnumLabel(card.slice)}`} domId={`dwf-timing-verdicts-${card.slice}`} columns={['Timing', 'Count', 'Rate']} rows={card.business.timingVerdicts.map(row => [formatEnumLabel(row.timingVerdict), row.count, formatPercent(row.rate)])} />
-                                    </>}
-                            </div>
+                            <WalkForwardRenderSectionBoundary key={card.slice} name={`walk-forward.model-stats.${mode}.${card.slice}.${viewMode}`} resetKeys={[mode, viewMode, card.slice, reportSlice]}>
+                                <div className={cls.stack}>
+                                    {viewMode === 'technical' ?
+                                        <>
+                                            <ReportTableCard title={`Per-model metrics · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-metrics-${card.slice}`} columns={['Model', 'Slice', 'Samples', 'Accuracy', 'Micro F1', 'Log loss']} rows={card.technical.perModelMetrics.map(row => [row.modelName, formatReportSliceLabel(modeRegistry, mode, row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
+                                            <ReportTableCard title={`Directional confusion · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-confusion-${card.slice}`} columns={['Actual', 'Predicted Down', 'Predicted Flat', 'Predicted Up']} rows={card.technical.directionalConfusionMatrix.map(row => [row.actualClass, row.countDown, row.countFlat, row.countUp])} />
+                                            <ReportTableCard title={`SL metrics · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-sl-${card.slice}`} columns={['Slice', 'Samples', 'Accuracy', 'Log loss', 'AUC']} rows={card.technical.slMetrics.map(row => [formatReportSliceLabel(modeRegistry, mode, row.slice), row.sampleCount, formatProbability(row.accuracy), formatProbability(row.logLoss), formatProbability(row.auc)])} />
+                                        </>
+                                    :   <>
+                                            <ReportTableCard title={`Technical verdicts · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-tech-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.technicalVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
+                                            <ReportTableCard title={`Business verdicts · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-business-verdicts-${card.slice}`} columns={['Verdict', 'Count', 'Rate']} rows={card.business.businessVerdicts.map(row => [formatEnumLabel(row.verdictName), row.count, formatPercent(row.rate)])} />
+                                            <ReportTableCard title={`Timing verdicts · ${formatReportSliceLabel(modeRegistry, mode, card.slice)}`} domId={`dwf-timing-verdicts-${card.slice}`} columns={['Timing', 'Count', 'Rate']} rows={card.business.timingVerdicts.map(row => [formatEnumLabel(row.timingVerdict), row.count, formatPercent(row.rate)])} />
+                                        </>}
+                                </div>
+                            </WalkForwardRenderSectionBoundary>
                         ))}
                 </div>
             </PageDataState>
@@ -429,9 +528,16 @@ export function WalkForwardModeModelStatsPanel({ className, mode }: BaseProps) {
 }
 
 export function WalkForwardModeAggregationPanel({ className, mode }: BaseProps) {
-    const [reportSlice, setReportSlice] = useWalkForwardReportSlice(mode)
-    const tbmAggregationQuery = useTbmNativeAggregationQuery(reportSlice, { enabled: mode === 'tbm_native' })
-    const directionalAggregationQuery = useDirectionalWalkForwardAggregationQuery(reportSlice, { enabled: mode === 'directional_walkforward' })
+    const {
+        modeCatalogQuery,
+        modeRegistry,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } = useWalkForwardReportSlice(mode)
+    const requestedReportSlice = resolveRequestedWalkForwardReportSlice(reportSlice)
+    const tbmAggregationQuery = useTbmNativeAggregationQuery(requestedReportSlice, { enabled: mode === 'tbm_native' && reportSlice !== null })
+    const directionalAggregationQuery = useDirectionalWalkForwardAggregationQuery(requestedReportSlice, { enabled: mode === 'directional_walkforward' && reportSlice !== null })
     const aggregationQuery = mode === 'tbm_native' ? tbmAggregationQuery : directionalAggregationQuery
 
     return (
@@ -442,35 +548,42 @@ export function WalkForwardModeAggregationPanel({ className, mode }: BaseProps) 
                         <Text type='h2'>{mode === 'tbm_native' ? 'TBM Native aggregation' : 'Directional Walk-Forward aggregation'}</Text>
                         <Text className={cls.subtitle}>Published aggregation slices for the selected mode.</Text>
                         <div className={cls.controls}>
-                            <ReportSliceControls mode={mode} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
+                            <ReportSliceControls slices={availableSlices} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                         </div>
                     </div>
                 }
-                isLoading={aggregationQuery.isLoading}
-                isError={aggregationQuery.isError}
-                error={aggregationQuery.error ?? null}
+                isLoading={modeCatalogQuery.isLoading || aggregationQuery.isLoading}
+                isError={Boolean(modeCatalogQuery.error || aggregationQuery.error)}
+                error={modeCatalogQuery.error ?? aggregationQuery.error ?? null}
                 hasData={Boolean(aggregationQuery.data)}
-                onRetry={() => void aggregationQuery.refetch()}
+                onRetry={() => {
+                    void modeCatalogQuery.refetch()
+                    void aggregationQuery.refetch()
+                }}
                 title='Aggregation unavailable'
                 loadingText='Loading aggregation'>
                 <div className={cls.stack}>
                     {mode === 'tbm_native' ?
                         tbmAggregationQuery.data?.sections.map(section => (
-                            <div key={section.sectionName} className={cls.stack}>
-                                <ReportTableCard title={`Probability aggregation · ${section.sectionName}`} domId={`tbm-agg-prob-${section.sectionName}`} columns={['Slice', 'Avg P(+1)', 'Avg P(0)', 'Avg P(-1)']} rows={section.probabilityEntries.map(row => [row.slice, formatProbability(row.avgProbabilityPositive), formatProbability(row.avgProbabilityNeutral), formatProbability(row.avgProbabilityNegative)])} />
-                                <ReportTableCard title={`Prediction vs actual confusion · ${section.sectionName}`} domId={`tbm-agg-confusion-${section.sectionName}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={section.predictionVsActualConfusion.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
-                                <ReportTableCard title={`Calibration summary · ${section.sectionName}`} domId={`tbm-agg-calibration-${section.sectionName}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={section.calibrationSummary.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
-                                <ReportTableCard title={`Strategy buckets · ${section.sectionName}`} domId={`tbm-agg-bucket-${section.sectionName}`} columns={['Bucket', 'Samples', 'Avg return', 'Hit rate']} rows={section.outcomeBuckets.map(row => [row.bucketName, row.sampleCount, formatProbability(row.avgReturn), formatPercent(row.hitRate)])} />
-                            </div>
+                            <WalkForwardRenderSectionBoundary key={section.sectionName} name={`walk-forward.aggregation.${mode}.${section.sectionName}`} resetKeys={[mode, reportSlice, section.sectionName]}>
+                                <div className={cls.stack}>
+                                    <ReportTableCard title={`Probability aggregation · ${section.sectionName}`} domId={`tbm-agg-prob-${section.sectionName}`} columns={['Slice', 'Avg P(+1)', 'Avg P(0)', 'Avg P(-1)']} rows={section.probabilityEntries.map(row => [formatReportSliceLabel(modeRegistry, mode, row.slice), formatProbability(row.avgProbabilityPositive), formatProbability(row.avgProbabilityNeutral), formatProbability(row.avgProbabilityNegative)])} />
+                                    <ReportTableCard title={`Prediction vs actual confusion · ${section.sectionName}`} domId={`tbm-agg-confusion-${section.sectionName}`} columns={['Actual', 'Predicted Negative', 'Predicted Neutral', 'Predicted Positive']} rows={section.predictionVsActualConfusion.map(row => [row.actualClass, row.countNegative, row.countNeutral, row.countPositive])} />
+                                    <ReportTableCard title={`Calibration summary · ${section.sectionName}`} domId={`tbm-agg-calibration-${section.sectionName}`} columns={['Bin', 'Predicted mean', 'Realized frequency', 'Samples']} rows={section.calibrationSummary.map(row => [row.bin, formatProbability(row.predictedProbabilityMean), formatProbability(row.realizedFrequency), row.sampleCount])} />
+                                    <ReportTableCard title={`Strategy buckets · ${section.sectionName}`} domId={`tbm-agg-bucket-${section.sectionName}`} columns={['Bucket', 'Samples', 'Avg return', 'Hit rate']} rows={section.outcomeBuckets.map(row => [row.bucketName, row.sampleCount, formatProbability(row.avgReturn), formatPercent(row.hitRate)])} />
+                                </div>
+                            </WalkForwardRenderSectionBoundary>
                         ))
                     :   directionalAggregationQuery.data?.sections.map(section => (
-                            <div key={section.sectionName} className={cls.stack}>
-                                <ReportTableCard title={`Layer probabilities · ${section.sectionName}`} domId={`dwf-agg-prob-${section.sectionName}`} columns={['Layer', 'Avg P(up)', 'Avg P(flat)', 'Avg P(down)']} rows={section.layerProbabilities.map(row => [row.layer, formatProbability(row.avgProbabilityUp), formatProbability(row.avgProbabilityFlat), formatProbability(row.avgProbabilityDown)])} />
-                                <ReportTableCard title={`Layer metrics · ${section.sectionName}`} domId={`dwf-agg-metrics-${section.sectionName}`} columns={['Layer', 'Accuracy', 'Micro F1', 'Log loss']} rows={section.layerMetrics.map(row => [row.layer, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
-                                <ReportTableCard title={`Business metrics · ${section.sectionName}`} domId={`dwf-agg-business-${section.sectionName}`} columns={['Samples', 'Technical hit rate', 'Business hit rate', 'Late correct', 'Late pending']} rows={[[section.businessMetrics.sampleCount, formatPercent(section.businessMetrics.technicalHitRate), formatPercent(section.businessMetrics.businessHitRate), section.businessMetrics.lateCorrectCount, section.businessMetrics.latePendingCount]]} />
-                                <ReportTableCard title={`Timing buckets · ${section.sectionName}`} domId={`dwf-agg-timing-${section.sectionName}`} columns={['Timing verdict', 'Samples', 'Share']} rows={section.timingBuckets.map(row => [formatEnumLabel(row.timingVerdict), row.sampleCount, formatPercent(row.share)])} />
-                                {section.latestDaysBreakdown.length > 0 && <ReportTableCard title={`Latest days breakdown · ${section.sectionName}`} domId={`dwf-agg-latest-${section.sectionName}`} columns={['Bucket', 'Samples', 'Avg return', 'Technical hit rate', 'Business hit rate']} rows={section.latestDaysBreakdown.map(row => [row.bucketName, row.sampleCount, formatProbability(row.avgReturn), formatPercent(row.technicalHitRate), formatPercent(row.businessHitRate)])} />}
-                            </div>
+                            <WalkForwardRenderSectionBoundary key={section.sectionName} name={`walk-forward.aggregation.${mode}.${section.sectionName}`} resetKeys={[mode, reportSlice, section.sectionName]}>
+                                <div className={cls.stack}>
+                                    <ReportTableCard title={`Layer probabilities · ${section.sectionName}`} domId={`dwf-agg-prob-${section.sectionName}`} columns={['Layer', 'Avg P(up)', 'Avg P(flat)', 'Avg P(down)']} rows={section.layerProbabilities.map(row => [row.layer, formatProbability(row.avgProbabilityUp), formatProbability(row.avgProbabilityFlat), formatProbability(row.avgProbabilityDown)])} />
+                                    <ReportTableCard title={`Layer metrics · ${section.sectionName}`} domId={`dwf-agg-metrics-${section.sectionName}`} columns={['Layer', 'Accuracy', 'Micro F1', 'Log loss']} rows={section.layerMetrics.map(row => [row.layer, formatProbability(row.accuracy), formatProbability(row.microF1), formatProbability(row.logLoss)])} />
+                                    <ReportTableCard title={`Business metrics · ${section.sectionName}`} domId={`dwf-agg-business-${section.sectionName}`} columns={['Samples', 'Technical hit rate', 'Business hit rate', 'Late correct', 'Late pending']} rows={[[section.businessMetrics.sampleCount, formatPercent(section.businessMetrics.technicalHitRate), formatPercent(section.businessMetrics.businessHitRate), section.businessMetrics.lateCorrectCount, section.businessMetrics.latePendingCount]]} />
+                                    <ReportTableCard title={`Timing buckets · ${section.sectionName}`} domId={`dwf-agg-timing-${section.sectionName}`} columns={['Timing verdict', 'Samples', 'Share']} rows={section.timingBuckets.map(row => [formatEnumLabel(row.timingVerdict), row.sampleCount, formatPercent(row.share)])} />
+                                    {section.latestDaysBreakdown.length > 0 && <ReportTableCard title={`Latest days breakdown · ${section.sectionName}`} domId={`dwf-agg-latest-${section.sectionName}`} columns={['Bucket', 'Samples', 'Avg return', 'Technical hit rate', 'Business hit rate']} rows={section.latestDaysBreakdown.map(row => [row.bucketName, row.sampleCount, formatProbability(row.avgReturn), formatPercent(row.technicalHitRate), formatPercent(row.businessHitRate)])} />}
+                                </div>
+                            </WalkForwardRenderSectionBoundary>
                         ))}
                 </div>
             </PageDataState>
@@ -479,10 +592,17 @@ export function WalkForwardModeAggregationPanel({ className, mode }: BaseProps) 
 }
 
 export function WalkForwardModePfiPanel({ className, mode, family = 'daily' }: PfiProps) {
-    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
-    const tbmPfiQuery = useTbmNativePfiQuery(freshness, { enabled: mode === 'tbm_native' })
-    const directionalPerModelQuery = useDirectionalWalkForwardPfiPerModelQuery(freshness, { enabled: mode === 'directional_walkforward' && family !== 'sl' })
-    const directionalSlQuery = useDirectionalWalkForwardPfiSlModelQuery(freshness, { enabled: mode === 'directional_walkforward' && family === 'sl' })
+    const {
+        modeCatalogQuery,
+        modeRegistry,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } = useWalkForwardReportSlice(mode)
+    const requestedReportSlice = resolveRequestedWalkForwardReportSlice(reportSlice)
+    const tbmPfiQuery = useTbmNativePfiQuery(requestedReportSlice, { enabled: mode === 'tbm_native' && reportSlice !== null })
+    const directionalPerModelQuery = useDirectionalWalkForwardPfiPerModelQuery(requestedReportSlice, { enabled: mode === 'directional_walkforward' && family !== 'sl' && reportSlice !== null })
+    const directionalSlQuery = useDirectionalWalkForwardPfiSlModelQuery(requestedReportSlice, { enabled: mode === 'directional_walkforward' && family === 'sl' && reportSlice !== null })
 
     const query =
         mode === 'tbm_native' ? tbmPfiQuery
@@ -497,37 +617,49 @@ export function WalkForwardModePfiPanel({ className, mode, family = 'daily' }: P
                         <Text type='h2'>
                             {mode === 'tbm_native' ? 'TBM Native PFI' : family === 'sl' ? 'Directional Walk-Forward SL PFI' : 'Directional Walk-Forward PFI'}
                         </Text>
-                        <Text className={cls.subtitle}>Permutation feature importance for the selected mode and freshness slice.</Text>
+                        <Text className={cls.subtitle}>Permutation feature importance for the selected mode and report slice.</Text>
                         <div className={cls.controls}>
-                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                            <ReportSliceControls slices={availableSlices} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                         </div>
                     </div>
                 }
-                isLoading={query.isLoading}
-                isError={query.isError}
-                error={query.error ?? null}
+                isLoading={modeCatalogQuery.isLoading || query.isLoading}
+                isError={Boolean(modeCatalogQuery.error || query.error)}
+                error={modeCatalogQuery.error ?? query.error ?? null}
                 hasData={Boolean(query.data)}
-                onRetry={() => void query.refetch()}
+                onRetry={() => {
+                    void modeCatalogQuery.refetch()
+                    void query.refetch()
+                }}
                 title='PFI unavailable'
                 loadingText='Loading PFI'>
                 <div className={cls.stack}>
                     {mode === 'tbm_native' &&
+                        modeRegistry &&
                         tbmPfiQuery.data?.sections.map(section => (
-                            <ReportTableCard key={section.freshness} title={`PFI · ${section.freshness}`} domId={`tbm-pfi-${section.freshness}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                            <WalkForwardRenderSectionBoundary key={section.slice} name={`walk-forward.pfi.${mode}.${section.slice}`} resetKeys={[mode, family, reportSlice, section.slice]}>
+                                <ReportTableCard title={`PFI · ${formatReportSliceLabel(modeRegistry, mode, section.slice)}`} domId={`tbm-pfi-${section.slice}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                            </WalkForwardRenderSectionBoundary>
                         ))}
                     {mode === 'directional_walkforward' &&
+                        modeRegistry &&
                         family !== 'sl' &&
                         directionalPerModelQuery.data?.models.map(model => (
                             <div key={model.modelName} className={cls.stack}>
                                 {model.slices.map(section => (
-                                    <ReportTableCard key={`${model.modelName}-${section.freshness}`} title={`${model.modelName} · ${section.freshness}`} domId={`dwf-pfi-${model.modelName}-${section.freshness}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                                    <WalkForwardRenderSectionBoundary key={`${model.modelName}-${section.slice}`} name={`walk-forward.pfi.${mode}.${model.modelName}.${section.slice}`} resetKeys={[mode, family, reportSlice, model.modelName, section.slice]}>
+                                        <ReportTableCard title={`${model.modelName} · ${formatReportSliceLabel(modeRegistry, mode, section.slice)}`} domId={`dwf-pfi-${model.modelName}-${section.slice}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                                    </WalkForwardRenderSectionBoundary>
                                 ))}
                             </div>
                         ))}
                     {mode === 'directional_walkforward' &&
+                        modeRegistry &&
                         family === 'sl' &&
                         directionalSlQuery.data?.slices.map(section => (
-                            <ReportTableCard key={section.freshness} title={`SL PFI · ${section.freshness}`} domId={`dwf-sl-pfi-${section.freshness}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                            <WalkForwardRenderSectionBoundary key={section.slice} name={`walk-forward.pfi.${mode}.sl.${section.slice}`} resetKeys={[mode, family, reportSlice, section.slice]}>
+                                <ReportTableCard title={`SL PFI · ${formatReportSliceLabel(modeRegistry, mode, section.slice)}`} domId={`dwf-sl-pfi-${section.slice}`} columns={['Feature', 'Mean delta', 'Std delta', 'Samples']} rows={section.entries.map(row => [row.featureName, formatProbability(row.meanImportanceDelta), formatProbability(row.stdImportanceDelta), row.affectedSampleCount])} />
+                            </WalkForwardRenderSectionBoundary>
                         ))}
                 </div>
             </PageDataState>
@@ -536,11 +668,18 @@ export function WalkForwardModePfiPanel({ className, mode, family = 'daily' }: P
 }
 
 export function WalkForwardModeMoneyPanel({ className, mode }: BaseProps) {
-    const [freshness, setFreshness] = useState<WalkForwardFreshness>('overall')
-    const tbmMoneyQuery = useTbmNativeMoneyQuery(freshness, { enabled: mode === 'tbm_native' })
-    const directionalMoneyQuery = useDirectionalWalkForwardMoneyQuery(freshness, { enabled: mode === 'directional_walkforward' })
+    const {
+        modeCatalogQuery,
+        modeRegistry,
+        availableSlices,
+        reportSlice,
+        setReportSlice
+    } = useWalkForwardReportSlice(mode)
+    const requestedReportSlice = resolveRequestedWalkForwardReportSlice(reportSlice)
+    const tbmMoneyQuery = useTbmNativeMoneyQuery(requestedReportSlice, { enabled: mode === 'tbm_native' && reportSlice !== null })
+    const directionalMoneyQuery = useDirectionalWalkForwardMoneyQuery(requestedReportSlice, { enabled: mode === 'directional_walkforward' && reportSlice !== null })
     const moneyQuery = mode === 'tbm_native' ? tbmMoneyQuery : directionalMoneyQuery
-    const moneySlice = resolveMoneySliceByFreshness(moneyQuery.data?.slices ?? null, freshness)
+    const moneySlice = reportSlice ? resolveMoneySliceByReportSlice(moneyQuery.data?.slices ?? null, reportSlice) : null
     const bestPolicy = resolveBestPolicyContract(moneySlice?.bestPolicy.perMarginMode)
 
     return (
@@ -553,7 +692,7 @@ export function WalkForwardModeMoneyPanel({ className, mode }: BaseProps) {
                             {renderTermTooltipRichText('Published [[policy|best policy]], comparison table and full capital metrics for the selected mode.')}
                         </Text>
                         <div className={cls.controls}>
-                            <FreshnessControls freshness={freshness} onFreshnessChange={setFreshness} />
+                            <ReportSliceControls slices={availableSlices} reportSlice={reportSlice} onReportSliceChange={setReportSlice} />
                         </div>
                         {bestPolicy && (
                             <div className={cls.metricsGrid}>
@@ -571,11 +710,14 @@ export function WalkForwardModeMoneyPanel({ className, mode }: BaseProps) {
                         )}
                     </div>
                 }
-                isLoading={moneyQuery.isLoading}
-                isError={moneyQuery.isError}
-                error={moneyQuery.error ?? null}
+                isLoading={modeCatalogQuery.isLoading || moneyQuery.isLoading}
+                isError={Boolean(modeCatalogQuery.error || moneyQuery.error)}
+                error={modeCatalogQuery.error ?? moneyQuery.error ?? null}
                 hasData={Boolean(moneySlice)}
-                onRetry={() => void moneyQuery.refetch()}
+                onRetry={() => {
+                    void modeCatalogQuery.refetch()
+                    void moneyQuery.refetch()
+                }}
                 title='Money report unavailable'
                 loadingText='Loading money report'>
                 {moneySlice && (
@@ -590,7 +732,7 @@ export function WalkForwardModeMoneyPanel({ className, mode }: BaseProps) {
                                         bestPolicy.policyName,
                                         bestPolicy.policyBranch,
                                         bestPolicy.bucket,
-                                        bestPolicy.slice.scopeLabel,
+                                        formatReportSliceLabel(modeRegistry, mode, bestPolicy.slice.scopeKey),
                                         formatRequiredMetricNumber(bestPolicy.score.value, 'bestPolicy.score.value', 4),
                                         requireMoneyString(bestPolicy.evaluation.status, 'bestPolicy.evaluation.status'),
                                         formatRequiredMoneyNumber(bestPolicy.metrics.tradesCount, 'bestPolicy.metrics.tradesCount'),
@@ -737,6 +879,55 @@ export function WalkForwardModeCurrentPredictionPanel({ className, mode }: BaseP
                     </div>
                 )}
             </PageDataState>
+        </div>
+    )
+}
+
+function renderWalkForwardModeSurface(mode: WalkForwardModeId, surfaceKey: ModeSurfaceKey, className?: string) {
+    switch (surfaceKey) {
+        case 'current_snapshot':
+            return <WalkForwardModeCurrentPredictionPanel className={className} mode={mode} />
+        case 'money':
+            return <WalkForwardModeMoneyPanel className={className} mode={mode} />
+        case 'history':
+            return <WalkForwardModeHistoryPanel className={className} mode={mode} />
+        case 'model_stats':
+            return <WalkForwardModeModelStatsPanel className={className} mode={mode} />
+        case 'aggregation':
+            return <WalkForwardModeAggregationPanel className={className} mode={mode} />
+        case 'pfi_per_model':
+            return <WalkForwardModePfiPanel className={className} mode={mode} family='daily' />
+        case 'pfi_sl_model':
+            return <WalkForwardModePfiPanel className={className} mode={mode} family='sl' />
+        default:
+            throw new Error(
+                `[walk-forward-mode-panels] unsupported surface key. mode=${mode}; surfaceKey=${surfaceKey}; requiredAction=extend the owner walk-forward surface renderer intentionally.`
+            )
+    }
+}
+
+export function WalkForwardModeSurfaceStack({
+    className,
+    mode,
+    surfaceKeys
+}: {
+    className?: string
+    mode: WalkForwardModeId
+    surfaceKeys: readonly ModeSurfaceKey[]
+}) {
+    if (surfaceKeys.length === 0) {
+        throw new Error(
+            `[walk-forward-mode-panels] surface stack is empty. mode=${mode}; requiredAction=publish at least one walk-forward surface for the route binding.`
+        )
+    }
+
+    return (
+        <div className={classNames(cls.page, {}, [className ?? ''])}>
+            {surfaceKeys.map(surfaceKey => (
+                <div key={`${mode}-${surfaceKey}`} className={cls.stack}>
+                    {renderWalkForwardModeSurface(mode, surfaceKey)}
+                </div>
+            ))}
         </div>
     )
 }

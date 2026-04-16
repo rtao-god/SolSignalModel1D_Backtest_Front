@@ -8,6 +8,7 @@ export type RealForecastJournalDayStatus =
     | 'finalized'
     | 'missed_capture'
     | 'recovered_exception'
+export type RealForecastJournalRunKind = 'main' | 'preliminary'
 export type RealForecastJournalDirection = 'UP' | 'FLAT' | 'DOWN'
 export type RealForecastJournalPolicyBucket = 'daily' | 'intraday' | 'delayed'
 export type RealForecastJournalMarginMode = 'cross' | 'isolated'
@@ -113,6 +114,7 @@ export interface RealForecastJournalFinalizeRecordDto {
 
 export interface RealForecastJournalDayRecordDto {
     id: string
+    runKind: RealForecastJournalRunKind
     status: RealForecastJournalDayStatus
     trainingScope: CurrentPredictionTrainingScope
     predictionDateUtc: string
@@ -140,6 +142,7 @@ export interface RealForecastJournalLiveRowObservationDto {
 }
 
 export interface RealForecastJournalLiveStatusDto {
+    runKind: RealForecastJournalRunKind
     predictionDateUtc: string
     checkedAtUtc: string
     currentPrice: number
@@ -151,6 +154,7 @@ export interface RealForecastJournalLiveStatusDto {
 
 export interface RealForecastJournalDayListItemDto {
     id: string
+    runKind: RealForecastJournalRunKind
     predictionDateUtc: string
     status: RealForecastJournalDayStatus
     trainingScope: CurrentPredictionTrainingScope
@@ -172,6 +176,7 @@ export interface RealForecastJournalDayListItemDto {
 
 export interface RealForecastJournalOpsCheckpointDto {
     predictionDateUtc: string
+    runKind: RealForecastJournalRunKind
     occurredAtUtc: string
 }
 
@@ -180,6 +185,7 @@ export interface RealForecastJournalOpsCheckpointDto {
  * Контракт приходит с backend ops-status и остаётся каноничным источником NY/DST времени для UI-таймеров.
  */
 export interface RealForecastJournalOpsStatusDto {
+    runKind: RealForecastJournalRunKind
     health: RealForecastJournalOpsHealthStatus
     statusReason: string
     checkedAtUtc: string
@@ -197,10 +203,10 @@ export interface RealForecastJournalOpsStatusDto {
     activeRecordCount: number
     archiveRecordCount: number
     expectedCaptureDayUtc: string | null
-    expectedCaptureEntryUtc: string | null
+    expectedCaptureTargetUtc: string | null
     expectedCaptureDayStatus: RealForecastJournalDayStatus | null
     nextCaptureDayUtc: string | null
-    nextCaptureEntryUtc: string | null
+    nextCaptureTargetUtc: string | null
     captureWindowClosed: boolean
     hasRecordForExpectedCaptureDay: boolean
     captureOverdue: boolean

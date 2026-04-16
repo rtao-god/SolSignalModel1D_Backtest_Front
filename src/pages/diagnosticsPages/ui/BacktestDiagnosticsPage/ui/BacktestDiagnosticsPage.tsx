@@ -16,9 +16,10 @@ import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPag
         - Сфокусировать риск‑метрики и ликвидации в отдельной теме.
         - Быстро находить причины слива по Equity/DD и liq‑событиям.
 */
-export default function BacktestDiagnosticsPage() {
+function FixedSplitBacktestDiagnosticsPage() {
     const { t } = useTranslation('reports')
     const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        'diagnostics_backtest',
         BACKTEST_DIAGNOSTICS_QUERY_SCOPES.backtestPage
     )
 
@@ -47,4 +48,8 @@ export default function BacktestDiagnosticsPage() {
             onRetry={refetch}
         />
     )
+}
+
+export default function BacktestDiagnosticsPage() {
+    return <FixedSplitBacktestDiagnosticsPage />
 }

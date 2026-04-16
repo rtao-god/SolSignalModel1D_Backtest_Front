@@ -18,8 +18,8 @@ import { useBacktestExecutionPipelineReportQuery } from '@/shared/api/tanstackQu
 import {
     buildPublishedReportVariantCompatibleOptions,
     usePublishedReportVariantCatalogQuery,
-    PUBLISHED_REPORT_VARIANT_FAMILIES
 } from '@/shared/api/tanstackQueries/reportVariants'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
 import {
     buildBacktestDiagnosticsQueryArgs,
     DEFAULT_BACKTEST_DIAGNOSTICS_SELECTION,
@@ -195,12 +195,27 @@ function buildExecutionPipelineKeyTerms(reportKind: string, sectionTitle: string
     })
 }
 
-export default function ExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
+function FixedSplitExecutionPipelinePage({ className }: ExecutionPipelinePageProps) {
     const { t, i18n } = useTranslation('reports')
     const [searchParams, setSearchParams] = useSearchParams()
-    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(
-        PUBLISHED_REPORT_VARIANT_FAMILIES.backtestExecutionPipeline
+    const bindingState = useModePageBindingState('execution_pipeline', 'directional_fixed_split', 'execution-pipeline-page')
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Execution-pipeline route binding is missing published report family.', {
+                    source: 'execution-pipeline-binding',
+                    domain: 'ui_section',
+                    owner: 'execution-pipeline-page',
+                    expected: 'The fixed-split execution-pipeline route binding should publish its report family key in /api/modes.',
+                    requiredAction: 'Inspect /api/modes page binding for execution_pipeline.'
+                })
+            :   null,
+        [bindingState.binding, variantFamilyKey]
     )
+    const variantCatalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
 
     const sliceSelectionState = useMemo(() => {
         if (!variantCatalogQuery.data) {
@@ -323,7 +338,12 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
         [effectiveSliceSelection, pipelineVariantSelection, searchParams, setSearchParams, variantCatalogQuery.data]
     )
     const { data, isLoading, isError, error, refetch } = useBacktestExecutionPipelineReportQuery(sliceQueryArgs, {
-        enabled: Boolean(variantCatalogQuery.data) && !variantCatalogQuery.isError && !sliceSelectionState.error
+        enabled:
+            Boolean(variantCatalogQuery.data) &&
+            !variantCatalogQuery.isError &&
+            !sliceSelectionState.error &&
+            !bindingState.error &&
+            !variantFamilyError
     })
     const reportUiLanguage = i18n.resolvedLanguage ?? i18n.language
     const reportTooltipLocale = reportUiLanguage.toLowerCase().startsWith('ru') ? 'ru' : 'en'
@@ -396,6 +416,8 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
     const rootClassName = classNames(cls.root, {}, [className ?? ''])
 
     const reportStateError =
+        bindingState.error ??
+        variantFamilyError ??
         sliceSelectionState.error ??
         (variantCatalogQuery.isError ?
             (variantCatalogQuery.error ??
@@ -428,9 +450,10 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
         [data?.kind, reportTooltipLocale]
     )
     const handleRetry = useCallback(() => {
+        bindingState.refetch()
         void variantCatalogQuery.refetch()
         void refetch()
-    }, [refetch, variantCatalogQuery])
+    }, [bindingState, refetch, variantCatalogQuery])
 
     return (
         <div className={rootClassName}>
@@ -591,4 +614,8 @@ export default function ExecutionPipelinePage({ className }: ExecutionPipelinePa
             </PageDataState>
         </div>
     )
+}
+
+export default function ExecutionPipelinePage(props: ExecutionPipelinePageProps) {
+    return <FixedSplitExecutionPipelinePage {...props} />
 }

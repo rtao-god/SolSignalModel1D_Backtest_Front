@@ -13,9 +13,10 @@ import { useBacktestDiagnosticsPublishedPageQuery } from '@/pages/diagnosticsPag
         - Разрезы по DayType/weekday и объяснение пропусков.
         - Проверка перекоса рынка и поведения модели.
 */
-export default function BacktestDiagnosticsDayStatsPage() {
+function FixedSplitBacktestDiagnosticsDayStatsPage() {
     const { t } = useTranslation('reports')
     const { data, variantCatalog, isPending, isError, error, refetch } = useBacktestDiagnosticsPublishedPageQuery(
+        'diagnostics_day_stats',
         BACKTEST_DIAGNOSTICS_QUERY_SCOPES.dayStatsPage
     )
 
@@ -42,4 +43,8 @@ export default function BacktestDiagnosticsDayStatsPage() {
             onRetry={refetch}
         />
     )
+}
+
+export default function BacktestDiagnosticsDayStatsPage() {
+    return <FixedSplitBacktestDiagnosticsDayStatsPage />
 }

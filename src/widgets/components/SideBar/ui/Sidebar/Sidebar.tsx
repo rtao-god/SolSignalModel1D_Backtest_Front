@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppDispatch } from '@/shared/lib/hooks/redux'
+import { useSelector } from 'react-redux'
 import cls from './Sidebar.module.scss'
 import { RouteSection, SIDEBAR_NAV_ITEMS } from '@/app/providers/router/config/routeConfig'
 import { ROUTE_PATH } from '@/app/providers/router/config/consts'
@@ -18,6 +19,12 @@ import {
     buildRouteSectionTitleI18nKey,
     buildRouteSubNavAriaI18nKey
 } from '@/app/providers/router/config/i18nKeys'
+import {
+    selectActiveMode,
+    supportsModePage,
+    type ModeRegistryDto,
+    type ModePageKey
+} from '@/entities/mode'
 import { BACKTEST_FULL_TABS } from '@/shared/utils/backtestTabs'
 import { AGGREGATION_TABS } from '@/shared/utils/aggregationTabs'
 import type { TableSectionDto } from '@/shared/types/report.types'
@@ -64,6 +71,7 @@ import {
     BACKTEST_DIAGNOSTICS_QUERY_SCOPES,
     useBacktestDiagnosticsReportNavQuery
 } from '@/shared/api/tanstackQueries/backtestDiagnostics'
+import { useModeRegistryQuery } from '@/shared/api/tanstackQueries/modeRegistry'
 import {
     POLICY_BRANCH_MEGA_CANONICAL_PARTS,
 } from '@/shared/api/tanstackQueries/policyBranchMega'
@@ -175,10 +183,29 @@ const PFI_ROUTE_TABS: PfiTabConfig[] = [
     }
 ]
 
+function isModeScopedSidebarItemVisible(
+    modeRegistry: ModeRegistryDto | null,
+    pageKey: ModePageKey | undefined,
+    activeMode: ReturnType<typeof selectActiveMode>
+): boolean {
+    if (!pageKey) {
+        return true
+    }
+
+    if (!modeRegistry) {
+        return false
+    }
+
+    return supportsModePage(modeRegistry, pageKey, activeMode)
+}
+
 export default function AppSidebar({ className, mode = 'default', onItemClick }: SidebarProps) {
     const { t, i18n } = useTranslation()
     const location = useLocation()
     const pathname = location.pathname
+    const activeMode = useSelector(selectActiveMode)
+    const modeRegistryQuery = useModeRegistryQuery()
+    const modeRegistry = modeRegistryQuery.data ?? null
     const queryClient = useQueryClient()
     const dispatch = useAppDispatch()
 
@@ -316,6 +343,10 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
                 return
             }
 
+            if (!isModeScopedSidebarItemVisible(modeRegistry, item.modePageKey, activeMode)) {
+                return
+            }
+
             const isDocsItem = section === 'docs'
             const isExplainItem = section === 'explain'
             const isGuideItem = section === 'guide'
@@ -385,7 +416,7 @@ export default function AppSidebar({ className, mode = 'default', onItemClick }:
         }
 
         return bySection
-    }, [isGuideRoute, isDeveloperRoute, isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute, isStatisticsRoute])
+    }, [activeMode, isGuideRoute, isDeveloperRoute, isDocsRoute, isExplainRoute, isDiagnosticsRoute, isAnalysisRoute, isStatisticsRoute, modeRegistry])
 
     const orderedSections: RouteSection[] = useMemo(() => {
         const existing = Array.from(grouped.keys())

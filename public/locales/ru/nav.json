@@ -61,7 +61,7 @@
         "backtest_btc_weakness_stats": "Слабость Bitcoin",
         "backtest_bounded_parameter_stats": "Статистика ограничителей",
         "backtest_execution_pipeline": "Путь расчёта бэктеста",
-        "pfi_per_model": "Важность фич по моделям",
+        "pfi_per_model": "Важность фич по моделям (PFI)",
         "guide": "База знаний",
         "guide_models": "Модели",
         "guide_branches": "Ветки BASE/ANTI-D",

@@ -4,15 +4,14 @@ import {
     useBacktestDiagnosticsReportQuery,
     type BacktestDiagnosticsQueryScope
 } from '@/shared/api/tanstackQueries/backtestDiagnostics'
-import {
-    PUBLISHED_REPORT_VARIANT_FAMILIES,
-    usePublishedReportVariantCatalogQuery
-} from '@/shared/api/tanstackQueries/reportVariants'
+import { usePublishedReportVariantCatalogQuery } from '@/shared/api/tanstackQueries/reportVariants'
 import {
     buildBacktestDiagnosticsQueryArgs,
     resolveBacktestDiagnosticsSearchSelection
 } from '@/shared/utils/backtestDiagnosticsQuery'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { useModePageBindingState } from '@/shared/api/tanstackQueries/modePageBinding'
+import type { ModePageKey } from '@/entities/mode'
 
 interface UseBacktestDiagnosticsPublishedPageQueryResult {
     data: ReturnType<typeof useBacktestDiagnosticsReportQuery>['data']
@@ -28,10 +27,28 @@ interface UseBacktestDiagnosticsPublishedPageQueryResult {
  * Источник правды для допустимых query-комбинаций теперь идёт только из published catalog.
  */
 export function useBacktestDiagnosticsPublishedPageQuery(
+    pageKey: ModePageKey,
     scope: BacktestDiagnosticsQueryScope
 ): UseBacktestDiagnosticsPublishedPageQueryResult {
     const [searchParams] = useSearchParams()
-    const catalogQuery = usePublishedReportVariantCatalogQuery(PUBLISHED_REPORT_VARIANT_FAMILIES.backtestDiagnostics)
+    const bindingState = useModePageBindingState(pageKey, 'directional_fixed_split', 'backtest-diagnostics-page-query')
+    const variantFamilyKey = bindingState.binding?.publishedReportFamilyKey ?? null
+    const variantFamilyError = useMemo(
+        () =>
+            bindingState.binding && !variantFamilyKey ?
+                normalizeErrorLike(null, 'Diagnostics route binding is missing published report family.', {
+                    source: 'diagnostics-page-binding',
+                    domain: 'ui_section',
+                    owner: 'backtest-diagnostics-page-query',
+                    expected: 'The fixed-split diagnostics route binding should publish its report family key in /api/modes.',
+                    requiredAction: `Inspect /api/modes page binding for diagnostics pageKey='${pageKey}'.`
+                })
+            :   null,
+        [bindingState.binding, pageKey, variantFamilyKey]
+    )
+    const catalogQuery = usePublishedReportVariantCatalogQuery(variantFamilyKey ?? '__missing_mode_family__', {
+        enabled: Boolean(variantFamilyKey) && !bindingState.error && !variantFamilyError
+    })
 
     const diagnosticsSelectionState = useMemo(() => {
         if (!catalogQuery.data) {
@@ -63,16 +80,23 @@ export function useBacktestDiagnosticsPublishedPageQuery(
 
     const queryArgs = useMemo(
         () =>
-            diagnosticsSelectionState.value ? buildBacktestDiagnosticsQueryArgs(diagnosticsSelectionState.value) : undefined,
+        diagnosticsSelectionState.value ? buildBacktestDiagnosticsQueryArgs(diagnosticsSelectionState.value) : undefined,
         [diagnosticsSelectionState.value]
     )
 
     const reportQuery = useBacktestDiagnosticsReportQuery(queryArgs, {
         scope,
-        enabled: Boolean(catalogQuery.data) && !catalogQuery.isError && !diagnosticsSelectionState.error
+        enabled:
+            Boolean(catalogQuery.data) &&
+            !catalogQuery.isError &&
+            !diagnosticsSelectionState.error &&
+            !bindingState.error &&
+            !variantFamilyError
     })
 
     const error =
+        bindingState.error ??
+        variantFamilyError ??
         diagnosticsSelectionState.error ??
         (catalogQuery.isError ?
             (catalogQuery.error ??
@@ -96,9 +120,10 @@ export function useBacktestDiagnosticsPublishedPageQuery(
         :   null)
 
     const refetch = useCallback(() => {
+        bindingState.refetch()
         void catalogQuery.refetch()
         void reportQuery.refetch()
-    }, [catalogQuery, reportQuery])
+    }, [bindingState, catalogQuery, reportQuery])
 
     return {
         data: reportQuery.data,

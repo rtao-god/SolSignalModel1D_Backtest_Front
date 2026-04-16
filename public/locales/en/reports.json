@@ -2664,7 +2664,7 @@
                 "title": "Money by mode",
                 "description": "This owner block makes it possible to read how much the published modes actually earn and which exact money source stands behind each number next to the classic [[landing-policy-branch-mega|Policy Branch Mega]] table.",
                 "tableTitle": "Cross-mode money comparison",
-                "tableDescription": "This table joins Directional Fixed-Split money for Train / Full / OOS, TBM Native, and Directional Walk-Forward.",
+                "tableDescription": "This table joins Directional Fixed-Split money for Train / Full / OOS, TBM Native, and Directional Walk-Forward. Diagnostic slices show fallback health checks without money columns.",
                 "empty": "No rows are available for the cross-mode money summary yet.",
                 "view": {
                     "label": "Table view",
@@ -2690,11 +2690,13 @@
                 "sourceKinds": {
                     "canonicalStrategy": "Canonical mode strategy",
                     "policyUniverseBestPolicy": "Top published [[policy|Policy]]",
+                    "diagnosticSlice": "Diagnostic slice",
                     "notPublished": "Money is not published",
                     "notAvailable": "Money source unavailable"
                 },
                 "statuses": {
                     "available": "Published",
+                    "diagnostic": "Diagnostic only",
                     "notPublished": "Not published",
                     "missingArtifacts": "Artifacts missing",
                     "noEligiblePolicy": "No eligible [[policy|Policy]]"
@@ -2710,6 +2712,7 @@
                     "days": "Days",
                     "trades": "Trades",
                     "predictionQuality": "Prediction quality",
+                    "diagnostics": "Diagnostics",
                     "totalReturn": "Return, %",
                     "totalPnlUsd": "PnL, $",
                     "startCapitalUsd": "Start cap, $",
@@ -2728,6 +2731,17 @@
                     "lateCorrectDays": "Confirmed on the next day",
                     "latePendingDays": "Next day still open",
                     "tbmHitRate": "TBM forecast match"
+                },
+                "diagnostics": {
+                    "staleNoDays": "No stale fallback days were found. The slice is published to prove that the required report slice exists.",
+                    "staleNotComparable": "This stale fallback slice is diagnostic only: the most active candidate has {{tradeCount}} trades, so it is not mixed with normal money slices.",
+                    "metrics": {
+                        "completedDays": "Completed days",
+                        "policyRows": "Policy rows",
+                        "policyRowsWithTrades": "Rows with trades",
+                        "topCandidateTrades": "Top candidate trades",
+                        "requiredBestPolicyTrades": "Required trades for normal money slice"
+                    }
                 }
             },
             "metricDiff": {

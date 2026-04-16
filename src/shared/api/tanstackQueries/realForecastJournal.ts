@@ -27,6 +27,7 @@ import type {
     RealForecastJournalPolicyRowDto,
     RealForecastJournalPolicyBucket,
     RealForecastJournalProbabilityDto,
+    RealForecastJournalRunKind,
     RealForecastJournalSnapshotDto
 } from '@/shared/types/realForecastJournal.types'
 import { mapPolicyPerformanceMetricsOrNull } from '../utils/mapPolicyPerformanceMetrics'
@@ -34,13 +35,20 @@ import { mapPolicyPerformanceMetricsOrNull } from '../utils/mapPolicyPerformance
 const REAL_FORECAST_JOURNAL_QUERY_KEY = ['real-forecast-journal'] as const
 const { dayList, byDate, liveStatus, opsStatus } = API_ROUTES.realForecastJournal
 const REAL_FORECAST_JOURNAL_TIME_SCOPE = { scope: 'real-forecast-journal' } as const
+const DEFAULT_REAL_FORECAST_JOURNAL_RUN_KIND: RealForecastJournalRunKind = 'main'
 
 export interface RealForecastJournalDayListQueryArgs {
     days?: number
+    runKind?: RealForecastJournalRunKind
 }
 
 export interface RealForecastJournalDayQueryArgs {
     dateUtc: string
+    runKind?: RealForecastJournalRunKind
+}
+
+export interface RealForecastJournalOpsStatusQueryArgs {
+    runKind?: RealForecastJournalRunKind
 }
 
 interface RealForecastJournalDayListQueryOptions {
@@ -181,6 +189,19 @@ function resolveStatus(value: unknown): RealForecastJournalDayStatus {
     }
 
     throw new Error(`[real-forecast-journal] unsupported journal status: ${String(value)}.`)
+}
+
+function resolveRunKind(value: unknown): RealForecastJournalRunKind {
+    if (typeof value === 'string') {
+        if (value === 'main') return 'main'
+        if (value === 'preliminary') return 'preliminary'
+    }
+
+    throw new Error(`[real-forecast-journal] unsupported run kind: ${String(value)}.`)
+}
+
+function resolveRunKindOrDefault(value: RealForecastJournalRunKind | undefined): RealForecastJournalRunKind {
+    return value ?? DEFAULT_REAL_FORECAST_JOURNAL_RUN_KIND
 }
 
 function resolveOpsHealth(value: unknown): RealForecastJournalOpsHealthStatus {
@@ -463,6 +484,7 @@ function mapDayListItem(value: unknown, index: number): RealForecastJournalDayLi
 
     return {
         id: toNonEmptyString(readRequiredField(raw, 'id', 'id'), 'id'),
+        runKind: resolveRunKind(readRequiredField(raw, 'runKind', 'runKind')),
         predictionDateUtc: normalizeUtcDayKey(
             readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc'),
             'predictionDateUtc'
@@ -527,6 +549,7 @@ function mapDayRecord(value: unknown): RealForecastJournalDayRecordDto {
 
     return {
         id: toNonEmptyString(readRequiredField(raw, 'id', 'id'), 'id'),
+        runKind: resolveRunKind(readRequiredField(raw, 'runKind', 'runKind')),
         status,
         trainingScope: resolveTrainingScope(readRequiredField(raw, 'trainingScope', 'trainingScope')),
         predictionDateUtc: normalizeUtcDayKey(
@@ -577,6 +600,7 @@ function mapOpsCheckpointOrNull(value: unknown, label: string): RealForecastJour
             readRequiredField(raw, `${label}.predictionDateUtc`, 'predictionDateUtc'),
             `${label}.predictionDateUtc`
         ),
+        runKind: resolveRunKind(readRequiredField(raw, `${label}.runKind`, 'runKind')),
         occurredAtUtc: normalizeUtcInstant(
             readRequiredField(raw, `${label}.occurredAtUtc`, 'occurredAtUtc'),
             `${label}.occurredAtUtc`
@@ -598,6 +622,7 @@ function mapOpsStatus(value: unknown): RealForecastJournalOpsStatusDto {
     }
 
     return {
+        runKind: resolveRunKind(readRequiredField(raw, 'runKind', 'runKind')),
         health: resolveOpsHealth(readRequiredField(raw, 'health', 'health')),
         statusReason: toNonEmptyString(
             readRequiredField(raw, 'statusReason', 'statusReason'),
@@ -642,13 +667,13 @@ function mapOpsStatus(value: unknown): RealForecastJournalOpsStatusDto {
             'archiveRecordCount'
         ),
         expectedCaptureDayUtc: mapOptionalUtcDay('expectedCaptureDayUtc'),
-        expectedCaptureEntryUtc: mapOptionalUtcInstant('expectedCaptureEntryUtc'),
+        expectedCaptureTargetUtc: mapOptionalUtcInstant('expectedCaptureTargetUtc'),
         expectedCaptureDayStatus: (() => {
             const rawValue = readOptionalField(raw, 'expectedCaptureDayStatus')
             return rawValue === null || typeof rawValue === 'undefined' ? null : resolveStatus(rawValue)
         })(),
         nextCaptureDayUtc: mapOptionalUtcDay('nextCaptureDayUtc'),
-        nextCaptureEntryUtc: mapOptionalUtcInstant('nextCaptureEntryUtc'),
+        nextCaptureTargetUtc: mapOptionalUtcInstant('nextCaptureTargetUtc'),
         captureWindowClosed: toBoolean(
             readRequiredField(raw, 'captureWindowClosed', 'captureWindowClosed'),
             'captureWindowClosed'
@@ -715,6 +740,7 @@ function mapLiveStatus(value: unknown): RealForecastJournalLiveStatusDto {
     }
 
     return {
+        runKind: resolveRunKind(readRequiredField(raw, 'runKind', 'runKind')),
         predictionDateUtc: normalizeUtcDayKey(
             readRequiredField(raw, 'predictionDateUtc', 'predictionDateUtc'),
             'predictionDateUtc'
@@ -779,6 +805,7 @@ async function fetchRealForecastJournalDayList(
     args?: RealForecastJournalDayListQueryArgs
 ): Promise<RealForecastJournalDayListItemDto[]> {
     const params = new URLSearchParams()
+    params.set('runKind', resolveRunKindOrDefault(args?.runKind))
     if (typeof args?.days === 'number' && Number.isFinite(args.days) && args.days > 0) {
         params.set('days', String(args.days))
     }
@@ -798,7 +825,10 @@ async function fetchRealForecastJournalDayList(
 async function fetchRealForecastJournalDay(
     args: RealForecastJournalDayQueryArgs
 ): Promise<RealForecastJournalDayRecordDto> {
-    const params = new URLSearchParams({ dateUtc: normalizeUtcDayKey(args.dateUtc, 'dateUtc') })
+    const params = new URLSearchParams({
+        dateUtc: normalizeUtcDayKey(args.dateUtc, 'dateUtc'),
+        runKind: resolveRunKindOrDefault(args.runKind)
+    })
     const url = `${API_BASE_URL}${byDate.path}?${params.toString()}`
     const response = await fetch(url)
 
@@ -810,8 +840,13 @@ async function fetchRealForecastJournalDay(
     return parseRealForecastJournalDayRecordResponse(await response.json())
 }
 
-async function fetchRealForecastJournalOpsStatus(): Promise<RealForecastJournalOpsStatusDto> {
-    const url = `${API_BASE_URL}${opsStatus.path}`
+async function fetchRealForecastJournalOpsStatus(
+    args?: RealForecastJournalOpsStatusQueryArgs
+): Promise<RealForecastJournalOpsStatusDto> {
+    const params = new URLSearchParams({
+        runKind: resolveRunKindOrDefault(args?.runKind)
+    })
+    const url = `${API_BASE_URL}${opsStatus.path}?${params.toString()}`
     const response = await fetch(url, { cache: 'no-store' })
 
     if (!response.ok) {
@@ -825,7 +860,10 @@ async function fetchRealForecastJournalOpsStatus(): Promise<RealForecastJournalO
 async function fetchRealForecastJournalLiveStatus(
     args: RealForecastJournalDayQueryArgs
 ): Promise<RealForecastJournalLiveStatusDto> {
-    const params = new URLSearchParams({ dateUtc: normalizeUtcDayKey(args.dateUtc, 'dateUtc') })
+    const params = new URLSearchParams({
+        dateUtc: normalizeUtcDayKey(args.dateUtc, 'dateUtc'),
+        runKind: resolveRunKindOrDefault(args.runKind)
+    })
     const url = `${API_BASE_URL}${liveStatus.path}?${params.toString()}`
     const response = await fetch(url, { cache: 'no-store' })
 
@@ -838,7 +876,11 @@ async function fetchRealForecastJournalLiveStatus(
 }
 
 function resolveDayQueryKeySegment(args?: RealForecastJournalDayQueryArgs): string {
-    return args ? normalizeUtcDayKey(args.dateUtc, 'dateUtc') : 'unselected'
+    if (!args) {
+        return 'unselected'
+    }
+
+    return `${resolveRunKindOrDefault(args.runKind)}:${normalizeUtcDayKey(args.dateUtc, 'dateUtc')}`
 }
 
 function requireDayQueryArgs(
@@ -856,8 +898,10 @@ export function useRealForecastJournalDayListQuery(
     args?: RealForecastJournalDayListQueryArgs,
     options?: RealForecastJournalDayListQueryOptions
 ): UseQueryResult<RealForecastJournalDayListItemDto[], Error> {
+    const runKind = resolveRunKindOrDefault(args?.runKind)
+
     return useQuery({
-        queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'index', args?.days ?? 'all'] as const,
+        queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'index', runKind, args?.days ?? 'all'] as const,
         queryFn: () => fetchRealForecastJournalDayList(args),
         enabled: options?.enabled ?? true,
         retry: false,
@@ -885,11 +929,14 @@ export function useRealForecastJournalDayQuery(
  * Фронт не вычисляет NY/DST расписание самостоятельно, чтобы не расходиться с worker-контрактом.
  */
 export function useRealForecastJournalOpsStatusQuery(
+    args?: RealForecastJournalOpsStatusQueryArgs,
     options?: RealForecastJournalOpsStatusQueryOptions
 ): UseQueryResult<RealForecastJournalOpsStatusDto, Error> {
+    const runKind = resolveRunKindOrDefault(args?.runKind)
+
     return useQuery({
-        queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'ops-status'] as const,
-        queryFn: fetchRealForecastJournalOpsStatus,
+        queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'ops-status', runKind] as const,
+        queryFn: () => fetchRealForecastJournalOpsStatus({ runKind }),
         enabled: options?.enabled ?? true,
         retry: false,
         refetchInterval: QUERY_POLICY_REGISTRY.realForecastJournal.opsStatusRefetchIntervalMs
@@ -915,8 +962,15 @@ export function useRealForecastJournalLiveStatusQuery(
 
 export async function prefetchRealForecastJournalDayList(queryClient: QueryClient): Promise<void> {
     await queryClient.prefetchQuery({
-        queryKey: [...REAL_FORECAST_JOURNAL_QUERY_KEY, 'index', 'all'] as const,
-        queryFn: () => fetchRealForecastJournalDayList()
+        queryKey: [
+            ...REAL_FORECAST_JOURNAL_QUERY_KEY,
+            'index',
+            DEFAULT_REAL_FORECAST_JOURNAL_RUN_KIND,
+            'all'
+        ] as const,
+        queryFn: () => fetchRealForecastJournalDayList({
+            runKind: DEFAULT_REAL_FORECAST_JOURNAL_RUN_KIND
+        })
     })
 }
 
