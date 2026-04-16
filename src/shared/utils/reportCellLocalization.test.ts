@@ -24,6 +24,11 @@ describe('reportCellLocalization', () => {
         expect(localizeReportCellValue('BucketNow$', '19.79k', 'en')).toBe('$19,790')
     })
 
+    test('trims redundant trailing zeroes from percent values', () => {
+        expect(localizeReportCellValue('WinRate%', '56.4000', 'ru')).toBe('56,4%')
+        expect(localizeReportCellValue('WinRate%', '56.0000', 'en')).toBe('56%')
+    })
+
     test('replaces raw account ruin flags with human-readable state', () => {
         expect(localizeReportCellValue('AccRuin', '0', 'ru')).toBe('Нет, бакет жив')
         expect(localizeReportCellValue('AccRuin', '1', 'ru')).toBe('Да, бакет потратил стартовый капитал')

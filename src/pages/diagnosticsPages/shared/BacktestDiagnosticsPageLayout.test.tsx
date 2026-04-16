@@ -5,6 +5,12 @@ import type { ReportDocumentDto, TableSectionDto } from '@/shared/types/report.t
 import { BACKTEST_DIAGNOSTICS_FULL_CONTROL_AXES } from '@/shared/utils/backtestDiagnosticsPageAxes'
 import BacktestDiagnosticsPageLayout from './BacktestDiagnosticsPageLayout'
 
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
+
 describe('BacktestDiagnosticsPageLayout', () => {
     test('renders diagnostics terms with enriched domain tooltip text', async () => {
         await i18nForTests.changeLanguage('ru')
@@ -35,7 +41,10 @@ describe('BacktestDiagnosticsPageLayout', () => {
                 pageSubtitle='Diagnostics subtitle'
                 emptyMessage='No diagnostics'
                 errorTitle='Diagnostics error'
-            />
+            />,
+            {
+                initialState: FIXED_SPLIT_INITIAL_STATE
+            }
         )
 
         const termsBlock = screen.getByText('Термины diagnostics').closest('[data-tooltip-boundary="true"]')
@@ -81,7 +90,10 @@ describe('BacktestDiagnosticsPageLayout', () => {
                 pageSubtitle='Ratings subtitle'
                 emptyMessage='No diagnostics'
                 errorTitle='Diagnostics error'
-            />
+            />,
+            {
+                initialState: FIXED_SPLIT_INITIAL_STATE
+            }
         )
 
         expect(screen.getByText('Dynamic-risk режим')).toBeInTheDocument()
@@ -103,7 +115,10 @@ describe('BacktestDiagnosticsPageLayout', () => {
                 emptyMessage='No diagnostics'
                 errorTitle='Diagnostics error'
                 error={new Error('Unsupported zonal mode')}
-            />
+            />,
+            {
+                initialState: FIXED_SPLIT_INITIAL_STATE
+            }
         )
 
         expect(screen.getByText('Guardrail')).toBeVisible()

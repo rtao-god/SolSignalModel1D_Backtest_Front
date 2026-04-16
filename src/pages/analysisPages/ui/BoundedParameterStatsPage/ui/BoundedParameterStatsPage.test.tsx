@@ -9,6 +9,11 @@ const { useBacktestBoundedParameterStatsReportQuery } = vi.hoisted(() => ({
 const { usePublishedReportVariantCatalogQuery } = vi.hoisted(() => ({
     usePublishedReportVariantCatalogQuery: vi.fn()
 }))
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 vi.mock('@/shared/api/tanstackQueries/backtestBoundedParameterStats', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/backtestBoundedParameterStats')>()
@@ -117,6 +122,7 @@ describe('BoundedParameterStatsPage', () => {
 
     test('renders controls and selected report for published owner/parameter selection', () => {
         render(<BoundedParameterStatsPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/statistics/bounded-parameter-stats'
         })
 
@@ -133,6 +139,7 @@ describe('BoundedParameterStatsPage', () => {
         )
 
         render(<BoundedParameterStatsPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/statistics/bounded-parameter-stats?owner=broken'
         })
 

@@ -9,6 +9,11 @@ const { useBacktestExecutionPipelineReportQuery } = vi.hoisted(() => ({
 const { usePublishedReportVariantCatalogQuery } = vi.hoisted(() => ({
     usePublishedReportVariantCatalogQuery: vi.fn()
 }))
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 vi.mock('@/shared/api/tanstackQueries/backtestExecutionPipeline', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/backtestExecutionPipeline')>()
@@ -173,6 +178,7 @@ describe('ExecutionPipelinePage', () => {
 
     test('renders universal slice controls and forwards current diagnostics query to the backend hook', () => {
         render(<ExecutionPipelinePage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/execution-pipeline?bucket=intraday&slmode=no-sl&tpsl=static&zonal=without-zonal'
         })
 
@@ -194,6 +200,7 @@ describe('ExecutionPipelinePage', () => {
 
     test('shows owner error state and disables backend fetch when diagnostics query is invalid', () => {
         render(<ExecutionPipelinePage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/execution-pipeline?bucket=broken'
         })
 
@@ -208,6 +215,7 @@ describe('ExecutionPipelinePage', () => {
 
     test('renders terms blocks for key-value and table sections', () => {
         render(<ExecutionPipelinePage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/execution-pipeline'
         })
 
@@ -217,6 +225,7 @@ describe('ExecutionPipelinePage', () => {
 
     test('hides duplicate margin column when policy name already shows Cross or Isolated', () => {
         render(<ExecutionPipelinePage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/execution-pipeline'
         })
 

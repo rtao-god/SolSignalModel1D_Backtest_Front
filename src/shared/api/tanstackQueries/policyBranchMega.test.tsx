@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import type { PropsWithChildren, ReactElement } from 'react'
 import {
     buildPolicyBranchMegaQueryKey,
+    fetchPolicyBranchMegaModeMoneySummary,
     fetchPolicyBranchMegaReport,
     fetchPolicyBranchMegaValidation,
     POLICY_BRANCH_MEGA_REQUEST_TIMEOUT_MS,
@@ -146,6 +147,73 @@ function createPolicyBranchMegaPayload() {
     }
 }
 
+function createModeMoneySummaryPayload() {
+    return {
+        schemaVersion: 'mode-money-comparison-summary-v6-2026-04-16',
+        generatedAtUtc: '2026-04-16T12:00:00.000Z',
+        rows: [
+            {
+                modeKey: 'tbm_native',
+                sliceKey: 'overall',
+                moneySourceKind: 'policy_universe_best_policy',
+                sourceStatus: 'available',
+                statusMessage: 'published best policy from the TBM Native family',
+                executionDescriptor: 'const_2x_cross / BASE',
+                comparabilityNote: 'Comparable money slice.',
+                tradingStartDateUtc: '2026-03-01',
+                tradingEndDateUtc: '2026-03-03',
+                completedDayCount: 3,
+                tradeCount: 4,
+                predictionQualityMetrics: [
+                    {
+                        metricKey: 'tbm_hit_rate_pct',
+                        metricLabel: 'TBM hit rate',
+                        value: 66.67,
+                        unit: 'percent'
+                    }
+                ],
+                moneyMetrics: {
+                    tradesCount: 4,
+                    totalPnlPct: 1,
+                    totalPnlUsd: 100,
+                    maxDdPct: 2,
+                    maxDdNoLiqPct: 2,
+                    mean: 0.01,
+                    std: 0.02,
+                    downStd: 0.01,
+                    sharpe: 1.2,
+                    sortino: 1.5,
+                    cagr: 0.12,
+                    calmar: 0.8,
+                    winRate: 0.55,
+                    startCapitalUsd: 20000,
+                    equityNowUsd: 20100,
+                    withdrawnTotalUsd: 0,
+                    fundingNetUsd: 0,
+                    fundingPaidUsd: 0,
+                    fundingReceivedUsd: 0,
+                    fundingEventCount: 0,
+                    tradesWithFundingCount: 0,
+                    fundingLiquidationCount: 0,
+                    fundingBucketDeathCount: 0,
+                    mixedBucketDeathCount: 0,
+                    hadLiquidation: false,
+                    realLiquidationCount: 0,
+                    accountRuinCount: 0,
+                    balanceDead: false
+                },
+                maxDrawdownPct: 2,
+                diagnostic: null,
+                sourceArtifactKind: 'tbm_native_money',
+                sourceArtifactId: 'latest',
+                sourceLocationHint: 'reports/tbm_native_money/latest.json',
+                policyName: 'const_2x_cross',
+                policyBranch: 'BASE'
+            }
+        ]
+    }
+}
+
 describe('policyBranchMega report queries', () => {
     afterEach(() => {
         vi.useRealTimers()
@@ -180,6 +248,29 @@ describe('policyBranchMega report queries', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1)
         expect(queryClient.getQueryData(buildPolicyBranchMegaQueryKey(resolvedArgs))).toMatchObject({
             id: 'policy-branch-mega-test'
+        })
+    })
+
+    test('loads mode-money summary rows from canonical keys without payload labels', async () => {
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input)
+
+            if (url.includes('/api/backtest/policy-branch-mega/mode-money-summary')) {
+                return jsonResponse(createModeMoneySummaryPayload())
+            }
+
+            throw new Error(`Unexpected url: ${url}`)
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        await expect(fetchPolicyBranchMegaModeMoneySummary()).resolves.toMatchObject({
+            rows: [
+                {
+                    modeKey: 'tbm_native',
+                    sliceKey: 'overall'
+                }
+            ]
         })
     })
 

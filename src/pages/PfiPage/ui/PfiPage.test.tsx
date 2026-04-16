@@ -10,6 +10,11 @@ const { usePfiReportReadQuery } = vi.hoisted(() => ({
 const { resolveReportSourceEndpoint } = vi.hoisted(() => ({
     resolveReportSourceEndpoint: vi.fn()
 }))
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 vi.mock('@/shared/api/tanstackQueries/pfi', () => ({
     usePfiReportReadQuery
@@ -76,7 +81,9 @@ describe('PfiPage', () => {
     })
 
     test('daily page opens with model-quality layer and does not load PFI diagnostics immediately', async () => {
-        render(<PfiPage family='daily' />)
+        render(<PfiPage family='daily' />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE
+        })
 
         await waitFor(() => {
             expect(screen.getByTestId('model-stats-stub')).toBeInTheDocument()
@@ -91,7 +98,9 @@ describe('PfiPage', () => {
     })
 
     test('daily page loads PFI diagnostics only after explicit mode switch', async () => {
-        render(<PfiPage family='daily' />)
+        render(<PfiPage family='daily' />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE
+        })
 
         fireEvent.click(screen.getByRole('button', { name: 'Влияние признаков' }))
 
@@ -112,7 +121,9 @@ describe('PfiPage', () => {
     })
 
     test('sl page opens with model-quality layer and keeps PFI diagnostics lazy until click', async () => {
-        render(<PfiPage family='sl' />)
+        render(<PfiPage family='sl' />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE
+        })
 
         await waitFor(() => {
             expect(screen.getByText('embedded-model-stats:sl_model')).toBeInTheDocument()
@@ -123,7 +134,9 @@ describe('PfiPage', () => {
     })
 
     test('sl page loads PFI diagnostics only after explicit mode switch', async () => {
-        render(<PfiPage family='sl' />)
+        render(<PfiPage family='sl' />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE
+        })
 
         fireEvent.click(screen.getByRole('button', { name: 'Влияние признаков' }))
 
@@ -141,7 +154,9 @@ describe('PfiPage', () => {
             throw new Error('[report-source] API_BASE_URL is empty.')
         })
 
-        render(<PfiPage family='sl' />)
+        render(<PfiPage family='sl' />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE
+        })
 
         fireEvent.click(screen.getByRole('button', { name: 'Влияние признаков' }))
 

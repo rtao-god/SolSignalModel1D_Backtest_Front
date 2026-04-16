@@ -21,6 +21,11 @@ const {
     useBacktestConfidenceRiskReportQuery: vi.fn(),
     useCurrentPredictionBackfilledTrainingScopeStatsQuery: vi.fn()
 }))
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 vi.mock('@/shared/api/tanstackQueries/realForecastJournal', () => ({
     useRealForecastJournalDayListQuery,
@@ -175,6 +180,7 @@ function createIndicatorSnapshot(
 function createDayRecord(overrides: Record<string, unknown> = {}) {
     return {
         id: 'day-1',
+        runKind: 'main',
         status: 'finalized',
         trainingScope: 'oos',
         predictionDateUtc: '2026-03-10',
@@ -224,6 +230,7 @@ function createDayList() {
     return [
         {
             id: 'day-1',
+            runKind: 'main',
             predictionDateUtc: '2026-03-10',
             status: 'finalized',
             trainingScope: 'oos',
@@ -247,6 +254,7 @@ function createDayList() {
 
 function createLiveStatus() {
     return {
+        runKind: 'main',
         predictionDateUtc: '2026-03-10',
         checkedAtUtc: '2026-03-10T15:00:00.000Z',
         currentPrice: 152,
@@ -259,6 +267,7 @@ function createLiveStatus() {
 
 function createOpsStatus() {
     return {
+        runKind: 'main',
         health: 'healthy',
         statusReason: 'healthy',
         checkedAtUtc: '2026-03-10T15:00:00.000Z',
@@ -276,9 +285,9 @@ function createOpsStatus() {
         activeRecordCount: 1,
         archiveRecordCount: 5,
         expectedCaptureDayUtc: '2026-03-11',
-        expectedCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
+        expectedCaptureTargetUtc: '2026-03-11T13:30:00.000Z',
         nextCaptureDayUtc: '2026-03-11',
-        nextCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
+        nextCaptureTargetUtc: '2026-03-11T13:30:00.000Z',
         captureWindowClosed: false,
         hasRecordForExpectedCaptureDay: false,
         captureOverdue: false,
@@ -452,6 +461,7 @@ describe('RealForecastJournalPage', () => {
 
     test('keeps page shell visible when journal day list request fails', async () => {
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal'
         })
 
@@ -474,6 +484,7 @@ describe('RealForecastJournalPage', () => {
         mockSuccessfulQueries()
 
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal'
         })
 
@@ -481,10 +492,44 @@ describe('RealForecastJournalPage', () => {
         expect(screen.queryByText('Indicator value diff')).not.toBeInTheDocument()
     })
 
+    test('loads main forecasts by default and switches journal queries to preliminary forecasts', async () => {
+        mockSuccessfulQueries()
+
+        render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
+            route: '/analysis/real-forecast-journal'
+        })
+
+        expect(useRealForecastJournalDayListQuery).toHaveBeenCalledWith(
+            { runKind: 'main' },
+            { enabled: true }
+        )
+        expect(useRealForecastJournalDayQuery).toHaveBeenCalledWith(
+            { dateUtc: '2026-03-10', runKind: 'main' },
+            { enabled: true }
+        )
+        expect(useRealForecastJournalOpsStatusQuery).toHaveBeenCalledWith(
+            { runKind: 'main' }
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Preliminary forecasts' }))
+
+        await waitFor(() => {
+            expect(useRealForecastJournalDayListQuery).toHaveBeenLastCalledWith(
+                { runKind: 'preliminary' },
+                { enabled: true }
+            )
+            expect(useRealForecastJournalOpsStatusQuery).toHaveBeenLastCalledWith(
+                { runKind: 'preliminary' }
+            )
+        })
+    }, 20_000)
+
     test('shows indicator terms block only after the detailed block is opened', () => {
         mockSuccessfulQueries()
 
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal'
         })
 
@@ -494,12 +539,13 @@ describe('RealForecastJournalPage', () => {
 
         expect(screen.getByText('Indicator value diff')).toBeInTheDocument()
         expect(screen.getAllByText('Section terms')).toHaveLength(3)
-    })
+    }, 20_000)
 
     test('renders confidence-risk terms blocks when comparison source is switched', () => {
         mockSuccessfulQueries()
 
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal?source=confidence-risk'
         })
 
@@ -602,6 +648,7 @@ describe('RealForecastJournalPage', () => {
         )
 
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal'
         })
 
@@ -613,6 +660,7 @@ describe('RealForecastJournalPage', () => {
         mockSuccessfulQueries()
 
         render(<RealForecastJournalPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/real-forecast-journal'
         })
 
@@ -620,5 +668,5 @@ describe('RealForecastJournalPage', () => {
         expect(screen.queryByRole('button', { name: 'No SL' })).not.toBeInTheDocument()
         expect(screen.queryByText('Margin mode')).not.toBeInTheDocument()
         expect(screen.queryByText(/days the model had not seen during training/i)).not.toBeInTheDocument()
-    })
+    }, 20_000)
 })

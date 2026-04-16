@@ -6,6 +6,12 @@ import PolicyBranchMegaPage from './PolicyBranchMegaPage'
 const refetchMock = vi.fn()
 const useQueriesMock = vi.fn()
 const useCurrentPredictionBackfilledTrainingScopeStatsQueryMock = vi.fn()
+const useModeRegistryQueryMock = vi.fn()
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 function buildVariantSelection(part: string) {
     return {
@@ -171,12 +177,23 @@ vi.mock('@/shared/api/tanstackQueries/policyBranchMega', async importOriginal =>
                 rows: {}
             }
         }),
+        usePolicyBranchMegaModeMoneySummaryQuery: () => ({
+            data: null,
+            isLoading: false,
+            isError: false,
+            error: null,
+            refetch: refetchMock
+        }),
         usePolicyBranchMegaValidationQuery: () => ({
             data: null,
             error: null
         })
     }
 })
+
+vi.mock('@/shared/api/tanstackQueries/modeRegistry', () => ({
+    useModeRegistryQuery: () => useModeRegistryQueryMock()
+}))
 
 vi.mock('@/shared/api/tanstackQueries/reportVariants', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/reportVariants')>()
@@ -215,6 +232,33 @@ describe('PolicyBranchMegaPage', () => {
                 recentHistoryDaySharePercent: 15
             }
         })
+        useModeRegistryQueryMock.mockReturnValue({
+            data: {
+                schemaVersion: 'mode-registry-v1-2026-04-15',
+                modes: [
+                    {
+                        id: 'directional_fixed_split',
+                        displayName: 'Directional Fixed Split',
+                        isDefault: false,
+                        defaultSliceKey: 'full',
+                        slices: [
+                            {
+                                modeId: 'directional_fixed_split',
+                                key: 'full',
+                                displayLabel: 'Full',
+                                isDiagnostic: false,
+                                comparability: 'comparable',
+                                description: 'Full fixed-split history.'
+                            }
+                        ]
+                    }
+                ]
+            },
+            isLoading: false,
+            isError: false,
+            error: null,
+            refetch: refetchMock
+        })
         useQueriesMock.mockImplementation(({ queries }: { queries: Array<{ queryKey: unknown }> }) =>
             queries.map(query => {
                 const queryKeyText = JSON.stringify(query.queryKey)
@@ -246,10 +290,11 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(scrollToAnchor).not.toHaveBeenCalled()
     })
 
@@ -257,11 +302,12 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route:
                 '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal#policy-branch-section-1'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(scrollToAnchor).toHaveBeenCalledWith(
             'policy-branch-section-1',
             expect.objectContaining({
@@ -273,10 +319,11 @@ describe('PolicyBranchMegaPage', () => {
 
     test('после активной части прогревает payload всех остальных частей из selection snapshot без промежуточных loading-slot', async () => {
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(screen.getByText('Срез истории')).toBeInTheDocument()
         expect(screen.getByText('Хвост OOS')).toBeInTheDocument()
         expect(screen.queryByText('Loading data')).not.toBeInTheDocument()
@@ -332,10 +379,11 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=2'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
     })
 
@@ -343,10 +391,11 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=1'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
     })
 
@@ -374,10 +423,11 @@ describe('PolicyBranchMegaPage', () => {
         useQueriesMock.mockReturnValue([])
 
         render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=all&zonal=with-zonal&part=1'
         })
 
-        expect(await screen.findByText('Policy Branch Mega')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
     })
 })

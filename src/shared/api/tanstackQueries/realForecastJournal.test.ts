@@ -82,6 +82,7 @@ describe('realForecastJournal parser', () => {
         const parsed = parseRealForecastJournalDayListResponse([
             {
                 id: 'real-forecast-2026-03-10',
+                runKind: 'main',
                 predictionDateUtc: '2026-03-10',
                 status: 'captured',
                 trainingScope: 'full',
@@ -105,6 +106,7 @@ describe('realForecastJournal parser', () => {
         expect(parsed).toEqual([
             {
                 id: 'real-forecast-2026-03-10',
+                runKind: 'main',
                 predictionDateUtc: '2026-03-10',
                 status: 'captured',
                 trainingScope: 'full',
@@ -129,6 +131,7 @@ describe('realForecastJournal parser', () => {
     test('maps full day record with canonical margin token', () => {
         const parsed = parseRealForecastJournalDayRecordResponse({
             id: 'real-forecast-2026-03-10',
+            runKind: 'main',
             status: 'finalized',
             trainingScope: 'full',
             predictionDateUtc: '2026-03-10',
@@ -197,6 +200,7 @@ describe('realForecastJournal parser', () => {
     test('normalizes blank exit reason in the morning snapshot to null', () => {
         const parsed = parseRealForecastJournalDayRecordResponse({
             id: 'real-forecast-2026-03-10',
+            runKind: 'main',
             status: 'captured',
             trainingScope: 'full',
             predictionDateUtc: '2026-03-10',
@@ -232,6 +236,7 @@ describe('realForecastJournal parser', () => {
         expect(() =>
             parseRealForecastJournalDayRecordResponse({
                 id: 'real-forecast-2026-03-10',
+                runKind: 'main',
                 status: 'captured',
                 trainingScope: 'full',
                 predictionDateUtc: '2026-03-10',
@@ -266,6 +271,7 @@ describe('realForecastJournal parser', () => {
         expect(() =>
             parseRealForecastJournalDayRecordResponse({
                 id: 'real-forecast-2026-03-10',
+                runKind: 'main',
                 trainingScope: 'full',
                 predictionDateUtc: '2026-03-10',
                 capturedAtUtc: '2026-03-10T13:30:00.000Z',
@@ -289,6 +295,7 @@ describe('realForecastJournal parser', () => {
 
     test('maps ops status payload with next capture and active finalize targets', () => {
         const parsed = parseRealForecastJournalOpsStatusResponse({
+            runKind: 'main',
             health: 'healthy',
             statusReason: 'Worker heartbeat is fresh and no overdue journal actions were detected.',
             checkedAtUtc: '2026-03-10T13:35:00.000Z',
@@ -303,19 +310,21 @@ describe('realForecastJournal parser', () => {
             lastFailureMessage: null,
             lastSuccessfulCapture: {
                 predictionDateUtc: '2026-03-10',
+                runKind: 'main',
                 occurredAtUtc: '2026-03-10T13:30:05.000Z'
             },
             lastSuccessfulFinalize: {
                 predictionDateUtc: '2026-03-09',
+                runKind: 'main',
                 occurredAtUtc: '2026-03-09T20:15:00.000Z'
             },
             activeRecordCount: 1,
             archiveRecordCount: 1,
             expectedCaptureDayUtc: '2026-03-10',
-            expectedCaptureEntryUtc: '2026-03-10T13:30:00.000Z',
+            expectedCaptureTargetUtc: '2026-03-10T13:30:00.000Z',
             expectedCaptureDayStatus: null,
             nextCaptureDayUtc: '2026-03-11',
-            nextCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
+            nextCaptureTargetUtc: '2026-03-11T13:30:00.000Z',
             captureWindowClosed: true,
             hasRecordForExpectedCaptureDay: true,
             captureOverdue: false,
@@ -327,6 +336,7 @@ describe('realForecastJournal parser', () => {
         })
 
         expect(parsed).toEqual({
+            runKind: 'main',
             health: 'healthy',
             statusReason: 'Worker heartbeat is fresh and no overdue journal actions were detected.',
             checkedAtUtc: '2026-03-10T13:35:00.000Z',
@@ -341,19 +351,21 @@ describe('realForecastJournal parser', () => {
             lastFailureMessage: null,
             lastSuccessfulCapture: {
                 predictionDateUtc: '2026-03-10',
+                runKind: 'main',
                 occurredAtUtc: '2026-03-10T13:30:05.000Z'
             },
             lastSuccessfulFinalize: {
                 predictionDateUtc: '2026-03-09',
+                runKind: 'main',
                 occurredAtUtc: '2026-03-09T20:15:00.000Z'
             },
             activeRecordCount: 1,
             archiveRecordCount: 1,
             expectedCaptureDayUtc: '2026-03-10',
-            expectedCaptureEntryUtc: '2026-03-10T13:30:00.000Z',
+            expectedCaptureTargetUtc: '2026-03-10T13:30:00.000Z',
             expectedCaptureDayStatus: null,
             nextCaptureDayUtc: '2026-03-11',
-            nextCaptureEntryUtc: '2026-03-11T13:30:00.000Z',
+            nextCaptureTargetUtc: '2026-03-11T13:30:00.000Z',
             captureWindowClosed: true,
             hasRecordForExpectedCaptureDay: true,
             captureOverdue: false,
@@ -367,6 +379,7 @@ describe('realForecastJournal parser', () => {
 
     test('maps live status payload with canonical row status token', () => {
         const parsed = parseRealForecastJournalLiveStatusResponse({
+            runKind: 'main',
             predictionDateUtc: '2026-03-10',
             checkedAtUtc: '2026-03-10T15:00:00.000Z',
             currentPrice: 104.5,
@@ -390,6 +403,7 @@ describe('realForecastJournal parser', () => {
         })
 
         expect(parsed).toEqual({
+            runKind: 'main',
             predictionDateUtc: '2026-03-10',
             checkedAtUtc: '2026-03-10T15:00:00.000Z',
             currentPrice: 104.5,
@@ -418,6 +432,7 @@ describe('realForecastJournal parser', () => {
             parseRealForecastJournalDayListResponse([
                 {
                     id: 'real-forecast-2026-03-11',
+                    runKind: 'main',
                     predictionDateUtc: '2026-03-11',
                     status: 'RecoveredException',
                     trainingScope: 'full',
@@ -440,9 +455,65 @@ describe('realForecastJournal parser', () => {
         ).toThrow('[real-forecast-journal] unsupported journal status: RecoveredException.')
     })
 
+    test('throws when journal day list item omits forecast run kind', () => {
+        expect(() =>
+            parseRealForecastJournalDayListResponse([
+                {
+                    id: 'real-forecast-2026-03-11',
+                    predictionDateUtc: '2026-03-11',
+                    status: 'captured',
+                    trainingScope: 'full',
+                    capturedAtUtc: '2026-03-11T13:30:00.000Z',
+                    entryUtc: '2026-03-11T13:30:00.000Z',
+                    exitUtc: '2026-03-11T20:00:00.000Z',
+                    finalizedAtUtc: null,
+                    predictedDirection: 'UP',
+                    predLabelDisplay: 'UP',
+                    microDisplay: 'not used',
+                    totalUpProbability: 0.72,
+                    totalFlatProbability: 0.08,
+                    totalDownProbability: 0.2,
+                    dayConfidence: 0.72,
+                    microConfidence: 0.01,
+                    actualDirection: 'DOWN',
+                    directionMatched: false
+                }
+            ])
+        ).toThrow('[real-forecast-journal] runKind is missing.')
+    })
+
+    test('throws on unsupported forecast run kind instead of merging samples', () => {
+        expect(() =>
+            parseRealForecastJournalDayListResponse([
+                {
+                    id: 'real-forecast-2026-03-11',
+                    runKind: 'preview',
+                    predictionDateUtc: '2026-03-11',
+                    status: 'captured',
+                    trainingScope: 'full',
+                    capturedAtUtc: '2026-03-11T13:30:00.000Z',
+                    entryUtc: '2026-03-11T13:30:00.000Z',
+                    exitUtc: '2026-03-11T20:00:00.000Z',
+                    finalizedAtUtc: null,
+                    predictedDirection: 'UP',
+                    predLabelDisplay: 'UP',
+                    microDisplay: 'not used',
+                    totalUpProbability: 0.72,
+                    totalFlatProbability: 0.08,
+                    totalDownProbability: 0.2,
+                    dayConfidence: 0.72,
+                    microConfidence: 0.01,
+                    actualDirection: 'DOWN',
+                    directionMatched: false
+                }
+            ])
+        ).toThrow('[real-forecast-journal] unsupported run kind: preview.')
+    })
+
     test('throws on legacy PascalCase ops health token instead of accepting old runtime payload', () => {
         expect(() =>
             parseRealForecastJournalOpsStatusResponse({
+                runKind: 'main',
                 health: 'Healthy',
                 statusReason: 'Worker heartbeat is fresh.',
                 checkedAtUtc: '2026-03-11T13:35:00.000Z',
@@ -460,10 +531,10 @@ describe('realForecastJournal parser', () => {
                 activeRecordCount: 1,
                 archiveRecordCount: 1,
                 expectedCaptureDayUtc: null,
-                expectedCaptureEntryUtc: null,
+                expectedCaptureTargetUtc: null,
                 expectedCaptureDayStatus: null,
                 nextCaptureDayUtc: '2026-03-12',
-                nextCaptureEntryUtc: '2026-03-12T13:30:00.000Z',
+                nextCaptureTargetUtc: '2026-03-12T13:30:00.000Z',
                 captureWindowClosed: false,
                 hasRecordForExpectedCaptureDay: false,
                 captureOverdue: false,
@@ -479,6 +550,7 @@ describe('realForecastJournal parser', () => {
     test('throws on legacy PascalCase live row status token instead of accepting old runtime payload', () => {
         expect(() =>
             parseRealForecastJournalLiveStatusResponse({
+                runKind: 'main',
                 predictionDateUtc: '2026-03-10',
                 checkedAtUtc: '2026-03-10T15:00:00.000Z',
                 currentPrice: 104.5,
@@ -508,6 +580,7 @@ describe('realForecastJournal parser', () => {
             parseRealForecastJournalDayListResponse([
                 {
                     id: 'real-forecast-2026-03-11',
+                    runKind: 'main',
                     predictionDateUtc: '2026-03-11',
                     status: 'captured',
                     trainingScope: 1,
@@ -534,6 +607,7 @@ describe('realForecastJournal parser', () => {
         expect(() =>
             parseRealForecastJournalDayRecordResponse({
                 id: 'real-forecast-2026-03-10',
+                runKind: 'main',
                 status: 'captured',
                 trainingScope: 'full',
                 predictionDateUtc: '2026-03-10',
@@ -569,6 +643,7 @@ describe('realForecastJournal parser', () => {
             parseRealForecastJournalDayListResponse([
                 {
                     id: 'real-forecast-2026-03-11',
+                    runKind: 'main',
                     predictionDateUtc: { isoDate: '2026-03-11' },
                     status: 'captured',
                     trainingScope: 'full',
@@ -596,6 +671,7 @@ describe('realForecastJournal parser', () => {
             parseRealForecastJournalDayListResponse([
                 {
                     id: 'real-forecast-2026-03-11',
+                    runKind: 'main',
                     predictionDateUtc: '2026-03-11',
                     status: 'captured',
                     trainingScope: 'full',
@@ -622,6 +698,7 @@ describe('realForecastJournal parser', () => {
             parseRealForecastJournalDayListResponse([
                 {
                     id: 'real-forecast-2026-03-11',
+                    runKind: 'main',
                     predictionDateUtc: '2026-03-11',
                     status: 'captured',
                     trainingScope: 'full',

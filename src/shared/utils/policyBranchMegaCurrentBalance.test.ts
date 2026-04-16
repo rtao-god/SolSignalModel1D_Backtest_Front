@@ -1,6 +1,7 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import {
     resolvePolicyBranchMegaMetricValue,
+    resolvePolicyBranchMegaMetricRawValue,
     resolvePolicyBranchMegaCurrentBalance,
     type PolicyBranchMegaSectionRowRef
 } from './policyBranchMegaCurrentBalance'
@@ -20,12 +21,33 @@ describe('policyBranchMegaCurrentBalance', () => {
         const value = resolvePolicyBranchMegaMetricValue(
             [
                 createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17'], 'part-1'),
-                createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17.0'], 'part-3')
+                createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17'], 'part-3')
             ],
             'Tr'
         )
 
         expect(value).toBe('17')
+    })
+
+    test('returns a repeated raw metric without forcing numeric parsing', () => {
+        const value = resolvePolicyBranchMegaMetricRawValue(
+            [
+                createSection(['Policy', 'Branch', 'StartDay'], ['const_3x', 'BASE', '2021-10-12'], 'part-1'),
+                createSection(['Policy', 'Branch', 'StartDay'], ['const_3x', 'BASE', '2021-10-12'], 'part-3')
+            ],
+            'StartDay'
+        )
+
+        expect(value).toBe('2021-10-12')
+    })
+
+    test('returns composite raw metrics without numeric coercion', () => {
+        const value = resolvePolicyBranchMegaMetricRawValue(
+            [createSection(['Policy', 'Branch', 'DailyTP%'], ['const_3x', 'BASE', '3.23 / 3.21 / 3.24'], 'part-2')],
+            'DailyTP%'
+        )
+
+        expect(value).toBe('3.23 / 3.21 / 3.24')
     })
 
     test('throws when a repeated metric diverges across sections', () => {

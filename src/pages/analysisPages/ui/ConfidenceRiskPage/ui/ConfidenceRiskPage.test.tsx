@@ -13,6 +13,11 @@ const { usePublishedReportVariantCatalogQuery } = vi.hoisted(() => ({
 const { useCurrentPredictionBackfilledTrainingScopeStatsQuery } = vi.hoisted(() => ({
     useCurrentPredictionBackfilledTrainingScopeStatsQuery: vi.fn()
 }))
+const FIXED_SPLIT_INITIAL_STATE = {
+    mode: {
+        activeMode: 'directional_fixed_split' as const
+    }
+}
 
 vi.mock('@/shared/api/tanstackQueries/backtestConfidenceRisk', async importOriginal => {
     const actual = await importOriginal<typeof import('@/shared/api/tanstackQueries/backtestConfidenceRisk')>()
@@ -217,6 +222,7 @@ describe('ConfidenceRiskPage', () => {
 
     test('keeps hero and terms visible when scope query is invalid', async () => {
         render(<ConfidenceRiskPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/confidence-risk?scope=broken'
         })
 
@@ -243,6 +249,7 @@ describe('ConfidenceRiskPage', () => {
         )
 
         render(<ConfidenceRiskPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/confidence-risk'
         })
 
@@ -260,6 +267,7 @@ describe('ConfidenceRiskPage', () => {
         )
 
         render(<ConfidenceRiskPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
             route: '/analysis/confidence-risk'
         })
 
