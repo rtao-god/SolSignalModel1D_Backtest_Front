@@ -20,8 +20,8 @@ describe('reportCellLocalization', () => {
 
     test('adds explicit units to percent and usd metric values', () => {
         expect(localizeReportCellValue('TotalPnl%', '23.48', 'ru')).toBe('23,48%')
-        expect(localizeReportCellValue('BucketNow$', '19.79k', 'ru')).toBe('$19 790')
-        expect(localizeReportCellValue('BucketNow$', '19.79k', 'en')).toBe('$19,790')
+        expect(localizeReportCellValue('EquityNowUsd', '19.79k', 'ru')).toBe('$19 790')
+        expect(localizeReportCellValue('EquityNowUsd', '19.79k', 'en')).toBe('$19,790')
     })
 
     test('trims redundant trailing zeroes from percent values', () => {
@@ -30,9 +30,9 @@ describe('reportCellLocalization', () => {
     })
 
     test('replaces raw account ruin flags with human-readable state', () => {
-        expect(localizeReportCellValue('AccRuin', '0', 'ru')).toBe('Нет, бакет жив')
-        expect(localizeReportCellValue('AccRuin', '1', 'ru')).toBe('Да, бакет потратил стартовый капитал')
-        expect(localizeReportCellValue('AccRuin', '2', 'en')).toBe(
+        expect(localizeReportCellValue('AccountRuinCount', '0', 'ru')).toBe('Нет, бакет жив')
+        expect(localizeReportCellValue('AccountRuinCount', '1', 'ru')).toBe('Да, бакет потратил стартовый капитал')
+        expect(localizeReportCellValue('AccountRuinCount', '2', 'en')).toBe(
             'Yes, 2 buckets exhausted their starting capital'
         )
     })
@@ -40,8 +40,8 @@ describe('reportCellLocalization', () => {
     test('formats recovery days and liquidation flag for display', () => {
         expect(localizeReportCellValue('RecovDays', '140', 'ru')).toBe('140 дн.')
         expect(localizeReportCellValue('RecovDays', '-1', 'en')).toBe('Not yet recovered')
-        expect(localizeReportCellValue('HadLiq', '1', 'ru')).toBe('Да')
-        expect(localizeReportCellValue('HadLiq', '0', 'en')).toBe('No')
+        expect(localizeReportCellValue('HadLiquidation', '1', 'ru')).toBe('Да')
+        expect(localizeReportCellValue('HadLiquidation', '0', 'en')).toBe('No')
     })
 
     test('adds shared tooltip markup to localized exit reasons', () => {

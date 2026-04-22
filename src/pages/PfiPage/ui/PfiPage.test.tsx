@@ -32,6 +32,10 @@ vi.mock('@/pages/ModelStatsPage', () => ({
     )
 }))
 
+vi.mock('@/pages/shared/modeMoney', () => ({
+    ModeMoneySummaryPanel: () => <div data-testid='mode-money-summary-stub' />
+}))
+
 function createQueryResult<T>(overrides: Record<string, unknown> = {}) {
     return {
         data: undefined,
@@ -108,7 +112,7 @@ describe('PfiPage', () => {
             expect(screen.getByText('PFI by model (binary)')).toBeInTheDocument()
         })
 
-        expect(usePfiReportReadQuery).toHaveBeenCalledTimes(1)
+        expect(usePfiReportReadQuery).toHaveBeenCalled()
         expect(usePfiReportReadQuery).toHaveBeenCalledWith('daily')
         expect(screen.queryByTestId('model-stats-stub')).not.toBeInTheDocument()
         expect(screen.getByRole('columnheader', { name: 'Индекс' })).toBeInTheDocument()

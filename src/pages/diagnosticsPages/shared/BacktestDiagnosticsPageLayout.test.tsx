@@ -11,6 +11,14 @@ const FIXED_SPLIT_INITIAL_STATE = {
     }
 }
 
+function createDiagnosticsColumnDescriptor(displayLabel: string, columnKey: string, termKey: string) {
+    return {
+        displayLabel,
+        columnKey,
+        termKey
+    }
+}
+
 describe('BacktestDiagnosticsPageLayout', () => {
     test('renders diagnostics terms with enriched domain tooltip text', async () => {
         await i18nForTests.changeLanguage('ru')
@@ -27,7 +35,15 @@ describe('BacktestDiagnosticsPageLayout', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy diagnostics',
-                columns: ['Policy', 'SL Mode', 'AccRuin', 'Specificity', 'Bucket'],
+                columns: ['Policy', 'SL Mode', 'AccountRuinCount', 'Specificity', 'Bucket'],
+                columnKeys: ['policy', 'sl_mode', 'account_ruin_count', 'specificity', 'bucket'],
+                columnDescriptors: [
+                    createDiagnosticsColumnDescriptor('Policy', 'policy', 'Policy'),
+                    createDiagnosticsColumnDescriptor('SL Mode', 'sl_mode', 'SL Mode'),
+                    createDiagnosticsColumnDescriptor('AccountRuinCount', 'account_ruin_count', 'AccountRuinCount'),
+                    createDiagnosticsColumnDescriptor('Specificity', 'specificity', 'Specificity'),
+                    createDiagnosticsColumnDescriptor('Bucket', 'bucket', 'Bucket')
+                ],
                 rows: [['UltraSafe', 'WITH SL', '0', '91.2', 'PolicyBlocked_GoodModel']],
                 metadata: { kind: 'unknown' }
             }
@@ -53,7 +69,7 @@ describe('BacktestDiagnosticsPageLayout', () => {
         expect(termsBlock).toHaveTextContent('Policy — имя набора торговых правил')
         expect(termsBlock).toHaveTextContent('две конфигурации с разными Policy нельзя сравнивать только по названию')
         expect(termsBlock).toHaveTextContent('SL Mode — переключатель механики выхода из сделки.')
-        expect(termsBlock).toHaveTextContent('AccRuin — метрика руины рабочего капитала бакета.')
+        expect(termsBlock).toHaveTextContent('AccountRuinCount — метрика руины рабочего капитала бакета.')
         expect(termsBlock).toHaveTextContent('Specificity — доля хороших base-trade дней')
         expect(termsBlock).toHaveTextContent('Bucket — независимый контур симуляции')
         expect(termsBlock).toHaveTextContent('Policy задаёт правила входа и риска, Branch задаёт сценарий направления')
@@ -76,6 +92,11 @@ describe('BacktestDiagnosticsPageLayout', () => {
             {
                 title: 'Top 20 trades by NetReturnPct (best, ALL SL, all buckets together)',
                 columns: ['Policy', 'PnL'],
+                columnKeys: ['policy', 'pnl'],
+                columnDescriptors: [
+                    createDiagnosticsColumnDescriptor('Policy', 'policy', 'Policy'),
+                    createDiagnosticsColumnDescriptor('PnL', 'pnl', 'PnL')
+                ],
                 rows: [['UltraSafe', '12.4']],
                 metadata: { kind: 'unknown' }
             }

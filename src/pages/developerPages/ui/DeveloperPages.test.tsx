@@ -86,8 +86,7 @@ describe('Developer pages smoke', () => {
 
             expect(screen.getByText(sectionTitle)).toBeInTheDocument()
             expect(screen.getAllByText('Why?').length).toBeGreaterThan(0)
-        },
-        20000
+        }
     )
 
     test('renders detailed backend structure map without old template wording', () => {

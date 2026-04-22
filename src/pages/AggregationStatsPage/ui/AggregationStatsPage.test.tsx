@@ -106,6 +106,10 @@ vi.mock('@/shared/api/tanstackQueries/aggregation', () => ({
     })
 }))
 
+vi.mock('@/pages/shared/modeMoney', () => ({
+    ModeMoneySummaryPanel: () => <div data-testid='mode-money-summary-stub' />
+}))
+
 describe('AggregationStatsPage', () => {
     afterEach(async () => {
         await i18nForTests.changeLanguage('en')

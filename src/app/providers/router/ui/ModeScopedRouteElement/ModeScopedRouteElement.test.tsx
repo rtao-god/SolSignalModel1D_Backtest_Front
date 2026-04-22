@@ -22,7 +22,7 @@ vi.mock('@/pages/shared/walkForward/ui/WalkForwardModePanels', () => ({
 
 function createModeRegistry() {
     return {
-        schemaVersion: 'mode-registry-v2-2026-04-16',
+        schemaVersion: 'mode-registry-v3-2026-04-17',
         modes: [
             {
                 id: 'tbm_native',

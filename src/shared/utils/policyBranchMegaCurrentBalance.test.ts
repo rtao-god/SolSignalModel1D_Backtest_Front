@@ -20,10 +20,10 @@ describe('policyBranchMegaCurrentBalance', () => {
     test('returns a repeated metric when all matching sections agree', () => {
         const value = resolvePolicyBranchMegaMetricValue(
             [
-                createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17'], 'part-1'),
-                createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17'], 'part-3')
+                createSection(['Policy', 'Branch', 'TradesCount'], ['const_3x', 'BASE', '17'], 'part-1'),
+                createSection(['Policy', 'Branch', 'TradesCount'], ['const_3x', 'BASE', '17'], 'part-3')
             ],
-            'Tr'
+            'TradesCount'
         )
 
         expect(value).toBe('17')
@@ -54,45 +54,27 @@ describe('policyBranchMegaCurrentBalance', () => {
         expect(() =>
             resolvePolicyBranchMegaMetricValue(
                 [
-                    createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '17'], 'part-1'),
-                    createSection(['Policy', 'Branch', 'Tr'], ['const_3x', 'BASE', '18'], 'part-3')
+                    createSection(['Policy', 'Branch', 'TradesCount'], ['const_3x', 'BASE', '17'], 'part-1'),
+                    createSection(['Policy', 'Branch', 'TradesCount'], ['const_3x', 'BASE', '18'], 'part-3')
                 ],
-                'Tr'
+                'TradesCount'
             )
-        ).toThrow('Tr diverged across mega sections')
+        ).toThrow('TradesCount diverged across mega sections')
     })
 
-    test('prefers OnExch$ when it is the only current balance alias', () => {
+    test('reads current balance from canonical EquityNowUsd column', () => {
         const value = resolvePolicyBranchMegaCurrentBalance([
-            createSection(['Policy', 'Branch', 'OnExch$'], ['const_3x', 'BASE', '25000'], 'part-2')
+            createSection(['Policy', 'Branch', 'EquityNowUsd'], ['const_3x', 'BASE', '25000'], 'part-2')
         ])
 
         expect(value).toBe('25000')
     })
 
-    test('falls back to BucketNow$ when part2 alias is absent', () => {
-        const value = resolvePolicyBranchMegaCurrentBalance([
-            createSection(['Policy', 'Branch', 'BucketNow$'], ['const_3x', 'BASE', '25000'], 'part-1')
-        ])
-
-        expect(value).toBe('25000')
-    })
-
-    test('accepts equal BucketNow$ and OnExch$ aliases', () => {
-        const value = resolvePolicyBranchMegaCurrentBalance([
-            createSection(['Policy', 'Branch', 'BucketNow$'], ['const_3x', 'BASE', '25.00k'], 'part-1'),
-            createSection(['Policy', 'Branch', 'OnExch$'], ['const_3x', 'BASE', '25000'], 'part-2')
-        ])
-
-        expect(value).toBe('25000')
-    })
-
-    test('throws when BucketNow$ and OnExch$ aliases diverge', () => {
+    test('throws when canonical current balance is absent', () => {
         expect(() =>
             resolvePolicyBranchMegaCurrentBalance([
-                createSection(['Policy', 'Branch', 'BucketNow$'], ['const_3x', 'BASE', '24000'], 'part-1'),
-                createSection(['Policy', 'Branch', 'OnExch$'], ['const_3x', 'BASE', '25000'], 'part-2')
+                createSection(['Policy', 'Branch', 'WithdrawnTotalUsd'], ['const_3x', 'BASE', '25000'], 'part-2')
             ])
-        ).toThrow('current balance aliases diverged')
+        ).toThrow('Expected EquityNowUsd')
     })
 })

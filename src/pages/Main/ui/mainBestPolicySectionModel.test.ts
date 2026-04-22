@@ -31,15 +31,15 @@ describe('mainBestPolicySectionModel', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'TradesCount'],
                 rows: [
-                    ['const_2x', 'BASE', '12.50', '12.50', '4'],
-                    ['const_3x', 'BASE', '25.00', '25.00', '7']
+                    ['const_2x', 'BASE', '12.50', '4'],
+                    ['const_3x', 'BASE', '25.00', '7']
                 ]
             },
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 2/4]',
-                columns: ['Policy', 'Branch', 'OnExch$', 'StartCap$'],
+                columns: ['Policy', 'Branch', 'EquityNowUsd', 'StartCapitalUsd'],
                 rows: [
                     ['const_2x', 'BASE', '20000', '20000'],
                     ['const_3x', 'BASE', '20000', '20000']
@@ -56,7 +56,7 @@ describe('mainBestPolicySectionModel', () => {
             ])
         )
 
-        expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'])
+        expect(preparedSections[0]?.columns).toEqual(['Policy', 'Branch', 'TotalPnl%', 'TradesCount'])
         expect(bestPolicy.policy).toBe('const_3x')
         expect(bestPolicy.branch).toBe('BASE')
         expect(bestPolicy.totalPnlPct).toBe(25)
@@ -67,15 +67,15 @@ describe('mainBestPolicySectionModel', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'Tr'],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'TradesCount'],
                 rows: [
-                    ['const_2x', 'BASE', '12.50', '12.50', '4'],
-                    ['const_3x', 'BASE', '25.00', '25.00', '7']
+                    ['const_2x', 'BASE', '12.50', '4'],
+                    ['const_3x', 'BASE', '25.00', '7']
                 ]
             },
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 2/4]',
-                columns: ['Policy', 'Branch', 'HadLiq', 'StartCap$'],
+                columns: ['Policy', 'Branch', 'HadLiquidation', 'StartCapitalUsd'],
                 rows: [
                     ['const_2x', 'BASE', 'No', '20000'],
                     ['const_3x', 'BASE', 'Yes', '20000']
@@ -91,37 +91,46 @@ describe('mainBestPolicySectionModel', () => {
                 { policy: 'const_3x', branch: 'BASE', totalPnlPct: 25.0 }
             ])
         )
-        const riskSection = bestPolicy.sectionRows.find(item => (item.section.columns ?? []).includes('HadLiq'))
+        const riskSection = bestPolicy.sectionRows.find(item => (item.section.columns ?? []).includes('HadLiquidation'))
 
-        expect(riskSection?.row[riskSection.section.columns!.indexOf('HadLiq')]).toBe('Yes')
+        expect(riskSection?.row[riskSection.section.columns!.indexOf('HadLiquidation')]).toBe('Yes')
     })
 
     test('keeps the summary metrics readable across neighboring parts', () => {
         const sections: TableSectionDto[] = [
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'TotalPnl$', 'Days', 'Tr', 'StartDay', 'EndDay'],
-                rows: [['const_3x', 'BASE', '25.00', '25.00', '50000', '1113', '7', '2021-10-12', '2026-03-20']]
+                columns: [
+                    'Policy',
+                    'Branch',
+                    'TotalPnl%',
+                    'TotalPnlUsd',
+                    'Days',
+                    'TradesCount',
+                    'StartDay',
+                    'EndDay'
+                ],
+                rows: [['const_3x', 'BASE', '25.00', '50000', '1113', '7', '2021-10-12', '2026-03-20']]
             },
             {
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 2/4]',
                 columns: [
                     'Policy',
                     'Branch',
-                    'StartCap$',
-                    'BucketNow$',
-                    'Withdrawn$',
+                    'StartCapitalUsd',
+                    'EquityNowUsd',
+                    'WithdrawnTotalUsd',
                     'NoTrade%',
                     'AvgStake%',
                     'AvgStake$',
                     'WinRate%',
                     'MaxDD%',
-                    'HadLiq',
+                    'HadLiquidation',
                     'DailyTP%',
                     'DailySL%',
                     'MeanRet%',
                     'Sharpe',
-                    'AccRuin',
+                    'AccountRuinCount',
                     'RecovDays'
                 ],
                 rows: [
@@ -163,9 +172,9 @@ describe('mainBestPolicySectionModel', () => {
             return matched.row[matched.section.columns!.indexOf(title)] ?? null
         }
 
-        expect(readValue('StartCap$')).toBe('20000')
-        expect(readValue('BucketNow$')).toBe('25000')
-        expect(readValue('Withdrawn$')).toBe('15000')
+        expect(readValue('StartCapitalUsd')).toBe('20000')
+        expect(readValue('EquityNowUsd')).toBe('25000')
+        expect(readValue('WithdrawnTotalUsd')).toBe('15000')
         expect(readValue('AvgStake%')).toBe('5.0')
         expect(readValue('DailyTP%')).toBe('1.20/1.00')
         expect(readValue('DailySL%')).toBe('0.70/0.80')

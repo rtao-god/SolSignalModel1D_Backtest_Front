@@ -348,7 +348,7 @@ function createConfidenceRiskReport() {
             {
                 title: 'Buckets',
                 sectionKey: 'confidence_buckets',
-                columns: ['Split', 'Bucket', 'From', 'To', 'Avg', 'Trade days', 'Win rate'],
+                columns: ['Split', 'Bucket', 'From', 'To', 'Avg', 'Trade days', 'WinRate%'],
                 columnKeys: [
                     'split',
                     'bucket',

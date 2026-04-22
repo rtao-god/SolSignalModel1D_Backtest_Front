@@ -6,7 +6,7 @@ import {
 } from './types'
 
 const registry: ModeRegistryDto = {
-    schemaVersion: 'mode-registry-v2-2026-04-16',
+    schemaVersion: 'mode-registry-v3-2026-04-17',
     modes: [
         {
             id: 'tbm_native',

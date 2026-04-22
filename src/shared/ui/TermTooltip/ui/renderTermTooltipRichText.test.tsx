@@ -40,14 +40,14 @@ describe('renderTermTooltipRichText', () => {
         render(
             <div data-testid='policy-chain'>
                 {renderTermTooltipRichText(
-                    'Смысл сравнения появляется в числах: [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]], [[liquidation|HadLiq]], [[account-ruin|AccRuin]], [[recovered|Recovered]], [[recov-days|RecovDays]] и [[req-gain|ReqGain%]].'
+                    'Смысл сравнения появляется в числах: [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]], [[liquidation|HadLiquidation]], [[account-ruin|AccountRuinCount]], [[recovered|Recovered]], [[recov-days|RecovDays]] и [[req-gain|ReqGain%]].'
                 )}
             </div>
         )
 
         const container = screen.getByTestId('policy-chain')
         expect(container).toHaveTextContent(
-            'Смысл сравнения появляется в числах: TotalPnl%, MaxDD%, HadLiq, AccRuin, Recovered, RecovDays и ReqGain%.'
+            'Смысл сравнения появляется в числах: TotalPnl%, MaxDD%, HadLiquidation, AccountRuinCount, Recovered, RecovDays и ReqGain%.'
         )
         expect(container.textContent).not.toContain('\u00A0')
     })

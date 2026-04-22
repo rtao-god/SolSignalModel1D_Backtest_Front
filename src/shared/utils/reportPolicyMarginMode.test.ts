@@ -5,13 +5,24 @@ import {
     pruneDuplicatePolicyMarginColumnsInReport
 } from './reportPolicyMarginMode'
 
+function descriptors(columns: string[], columnKeys: string[]) {
+    return columns.map((displayLabel, index) => ({
+        displayLabel,
+        columnKey: columnKeys[index]!,
+        termKey: displayLabel
+    }))
+}
+
 describe('reportPolicyMarginMode', () => {
     test('removes duplicate margin column when policy name already contains the same mode', () => {
+        const columns = ['Policy', 'Margin', 'TradeDays']
+        const columnKeys = ['policy_name', 'margin_mode', 'trade_days']
         const section = {
             title: 'Decision Level',
             sectionKey: 'decision_level',
-            columns: ['Policy', 'Margin', 'TradeDays'],
-            columnKeys: ['policy_name', 'margin_mode', 'trade_days'],
+            columns,
+            columnKeys,
+            columnDescriptors: descriptors(columns, columnKeys),
             rows: [
                 ['risk_aware Cross', 'Cross', '11'],
                 ['risk_aware Isolated', 'Isolated', '8']
@@ -22,6 +33,10 @@ describe('reportPolicyMarginMode', () => {
 
         expect(normalized.columns).toEqual(['Policy', 'TradeDays'])
         expect(normalized.columnKeys).toEqual(['policy_name', 'trade_days'])
+        expect(normalized.columnDescriptors).toEqual([
+            { displayLabel: 'Policy', columnKey: 'policy_name', termKey: 'Policy' },
+            { displayLabel: 'TradeDays', columnKey: 'trade_days', termKey: 'TradeDays' }
+        ])
         expect(normalized.rows).toEqual([
             ['risk_aware Cross', '11'],
             ['risk_aware Isolated', '8']
@@ -29,11 +44,14 @@ describe('reportPolicyMarginMode', () => {
     })
 
     test('keeps margin column when policy name does not reveal margin mode', () => {
+        const columns = ['Policy', 'Margin', 'TradeDays']
+        const columnKeys = ['policy_name', 'margin_mode', 'trade_days']
         const section = {
             title: 'Decision Level',
             sectionKey: 'decision_level',
-            columns: ['Policy', 'Margin', 'TradeDays'],
-            columnKeys: ['policy_name', 'margin_mode', 'trade_days'],
+            columns,
+            columnKeys,
+            columnDescriptors: descriptors(columns, columnKeys),
             rows: [['risk_aware', 'Cross', '11']]
         }
 
@@ -43,6 +61,8 @@ describe('reportPolicyMarginMode', () => {
     })
 
     test('normalizes full report sections and leaves non-table sections untouched', () => {
+        const columns = ['Name', 'MarginMode']
+        const columnKeys = ['policy_name', 'margin_mode']
         const report = {
             schemaVersion: 1,
             id: 'backtest-summary-test',
@@ -58,17 +78,21 @@ describe('reportPolicyMarginMode', () => {
                 {
                     title: 'Policies',
                     sectionKey: 'policies',
-                    columns: ['Name', 'MarginMode'],
-                    columnKeys: ['policy_name', 'margin_mode'],
+                    columns,
+                    columnKeys,
+                    columnDescriptors: descriptors(columns, columnKeys),
                     rows: [['risk_aware Cross', 'Cross']]
                 }
             ]
         }
 
         const normalized = pruneDuplicatePolicyMarginColumnsInReport(report)
-        const policySection = normalized.sections[1] as { columns: string[]; rows: string[][] }
+        const policySection = normalized.sections[1] as { columns: string[]; columnDescriptors: unknown[]; rows: string[][] }
 
         expect(policySection.columns).toEqual(['Name'])
+        expect(policySection.columnDescriptors).toEqual([
+            { displayLabel: 'Name', columnKey: 'policy_name', termKey: 'Name' }
+        ])
         expect(policySection.rows).toEqual([['risk_aware Cross']])
         expect(normalized.sections[0]).toEqual(report.sections[0])
     })

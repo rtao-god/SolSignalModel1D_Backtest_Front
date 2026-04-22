@@ -62,9 +62,9 @@ function createPolicyBranchMegaReport() {
             {
                 sectionKey: 'policy_branch_mega_daily_with_sl_part_1',
                 title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%'],
-                columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'wealth_pct'],
-                rows: [['const_2x', 'BASE', '1.00', '1.00']],
+                columns: ['Policy', 'Branch', 'TotalPnl%', 'TradesCount'],
+                columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'trades_count'],
+                rows: [['const_2x', 'BASE', '1.00', '4']],
                 metadata: {
                     kind: 'policy-branch-mega',
                     historySlice: 'full_history',
@@ -107,6 +107,7 @@ function createPolicyBranchMegaPayload() {
                     calmar: 0.8,
                     winRate: 0.55,
                     startCapitalUsd: 20000,
+                    onExchPct: 0.5,
                     equityNowUsd: 20100,
                     withdrawnTotalUsd: 0,
                     fundingNetUsd: 0,
@@ -149,8 +150,23 @@ function createPolicyBranchMegaPayload() {
 
 function createModeMoneySummaryPayload() {
     return {
-        schemaVersion: 'mode-money-comparison-summary-v6-2026-04-16',
+        schemaVersion: 'mode-money-comparison-summary-v8-2026-04-17',
         generatedAtUtc: '2026-04-16T12:00:00.000Z',
+        moneyMetricDescriptors: [
+            { metricKey: 'TradesCount', displayLabel: 'TradesCount', valueKind: 'count', unit: 'count' },
+            { metricKey: 'TotalPnlPct', displayLabel: 'TotalPnl%', valueKind: 'percent', unit: 'percent' },
+            { metricKey: 'TotalPnlUsd', displayLabel: 'TotalPnlUsd', valueKind: 'usd', unit: 'usd' },
+            { metricKey: 'EffectiveMaxDdPct', displayLabel: 'EffectiveMaxDD%', valueKind: 'percent', unit: 'percent' },
+            { metricKey: 'MaxDdPct', displayLabel: 'MaxDD%', valueKind: 'percent', unit: 'percent' },
+            { metricKey: 'Sharpe', displayLabel: 'Sharpe', valueKind: 'decimal', unit: 'decimal' },
+            { metricKey: 'WinRate', displayLabel: 'WinRate%', valueKind: 'percent', unit: 'percent' },
+            { metricKey: 'StartCapitalUsd', displayLabel: 'StartCapitalUsd', valueKind: 'usd', unit: 'usd' },
+            { metricKey: 'EquityNowUsd', displayLabel: 'EquityNowUsd', valueKind: 'usd', unit: 'usd' },
+            { metricKey: 'WithdrawnTotalUsd', displayLabel: 'WithdrawnTotalUsd', valueKind: 'usd', unit: 'usd' },
+            { metricKey: 'FundingNetUsd', displayLabel: 'FundingNetUsd', valueKind: 'usd', unit: 'usd' },
+            { metricKey: 'RealLiquidationCount', displayLabel: 'RealLiquidationCount', valueKind: 'count', unit: 'count' },
+            { metricKey: 'AccountRuinCount', displayLabel: 'AccountRuinCount', valueKind: 'count', unit: 'count' }
+        ],
         rows: [
             {
                 modeKey: 'tbm_native',
@@ -187,6 +203,7 @@ function createModeMoneySummaryPayload() {
                     calmar: 0.8,
                     winRate: 0.55,
                     startCapitalUsd: 20000,
+                    onExchPct: 0.5,
                     equityNowUsd: 20100,
                     withdrawnTotalUsd: 0,
                     fundingNetUsd: 0,
@@ -264,14 +281,22 @@ describe('policyBranchMega report queries', () => {
 
         vi.stubGlobal('fetch', fetchMock)
 
-        await expect(fetchPolicyBranchMegaModeMoneySummary()).resolves.toMatchObject({
-            rows: [
-                {
-                    modeKey: 'tbm_native',
-                    sliceKey: 'overall'
-                }
-            ]
-        })
+        const summary = await fetchPolicyBranchMegaModeMoneySummary()
+
+        expect(summary.moneyMetricDescriptors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    metricKey: 'TotalPnlPct',
+                    displayLabel: 'TotalPnl%'
+                })
+            ])
+        )
+        expect(summary.rows).toMatchObject([
+            {
+                modeKey: 'tbm_native',
+                sliceKey: 'overall'
+            }
+        ])
     })
 
     test('loads the report document through payload cache when direct payload is needed', async () => {

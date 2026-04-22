@@ -5,8 +5,8 @@ import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
 const SENTINEL_KEYS = [
     'TotalPnl%',
     'MaxDD%',
-    'HadLiq',
-    'AccRuin',
+    'HadLiquidation',
+    'AccountRuinCount',
     'Recovered',
     'RecovDays',
     'ReqGain%'
@@ -17,13 +17,12 @@ const SHARED_MEGA_TERM_KEYS = [
     'Branch',
     'SL Mode',
     'TotalPnl%',
-    'Wealth%',
     'OnExch%',
     'Sharpe',
     'Sortino',
     'Calmar',
-    'StartCap$',
-    'AccRuin',
+    'StartCapitalUsd',
+    'AccountRuinCount',
     'Recovered',
     'RecovDays',
     'ReqGain%'

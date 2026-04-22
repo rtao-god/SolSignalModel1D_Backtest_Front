@@ -10,7 +10,7 @@ describe('buildPolicyBranchMegaChartModel', () => {
                     'Policy',
                     'Branch',
                     'SL Mode',
-                    'Wealth%',
+                    'TotalPnl%',
                     'MaxDD_Active% / Days',
                     'Lev p50 / p90',
                     'Exposure% (avg / p50 / p90 / p99 / max)'

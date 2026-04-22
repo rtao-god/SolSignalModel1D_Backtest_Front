@@ -1,6 +1,5 @@
 import { validateCommonTooltipDescription } from '@/shared/terms/common/tooltipQuality'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
-import { DIAGNOSTICS_SHARED_TERM_KEYS } from '@/shared/terms/reports/diagnostics'
 import {
     BACKTEST_SUMMARY_COLUMN_KEYS,
     BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS,
@@ -17,13 +16,52 @@ import {
 
 describe('report tooltips shared-term guard', () => {
     test('keeps diagnostics shared terms on canonical shared descriptions in RU and EN', () => {
+        const diagnosticsSharedTerms = [
+            'Policy',
+            'Branch',
+            'Bucket',
+            'MinMove',
+            'TradesCount',
+            'TotalPnl%',
+            'MaxDD%',
+            'HadLiquidation',
+            'WithdrawnTotalUsd'
+        ] as const
+
         ;(['ru', 'en'] as const).forEach(locale => {
-            DIAGNOSTICS_SHARED_TERM_KEYS.forEach(title => {
-                expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, title, locale)).toBe(
+            diagnosticsSharedTerms.forEach(title => {
+                expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, title, locale, { termKey: title })).toBe(
                     resolveCommonReportColumnTooltipOrNull(title, locale)
                 )
             })
         })
+    })
+
+    test('resolves diagnostics alias columns only through backend-published termKey context', () => {
+        const ru = resolveReportColumnTooltip(
+            'backtest_diagnostics',
+            'Policy Specificity Split (ALL HISTORY, WITH SL)',
+            'SpecDays',
+            'ru',
+            {
+                columnKey: 'spec_days',
+                termKey: 'SpecificDays'
+            }
+        )
+        const en = resolveReportColumnTooltip(
+            'backtest_diagnostics',
+            'Policy Specificity Split (ALL HISTORY, WITH SL)',
+            'SpecTrade%',
+            'en',
+            {
+                columnKey: 'spec_trade_pct',
+                termKey: 'SpecificTrade%'
+            }
+        )
+
+        expect(ru).toContain('сколько дней попало в класс specific')
+        expect(en).toContain('share of trading days among specific days')
+        expect(en).toContain('specific')
     })
 
     test('keeps backtest summary Policy and Branch on canonical shared descriptions in RU and EN', () => {
@@ -286,6 +324,18 @@ describe('report tooltips shared-term guard', () => {
 
                 expect(issues, `[${locale}] diagnostics day-type tooltip "${key}" has quality issues`).toEqual([])
             })
+        })
+    })
+
+    test('rejects legacy diagnostics trade-count keys and resolves only canonical day-type trade-count keys', () => {
+        ;(['ru', 'en'] as const).forEach(locale => {
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'UpTrades', locale)).toBeNull()
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'DownTrades', locale)).toBeNull()
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'FlatTrades', locale)).toBeNull()
+
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'UpTradesCount', locale)).not.toBeNull()
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'DownTradesCount', locale)).not.toBeNull()
+            expect(resolveReportColumnTooltip('backtest_diagnostics', undefined, 'FlatTradesCount', locale)).not.toBeNull()
         })
     })
 

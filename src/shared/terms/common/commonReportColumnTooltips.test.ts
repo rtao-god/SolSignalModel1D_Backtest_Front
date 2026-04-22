@@ -2,15 +2,13 @@ import { resolveMatchingTermTooltipRuleIds } from '@/shared/ui/TermTooltip/ui/re
 import { resolveCommonReportColumnTooltipOrNull } from './index'
 
 describe('common report column tooltips', () => {
-    test('resolves shared TotalPnl, Wealth, OnExch, funding net, and localized start capital descriptions', () => {
+    test('resolves shared TotalPnl, OnExch, funding net, and localized start capital descriptions', () => {
         expect(resolveCommonReportColumnTooltipOrNull('TotalPnl%', 'ru')).toContain('главный итог прибыли или убытка')
-        expect(resolveCommonReportColumnTooltipOrNull('Wealth%', 'ru')).toContain('без [[landing-reinvestment|реинвестирования]] Wealth% по сути дублирует')
         expect(resolveCommonReportColumnTooltipOrNull('OnExch%', 'ru')).toContain('результат только по капиталу')
         expect(resolveCommonReportColumnTooltipOrNull('SumFundingNetUsd', 'ru')).toContain('чистый денежный итог funding')
         expect(resolveCommonReportColumnTooltipOrNull('стартовый капитал', 'ru')).toContain('Стартовый капитал')
 
         expect(resolveCommonReportColumnTooltipOrNull('TotalPnl%', 'en')).toContain('main profit or loss result')
-        expect(resolveCommonReportColumnTooltipOrNull('Wealth%', 'en')).toContain('without [[landing-reinvestment|reinvestment]], Wealth% effectively duplicates')
         expect(resolveCommonReportColumnTooltipOrNull('OnExch%', 'en')).toContain('return of the capital that remains on exchange')
         expect(resolveCommonReportColumnTooltipOrNull('SumFundingNetUsd', 'en')).toContain('net funding cash result')
         expect(resolveCommonReportColumnTooltipOrNull('Starting capital', 'en')).toContain('Starting capital')

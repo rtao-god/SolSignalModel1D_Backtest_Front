@@ -58,9 +58,33 @@ function buildPart1Section() {
     return {
         sectionKey: 'policy_branch_mega_daily_with_sl_part_1',
         title: 'Policy Branch Mega [Daily] WITH SL [PART 1/4]',
-        columns: ['Policy', 'Branch', 'TotalPnl%', 'Wealth%', 'TotalPnl$', 'Comm$', 'Comm%', 'Tr', 'EODExit_n', 'EODExit%', 'EODExit$', 'EODExitPnl%'],
-        columnKeys: ['policy_name', 'branch', 'total_pnl_pct', 'wealth_pct', 'total_pnl_usd', 'comm_usd', 'comm_pct', 'trades', 'eod_exit_n', 'eod_exit_share_pct', 'eod_exit_usd', 'eod_exit_pnl_pct'],
-        rows: [['const_2x', 'BASE', '1.00', '1.00', '120.00', '8.00', '0.40', '3', '1', '33.3', '-12.00', '-0.06']],
+        columns: [
+            'Policy',
+            'Branch',
+            'TotalPnl%',
+            'TotalPnlUsd',
+            'Comm$',
+            'Comm%',
+            'TradesCount',
+            'EODExit_n',
+            'EODExit%',
+            'EODExit$',
+            'EODExitPnl%'
+        ],
+        columnKeys: [
+            'policy_name',
+            'branch',
+            'total_pnl_pct',
+            'total_pnl_usd',
+            'comm_usd',
+            'comm_pct',
+            'trades_count',
+            'eod_exit_n',
+            'eod_exit_share_pct',
+            'eod_exit_usd',
+            'eod_exit_pnl_pct'
+        ],
+        rows: [['const_2x', 'BASE', '1.00', '120.00', '8.00', '0.40', '3', '1', '33.3', '-12.00', '-0.06']],
         metadata: {
             kind: 'policy-branch-mega',
             historySlice: 'full_history',
@@ -81,11 +105,11 @@ function buildPart2FundingSection() {
         columns: [
             'Policy',
             'Branch',
-            'FundingTr',
-            'FundingEv',
-            'FundingNet$',
-            'FundingPaid$',
-            'FundingRecv$',
+            'TradesWithFundingCount',
+            'FundingEventCount',
+            'FundingNetUsd',
+            'FundingPaidUsd',
+            'FundingReceivedUsd',
             'FundingLiq_n',
             'FundingDeath_n',
             'FundingMixedDeath_n'
@@ -93,11 +117,11 @@ function buildPart2FundingSection() {
         columnKeys: [
             'policy_name',
             'branch',
-            'fundingtr',
-            'fundingev',
-            'fundingnet',
-            'fundingpaid',
-            'fundingrecv',
+            'trades_with_funding_count',
+            'funding_event_count',
+            'funding_net_usd',
+            'funding_paid_usd',
+            'funding_received_usd',
             'fundingliq_n',
             'fundingdeath_n',
             'fundingmixeddeath_n'
@@ -118,6 +142,31 @@ function buildPart2FundingSection() {
 
 let primarySectionsMock = [buildPart1Section()]
 let variantSelectionMock = buildVariantSelection('1')
+const MONEY_METRIC_DESCRIPTORS = [
+    { metricKey: 'TradesCount', displayLabel: 'TradesCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'TotalPnlPct', displayLabel: 'TotalPnl%', valueKind: 'percent', unit: 'percent' },
+    { metricKey: 'TotalPnlUsd', displayLabel: 'TotalPnlUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'MaxDdPct', displayLabel: 'MaxDD%', valueKind: 'percent', unit: 'percent' },
+    { metricKey: 'StartCapitalUsd', displayLabel: 'StartCapitalUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'EquityNowUsd', displayLabel: 'EquityNowUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'WithdrawnTotalUsd', displayLabel: 'WithdrawnTotalUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'FundingNetUsd', displayLabel: 'FundingNetUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'FundingPaidUsd', displayLabel: 'FundingPaidUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'FundingReceivedUsd', displayLabel: 'FundingReceivedUsd', valueKind: 'usd', unit: 'usd' },
+    { metricKey: 'FundingEventCount', displayLabel: 'FundingEventCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'TradesWithFundingCount', displayLabel: 'TradesWithFundingCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'EffectiveMaxDdPct', displayLabel: 'EffectiveMaxDD%', valueKind: 'percent', unit: 'percent' },
+    { metricKey: 'Sharpe', displayLabel: 'Sharpe', valueKind: 'decimal', unit: 'decimal' },
+    { metricKey: 'WinRate', displayLabel: 'WinRate%', valueKind: 'percent', unit: 'percent' },
+    { metricKey: 'HadLiquidation', displayLabel: 'HadLiquidation', valueKind: 'boolean', unit: 'boolean' },
+    { metricKey: 'RealLiquidationCount', displayLabel: 'RealLiquidationCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'FundingLiquidationCount', displayLabel: 'FundingLiquidationCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'FundingBucketDeathCount', displayLabel: 'FundingBucketDeathCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'MixedBucketDeathCount', displayLabel: 'MixedBucketDeathCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'AccountRuinCount', displayLabel: 'AccountRuinCount', valueKind: 'count', unit: 'count' },
+    { metricKey: 'BalanceDead', displayLabel: 'BalanceDead', valueKind: 'boolean', unit: 'boolean' }
+]
+let modeMoneySummaryDataMock: { moneyMetricDescriptors: unknown[]; rows: unknown[] } | null = null
 
 vi.mock('@tanstack/react-query', async importOriginal => {
     const actual = await importOriginal<typeof import('@tanstack/react-query')>()
@@ -178,7 +227,7 @@ vi.mock('@/shared/api/tanstackQueries/policyBranchMega', async importOriginal =>
             }
         }),
         usePolicyBranchMegaModeMoneySummaryQuery: () => ({
-            data: null,
+            data: modeMoneySummaryDataMock,
             isLoading: false,
             isError: false,
             error: null,
@@ -221,6 +270,7 @@ describe('PolicyBranchMegaPage', () => {
     beforeEach(() => {
         primarySectionsMock = [buildPart1Section()]
         variantSelectionMock = buildVariantSelection('1')
+        modeMoneySummaryDataMock = null
         useCurrentPredictionBackfilledTrainingScopeStatsQueryMock.mockReturnValue({
             data: {
                 fullDays: 1327,
@@ -404,9 +454,9 @@ describe('PolicyBranchMegaPage', () => {
             {
                 ...buildPart1Section(),
                 title: 'Policy Branch Mega [Daily] WITH SL + NO SL [PART 1/4]',
-                columns: ['Policy', 'Branch', 'SL Mode', 'TotalPnl%', 'Wealth%', 'Tr'],
-                columnKeys: ['policy_name', 'branch', 'sl_mode', 'total_pnl_pct', 'wealth_pct', 'trades'],
-                rows: [['const_2x', 'BASE', 'WITH SL', '1.00', '1.00', '3']],
+                columns: ['Policy', 'Branch', 'SL Mode', 'TotalPnl%', 'TradesCount'],
+                columnKeys: ['policy_name', 'branch', 'sl_mode', 'total_pnl_pct', 'trades_count'],
+                rows: [['const_2x', 'BASE', 'WITH SL', '1.00', '3']],
                 metadata: {
                     ...buildPart1Section().metadata,
                     mode: 'all'
@@ -429,5 +479,136 @@ describe('PolicyBranchMegaPage', () => {
 
         expect(await screen.findByRole('heading', { name: 'Policy Branch Mega' })).toBeInTheDocument()
         expect(screen.queryByText(/Failed to prepare policy branch mega sections/i)).not.toBeInTheDocument()
+    })
+
+    test('показывает компактную лучшую policy и ликвидации только для активного режима и выбранного среза', async () => {
+        modeMoneySummaryDataMock = {
+            moneyMetricDescriptors: MONEY_METRIC_DESCRIPTORS,
+            rows: [
+                {
+                    modeKey: 'directional_fixed_split',
+                    sliceKey: 'full',
+                    policyName: 'spot_conf_cap',
+                    policyBranch: 'BASE',
+                    executionDescriptor: 'daily · with sl',
+                    moneySourceKind: 'policy_universe_best_policy',
+                    sourceStatus: 'available',
+                    statusMessage: 'published best policy',
+                    comparabilityNote: 'same fixed-split slice',
+                    tradingStartDateUtc: '2021-10-12',
+                    tradingEndDateUtc: '2026-04-10',
+                    completedDayCount: 100,
+                    tradeCount: 24,
+                    maxDrawdownPct: 12.34,
+                    sourceLocationHint: '/reports/policy-branch-mega/full',
+                    predictionQualityMetrics: [
+                        {
+                            metricKey: 'technical_accuracy_pct',
+                            unit: 'percent',
+                            value: 58.5
+                        }
+                    ],
+                    diagnostic: null,
+                    moneyMetrics: {
+                        totalPnlPct: 18.45,
+                        totalPnlUsd: 1845.12,
+                        maxDdNoLiqPct: 12.34,
+                        mean: 0.1,
+                        std: 0.2,
+                        downStd: 0.15,
+                        startCapitalUsd: 10000,
+                        onExchPct: 18.4512,
+                        equityNowUsd: 11845.12,
+                        withdrawnTotalUsd: 0,
+                        fundingNetUsd: -32.2,
+                        fundingPaidUsd: 42.1,
+                        fundingReceivedUsd: 9.9,
+                        fundingEventCount: 3,
+                        tradesWithFundingCount: 2,
+                        maxDdPct: 12.34,
+                        sharpe: 1.234,
+                        sortino: 1.5,
+                        cagr: 0.22,
+                        calmar: 1.2,
+                        winRate: 0.58,
+                        tradesCount: 24,
+                        hadLiquidation: false,
+                        realLiquidationCount: 0,
+                        fundingLiquidationCount: 0,
+                        fundingBucketDeathCount: 0,
+                        mixedBucketDeathCount: 0,
+                        accountRuinCount: 0,
+                        balanceDead: false
+                    }
+                },
+                {
+                    modeKey: 'tbm_native',
+                    sliceKey: 'full',
+                    policyName: 'tbm_policy',
+                    policyBranch: 'BASE',
+                    executionDescriptor: 'delayed',
+                    moneySourceKind: 'canonical_strategy',
+                    sourceStatus: 'available',
+                    statusMessage: 'published best policy',
+                    comparabilityNote: 'other mode',
+                    tradingStartDateUtc: '2021-10-12',
+                    tradingEndDateUtc: '2026-04-10',
+                    completedDayCount: 100,
+                    tradeCount: 20,
+                    maxDrawdownPct: 22.5,
+                    sourceLocationHint: '/reports/tbm/full',
+                    predictionQualityMetrics: [
+                        {
+                            metricKey: 'tbm_hit_rate_pct',
+                            unit: 'percent',
+                            value: 51
+                        }
+                    ],
+                    diagnostic: null,
+                    moneyMetrics: {
+                        totalPnlPct: 5,
+                        totalPnlUsd: 500,
+                        maxDdNoLiqPct: 22.5,
+                        mean: 0.05,
+                        std: 0.2,
+                        downStd: 0.18,
+                        startCapitalUsd: 10000,
+                        onExchPct: 5,
+                        equityNowUsd: 10500,
+                        withdrawnTotalUsd: 0,
+                        fundingNetUsd: 0,
+                        fundingPaidUsd: 0,
+                        fundingReceivedUsd: 0,
+                        fundingEventCount: 0,
+                        tradesWithFundingCount: 0,
+                        maxDdPct: 22.5,
+                        sharpe: 0.6,
+                        sortino: 0.7,
+                        cagr: 0.08,
+                        calmar: 0.22,
+                        winRate: 0.51,
+                        tradesCount: 20,
+                        hadLiquidation: true,
+                        realLiquidationCount: 1,
+                        fundingLiquidationCount: 0,
+                        fundingBucketDeathCount: 0,
+                        mixedBucketDeathCount: 0,
+                        accountRuinCount: 0,
+                        balanceDead: false
+                    }
+                }
+            ]
+        }
+        useQueriesMock.mockReturnValue([])
+
+        render(<PolicyBranchMegaPage />, {
+            initialState: FIXED_SPLIT_INITIAL_STATE,
+            route: '/analysis/policy-branch-mega?history=full_history&bucket=daily&bucketview=aggregate&metric=real&tpsl=all&slmode=with-sl&zonal=with-zonal&part=1'
+        })
+
+        expect((await screen.findAllByText('spot_conf_cap')).length).toBeGreaterThan(0)
+        expect(screen.getAllByText('daily · with sl').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('$11,845.12').length).toBeGreaterThan(0)
+        expect(screen.queryByText('tbm_policy')).not.toBeInTheDocument()
     })
 })
