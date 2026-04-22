@@ -16,11 +16,11 @@ export const BACKTEST_SUMMARY_COLUMNS_EN: Record<string, string> = {
     Margin: 'Margin mode (Cross/Isolated) used by this policy in backtest output.',
     Branch: COMMON_BRANCH_DESCRIPTION_EN,
     StopLoss: 'Whether this branch uses daily stop-loss: WITH_SL or NO_SL.',
-    TotalPnlPct:
+    'TotalPnl%':
         'Total policy return for the period, in %. Higher is better, but it must be read together with risk (MaxDD%).',
-    MaxDdPct: 'Maximum equity drawdown in % from local peak. Shows how painful the equity curve was.',
-    Trades: 'Total trade count for this policy over the period. Larger samples are usually statistically more reliable.',
-    WithdrawnTotal:
+    'MaxDD%': 'Maximum equity drawdown in % from local peak. Shows how painful the equity curve was.',
+    TradesCount: 'Total trade count for this policy over the period. Larger samples are usually statistically more reliable.',
+    WithdrawnTotalUsd:
         'Amount of withdrawn profit in USD (if equity exceeded base capital). This is realized withdrawn gain.',
     HadLiquidation: 'Whether liquidation occurred in this branch (yes/no). Critical risk flag.',
     TradesBySource:
@@ -62,14 +62,14 @@ Object.assign(BACKTEST_SUMMARY_COLUMNS_EN, {
         'Margin is the trade margin mode used by this policy in the backtest output.\n\nWhat it shows:\nit tells which collateral model stands behind the result row: cross or isolated.\n\nHow to read it:\nthis field is about the loss-absorption rule, not about trade size or dollars at risk.\n\nExample:\nwhen Margin says Cross, the meaning of liquidation changes because the whole bucket balance can be affected.',
     StopLoss:
         'StopLoss shows which stop-loss regime the branch used in the simulation.\n\nWhat it shows:\nWITH SL means the protective stop-loss was active; NO SL means the trade stayed open until take-profit, liquidation, or the end-of-window close.\n\nHow to read it:\nNO SL usually implies fatter tail risk and must be judged together with MaxDdPct and HadLiquidation.\n\nExample:\ntwo policies with equal total return can still have radically different risk if one of them trades without stop-loss.',
-    TotalPnlPct:
-        'TotalPnlPct is the total policy return over the selected period in percent.\n\nWhat it shows:\nit is the final growth or loss result of the policy inside the report window.\n\nHow to read it:\nhigher is better only when the path to that result is also acceptable in drawdown and liquidation terms.\n\nExample:\n+40% with extreme drawdown can be less usable than +22% with stable capital behavior.',
-    MaxDdPct:
-        'MaxDdPct is the deepest equity drawdown of the policy in percent.\n\nWhat it shows:\nit is the worst fall from a local equity peak to the next low inside the period.\n\nHow to read it:\nthis field answers how painful the path was, not how the strategy ended.\n\nExample:\na policy can finish positive overall and still show a very destructive MaxDdPct during the journey.',
-    Trades:
-        'Trades is the total number of executed trades for the policy inside the selected window.\n\nWhat it shows:\nit is the amount of factual trading material behind the result row.\n\nHow to read it:\nlarger samples usually make the row more statistically informative than tiny trade counts.\n\nExample:\na 3-trade winner is much less persuasive than a 500-trade result with similar return.',
-    WithdrawnTotal:
-        'WithdrawnTotal is the realized profit that was already withdrawn from active trading balance.\n\nWhat it shows:\nit separates cash already taken out from equity still left inside the bucket curve.\n\nHow to read it:\nit matters when reading wealth-like outcomes because a policy may have locked in gains even if current balance later shrank.\n\nExample:\na row with large WithdrawnTotal can still have lower active equity while remaining economically successful overall.',
+    'TotalPnl%':
+        'TotalPnl% is the total policy return over the selected period in percent.\n\nWhat it shows:\nit is the final growth or loss result of the policy inside the report window.\n\nHow to read it:\nhigher is better only when the path to that result is also acceptable in drawdown and liquidation terms.\n\nExample:\n+40% with extreme drawdown can be less usable than +22% with stable capital behavior.',
+    'MaxDD%':
+        'MaxDD% is the deepest equity drawdown of the policy in percent.\n\nWhat it shows:\nit is the worst fall from a local equity peak to the next low inside the period.\n\nHow to read it:\nthis field answers how painful the path was, not how the strategy ended.\n\nExample:\na policy can finish positive overall and still show a very destructive MaxDD% during the journey.',
+    TradesCount:
+        'TradesCount is the total number of executed trades for the policy inside the selected window.\n\nWhat it shows:\nit is the amount of factual trading material behind the result row.\n\nHow to read it:\nlarger samples usually make the row more statistically informative than tiny trade counts.\n\nExample:\na 3-trade winner is much less persuasive than a 500-trade result with similar return.',
+    WithdrawnTotalUsd:
+        'WithdrawnTotalUsd is the realized profit that was already withdrawn from active trading balance.\n\nWhat it shows:\nit separates cash already taken out from equity still left inside the bucket curve.\n\nHow to read it:\nit matters when reading wealth-like outcomes because a policy may have locked in gains even if current balance later shrank.\n\nExample:\na row with large WithdrawnTotalUsd can still have lower active equity while remaining economically successful overall.',
     HadLiquidation:
         'HadLiquidation shows whether the policy experienced at least one liquidation in the selected period.\n\nWhat it shows:\nit is a tail-risk flag, not the count of all liquidation trades.\n\nHow to read it:\ntrue means the strategy hit an exchange-forced emergency close at least once and therefore carries liquidation risk in its realized history.\n\nExample:\na profitable row with HadLiquidation=true still needs careful risk interpretation.',
     TradesBySource:
@@ -114,10 +114,10 @@ Object.assign(BACKTEST_SUMMARY_KEYS_EN, {
 })
 
 const CURRENT_PREDICTION_BUCKET_DESCRIPTION_EN =
-    'Bucket is an independent execution track with its own starting capital, equity curve, and drawdown.\n\nDaily, intraday, and delayed are calculated separately: loss or ruin in one bucket does not spill into another.\n\nPolicy defines entry and risk rules, Branch defines the direction scenario, and Bucket defines the execution mechanics and the separate balance.\n\nRisk layers work on top of that decision and can further cut risk or block entry.\n\nSwitching bucket changes the trade set and recalculates Tr, TotalPnl%, MaxDD%, HadLiq, AccRuin, Recovered, and recovery.\n\nOn this page:\nthe field shows which bucket actually executed the signal or, instead, failed to turn it into a trade inside the selected Policy.'
+    'Bucket is an independent execution track with its own starting capital, equity curve, and drawdown.\n\nDaily, intraday, and delayed are calculated separately: loss or ruin in one bucket does not spill into another.\n\nPolicy defines entry and risk rules, Branch defines the direction scenario, and Bucket defines the execution mechanics and the separate balance.\n\nRisk layers work on top of that decision and can further cut risk or block entry.\n\nSwitching bucket changes the trade set and recalculates TradesCount, TotalPnl%, MaxDD%, HadLiquidation, AccountRuinCount, Recovered, and recovery.\n\nOn this page:\nthe field shows which bucket actually executed the signal or, instead, failed to turn it into a trade inside the selected Policy.'
 
 const CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION_EN =
-    'HadLiq shows whether this [[policy|Policy]] had at least one [[liquidation|liquidation]] inside the selected slice.\n\nEven one positive value means the strategy reached an exchange-forced emergency close at least once instead of finishing trades by its normal risk plan.\n\nHow to read it:\nthis flag must be judged together with [[total-pnl|TotalPnl%]] and [[drawdown|MaxDD%]]. A profitable total result with HadLiq=true still means heavy tail risk.'
+    'HadLiquidation shows whether this [[policy|Policy]] had at least one [[liquidation|liquidation]] inside the selected slice.\n\nEven one positive value means the strategy reached an exchange-forced emergency close at least once instead of finishing trades by its normal risk plan.\n\nHow to read it:\nthis flag must be judged together with [[total-pnl|TotalPnl%]] and [[drawdown|MaxDD%]]. A profitable total result with HadLiquidation=true still means heavy tail risk.'
 
 const CURRENT_PREDICTION_POSITION_QTY_DESCRIPTION_EN =
     'Position size, qty is how many units of the instrument actually entered the trade.\n\nFor a trading pair this is the physical amount of the base asset inside the position. The value is derived from position notional and entry price.\n\nHow to read it:\nif qty rises at a similar entry price, the strategy controls a larger market amount and becomes more sensitive to each price move.'
@@ -220,12 +220,12 @@ export const CURRENT_PREDICTION_COLUMNS_EN: Record<string, string> = {
     'Капитал бакета, $': 'Selected bucket capital at trade calculation time.',
     'Ставка, $': 'How many USD from bucket capital were allocated to this trade.',
     'Ставка, %': 'Share of bucket capital allocated to this trade (Stake$ / BucketCapital$ * 100).',
-    Trades: 'How many trades this policy already has in current report window.',
+    TradesCount: 'How many trades this policy already has in current report window.',
     'TotalPnl%': 'Total policy return in %.',
     'MaxDD%': 'Maximum policy drawdown in %.',
-    HadLiq: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION_EN,
-    Withdrawn$:
-        'Withdrawn$ is the amount of profit this policy already moved out of active trading balance.\n\nIt is not current on-exchange balance, but profit already taken out of the live equity curve.\n\nHow to read it:\nit matters for wealth interpretation because a strategy may have realized and withdrawn part of its gains even if current balance now looks smaller.',
+    HadLiquidation: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION_EN,
+    WithdrawnTotalUsd:
+        'WithdrawnTotalUsd is the amount of profit this policy already moved out of active trading balance.\n\nIt is not current on-exchange balance, but profit already taken out of the live equity curve.\n\nHow to read it:\nit matters for total-result interpretation because a strategy may have realized and withdrawn part of its gains even if current balance now looks smaller.',
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION_EN,
     'Человеческое описание':
@@ -257,9 +257,6 @@ Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
     'Bucket capital, $': CURRENT_PREDICTION_COLUMNS_EN['Капитал бакета, $'],
     'Stake, $': CURRENT_PREDICTION_COLUMNS_EN['Ставка, $'],
     'Stake, %': CURRENT_PREDICTION_COLUMNS_EN['Ставка, %'],
-    'Total return, %': CURRENT_PREDICTION_COLUMNS_EN['TotalPnl%'],
-    'Max drawdown, %': CURRENT_PREDICTION_COLUMNS_EN['MaxDD%'],
-    'Had liquidation': CURRENT_PREDICTION_COLUMNS_EN.HadLiq
 })
 
 Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
@@ -309,7 +306,7 @@ Object.assign(CURRENT_PREDICTION_COLUMNS_EN, {
         'this field identifies which execution track carried the trade and where the resulting capital path is accumulated.'
     ),
     Плечо: CURRENT_PREDICTION_LEVERAGE_DESCRIPTION_EN,
-    Trades: COMMON_TRADES_DESCRIPTION_EN,
+    TradesCount: COMMON_TRADES_DESCRIPTION_EN,
     'TotalPnl%': COMMON_TOTAL_PNL_DESCRIPTION_EN,
     'MaxDD%': COMMON_MAX_DD_DESCRIPTION_EN,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION_EN,
@@ -413,10 +410,12 @@ export const CURRENT_PREDICTION_KEYS_EN: Record<string, string> = {
     'Максимум за 24ч от входа, %': 'Maximum upward move vs entry during 24h window.',
     'Минимум за 24ч от входа, %': 'Maximum downward move vs entry during 24h window.',
     'Диапазон high-low за 24ч, %': 'Range width MaxHigh24 - MinLow24 vs entry price, in %.',
-    'Факт MinMove за 24ч':
-        'Realized MinMove over forward window (omniscient/backfilled). Not used in causal/live path.',
-    'Прогнозный MinMove (causal)': 'MinMove value available to model at prediction time (causal, no future data).',
-    'Δ MinMove (факт - прогноз)': 'Difference between realized and predicted MinMove, in percentage points.',
+    'Факт MinMove за 24ч (log)':
+        'Realized MinMove over the forward window in the owner log metric. It is omniscient/backfilled and is not used in the causal/live path.',
+    'Прогнозный MinMove (causal, log)':
+        'MinMove value available to the model at prediction time, expressed in the owner log metric with no future data.',
+    'Δ MinMove (факт - прогноз, log)':
+        'Difference between realized and predicted MinMove in owner log units, not percentage points.',
     'Вероятность фактического исхода (Total)':
         'Total-layer probability assigned by model to the class that actually happened.',
     'Источник факта':
@@ -453,9 +452,6 @@ Object.assign(CURRENT_PREDICTION_KEYS_EN, {
     '24h max from entry, %': CURRENT_PREDICTION_KEYS_EN['Максимум за 24ч от входа, %'],
     '24h min from entry, %': CURRENT_PREDICTION_KEYS_EN['Минимум за 24ч от входа, %'],
     '24h high-low range, %': CURRENT_PREDICTION_KEYS_EN['Диапазон high-low за 24ч, %'],
-    'Actual MinMove over 24h': CURRENT_PREDICTION_KEYS_EN['Факт MinMove за 24ч'],
-    'Forecast MinMove (causal)': CURRENT_PREDICTION_KEYS_EN['Прогнозный MinMove (causal)'],
-    'Delta MinMove (actual - forecast)': CURRENT_PREDICTION_KEYS_EN['Δ MinMove (факт - прогноз)'],
     'Probability of actual outcome (Total)': CURRENT_PREDICTION_KEYS_EN['Вероятность фактического исхода (Total)']
 })
 
@@ -503,16 +499,22 @@ Object.assign(CURRENT_PREDICTION_KEYS_EN, {
         '24h min from entry, % is the deepest downward move relative to entry during the forward window.\n\nWhat it shows:\nit is the strongest adverse excursion of the day from the trade anchor point.\n\nHow to read it:\nthis field matters for stress interpretation because a day can still close green after first going through a deep drawdown.\n\nExample:\na day that closed +2% after first reaching -4% was much harsher than the close alone suggests.',
     'Диапазон high-low за 24ч, %':
         '24h high-low range, % is the full width of the intraday range between the highest and lowest point of the forward window.\n\nWhat it shows:\nit measures day volatility by amplitude rather than by final direction.\n\nHow to read it:\nhigher values mean the day was harder to manage and more dependent on correct risk settings even when the final directional call was right.\n\nExample:\na flat close with a very large range still describes a highly volatile day.',
-    'Факт MinMove за 24ч':
-        'Actual MinMove over 24h is the realized minimum meaningful move after the forward window has already played out.\n\nWhat it shows:\nit is the post-fact version of move significance that becomes visible only after the day is over.\n\nHow to read it:\ncompare it with the forecast MinMove to see whether the model underestimated or overestimated the real movement strength of the day.\n\nExample:\na much larger realized MinMove means the market became more directional than the model expected in advance.',
-    'Прогнозный MinMove (causal)':
-        'Forecast MinMove (causal) is the MinMove estimate that was available to the model at prediction time without future leakage.\n\nWhat it shows:\nit is the honest causal view of expected move significance before the day unfolds.\n\nHow to read it:\nthis field is the forecast-side counterpart of realized MinMove and shows whether the model expected a strong or weak trading day.\n\nExample:\na low causal MinMove suggests the model initially saw the day as weak even if the market later became highly active.',
-    'Δ MinMove (факт - прогноз)':
-        'Delta MinMove (actual - forecast) is the gap between realized MinMove and the causal MinMove available at forecast time.\n\nWhat it shows:\npositive values mean the market turned out more active than expected, while negative values mean the model expected more movement than the day actually delivered.\n\nHow to read it:\nthis field is useful for judging whether forecast misses came from poor direction ranking or from poor movement-strength estimation.\n\nExample:\na large positive delta means the market accelerated beyond the model’s original expectation.',
+    'Факт MinMove за 24ч (log)':
+        'Actual MinMove over 24h (log) is the realized MinMove threshold after the forward window has already played out.\n\nWhat it shows:\nit is the post-fact version of move significance expressed in the same owner log metric that the Directional Fixed-Split model uses internally.\n\nHow to read it:\ncompare it with the forecast MinMove to see whether the model underestimated or overestimated the real movement strength of the day. The UI value is shown in log units together with the equivalent +up / -down price barriers from entry.\n\nExample:\na much larger realized log MinMove means the market became more directional than the model expected in advance.',
+    'Прогнозный MinMove (causal, log)':
+        'Forecast MinMove (causal, log) is the MinMove estimate that was available to the model at prediction time without future leakage.\n\nWhat it shows:\nit is the honest causal view of expected move significance before the day unfolds, expressed in the owner log metric rather than in simple percent.\n\nHow to read it:\nthis field is the forecast-side counterpart of realized MinMove and shows whether the model expected a strong or weak trading day. The equivalent simple-price barriers are shown only as a human-readable projection.\n\nExample:\na low causal log MinMove suggests the model initially saw the day as weak even if the market later became highly active.',
+    'Δ MinMove (факт - прогноз, log)':
+        'Delta MinMove (actual - forecast, log) is the gap between realized MinMove and the causal MinMove available at forecast time.\n\nWhat it shows:\npositive values mean the market turned out more active than expected, while negative values mean the model expected more movement than the day actually delivered.\n\nHow to read it:\nthis field is shown in log units, not in percentage points. It is useful for judging whether forecast misses came from poor direction ranking or from poor movement-strength estimation.\n\nExample:\na large positive log delta means the market accelerated beyond the model’s original expectation.',
     'Вероятность фактического исхода (Total)':
         'Probability of actual outcome (Total) is the probability that the final Total layer assigned to the scenario that later happened in reality.\n\nWhat it shows:\nit answers whether the realized outcome was already one of the model’s serious alternatives or almost absent from its probability mass.\n\nHow to read it:\nhigh probability with a top-1 miss means the problem was ranking, while very low probability means the model barely considered the realized outcome.\n\nExample:\na 0.41 probability for the realized class is very different from 0.03 even if both rows ended as forecast misses.',
     'Источник факта':
         'Fact source shows where the post-fact outcome came from for backfilled comparison.\n\nWhat it shows:\nit separates the realized historical outcome from the causal information that was available at decision time.\n\nHow to read it:\nthis field is a control on data provenance rather than a trading metric. It helps verify that future information was not blended into the live prediction path.\n\nExample:\nif the fact source is historical/backfilled, the result belongs to post-close evaluation rather than to the decision-time model state.'
+})
+
+Object.assign(CURRENT_PREDICTION_KEYS_EN, {
+    'Actual MinMove over 24h (log)': CURRENT_PREDICTION_KEYS_EN['Факт MinMove за 24ч (log)'],
+    'Forecast MinMove (causal, log)': CURRENT_PREDICTION_KEYS_EN['Прогнозный MinMove (causal, log)'],
+    'Delta MinMove (actual - forecast, log)': CURRENT_PREDICTION_KEYS_EN['Δ MinMove (факт - прогноз, log)']
 })
 
 export const PFI_COLUMNS_EN: Record<string, string> = {
@@ -848,7 +850,7 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
         'StartDay is the first UTC date that actually entered the calculation of this row.\n\nIt defines the left edge of the period used for the current aggregate.\n\nHow to read it:\nStartDay should be judged together with EndDay because period boundaries define whether two rows are directly comparable.',
     EndDay: 'EndDay is the last UTC date that actually entered the calculation of this row.\n\nIf the series stopped early, this field shows the factual stop date rather than the theoretical end of the full report window.\n\nHow to read it:\nEndDay together with StartDay tells which exact period this diagnostics row represents.',
     StopReason:
-        'StopReason explains why the current series ended exactly on that date.\n\nWhat the field can show:\n- Through end of period means the series reached the final day of the window; this is the normal completion path.\n- Early stop means the series ended before the full window.\n- Liquidation means the series contained [[liquidation|liquidation]] events.\n- Ruin means the bucket lost its working capital and the [[account-ruin|AccRuin]] scenario fired.\n\nHow to read it:\nif the text contains early stop, the series ended before the full period.\n\nIf it contains liquidation, the stop was accompanied by exchange-forced closes.\n\nIf it contains ruin, the problem is no longer one bad trade but destruction of the bucket working capital.\n\nFor an aggregate of independent buckets, one single StopReason may be not applicable because each bucket can stop for its own reason.',
+        'StopReason explains why the current series ended exactly on that date.\n\nWhat the field can show:\n- Through end of period means the series reached the final day of the window; this is the normal completion path.\n- Early stop means the series ended before the full window.\n- Liquidation means the series contained [[liquidation|liquidation]] events.\n- Ruin means the bucket lost its working capital and the [[account-ruin|AccountRuinCount]] scenario fired.\n\nHow to read it:\nif the text contains early stop, the series ended before the full period.\n\nIf it contains liquidation, the stop was accompanied by exchange-forced closes.\n\nIf it contains ruin, the problem is no longer one bad trade but destruction of the bucket working capital.\n\nFor an aggregate of independent buckets, one single StopReason may be not applicable because each bucket can stop for its own reason.',
     MissingDays:
         'MissingDays is the number of calendar days missing inside the interval from StartDay to EndDay.\n\nThis is not a no-trade metric and not an intentional strategy skip. It points to missing data coverage or missing day-level decision trace.\n\nHow to read it:\nfor weekdays the healthy value is usually near zero. Growth here means the slice was built on incomplete coverage and should be interpreted more cautiously.',
     'TradeDays%':
@@ -857,8 +859,8 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
         'CapApplied is how many days the engine really applied the [[cap-fraction|capital share per trade]] rule.\n\nIt is not a separate trade type. It counts days where the position size was built with a live non-zero cap instead of being blocked entirely.\n\nHow to read it:\nthe higher CapApplied is relative to trade days, the more often the strategy really entered the market with a working position size.',
     CapSkipped:
         'CapSkipped is how many days were rejected because the primary reason was zero [[cap-fraction|capital share per trade]].\n\nThis is not every no-trade day. In bucket diagnostics it counts only days where cap_zero was the direct blocker of entry.\n\nHow to read it:\nrising CapSkipped means the strategy more often judges the day too weak or too risky even for the minimum working position size.',
-    'MaxDD_NoLiq%':
-        'MaxDD_NoLiq% is the maximum [[drawdown|drawdown]] after liquidation episodes are removed from the curve.\n\nThis metric separates ordinary losing depth from emergency collapses that came specifically through [[liquidation|liquidation]] events.\n\nHow to read it:\nif MaxDD% is much worse than MaxDD_NoLiq%, the main capital damage came from liquidation tails. If the two values stay close, the weakness is broader and sits in the normal trade logic itself.',
+    'MaxDDNoLiq%':
+        'MaxDDNoLiq% is the maximum [[drawdown|drawdown]] after liquidation episodes are removed from the curve.\n\nThis metric separates ordinary losing depth from emergency collapses that came specifically through [[liquidation|liquidation]] events.\n\nHow to read it:\nif MaxDD% is much worse than MaxDDNoLiq%, the main capital damage came from liquidation tails. If the two values stay close, the weakness is broader and sits in the normal trade logic itself.',
     inv_liq_mismatch:
         'inv_liq_mismatch is how many times diagnostics found a contradiction in [[liquidation|liquidation]] invariants.\n\nThis is not a return metric. It is a consistency check for the trade trace: liquidation reachability, liquidation flags, and related service labels must not disagree with each other.\n\nHow to read it:\nthe healthy value is 0.\n\nAny non-zero value means this slice contains rows where liquidation semantics should be rechecked in data or calculation logic.',
     minutes_anomaly:
@@ -893,7 +895,7 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
     IsLiq:
         'IsLiq is the broad liquidation-outcome flag in the model.\n\nIt is wider than [[real-liquidation|RealLiq]]: a row can be marked liquidation-related not only when price strictly touched the backtest liquidation level, but also when the bucket effectively died on that trade.\n\nHow to read it:\nif the goal is strict backtest-level contact, use [[real-liquidation|IsRealLiq]] or RealLiq.\n\nIf the goal is the broader emergency outcome, read IsLiq.',
     IsRealLiq:
-        'IsRealLiq is the strict boolean flag for a real [[liquidation|liquidation]] at the backtest liquidation price.\n\nIn meaning it is the machine form of the same strict liquidation scenario that later aggregates into [[real-liquidation-count|RealLiq#]].\n\nHow to read it:\ntrue means the critical price level was actually reached by the trade path, not only inferred through bucket death.',
+        'IsRealLiq is the strict boolean flag for a real [[liquidation|liquidation]] at the backtest liquidation price.\n\nIn meaning it is the machine form of the same strict liquidation scenario that later aggregates into [[real-liquidation-count|RealLiquidationCount]].\n\nHow to read it:\ntrue means the critical price level was actually reached by the trade path, not only inferred through bucket death.',
     Source:
         'Source is the execution channel that produced the trade signal.\n\nTypical values here are Daily, DelayedA, and DelayedB.\n\nHow to read it:\nthis field does not show trade quality by itself. It tells which execution mechanism delivered the row into the market.\n\nIt is useful when separating problems of the main daily path from delayed-entry problems.',
     DayType:
@@ -912,8 +914,8 @@ export const DIAGNOSTICS_EXACT_EN: Record<string, string> = {
         'MaxEq$ is the maximum bucket equity reached inside the current period.\n\nIt is the top of the capital path from which a later fall to MinEq$ may begin.\n\nHow to read it:\nthis field helps identify whether the strategy first made a local high and then gave it back in a heavy decline.',
     'LiqDays#':
         'LiqDays# is how many days in the current slice contained a liquidation outcome.\n\nThis is a day-level count, not the number of individual trades.\n\nHow to read it:\nrising values mean liquidation tails were not isolated one-trade accidents but repeated across multiple days.',
-    'RealLiq#':
-        'RealLiq# is how many rows or days reached the strict backtest [[liquidation|liquidation]] level.\n\nIt is the aggregated version of [[real-liquidation|IsRealLiq]] for the current diagnostics slice.\n\nHow to read it:\nif RealLiq# is much lower than total LiqDays#, part of the emergency outcomes came from bucket death without every trade strictly touching liquidation price.',
+    RealLiquidationCount:
+        'RealLiquidationCount is how many rows or days reached the strict backtest [[liquidation|liquidation]] level.\n\nIt is the aggregated version of [[real-liquidation|IsRealLiq]] for the current diagnostics slice.\n\nHow to read it:\nif RealLiquidationCount is much lower than total LiqDays#, part of the emergency outcomes came from bucket death without every trade strictly touching liquidation price.',
     FirstLiqDay:
         'FirstLiqDay is the first date on which a [[liquidation|liquidation]] appeared in the current slice.\n\nIt shows how early the liquidation tail started, not how many times it happened.\n\nHow to read it:\nan early date means risk damaged the period almost from the beginning, while a late date means liquidation arrived closer to the tail of the window.',
     LastLiqDay:
@@ -937,9 +939,9 @@ export const DIAGNOSTICS_DAY_TYPE_PREFIX_EN: Record<string, string> = {
 }
 
 export const DIAGNOSTICS_DAY_TYPE_METRIC_EN: Record<string, string> = {
-    Trades: 'Trade count',
+    TradesCount: 'TradesCount',
     'Win%': 'Winning-trade share',
-    'PnL%': 'Total return, %',
+    'PnL%': 'TotalPnl%',
     'NoTrade%': 'No-trade day share',
     'Opp%': 'Opposite-direction decision share',
     'OppAvg%': 'Average harm from opposite decisions, %',

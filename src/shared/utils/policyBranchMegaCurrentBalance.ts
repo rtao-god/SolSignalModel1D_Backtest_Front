@@ -1,8 +1,6 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 
-const MONEY_EPSILON = 1e-9
-
 export interface PolicyBranchMegaSectionRowRef {
     section: TableSectionDto
     row: string[]
@@ -106,22 +104,11 @@ export function resolvePolicyBranchMegaCurrentBalance(
     sectionRows: readonly PolicyBranchMegaSectionRowRef[],
     contextTag = 'policy-branch-mega-current-balance'
 ): string {
-    const bucketNow = buildNumericMetricValue(sectionRows, 'BucketNow$', contextTag)
-    const onExch = buildNumericMetricValue(sectionRows, 'OnExch$', contextTag)
+    const equityNow = buildNumericMetricValue(sectionRows, 'EquityNowUsd', contextTag)
 
-    if (bucketNow && onExch && Math.abs(bucketNow.parsed - onExch.parsed) > MONEY_EPSILON) {
-        throw new Error(
-            `[${contextTag}] current balance aliases diverged. BucketNow$=${bucketNow.raw}, OnExch$=${onExch.raw}.`
-        )
+    if (equityNow) {
+        return equityNow.raw
     }
 
-    if (onExch) {
-        return onExch.raw
-    }
-
-    if (bucketNow) {
-        return bucketNow.raw
-    }
-
-    throw new Error(`[${contextTag}] current balance is missing. Expected OnExch$ or BucketNow$.`)
+    throw new Error(`[${contextTag}] current balance is missing. Expected EquityNowUsd.`)
 }

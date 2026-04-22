@@ -30,6 +30,7 @@ import {
     type BusinessTechnicalViewControlValue
 } from '@/shared/ui'
 import ModelStatsPage from '@/pages/ModelStatsPage'
+import { ModeMoneySummaryPanel } from '@/pages/shared/modeMoney'
 import cls from './PfiPage.module.scss'
 import type { PfiPageMode, PfiPageProps, PfiTableCardProps } from './types'
 
@@ -277,7 +278,8 @@ function PfiDiagnosticsPanel({ family }: PfiDiagnosticsPanelProps) {
                     sections: tableSections,
                     reportKind: viewConfig.routeReportKind,
                     contextTag: 'pfi',
-                    locale: i18n.resolvedLanguage ?? i18n.language
+                    locale: i18n.resolvedLanguage ?? i18n.language,
+                    requireColumnDescriptors: true
                 }),
                 error: null as Error | null
             }
@@ -307,33 +309,40 @@ function PfiDiagnosticsPanel({ family }: PfiDiagnosticsPanelProps) {
     return (
         <PageDataState
             shell={
-                <header className={cls.headerRow}>
-                    <div>
-                        <Text type='h2'>{reportTitle}</Text>
-                        <Text className={cls.subtitle}>
-                            {t(viewConfig.subtitleKey, {
-                                defaultValue: viewConfig.subtitleDefault
-                            })}
-                        </Text>
-                    </div>
-                    {report && sourceEndpointState.value && (
-                        <ReportActualStatusCard
-                            statusMode='actual'
-                            statusTitle={t('pfi.page.status.publishedTitle')}
-                            dataSource={sourceEndpointState.value}
-                            reportTitle={reportTitle}
-                            reportId={report.id}
-                            reportKind={report.kind}
-                            generatedAtUtc={report.generatedAtUtc}
-                            statusLines={[
-                                {
-                                    label: t('pfi.page.statusLines.tableSectionCount'),
-                                    value: String(tableSections.length)
-                                }
-                            ]}
-                        />
-                    )}
-                </header>
+                <>
+                    <header className={cls.headerRow}>
+                        <div>
+                            <Text type='h2'>{reportTitle}</Text>
+                            <Text className={cls.subtitle}>
+                                {t(viewConfig.subtitleKey, {
+                                    defaultValue: viewConfig.subtitleDefault
+                                })}
+                            </Text>
+                        </div>
+                        {report && sourceEndpointState.value && (
+                            <ReportActualStatusCard
+                                statusMode='actual'
+                                statusTitle={t('pfi.page.status.publishedTitle')}
+                                dataSource={sourceEndpointState.value}
+                                reportTitle={reportTitle}
+                                reportId={report.id}
+                                reportKind={report.kind}
+                                generatedAtUtc={report.generatedAtUtc}
+                                statusLines={[
+                                    {
+                                        label: t('pfi.page.statusLines.tableSectionCount'),
+                                        value: String(tableSections.length)
+                                    }
+                                ]}
+                            />
+                        )}
+                    </header>
+
+                    <ModeMoneySummaryPanel
+                        mode='directional_fixed_split'
+                        showDefaultSliceNote
+                    />
+                </>
             }
             isLoading={isLoading}
             isError={Boolean(error)}

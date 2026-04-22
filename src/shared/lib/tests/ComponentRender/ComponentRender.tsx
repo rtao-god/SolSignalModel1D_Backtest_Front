@@ -1,6 +1,7 @@
 import { MemoryRouter } from 'react-router-dom'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nextProvider } from 'react-i18next'
 import { StateSchema, StoreProvider } from '@/app/providers/StoreProvider'
 import { ThemeProvider } from '@/app/providers/ThemeProvider'
@@ -13,13 +14,27 @@ export interface ComponentRenderPropsOptions {
 }
 
 const AllProviders: React.FC<ComponentRenderPropsOptions> = ({ children, route = '/', initialState }) => {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        retry: false,
+                        refetchOnWindowFocus: false
+                    }
+                }
+            })
+    )
+
     return (
         <StoreProvider initialState={initialState}>
-            <ThemeProvider>
-                <MemoryRouter initialEntries={[route]}>
-                    <I18nextProvider i18n={i18nForTests}>{children}</I18nextProvider>
-                </MemoryRouter>
-            </ThemeProvider>
+            <QueryClientProvider client={queryClient}>
+                <ThemeProvider>
+                    <MemoryRouter initialEntries={[route]}>
+                        <I18nextProvider i18n={i18nForTests}>{children}</I18nextProvider>
+                    </MemoryRouter>
+                </ThemeProvider>
+            </QueryClientProvider>
         </StoreProvider>
     )
 }

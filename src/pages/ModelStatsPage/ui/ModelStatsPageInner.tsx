@@ -39,9 +39,17 @@ import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint
 import { buildReportTermsFromSections, type ReportTermItem } from '@/shared/utils/reportTerms'
 import { PageDataState, PageSectionDataState } from '@/shared/ui/errors/PageDataState'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
+import { ModeMoneySummaryPanel } from '@/pages/shared/modeMoney'
 
 const DEFAULT_MODEL_STATS_SEGMENT: SegmentKey = 'OOS'
 const DEFAULT_MODEL_STATS_VIEW: ViewMode = 'business'
+
+function mapModelStatsSegmentToFixedSplitSlice(segment: SegmentKey): 'train' | 'full' | 'oos' | null {
+    if (segment === 'TRAIN') return 'train'
+    if (segment === 'FULL') return 'full'
+    if (segment === 'OOS') return 'oos'
+    return null
+}
 
 function resolveModelStatsSegmentFromQuery(raw: string | null): SegmentKey {
     if (!raw) return DEFAULT_MODEL_STATS_SEGMENT
@@ -286,7 +294,8 @@ export function ModelStatsPageInner({
                     reportKind: 'backtest_model_stats',
                     contextTag: 'model-stats',
                     resolveSectionTitle: section => stripSegmentPrefix(section.title),
-                    locale: i18n.resolvedLanguage ?? i18n.language
+                    locale: i18n.resolvedLanguage ?? i18n.language,
+                    requireColumnDescriptors: true
                 }),
                 error: null as Error | null
             }
@@ -393,6 +402,14 @@ export function ModelStatsPageInner({
     }, [searchParams, segmentState.value, setSearchParams, trainingScopeStatsQuery.data, variantCatalog, viewState.value])
 
     const segmentDescription = currentSegmentMeta?.description ?? ''
+    const fixedSplitSummarySlice = useMemo(
+        () => mapModelStatsSegmentToFixedSplitSlice(segmentState.value),
+        [segmentState.value]
+    )
+    const fixedSplitSummaryUnavailableReason =
+        segmentState.value === 'RECENT' ?
+            t('modeMoney.state.recentTailUnavailable')
+        :   null
     const subtitle = buildModelStatsHeaderSubtitle(
         i18n.resolvedLanguage ?? i18n.language,
         trainingScopeStatsQuery.data ?? null
@@ -503,6 +520,12 @@ export function ModelStatsPageInner({
                         </header>
 
                         {segmentDescription && <Text className={cls.segmentSubtitle}>{segmentDescription}</Text>}
+
+                        <ModeMoneySummaryPanel
+                            mode='directional_fixed_split'
+                            reportSlice={fixedSplitSummarySlice}
+                            unavailableReason={fixedSplitSummaryUnavailableReason}
+                        />
                     </>
                 }
                 isLoading={isLoading}

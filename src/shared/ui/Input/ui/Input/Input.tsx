@@ -23,10 +23,11 @@ export default function Input({
     error = '',
     ...rest
 }: InputProps) {
+    // Внешний className приходит из page/shared CSS Modules и не может резолвиться через локальный cls этого файла.
+    // Здесь нужен прямой passthrough, иначе страница теряет возможность доопределить цветовую схему native input.
     const inputClassName = classNames(cls.Input, {
-        [cls.error_border]: error,
-        [cls[className]]: className
-    })
+        [cls.error_border]: error
+    }, [className])
 
     return (
         <input

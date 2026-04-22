@@ -12,6 +12,7 @@ import type {
     CapturedMegaZonalModeDto,
     CapturedTableKindDto,
     CapturedTableMetadataDto,
+    ReportColumnDescriptorDto,
     ReportDocumentDto,
     ReportSectionDto
 } from '@/shared/types/report.types'
@@ -221,6 +222,70 @@ function parsePositiveInt(raw: unknown, label: string): number {
     throw new Error(`[ui] ${label} must be a positive integer. value=${String(raw)}.`)
 }
 
+function mapReportColumnDescriptorResponse(raw: unknown, label: string): ReportColumnDescriptorDto {
+    const payload = toObject(raw, label)
+
+    return {
+        columnKey: toString(payload.columnKey, `${label}.columnKey`),
+        displayLabel: toString(payload.displayLabel, `${label}.displayLabel`),
+        termKey: toString(payload.termKey, `${label}.termKey`)
+    }
+}
+
+function mapTableColumnDescriptors(
+    raw: unknown,
+    columns: string[],
+    columnKeys: string[] | undefined,
+    reportKind: string,
+    sectionTitle: string
+): ReportColumnDescriptorDto[] {
+    if (!Array.isArray(raw)) {
+        throw new Error(
+            `[ui] TableSection.columnDescriptors (${sectionTitle}) is missing. owner=report_column_registry | expected=${reportKind} table sections must publish backend-owned column descriptors for every column. | actual=missing | requiredAction=Republish the report with backend columnDescriptors and stop relying on frontend canonicalization.`
+        )
+    }
+
+    if (!Array.isArray(columnKeys)) {
+        throw new Error(
+            `[ui] TableSection.columnKeys (${sectionTitle}) is missing. owner=report_column_registry | expected=${reportKind} table sections must publish machine column keys aligned to columnDescriptors. | actual=missing | requiredAction=Republish the report with backend columnKeys and columnDescriptors.`
+        )
+    }
+
+    if (columnKeys.length !== columns.length) {
+        throw new Error(
+            `[ui] TableSection.columnKeys (${sectionTitle}) length mismatch. owner=report_column_registry | expected=${columns.length} columnKeys for ${columns.length} columns. | actual=${columnKeys.length} columnKeys | requiredAction=Republish the report with aligned columns, columnKeys and columnDescriptors.`
+        )
+    }
+
+    const descriptors = raw.map((item: unknown, index: number) =>
+        mapReportColumnDescriptorResponse(item, `TableSection.columnDescriptors[${index}] (${sectionTitle})`)
+    )
+
+    if (descriptors.length !== columns.length) {
+        throw new Error(
+            `[ui] TableSection.columnDescriptors (${sectionTitle}) length mismatch. owner=report_column_registry | expected=${columns.length} descriptors for ${columns.length} columns. | actual=${descriptors.length} descriptors | requiredAction=Republish the report with aligned columns and columnDescriptors.`
+        )
+    }
+
+    descriptors.forEach((descriptor, index) => {
+        const expectedDisplayLabel = columns[index]
+        if (descriptor.displayLabel !== expectedDisplayLabel) {
+            throw new Error(
+                `[ui] TableSection.columnDescriptors[${index}] (${sectionTitle}) has displayLabel mismatch. owner=report_column_registry | expected=${expectedDisplayLabel} | actual=${descriptor.displayLabel} | requiredAction=Republish the report with descriptor.displayLabel aligned to TableSection.columns.`
+            )
+        }
+
+        const expectedColumnKey = columnKeys[index]
+        if (descriptor.columnKey !== expectedColumnKey) {
+            throw new Error(
+                `[ui] TableSection.columnDescriptors[${index}] (${sectionTitle}) has columnKey mismatch. owner=report_column_registry | expected=${expectedColumnKey} | actual=${descriptor.columnKey} | requiredAction=Republish the report with descriptor.columnKey aligned to TableSection.columnKeys.`
+            )
+        }
+    })
+
+    return descriptors
+}
+
 function mapBacktestPolicySummaryResponse(raw: unknown, label: string): BacktestPolicySummaryDto {
     const payload = toObject(raw, label)
 
@@ -361,6 +426,7 @@ function mapSectionMetadata(
 export function mapReportResponse(response: unknown): ReportDocumentDto {
     const raw: any = response
     const sections: ReportSectionDto[] = []
+    const reportKind = toString(raw?.kind, 'Report.kind')
 
     if (Array.isArray(raw?.keyValueSections)) {
         for (const kv of raw.keyValueSections) {
@@ -384,18 +450,28 @@ export function mapReportResponse(response: unknown): ReportDocumentDto {
     if (Array.isArray(raw?.tableSections)) {
         for (const tbl of raw.tableSections) {
             const title = toString(tbl?.title, 'TableSection.title')
+            const columns =
+                Array.isArray(tbl?.columns) ?
+                    tbl.columns.map((c: any, idx: number) => toString(c, `TableSection.columns[${idx}]`))
+                :   []
+            const columnKeys =
+                Array.isArray(tbl?.columnKeys) ?
+                    tbl.columnKeys.map((key: any, idx: number) => toString(key, `TableSection.columnKeys[${idx}]`))
+                :   undefined
+            const columnDescriptors = mapTableColumnDescriptors(
+                tbl?.columnDescriptors,
+                columns,
+                columnKeys,
+                reportKind,
+                title
+            )
 
             sections.push({
                 sectionKey: toOptionalStringOrUndefined(tbl?.sectionKey),
                 title,
-                columns:
-                    Array.isArray(tbl?.columns) ?
-                        tbl.columns.map((c: any, idx: number) => toString(c, `TableSection.columns[${idx}]`))
-                    :   [],
-                columnKeys:
-                    Array.isArray(tbl?.columnKeys) ?
-                        tbl.columnKeys.map((key: any, idx: number) => toString(key, `TableSection.columnKeys[${idx}]`))
-                    :   undefined,
+                columns,
+                columnKeys,
+                columnDescriptors,
                 rows:
                     Array.isArray(tbl?.rows) ?
                         tbl.rows.map((row: any) =>
@@ -418,7 +494,7 @@ export function mapReportResponse(response: unknown): ReportDocumentDto {
     return {
         schemaVersion: parsePositiveInt(raw?.schemaVersion, 'Report.schemaVersion'),
         id: toString(raw?.id, 'Report.id'),
-        kind: toString(raw?.kind, 'Report.kind'),
+        kind: reportKind,
         title: toString(raw?.title, 'Report.title'),
         titleKey: toOptionalStringOrUndefined(raw?.titleKey),
         generatedAtUtc: toString(raw?.generatedAtUtc, 'Report.generatedAtUtc'),

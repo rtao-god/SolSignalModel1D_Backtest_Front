@@ -442,7 +442,8 @@ function FixedSplitPfiFeatureDetailPage({ className }: { className?: string }) {
                     sections: detailTableSections,
                     reportKind: report.kind,
                     contextTag: 'pfi-feature-detail',
-                    locale: i18n.resolvedLanguage ?? i18n.language
+                    locale: i18n.resolvedLanguage ?? i18n.language,
+                    requireColumnDescriptors: true
                 }),
                 error: null as Error | null
             }

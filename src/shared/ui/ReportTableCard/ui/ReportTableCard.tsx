@@ -6,6 +6,7 @@ import TableExportButton from '@/shared/ui/TableExportButton/ui/TableExportButto
 import classNames from '@/shared/lib/helpers/classNames'
 import { localizeReportCellValue } from '@/shared/utils/reportCellLocalization'
 import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
+import type { ReportColumnDescriptorDto } from '@/shared/types/report.types'
 import cls from './ReportTableCard.module.scss'
 import {
     SortableTable,
@@ -18,17 +19,25 @@ import {
     tryParseNumberFromString
 } from '@/shared/ui/SortableTable'
 
+export interface ReportTableColumnRenderContext {
+    colIdx: number
+    columnKey?: string
+    columnDescriptor?: ReportColumnDescriptorDto
+}
+
 interface ReportTableCardProps {
     title: string
     description?: string
     columns: string[]
+    columnKeys?: string[]
+    columnDescriptors?: ReportColumnDescriptorDto[]
     rows: TableRow[]
     domId: string
     className?: string
     tableDensity?: TableDensity
     virtualizeRows?: boolean
     tableMaxHeight?: CSSProperties['maxHeight']
-    renderColumnTitle?: (title: string, colIdx: number) => ReactNode
+    renderColumnTitle?: (title: string, context: ReportTableColumnRenderContext) => ReactNode
     rowEvaluations?: Array<PolicyEvaluationDto | null>
     rowEvaluationMap?: Record<string, PolicyEvaluationDto>
     getRowKey?: (row: TableRow, rowIndex: number) => string | null
@@ -106,6 +115,8 @@ function ReportTableCard({
     title,
     description,
     columns,
+    columnKeys,
+    columnDescriptors,
     rows,
     domId,
     className,
@@ -216,12 +227,16 @@ function ReportTableCard({
     const renderReportColumnTitle = useCallback(
         (title: string, colIdx: number) => {
             if (renderColumnTitle) {
-                return renderColumnTitle(title, colIdx)
+                return renderColumnTitle(title, {
+                    colIdx,
+                    columnKey: columnKeys?.[colIdx],
+                    columnDescriptor: columnDescriptors?.[colIdx]
+                })
             }
 
             return shouldRenderTermRichText(title) ? renderTermTooltipRichText(title) : title
         },
-        [renderColumnTitle]
+        [columnDescriptors, columnKeys, renderColumnTitle]
     )
 
     return (

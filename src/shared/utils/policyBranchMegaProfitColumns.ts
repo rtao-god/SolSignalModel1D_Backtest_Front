@@ -1,16 +1,10 @@
 import type { TableSectionDto } from '@/shared/types/report.types'
 
-export const POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS = ['TotalPnl%', 'Wealth%'] as const
+export const POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS = ['TotalPnl%'] as const
 
-export function resolvePolicyBranchMegaPrimaryProfitColumn(
-    columns: readonly string[]
-): 'TotalPnl%' | 'Wealth%' | null {
+export function resolvePolicyBranchMegaPrimaryProfitColumn(columns: readonly string[]): 'TotalPnl%' | null {
     if (columns.includes('TotalPnl%')) {
         return 'TotalPnl%'
-    }
-
-    if (columns.includes('Wealth%')) {
-        return 'Wealth%'
     }
 
     return null
@@ -37,7 +31,7 @@ function resolveMegaSectionPart(section: TableSectionDto): number | null {
 
 /**
  * UI не владеет profit-колонками mega-отчёта.
- * Если backend не отдал TotalPnl% или Wealth% в PART 1, это контрактная ошибка published slice.
+ * Если backend не отдал TotalPnl% в PART 1, это контрактная ошибка published slice.
  */
 export function assertPolicyBranchMegaPrimaryProfitColumns(
     sections: readonly TableSectionDto[],
@@ -57,12 +51,6 @@ export function assertPolicyBranchMegaPrimaryProfitColumns(
         if (!columns.includes('TotalPnl%')) {
             throw new Error(
                 `[${contextTag}] mega part1 section is missing TotalPnl%. section=${section.title ?? 'n/a'}, index=${sectionIndex}, columns=${columns.join(', ')}.`
-            )
-        }
-
-        if (!columns.includes('Wealth%')) {
-            throw new Error(
-                `[${contextTag}] mega part1 section is missing Wealth%. section=${section.title ?? 'n/a'}, index=${sectionIndex}, columns=${columns.join(', ')}.`
             )
         }
     })

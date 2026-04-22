@@ -316,21 +316,21 @@
                 "periodEnd": "Period end",
                 "days": "Trading days",
                 "startCapital": "Starting capital",
-                "finalBalance": "Active balance now",
-                "withdrawnProfit": "Already withdrawn",
-                "trades": "Trades"
+                "finalBalance": "EquityNowUsd",
+                "withdrawnProfit": "WithdrawnTotalUsd",
+                "trades": "TradesCount"
             },
             "metrics": {
-                "totalPnl": "Return",
+                "totalPnl": "TotalPnl%",
                 "bucketNow": "Active balance",
-                "maxDd": "Max drawdown",
+                "maxDd": "MaxDD%",
                 "liquidations": "Liquidations",
                 "accountRuin": "Capital ruin",
                 "recovery": "Recovery",
                 "winRate": "Profitable trades",
                 "meanRet": "Average trade",
                 "sharpe": "Sharpe",
-                "trades": "Trades",
+                "trades": "TradesCount",
                 "tradeShare": "Days with trades",
                 "noTrade": "Days without trades"
             },
@@ -962,12 +962,12 @@
                     "tooltip": "Whether liquidations occurred (Yes/No). Critical risk flag."
                 },
                 "withdrawUsd": {
-                    "label": "Withdraw, $",
-                    "tooltip": "How much profit was withdrawn from capital (if applicable)."
+                    "label": "WithdrawnTotalUsd",
+                    "tooltip": "WithdrawnTotalUsd for the policy in the selected period."
                 },
                 "trades": {
-                    "label": "Trades",
-                    "tooltip": "Number of trades for the policy over the period."
+                    "label": "TradesCount",
+                    "tooltip": "TradesCount for the policy over the period."
                 }
             },
             "mode": {
@@ -1434,8 +1434,8 @@
                     "tooltip": "Capital bucket: daily, intraday, delayed, or total."
                 },
                 "trades": {
-                    "label": "Trades",
-                    "tooltip": "Number of trades in selected bucket."
+                    "label": "TradesCount",
+                    "tooltip": "TradesCount in the selected bucket."
                 },
                 "pnl": {
                     "label": "PnL %",
@@ -1462,12 +1462,12 @@
                     "tooltip": "Share of profitable trades, %."
                 },
                 "withdrawn": {
-                    "label": "Withdrawn $",
-                    "tooltip": "Withdrawn profit amount, USD."
+                    "label": "WithdrawnTotalUsd",
+                    "tooltip": "WithdrawnTotalUsd in USD."
                 },
                 "liq": {
-                    "label": "Liq?",
-                    "tooltip": "Liquidation occurred in selected bucket."
+                    "label": "HadLiquidation",
+                    "tooltip": "HadLiquidation flag in the selected bucket."
                 }
             },
             "rows": {
@@ -2050,11 +2050,11 @@
                     "actualExit": "Actual exit price",
                     "actualExitReason": "Actual exit reason",
                     "actualExitPnl": "Actual exit PnL, %",
-                    "actualTrades": "Trades",
-                    "actualTotalPnl": "Total PnL, %",
-                    "actualMaxDd": "MaxDD, %",
-                    "actualLiquidation": "Had liquidation",
-                    "actualWithdrawn": "Withdrawn, $"
+                    "actualTrades": "TradesCount",
+                    "actualTotalPnl": "TotalPnl%",
+                    "actualMaxDd": "MaxDD%",
+                    "actualLiquidation": "HadLiquidation",
+                    "actualWithdrawn": "WithdrawnTotalUsd"
                 }
             }
         },
@@ -2710,19 +2710,19 @@
                     "toDate": "To",
                     "execution": "Execution / policy",
                     "days": "Days",
-                    "trades": "Trades",
+                    "trades": "TradesCount",
                     "predictionQuality": "Prediction quality",
                     "diagnostics": "Diagnostics",
-                    "totalReturn": "Return, %",
-                    "totalPnlUsd": "PnL, $",
-                    "startCapitalUsd": "Start cap, $",
-                    "equityNowUsd": "Equity now, $",
-                    "withdrawnUsd": "Withdrawn, $",
-                    "fundingNetUsd": "Funding net, $",
-                    "maxDrawdown": "MaxDD, %",
+                    "totalReturn": "TotalPnl%",
+                    "totalPnlUsd": "TotalPnlUsd",
+                    "startCapitalUsd": "StartCapitalUsd",
+                    "equityNowUsd": "EquityNowUsd",
+                    "withdrawnUsd": "WithdrawnTotalUsd",
+                    "fundingNetUsd": "FundingNetUsd",
+                    "maxDrawdown": "EffectiveMaxDD%",
                     "sharpe": "Sharpe",
-                    "realLiquidations": "Real liq",
-                    "accountRuins": "Account ruin",
+                    "realLiquidations": "RealLiquidationCount",
+                    "accountRuins": "AccountRuinCount",
                     "sourcePath": "Verification path"
                 },
                 "predictionQuality": {
@@ -2862,7 +2862,7 @@
                             "tradeVsReturn": "Trade rate vs Total PnL",
                             "recoveryVsDrawdown": "Required gain vs MaxDD",
                             "ruinVsLiquidation": "Capital ruin vs liquidations",
-                            "liquidationVsRecovery": "HadLiq vs RecovDays",
+                            "liquidationVsRecovery": "HadLiquidation vs RecovDays",
                             "recoveryDaysVsGain": "RecovDays vs ReqGain%",
                             "avgDayVsTotalPnl": "AvgDay% vs Total PnL",
                             "longVsShortCash": "Long $ vs Short $",
@@ -2935,7 +2935,7 @@
                     "title": "What we compare",
                     "items": {
                         "policy": "Policy: when to open a position, in which direction to open (LONG, SHORT, or skip day), what size to use, and where TP/SL are set.",
-                        "branch": "Branch is an execution scenario for the same Policy.\n\nBASE: uses original daily signal direction without inversion (LONG stays LONG, SHORT stays SHORT).\n\nANTI-D: anti-direction rule is checked daily. If triggered, direction is forcibly inverted (LONG -> SHORT, SHORT -> LONG).\n\nOne mandatory anti-direction filter: MinMove in working range (0.5%-12%).",
+                        "branch": "Branch is an execution scenario for the same Policy.\n\nBASE: uses original daily signal direction without inversion (LONG stays LONG, SHORT stays SHORT).\n\nANTI-D: anti-direction rule is checked daily. If triggered, direction is forcibly inverted (LONG -> SHORT, SHORT -> LONG).\n\nOne mandatory anti-direction filter: MinMove in the owner log working band.",
                         "slMode": "SL Mode: WITH-SL enables stop-loss (exit priority liquidation -> stop-loss -> take-profit -> EndOfDay). NO-SL disables stop-loss (exit only by take-profit, liquidation, or EndOfDay); this can wipe bucket capital and, in cross margin, the entire trading balance.",
                         "tpSlMode": "TP/SL mode: ALL shows all trades, DYNAMIC shows only trades with actually applied dynamic levels, STATIC shows only trades with fixed levels.",
                         "zonal": "ZONAL: WITH applies zonal entry filter, WITHOUT runs without this filter.",
@@ -2946,7 +2946,7 @@
                 "reading": {
                     "title": "How to read / interpret the table",
                     "items": {
-                        "item1": "Reading order: 1) emergency risk first (HadLiq and AccRuin), 2) then drawdown depth (MaxDD%), 3) then recovery difficulty (Recovered, RecovDays, ReqGain%), 4) only after that final return (TotalPnl% and Wealth%).",
+                        "item1": "Reading order: 1) emergency risk first (HadLiquidation and AccountRuinCount), 2) then drawdown depth (MaxDD%), 3) then recovery difficulty (Recovered, RecovDays, ReqGain%), 4) only after that final return (TotalPnl%).",
                         "item2": "Comparison is valid only inside one slice: same bucket, TP/SL mode, SL Mode, ZONAL, and Metric View.",
                         "item3": "If NO BIGGEST LIQ LOSS is significantly better than REAL, strategy result critically depends on one extreme failure."
                     }
@@ -2978,7 +2978,7 @@
                 "description": "Part 2/4 aggregates balance and recovery metrics by Policy/Branch. The risk page expands the same emergency scenarios into dedicated diagnostics tables and shows where losses are formed.",
                 "link": "Risk and liquidations page",
                 "items": {
-                    "item1": "[[liquidation|Liquidations]] and [[account-ruin|AccRuin]]: shows which policies reach forced close or lose the working capital base.",
+                    "item1": "[[liquidation|Liquidations]] and [[account-ruin|AccountRuinCount]]: shows which policies reach forced close or lose the working capital base.",
                     "item2": "[[drawdown|Drawdown]], [[recovery|recovery]] and the capital curve: shows how deep capital fell and whether it returned to the previous peak.",
                     "item3": "Distance to [[liquidation|liquidation]] by trades and days: shows where the safety buffer before forced exit becomes too small.",
                     "item4": "Sanity checks for [[leverage|leverage]], [[cap-fraction|position size]], and trading costs: shows whether the result depends on overly aggressive risk."
@@ -2995,7 +2995,7 @@
                     "all": "WITH SL + NO SL: "
                 },
                 "part1Description": "Part 1/4: base summary by days, risk days, leverage/cap fraction, and core PnL metrics (up to MaxDD_Ratio%).",
-                "part2Description": "Part 2/4: balance and recovery metrics (Withdrawn/OnExch, liquidations, recovery, DD70).",
+                "part2Description": "Part 2/4: balance and recovery metrics (WithdrawnTotalUsd/EquityNowUsd, liquidations, recovery, DD70).",
                 "part3Description": "Part 3/4: horizon and average growth rates, long/short split, and diagnostic counters.",
                 "part4Description": "Part 4/4: trade-derived and advanced daily-series metrics (ProfitFactor, Expectancy, Best/Worst day, PSR, MinTRL).",
                 "mergedAllDescription": "Summary metrics of merged SL slice.",

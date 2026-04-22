@@ -61,15 +61,15 @@ interface DemoNarrativeSummary {
 
 const DEMO_METRIC_DEFINITIONS: DemoMetricDefinition[] = [
     { labelKey: 'totalPnl', termKey: 'TotalPnl%', termTitle: 'TotalPnl%' },
-    { labelKey: 'bucketNow', termKey: 'OnExch$', termTitle: 'OnExch$' },
+    { labelKey: 'bucketNow', termKey: 'EquityNowUsd', termTitle: 'EquityNowUsd' },
     { labelKey: 'maxDd', termKey: 'MaxDD%', termTitle: 'MaxDD%' },
-    { labelKey: 'liquidations', termKey: 'HadLiq', termTitle: 'HadLiq' },
-    { labelKey: 'accountRuin', termKey: 'AccRuin', termTitle: 'AccRuin' },
+    { labelKey: 'liquidations', termKey: 'HadLiquidation', termTitle: 'HadLiquidation' },
+    { labelKey: 'accountRuin', termKey: 'AccountRuinCount', termTitle: 'AccountRuinCount' },
     { labelKey: 'recovery', termKey: 'RecovDays', termTitle: 'RecovDays' },
     { labelKey: 'winRate', termKey: 'WinRate%', termTitle: 'WinRate%' },
     { labelKey: 'meanRet', termKey: 'MeanRet%', termTitle: 'MeanRet%' },
     { labelKey: 'sharpe', termKey: 'Sharpe', termTitle: 'Sharpe' },
-    { labelKey: 'trades', termKey: 'Tr', termTitle: 'Tr' },
+    { labelKey: 'trades', termKey: 'TradesCount', termTitle: 'TradesCount' },
     { labelKey: 'tradeShare', termKey: 'Trade%', termTitle: 'Trade%' },
     { labelKey: 'noTrade', termKey: 'NoTrade%', termTitle: 'NoTrade%' }
 ]
@@ -213,20 +213,19 @@ function resolveCanonicalMetricRawValue(bundle: MainBestPolicyRowBundle, title: 
     switch (title) {
         case 'TotalPnl%':
             return String(resolveRequiredPolicyMetricNumber(metrics.totalPnlPct, 'totalPnlPct'))
-        case 'TotalPnl$':
+        case 'TotalPnlUsd':
             return String(resolveRequiredPolicyMetricNumber(metrics.totalPnlUsd, 'totalPnlUsd'))
-        case 'StartCap$':
+        case 'StartCapitalUsd':
             return String(resolveRequiredPolicyMetricNumber(metrics.startCapitalUsd, 'startCapitalUsd'))
-        case 'OnExch$':
-        case 'BucketNow$':
+        case 'EquityNowUsd':
             return String(resolveRequiredPolicyMetricNumber(metrics.equityNowUsd, 'equityNowUsd'))
-        case 'Withdrawn$':
+        case 'WithdrawnTotalUsd':
             return String(resolveRequiredPolicyMetricNumber(metrics.withdrawnTotalUsd, 'withdrawnTotalUsd'))
         case 'MaxDD%':
             return String(resolveRequiredPolicyMetricNumber(metrics.maxDdPct, 'maxDdPct'))
-        case 'HadLiq':
+        case 'HadLiquidation':
             return resolveRequiredPolicyMetricBoolean(metrics.hadLiquidation, 'hadLiquidation') ? 'Yes' : 'No'
-        case 'AccRuin':
+        case 'AccountRuinCount':
             return String(resolveRequiredPolicyMetricNumber(metrics.accountRuinCount, 'accountRuinCount'))
         case 'WinRate%':
             return String(convertFractionToPercent(metrics.winRate, 'winRate'))
@@ -234,7 +233,7 @@ function resolveCanonicalMetricRawValue(bundle: MainBestPolicyRowBundle, title: 
             return String(convertFractionToPercent(metrics.mean, 'mean'))
         case 'Sharpe':
             return String(resolveRequiredPolicyMetricNumber(metrics.sharpe, 'sharpe'))
-        case 'Tr':
+        case 'TradesCount':
             return String(resolveRequiredPolicyMetricNumber(metrics.tradesCount, 'tradesCount'))
         default:
             return null

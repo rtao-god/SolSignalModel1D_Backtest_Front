@@ -70,9 +70,9 @@ interface RatioColumnDefinition {
 const RATIO_COLUMN_DEFINITIONS: readonly RatioColumnDefinition[] = [
     { id: 'policy', defaultLabel: 'Policy', defaultTooltip: 'Trading policy name.' },
     { id: 'bucket', defaultLabel: 'Bucket', defaultTooltip: 'Capital bucket: daily, intraday, delayed, or total.' },
-    { id: 'trades', defaultLabel: 'Trades', defaultTooltip: 'Number of trades in selected bucket.' },
-    { id: 'pnl', defaultLabel: 'PnL %', defaultTooltip: 'Total policy return in selected bucket, %.' },
-    { id: 'maxDd', defaultLabel: 'MaxDD %', defaultTooltip: 'Maximum equity drawdown, %.' },
+    { id: 'trades', defaultLabel: 'TradesCount', defaultTooltip: 'TradesCount in the selected bucket.' },
+    { id: 'pnl', defaultLabel: 'TotalPnl%', defaultTooltip: 'TotalPnl% for the selected bucket.' },
+    { id: 'maxDd', defaultLabel: 'MaxDD%', defaultTooltip: 'MaxDD% for the selected bucket.' },
     {
         id: 'sharpe',
         defaultLabel: 'Sharpe',
@@ -88,9 +88,9 @@ const RATIO_COLUMN_DEFINITIONS: readonly RatioColumnDefinition[] = [
         defaultLabel: 'Calmar',
         defaultTooltip: 'Calmar checks how much annual growth the strategy gets per unit of the deepest drawdown.'
     },
-    { id: 'winRate', defaultLabel: 'WinRate %', defaultTooltip: 'Share of profitable trades, %.' },
-    { id: 'withdrawn', defaultLabel: 'Withdrawn $', defaultTooltip: 'Withdrawn profit amount, USD.' },
-    { id: 'liq', defaultLabel: 'Liq?', defaultTooltip: 'Liquidation occurred in selected bucket.' }
+    { id: 'winRate', defaultLabel: 'WinRate%', defaultTooltip: 'WinRate% in the selected bucket.' },
+    { id: 'withdrawn', defaultLabel: 'WithdrawnTotalUsd', defaultTooltip: 'WithdrawnTotalUsd in the selected bucket.' },
+    { id: 'liq', defaultLabel: 'HadLiquidation', defaultTooltip: 'HadLiquidation flag in the selected bucket.' }
 ]
 
 function selectMetric(row: PolicyRatiosPerPolicyDto, key: MetricKey): number {
@@ -432,24 +432,24 @@ export function BacktestPolicyRatiosSection({
                                         },
                                         {
                                             label: t('backtestFull.policyRatios.columns.trades.label', {
-                                                defaultValue: 'Trades'
+                                                defaultValue: 'TradesCount'
                                             }),
                                             value: String(datum.tradesCount)
                                         },
                                         {
                                             label: t('backtestFull.policyRatios.columns.maxDd.label', {
-                                                defaultValue: 'MaxDD %'
+                                                defaultValue: 'MaxDD%'
                                             }),
                                             value: `${datum.maxDdPct.toFixed(2)}`
                                         },
                                         {
                                             label: t('backtestFull.policyRatios.columns.winRate.label', {
-                                                defaultValue: 'WinRate %'
+                                                defaultValue: 'WinRate%'
                                             }),
                                             value: `${datum.winRatePct.toFixed(1)}`
                                         },
                                         {
-                                            label: t('backtestFull.policyRatios.columns.liq.label', { defaultValue: 'Liq?' }),
+                                            label: t('backtestFull.policyRatios.columns.liq.label', { defaultValue: 'HadLiquidation' }),
                                             value:
                                                 datum.hadLiquidation ?
                                                     t('backtestFull.policyRatios.rows.liqYes', { defaultValue: 'YES' })

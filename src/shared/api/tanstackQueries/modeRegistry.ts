@@ -23,7 +23,7 @@ import {
     type ModeRegistrySurfaceDescriptor
 } from '@/entities/mode'
 
-const MODE_REGISTRY_SCHEMA_VERSION = 'mode-registry-v2-2026-04-16'
+const MODE_REGISTRY_SCHEMA_VERSION = 'mode-registry-v3-2026-04-17'
 const MODE_REGISTRY_QUERY_KEY = ['modes', 'registry'] as const
 const { path } = API_ROUTES.modes.registry
 

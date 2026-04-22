@@ -241,7 +241,9 @@ function FixedSplitBacktestDiagnosticsPageLayout({
                     reportKind: report.kind,
                     contextTag: 'backtest-diagnostics',
                     resolveSectionTitle: section =>
-                        normalizeReportTitle(section.title) || section.title || 'diagnostics-table'
+                        normalizeReportTitle(section.title) || section.title || 'diagnostics-table',
+                    locale: reportUiLanguage,
+                    requireColumnDescriptors: true
                 }),
                 error: null as Error | null
             }
@@ -258,7 +260,7 @@ function FixedSplitBacktestDiagnosticsPageLayout({
                 error: safeError
             }
         }
-    }, [report, sectionsForView])
+    }, [report, reportUiLanguage, sectionsForView])
 
     const pagerSections = useMemo(
         () =>
@@ -503,16 +505,28 @@ function FixedSplitBacktestDiagnosticsPageLayout({
                                             description={
                                                 resolveBacktestDiagnosticsDescription(section.title) ?? undefined
                                             }
+                                            columnKeys={section.columnKeys}
+                                            columnDescriptors={section.columnDescriptors}
                                             columns={section.columns ?? []}
                                             rows={section.rows ?? []}
                                             rowEvaluations={section.rowEvaluations ?? []}
                                             domId={`${sectionDomId(index)}-table`}
-                                            renderColumnTitle={title =>
+                                            renderColumnTitle={(title, context) =>
                                                 // Diagnostics-колонки вроде Mode/Year меняют смысл от семейства таблицы,
                                                 // поэтому tooltip обязан получать section.title, а не только raw column title.
                                                 renderTermTooltipTitle(
                                                     title,
-                                                    resolveReportColumnTooltip(report?.kind, section.title, title)
+                                                    resolveReportColumnTooltip(
+                                                        report?.kind,
+                                                        section.title,
+                                                        section.columns?.[context.colIdx] ?? title,
+                                                        undefined,
+                                                        {
+                                                            sectionKey: section.sectionKey,
+                                                            columnKey: context.columnKey,
+                                                            termKey: context.columnDescriptor?.termKey
+                                                        }
+                                                    )
                                                 )
                                             }
                                         />
@@ -553,11 +567,13 @@ function FixedSplitBacktestDiagnosticsPageLayout({
                                                         resolveBacktestDiagnosticsDescription(section.title) ??
                                                         undefined
                                                     }
+                                                    columnKeys={section.columnKeys}
+                                                    columnDescriptors={section.columnDescriptors}
                                                     columns={section.columns ?? []}
                                                     rows={section.rows ?? []}
                                                     rowEvaluations={section.rowEvaluations ?? []}
                                                     domId={`${sectionDomId(domIndex)}-table`}
-                                                    renderColumnTitle={title =>
+                                                    renderColumnTitle={(title, context) =>
                                                         // Общие diagnostics-секции используют тот же section-aware tooltip-контракт,
                                                         // иначе glossary и header снова расходятся по смыслу.
                                                         renderTermTooltipTitle(
@@ -565,7 +581,13 @@ function FixedSplitBacktestDiagnosticsPageLayout({
                                                             resolveReportColumnTooltip(
                                                                 report?.kind,
                                                                 section.title,
-                                                                title
+                                                                section.columns?.[context.colIdx] ?? title,
+                                                                undefined,
+                                                                {
+                                                                    sectionKey: section.sectionKey,
+                                                                    columnKey: context.columnKey,
+                                                                    termKey: context.columnDescriptor?.termKey
+                                                                }
                                                             )
                                                         )
                                                     }

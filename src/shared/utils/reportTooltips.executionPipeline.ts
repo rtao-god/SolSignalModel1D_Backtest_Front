@@ -237,7 +237,7 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
 })
 
 Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU, {
-    Trades: TRADE_COUNT_DESCRIPTION,
+    TradesCount: TRADE_COUNT_DESCRIPTION,
     Daily: buildRuTooltip(
         'Daily',
         'сколько сделок текущей Policy пришло из daily execution-path',
@@ -278,7 +278,7 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU, {
         'ExitLiquidationCount',
         'сколько сделок завершились аварийно по liquidation как по финальной причине выхода',
         'поле отвечает именно за итоговый exit reason. Оно не считает просто близкие подходы к ликвидации или случаи, где уровень был достижим, но trade закрылся раньше по другому событию.',
-        'даже небольшой рост этого счётчика означает хвостовой риск execution-layer. Его нужно читать вместе с RealLiquidations, HadLiquidation и aggregation drawdown.'
+        'даже небольшой рост этого счётчика означает хвостовой риск execution-layer. Его нужно читать вместе с RealLiquidationCount, HadLiquidation и aggregation drawdown.'
     ),
     ExitEndOfWindowCount: buildRuTooltip(
         'ExitEndOfWindowCount',
@@ -292,11 +292,11 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU, {
         'поле не означает, что ликвидация уже случилась. Оно лишь показывает, что для сделки был рассчитан реальный liquidation boundary и аварийный исход оставался достижимым сценарием пути цены.',
         'если почти все trades liquidation-reachable, безопасность Policy сильнее зависит от distance to liquidation и leverage discipline, чем от самого факта, случилась ли ликвидация сейчас.'
     ),
-    RealLiquidations: buildRuTooltip(
-        'RealLiquidations',
+    RealLiquidationCount: buildRuTooltip(
+        'RealLiquidationCount',
         'сколько сделок строго дошли до консервативной backtest-цены ликвидации',
         'это более жёсткий счётчик, чем просто liquidation exit. Здесь считаются только строки, где trade path реально достиг критической liquidation boundary.',
-        'если RealLiquidations ниже ExitLiquidationCount, часть аварийных исходов пришла через более широкий liquidation outcome, а не через строгий touch критической цены.'
+        'если RealLiquidationCount ниже ExitLiquidationCount, часть аварийных исходов пришла через более широкий liquidation outcome, а не через строгий touch критической цены.'
     ),
     SumPositionGrossPnlUsd: buildRuTooltip(
         'SumPositionGrossPnlUsd',
@@ -334,27 +334,27 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU, {
         'здесь сравнивается, равна ли фактическая visible wealth delta разнице bucket wealth after и before. Ненулевое значение уже означает проблему целостности accounting-layer, а не обычный рыночный убыток.',
         'здоровое значение — 0. Любой рост InvariantBreaks указывает на broken accounting contract, который нужно разбирать как дефект расчёта, а не как плохую торговую метрику.'
     ),
-    'Total return %': TOTAL_PNL_DESCRIPTION,
-    'Max drawdown %': DRAWDOWN_DESCRIPTION,
-    'Max drawdown without liquidation %': buildRuTooltip(
-        'Max drawdown without liquidation %',
+    'TotalPnl%': TOTAL_PNL_DESCRIPTION,
+    'MaxDD%': DRAWDOWN_DESCRIPTION,
+    'MaxDDNoLiq%': buildRuTooltip(
+        'MaxDDNoLiq%',
         'максимальную просадку после удаления liquidation-эпизодов из кривой капитала',
         'метрика отделяет обычную болезненную динамику Policy от той части провала, которая пришла именно через liquidation tails.',
-        'если обычный Max drawdown % сильно хуже этого поля, основная тяжесть результата сидит в liquidation-сценариях. Если значения близки, слабость стратегии шире и не сводится к аварийному хвосту.'
+        'если обычный MaxDD% сильно хуже этого поля, основная тяжесть результата сидит в liquidation-сценариях. Если значения близки, слабость стратегии шире и не сводится к аварийному хвосту.'
     ),
-    'Win rate %': buildRuTooltip(
-        'Win rate %',
+    'WinRate%': buildRuTooltip(
+        'WinRate%',
         'долю trades текущей Policy, у которых visible wealth delta оказалась положительной',
         'в pipeline этот показатель считается на aggregation-layer по фактическому денежному итогу сделки, а не по raw move цены или формальному направлению.',
-        'win rate нельзя читать отдельно от Total return % и drawdown. Высокая доля побед при слабом return обычно означает, что проигравшие trades крупнее победителей.',
+        'WinRate% нельзя читать отдельно от TotalPnl% и MaxDD%. Высокая доля побед при слабом return обычно означает, что проигравшие trades крупнее победителей.',
         'Формула:\nколичество trades с положительной visible wealth delta / общее число trades * 100.'
     ),
     HadLiquidation: LIQUIDATION_DESCRIPTION,
-    WithdrawnUsd: WITHDRAWN_PROFIT_DESCRIPTION
+    WithdrawnTotalUsd: WITHDRAWN_PROFIT_DESCRIPTION
 })
 
 Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
-    Trades: COMMON_TRADES_DESCRIPTION_EN,
+    TradesCount: COMMON_TRADES_DESCRIPTION_EN,
     Daily: buildEnTooltip(
         'Daily',
         'how many trades of the current Policy came from the daily execution path',
@@ -395,7 +395,7 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
         'ExitLiquidationCount',
         'how many trades finished by liquidation as their final exit reason',
         'the field counts only the actual final exit event. It does not include trades that merely came close to liquidation or had a reachable liquidation level but closed for another reason.',
-        'even a small rise signals tail risk on the execution layer and must be judged together with RealLiquidations, HadLiquidation, and aggregate drawdown.'
+        'even a small rise signals tail risk on the execution layer and must be judged together with RealLiquidationCount, HadLiquidation, and aggregate drawdown.'
     ),
     ExitEndOfWindowCount: buildEnTooltip(
         'ExitEndOfWindowCount',
@@ -409,11 +409,11 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
         'the field does not say liquidation already happened. It only says the trade had a working liquidation boundary and emergency close was a reachable path under its leverage and margin setup.',
         'if most trades are liquidation-reachable, safety depends heavily on liquidation distance and leverage discipline even when actual liquidations remain rare.'
     ),
-    RealLiquidations: buildEnTooltip(
-        'RealLiquidations',
+    RealLiquidationCount: buildEnTooltip(
+        'RealLiquidationCount',
         'how many trades strictly reached the conservative backtest liquidation price',
         'this is stricter than a broad liquidation outcome count. Only trades whose path actually touched the critical liquidation boundary are included here.',
-        'if RealLiquidations stays below ExitLiquidationCount, part of the emergency outcomes came through a wider liquidation scenario rather than a strict touch of the critical price.'
+        'if RealLiquidationCount stays below ExitLiquidationCount, part of the emergency outcomes came through a wider liquidation scenario rather than a strict touch of the critical price.'
     ),
     SumPositionGrossPnlUsd: buildEnTooltip(
         'SumPositionGrossPnlUsd',
@@ -451,23 +451,23 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN, {
         'the field is an accounting-integrity counter rather than a return metric. Any non-zero value already points to a broken accounting contract on the pipeline layer.',
         'the healthy value is 0. When it rises, the problem is not market behavior but a mismatch inside calculation or serialization of bucket accounting.'
     ),
-    'Total return %': COMMON_TOTAL_PNL_DESCRIPTION_EN,
-    'Max drawdown %': COMMON_MAX_DD_DESCRIPTION_EN,
-    'Max drawdown without liquidation %': buildEnTooltip(
-        'Max drawdown without liquidation %',
+    'TotalPnl%': COMMON_TOTAL_PNL_DESCRIPTION_EN,
+    'MaxDD%': COMMON_MAX_DD_DESCRIPTION_EN,
+    'MaxDDNoLiq%': buildEnTooltip(
+        'MaxDDNoLiq%',
         'the maximum drawdown after liquidation episodes are removed from the equity path',
         'the metric isolates ordinary capital pain from the part of the collapse that came specifically through liquidation tails.',
-        'if regular Max drawdown % is much worse than this field, liquidation scenarios drive the damage. If both values stay close, the weakness is broader than emergency liquidation alone.'
+        'if regular MaxDD% is much worse than this field, liquidation scenarios drive the damage. If both values stay close, the weakness is broader than emergency liquidation alone.'
     ),
-    'Win rate %': buildEnTooltip(
-        'Win rate %',
+    'WinRate%': buildEnTooltip(
+        'WinRate%',
         'the share of trades whose visible wealth delta ended positive',
         'inside the pipeline this is computed on the actual bucket-capital outcome rather than on raw price move or only on directional correctness.',
         'win rate never stands alone. A high win share with weak total return usually means losers are fewer but materially larger than winners.',
         'Formula:\ncount of trades with positive visible wealth delta / total trades * 100.'
     ),
     HadLiquidation: COMMON_HAD_LIQ_DESCRIPTION_EN,
-    WithdrawnUsd: COMMON_WITHDRAWN_DESCRIPTION_EN
+    WithdrawnTotalUsd: COMMON_WITHDRAWN_DESCRIPTION_EN
 })
 
 Object.assign(BACKTEST_EXECUTION_PIPELINE_KEYS_RU, {
@@ -479,11 +479,11 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_KEYS_RU, {
         'если Policies мало, итоговый pipeline отражает только узкое семейство конфигураций. Если Policies много, дальнейшие слои сравнивают более широкий пул решений.'
     ),
     SignalDays: BACKTEST_EXECUTION_PIPELINE_COLUMNS_RU.SignalDays,
-    Trades: buildRuTooltip(
-        'Trades',
+    TradesCount: buildRuTooltip(
+        'TradesCount',
         'суммарное число trades по всем Policy текущего pipeline',
         'это общий объём фактического execution material, который прошёл через decision, execution, accounting и aggregation уровни.',
-        'поле удобно читать как меру массы отчёта. Чем больше Trades, тем больше реальных событий лежит под итоговыми средними, долями и финансовыми суммами.'
+        'поле удобно читать как меру массы отчёта. Чем больше TradesCount, тем больше реальных событий лежит под итоговыми средними, долями и финансовыми суммами.'
     ),
     RunMode: buildRuTooltip(
         'RunMode',
@@ -502,11 +502,11 @@ Object.assign(BACKTEST_EXECUTION_PIPELINE_KEYS_EN, {
         'a small value means the pipeline reflects only a narrow family of configurations. A large value means downstream layers compare a broader pool of decisions.'
     ),
     SignalDays: BACKTEST_EXECUTION_PIPELINE_COLUMNS_EN.SignalDays,
-    Trades: buildEnTooltip(
-        'Trades',
+    TradesCount: buildEnTooltip(
+        'TradesCount',
         'the total number of trades across all policies in the current pipeline',
         'this is the full volume of factual execution material that passed through decision, execution, accounting, and aggregation layers.',
-        'the field works as a mass indicator of the report. The more trades it contains, the more event evidence sits under averages, shares, and financial sums.'
+        'the field works as a mass indicator of the report. The more TradesCount it contains, the more event evidence sits under averages, shares, and financial sums.'
     ),
     RunMode: buildEnTooltip(
         'RunMode',

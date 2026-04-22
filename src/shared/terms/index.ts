@@ -1,5 +1,4 @@
 export * from './common'
 export * from './reports/policyBranchMega'
-export * from './reports/diagnostics'
 export * from './registry'
 export * from './types'

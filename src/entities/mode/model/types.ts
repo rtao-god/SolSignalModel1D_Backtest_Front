@@ -11,7 +11,8 @@ export const MODE_SURFACE_KEYS = [
     'model_stats',
     'aggregation',
     'pfi_per_model',
-    'pfi_sl_model'
+    'pfi_sl_model',
+    'policy_branch_mega'
 ] as const
 
 export const MODE_PAGE_KEYS = [

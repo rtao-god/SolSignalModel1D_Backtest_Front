@@ -5,13 +5,13 @@ const TP_SL_SPLIT_REQUIRED_COLUMNS = [
     'Policy',
     'Branch',
     'Days',
-    'Tr',
-    'Wealth%',
+    'TradesCount',
+    'TotalPnl%',
     'DynTP / SL Days',
-    'DynTP / SL Tr',
+    'DynTP / SL TradesCount',
     'DynTP / SL PnL%',
     'StatTP / SL Days',
-    'StatTP / SL Tr',
+    'StatTP / SL TradesCount',
     'StatTP / SL PnL%'
 ]
 
@@ -53,13 +53,13 @@ function resolvePart1Indexes(columns: string[]): TpSlColumnIndexes | null {
         policyIdx: columns.indexOf('Policy'),
         branchIdx: columns.indexOf('Branch'),
         daysIdx: columns.indexOf('Days'),
-        tradesIdx: columns.indexOf('Tr'),
-        resultPctIdx: columns.indexOf('Wealth%'),
+        tradesIdx: columns.indexOf('TradesCount'),
+        resultPctIdx: columns.indexOf('TotalPnl%'),
         dynDaysIdx: columns.indexOf('DynTP / SL Days'),
-        dynTradesIdx: columns.indexOf('DynTP / SL Tr'),
+        dynTradesIdx: columns.indexOf('DynTP / SL TradesCount'),
         dynPnlIdx: columns.indexOf('DynTP / SL PnL%'),
         statDaysIdx: columns.indexOf('StatTP / SL Days'),
-        statTradesIdx: columns.indexOf('StatTP / SL Tr'),
+        statTradesIdx: columns.indexOf('StatTP / SL TradesCount'),
         statPnlIdx: columns.indexOf('StatTP / SL PnL%')
     }
 }
@@ -95,7 +95,7 @@ function ensureRowShape(
 
 /**
  * Применяет TP/SL-срез к таблицам отчёта.
- * Для PART 1 переставляет Days/Tr/Wealth% на dynamic/static слой и
+ * Для PART 1 переставляет Days/TradesCount/TotalPnl% на dynamic/static слой и
  * оставляет только строки с >0 сделок в выбранном слое.
  * Для остальных PART дополнительно отфильтровывает строки по Policy+Branch,
  * чтобы разрез оставался согласован между всеми секциями группы.

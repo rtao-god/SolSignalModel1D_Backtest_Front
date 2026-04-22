@@ -687,11 +687,11 @@ function buildPolicyTableColumns(t: TranslateFn, includeLiveColumns: boolean): s
         t('realForecastJournal.policy.table.columns.actualExit', { defaultValue: 'Actual exit price' }),
         t('realForecastJournal.policy.table.columns.actualExitReason', { defaultValue: 'Actual exit reason' }),
         t('realForecastJournal.policy.table.columns.actualExitPnl', { defaultValue: 'Actual exit PnL, %' }),
-        t('realForecastJournal.policy.table.columns.actualTrades', { defaultValue: 'Trades' }),
-        t('realForecastJournal.policy.table.columns.actualTotalPnl', { defaultValue: 'Total PnL, %' }),
-        t('realForecastJournal.policy.table.columns.actualMaxDd', { defaultValue: 'MaxDD, %' }),
-        t('realForecastJournal.policy.table.columns.actualLiquidation', { defaultValue: 'Had liquidation' }),
-        t('realForecastJournal.policy.table.columns.actualWithdrawn', { defaultValue: 'Withdrawn, $' })
+        t('realForecastJournal.policy.table.columns.actualTrades', { defaultValue: 'TradesCount' }),
+        t('realForecastJournal.policy.table.columns.actualTotalPnl', { defaultValue: 'TotalPnl%' }),
+        t('realForecastJournal.policy.table.columns.actualMaxDd', { defaultValue: 'MaxDD%' }),
+        t('realForecastJournal.policy.table.columns.actualLiquidation', { defaultValue: 'HadLiquidation' }),
+        t('realForecastJournal.policy.table.columns.actualWithdrawn', { defaultValue: 'WithdrawnTotalUsd' })
     )
 
     return columns

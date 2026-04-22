@@ -6,6 +6,7 @@ import type { WalkForwardModeId, WalkForwardReportSliceId } from '@/entities/mod
 import type { PolicyEvaluationDto } from '@/shared/types/policyEvaluation.types'
 import type { PolicyPerformanceMetricsDto } from '@/shared/types/policyPerformanceMetrics.types'
 import type { PolicyRatiosReportDto } from '@/shared/types/policyRatios.types'
+import type { TableSectionDto } from '@/shared/types/report.types'
 
 export type WalkForwardSlice = 'all' | 'recent_240d' | 'selected_fold'
 
@@ -71,15 +72,53 @@ export interface TbmNativeFoldSummaryPageDto {
     preStartGapDays: number
 }
 
+export type ValidationScoreMetricDto = 'SharpeAnnualized' | number
+
+export interface PurgedCrossValidationSummaryDto {
+    scoreMetric: ValidationScoreMetricDto
+    observationCount: number
+    groupCount: number
+    testGroupCount: number
+    embargoGroupCount: number
+    foldCount: number
+    meanScore: number
+    stdScore: number
+    minScore: number
+    maxScore: number
+    meanTrainObservationCount: number
+    meanTestObservationCount: number
+    meanPurgedObservationCount: number
+    meanEmbargoedObservationCount: number
+}
+
+export interface ProbabilityOfBacktestOverfittingSummaryDto {
+    scoreMetric: ValidationScoreMetricDto
+    configCount: number
+    observationCount: number
+    groupCount: number
+    inSampleGroupCount: number
+    outOfSampleGroupCount: number
+    embargoGroupCount: number
+    splitCount: number
+    overfitSplitCount: number
+    pbo: number
+    meanLogit: number
+    medianLogit: number
+    meanInSampleObservationCount: number
+    meanOutOfSampleObservationCount: number
+    meanSelectedConfigOutOfSampleRankPercentile: number
+    meanSelectedConfigOutOfSampleScore: number
+}
+
 export interface TbmNativeValidationSummaryDto {
+    slice: WalkForwardReportSliceId
     completedFoldCount: number
     completedDayCount: number
     dsr: number
     annualizationFactor: number
     riskFreeRate: number
-    cpcvSummary: string
-    pboStatus: string
-    pboIsPublished: boolean
+    cpcv: PurgedCrossValidationSummaryDto
+    pbo: ProbabilityOfBacktestOverfittingSummaryDto
 }
 
 export interface TbmNativeClassSummaryEntryDto {
@@ -111,7 +150,6 @@ export interface TbmNativeSliceSummaryCardDto {
     staleDayCount: number
     noModelDayCount: number
     dsr: number
-    cpcvSummary: string
 }
 
 export interface TbmNativeStatisticsCardDto {
@@ -284,14 +322,14 @@ export interface DirectionalWalkForwardFoldSummaryPageDto {
 }
 
 export interface DirectionalWalkForwardValidationSummaryDto {
+    slice: WalkForwardReportSliceId
     completedFoldCount: number
     completedDayCount: number
     dsr: number
     annualizationFactor: number
     riskFreeRate: number
-    cpcvSummary: string
-    pboStatus: string
-    pboIsPublished: boolean
+    cpcv: PurgedCrossValidationSummaryDto
+    pbo: ProbabilityOfBacktestOverfittingSummaryDto
 }
 
 export interface DirectionalWalkForwardCurrentDto extends DirectionalWalkForwardHistoryDayItemDto {}
@@ -327,7 +365,6 @@ export interface DirectionalWalkForwardSliceSummaryCardDto {
     staleDayCount: number
     noModelDayCount: number
     dsr: number
-    cpcvSummary: string
 }
 
 export interface DirectionalWalkForwardTechnicalStatisticsSectionDto {
@@ -487,6 +524,7 @@ export interface TbmNativeMoneySliceDto {
         signalDays: number
     }
     policyRatios: PolicyRatiosReportDto
+    policyBranchMegaTable: TableSectionDto
     bestPolicy: BestPolicyArtifactDto
 }
 
@@ -501,6 +539,7 @@ export interface DirectionalWalkForwardMoneySliceDto {
         signalDays: number
     }
     policyRatios: PolicyRatiosReportDto
+    policyBranchMegaTable: TableSectionDto
     bestPolicy: BestPolicyArtifactDto
 }
 
@@ -512,7 +551,7 @@ export interface DirectionalWalkForwardMoneyPageDto {
 export interface WalkForwardHistoryQueryArgs {
     slice?: WalkForwardSlice
     selectedFoldId?: string | null
-    reportSlice?: WalkForwardReportSliceId
+    reportSlice: WalkForwardReportSliceId | null
     fromDate?: string | null
     toDate?: string | null
 }
@@ -545,39 +584,47 @@ async function fetchJson<T>(path: string): Promise<T> {
     return (await response.json()) as T
 }
 
-function buildHistoryPath(basePath: string, args?: WalkForwardHistoryQueryArgs): string {
+function requireReportSlice(reportSlice: WalkForwardReportSliceId | null | undefined, owner: string): WalkForwardReportSliceId {
+    if (!reportSlice) {
+        throw new Error(`[walk-forward-api] report slice is missing. owner=${owner}; expected=explicit reportSlice from mode registry selector; actual=empty; requiredAction=load the mode registry before enabling this query.`)
+    }
+
+    return reportSlice
+}
+
+function buildHistoryPath(basePath: string, args: WalkForwardHistoryQueryArgs, owner: string): string {
     return `${basePath}${buildQueryString({
-        slice: args?.slice,
-        selectedFoldId: args?.selectedFoldId ?? null,
-        reportSlice: args?.reportSlice,
-        fromDate: args?.fromDate ?? null,
-        toDate: args?.toDate ?? null
+        slice: args.slice,
+        selectedFoldId: args.selectedFoldId ?? null,
+        reportSlice: requireReportSlice(args.reportSlice, owner),
+        fromDate: args.fromDate ?? null,
+        toDate: args.toDate ?? null
     })}`
 }
 
-function buildReportSlicePath(basePath: string, reportSlice?: WalkForwardReportSliceId): string {
-    return `${basePath}${buildQueryString({ reportSlice: reportSlice ?? 'overall' })}`
+function buildReportSlicePath(basePath: string, reportSlice: WalkForwardReportSliceId | null, owner: string): string {
+    return `${basePath}${buildQueryString({ reportSlice: requireReportSlice(reportSlice, owner) })}`
 }
 
 export function useTbmNativeHistoryQuery(
-    args?: WalkForwardHistoryQueryArgs,
+    args: WalkForwardHistoryQueryArgs,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeHistoryPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.reportSlice ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
-        queryFn: () => fetchJson<TbmNativeHistoryPageDto>(buildHistoryPath(API_ROUTES.tbmNative.history.path, args)),
+        queryKey: ['walk-forward', 'tbm-native', 'history', args.slice ?? 'all', args.selectedFoldId ?? null, args.reportSlice, args.fromDate ?? null, args.toDate ?? null],
+        queryFn: () => fetchJson<TbmNativeHistoryPageDto>(buildHistoryPath(API_ROUTES.tbmNative.history.path, args, 'tbm-native history query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativeMoneyQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeMoneyPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'tbm-native', 'money', reportSlice],
-        queryFn: () => fetchJson<TbmNativeMoneyPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.money.path, reportSlice)),
+        queryFn: () => fetchJson<TbmNativeMoneyPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.money.path, reportSlice, 'tbm-native money query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
@@ -592,60 +639,63 @@ export function useTbmNativeFoldsQuery(options?: WalkForwardQueryOptions): UseQu
     })
 }
 
-export function useTbmNativeValidationQuery(options?: WalkForwardQueryOptions): UseQueryResult<TbmNativeValidationSummaryDto, Error> {
+export function useTbmNativeValidationQuery(
+    reportSlice: WalkForwardReportSliceId | null,
+    options?: WalkForwardQueryOptions
+): UseQueryResult<TbmNativeValidationSummaryDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'tbm-native', 'validation'],
-        queryFn: () => fetchJson<TbmNativeValidationSummaryDto>(API_ROUTES.tbmNative.validation.path),
+        queryKey: ['walk-forward', 'tbm-native', 'validation', reportSlice],
+        queryFn: () => fetchJson<TbmNativeValidationSummaryDto>(buildReportSlicePath(API_ROUTES.tbmNative.validation.path, reportSlice, 'tbm-native validation query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativeModelStatsQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeModelStatsPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'tbm-native', 'model-stats', reportSlice],
-        queryFn: () => fetchJson<TbmNativeModelStatsPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.modelStats.path, reportSlice)),
+        queryFn: () => fetchJson<TbmNativeModelStatsPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.modelStats.path, reportSlice, 'tbm-native model-stats query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativeAggregationQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativeAggregationSummaryDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'tbm-native', 'aggregation', reportSlice],
-        queryFn: () => fetchJson<TbmNativeAggregationSummaryDto>(buildReportSlicePath(API_ROUTES.tbmNative.aggregation.path, reportSlice)),
+        queryFn: () => fetchJson<TbmNativeAggregationSummaryDto>(buildReportSlicePath(API_ROUTES.tbmNative.aggregation.path, reportSlice, 'tbm-native aggregation query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useTbmNativePfiQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<TbmNativePfiPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'tbm-native', 'pfi', reportSlice],
-        queryFn: () => fetchJson<TbmNativePfiPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.pfi.path, reportSlice)),
+        queryFn: () => fetchJson<TbmNativePfiPageDto>(buildReportSlicePath(API_ROUTES.tbmNative.pfi.path, reportSlice, 'tbm-native pfi query')),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useDirectionalWalkForwardHistoryQuery(
-    args?: WalkForwardHistoryQueryArgs,
+    args: WalkForwardHistoryQueryArgs,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardHistoryPageDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'history', args?.slice ?? 'all', args?.selectedFoldId ?? null, args?.reportSlice ?? 'overall', args?.fromDate ?? null, args?.toDate ?? null],
+        queryKey: ['walk-forward', 'directional-walkforward', 'history', args.slice ?? 'all', args.selectedFoldId ?? null, args.reportSlice, args.fromDate ?? null, args.toDate ?? null],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardHistoryPageDto>(
-                buildHistoryPath(API_ROUTES.directionalWalkForward.history.path, args)
+                buildHistoryPath(API_ROUTES.directionalWalkForward.history.path, args, 'directional-walkforward history query')
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -664,14 +714,14 @@ export function useDirectionalWalkForwardCurrentQuery(
 }
 
 export function useDirectionalWalkForwardMoneyQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardMoneyPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'money', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardMoneyPageDto>(
-                buildReportSlicePath(API_ROUTES.directionalWalkForward.money.path, reportSlice)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.money.path, reportSlice, 'directional-walkforward money query')
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -690,26 +740,29 @@ export function useDirectionalWalkForwardFoldsQuery(
 }
 
 export function useDirectionalWalkForwardValidationQuery(
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardValidationSummaryDto, Error> {
     return useQuery({
-        queryKey: ['walk-forward', 'directional-walkforward', 'validation'],
+        queryKey: ['walk-forward', 'directional-walkforward', 'validation', reportSlice],
         queryFn: () =>
-            fetchJson<DirectionalWalkForwardValidationSummaryDto>(API_ROUTES.directionalWalkForward.validation.path),
+            fetchJson<DirectionalWalkForwardValidationSummaryDto>(
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.validation.path, reportSlice, 'directional-walkforward validation query')
+            ),
         enabled: options?.enabled ?? true,
         retry: false
     })
 }
 
 export function useDirectionalWalkForwardModelStatsQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardModelStatsPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'model-stats', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardModelStatsPageDto>(
-                buildReportSlicePath(API_ROUTES.directionalWalkForward.modelStats.path, reportSlice)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.modelStats.path, reportSlice, 'directional-walkforward model-stats query')
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -717,14 +770,14 @@ export function useDirectionalWalkForwardModelStatsQuery(
 }
 
 export function useDirectionalWalkForwardAggregationQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardAggregationSummaryDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'aggregation', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardAggregationSummaryDto>(
-                buildReportSlicePath(API_ROUTES.directionalWalkForward.aggregation.path, reportSlice)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.aggregation.path, reportSlice, 'directional-walkforward aggregation query')
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -732,14 +785,14 @@ export function useDirectionalWalkForwardAggregationQuery(
 }
 
 export function useDirectionalWalkForwardPfiPerModelQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardPfiPerModelPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'pfi-per-model', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardPfiPerModelPageDto>(
-                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiPerModel.path, reportSlice)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiPerModel.path, reportSlice, 'directional-walkforward pfi-per-model query')
             ),
         enabled: options?.enabled ?? true,
         retry: false
@@ -747,14 +800,14 @@ export function useDirectionalWalkForwardPfiPerModelQuery(
 }
 
 export function useDirectionalWalkForwardPfiSlModelQuery(
-    reportSlice: WalkForwardReportSliceId,
+    reportSlice: WalkForwardReportSliceId | null,
     options?: WalkForwardQueryOptions
 ): UseQueryResult<DirectionalWalkForwardPfiSlPageDto, Error> {
     return useQuery({
         queryKey: ['walk-forward', 'directional-walkforward', 'pfi-sl-model', reportSlice],
         queryFn: () =>
             fetchJson<DirectionalWalkForwardPfiSlPageDto>(
-                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiSlModel.path, reportSlice)
+                buildReportSlicePath(API_ROUTES.directionalWalkForward.pfiSlModel.path, reportSlice, 'directional-walkforward pfi-sl-model query')
             ),
         enabled: options?.enabled ?? true,
         retry: false

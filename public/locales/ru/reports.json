@@ -316,21 +316,21 @@
                 "periodEnd": "Конец периода",
                 "days": "Торговых дней",
                 "startCapital": "Стартовый капитал",
-                "finalBalance": "Активный баланс сейчас",
-                "withdrawnProfit": "Уже выведено",
-                "trades": "Сделок"
+                "finalBalance": "EquityNowUsd",
+                "withdrawnProfit": "WithdrawnTotalUsd",
+                "trades": "TradesCount"
             },
             "metrics": {
-                "totalPnl": "Доходность",
+                "totalPnl": "TotalPnl%",
                 "bucketNow": "Активный баланс",
-                "maxDd": "Макс. просадка",
+                "maxDd": "MaxDD%",
                 "liquidations": "Ликвидации",
                 "accountRuin": "Руина капитала",
                 "recovery": "Восстановление",
                 "winRate": "Прибыльные сделки",
                 "meanRet": "Средняя сделка",
                 "sharpe": "Sharpe",
-                "trades": "Сделки",
+                "trades": "TradesCount",
                 "tradeShare": "Дней со сделкой",
                 "noTrade": "Дней без сделки"
             },
@@ -962,11 +962,11 @@
                     "tooltip": "Колонка показывает, были ли у этой [[policy|Policy]] аварийные [[liquidation|ликвидации]] в baseline-периоде.\n\nКак читать:\nдаже единичное «Да» — повод смотреть эту [[policy|Policy]] вместе с маржой, просадкой и итоговым результатом, потому что прибыль могла быть куплена ценой аварийного риска."
                 },
                 "withdrawUsd": {
-                    "label": "Withdraw, $",
+                    "label": "WithdrawnTotalUsd",
                     "tooltip": "Колонка показывает накопленную [[withdrawn-profit|выведенную прибыль]] по этой [[policy|Policy]], если в конфигурации вообще используется вывод.\n\nКак читать:\nэто не то же самое, что общий PnL. Поле помогает понять, была ли часть прибыли зафиксирована отдельно от текущего баланса."
                 },
                 "trades": {
-                    "label": "Сделок",
+                    "label": "TradesCount",
                     "tooltip": "Колонка показывает общее [[trade-count|число сделок]] этой [[policy|Policy]] за baseline-период.\n\nКак читать:\nона нужна для оценки статистической опоры результата. Одинаковый PnL при 20 и при 500 сделках — это разный уровень устойчивости."
                 }
             },
@@ -1252,6 +1252,88 @@
             }
         }
     },
+    "modeMoney": {
+        "notes": {
+            "defaultSlice": "На этой странице денежный срез не выбирается отдельно, поэтому показан основной срез режима: {{slice}}.",
+            "available": "Источник: опубликованная лучшая Policy. {{statusMessage}} {{comparabilityNote}}",
+            "diagnostic": "Источник: диагностический денежный срез. {{statusMessage}} {{comparabilityNote}}"
+        },
+        "bool": {
+            "yes": "Да",
+            "no": "Нет"
+        },
+        "state": {
+            "errorTitle": "Не удалось загрузить денежную сводку режима",
+            "errorMessage": "Денежный блок режима временно недоступен. Остальная часть страницы продолжает работать.",
+            "emptyTitle": "Для этого денежного среза лучшая Policy не опубликована",
+            "emptyDescription": "Для выбранного среза {{slice}} сейчас нет опубликованной строки с лучшей Policy.",
+            "unavailableTitle": "Для этого варианта страницы отдельной money-сводки нет",
+            "recentTailUnavailable": "Короткий OOS-хвост 15% не публикует отдельную денежную сводку. Поэтому денежные блоки здесь сознательно не подставляются из другого среза."
+        },
+        "terms": {
+            "title": "Термины денежного блока",
+            "subtitle": "Определения метрик, по которым читаются лучшая Policy, капитал, funding и аварийный риск."
+        },
+        "summary": {
+            "policy": "Лучшая [[policy|Policy]]",
+            "branch": "[[branch|Branch]]",
+            "totalPnlPct": "[[total-pnl|TotalPnl%]]",
+            "totalPnlUsd": "[[total-pnl|TotalPnlUsd]]",
+            "maxDrawdown": "[[drawdown|MaxDD%]]",
+            "sharpe": "[[sharpe-ratio|Sharpe]]",
+            "trades": "[[trade-count|TradesCount]]",
+            "startCapital": "[[start-cap|StartCapitalUsd]]",
+            "equityNow": "[[current-balance|EquityNowUsd]]",
+            "fundingNet": "[[funding|FundingNetUsd]]"
+        },
+        "tables": {
+            "bestPolicy": {
+                "title": "Лучшая Policy",
+                "description": "Главная строка лучшей опубликованной [[policy|Policy]] в текущем режиме и выбранном денежном срезе.",
+                "columns": {
+                    "policy": "[[policy|Policy]]",
+                    "branch": "[[branch|Branch]]",
+                    "bucket": "[[bucket|Bucket]]",
+                    "slice": "Срез",
+                    "execution": "Исполнение",
+                    "score": "Оценка",
+                    "evaluation": "Вердикт",
+                    "trades": "[[trade-count|TradesCount]]",
+                    "totalPnlPct": "[[total-pnl|TotalPnl%]]",
+                    "totalPnlUsd": "[[total-pnl|TotalPnlUsd]]",
+                    "maxDrawdown": "[[drawdown|MaxDD%]]",
+                    "winRate": "[[win-rate|WinRate%]]"
+                }
+            },
+            "capital": {
+                "title": "Капитал и funding",
+                "description": "Стартовый капитал, текущий капитал, выведенная прибыль и весь слой [[funding|funding]] этой же [[policy|Policy]].",
+                "columns": {
+                    "startCapital": "[[start-cap|StartCapitalUsd]]",
+                    "equityNow": "[[current-balance|EquityNowUsd]]",
+                    "withdrawn": "[[withdrawn-profit|WithdrawnTotalUsd]]",
+                    "fundingNet": "[[funding|FundingNetUsd]]",
+                    "fundingPaid": "[[funding|FundingPaidUsd]]",
+                    "fundingReceived": "[[funding|FundingReceivedUsd]]",
+                    "fundingEvents": "[[funding|FundingEventCount]]",
+                    "tradesWithFunding": "[[funding|TradesWithFundingCount]]"
+                }
+            },
+            "risk": {
+                "title": "Ликвидации и здоровье капитала",
+                "description": "Аварийные события этой же [[policy|Policy]]: [[liquidation|ликвидации]], смерти бакетов и [[account-ruin|руина капитала]].",
+                "columns": {
+                    "hadLiquidation": "[[liquidation|HadLiquidation]]",
+                    "realLiquidations": "[[liquidation|RealLiquidationCount]]",
+                    "fundingLiquidations": "[[liquidation|FundingLiquidationCount]]",
+                    "fundingBucketDeaths": "[[funding|FundingBucketDeathCount]]",
+                    "mixedBucketDeaths": "MixedBucketDeathCount",
+                    "accountRuins": "[[account-ruin|AccountRuinCount]]",
+                    "balanceDead": "[[account-ruin|BalanceDead]]"
+                }
+            }
+        }
+    },
     "backtestFull": {
         "page": {
             "errorTitle": "Не удалось загрузить baseline-сводку и профили бэктеста"
@@ -1434,7 +1516,7 @@
                     "tooltip": "Колонка показывает, по какому [[bucket|Bucket]] посчитана эта [[policy|Policy]] в policy-ratios.\n\nКак читать:\nодну и ту же [[policy|Policy]] корректно сравнивать либо внутри одного Bucket, либо на агрегированном total. Между daily, intraday и delayed поведение может сильно различаться."
                 },
                 "trades": {
-                    "label": "Сделок",
+                    "label": "TradesCount",
                     "tooltip": "Колонка показывает общее [[trade-count|число сделок]] этой [[policy|Policy]] в выбранном [[bucket|Bucket]].\n\nКак читать:\nона помогает понять, насколько надёжно подкреплён результат статистикой. Одинаковая метрика при 15 и 400 сделках означает разную устойчивость."
                 },
                 "pnl": {
@@ -1462,11 +1544,11 @@
                     "tooltip": "Колонка показывает долю прибыльных сделок этой [[policy|Policy]] в выбранном [[bucket|Bucket]].\n\nКак читать:\nвысокий WinRate сам по себе не гарантирует хороший результат. Его нужно сверять с [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]] и средней ценой одной ошибки."
                 },
                 "withdrawn": {
-                    "label": "Withdrawn $",
+                    "label": "WithdrawnTotalUsd",
                     "tooltip": "Колонка показывает накопленную [[withdrawn-profit|выведенную прибыль]] этой [[policy|Policy]], если в режиме расчёта вообще используется вывод.\n\nКак читать:\nполе помогает отделить уже зафиксированную прибыль от результата, который ещё остаётся внутри баланса."
                 },
                 "liq": {
-                    "label": "Liq?",
+                    "label": "HadLiquidation",
                     "tooltip": "Колонка показывает, происходила ли у этой [[policy|Policy]] аварийная [[liquidation|ликвидация]] в выбранном [[bucket|Bucket]].\n\nКак читать:\nдаже одна ликвидация резко ухудшает профиль риска. Поэтому это поле нужно читать вместе с [[drawdown|MaxDD%]] и режимом [[margin|маржи]]."
                 }
             },
@@ -2050,11 +2132,11 @@
                     "actualExit": "Фактическая цена выхода",
                     "actualExitReason": "Фактическая причина выхода",
                     "actualExitPnl": "Фактический PnL выхода, %",
-                    "actualTrades": "Сделки",
-                    "actualTotalPnl": "Итоговый PnL, %",
-                    "actualMaxDd": "MaxDD, %",
-                    "actualLiquidation": "Была ликвидация",
-                    "actualWithdrawn": "Выведено, $"
+                    "actualTrades": "TradesCount",
+                    "actualTotalPnl": "TotalPnl%",
+                    "actualMaxDd": "MaxDD%",
+                    "actualLiquidation": "HadLiquidation",
+                    "actualWithdrawn": "WithdrawnTotalUsd"
                 }
             }
         },
@@ -2677,6 +2759,9 @@
                         "hint": "Показывает все опубликованные денежные и служебные столбцы."
                     }
                 },
+                "slice": {
+                    "label": "Срез"
+                },
                 "notes": {
                     "item1": "Строки Directional Fixed-Split показывают не одну каноническую стратегию режима, а лучшую опубликованную дневную [[policy|Policy]] внутри соответствующего среза.",
                     "item2": "Строки TBM Native и Directional Walk-Forward используют лучшую опубликованную [[policy|Policy]] из своего набора политик. TBM Native считается через [[bucket-delayed|delayed bucket]], а Directional Walk-Forward — через [[bucket-daily|daily bucket]].",
@@ -2710,19 +2795,19 @@
                     "toDate": "По дату",
                     "execution": "Исполнение / policy",
                     "days": "Дней",
-                    "trades": "Сделок",
+                    "trades": "TradesCount",
                     "predictionQuality": "Качество прогноза",
                     "diagnostics": "Диагностика",
-                    "totalReturn": "Итог, %",
-                    "totalPnlUsd": "PnL, $",
-                    "startCapitalUsd": "Старт, $",
-                    "equityNowUsd": "Equity now, $",
-                    "withdrawnUsd": "Withdrawn, $",
-                    "fundingNetUsd": "Funding net, $",
-                    "maxDrawdown": "MaxDD, %",
+                    "totalPnlPct": "TotalPnl%",
+                    "totalPnlUsd": "TotalPnlUsd",
+                    "startCapitalUsd": "StartCapitalUsd",
+                    "equityNowUsd": "EquityNowUsd",
+                    "withdrawnUsd": "WithdrawnTotalUsd",
+                    "fundingNetUsd": "FundingNetUsd",
+                    "maxDrawdown": "EffectiveMaxDD%",
                     "sharpe": "Sharpe",
-                    "realLiquidations": "Real liq",
-                    "accountRuins": "Account ruin",
+                    "realLiquidations": "RealLiquidationCount",
+                    "accountRuins": "AccountRuinCount",
                     "sourcePath": "Путь проверки"
                 },
                 "predictionQuality": {
@@ -2766,51 +2851,51 @@
                     "message": "generatedAtUtc отсутствует или невалиден. Проверь сериализацию отчётов."
                 },
                 "invalidSource": {
-                    "title": "Policy Branch Mega report source is invalid",
-                    "message": "API source endpoint is missing or invalid. Проверь VITE_API_BASE_URL."
+                    "title": "Источник отчёта Policy Branch Mega невалиден",
+                    "message": "API endpoint источника отсутствует или задан неверно. Проверь VITE_API_BASE_URL."
                 },
                 "historyQuery": {
-                    "title": "Policy Branch Mega history query is invalid",
-                    "message": "Query parameter \"history\" is invalid. Expected full_history, train, oos, or recent."
+                    "title": "Параметр истории для Policy Branch Mega невалиден",
+                    "message": "Параметр \"history\" содержит недопустимое значение. Ожидаются full_history, train, oos или recent."
                 },
                 "bucketQuery": {
-                    "title": "Policy Branch Mega bucket query is invalid",
-                    "message": "Query parameter \"bucket\" is invalid. Expected daily, intraday, delayed, or total."
+                    "title": "Параметр бакета для Policy Branch Mega невалиден",
+                    "message": "Параметр \"bucket\" содержит недопустимое значение. Ожидаются daily, intraday, delayed или total."
                 },
                 "bucketViewQuery": {
-                    "title": "Policy Branch Mega total-bucket view query is invalid",
-                    "message": "Query parameter \"bucketview\" is invalid. Expected aggregate or separate."
+                    "title": "Параметр вида total-бакета невалиден",
+                    "message": "Параметр \"bucketview\" содержит недопустимое значение. Ожидаются aggregate или separate."
                 },
                 "metricQuery": {
-                    "title": "Policy Branch Mega metric query is invalid",
-                    "message": "Query parameter \"metric\" is invalid. Expected real or no-biggest-liq-loss."
+                    "title": "Параметр режима метрик для Policy Branch Mega невалиден",
+                    "message": "Параметр \"metric\" содержит недопустимое значение. Ожидаются real или no-biggest-liq-loss."
                 },
                 "tpSlQuery": {
-                    "title": "Policy Branch Mega TP/SL query is invalid",
-                    "message": "Query parameter \"tpsl\" is invalid. Expected all, dynamic, or static."
+                    "title": "Параметр TP/SL для Policy Branch Mega невалиден",
+                    "message": "Параметр \"tpsl\" содержит недопустимое значение. Ожидаются all, dynamic или static."
                 },
                 "slModeQuery": {
-                    "title": "Policy Branch Mega SL mode query is invalid",
-                    "message": "Query parameter \"slmode\" is invalid. Expected all, with-sl, or no-sl."
+                    "title": "Параметр SL Mode для Policy Branch Mega невалиден",
+                    "message": "Параметр \"slmode\" содержит недопустимое значение. Ожидаются all, with-sl или no-sl."
                 },
                 "zonalQuery": {
-                    "title": "Policy Branch Mega zonal query is invalid",
-                    "message": "Query parameter \"zonal\" is invalid. Expected with-zonal or without-zonal."
+                    "title": "Параметр зонального режима для Policy Branch Mega невалиден",
+                    "message": "Параметр \"zonal\" содержит недопустимое значение. Ожидаются with-zonal или without-zonal."
                 },
                 "structure": {
                     "title": "Отчёт Policy Branch Mega имеет неверную структуру",
                     "message": "Секции отчёта не распознаны. Проверь формат заголовков и состав таблиц."
                 },
                 "sections": {
-                    "title": "Policy Branch Mega sections are missing",
-                    "message": "Report sections for the selected history/zonal/slmode/tpsl/bucket/metric slice were not found or are tagged inconsistently."
+                    "title": "Секции Policy Branch Mega не найдены",
+                    "message": "Для выбранного history/zonal/slmode/tpsl/bucket/metric-среза секции отчёта не найдены или размечены непоследовательно."
                 },
                 "terms": {
-                    "title": "Policy Branch Mega terms are invalid",
+                    "title": "Термины Policy Branch Mega невалидны",
                     "message": "Не удалось построить термины для таблиц Policy Branch Mega. Проверь состав колонок и описаний."
                 },
                 "columnsVisibility": {
-                    "title": "Policy Branch Mega columns visibility is invalid",
+                    "title": "Правила видимости колонок Policy Branch Mega невалидны",
                     "message": "Не удалось применить bucket-правила отображения колонок."
                 },
                 "chartModel": {
@@ -2832,7 +2917,7 @@
             "empty": "Для Policy Branch Mega сейчас нет данных.",
             "chart": {
                 "title": "Графический explorer по mega-таблице",
-                "subtitle": "Графики не заменяют таблицу исходных значений. Этот режим даёт первичное чтение: рейтинг, risk/return scatter и детализацию выбранной Policy.",
+                "subtitle": "Графики не заменяют таблицу исходных значений. Этот режим даёт первичное чтение: рейтинг, диаграмму риск / доходность и детализацию выбранной Policy.",
                 "metricSource": "Сейчас рейтинг строится по {{metric}}, источник: {{source}}.",
                 "summary": {
                     "totalRows": "Всего Policy-конфигураций: {{value}}",
@@ -2850,8 +2935,8 @@
                     "allRows": "Все",
                     "presetLabel": "Связка графиков",
                     "rankingMetricLabel": "Метрика рейтинга",
-                    "scatterXLabel": "Scatter: ось X",
-                    "scatterYLabel": "Scatter: ось Y",
+                    "scatterXLabel": "Ось X",
+                    "scatterYLabel": "Ось Y",
                     "policySearchLabel": "Поиск Policy / Branch",
                     "policySearchPlaceholder": "Например: UltraSafe или ANTI-D",
                     "presetSummary": "Слева: {{ranking}}. Справа: {{x}} vs {{y}}.",
@@ -2862,7 +2947,7 @@
                             "tradeVsReturn": "Trade rate vs Total PnL",
                             "recoveryVsDrawdown": "Required gain vs MaxDD",
                             "ruinVsLiquidation": "Руина капитала vs ликвидации",
-                            "liquidationVsRecovery": "HadLiq vs RecovDays",
+                            "liquidationVsRecovery": "HadLiquidation vs RecovDays",
                             "recoveryDaysVsGain": "RecovDays vs ReqGain%",
                             "avgDayVsTotalPnl": "AvgDay% vs Total PnL",
                             "longVsShortCash": "Long $ vs Short $",
@@ -2898,10 +2983,10 @@
                     "emptyDescription": "После branch/SL/search фильтров не осталось ни одной Policy-конфигурации, где выбранная метрика имеет числовое значение."
                 },
                 "scatter": {
-                    "title": "Risk / return scatter",
+                    "title": "Диаграмма риск / доходность",
                     "subtitle": "Ось X и Y выбираются отдельно, поэтому можно сравнить доходность, просадку, recovery и темпы роста в одном поле.",
                     "points": "Точек: {{value}}",
-                    "emptyTitle": "Scatter нечего строить",
+                    "emptyTitle": "Диаграмму пока нечего строить",
                     "emptyDescription": "После текущих фильтров нет Policy-конфигураций, где обе выбранные метрики присутствуют одновременно."
                 },
                 "detail": {
@@ -2909,7 +2994,7 @@
                     "riskLabel": "Риск",
                     "clearSelection": "Сбросить выбор",
                     "policyCompareTitle": "Сравнение конфигураций внутри этой Policy",
-                    "policyCompareSubtitle": "Этот bar chart использует ту же ranking-метрику и показывает, как выбранная Policy меняется между Branch и SL Mode конфигурациями.",
+                    "policyCompareSubtitle": "Эта столбчатая диаграмма использует ту же ranking-метрику и показывает, как выбранная Policy меняется между Branch и SL Mode конфигурациями.",
                     "policyCompareEmptyTitle": "Для выбранной Policy нет чисел по ranking-метрике",
                     "policyCompareEmptyDescription": "У этой Policy есть другие Branch / SL Mode конфигурации, но у них отсутствует выбранная ranking-метрика.",
                     "partTitle": "PART {{part}}/{{total}}",
@@ -2946,7 +3031,7 @@
                 "reading": {
                     "title": "Как читать таблицу / как интерпретировать",
                     "items": {
-                        "item1": "Порядок чтения: 1) сначала аварийный риск (HadLiq и AccRuin), 2) затем глубина просадки (MaxDD%), 3) затем сложность восстановления (Recovered, RecovDays, ReqGain%), 4) только потом итоговая доходность (TotalPnl% и Wealth%).",
+                        "item1": "Порядок чтения: 1) сначала аварийный риск (HadLiquidation и AccountRuinCount), 2) затем глубина просадки (MaxDD%), 3) затем сложность восстановления (Recovered, RecovDays, ReqGain%), 4) только потом итоговая доходность (TotalPnl%).",
                         "item2": "Сравнение корректно только внутри одного среза: одинаковые bucket, TP/SL mode, SL Mode, ZONAL и Metric View.",
                         "item3": "Если NO BIGGEST LIQ LOSS заметно лучше REAL, результат стратегии критично зависит от одного экстремального провала."
                     }
@@ -2957,7 +3042,7 @@
                         "item1": "[[position|Позиция]] на этой странице — это конкретный торговый вход дня. Дальше именно по позиции читаются направление, риск, причина выхода и вклад в итоговую доходность.",
                         "item2": "[[leverage|Плечо]] и [[margin|маржа]] вместе задают, насколько быстро один и тот же ход цены меняет капитал бакета. Поэтому эти термины здесь важны не как теория, а как объяснение глубины риска.",
                         "item3": "[[tp-sl|Stop-loss и take-profit]] описывают штатные выходы из сделки, а [[liquidation|ликвидация]] — аварийный сценарий, когда риск уже не удержан обычными правилами.",
-                        "item4": "[[drawdown|Просадка]] показывает глубину провала капитала, а [[account-ruin|AccRuin]] — пережил ли бакет этот провал вообще или рабочий капитал закончился раньше восстановления.",
+                        "item4": "[[drawdown|Просадка]] показывает глубину провала капитала, а [[account-ruin|AccountRuinCount]] — пережил ли бакет этот провал вообще или рабочий капитал закончился раньше восстановления.",
                         "item5": "[[recovered|Recovered]], [[recov-days|RecovDays]] и [[req-gain|ReqGain%]] отвечают на вопрос, вернулся ли капитал после худшей ямы и сколько времени или роста для этого понадобилось.",
                         "item6": "[[backtest|Бэктест]] на этой странице нужен не как обещание будущей прибыли, а как единая историческая среда, в которой можно честно сравнить несколько конфигураций [[policy|Policy]] между собой."
                     }
@@ -2967,7 +3052,7 @@
                     "items": {
                         "item1": "[[exchange-fees|Комиссии биржи]]: учитываются. В текущем расчёте это [[entry-fee|комиссия на вход]] 0.04%, [[exit-fee|комиссия на выход]] 0.04%, по итогу за одну сделку биржа забирает [[round-trip|0.08% комиссии]].",
                         "item2": "[[funding|Funding]]: учитывается. Если позиция доживает до момента funding, списание или начисление денег уже входит в итог сделки.",
-                        "item3": "[[slippage|Проскальзывание]] / [[price-impact|price impact]]: не учитывается.",
+                        "item3": "[[slippage|Проскальзывание]] / [[price-impact|влияние объёма на цену]]: не учитывается.",
                         "item4Prefix": "Если внутри дня позиция не закрылась раньше по обычным правилам, она принудительно закрывается по"
                     },
                     "endOfDayTooltip": "EndOfDay (EOD) — закрытие позиции по времени в конце торгового окна, если раньше не сработали TP, SL или ликвидация."
@@ -2978,7 +3063,7 @@
                 "description": "Часть 2/4 собирает агрегированные балансные и восстановительные метрики по Policy/Branch. Страница риска раскрывает эти же аварийные сценарии отдельными diagnostics-таблицами и показывает, где именно формируются потери.",
                 "link": "Страница «Риск и ликвидации»",
                 "items": {
-                    "item1": "[[liquidation|Ликвидации]] и [[account-ruin|AccRuin]]: видно, какие Policy доходят до аварийного закрытия позиции или потери рабочего капитала.",
+                    "item1": "[[liquidation|Ликвидации]] и [[account-ruin|AccountRuinCount]]: видно, какие Policy доходят до аварийного закрытия позиции или потери рабочего капитала.",
                     "item2": "[[drawdown|Просадка]], [[recovery|восстановление]] и кривая капитала: видно, насколько глубоко падал капитал и вернулся ли он к прежнему пику.",
                     "item3": "Дистанция до [[liquidation|ликвидации]] по сделкам и дням: видно, где запас до аварийного выхода становится слишком мал.",
                     "item4": "Санити-проверки по [[leverage|плечу]], [[cap-fraction|размеру позиции]] и торговым издержкам: видно, не держится ли результат на чрезмерно агрессивном риске."
@@ -2995,7 +3080,7 @@
                     "all": "WITH SL + NO SL: "
                 },
                 "part1Description": "Часть 1/4: базовая сводка по дням, риск‑дням, плечу/кап‑доле и ключевым PnL‑метрикам (до MaxDD_Ratio%).",
-                "part2Description": "Часть 2/4: балансные и восстановительные метрики (Withdrawn/OnExch, ликвидации, recovery, DD70).",
+                "part2Description": "Часть 2/4: балансные и восстановительные метрики (WithdrawnTotalUsd/EquityNowUsd, ликвидации, recovery, DD70).",
                 "part3Description": "Часть 3/4: горизонт и средние темпы роста, разрез long/short и диагностические счётчики.",
                 "part4Description": "Часть 4/4: trade-derived и advanced daily-series метрики (ProfitFactor, Expectancy, Best/Worst day, PSR, MinTRL).",
                 "mergedAllDescription": "Сводные метрики объединённого SL-среза.",

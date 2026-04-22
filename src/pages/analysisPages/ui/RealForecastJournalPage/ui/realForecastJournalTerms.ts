@@ -203,40 +203,28 @@ export function resolveRealForecastJournalColumnTooltip(
         ])
     }
 
-    if (matchesTitle(normalizedTitle, ['Trades', 'Сделки'])) {
-        return resolveSharedColumnTooltip('current_prediction_history', 'Trades', locale, ['Trades', 'Сделки'])
+    if (matchesTitle(normalizedTitle, ['TradesCount'])) {
+        return resolveSharedColumnTooltip('current_prediction_history', 'TradesCount', locale, ['TradesCount'])
     }
 
-    if (matchesTitle(normalizedTitle, ['Total PnL, %', 'Итоговый PnL, %'])) {
-        return resolveSharedColumnTooltip('current_prediction_history', 'Total return, %', locale, [
-            'Total PnL, %',
-            'Total return, %',
-            'Итоговый PnL, %',
+    if (matchesTitle(normalizedTitle, ['TotalPnl%'])) {
+        return resolveSharedColumnTooltip('current_prediction_history', 'TotalPnl%', locale, [
             'TotalPnl%'
         ])
     }
 
-    if (matchesTitle(normalizedTitle, ['MaxDD, %'])) {
-        return resolveSharedColumnTooltip('current_prediction_history', 'Max drawdown, %', locale, [
-            'MaxDD, %',
-            'Max drawdown, %',
+    if (matchesTitle(normalizedTitle, ['MaxDD%'])) {
+        return resolveSharedColumnTooltip('current_prediction_history', 'MaxDD%', locale, [
             'MaxDD%'
         ])
     }
 
-    if (matchesTitle(normalizedTitle, ['Had liquidation', 'Была ликвидация'])) {
-        return resolveSharedColumnTooltip('current_prediction_history', 'Had liquidation', locale, [
-            'Had liquidation',
-            'HadLiq',
-            'Была ликвидация'
-        ])
+    if (matchesTitle(normalizedTitle, ['HadLiquidation'])) {
+        return resolveSharedColumnTooltip('current_prediction_history', 'HadLiquidation', locale, ['HadLiquidation'])
     }
 
-    if (matchesTitle(normalizedTitle, ['Withdrawn, $', 'Выведено, $'])) {
-        return resolveSharedColumnTooltip('current_prediction_history', 'Withdrawn, $', locale, [
-            'Withdrawn, $',
-            'Выведено, $'
-        ])
+    if (matchesTitle(normalizedTitle, ['WithdrawnTotalUsd'])) {
+        return resolveSharedColumnTooltip('current_prediction_history', 'WithdrawnTotalUsd', locale, ['WithdrawnTotalUsd'])
     }
 
     if (matchesTitle(normalizedTitle, ['Current SOL price', 'Текущая цена SOL'])) {

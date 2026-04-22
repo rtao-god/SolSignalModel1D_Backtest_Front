@@ -68,8 +68,8 @@ const PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
 const ROW_KEY_SEPARATOR = '\u001e'
 
 const DEFAULT_PREFERRED_METRICS_BY_PART = new Map<number, readonly string[]>([
-    [1, ['TotalPnl%', 'Wealth%', 'OnExch%', 'MaxDD%', 'Trade%']],
-    [2, ['HadLiq', 'BalMin%', 'AccRuin', 'ReqGain%']],
+    [1, ['TotalPnl%', 'OnExch%', 'MaxDD%', 'Trade%']],
+    [2, ['HadLiquidation', 'BalMin%', 'AccountRuinCount', 'ReqGain%']],
     [3, ['AvgDay%', 'Long $', 'Short $', 'EODExit%']]
 ])
 
@@ -287,24 +287,25 @@ function resolveMetricKind(key: string): PolicyBranchMegaChartMetricKind {
 
     if (
         normalized.endsWith('Days') ||
-        normalized.endsWith('Tr') ||
         normalized.endsWith(' n') ||
-        normalized === 'Tr' ||
+        normalized === 'TradesCount' ||
+        normalized === 'TradesWithFundingCount' ||
+        normalized === 'FundingEventCount' ||
         normalized === 'CapAp' ||
         normalized === 'CapSk' ||
         normalized === 'RecovSignals' ||
         normalized === 'HorizonDays' ||
-        normalized === 'RealLiq#'
+        normalized === 'RealLiquidationCount'
     ) {
         return 'count'
     }
 
     if (
-        normalized === 'HadLiq' ||
-        normalized === 'AccRuin' ||
+        normalized === 'HadLiquidation' ||
+        normalized === 'AccountRuinCount' ||
         normalized === 'RealLiq' ||
         normalized === 'Recovered' ||
-        normalized === 'BalDead'
+        normalized === 'BalanceDead'
     ) {
         return 'flag'
     }
@@ -372,20 +373,20 @@ function sortRows(left: PolicyBranchMegaChartRow, right: PolicyBranchMegaChartRo
 }
 
 function resolveRiskState(row: Pick<PolicyBranchMegaChartRow, 'numericValues'>): PolicyBranchMegaChartRiskState {
-    const accRuin = row.numericValues.AccRuin ?? 0
+    const accRuin = row.numericValues.AccountRuinCount ?? 0
     if (accRuin > 0) {
         return 'ruin'
     }
 
-    const hadLiq = row.numericValues.HadLiq ?? 0
+    const hadLiq = row.numericValues.HadLiquidation ?? 0
     if (hadLiq > 0) {
         return 'liquidation'
     }
 
     for (const metricKey of POLICY_BRANCH_MEGA_TOTAL_RETURN_METRIC_KEYS) {
-        const totalReturn = row.numericValues[metricKey]
-        if (typeof totalReturn === 'number') {
-            return totalReturn < 0 ? 'negative' : 'safe'
+        const totalPnlPct = row.numericValues[metricKey]
+        if (typeof totalPnlPct === 'number') {
+            return totalPnlPct < 0 ? 'negative' : 'safe'
         }
     }
 

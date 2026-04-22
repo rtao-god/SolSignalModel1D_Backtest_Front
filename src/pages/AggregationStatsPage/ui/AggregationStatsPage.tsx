@@ -8,6 +8,7 @@ import cls from './AggregationStatsPage.module.scss'
 import { PageDataState } from '@/shared/ui/errors/PageDataState'
 import { Text } from '@/shared/ui'
 import { renderTermTooltipRichText } from '@/shared/ui/TermTooltip'
+import { ModeMoneySummaryPanel } from '@/pages/shared/modeMoney'
 
 function formatUtcDayKeyLabel(value: unknown): string {
     if (!value || typeof value !== 'object') {
@@ -56,41 +57,48 @@ function FixedSplitAggregationStatsPage({ className }: AggregationStatsPageProps
         <div className={rootClassName}>
             <PageDataState
                 shell={
-                    <header className={cls.headerRow}>
-                        <div className={cls.headerMain}>
-                            <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
-                            {/* Шапка даёт только общий контекст страницы. Детали чтения живут в самих секциях ниже. */}
-                            <Text className={cls.subtitle}>
-                                {renderTermTooltipRichText(t('aggregation.inner.header.subtitle'))}
-                            </Text>
-                        </div>
-
-                        {hasData && normalizedProbs && (
-                            <div className={cls.metaGrid}>
-                                <div className={cls.metaCard}>
-                                    <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
-                                    <div className={cls.metaValue}>
-                                        {formatUtcDayKeyLabel(normalizedProbs.MinDateUtc)} -{' '}
-                                        {formatUtcDayKeyLabel(normalizedProbs.MaxDateUtc)}
-                                    </div>
-                                </div>
-                                <div className={cls.metaCard}>
-                                    <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
-                                    <div className={cls.metaValue}>{normalizedProbs.TotalInputRecords}</div>
-                                </div>
-                                <div className={cls.metaCard}>
-                                    <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
-                                    <div className={cls.metaValue}>{normalizedProbs.ExcludedCount}</div>
-                                </div>
-                                <div className={cls.metaCard}>
-                                    <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
-                                    <div className={cls.metaValue}>
-                                        {normalizedProbs.Segments.length} / {normalizedProbs.DebugLastDays.length}
-                                    </div>
-                                </div>
+                    <>
+                        <header className={cls.headerRow}>
+                            <div className={cls.headerMain}>
+                                <Text type='h2'>{t('aggregation.inner.header.title')}</Text>
+                                {/* Шапка даёт только общий контекст страницы. Детали чтения живут в самих секциях ниже. */}
+                                <Text className={cls.subtitle}>
+                                    {renderTermTooltipRichText(t('aggregation.inner.header.subtitle'))}
+                                </Text>
                             </div>
-                        )}
-                    </header>
+
+                            {hasData && normalizedProbs && (
+                                <div className={cls.metaGrid}>
+                                    <div className={cls.metaCard}>
+                                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.dateRange')}</div>
+                                        <div className={cls.metaValue}>
+                                            {formatUtcDayKeyLabel(normalizedProbs.MinDateUtc)} -{' '}
+                                            {formatUtcDayKeyLabel(normalizedProbs.MaxDateUtc)}
+                                        </div>
+                                    </div>
+                                    <div className={cls.metaCard}>
+                                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.totalInput')}</div>
+                                        <div className={cls.metaValue}>{normalizedProbs.TotalInputRecords}</div>
+                                    </div>
+                                    <div className={cls.metaCard}>
+                                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.excluded')}</div>
+                                        <div className={cls.metaValue}>{normalizedProbs.ExcludedCount}</div>
+                                    </div>
+                                    <div className={cls.metaCard}>
+                                        <div className={cls.metaTitle}>{t('aggregation.inner.meta.segmentsAndDebug')}</div>
+                                        <div className={cls.metaValue}>
+                                            {normalizedProbs.Segments.length} / {normalizedProbs.DebugLastDays.length}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </header>
+
+                        <ModeMoneySummaryPanel
+                            mode='directional_fixed_split'
+                            showDefaultSliceNote
+                        />
+                    </>
                 }
                 isLoading={Boolean(probsQuery.isLoading || metricsQuery.isLoading)}
                 isError={isError}

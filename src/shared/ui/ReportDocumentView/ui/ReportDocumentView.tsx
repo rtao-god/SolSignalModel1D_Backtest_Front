@@ -117,6 +117,7 @@ export function ReportDocumentView({
                     reportKind: report.kind,
                     contextTag: 'report-document-view',
                     locale: reportUiLanguage,
+                    requireColumnDescriptors: true,
                     resolveSectionTitle: section =>
                         normalizeReportTitle(section.title) || section.title || 'report-table'
                 }),
@@ -334,12 +335,25 @@ function SectionRenderer({ section, reportKind, sectionDomId }: SectionRendererP
             .replace(/^-+|-+$/g, '')
         const domId = sectionDomId ?? `report-${safeTitle || 'table'}`
 
-        const renderColumnTitle = (title: string) => {
-            const tooltip = resolveReportColumnTooltip(reportKind, rawVisibleTitle, title)
-            const localizedTitle = localizeReportColumnTitle(reportKind, title, i18n.language)
-            const columnSelfAliases = resolveReportTooltipSelfAliases(reportKind, title)
+        const renderColumnTitle = (
+            title: string,
+            context: { colIdx: number; columnKey?: string; columnDescriptor?: { termKey?: string } }
+        ) => {
+            const rawColumnTitle = columns[context.colIdx] ?? title
+            const tooltip = resolveReportColumnTooltip(reportKind, rawVisibleTitle, rawColumnTitle, undefined, {
+                sectionKey: tbl.sectionKey,
+                columnKey: context.columnKey,
+                termKey: context.columnDescriptor?.termKey
+            })
+            const localizedTitle = localizeReportColumnTitle(reportKind, rawColumnTitle, i18n.language)
+            const columnSelfAliases = resolveReportTooltipSelfAliases(reportKind, rawColumnTitle)
             return renderTermTooltipTitle(localizedTitle, tooltip, {
-                selfAliases: [title, ...columnSelfAliases]
+                selfAliases: [
+                    rawColumnTitle,
+                    context.columnKey ?? '',
+                    context.columnDescriptor?.termKey ?? '',
+                    ...columnSelfAliases
+                ]
             })
         }
 
@@ -351,6 +365,8 @@ function SectionRenderer({ section, reportKind, sectionDomId }: SectionRendererP
                     title={visibleTitle}
                     description={resolvedDescription ?? undefined}
                     columns={localizedColumns}
+                    columnKeys={tbl.columnKeys}
+                    columnDescriptors={tbl.columnDescriptors}
                     rows={rows}
                     rowEvaluations={tbl.rowEvaluations ?? []}
                     domId={domId}

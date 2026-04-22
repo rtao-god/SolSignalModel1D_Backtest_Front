@@ -154,15 +154,15 @@
           "rows": [
             [
               "UP (2)",
-              "entry * (1 + MinMove) is reached first"
+              "Upper owner MinMove barrier is reached first"
             ],
             [
               "DOWN (0)",
-              "entry * (1 - MinMove) is reached first"
+              "Lower owner MinMove barrier is reached first"
             ],
             [
               "FLAT (1)",
-              "+/-MinMove levels are not reached"
+              "Owner MinMove barriers are not reached"
             ]
           ]
         },
@@ -193,7 +193,7 @@
           },
           {
             "term": "Quiet day (technical)",
-            "description": "Quiet day (technical) — No +/-MinMove touch inside baseline window.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+            "description": "Quiet day (technical) — No owner MinMove barrier touch inside the baseline window.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
           }
         ]
       },
@@ -419,8 +419,8 @@
             "description": "SlHighDecision=true — Mandatory trigger for ANTI-D.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
           },
           {
-            "term": "MinMove in 0.5%-12% range",
-            "description": "MinMove in 0.5%-12% range — Filter for too-quiet and too-extreme days.\n\nWhat it shows:\nthis term is used in the explain section as a reading anchor for a specific model step, regime flag, split rule, or feature-calculation block.\n\nHow to read it:\nits meaning should be read together with the neighboring block and with the way it changes forecast interpretation, risk reading, time boundaries, or model-quality signals.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
+            "term": "MinMove in owner log band",
+            "description": "MinMove in owner log band — Filter that allows ANTI-D only when expected movement is inside the working band in the owner log metric.\n\nWhat it shows:\nANTI-D is blocked when the day is too quiet for a working signal or too extreme for a defensive direction flip.\n\nHow to read it:\nthis is a risk-policy gate over the owner MinMove metric, not a local simple-percent formula.\n\nExample:\nif the neighboring block changes the final class, split boundary, time cutoff, or feature contribution, this term helps identify which internal step caused that change."
           },
           {
             "term": "Liquidation buffer >= 2xMinMove",

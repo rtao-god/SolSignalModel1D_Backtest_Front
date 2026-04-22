@@ -20,6 +20,7 @@ export interface TableSectionDto extends BaseSectionDto {
     detailLevel?: TableDetailLevel
     columns?: string[]
     columnKeys?: string[]
+    columnDescriptors?: ReportColumnDescriptorDto[]
     rows?: string[][]
     rowEvaluations?: Array<PolicyEvaluationDto | null>
     metadata?: CapturedTableMetadataDto
@@ -54,4 +55,10 @@ export interface CapturedTableMetadataDto {
     metricVariant?: CapturedMegaMetricVariantDto
     bucket?: CapturedMegaBucketDto
     part?: number
+}
+
+export interface ReportColumnDescriptorDto {
+    columnKey: string
+    displayLabel: string
+    termKey: string
 }

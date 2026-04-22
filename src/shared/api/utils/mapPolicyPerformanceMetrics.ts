@@ -144,6 +144,7 @@ function mapMetrics(
         calmar: readNumber('calmar'),
         winRate: readNumber('winRate'),
         startCapitalUsd: readNumber('startCapitalUsd'),
+        onExchPct: readNumber('onExchPct'),
         equityNowUsd: readNumber('equityNowUsd'),
         withdrawnTotalUsd: readNumber('withdrawnTotalUsd'),
         fundingNetUsd: readNumber('fundingNetUsd'),

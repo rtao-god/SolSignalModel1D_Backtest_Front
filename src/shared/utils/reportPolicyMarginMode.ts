@@ -1,5 +1,4 @@
 import type { ReportDocumentDto, ReportSectionDto, TableSectionDto } from '@/shared/types/report.types'
-import { buildReportColumnContractDescriptors } from './reportColumnKeys'
 
 const POLICY_COLUMN_KEYS = new Set(['policy_name', 'policy'])
 const POLICY_COLUMN_TITLES = new Set(['policy', 'policyname', 'name'])
@@ -18,8 +17,22 @@ function findColumnIndex(section: TableSectionDto, matcher: (key: string, label:
         return -1
     }
 
-    const descriptors = buildReportColumnContractDescriptors(columns, section.columnKeys)
-    return descriptors.findIndex(descriptor => matcher(descriptor.key.trim().toLowerCase(), normalizeTitleToken(descriptor.label)))
+    const descriptors = section.columnDescriptors
+    if (!Array.isArray(descriptors)) {
+        throw new Error(
+            `[report-margin-column] table section is missing backend columnDescriptors. owner=report_column_registry | expected=published report tables must carry column registry before margin-column pruning. | actual=missing | requiredAction=Republish the report with backend-owned columnDescriptors.`
+        )
+    }
+
+    if (descriptors.length !== columns.length) {
+        throw new Error(
+            `[report-margin-column] table section columnDescriptors length mismatch. owner=report_column_registry | expected=${columns.length} descriptors. | actual=${descriptors.length} descriptors | requiredAction=Republish the report with descriptors aligned to columns.`
+        )
+    }
+
+    return descriptors.findIndex(descriptor =>
+        matcher(descriptor.columnKey.trim().toLowerCase(), normalizeTitleToken(descriptor.displayLabel))
+    )
 }
 
 function normalizeMarginModeToken(value: unknown): 'cross' | 'isolated' | null {
@@ -100,6 +113,10 @@ export function pruneDuplicatePolicyMarginColumn(section: TableSectionDto): Tabl
             Array.isArray(section.columnKeys) ?
                 section.columnKeys.filter((_, columnIndex) => columnIndex !== marginColumnIndex)
             :   section.columnKeys,
+        columnDescriptors:
+            Array.isArray(section.columnDescriptors) ?
+                section.columnDescriptors.filter((_, columnIndex) => columnIndex !== marginColumnIndex)
+            :   section.columnDescriptors,
         rows: (section.rows ?? []).map(row => row.filter((_, columnIndex) => columnIndex !== marginColumnIndex))
     }
 }

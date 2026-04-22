@@ -44,7 +44,6 @@ import {
     TP_SL_DESCRIPTION,
     TRADE_COUNT_DESCRIPTION,
     WIN_RATE_DESCRIPTION,
-    WEALTH_PCT_DESCRIPTION,
     WHY_BUCKET_DESCRIPTION,
     WHY_FIRST_EVENT_DESCRIPTION,
     WHY_NO_BIGGEST_LIQ_LOSS_DESCRIPTION,
@@ -301,16 +300,9 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'total-pnl',
-        pattern: /TotalPnl%|TotalPnlPct/i,
+        pattern: /TotalPnl%/i,
         title: 'TotalPnl%',
         description: TOTAL_PNL_DESCRIPTION,
-        scope: 'common'
-    },
-    {
-        id: 'wealth-pct',
-        pattern: /Wealth%/i,
-        title: 'Wealth%',
-        description: WEALTH_PCT_DESCRIPTION,
         scope: 'common'
     },
     {
@@ -504,19 +496,19 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'trade-count',
-        pattern: /\bTr\b|trade[-\s]?count|числ(?:о|а)\s+сделок|количеств(?:о|а)\s+сделок/i,
-        title: 'Tr',
+        pattern: /\bTradesCount\b|trade[-\s]?count|числ(?:о|а)\s+сделок|количеств(?:о|а)\s+сделок/i,
+        title: 'TradesCount',
         description: TRADE_COUNT_DESCRIPTION,
-        aliases: ['Tr', 'trade count', 'число сделок', 'количество сделок'],
+        aliases: ['TradesCount', 'trade count', 'число сделок', 'количество сделок'],
         priority: 175,
         scope: 'common'
     },
     {
         id: 'win-rate',
         pattern: /win[-\s]?rate|дол(?:я|ю)\s+успешн(?:ых|ой)\s+сдел/i,
-        title: 'Win rate',
+        title: 'WinRate%',
         description: WIN_RATE_DESCRIPTION,
-        aliases: ['Win rate', 'win-rate'],
+        aliases: ['WinRate%', 'win-rate'],
         priority: 176,
         scope: 'common'
     },
@@ -554,8 +546,8 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'account-ruin',
-        pattern: /AccRuin|account\s*ruin|руин[аы]?\s+(?:аккаунта|сч[её]та|бакета)/i,
-        title: 'AccRuin',
+        pattern: /AccountRuinCount|account\s*ruin|руин[аы]?\s+(?:аккаунта|сч[её]та|бакета)/i,
+        title: 'AccountRuinCount',
         description: ACCOUNT_RUIN_DESCRIPTION,
         scope: 'common'
     },
@@ -582,7 +574,7 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'liquidation',
-        pattern: /ликвидац|liquidation|HadLiq|RealLiq/i,
+        pattern: /ликвидац|liquidation|HadLiquidation|RealLiquidationCount/i,
         title: 'Ликвидация',
         description: LIQUIDATION_DESCRIPTION,
         scope: 'common'
@@ -676,10 +668,10 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'cagr-ratio',
-        pattern: /\bCAGR\b%?/i,
-        title: 'CAGR',
+        pattern: /\bCagr\b/i,
+        title: 'Cagr',
         description: () => resolveLocalizedCagrDescription(),
-        aliases: ['CAGR', 'CAGR%'],
+        aliases: ['Cagr'],
         priority: 176,
         scope: 'common'
     },
@@ -894,10 +886,10 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     },
     {
         id: 'start-cap',
-        pattern: /\bStartCap\$?\b|StartCapital|стартов(?:ый|ого)\s+капитал/i,
-        title: 'Стартовый капитал',
+        pattern: /StartCapital|стартов(?:ый|ого)\s+капитал/i,
+        title: 'StartCapitalUsd',
         description: START_CAP_DESCRIPTION,
-        aliases: ['StartCap', 'StartCap$', 'стартовый капитал', 'starting capital'],
+        aliases: ['StartCapitalUsd', 'стартовый капитал', 'starting capital'],
         priority: 165,
         scope: 'common'
     },
@@ -913,9 +905,9 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'withdrawn-profit',
         pattern: /выведенн(?:ая|ой)\s+прибыл(?:ь|и)|withdrawn/i,
-        title: 'Выведенная прибыль',
+        title: 'WithdrawnTotalUsd',
         description: WITHDRAWN_PROFIT_DESCRIPTION,
-        aliases: ['выведенная прибыль', 'withdrawn'],
+        aliases: ['WithdrawnTotalUsd', 'выведенная прибыль', 'withdrawn'],
         priority: 172,
         scope: 'common'
     },
@@ -958,9 +950,9 @@ export const COMMON_TERM_TOOLTIP_REGISTRY: SharedTermTooltipRuleDraft[] = [
     {
         id: 'current-balance',
         pattern: /текущ(?:ий|его)\s+баланс|current\s+balance|EquityNow/i,
-        title: 'Текущий баланс',
+        title: 'EquityNowUsd',
         description: CURRENT_BALANCE_DESCRIPTION,
-        aliases: ['текущий баланс', 'EquityNow'],
+        aliases: ['EquityNowUsd', 'текущий баланс', 'EquityNow'],
         priority: 155,
         scope: 'common'
     },

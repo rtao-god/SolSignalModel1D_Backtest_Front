@@ -117,18 +117,18 @@ const CHART_PRESETS: readonly PolicyBranchMegaChartPresetDescriptor[] = [
     {
         key: 'ruin-vs-liquidation',
         part: 2,
-        rankingMetricKey: 'AccRuin',
-        scatterXMetricKey: 'HadLiq',
-        scatterYMetricKey: 'AccRuin',
+        rankingMetricKey: 'AccountRuinCount',
+        scatterXMetricKey: 'HadLiquidation',
+        scatterYMetricKey: 'AccountRuinCount',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.ruinVsLiquidation',
         defaultLabel: 'Account ruin vs Liquidation'
     },
     {
         key: 'liquidation-vs-recovery',
         part: 2,
-        rankingMetricKey: 'HadLiq',
+        rankingMetricKey: 'HadLiquidation',
         scatterXMetricKey: 'RecovDays',
-        scatterYMetricKey: 'HadLiq',
+        scatterYMetricKey: 'HadLiquidation',
         labelKey: 'policyBranchMega.page.chart.controls.preset.options.liquidationVsRecovery',
         defaultLabel: 'Liquidation vs Recovery days'
     },

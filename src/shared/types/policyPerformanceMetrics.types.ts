@@ -13,6 +13,7 @@ export interface PolicyPerformanceMetricsDto {
     calmar?: number | null
     winRate?: number | null
     startCapitalUsd?: number | null
+    onExchPct?: number | null
     equityNowUsd?: number | null
     withdrawnTotalUsd?: number | null
     fundingNetUsd?: number | null

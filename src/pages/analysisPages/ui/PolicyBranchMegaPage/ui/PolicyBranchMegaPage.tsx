@@ -85,7 +85,6 @@ import {
     resolvePolicyBranchMegaBucketFromQuery,
     resolvePolicyBranchMegaBucketLabel,
     resolvePolicyBranchMegaMetricFromQuery,
-    resolvePolicyBranchMegaModeFromTitle,
     resolvePolicyBranchMegaSlModeFromQuery,
     resolvePolicyBranchMegaTotalBucketViewFromQuery,
     resolvePolicyBranchMegaTpSlModeFromQuery,
@@ -103,13 +102,14 @@ import { resolveReportSourceEndpoint } from '@/shared/utils/reportSourceEndpoint
 import { buildSelfTooltipExclusions } from '@/shared/ui/ReportTableTermsBlock/model/reportTableTermsBlock'
 import { buildBacktestDiagnosticsSearchFromSearchParams } from '@/shared/utils/backtestDiagnosticsQuery'
 import {
+    MODE_MONEY_EFFECTIVE_MAX_DD_METRIC_KEY,
+    ModeMoneySummaryPanel,
+    resolveModeMoneyMetricLabel
+} from '@/pages/shared/modeMoney'
+import {
     assertPolicyBranchMegaPrimaryProfitColumns,
     resolvePolicyBranchMegaPrimaryProfitColumn
 } from '@/shared/utils/policyBranchMegaProfitColumns'
-import {
-    buildReportColumnContractDescriptors,
-    type ReportColumnContractDescriptor
-} from '@/shared/utils/reportColumnKeys'
 import { pruneDuplicatePolicyMarginColumns } from '@/shared/utils/reportPolicyMarginMode'
 import cls from './PolicyBranchMegaPage.module.scss'
 import type { PolicyBranchMegaPageProps } from './types'
@@ -214,15 +214,9 @@ function formatModeMoneyDate(value: string, label: string): string {
     return value
 }
 
-function requireAvailableModeMoneyMetricsForRender(
+function resolveModeMoneyMetricsForRender(
     row: PolicyBranchMegaModeMoneySummaryRowDto
 ) {
-    if (row.moneyMetrics === null || row.maxDrawdownPct === null) {
-        throw new Error(
-            `[policy-branch-mega] available money columns requested for a row without money metrics. owner=mode-money-summary; expected=available row with moneyMetrics and maxDrawdownPct; actual=sourceStatus=${row.sourceStatus}; context=modeKey=${row.modeKey}, sliceKey=${row.sliceKey}; requiredAction=fix table column routing or rebuild mode money summary artifacts.`
-        )
-    }
-
     return {
         metrics: row.moneyMetrics,
         maxDrawdownPct: row.maxDrawdownPct
@@ -449,10 +443,12 @@ function buildBacktestDiagnosticsLink(
     return `${ROUTE_PATH[AppRoute.BACKTEST_DIAGNOSTICS]}${buildBacktestDiagnosticsSearchFromSearchParams(nextParams)}`
 }
 
-const MEGA_SL_MODE_COLUMN_NAME = 'SL Mode'
-const MEGA_ROW_KEY_SEPARATOR = '\u001e'
+interface PolicyBranchMegaColumnDescriptor {
+    label: string
+    key: string
+    termKey: string
+}
 const MEGA_PART_TAG_REGEX = /\[PART\s+(\d+)\/(\d+)\]/i
-const MEGA_MODE_TAG_REGEX = /\bWITH SL\b|\bNO SL\b/gi
 const MEGA_OVERVIEW_DOM_ID = 'policy-branch-mega-overview'
 const MEGA_MODE_MONEY_SUMMARY_DOM_ID = 'policy-branch-mega-mode-money-summary'
 type ModeMoneySummaryViewMode = 'compact' | 'expanded'
@@ -468,13 +464,13 @@ type ModeMoneySummaryColumnKey =
     | 'trades'
     | 'predictionQuality'
     | 'diagnostics'
-    | 'totalReturn'
+    | 'totalPnlPct'
     | 'totalPnlUsd'
     | 'startCapitalUsd'
     | 'equityNowUsd'
     | 'withdrawnUsd'
     | 'fundingNetUsd'
-    | 'maxDrawdown'
+    | 'effectiveMaxDdPct'
     | 'sharpe'
     | 'realLiquidations'
     | 'accountRuins'
@@ -489,70 +485,82 @@ const MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS = new Set<ModeMoneySummaryColumnKey
     'execution',
     'days',
     'predictionQuality',
-    'totalReturn',
+    'totalPnlPct',
     'totalPnlUsd',
     'equityNowUsd',
-    'maxDrawdown',
+    'effectiveMaxDdPct',
     'sharpe',
     'realLiquidations',
     'accountRuins'
-])
-const MODE_MONEY_SUMMARY_DIAGNOSTIC_COLUMN_KEYS = new Set<ModeMoneySummaryColumnKey>([
-    'mode',
-    'slice',
-    'fromDate',
-    'toDate',
-    'source',
-    'status',
-    'execution',
-    'days',
-    'trades',
-    'diagnostics',
-    'sourcePath'
 ])
 const BUCKET_SPECIFIC_COLUMN_VISIBILITY = new Map<string, Set<PolicyBranchMegaBucketMode>>([
     ['DailyTP%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
     ['DailySL%', new Set<PolicyBranchMegaBucketMode>(['daily', 'total'])],
     ['DynTP / SL Days', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
-    ['DynTP / SL Tr', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
+    ['DynTP / SL TradesCount', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DynTP / SL PnL%', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DynGate OK', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DynGate <Conf', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DynGate <Samples', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DynGate <WinRate', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['StatTP / SL Days', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
-    ['StatTP / SL Tr', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
+    ['StatTP / SL TradesCount', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['StatTP / SL PnL%', new Set<PolicyBranchMegaBucketMode>(['daily', 'intraday', 'total'])],
     ['DelayedTP%', new Set<PolicyBranchMegaBucketMode>(['delayed', 'total'])],
     ['DelayedSL%', new Set<PolicyBranchMegaBucketMode>(['delayed', 'total'])]
 ])
 
-function buildMegaSectionColumnDescriptors(section: TableSectionDto): ReportColumnContractDescriptor[] {
-    return buildReportColumnContractDescriptors(section.columns ?? [], section.columnKeys)
-}
-
-function buildMegaSectionColumnDescriptorsWithSyntheticSlMode(
-    section: TableSectionDto,
-    includeSlModeColumn: boolean
-): ReportColumnContractDescriptor[] {
-    const descriptors = buildMegaSectionColumnDescriptors(section)
-    if (!includeSlModeColumn || descriptors.some(descriptor => descriptor.key === 'sl_mode')) {
-        return descriptors
-    }
-
-    const branchIndex = descriptors.findIndex(descriptor => descriptor.key === 'branch' || descriptor.label === 'Branch')
-    if (branchIndex < 0) {
+function buildMegaSectionColumnDescriptors(section: TableSectionDto): PolicyBranchMegaColumnDescriptor[] {
+    const columns = section.columns ?? []
+    const columnDescriptors = section.columnDescriptors
+    if (!Array.isArray(columnDescriptors)) {
         throw new Error(
-            `[policy-branch-mega] Branch column is required before injecting synthetic "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}.`
+            `[policy-branch-mega] section is missing backend columnDescriptors. owner=report_column_registry | expected=policy branch mega tables must carry published column registry. | actual=missing | requiredAction=Republish the report with backend-owned columnDescriptors.`
         )
     }
 
-    const nextDescriptors = [...descriptors]
-    nextDescriptors.splice(branchIndex + 1, 0, {
-        label: MEGA_SL_MODE_COLUMN_NAME,
-        key: 'sl_mode'
+    if (columnDescriptors.length !== columns.length) {
+        throw new Error(
+            `[policy-branch-mega] section columnDescriptors length mismatch. owner=report_column_registry | expected=${columns.length} descriptors. | actual=${columnDescriptors.length} descriptors | requiredAction=Republish the report with descriptors aligned to columns.`
+        )
+    }
+
+    const columnKeys = section.columnKeys
+    if (Array.isArray(columnKeys) && columnKeys.length !== columns.length) {
+        throw new Error(
+            `[policy-branch-mega] section columnKeys length mismatch. owner=report_column_registry | expected=${columns.length} keys. | actual=${columnKeys.length} keys | requiredAction=Republish the report with columnKeys aligned to columns.`
+        )
+    }
+
+    return columnDescriptors.map((descriptor, index) => {
+        const expectedLabel = columns[index]
+        if (descriptor.displayLabel !== expectedLabel) {
+            throw new Error(
+                `[policy-branch-mega] descriptor displayLabel mismatch. owner=report_column_registry | expected=${expectedLabel} | actual=${descriptor.displayLabel} | columnIndex=${index} | requiredAction=Republish the report with descriptor.displayLabel aligned to columns.`
+            )
+        }
+
+        const expectedColumnKey = Array.isArray(columnKeys) ? columnKeys[index] : descriptor.columnKey
+        if (descriptor.columnKey !== expectedColumnKey) {
+            throw new Error(
+                `[policy-branch-mega] descriptor columnKey mismatch. owner=report_column_registry | expected=${expectedColumnKey} | actual=${descriptor.columnKey} | columnIndex=${index} | requiredAction=Republish the report with descriptor.columnKey aligned to columnKeys.`
+            )
+        }
+
+        return {
+            label: descriptor.displayLabel,
+            key: descriptor.columnKey,
+            termKey: descriptor.termKey
+        }
     })
-    return nextDescriptors
+}
+
+function toReportColumnDescriptor(descriptor: PolicyBranchMegaColumnDescriptor) {
+    return {
+        displayLabel: descriptor.label,
+        columnKey: descriptor.key,
+        termKey: descriptor.termKey
+    }
 }
 
 function isMegaColumnVisibleForBucket(column: string, bucket: PolicyBranchMegaBucketMode): boolean {
@@ -574,7 +582,7 @@ function filterMegaSectionColumnsByBucket(
     }
 
     const visibleIndexes: number[] = []
-    const visibleDescriptors: ReportColumnContractDescriptor[] = []
+    const visibleDescriptors: PolicyBranchMegaColumnDescriptor[] = []
 
     columnDescriptors.forEach((descriptor, columnIndex) => {
         if (isMegaColumnVisibleForBucket(descriptor.label, bucket)) {
@@ -604,6 +612,7 @@ function filterMegaSectionColumnsByBucket(
         ...section,
         columns: visibleDescriptors.map(descriptor => descriptor.label),
         columnKeys: visibleDescriptors.map(descriptor => descriptor.key),
+        columnDescriptors: visibleDescriptors.map(toReportColumnDescriptor),
         rows: nextRows
     }
 }
@@ -617,40 +626,6 @@ function filterMegaSectionsColumnsByBucket(
     }
 
     return sections.map(section => filterMegaSectionColumnsByBucket(section, bucket))
-}
-
-function resolveMegaSlModeLabelForSection(section: TableSectionDto): string {
-    const metadata = section.metadata
-    if (metadata?.kind === 'policy-branch-mega') {
-        if (!metadata.mode) {
-            throw new Error(
-                `[policy-branch-mega] section metadata.mode is missing while building "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}.`
-            )
-        }
-
-        if (metadata.mode === 'with-sl') return 'WITH SL'
-        if (metadata.mode === 'no-sl') return 'NO SL'
-
-        throw new Error(
-            `[policy-branch-mega] unsupported metadata.mode value while building "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}, mode=${String(metadata.mode)}.`
-        )
-    }
-
-    const modeFromTitle = resolvePolicyBranchMegaModeFromTitle(section.title)
-    if (modeFromTitle === 'with-sl') return 'WITH SL'
-    if (modeFromTitle === 'no-sl') return 'NO SL'
-
-    throw new Error(
-        `[policy-branch-mega] cannot resolve section mode for "${MEGA_SL_MODE_COLUMN_NAME}" column. title=${section.title ?? 'n/a'}.`
-    )
-}
-
-function buildMegaRowKey(policy: string, branch: string, slModeLabel: string | null): string {
-    if (slModeLabel === null) {
-        return `${policy}${MEGA_ROW_KEY_SEPARATOR}${branch}`
-    }
-
-    return `${policy}${MEGA_ROW_KEY_SEPARATOR}${branch}${MEGA_ROW_KEY_SEPARATOR}${slModeLabel}`
 }
 
 function resolveMegaPartNumberFromTitle(title: string | undefined): number {
@@ -685,67 +660,7 @@ function resolveMegaPartNumberFromSection(section: TableSectionDto): number {
     return resolveMegaPartNumberFromTitle(section.title)
 }
 
-function resolveMergedMegaTitleForPart(partSections: TableSectionDto[], slMode: PolicyBranchMegaSlMode): string {
-    const title = normalizePolicyBranchMegaTitle(partSections[0]?.title)
-    if (!title) {
-        throw new Error('[policy-branch-mega] merged part title is empty.')
-    }
-
-    if (slMode !== 'all') {
-        return title
-    }
-
-    return title
-        .replace(MEGA_MODE_TAG_REGEX, 'WITH SL + NO SL')
-        .replace(/\s{2,}/g, ' ')
-        .trim()
-}
-
-function resolveExpectedSlModeLabel(mode: PolicyBranchMegaSlMode): 'WITH SL' | 'NO SL' {
-    if (mode === 'with-sl') return 'WITH SL'
-    if (mode === 'no-sl') return 'NO SL'
-    throw new Error(`[policy-branch-mega] strict sl mode label cannot be resolved for mode=${mode}.`)
-}
-
-function ensurePartSectionsMatchSelectedSlMode(
-    partSections: TableSectionDto[],
-    slMode: PolicyBranchMegaSlMode
-): TableSectionDto[] {
-    if (slMode === 'all') {
-        return partSections
-    }
-
-    const expectedLabel = resolveExpectedSlModeLabel(slMode)
-    const matchedSections: TableSectionDto[] = []
-    const mismatchedTitles: string[] = []
-
-    for (const section of partSections) {
-        const actualLabel = resolveMegaSlModeLabelForSection(section)
-        if (actualLabel === expectedLabel) {
-            matchedSections.push(section)
-            continue
-        }
-
-        mismatchedTitles.push(normalizePolicyBranchMegaTitle(section.title) || 'n/a')
-    }
-
-    if (matchedSections.length === 0) {
-        throw new Error(
-            `[policy-branch-mega] no part sections match selected slmode=${slMode}. expectedLabel=${expectedLabel}.`
-        )
-    }
-
-    if (mismatchedTitles.length > 0) {
-        const sample = mismatchedTitles.slice(0, 4).join(' | ')
-        throw new Error(
-            `[policy-branch-mega] mixed slmode payload detected inside merged part. selected=${slMode}, expectedLabel=${expectedLabel}, mismatchedTitles=${sample}.`
-        )
-    }
-
-    return matchedSections
-}
-
-function resolveMergedMegaDescriptionForPart(
+function resolveMegaDescriptionForPart(
     part: number,
     slMode: PolicyBranchMegaSlMode,
     translate: (key: string, options?: Record<string, unknown>) => string
@@ -775,165 +690,6 @@ function resolveMergedMegaDescriptionForPart(
     return `${modePrefix}${translate('policyBranchMega.page.table.mergedSelectedDescription')}`
 }
 
-function mergePolicyBranchMegaSectionsForPart(
-    partSections: TableSectionDto[],
-    slMode: PolicyBranchMegaSlMode
-): TableSectionDto {
-    if (!partSections || partSections.length === 0) {
-        throw new Error('[policy-branch-mega] cannot merge part sections: source list is empty.')
-    }
-
-    const scopedSections = ensurePartSectionsMatchSelectedSlMode(partSections, slMode)
-    const includeSlModeColumn = slMode === 'all'
-    const mergedDescriptors: ReportColumnContractDescriptor[] = []
-    const mergedDescriptorByKey = new Map<string, ReportColumnContractDescriptor>()
-    const mergedRowsByKey = new Map<string, Map<string, unknown>>()
-    const rowOrder: string[] = []
-
-    for (const [sectionIndex, section] of scopedSections.entries()) {
-        const sourceDescriptors = buildMegaSectionColumnDescriptors(section)
-        const sectionDescriptors = buildMegaSectionColumnDescriptorsWithSyntheticSlMode(section, includeSlModeColumn)
-        const rows = section.rows ?? []
-        if (sourceDescriptors.length === 0) {
-            throw new Error(
-                `[policy-branch-mega] section columns are empty while merging part. section=${section.title ?? 'n/a'}, index=${sectionIndex}.`
-            )
-        }
-
-        const policyIdx = sourceDescriptors.findIndex(descriptor => descriptor.key === 'policy' || descriptor.label === 'Policy')
-        const branchIdx = sourceDescriptors.findIndex(descriptor => descriptor.key === 'branch' || descriptor.label === 'Branch')
-        if (policyIdx < 0 || branchIdx < 0) {
-            throw new Error(
-                `[policy-branch-mega] Policy/Branch columns are required for part merge. section=${section.title ?? 'n/a'}, index=${sectionIndex}.`
-            )
-        }
-
-        const modeLabel = includeSlModeColumn ? resolveMegaSlModeLabelForSection(section) : null
-        for (const descriptor of sectionDescriptors) {
-            const previousDescriptor = mergedDescriptorByKey.get(descriptor.key)
-            if (!previousDescriptor) {
-                mergedDescriptorByKey.set(descriptor.key, descriptor)
-                mergedDescriptors.push(descriptor)
-                continue
-            }
-
-            if (previousDescriptor.label !== descriptor.label) {
-                throw new Error(
-                    `[policy-branch-mega] conflicting semantic column label detected while merging part sections. key=${descriptor.key}, prev=${previousDescriptor.label}, next=${descriptor.label}, title=${section.title ?? 'n/a'}.`
-                )
-            }
-        }
-
-        for (const [rowIndex, row] of rows.entries()) {
-            if (!Array.isArray(row) || row.length < sourceDescriptors.length) {
-                throw new Error(
-                    `[policy-branch-mega] malformed row while merging part sections. section=${section.title ?? 'n/a'}, row=${rowIndex}.`
-                )
-            }
-
-            const policy = String(row[policyIdx] ?? '')
-            const branch = String(row[branchIdx] ?? '')
-            if (!policy || !branch) {
-                throw new Error(
-                    `[policy-branch-mega] empty Policy/Branch while merging part sections. section=${section.title ?? 'n/a'}, row=${rowIndex}.`
-                )
-            }
-
-            const rowKey = buildMegaRowKey(policy, branch, modeLabel)
-            let mergedRow = mergedRowsByKey.get(rowKey)
-            if (!mergedRow) {
-                mergedRow = new Map<string, unknown>()
-                mergedRowsByKey.set(rowKey, mergedRow)
-                rowOrder.push(rowKey)
-            }
-
-            const sectionValueByKey = new Map<string, unknown>()
-            sourceDescriptors.forEach((descriptor, columnIndex) => {
-                sectionValueByKey.set(descriptor.key, row[columnIndex])
-            })
-
-            if (includeSlModeColumn) {
-                sectionValueByKey.set('sl_mode', modeLabel)
-            }
-
-            for (const descriptor of sectionDescriptors) {
-                if (!sectionValueByKey.has(descriptor.key)) {
-                    throw new Error(
-                        `[policy-branch-mega] section column value is missing during part merge. section=${section.title ?? 'n/a'}, row=${rowIndex}, key=${descriptor.key}.`
-                    )
-                }
-
-                const nextValue = sectionValueByKey.get(descriptor.key)
-                const hasPrevValue = mergedRow.has(descriptor.key)
-                const prevValue = mergedRow.get(descriptor.key)
-                if (hasPrevValue && String(prevValue ?? '') !== String(nextValue ?? '')) {
-                    throw new Error(
-                        `[policy-branch-mega] conflicting merged part value detected. rowKey=${rowKey}, key=${descriptor.key}, prev=${String(prevValue ?? '')}, next=${String(nextValue ?? '')}.`
-                    )
-                }
-
-                mergedRow.set(descriptor.key, nextValue)
-            }
-        }
-    }
-
-    const mergedRows = rowOrder.map((rowKey, rowIndex) => {
-        const rowValues = mergedRowsByKey.get(rowKey)
-        if (!rowValues) {
-            throw new Error(`[policy-branch-mega] merged part row not found by key. rowKey=${rowKey}, row=${rowIndex}.`)
-        }
-
-        return mergedDescriptors.map(descriptor => {
-            if (!rowValues.has(descriptor.key)) {
-                throw new Error(
-                    `[policy-branch-mega] merged part row is missing required column. rowKey=${rowKey}, key=${descriptor.key}, row=${rowIndex}.`
-                )
-            }
-
-            return String(rowValues.get(descriptor.key) ?? '')
-        })
-    })
-
-    return {
-        ...scopedSections[0],
-        title: resolveMergedMegaTitleForPart(scopedSections, slMode),
-        columns: mergedDescriptors.map(descriptor => descriptor.label),
-        columnKeys: mergedDescriptors.map(descriptor => descriptor.key),
-        rows: mergedRows
-    }
-}
-
-function mergePolicyBranchMegaSectionsByPart(
-    sections: TableSectionDto[],
-    slMode: PolicyBranchMegaSlMode
-): TableSectionDto[] {
-    if (!sections || sections.length === 0) {
-        throw new Error('[policy-branch-mega] cannot merge sections by part: source list is empty.')
-    }
-
-    const byPart = new Map<number, TableSectionDto[]>()
-    for (const section of sections) {
-        const part = resolveMegaPartNumberFromSection(section)
-        const list = byPart.get(part) ?? []
-        list.push(section)
-        byPart.set(part, list)
-    }
-
-    const orderedParts = Array.from(byPart.keys()).sort((a, b) => a - b)
-    if (orderedParts.length === 0) {
-        throw new Error('[policy-branch-mega] no parts found after grouping sections.')
-    }
-
-    return orderedParts.map(part => {
-        const partSections = byPart.get(part)
-        if (!partSections || partSections.length === 0) {
-            throw new Error(`[policy-branch-mega] grouped part sections are empty. part=${part}.`)
-        }
-
-        return mergePolicyBranchMegaSectionsForPart(partSections, slMode)
-    })
-}
-
 function resolveMegaBucketModeFromSection(section: TableSectionDto): PolicyBranchMegaBucketMode {
     const metadataBucket = section.metadata?.kind === 'policy-branch-mega' ? (section.metadata.bucket ?? null) : null
     if (metadataBucket === 'daily' || metadataBucket === 'intraday' || metadataBucket === 'delayed') {
@@ -958,43 +714,6 @@ function resolveMegaBucketOrder(bucket: PolicyBranchMegaBucketMode): number {
     return 3
 }
 
-function mergePolicyBranchMegaSectionsByBucketAndPart(
-    sections: TableSectionDto[],
-    slMode: PolicyBranchMegaSlMode
-): TableSectionDto[] {
-    if (!sections || sections.length === 0) {
-        throw new Error('[policy-branch-mega] cannot merge sections by bucket and part: source list is empty.')
-    }
-
-    const byBucketAndPart = new Map<
-        string,
-        { bucket: PolicyBranchMegaBucketMode; part: number; sections: TableSectionDto[] }
-    >()
-
-    for (const section of sections) {
-        const bucket = resolveMegaBucketModeFromSection(section)
-        if (bucket === 'total') {
-            throw new Error('[policy-branch-mega] separate all-buckets merge received total bucket section.')
-        }
-
-        const part = resolveMegaPartNumberFromSection(section)
-        const key = `${bucket}:${part}`
-        const entry = byBucketAndPart.get(key) ?? { bucket, part, sections: [] as TableSectionDto[] }
-        entry.sections.push(section)
-        byBucketAndPart.set(key, entry)
-    }
-
-    const orderedGroups = Array.from(byBucketAndPart.values()).sort((a, b) => {
-        const bucketOrder = resolveMegaBucketOrder(a.bucket) - resolveMegaBucketOrder(b.bucket)
-        if (bucketOrder !== 0) {
-            return bucketOrder
-        }
-
-        return a.part - b.part
-    })
-
-    return orderedGroups.map(group => mergePolicyBranchMegaSectionsForPart(group.sections, slMode))
-}
 
 function buildPolicyBranchMegaSectionTerms(section: TableSectionDto) {
     const columns = section.columns ?? []
@@ -1023,12 +742,12 @@ function applyNoDataMarkersToMegaSections(sections: TableSectionDto[], noDataLab
 
         const policyIdx = columns.indexOf('Policy')
         const branchIdx = columns.indexOf('Branch')
-        const totalTradesIdx = columns.indexOf('Tr')
+        const totalTradesIdx = columns.indexOf('TradesCount')
         const primaryProfitColumn = resolvePolicyBranchMegaPrimaryProfitColumn(columns)
         const resultPctIdx = primaryProfitColumn ? columns.indexOf(primaryProfitColumn) : -1
-        const dynTradesIdx = columns.indexOf('DynTP / SL Tr')
+        const dynTradesIdx = columns.indexOf('DynTP / SL TradesCount')
         const dynPnlIdx = columns.indexOf('DynTP / SL PnL%')
-        const statTradesIdx = columns.indexOf('StatTP / SL Tr')
+        const statTradesIdx = columns.indexOf('StatTP / SL TradesCount')
         const statPnlIdx = columns.indexOf('StatTP / SL PnL%')
 
         if (policyIdx < 0 || branchIdx < 0 || totalTradesIdx < 0 || resultPctIdx < 0) {
@@ -1187,7 +906,6 @@ function buildPolicyBranchMegaPreparedSectionKey(part: number, bucket: PolicyBra
 function buildPreparedPolicyBranchMegaSectionEntries(
     sectionsSource: unknown[],
     bucket: PolicyBranchMegaBucketMode,
-    slMode: PolicyBranchMegaSlMode,
     isSeparateAllBucketsSelection: boolean,
     noDataLabel: string
 ): PolicyBranchMegaPreparedSectionEntry[] {
@@ -1195,12 +913,8 @@ function buildPreparedPolicyBranchMegaSectionEntries(
     const orderedSections = orderPolicyBranchMegaSections(tableSections)
     assertPolicyBranchMegaPrimaryProfitColumns(orderedSections, 'policy-branch-mega-page')
     const noDataAwareSections = applyNoDataMarkersToMegaSections(orderedSections, noDataLabel)
-    const mergedSections =
-        isSeparateAllBucketsSelection ?
-            mergePolicyBranchMegaSectionsByBucketAndPart(noDataAwareSections, slMode)
-        :   mergePolicyBranchMegaSectionsByPart(noDataAwareSections, slMode)
-    // Порядок mega-колонок теперь backend-owned; страница только сохраняет его и скрывает bucket-specific хвосты.
-    const visibleSections = filterMegaSectionsColumnsByBucket(mergedSections, bucket)
+    // Backend публикует canonical all-SL merge заранее; страница только читает owner-секции и скрывает bucket-specific хвосты.
+    const visibleSections = filterMegaSectionsColumnsByBucket(noDataAwareSections, bucket)
 
     return visibleSections.map(section => {
         const part = resolveMegaPartNumberFromSection(section)
@@ -1819,7 +1533,6 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                     cachedEntries = buildPreparedPolicyBranchMegaSectionEntries(
                         currentReport.sections ?? [],
                         effectiveSelection.bucket,
-                        effectiveSelection.slMode,
                         isSeparateAllBucketsSelection,
                         noDataLabel
                     )
@@ -2238,6 +1951,13 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                                             })
 
                                             return resolved.description
+                                        },
+                                        resolveTooltip: () => {
+                                            const resolved = getPolicyBranchMegaTerm(term.key, {
+                                                locale: termsLocale
+                                            })
+
+                                            return resolved.tooltip
                                         }
                                     }))}
                                     enhanceDomainTerms
@@ -2267,7 +1987,7 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                                                 part: entry.part
                                             })
                                         }
-                                        description={resolveMergedMegaDescriptionForPart(
+                                        description={resolveMegaDescriptionForPart(
                                             entry.part,
                                             effectiveSelection.slMode,
                                             (key, options) => t(key, options)
@@ -2777,7 +2497,7 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
             modeMoneySummarySlice ?
                 {
                     key: 'mode-money-summary-slice',
-                    label: t('policyBranchMega.page.modeMoneySummary.slice.label', { defaultValue: 'Slice' }),
+                    label: t('policyBranchMega.page.modeMoneySummary.slice.label'),
                     value: modeMoneySummarySlice,
                     onChange: next => setModeMoneySummarySlice(next),
                     options: modeMoneySummaryAvailableSlices.map(slice => ({
@@ -2804,6 +2524,8 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
             return null
         }
 
+        const metricLabel = (metricKey: string) =>
+            resolveModeMoneyMetricLabel(summary.moneyMetricDescriptors, metricKey)
         const columnDefinitions = [
             { key: 'mode', label: t('policyBranchMega.page.modeMoneySummary.columns.mode') },
             { key: 'slice', label: t('policyBranchMega.page.modeMoneySummary.columns.slice') },
@@ -2819,22 +2541,22 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                 label: t('policyBranchMega.page.modeMoneySummary.columns.predictionQuality')
             },
             { key: 'diagnostics', label: t('policyBranchMega.page.modeMoneySummary.columns.diagnostics') },
-            { key: 'totalReturn', label: t('policyBranchMega.page.modeMoneySummary.columns.totalReturn') },
-            { key: 'totalPnlUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.totalPnlUsd') },
+            { key: 'totalPnlPct', label: metricLabel('TotalPnlPct') },
+            { key: 'totalPnlUsd', label: metricLabel('TotalPnlUsd') },
             {
                 key: 'startCapitalUsd',
-                label: t('policyBranchMega.page.modeMoneySummary.columns.startCapitalUsd')
+                label: metricLabel('StartCapitalUsd')
             },
-            { key: 'equityNowUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.equityNowUsd') },
-            { key: 'withdrawnUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.withdrawnUsd') },
-            { key: 'fundingNetUsd', label: t('policyBranchMega.page.modeMoneySummary.columns.fundingNetUsd') },
-            { key: 'maxDrawdown', label: t('policyBranchMega.page.modeMoneySummary.columns.maxDrawdown') },
-            { key: 'sharpe', label: t('policyBranchMega.page.modeMoneySummary.columns.sharpe') },
+            { key: 'equityNowUsd', label: metricLabel('EquityNowUsd') },
+            { key: 'withdrawnUsd', label: metricLabel('WithdrawnTotalUsd') },
+            { key: 'fundingNetUsd', label: metricLabel('FundingNetUsd') },
+            { key: 'effectiveMaxDdPct', label: metricLabel(MODE_MONEY_EFFECTIVE_MAX_DD_METRIC_KEY) },
+            { key: 'sharpe', label: metricLabel('Sharpe') },
             {
                 key: 'realLiquidations',
-                label: t('policyBranchMega.page.modeMoneySummary.columns.realLiquidations')
+                label: metricLabel('RealLiquidationCount')
             },
-            { key: 'accountRuins', label: t('policyBranchMega.page.modeMoneySummary.columns.accountRuins') },
+            { key: 'accountRuins', label: metricLabel('AccountRuinCount') },
             { key: 'sourcePath', label: t('policyBranchMega.page.modeMoneySummary.columns.sourcePath') }
         ] satisfies Array<{ key: ModeMoneySummaryColumnKey; label: string }>
 
@@ -2842,11 +2564,16 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
             row => row.modeKey === activeMode && row.sliceKey === modeMoneySummarySlice
         )
         const hasDiagnosticRows = filteredRows.some(row => row.sourceStatus === 'diagnostic')
+        const compactColumnKeys = new Set(MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS)
+        if (hasDiagnosticRows) {
+            compactColumnKeys.add('trades')
+            compactColumnKeys.add('diagnostics')
+        }
+
         const visibleColumns =
-            hasDiagnosticRows ? columnDefinitions.filter(column => MODE_MONEY_SUMMARY_DIAGNOSTIC_COLUMN_KEYS.has(column.key))
-            : modeMoneySummaryView === 'compact' ?
-                columnDefinitions.filter(column => MODE_MONEY_SUMMARY_COMPACT_COLUMN_KEYS.has(column.key))
-            :   columnDefinitions
+            modeMoneySummaryView === 'compact' ?
+                columnDefinitions.filter(column => compactColumnKeys.has(column.key))
+            :   columnDefinitions.filter(column => hasDiagnosticRows || column.key !== 'diagnostics')
 
         const rows = filteredRows.map(row => {
             const sourceLabel = resolveModeMoneySummarySourceKindLabel(row.moneySourceKind, key => t(key))
@@ -2873,40 +2600,40 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                     key => t(key)
                 ),
                 diagnostics: () => formatModeMoneyDiagnostic(row, i18n.language, (key, options) => t(key, options)),
-                totalReturn: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                totalPnlPct: () => {
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyPercent(metrics.totalPnlPct, i18n.language, 'moneyMetrics.totalPnlPct')
                 },
                 totalPnlUsd: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyUsd(metrics.totalPnlUsd, i18n.language, 'moneyMetrics.totalPnlUsd')
                 },
                 startCapitalUsd: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyUsd(metrics.startCapitalUsd, i18n.language, 'moneyMetrics.startCapitalUsd')
                 },
                 equityNowUsd: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyUsd(metrics.equityNowUsd, i18n.language, 'moneyMetrics.equityNowUsd')
                 },
                 withdrawnUsd: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyUsd(metrics.withdrawnTotalUsd, i18n.language, 'moneyMetrics.withdrawnTotalUsd')
                 },
                 fundingNetUsd: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyUsd(metrics.fundingNetUsd, i18n.language, 'moneyMetrics.fundingNetUsd')
                 },
-                maxDrawdown: () => {
-                    const { maxDrawdownPct } = requireAvailableModeMoneyMetricsForRender(row)
+                effectiveMaxDdPct: () => {
+                    const { maxDrawdownPct } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyPercent(maxDrawdownPct, i18n.language, 'maxDrawdownPct')
                 },
                 sharpe: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyDecimal(metrics.sharpe, i18n.language, 'moneyMetrics.sharpe', 3)
                 },
                 realLiquidations: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyInteger(
                         metrics.realLiquidationCount,
                         i18n.language,
@@ -2914,7 +2641,7 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                     )
                 },
                 accountRuins: () => {
-                    const { metrics } = requireAvailableModeMoneyMetricsForRender(row)
+                    const { metrics } = resolveModeMoneyMetricsForRender(row)
                     return formatModeMoneyInteger(
                         metrics.accountRuinCount,
                         i18n.language,
@@ -3155,6 +2882,11 @@ function FixedSplitPolicyBranchMegaPage({ className }: PolicyBranchMegaPageProps
                                     </li>
                                 </ul>
                             </div>
+
+                            <ModeMoneySummaryPanel
+                                mode={activeMode}
+                                reportSlice={modeMoneySummarySlice}
+                            />
 
                             <PageSectionDataState
                                 isLoading={modeCatalogQuery.isLoading || modeMoneySummaryQuery.isLoading}

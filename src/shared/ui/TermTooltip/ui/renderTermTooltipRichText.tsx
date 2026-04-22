@@ -1067,7 +1067,7 @@ const TERM_TOOLTIP_MATCHER_FIXTURES: MatcherFixture[] = [
     },
     {
         id: 'trade-count',
-        text: 'Tr, PnL и DD пересчитываются',
+        text: 'TradesCount, PnL и DD пересчитываются',
         expectedRuleIds: ['trade-count', 'pnl', 'dd']
     },
     {

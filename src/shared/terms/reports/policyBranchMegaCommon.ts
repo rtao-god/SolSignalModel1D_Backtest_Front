@@ -11,8 +11,7 @@ import {
     START_CAP_DESCRIPTION,
     ON_EXCHANGE_PCT_DESCRIPTION,
     SORTINO_DESCRIPTION,
-    TOTAL_PNL_DESCRIPTION,
-    WEALTH_PCT_DESCRIPTION
+    TOTAL_PNL_DESCRIPTION
 } from '@/shared/terms/common'
 
 export interface PolicyBranchMegaSharedTermDraft {
@@ -42,11 +41,6 @@ export const POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS: Record<string, PolicyBranchM
         title: 'TotalPnl%',
         description: TOTAL_PNL_DESCRIPTION
     },
-    'Wealth%': {
-        key: 'Wealth%',
-        title: 'Wealth%',
-        description: WEALTH_PCT_DESCRIPTION
-    },
     'OnExch%': {
         key: 'OnExch%',
         title: 'OnExch%',
@@ -67,14 +61,14 @@ export const POLICY_BRANCH_MEGA_COMMON_TERM_DRAFTS: Record<string, PolicyBranchM
         title: 'Calmar',
         description: CALMAR_DESCRIPTION
     },
-    StartCap$: {
-        key: 'StartCap$',
-        title: 'StartCap$',
+    StartCapitalUsd: {
+        key: 'StartCapitalUsd',
+        title: 'StartCapitalUsd',
         description: START_CAP_DESCRIPTION
     },
-    AccRuin: {
-        key: 'AccRuin',
-        title: 'AccRuin',
+    AccountRuinCount: {
+        key: 'AccountRuinCount',
+        title: 'AccountRuinCount',
         description: ACCOUNT_RUIN_DESCRIPTION
     },
     Recovered: {

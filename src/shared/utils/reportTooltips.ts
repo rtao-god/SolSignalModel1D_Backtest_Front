@@ -14,7 +14,6 @@ import {
     WITHDRAWN_PROFIT_DESCRIPTION
 } from '@/shared/consts/tooltipDomainTerms'
 import { resolveCommonReportColumnTooltipOrNull } from '@/shared/terms/common'
-import { resolveDiagnosticsReportTermTooltipOrNull } from '@/shared/terms/reports/diagnostics'
 import i18n from '@/shared/configs/i18n/i18n'
 import { normalizeErrorLike } from '@/shared/lib/errors/normalizeError'
 import { logError } from '@/shared/lib/logging/logError'
@@ -39,6 +38,12 @@ import {
 export { BACKTEST_EXECUTION_PIPELINE_COLUMN_KEYS, BACKTEST_EXECUTION_PIPELINE_KEY_KEYS }
 
 export type ReportTooltipLocale = 'ru' | 'en'
+
+export interface ReportColumnTooltipContext {
+    sectionKey?: string
+    columnKey?: string
+    termKey?: string
+}
 
 function normalizeKey(value: string | undefined | null): string {
     if (!value) return ''
@@ -78,13 +83,10 @@ const CURRENT_PREDICTION_TOOLTIP_SELF_ALIASES: Record<string, string[]> = {
     бакет: ['Bucket', 'bucket'],
     leverage: ['Leverage', 'leverage', 'плечо'],
     плечо: ['Leverage', 'leverage', 'плечо'],
-    trades: ['Trades', 'trades'],
-    'totalpnl%': ['TotalPnl%', 'total-pnl', 'Total return, %'],
-    'total return, %': ['TotalPnl%', 'total-pnl'],
-    'maxdd%': ['MaxDD%', 'drawdown', 'Max drawdown, %'],
-    'max drawdown, %': ['MaxDD%', 'drawdown'],
-    hadliq: ['HadLiq', 'Had liquidation', 'had liquidation'],
-    'had liquidation': ['HadLiq', 'Had liquidation'],
+    trades: ['TradesCount', 'trade-count'],
+    'totalpnl%': ['TotalPnl%', 'total-pnl'],
+    'maxdd%': ['MaxDD%', 'drawdown'],
+    hadliquidation: ['HadLiquidation'],
     'основная модель (daily)': ['Daily', 'current-prediction-daily-layer'],
     'primary model (daily)': ['Daily', 'current-prediction-daily-layer'],
     'daily (основная модель)': ['Daily', 'current-prediction-daily-layer'],
@@ -118,7 +120,7 @@ export function resolveReportTooltipSelfAliases(reportKind: string | undefined, 
 
 const BACKTEST_SUMMARY_COLUMNS: Record<string, string> = {
     Name: 'Name — системное название торговой конфигурации в активном наборе политик.\n\nЧто показывает поле:\nэто идентификатор конкретной комбинации правил входа, выхода и риска, с которой строка попала в сводку.\n\nКак читать:\nпо одному Name нельзя делать вывод о доходности. Название нужно использовать как ключ для сопоставления этой строки с [[policy|Policy]], [[branch|Branch]] и итоговыми метриками риска ниже в таблице.',
-    Type: 'Type — класс торговой логики, к которому относится текущая политика.\n\nЧто показывает поле:\nоно отделяет один стиль работы стратегии от другого: где-то правила опираются на фиксированный риск, где-то на более адаптивное поведение.\n\nКак читать:\nType удобен для группировки похожих политик перед сравнением. Сам по себе он не отвечает, какая стратегия лучше; итог всё равно нужно проверять по [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]] и [[liquidation|HadLiq]].',
+    Type: 'Type — класс торговой логики, к которому относится текущая политика.\n\nЧто показывает поле:\nоно отделяет один стиль работы стратегии от другого: где-то правила опираются на фиксированный риск, где-то на более адаптивное поведение.\n\nКак читать:\nType удобен для группировки похожих политик перед сравнением. Сам по себе он не отвечает, какая стратегия лучше; итог всё равно нужно проверять по [[total-pnl|TotalPnl%]], [[drawdown|MaxDD%]] и [[liquidation|HadLiquidation]].',
     Leverage: LEVERAGE_DESCRIPTION,
     MarginMode:
         'MarginMode — режим маржи, с которым политика проходит симуляцию.\n\nЧто показывает поле:\nоно отвечает, использует ли позиция только свой отдельный залог или может тянуть общий баланс бакета при сильном убытке.\n\nКак читать:\n[[isolated-margin|Isolated]] ограничивает риск рамками одной сделки, а [[cross-margin|Cross]] распределяет риск на общий баланс. Поэтому одинаковая ошибка направления при одном и том же [[leverage|плече]] может иметь разную цену для капитала.',
@@ -126,10 +128,10 @@ const BACKTEST_SUMMARY_COLUMNS: Record<string, string> = {
     Margin: MARGIN_DESCRIPTION,
     Branch: BRANCH_DESCRIPTION,
     StopLoss: SL_MODE_TERM_DESCRIPTION,
-    TotalPnlPct: TOTAL_PNL_DESCRIPTION,
-    MaxDdPct: DRAWDOWN_DESCRIPTION,
-    Trades: TRADE_COUNT_DESCRIPTION,
-    WithdrawnTotal: WITHDRAWN_PROFIT_DESCRIPTION,
+    'TotalPnl%': TOTAL_PNL_DESCRIPTION,
+    'MaxDD%': DRAWDOWN_DESCRIPTION,
+    TradesCount: TRADE_COUNT_DESCRIPTION,
+    WithdrawnTotalUsd: WITHDRAWN_PROFIT_DESCRIPTION,
     HadLiquidation: LIQUIDATION_DESCRIPTION,
     TradesBySource:
         'TradesBySource — разрез сделок по источнику сигнала внутри одной и той же политики.\n\nЧто показывает поле:\nтаблица отделяет, какой слой реально доводил сигнал до сделки: основной дневной вход, отложенный вход или другой источник исполнения внутри текущего отчёта.\n\nКак читать:\nесли один источник доминирует, именно он формирует основную статистику политики. Если сделки распределены неравномерно, итоговую доходность и риск стоит читать с поправкой на то, какой источник реально торговал.'
@@ -190,7 +192,7 @@ const CURRENT_PREDICTION_TOTAL_PNL_DESCRIPTION = `${TOTAL_PNL_DESCRIPTION}\n\nН
 const CURRENT_PREDICTION_WITHDRAWN_DESCRIPTION = `${WITHDRAWN_PROFIT_DESCRIPTION}\n\nНа этой странице:\nполе показывает накопленную выведенную прибыль именно этой торговой политики в выбранном срезе.`
 
 const CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION =
-    'HadLiq — флаг, были ли у этой торговой политики хотя бы одни [[liquidation|ликвидации]] в выбранном срезе.\n\nДаже одно положительное значение означает, что стратегия хотя бы раз дошла до аварийного закрытия биржей, а не закончила сделку по своему обычному плану риска.\n\nКак читать:\nполе нужно смотреть вместе с [[total-pnl|TotalPnl%]] и [[drawdown|MaxDD%]]. Положительный итог при HadLiq=true всё равно означает тяжёлый хвостовой риск.'
+    'HadLiquidation — флаг, были ли у этой торговой политики хотя бы одни [[liquidation|ликвидации]] в выбранном срезе.\n\nДаже одно положительное значение означает, что стратегия хотя бы раз дошла до аварийного закрытия биржей, а не закончила сделку по своему обычному плану риска.\n\nКак читать:\nполе нужно смотреть вместе с [[total-pnl|TotalPnl%]] и [[drawdown|MaxDD%]]. Положительный итог при HadLiquidation=true всё равно означает тяжёлый хвостовой риск.'
 
 const CURRENT_PREDICTION_POSITION_QTY_DESCRIPTION =
     'Размер позиции, qty — сколько единиц инструмента реально вошло в сделку.\n\nДля торговой пары это физическое количество базового актива в позиции. Поле получается из номинала позиции и цены входа.\n\nКак читать:\nесли при похожей цене входа qty растёт, стратегия контролирует больший объём рынка и сильнее реагирует на каждое движение цены.'
@@ -293,11 +295,11 @@ const CURRENT_PREDICTION_COLUMNS: Record<string, string> = {
     'Капитал бакета, $': 'Размер капитала выбранного бакета на момент расчёта сделки.',
     'Ставка, $': 'Сколько долларов капитала бакета реально поставлено в эту сделку.',
     'Ставка, %': 'Доля капитала бакета, поставленная в сделку (Stake$ / BucketCapital$ * 100).',
-    Trades: CURRENT_PREDICTION_TRADES_DESCRIPTION,
+    TradesCount: CURRENT_PREDICTION_TRADES_DESCRIPTION,
     'TotalPnl%': CURRENT_PREDICTION_TOTAL_PNL_DESCRIPTION,
     'MaxDD%': 'Максимальная просадка политики в процентах.',
-    HadLiq: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION,
-    Withdrawn$: CURRENT_PREDICTION_WITHDRAWN_DESCRIPTION,
+    HadLiquidation: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION,
+    WithdrawnTotalUsd: CURRENT_PREDICTION_WITHDRAWN_DESCRIPTION,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION,
     'Человеческое описание':
@@ -341,11 +343,11 @@ Object.assign(CURRENT_PREDICTION_COLUMNS, {
         'Ставка, $ — сколько долларов капитала bucket реально было выделено под эту сделку как залог.\n\nЭто не полный размер позиции на рынке, а именно тот капитал, который политика поставила на риск до применения плеча.\n\nЧитать показатель нужно вместе со Ставкой, % и Плечом: маленькая ставка при большом плече всё ещё может давать крупную экспозицию.',
     'Ставка, %':
         'Ставка, % — доля капитала bucket, которую политика поставила на эту сделку.\n\nПоле отвечает на вопрос, насколько агрессивно расходуется текущий баланс: 5% и 35% — это принципиально разные режимы риска.\n\nЕсли стратегия часто ошибается, именно высокий Stake, % ускоряет просадку и путь к руине рабочего капитала.',
-    Trades: CURRENT_PREDICTION_TRADES_DESCRIPTION,
+    TradesCount: CURRENT_PREDICTION_TRADES_DESCRIPTION,
     'TotalPnl%': CURRENT_PREDICTION_TOTAL_PNL_DESCRIPTION,
     'MaxDD%':
         'MaxDD% — максимальная просадка капитала политики от локального пика до следующего минимума.\n\nЭто главный ответ на вопрос, насколько тяжёлый провал стратегия переживала на пути к своему итоговому результату.\n\nДаже если TotalPnl% высокий, большой MaxDD% означает, что путь к этому результату был болезненным для реального счёта.',
-    HadLiq: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION,
+    HadLiquidation: CURRENT_PREDICTION_HAD_LIQ_DESCRIPTION,
     Тип: CURRENT_PREDICTION_FACTOR_TYPE_DESCRIPTION,
     Имя: CURRENT_PREDICTION_FACTOR_NAME_DESCRIPTION,
     'Человеческое описание':
@@ -410,9 +412,6 @@ Object.assign(CURRENT_PREDICTION_COLUMNS, {
     'Bucket capital, $': CURRENT_PREDICTION_COLUMNS['Капитал бакета, $'],
     'Stake, $': CURRENT_PREDICTION_COLUMNS['Ставка, $'],
     'Stake, %': CURRENT_PREDICTION_COLUMNS['Ставка, %'],
-    'Total return, %': CURRENT_PREDICTION_COLUMNS['TotalPnl%'],
-    'Max drawdown, %': CURRENT_PREDICTION_COLUMNS['MaxDD%'],
-    'Had liquidation': CURRENT_PREDICTION_COLUMNS.HadLiq
 })
 
 export const CURRENT_PREDICTION_COLUMN_KEYS = Object.freeze(Object.keys(CURRENT_PREDICTION_COLUMNS))
@@ -506,12 +505,12 @@ const CURRENT_PREDICTION_KEYS: Record<string, string> = {
     'Максимум за 24ч от входа, %': 'Максимальное движение вверх относительно цены входа за окно 24ч.',
     'Минимум за 24ч от входа, %': 'Максимальное движение вниз относительно цены входа за окно 24ч.',
     'Диапазон high-low за 24ч, %': 'Ширина диапазона MaxHigh24 - MinLow24 относительно цены входа, в процентах.',
-    'Факт MinMove за 24ч':
-        'Реализованный MinMove по forward-окну (omniscient/backfilled). В causal/live не используется.',
-    'Прогнозный MinMove (causal)':
-        'Прогнозный MinMove (causal) — тот [[min-move|MinMove]], который был доступен модели в момент прогноза в [[causal-term|казуальном]] режиме, без знания будущего.',
-    'Δ MinMove (факт - прогноз)':
-        'Разница между реализованным и прогнозным MinMove, в процентных пунктах.\n\nПоложительное значение означает, что рынок в итоге оказался подвижнее, чем ожидалось [[causal-term|казуально]].\n\nОтрицательное значение означает, что модель заранее ожидала более сильное движение, чем рынок реально показал.',
+    'Факт MinMove за 24ч (log)':
+        'Реализованный MinMove по forward-окну (omniscient/backfilled) в owner log-метрике. В causal/live не используется.\n\nВ UI дополнительно показываются эквивалентные +up / -down ценовые барьеры от входа.',
+    'Прогнозный MinMove (causal, log)':
+        'Прогнозный MinMove (causal, log) — тот [[min-move|MinMove]], который был доступен модели в момент прогноза в [[causal-term|казуальном]] режиме, без знания будущего, и выражен в owner log-метрике.',
+    'Δ MinMove (факт - прогноз, log)':
+        'Разница между реализованным и прогнозным MinMove в owner log-единицах.\n\nПоложительное значение означает, что рынок в итоге оказался подвижнее, чем ожидалось [[causal-term|казуально]].\n\nОтрицательное значение означает, что модель заранее ожидала более сильное движение, чем рынок реально показал.',
     'Вероятность фактического исхода (Total)':
         'Какую вероятность в слое Total модель давала тому классу, который потом случился по факту.',
     'Источник факта':
@@ -573,12 +572,9 @@ Object.assign(CURRENT_PREDICTION_KEYS, {
         'Минимум за 24ч от входа, % — насколько глубоко цена уходила вниз относительно точки входа за эти 24 часа.\n\nЭто измерение фактической неблагоприятной амплитуды дня.\n\nПоле помогает оценить, какой реальный стресс выдерживала бы позиция даже в случае положительного итога к закрытию.',
     'Диапазон high-low за 24ч, %':
         'Диапазон high-low за 24ч, % — полная ширина внутридневного диапазона от минимальной до максимальной цены внутри окна 24 часов.\n\nМетрика показывает, насколько волатильным был сам день, независимо от того, где он закрылся.\n\nЧем выше число, тем тяжелее день для точного directional-прогноза и тем важнее правильная risk-настройка.',
-    'Факт MinMove за 24ч':
-        'Факт MinMove за 24ч — уже реализованный MinMove по реальному forward-окну.\n\nЭто фактическая версия того порога движения, который задним числом оказался в рынке за эти сутки.\n\nСравнение этого поля с causal-версией показывает, насколько хорошо модель заранее оценивала будущую значимость движения.',
-    'Прогнозный MinMove (causal)':
-        'Прогнозный MinMove (causal) — тот [[min-move|MinMove]], который был доступен модели именно в момент прогноза без знания будущего.\n\nЭто честная [[causal-term|казуальная]] оценка ожидаемого движения на момент решения.\n\nПо нему можно понять, насколько агрессивным или осторожным был прогноз относительно реального последующего дня.',
-    'Δ MinMove (факт - прогноз)':
-        'Δ MinMove (факт - прогноз) — разница между реально реализованным движением и тем [[min-move|MinMove]], который модель видела заранее.\n\nПоложительное значение означает, что рынок в итоге оказался подвижнее, чем ожидалось [[causal-term|казуально]].\n\nОтрицательное значение означает, что модель заранее ожидала более сильное движение, чем рынок реально показал.',
+    'Факт MinMove за 24ч (log)': CURRENT_PREDICTION_KEYS['Факт MinMove за 24ч (log)'],
+    'Прогнозный MinMove (causal, log)': CURRENT_PREDICTION_KEYS['Прогнозный MinMove (causal, log)'],
+    'Δ MinMove (факт - прогноз, log)': CURRENT_PREDICTION_KEYS['Δ MinMove (факт - прогноз, log)'],
     'Вероятность фактического исхода (Total)':
         'Вероятность фактического исхода (Total) — какую вероятность итоговый слой Total заранее давал тому сценарию, который потом действительно произошёл.\n\nЭто одно из самых полезных полей для анализа ошибок: оно показывает, был ли реальный исход совсем «чужим» для модели или всё же входил в её альтернативные гипотезы.\n\nЕсли значение высокое даже при расхождении по top-1 прогнозу, ошибка была скорее в ранжировании сценариев, а не в полном непонимании дня.',
     'Статус прогноза':
@@ -614,9 +610,9 @@ Object.assign(
             'Максимум за 24ч от входа, %',
             'Минимум за 24ч от входа, %',
             'Диапазон high-low за 24ч, %',
-            'Факт MinMove за 24ч',
-            'Прогнозный MinMove (causal)',
-            'Δ MinMove (факт - прогноз)',
+            'Факт MinMove за 24ч (log)',
+            'Прогнозный MinMove (causal, log)',
+            'Δ MinMove (факт - прогноз, log)',
             'Вероятность фактического исхода (Total)',
             'Источник факта'
         ].map(key => [
@@ -662,9 +658,9 @@ Object.assign(CURRENT_PREDICTION_KEYS, {
     '24h max from entry, %': CURRENT_PREDICTION_KEYS['Максимум за 24ч от входа, %'],
     '24h min from entry, %': CURRENT_PREDICTION_KEYS['Минимум за 24ч от входа, %'],
     '24h high-low range, %': CURRENT_PREDICTION_KEYS['Диапазон high-low за 24ч, %'],
-    'Actual MinMove over 24h': CURRENT_PREDICTION_KEYS['Факт MinMove за 24ч'],
-    'Forecast MinMove (causal)': CURRENT_PREDICTION_KEYS['Прогнозный MinMove (causal)'],
-    'Delta MinMove (actual - forecast)': CURRENT_PREDICTION_KEYS['Δ MinMove (факт - прогноз)'],
+    'Actual MinMove over 24h (log)': CURRENT_PREDICTION_KEYS['Факт MinMove за 24ч (log)'],
+    'Forecast MinMove (causal, log)': CURRENT_PREDICTION_KEYS['Прогнозный MinMove (causal, log)'],
+    'Delta MinMove (actual - forecast, log)': CURRENT_PREDICTION_KEYS['Δ MinMove (факт - прогноз, log)'],
     'Probability of actual outcome (Total)': CURRENT_PREDICTION_KEYS['Вероятность фактического исхода (Total)']
 })
 
@@ -1064,7 +1060,7 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
         'StartDay — первая UTC-дата, которая реально вошла в расчёт этой строки.\n\nПоле задаёт левую границу окна, по которому считались дни, сделки и итоговые доли.\n\nКак читать:\nStartDay имеет смысл только вместе с EndDay. Сравнивать две строки по процентам корректно тогда, когда их окно дат совпадает или когда различие периода осознанно вынесено в анализ.',
     EndDay: 'EndDay — последняя UTC-дата, которая реально вошла в расчёт этой строки.\n\nЕсли серия завершилась раньше общего окна отчёта, здесь фиксируется фактическая дата остановки, а не теоретический конец полного диапазона.\n\nКак читать:\nEndDay вместе с StartDay показывает, на каком именно периоде построена текущая диагностика.',
     StopReason:
-        'StopReason — почему текущая серия закончилась именно на этой дате.\n\nЧто показывает поле:\n- До конца периода — серия дошла до последнего дня окна; это нормальное завершение без ранней остановки.\n- Early stop — серия закончилась раньше полного окна.\n- Liquidation — внутри этой серии были [[liquidation|ликвидации]].\n- Ruin — бакет потерял рабочий капитал и сработал сценарий [[account-ruin|AccRuin]].\n\nКак читать:\nесли в тексте есть early stop, серия оборвалась раньше полного периода.\n\nЕсли в тексте есть liquidation, остановка сопровождалась аварийными закрытиями биржей.\n\nЕсли в тексте есть ruin, причина уже не в одной сделке, а в разрушении рабочего капитала бакета.\n\nДля агрегата нескольких независимых бакетов единый StopReason может быть неприменим, потому что у каждого бакета своя собственная точка остановки.',
+        'StopReason — почему текущая серия закончилась именно на этой дате.\n\nЧто показывает поле:\n- До конца периода — серия дошла до последнего дня окна; это нормальное завершение без ранней остановки.\n- Early stop — серия закончилась раньше полного окна.\n- Liquidation — внутри этой серии были [[liquidation|ликвидации]].\n- Ruin — бакет потерял рабочий капитал и сработал сценарий [[account-ruin|AccountRuinCount]].\n\nКак читать:\nесли в тексте есть early stop, серия оборвалась раньше полного периода.\n\nЕсли в тексте есть liquidation, остановка сопровождалась аварийными закрытиями биржей.\n\nЕсли в тексте есть ruin, причина уже не в одной сделке, а в разрушении рабочего капитала бакета.\n\nДля агрегата нескольких независимых бакетов единый StopReason может быть неприменим, потому что у каждого бакета своя собственная точка остановки.',
     MissingDays:
         'MissingDays — сколько календарных дней отсутствует внутри интервала от StartDay до EndDay.\n\nЭто не доля no-trade и не осознанный пропуск стратегии. Метрика показывает именно разрывы покрытия данных или дневного журнала решений.\n\nКак читать:\nдля будних дней нормальное значение обычно должно быть около нуля. Рост MissingDays означает, что часть периода не была доступна для полноценного расчёта и строку нужно читать осторожнее.',
     'TradeDays%':
@@ -1073,8 +1069,8 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
         'CapApplied — сколько дней система реально применяла [[cap-fraction|ограничение доли капитала на сделку]].\n\nПоле считает только дни, где размер позиции был построен через рабочее cap-правило и не остался нулевым.\n\nКак читать:\nчем выше CapApplied относительно общего числа торговых дней, тем чаще стратегия действительно входила в рынок с ненулевым рабочим размером позиции.',
     CapSkipped:
         'CapSkipped — сколько дней были отброшены по первопричине [[cap-fraction|нулевой доли капитала на сделку]].\n\nЭто не любой no-trade день. В bucket-диагностике сюда попадают только дни, где именно cap_zero стал главной причиной отказа от входа.\n\nКак читать:\nрост CapSkipped означает, что стратегия всё чаще считает день слишком слабым или слишком рискованным даже для минимального рабочего размера позиции.',
-    'MaxDD_NoLiq%':
-        'MaxDD_NoLiq% — максимальная [[drawdown|просадка]] после исключения ликвидационных эпизодов из кривой.\n\nМетрика нужна, чтобы отделить обычную глубину неудачных серий от аварийных провалов, которые пришли именно через [[liquidation|ликвидации]].\n\nКак читать:\nесли MaxDD% намного хуже, чем MaxDD_NoLiq%, основной удар по капиталу пришёлся именно на ликвидационные события. Если числа близки, проблема глубже и сидит в обычной логике входов и выходов, а не только в аварийных закрытиях.',
+    'MaxDDNoLiq%':
+        'MaxDDNoLiq% — максимальная [[drawdown|просадка]] после исключения ликвидационных эпизодов из кривой.\n\nМетрика нужна, чтобы отделить обычную глубину неудачных серий от аварийных провалов, которые пришли именно через [[liquidation|ликвидации]].\n\nКак читать:\nесли MaxDD% намного хуже, чем MaxDDNoLiq%, основной удар по капиталу пришёлся именно на ликвидационные события. Если числа близки, проблема глубже и сидит в обычной логике входов и выходов, а не только в аварийных закрытиях.',
     inv_liq_mismatch:
         'inv_liq_mismatch — сколько раз diagnostics нашла несоответствие в инвариантах [[liquidation|ликвидации]].\n\nЭто не обычная торговая метрика доходности. Поле нужно для проверки согласованности trace: достижимость ликвидации, флаги [[liquidation|ликвидации]] и связанная служебная разметка не должны противоречить друг другу.\n\nКак читать:\nнормальное рабочее значение — 0.\n\nЛюбое ненулевое значение означает, что в текущем срезе есть строки, где liquidation-семантика требует перепроверки данных или расчётной логики.',
     minutes_anomaly:
@@ -1109,7 +1105,7 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
     IsLiq:
         'IsLiq — общий флаг ликвидационного исхода в модели.\n\nОн шире, чем [[real-liquidation|RealLiq]]: строка может считаться ликвидационной не только при строгом касании backtest-уровня, но и при сценарии, где бакет фактически умер на этой сделке.\n\nКак читать:\nесли нужен именно строгий backtest-level факт, смотреть надо на [[real-liquidation|IsRealLiq]] или RealLiq.\n\nЕсли нужен общий аварийный исход по строке, читать нужно именно IsLiq.',
     IsRealLiq:
-        'IsRealLiq — строгий флаг реальной [[liquidation|ликвидации]] на уровне backtest liquidation price.\n\nПо смыслу это техническая boolean-форма того же строгого liquidation-сценария, который в агрегатах потом собирается в [[real-liquidation-count|RealLiq#]].\n\nКак читать:\ntrue означает, что критический уровень был реально достигнут ценой, а не только выведен косвенно из смерти бакета.',
+        'IsRealLiq — строгий флаг реальной [[liquidation|ликвидации]] на уровне backtest liquidation price.\n\nПо смыслу это техническая boolean-форма того же строгого liquidation-сценария, который в агрегатах потом собирается в [[real-liquidation-count|RealLiquidationCount]].\n\nКак читать:\ntrue означает, что критический уровень был реально достигнут ценой, а не только выведен косвенно из смерти бакета.',
     Source:
         'Source — из какого execution-канала пришёл сигнал сделки.\n\nОсновные источники здесь: Daily, DelayedA и DelayedB.\n\nКак читать:\nполе показывает не качество сделки само по себе, а какой именно тип торгового механизма доставил эту строку в рынок.\n\nЭто полезно, когда нужно отделить проблемы основного дневного пути от проблем отложенных входов.',
     DayType:
@@ -1128,8 +1124,8 @@ const DIAGNOSTICS_EXACT: Record<string, string> = {
         'MaxEq$ — максимальное значение equity бакета внутри текущего периода.\n\nЭто верхняя точка пути капитала, от которой затем может считаться падение к MinEq$.\n\nКак читать:\nполе помогает понять, был ли у стратегии локальный пик, после которого начался тяжёлый спад, даже если старт и конец периода выглядят умеренно.',
     'LiqDays#':
         'LiqDays# — сколько дней в текущем срезе содержали ликвидационный исход.\n\nЭто дневной счётчик, а не число отдельных сделок.\n\nКак читать:\nрост значения означает, что liquidation-сценарии были не единичным trade-tail, а повторялись по разным дням периода.',
-    'RealLiq#':
-        'RealLiq# — сколько строк или дней дошли до строгого backtest-уровня [[liquidation|ликвидации]].\n\nЭто агрегированная версия [[real-liquidation|IsRealLiq]] по текущему diagnostics-срезу.\n\nКак читать:\nесли RealLiq# заметно ниже общего LiqDays#, значит часть аварийных исходов возникала как bucket-death без строгого достижения liquidation-price каждой отдельной сделкой.',
+    RealLiquidationCount:
+        'RealLiquidationCount — сколько строк или дней дошли до строгого backtest-уровня [[liquidation|ликвидации]].\n\nЭто агрегированная версия [[real-liquidation|IsRealLiq]] по текущему diagnostics-срезу.\n\nКак читать:\nесли RealLiquidationCount заметно ниже общего LiqDays#, значит часть аварийных исходов возникала как bucket-death без строгого достижения liquidation-price каждой отдельной сделкой.',
     FirstLiqDay:
         'FirstLiqDay — первая дата, на которой в текущем срезе появилась [[liquidation|ликвидация]].\n\nПоле показывает, как рано начался liquidation-tail, а не сколько их было всего.\n\nКак читать:\nранняя дата означает, что риск испортил период почти с самого начала; поздняя — что liquidation-событие было ближе к хвосту окна.',
     LastLiqDay:
@@ -1921,7 +1917,7 @@ function buildDayTypeDescription(prefix: string, metric: string, locale: ReportT
     }
 
     const metricMap: Record<string, string> = {
-        Trades: 'Количество сделок',
+        TradesCount: 'TradesCount',
         'Win%': 'Доля прибыльных сделок',
         'PnL%': 'Суммарная доходность, %',
         'NoTrade%': 'Доля дней без сделок',
@@ -1940,12 +1936,12 @@ function buildDayTypeDescription(prefix: string, metric: string, locale: ReportT
 
     if (locale === 'en') {
         switch (metric) {
-            case 'Trades':
+            case 'TradesCount':
                 return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the raw number of executed trades inside that factual market regime.\n\nHow to read it:\nthis count answers where the strategy is active most often, but activity alone does not mean quality.\n\nExample:\nif trade count is high on FLAT days while PnL% stays weak there, the strategy is active in sideways regime but not effective.`
             case 'Win%':
                 return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of profitable trades inside that factual day regime.\n\nHow to read it:\nread Win% together with PnL% because a high hit rate with weak PnL can still describe small wins and expensive losses.\n\nExample:\nif Win% is decent on DOWN days but PnL% is still negative, the losses on bad trades are dominating the small winners.`
             case 'PnL%':
-                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the total strategy return inside that factual market regime, not the market return of the day itself.\n\nHow to read it:\nthis is the clean answer to whether the strategy actually earns in that regime. It should be read together with Trades and Win%.\n\nExample:\nif PnL% is negative on FLAT days while other regimes stay positive, sideways market is a structural weak zone of the strategy.`
+                return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the total strategy return inside that factual market regime, not the market return of the day itself.\n\nHow to read it:\nthis is the clean answer to whether the strategy actually earns in that regime. It should be read together with TradesCount and Win%.\n\nExample:\nif PnL% is negative on FLAT days while other regimes stay positive, sideways market is a structural weak zone of the strategy.`
             case 'NoTrade%':
                 return `${metricLabel} ${prefixLabel}.\n\nWhat it shows:\nit is the share of days in that regime where the strategy stayed out of the market.\n\nHow to read it:\nhigher values mean the strategy is more defensive or less capable of finding entries in that regime.\n\nExample:\nif NoTrade% spikes on UP days, the system is missing too many profitable trend days.`
             case 'Opp%':
@@ -1964,12 +1960,12 @@ function buildDayTypeDescription(prefix: string, metric: string, locale: ReportT
     }
 
     switch (metric) {
-        case 'Trades':
+        case 'TradesCount':
             return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто сырой счётчик исполненных сделок внутри данного фактического режима рынка.\n\nКак читать:\nметрика отвечает на вопрос, где стратегия чаще всего активна, но сама по себе активность ещё не означает качество.\n\nПример:\nесли сделок много в боковике, а PnL% там слабый, стратегия активна в этом режиме, но зарабатывает плохо.`
         case 'Win%':
             return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля прибыльных сделок внутри данного фактического режима дня.\n\nКак читать:\nWin% нужно смотреть вместе с PnL%, потому что высокая доля побед не спасает, если редкие убытки оказываются слишком тяжёлыми.\n\nПример:\nесли Win% на DOWN-днях нормальный, а PnL% всё равно отрицательный, редкие ошибки в этом режиме стоят слишком дорого.`
         case 'PnL%':
-            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто суммарная доходность стратегии в данном фактическом режиме рынка, а не доходность самого рынка.\n\nКак читать:\nполе даёт прямой ответ, зарабатывает ли стратегия в этом режиме. Его нужно сопоставлять с Trades и Win%.\n\nПример:\nесли PnL% стабильно отрицателен в боковике, именно боковой рынок является структурной слабой зоной стратегии.`
+            return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто суммарная доходность стратегии в данном фактическом режиме рынка, а не доходность самого рынка.\n\nКак читать:\nполе даёт прямой ответ, зарабатывает ли стратегия в этом режиме. Его нужно сопоставлять с TradesCount и Win%.\n\nПример:\nесли PnL% стабильно отрицателен в боковике, именно боковой рынок является структурной слабой зоной стратегии.`
         case 'NoTrade%':
             return `${metricLabel} ${prefixLabel}.\n\nЧто показывает:\nэто доля дней данного режима, где стратегия вообще не вошла в рынок.\n\nКак читать:\nвысокое значение означает, что стратегия в этом режиме чаще уходит в защиту или хуже находит входы.\n\nПример:\nесли NoTrade% резко растёт на UP-днях, система пропускает слишком много прибыльных трендовых дней.`
         case 'Opp%':
@@ -1998,14 +1994,13 @@ function buildDiagnosticsGenericFallbackDescription(key: string, locale: ReportT
 function resolveDiagnosticsColumnTooltip(
     title: string,
     locale: ReportTooltipLocale,
-    sectionTitle?: string
+    sectionTitle?: string,
+    context?: ReportColumnTooltipContext
 ): string | null {
-    const key = normalizeKey(title)
+    const key = normalizeKey(context?.termKey) || normalizeKey(title)
     if (!key) return null
 
-    // Канонические diagnostics-термины сначала идут в shared owner-layer,
-    // чтобы локальный diagnostics-словарь не создавал вторую короткую версию того же смысла.
-    const sharedDiagnosticsTooltip = resolveDiagnosticsReportTermTooltipOrNull(key, locale)
+    const sharedDiagnosticsTooltip = resolveCommonReportColumnTooltipOrNull(key, locale)
     if (sharedDiagnosticsTooltip) {
         return sharedDiagnosticsTooltip
     }
@@ -2036,6 +2031,12 @@ function resolveDiagnosticsColumnTooltip(
         const desc = buildDayTypeDescription(prefix, metric, locale)
         if (desc) return desc
     }
+
+    // Старые day-type trade keys больше не поддерживаются: diagnostics producer публикует только *TradesCount.
+    if (/^(Up|Down|Flat)Trades$/.test(key) || /^(Up|Down|Flat)Trades$/.test(normalizeKey(title))) {
+        return null
+    }
+
     if (/(p50\/p90|P10\/P50\/P90)/.test(key)) {
         if (locale === 'en') {
             return 'Distribution quantiles of the metric.\n\nThey show how the lower, middle, and upper parts of the current sample are arranged.\n\nHow to read it:\ncompare the distance between quantiles to see whether the metric is stable or driven by a heavy tail.'
@@ -2231,9 +2232,10 @@ function resolveReportColumnTooltipUnsafe(
     reportKind: string | undefined,
     sectionTitle: string | undefined,
     columnTitle: string | undefined,
-    locale?: ReportTooltipLocale
+    locale?: ReportTooltipLocale,
+    context?: ReportColumnTooltipContext
 ): string | null {
-    const col = normalizeKey(columnTitle)
+    const col = normalizeKey(context?.termKey) || normalizeKey(columnTitle)
     if (!col) return null
     const resolvedLocale = locale ?? resolveReportTooltipLocale(i18n.resolvedLanguage ?? i18n.language)
     const commonTooltip = resolveCommonReportColumnTooltipOrNull(col, resolvedLocale)
@@ -2284,7 +2286,7 @@ function resolveReportColumnTooltipUnsafe(
             :   `Current prediction report metric: "${col}".`
     }
     if (reportKind === 'backtest_diagnostics') {
-        return resolveDiagnosticsColumnTooltip(col, resolvedLocale, sectionTitle)
+        return resolveDiagnosticsColumnTooltip(col, resolvedLocale, sectionTitle, context)
     }
 
     return commonTooltip
@@ -2331,10 +2333,11 @@ export function resolveReportColumnTooltip(
     reportKind: string | undefined,
     sectionTitle: string | undefined,
     columnTitle: string | undefined,
-    locale?: ReportTooltipLocale
+    locale?: ReportTooltipLocale,
+    context?: ReportColumnTooltipContext
 ): string | null {
     try {
-        return resolveReportColumnTooltipUnsafe(reportKind, sectionTitle, columnTitle, locale)
+        return resolveReportColumnTooltipUnsafe(reportKind, sectionTitle, columnTitle, locale, context)
     } catch (error) {
         logError(normalizeTooltipRuntimeError(error), undefined, {
             source: 'report-tooltip-column',
@@ -2344,7 +2347,8 @@ export function resolveReportColumnTooltip(
                 reportKind,
                 sectionTitle,
                 columnTitle,
-                locale
+                locale,
+                context
             }
         })
         return null

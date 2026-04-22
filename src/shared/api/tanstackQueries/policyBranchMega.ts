@@ -334,19 +334,27 @@ export interface PolicyBranchMegaModeMoneySummaryRowDto {
     completedDayCount: number
     tradeCount: number
     predictionQualityMetrics: PolicyBranchMegaPredictionQualityMetricDto[]
-    moneyMetrics: CompletePolicyPerformanceMetricsDto | null
-    maxDrawdownPct: number | null
+    moneyMetrics: CompletePolicyPerformanceMetricsDto
+    maxDrawdownPct: number
     diagnostic: PolicyBranchMegaModeMoneyDiagnosticDto | null
     sourceArtifactKind: string
     sourceArtifactId: string
     sourceLocationHint: string
-    policyName: string | null
-    policyBranch: string | null
+    policyName: string
+    policyBranch: string
 }
 
 export type PolicyBranchMegaModeMoneySourceStatus = 'available' | 'diagnostic'
 
 export type PolicyBranchMegaPredictionQualityMetricUnit = 'percent' | 'count'
+export type PolicyPerformanceMetricValueKind = 'percent' | 'usd' | 'count' | 'ratio' | 'decimal' | 'boolean'
+
+export interface PolicyPerformanceMetricDescriptorDto {
+    metricKey: string
+    displayLabel: string
+    valueKind: PolicyPerformanceMetricValueKind
+    unit: PolicyPerformanceMetricValueKind
+}
 
 export interface PolicyBranchMegaPredictionQualityMetricDto {
     metricKey: string
@@ -364,6 +372,7 @@ export interface PolicyBranchMegaModeMoneyDiagnosticDto {
 export interface PolicyBranchMegaModeMoneySummaryDto {
     schemaVersion: string
     generatedAtUtc: string
+    moneyMetricDescriptors: PolicyPerformanceMetricDescriptorDto[]
     rows: PolicyBranchMegaModeMoneySummaryRowDto[]
 }
 
@@ -511,7 +520,9 @@ function requireModeMoneySourceStatus(raw: unknown, label: string): PolicyBranch
     )
 }
 
-const MODE_MONEY_SUMMARY_SCHEMA_VERSION = 'mode-money-comparison-summary-v6-2026-04-16'
+const MODE_MONEY_SUMMARY_SCHEMA_VERSION = 'mode-money-comparison-summary-v8-2026-04-17'
+const MODE_MONEY_SOURCE_BEST_POLICY = 'policy_universe_best_policy'
+const MODE_MONEY_SOURCE_DIAGNOSTIC_SLICE = 'diagnostic_slice'
 
 function toPredictionQualityMetricUnit(
     raw: unknown,
@@ -525,6 +536,62 @@ function toPredictionQualityMetricUnit(
     throw new Error(
         `[policy-branch-mega] ${label} has unsupported prediction-quality unit. owner=mode-money-summary; expected=percent|count; actual=${unit}; requiredAction=fix producer instead of extending the consumer parser.`
     )
+}
+
+function toPolicyPerformanceMetricValueKind(
+    raw: unknown,
+    label: string
+): PolicyPerformanceMetricValueKind {
+    const valueKind = toRequiredString(raw, label)
+    if (
+        valueKind === 'percent'
+        || valueKind === 'usd'
+        || valueKind === 'count'
+        || valueKind === 'ratio'
+        || valueKind === 'decimal'
+        || valueKind === 'boolean'
+    ) {
+        return valueKind
+    }
+
+    throw new Error(
+        `[policy-branch-mega] ${label} has unsupported money metric value kind. owner=mode-money-summary; expected=percent|usd|count|ratio|decimal|boolean; actual=${valueKind}; requiredAction=fix backend PolicyPerformanceMetricCatalog and rebuild the mode money summary artifact.`
+    )
+}
+
+function mapMoneyMetricDescriptors(raw: unknown, label: string): PolicyPerformanceMetricDescriptorDto[] {
+    if (!Array.isArray(raw)) {
+        throw new Error(
+            `[policy-branch-mega] ${label} must be an array. owner=mode-money-summary; expected=backend-owned money metric descriptors; actual=${String(raw)}; requiredAction=rebuild mode money summary artifacts from PolicyPerformanceMetricCatalog.`
+        )
+    }
+
+    if (raw.length === 0) {
+        throw new Error(
+            `[policy-branch-mega] ${label} must be non-empty. owner=mode-money-summary; expected=backend-owned money metric descriptors; actual=0; requiredAction=rebuild mode money summary artifacts from PolicyPerformanceMetricCatalog.`
+        )
+    }
+
+    const seen = new Set<string>()
+    return raw.map((item, index) => {
+        const payload = toObject(item)
+        const itemLabel = `${label}[${index}]`
+        const metricKey = toRequiredString(payload.metricKey, `${itemLabel}.metricKey`)
+        if (seen.has(metricKey)) {
+            throw new Error(
+                `[policy-branch-mega] ${itemLabel}.metricKey is duplicated. owner=mode-money-summary; expected=unique backend-owned metric descriptors; actual=${metricKey}; requiredAction=fix backend PolicyPerformanceMetricCatalog before publishing.`
+            )
+        }
+
+        seen.add(metricKey)
+
+        return {
+            metricKey,
+            displayLabel: toRequiredString(payload.displayLabel, `${itemLabel}.displayLabel`),
+            valueKind: toPolicyPerformanceMetricValueKind(payload.valueKind, `${itemLabel}.valueKind`),
+            unit: toPolicyPerformanceMetricValueKind(payload.unit, `${itemLabel}.unit`)
+        }
+    })
 }
 
 function mapPredictionQualityMetrics(
@@ -815,6 +882,7 @@ function mapRequiredModeMoneyPolicyMetrics(
         calmar: requireFinitePolicyMetric(metrics.calmar, `${label}.calmar`),
         winRate: requireFinitePolicyMetric(metrics.winRate, `${label}.winRate`),
         startCapitalUsd: requirePositivePolicyMetric(metrics.startCapitalUsd, `${label}.startCapitalUsd`),
+        onExchPct: requireFinitePolicyMetric(metrics.onExchPct, `${label}.onExchPct`),
         equityNowUsd: requireNonNegativePolicyMetric(metrics.equityNowUsd, `${label}.equityNowUsd`),
         withdrawnTotalUsd: requireNonNegativePolicyMetric(
             metrics.withdrawnTotalUsd,
@@ -1076,19 +1144,14 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
     const label = `modeMoneySummary.rows[${index}]`
     const modeKey = requireModeId(payload.modeKey, `${label}.modeKey`)
     const sliceKey = requireModeReportSliceId(modeKey, payload.sliceKey, `${label}.sliceKey`)
+    const moneySourceKind = toRequiredString(payload.moneySourceKind, `${label}.moneySourceKind`)
     const sourceStatus = requireModeMoneySourceStatus(payload.sourceStatus, `${label}.sourceStatus`)
     const isDiagnostic = sourceStatus === 'diagnostic'
     const diagnostic = mapOptionalModeMoneyDiagnostic(payload.diagnostic, `${label}.diagnostic`)
-    const moneyMetrics =
-        payload.moneyMetrics === null || typeof payload.moneyMetrics === 'undefined' ?
-            null
-        :   mapRequiredModeMoneyPolicyMetrics(payload.moneyMetrics, `${label}.moneyMetrics`)
-    const maxDrawdownPct =
-        payload.maxDrawdownPct === null || typeof payload.maxDrawdownPct === 'undefined' ?
-            null
-        :   toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`)
-    const policyName = toOptionalString(payload.policyName)
-    const policyBranch = toOptionalString(payload.policyBranch)
+    const moneyMetrics = mapRequiredModeMoneyPolicyMetrics(payload.moneyMetrics, `${label}.moneyMetrics`)
+    const maxDrawdownPct = toRequiredNumber(payload.maxDrawdownPct, `${label}.maxDrawdownPct`)
+    const policyName = toRequiredString(payload.policyName, `${label}.policyName`)
+    const policyBranch = toRequiredString(payload.policyBranch, `${label}.policyBranch`)
 
     if (isDiagnostic) {
         if (!diagnostic) {
@@ -1097,9 +1160,9 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
             )
         }
 
-        if (moneyMetrics !== null || maxDrawdownPct !== null || policyName !== null || policyBranch !== null) {
+        if (moneySourceKind !== MODE_MONEY_SOURCE_DIAGNOSTIC_SLICE) {
             throw new Error(
-                `[policy-branch-mega] diagnostic mode-money row contains comparable money fields. owner=mode-money-summary; expected=moneyMetrics/maxDrawdownPct/policyName/policyBranch null; actual=present; context=${label}; requiredAction=fix producer so diagnostic slices cannot masquerade as best-policy money.`
+                `[policy-branch-mega] diagnostic mode-money row has unsupported source kind. owner=mode-money-summary; expected=${MODE_MONEY_SOURCE_DIAGNOSTIC_SLICE}; actual=${moneySourceKind}; context=${label}; requiredAction=fix producer row source kind.`
             )
         }
     } else {
@@ -1109,9 +1172,9 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
             )
         }
 
-        if (moneyMetrics === null || maxDrawdownPct === null || policyName === null || policyBranch === null) {
+        if (moneySourceKind !== MODE_MONEY_SOURCE_BEST_POLICY) {
             throw new Error(
-                `[policy-branch-mega] available mode-money row is missing complete policy fields. owner=mode-money-summary; expected=moneyMetrics/maxDrawdownPct/policyName/policyBranch present; actual=incomplete; context=${label}; requiredAction=rebuild mode money summary artifacts from the shared money contract.`
+                `[policy-branch-mega] available mode-money row has unsupported source kind. owner=mode-money-summary; expected=${MODE_MONEY_SOURCE_BEST_POLICY}; actual=${moneySourceKind}; context=${label}; requiredAction=fix producer row source kind.`
             )
         }
     }
@@ -1119,7 +1182,7 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
     return {
         modeKey,
         sliceKey,
-        moneySourceKind: toRequiredString(payload.moneySourceKind, `${label}.moneySourceKind`),
+        moneySourceKind,
         sourceStatus,
         statusMessage: toRequiredString(payload.statusMessage, `${label}.statusMessage`),
         executionDescriptor: toRequiredString(payload.executionDescriptor, `${label}.executionDescriptor`),
@@ -1130,8 +1193,7 @@ function mapPolicyBranchMegaModeMoneySummaryRow(
         tradeCount: toRequiredInteger(payload.tradeCount, `${label}.tradeCount`),
         predictionQualityMetrics: mapPredictionQualityMetrics(
             payload.predictionQualityMetrics,
-            `${label}.predictionQualityMetrics`,
-            { allowEmpty: isDiagnostic }
+            `${label}.predictionQualityMetrics`
         ),
         moneyMetrics,
         maxDrawdownPct,
@@ -1153,6 +1215,10 @@ function mapPolicyBranchMegaModeMoneySummary(raw: unknown): PolicyBranchMegaMode
     return {
         schemaVersion: requireModeMoneySummarySchemaVersion(payload.schemaVersion),
         generatedAtUtc: toRequiredString(payload.generatedAtUtc, 'modeMoneySummary.generatedAtUtc'),
+        moneyMetricDescriptors: mapMoneyMetricDescriptors(
+            payload.moneyMetricDescriptors,
+            'modeMoneySummary.moneyMetricDescriptors'
+        ),
         rows: payload.rows.map((row, index) => mapPolicyBranchMegaModeMoneySummaryRow(row, index))
     }
 }

@@ -2,15 +2,22 @@ import { tryParseNumberFromString } from '@/shared/ui/SortableTable'
 
 const STOP_REASON_COLUMN_TITLE = 'StopReason'
 const AGGREGATE_STOP_REASON = 'N/A (aggregate of independent buckets)'
-const ACCOUNT_RUIN_COLUMN_TITLE = 'AccRuin'
-const LIQUIDATION_FLAG_COLUMN_TITLE = 'HadLiq'
+const ACCOUNT_RUIN_COLUMN_TITLE = 'AccountRuinCount'
+const LIQUIDATION_FLAG_COLUMN_TITLE = 'HadLiquidation'
 const RECOVERED_COLUMN_TITLE = 'Recovered'
 const RECOVERY_DAYS_COLUMN_TITLE = 'RecovDays'
 const EXIT_REASON_COLUMN_TITLES = new Set(['Exit reason', 'Причина выхода', 'Actual exit reason', 'Фактическая причина выхода'])
-const INTEGER_VALUE_COLUMN_TITLES = new Set(['Days', 'Tr', 'Trades'])
-const BOOLEAN_VALUE_COLUMN_TITLES = new Set(['Recovered', 'BalDead', 'Has direction', 'Skipped', 'Risk day', 'IsLong'])
+const INTEGER_VALUE_COLUMN_TITLES = new Set(['Days', 'TradesCount'])
+const BOOLEAN_VALUE_COLUMN_TITLES = new Set([
+    'Recovered',
+    'BalanceDead',
+    'Has direction',
+    'Skipped',
+    'Risk day',
+    'IsLong'
+])
 const PERCENT_COLUMN_PATTERN = /%|,\s*%$/u
-const MONEY_COLUMN_PATTERN = /\$|,\s*\$/u
+const MONEY_COLUMN_PATTERN = /(?:\$|,\s*\$|Usd)$/u
 
 const STOP_REASON_HEAD_RU: Record<string, string> = {
     'Through end of period': 'До конца периода',
