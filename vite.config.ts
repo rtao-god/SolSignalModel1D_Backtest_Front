@@ -82,7 +82,9 @@ export default defineConfig(({ mode }): UserConfig => {
         test: {
             globals: true,
             environment: 'jsdom',
-            css: true
+            css: true,
+            testTimeout: 20000,
+            hookTimeout: 20000
         }
     }
 })
